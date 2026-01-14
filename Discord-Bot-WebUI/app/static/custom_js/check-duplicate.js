@@ -20,6 +20,8 @@ function initCheckDuplicate() {
     // Handle claim account buttons
     // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const button = e.target.closest('.claim-account-btn');
         if (!button) return;
 
@@ -112,11 +114,15 @@ function initCheckDuplicate() {
     // Add hover effects to duplicate cards
     // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
     document.addEventListener('mouseenter', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const card = e.target.closest('.duplicate-option');
         if (card) card.classList.add('card-hover');
     }, true); // Use capture phase for mouseenter (doesn't bubble)
 
     document.addEventListener('mouseleave', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const card = e.target.closest('.duplicate-option');
         if (card) card.classList.remove('card-hover');
     }, true); // Use capture phase for mouseleave (doesn't bubble)

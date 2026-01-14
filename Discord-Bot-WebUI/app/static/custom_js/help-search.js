@@ -65,6 +65,8 @@ const HelpSearch = {
      */
     setupSearch() {
         document.addEventListener('input', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const searchInput = e.target.closest('[data-action="search-topics"]');
             if (!searchInput) return;
 

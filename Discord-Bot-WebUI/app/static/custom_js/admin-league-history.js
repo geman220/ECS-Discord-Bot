@@ -93,6 +93,8 @@ class AdminLeagueHistoryManager {
      */
     setupClickOutside() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             if (!e.target.closest('.player-search-container')) {
                 const resultsDiv = document.getElementById('playerSearchResults');
                 if (resultsDiv) resultsDiv.classList.remove('show');
@@ -115,6 +117,8 @@ class AdminLeagueHistoryManager {
      */
     setupEventDelegation() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const item = e.target.closest('[data-action="select-player"]');
             if (item && item.classList.contains('js-player-option')) {
                 const playerIndex = parseInt(item.dataset.playerIndex, 10);

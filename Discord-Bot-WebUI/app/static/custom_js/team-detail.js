@@ -71,6 +71,8 @@ if (window.InitSystem.register) {
  */
 export function initializeEventDelegation() {
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const target = e.target.closest('[data-action]');
         if (!target) return;
 
@@ -280,6 +282,8 @@ export function initializeImagePositioning() {
 
     // Delegated mousedown on preview wrapper
     document.addEventListener('mousedown', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         if (e.target.closest('#previewImageWrapper')) {
             startDrag(e);
         }
@@ -291,6 +295,8 @@ export function initializeImagePositioning() {
 
     // Touch support - delegated touchstart
     document.addEventListener('touchstart', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         if (e.target.closest('#previewImageWrapper')) {
             const touch = e.touches[0];
             startDrag({ clientX: touch.clientX, clientY: touch.clientY });

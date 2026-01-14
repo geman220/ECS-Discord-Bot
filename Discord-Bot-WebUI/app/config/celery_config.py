@@ -32,8 +32,6 @@ class CeleryConfig:
         # Automatically expire unprocessed messages
         'fanout_prefix': True,
         'fanout_patterns': True,
-        # Set default message TTL in Redis
-        'master_name': None
     }
     result_backend = os.getenv('CELERY_RESULT_BACKEND', 'redis://redis:6379/0')
     result_backend_transport_options = {
@@ -203,29 +201,14 @@ class CeleryConfig:
 
     # Beat Schedule: periodic tasks and their schedules
     beat_schedule = {
-        # DEPRECATED V1 - Use V2 real-time system instead
-        # 'check-create-match-threads': {
-        #     'task': 'app.tasks.tasks_live_reporting.check_and_create_scheduled_threads',
-        #     'schedule': crontab(minute='*/10'),
-        #     'options': {
-        #         'queue': 'live_reporting',
-        #         'expires': 540
-        #     }
-        # },
-        # 'schedule-live-reporting': {
-        #     'task': 'app.tasks.tasks_live_reporting.schedule_live_reporting',
-        #     'schedule': crontab(minute='*/15'),
-        #     'options': {
-        #         'queue': 'live_reporting',
-        #         'expires': 840
-        #     }
-        # },
         'collect-db-stats': {
             'task': 'app.tasks.monitoring_tasks.collect_db_stats',
-            'schedule': crontab(minute='*/15'),  # Reduced from every 5 to every 15 minutes
+            'schedule': crontab(minute='*/15'),
             'options': {
                 'queue': 'celery',
-                'expires': 840  # Task expires after 14 minutes
+                'expires': 840,
+                'time_limit': 120,
+                'soft_time_limit': 90
             }
         },
         'check-for-session-leaks': {
@@ -233,15 +216,19 @@ class CeleryConfig:
             'schedule': crontab(minute='*/15'),
             'options': {
                 'queue': 'celery',
-                'expires': 840
+                'expires': 840,
+                'time_limit': 120,
+                'soft_time_limit': 90
             }
         },
         'monitor-redis-connections': {
             'task': 'app.tasks.monitoring_tasks.monitor_redis_connections',
-            'schedule': crontab(minute='*/30'),  # Reduced from every 10 to every 30 minutes
+            'schedule': crontab(minute='*/30'),
             'options': {
                 'queue': 'celery',
-                'expires': 1740  # Task expires after 29 minutes
+                'expires': 1740,
+                'time_limit': 120,
+                'soft_time_limit': 90
             }
         },
         'clean-zombie-tasks': {
@@ -249,7 +236,9 @@ class CeleryConfig:
             'schedule': crontab(minute='*/15'),
             'options': {
                 'queue': 'celery',
-                'expires': 840
+                'expires': 840,
+                'time_limit': 120,
+                'soft_time_limit': 90
             }
         },
         # Core Tasks
@@ -258,63 +247,69 @@ class CeleryConfig:
             'schedule': crontab(hour=0, minute=0),
             'options': {
                 'queue': 'celery',
-                'expires': 3540
+                'expires': 3540,
+                'time_limit': 600,
+                'soft_time_limit': 540
             }
         },
         'process-scheduled-messages': {
             'task': 'app.tasks.tasks_rsvp.process_scheduled_messages',
             'schedule': crontab(minute='*/5'),
             'options': {
-                'queue': 'discord',  # Fixed: process_scheduled_messages needs Discord access
-                'expires': 270
+                'queue': 'discord',
+                'expires': 270,
+                'time_limit': 180,
+                'soft_time_limit': 150
             }
         },
         'schedule-weekly-match-availability': {
             'task': 'app.tasks.tasks_rsvp.schedule_weekly_match_availability',
-            'schedule': crontab(day_of_week='1', hour=8, minute=0),  # Every Monday at 8:00 AM
+            'schedule': crontab(day_of_week='1', hour=8, minute=0),
             'options': {
                 'queue': 'discord',
-                'expires': 3600
+                'expires': 3600,
+                'time_limit': 300,
+                'soft_time_limit': 240
             }
         },
         'schedule-ecs-fc-reminders': {
             'task': 'app.tasks.tasks_ecs_fc_scheduled.schedule_ecs_fc_reminders',
-            'schedule': crontab(hour=0, minute=0),  # Daily at midnight
+            'schedule': crontab(hour=0, minute=0),
             'options': {
                 'queue': 'discord',
-                'expires': 3600
+                'expires': 3600,
+                'time_limit': 300,
+                'soft_time_limit': 240
             }
         },
         'post-missing-ecs-fc-rsvps': {
             'task': 'app.tasks.tasks_ecs_fc_scheduled.post_missing_ecs_fc_rsvps',
-            'schedule': crontab(minute=0),  # Run every hour to catch missed RSVP posts
+            'schedule': crontab(minute=0),
             'options': {
                 'queue': 'discord',
-                'expires': 3500
+                'expires': 3500,
+                'time_limit': 300,
+                'soft_time_limit': 240
             }
         },
         'monitor-rsvp-health': {
             'task': 'app.tasks.tasks_rsvp.monitor_rsvp_health',
-            'schedule': crontab(minute='*/30'),  # Run every 30 minutes
+            'schedule': crontab(minute='*/30'),
             'options': {
                 'queue': 'discord',
-                'expires': 1740  # Task expires after 29 minutes
+                'expires': 1740,
+                'time_limit': 180,
+                'soft_time_limit': 150
             }
         },
-        # 'force-discord-rsvp-sync': {
-        #     'task': 'app.tasks.tasks_rsvp.force_discord_rsvp_sync',
-        #     'schedule': crontab(hour='*/4'),  # Run every 4 hours
-        #     'options': {
-        #         'queue': 'discord',
-        #         'expires': 14340  # Task expires after 3 hours 59 minutes
-        #     }
-        # }  # DISABLED: Replaced by smart sync system
         'mobile-analytics-cleanup': {
             'task': 'app.tasks.mobile_analytics_cleanup.cleanup_mobile_analytics_task',
-            'schedule': crontab(hour=2, minute=0),  # Daily at 2 AM PST
+            'schedule': crontab(hour=2, minute=0),
             'options': {
                 'queue': 'celery',
-                'expires': 3540  # Task expires after 59 minutes
+                'expires': 3540,
+                'time_limit': 300,
+                'soft_time_limit': 240
             }
         },
         # ENTERPRISE LIVE REPORTING SYSTEM - Uses dedicated real-time service + match scheduler
@@ -342,55 +337,25 @@ class CeleryConfig:
                 'soft_time_limit': 30
             }
         },
-        # Legacy Robust Live Reporting - DISABLED (V2 is now active)
-        # 'process-active-live-sessions-legacy': removed - V2 is production version
-        # 'cleanup-old-live-sessions': removed - V2 handles session cleanup
-        # TEMPORARILY DISABLED - These new maintenance tasks may be causing connection issues
-        # Clean expired tasks from queues - More Aggressive
-        # 'cleanup-expired-queue-tasks': {
-        #     'task': 'app.tasks.tasks_maintenance.cleanup_expired_queue_tasks',
-        #     'schedule': crontab(minute='*/10'),  # Every 10 minutes (more frequent)
-        #     'options': {
-        #         'queue': 'celery',
-        #         'expires': 540,  # Task expires after 9 minutes
-        #         'priority': 9  # High priority cleanup
-        #     }
-        # },
-        # # Monitor Celery system health
-        # 'monitor-celery-health': {
-        #     'task': 'app.tasks.tasks_maintenance.monitor_celery_health',
-        #     'schedule': crontab(minute='*/3'),  # Every 3 minutes (more frequent monitoring)
-        #     'options': {
-        #         'queue': 'celery',
-        #         'expires': 150,  # Task expires after 2.5 minutes
-        #         'priority': 8  # High priority monitoring
-        #     }
-        # },
-        # # Auto-purge stuck queues (emergency cleanup)
-        # 'emergency-queue-purge': {
-        #     'task': 'app.tasks.tasks_maintenance.emergency_queue_purge',
-        #     'schedule': crontab(minute='*/30'),  # Every 30 minutes
-        #     'options': {
-        #         'queue': 'celery',
-        #         'expires': 1740,  # Task expires after 29 minutes
-        #         'priority': 10  # Highest priority
-        #     }
-        # },
-        # Cache tasks (FIXED: removed double session usage)
+        # Cache tasks
         'update-task-status-cache': {
             'task': 'app.tasks.tasks_cache_management.update_task_status_cache',
-            'schedule': crontab(minute='*/10'),  # Reduced from every 3 to every 10 minutes
+            'schedule': crontab(minute='*/10'),
             'options': {
                 'queue': 'celery',
-                'expires': 540  # Task expires after 9 minutes
+                'expires': 540,
+                'time_limit': 120,
+                'soft_time_limit': 90
             }
         },
         'cache-health-check': {
             'task': 'app.tasks.tasks_cache_management.cache_health_check',
-            'schedule': crontab(minute='*/10'),  # Every 10 minutes
+            'schedule': crontab(minute='*/10'),
             'options': {
                 'queue': 'celery',
-                'expires': 540  # Task expires after 9 minutes
+                'expires': 540,
+                'time_limit': 120,
+                'soft_time_limit': 90
             }
         },
         # Queue Health Monitor - Prevent queue clogging (Enhanced)
@@ -431,49 +396,37 @@ class CeleryConfig:
         # Security maintenance tasks
         'cleanup-security-logs': {
             'task': 'app.tasks.security_cleanup.cleanup_security_logs',
-            'schedule': crontab(hour=1, minute=30),  # Daily at 1:30 AM PST
+            'schedule': crontab(hour=1, minute=30),
             'kwargs': {
-                'retention_days': int(os.getenv('SECURITY_LOG_RETENTION_DAYS', 90))  # Configurable retention
+                'retention_days': int(os.getenv('SECURITY_LOG_RETENTION_DAYS', 90))
             },
             'options': {
                 'queue': 'celery',
-                'expires': 3540  # Task expires after 59 minutes
+                'expires': 3540,
+                'time_limit': 600,
+                'soft_time_limit': 540
             }
         },
         'cleanup-expired-bans': {
             'task': 'app.tasks.security_cleanup.cleanup_expired_bans',
-            'schedule': crontab(hour='*/12'),  # Reduced from every 6 to every 12 hours
+            'schedule': crontab(hour='*/12'),
             'options': {
                 'queue': 'celery',
-                'expires': 3600  # Task expires after 1 hour
+                'expires': 3600,
+                'time_limit': 300,
+                'soft_time_limit': 240
             }
         },
         'security-maintenance': {
             'task': 'app.tasks.security_cleanup.security_maintenance',
-            'schedule': crontab(hour=2, minute=30, day_of_week=0),  # Weekly on Sunday at 2:30 AM PST
+            'schedule': crontab(hour=2, minute=30, day_of_week=0),
             'options': {
                 'queue': 'celery',
-                'expires': 3540  # Task expires after 59 minutes
+                'expires': 3540,
+                'time_limit': 600,
+                'soft_time_limit': 540
             }
         },
-        # TEMPORARILY DISABLED - Bug causing task to run every minute instead of every 2 hours
-        # 'smart-ban-cleanup': {
-        #     'task': 'app.tasks.security_cleanup.smart_ban_cleanup',
-        #     'schedule': crontab(hour='*/2'),  # Reduced from every 30 minutes to every 2 hours
-        #     'options': {
-        #         'queue': 'celery',
-        #         'expires': 3600  # Task expires after 1 hour
-        #     }
-        # },
-        # [DEPRECATED] Live Reporting Health Check - Replaced by Enterprise Live Reporting System
-        # 'health-check-live-reporting': {
-        #     'task': 'app.tasks.live_reporting_orchestrator.health_check_live_reporting',
-        #     'schedule': crontab(minute='*/10'),  # Every 10 minutes
-        #     'options': {
-        #         'queue': 'live_reporting',
-        #         'expires': 540  # Task expires after 9 minutes
-        #     }
-        # }
 
         # =====================================================================
         # UNIFIED NOTIFICATION SYSTEM - Automated Reminders
@@ -481,28 +434,34 @@ class CeleryConfig:
         # RSVP reminders: Daily at 9 AM PST for matches in 3-5 days
         'send-rsvp-reminders': {
             'task': 'app.tasks.tasks_notification_reminders.send_rsvp_reminders',
-            'schedule': crontab(hour=9, minute=0),  # Daily at 9 AM
+            'schedule': crontab(hour=9, minute=0),
             'options': {
                 'queue': 'celery',
-                'expires': 3540  # Task expires after 59 minutes
+                'expires': 3540,
+                'time_limit': 300,
+                'soft_time_limit': 240
             }
         },
         # Match reminders: Daily at 6 PM PST for tomorrow's matches
         'send-match-reminders-daily': {
             'task': 'app.tasks.tasks_notification_reminders.send_match_reminders_daily',
-            'schedule': crontab(hour=18, minute=0),  # Daily at 6 PM
+            'schedule': crontab(hour=18, minute=0),
             'options': {
                 'queue': 'celery',
-                'expires': 3540  # Task expires after 59 minutes
+                'expires': 3540,
+                'time_limit': 300,
+                'soft_time_limit': 240
             }
         },
         # Urgent match reminders: Hourly check for matches in 2-4 hours
         'send-match-reminders-urgent': {
             'task': 'app.tasks.tasks_notification_reminders.send_match_reminders_urgent',
-            'schedule': crontab(minute=0),  # Every hour at :00
+            'schedule': crontab(minute=0),
             'options': {
                 'queue': 'celery',
-                'expires': 3540  # Task expires after 59 minutes
+                'expires': 3540,
+                'time_limit': 300,
+                'soft_time_limit': 240
             }
         },
 
@@ -518,10 +477,12 @@ class CeleryConfig:
         #   - Draft on Tue with 3 days: reminded Saturday
         'send-dynamic-event-reminders': {
             'task': 'app.tasks.tasks_notification_reminders.send_dynamic_event_reminders',
-            'schedule': crontab(minute=0, hour='9,12,15,18'),  # 9 AM, 12 PM, 3 PM, 6 PM
+            'schedule': crontab(minute=0, hour='9,12,15,18'),
             'options': {
                 'queue': 'celery',
-                'expires': 3540  # Task expires after 59 minutes
+                'expires': 3540,
+                'time_limit': 300,
+                'soft_time_limit': 240
             }
         },
     }

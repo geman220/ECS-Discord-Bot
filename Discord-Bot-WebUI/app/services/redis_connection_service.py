@@ -45,6 +45,10 @@ class RedisConnectionService:
     """
     Enterprise-grade Redis connection service with connection pooling,
     circuit breaker pattern, and comprehensive monitoring.
+
+    DEPRECATED: This class is not currently used. The application uses
+    UnifiedRedisManager via the UnifiedRedisManagerWrapper in get_redis_service().
+    Kept for reference and potential future use if circuit breaker logic is needed.
     """
     
     def __init__(self, 
@@ -429,7 +433,13 @@ def get_redis_service():
             except Exception as e:
                 logger.error(f"Redis execute_command failed: {e}")
                 raise
-    
+
+        def close(self):
+            """Close connection - no-op since UnifiedRedisManager handles lifecycle."""
+            # UnifiedRedisManager is a singleton and manages its own connections
+            # We don't close it here as other parts of the app may still need it
+            pass
+
     global _redis_service
     
     if _redis_service is None:
@@ -443,8 +453,9 @@ def get_redis_service():
 def reset_redis_service() -> None:
     """Reset the global Redis service (for testing/debugging)."""
     global _redis_service
-    
+
     with _service_lock:
         if _redis_service:
-            _redis_service.close()
+            if hasattr(_redis_service, 'close'):
+                _redis_service.close()
         _redis_service = None

@@ -38,7 +38,7 @@ def get_queue_status():
         try:
             from app.utils.redis_manager import UnifiedRedisManager
             redis_manager = UnifiedRedisManager()
-            direct_redis = redis_manager.get_decoded_client()
+            direct_redis = redis_manager.client  # Use property, not method
             direct_redis.ping()
             logger.info("Direct Redis connection successful")
             redis_client = direct_redis
@@ -127,7 +127,7 @@ def get_queue_details():
         try:
             from app.utils.redis_manager import UnifiedRedisManager
             redis_manager = UnifiedRedisManager()
-            direct_redis = redis_manager.get_decoded_client()
+            direct_redis = redis_manager.client  # Use property, not method
             direct_redis.ping()
             logger.info("Direct Redis connection successful for queue details")
             redis_client = direct_redis

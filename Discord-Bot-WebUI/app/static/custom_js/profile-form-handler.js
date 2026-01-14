@@ -62,6 +62,8 @@ let _initialized = false;
     function initFormChangeTracking() {
         // Delegated input handler for tracked forms
         document.addEventListener('input', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const form = e.target.closest('[data-track-changes]');
             if (form && e.target.matches('input, textarea, select')) {
                 markFormChanged();
@@ -70,6 +72,8 @@ let _initialized = false;
 
         // Delegated change handler for tracked forms
         document.addEventListener('change', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const form = e.target.closest('[data-track-changes]');
             if (form && e.target.matches('input, textarea, select')) {
                 markFormChanged();
@@ -105,6 +109,8 @@ let _initialized = false;
 
         // Warn on navigation (for SPAs or HTMX)
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const link = e.target.closest('a[href]');
             if (!link) return;
 
@@ -152,6 +158,8 @@ let _initialized = false;
     function initAutoSubmitForms() {
         // Delegated change handler for auto-submit forms
         document.addEventListener('change', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const form = e.target.closest('[data-auto-submit]');
             if (!form) return;
 
@@ -283,6 +291,8 @@ let _initialized = false;
      */
     function initFormResetHandling() {
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const resetBtn = e.target.closest('[data-action="reset-form"]');
             if (!resetBtn) return;
 

@@ -122,10 +122,10 @@ def get_filtered_users(filters) -> List[User]:
 
     if filters.get('search'):
         search = f"%{filters['search']}%"
-        query = query.filter(or_(
-            User.username.ilike(search),
-            User.email.ilike(search)
-        ))
+        # Note: User.email is a hybrid_property that decrypts encrypted_email,
+        # so we can't use .ilike() on it directly. Only search by username.
+        # For exact email matches, consider using email_hash comparison.
+        query = query.filter(User.username.ilike(search))
     
     query = query.outerjoin(Player).outerjoin(Team).outerjoin(League)
 

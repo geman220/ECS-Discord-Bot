@@ -384,7 +384,7 @@ def redis_test():
         # Test direct connection
         from app.utils.redis_manager import UnifiedRedisManager
         redis_manager = UnifiedRedisManager()
-        r = redis_manager.get_decoded_client()
+        r = redis_manager.client  # Use property, not method
         ping_result = r.ping()
         
         # Test safe Redis

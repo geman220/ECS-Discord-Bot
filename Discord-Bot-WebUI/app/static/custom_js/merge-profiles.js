@@ -18,6 +18,8 @@ function initializeMergeProfileUI() {
     // Handle field selection visual feedback
     // ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const option = e.target.closest('.value-option');
         if (!option) return;
 

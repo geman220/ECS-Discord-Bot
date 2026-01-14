@@ -27,6 +27,9 @@ export function initTouchGestures(context) {
 
     // Single delegated touchstart listener
     document.addEventListener('touchstart', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const card = e.target.closest('[data-component="admin-card"]');
         if (!card) return;
 
@@ -35,6 +38,9 @@ export function initTouchGestures(context) {
 
     // Single delegated touchend listener
     document.addEventListener('touchend', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const card = e.target.closest('[data-component="admin-card"]');
         if (!card) return;
 
@@ -78,6 +84,9 @@ export function initDoubleTapPrevention(context) {
 
     // Single delegated touchend listener
     document.addEventListener('touchend', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const element = e.target.closest('[data-action], button, .c-btn, input, select, textarea');
         if (!element || !isInteractiveElement(element)) return;
         if (element.disabled) return;
@@ -88,6 +97,9 @@ export function initDoubleTapPrevention(context) {
 
     // Single delegated click listener for double-click prevention
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const element = e.target.closest('[data-action], button, .c-btn, input, select, textarea');
         if (!element || !isInteractiveElement(element)) return;
 
@@ -108,6 +120,9 @@ export function initSmoothScrolling(context) {
 
     // Single delegated click listener for all anchor links
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const anchor = e.target.closest('a[href^="#"]');
         if (!anchor) return;
 

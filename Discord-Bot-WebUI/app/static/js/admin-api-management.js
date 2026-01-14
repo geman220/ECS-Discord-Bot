@@ -43,6 +43,9 @@ function initializeProgressBars() {
  */
 function initializeEventDelegation() {
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const target = e.target.closest('[data-action]');
         if (!target) return;
 
@@ -59,7 +62,12 @@ function initializeEventDelegation() {
                 viewEndpointDetails(target.dataset.endpointPath);
                 break;
             case 'test-specific':
-                testSpecificEndpoint(target.dataset.endpointPath, JSON.parse(target.dataset.methods || '[]'));
+                try {
+                    testSpecificEndpoint(target.dataset.endpointPath, JSON.parse(target.dataset.methods || '[]'));
+                } catch (e) {
+                    console.error('Failed to parse endpoint methods:', e);
+                    testSpecificEndpoint(target.dataset.endpointPath, []);
+                }
                 break;
         }
     });

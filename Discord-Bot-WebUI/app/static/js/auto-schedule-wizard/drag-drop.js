@@ -48,6 +48,8 @@ export function handleCalendarDragEnter(e) {
  * @param {DragEvent} e
  */
 export function handleCalendarDragLeave(e) {
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
     const weekItem = e.target.closest('.week-item');
     if (weekItem && !weekItem.contains(e.relatedTarget)) {
         clearDropIndicators();
@@ -61,6 +63,9 @@ export function handleCalendarDragLeave(e) {
 export function handleCalendarDragOver(e) {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
 
     const calendarDraggedElement = getDraggedElement();
     const weekItem = e.target.closest('.week-item');
@@ -96,6 +101,8 @@ export function handleCalendarDrop(e) {
     const calendarDraggedElement = getDraggedElement();
 
     if (calendarDraggedElement) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const targetWeekItem = e.target.closest('.week-item');
         const draggedWeekItem = calendarDraggedElement.closest('.week-item');
 
@@ -297,6 +304,8 @@ let draggedWeekCard = null;
  * @param {DragEvent} e
  */
 function handleWeekCardDragStart(e) {
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
     draggedWeekCard = e.target.closest('.week-card');
     if (draggedWeekCard) {
         draggedWeekCard.classList.add('drag-active');
@@ -319,6 +328,8 @@ function handleWeekCardDragOver(e) {
  */
 function handleWeekCardDrop(e) {
     e.preventDefault();
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
     const targetCard = e.target.closest('.week-card');
 
     if (draggedWeekCard && targetCard && draggedWeekCard !== targetCard) {

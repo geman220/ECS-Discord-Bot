@@ -9,7 +9,7 @@ Each saved entry expires after one hour.
 """
 
 import json
-from app.utils.redis_manager import RedisManager
+from app.utils.safe_redis import get_safe_redis
 
 
 def save_sync_data(task_id, data):
@@ -23,10 +23,10 @@ def save_sync_data(task_id, data):
         task_id: A unique identifier for the task.
         data: The data to be saved (must be JSON serializable).
     """
-    redis_manager = RedisManager()
+    redis_client = get_safe_redis()
     key = f"player_sync_data:{task_id}"
     # Serialize the data to JSON and set an expiration of 1 hour.
-    redis_manager.client.set(key, json.dumps(data), ex=3600)
+    redis_client.set(key, json.dumps(data), ex=3600)
 
 
 def get_sync_data(task_id):
@@ -41,9 +41,9 @@ def get_sync_data(task_id):
     Returns:
         The deserialized data if found, otherwise None.
     """
-    redis_manager = RedisManager()
+    redis_client = get_safe_redis()
     key = f"player_sync_data:{task_id}"
-    data = redis_manager.client.get(key)
+    data = redis_client.get(key)
     if data:
         return json.loads(data)
     return None
@@ -58,6 +58,6 @@ def delete_sync_data(task_id):
     Args:
         task_id: The unique identifier for the task.
     """
-    redis_manager = RedisManager()
+    redis_client = get_safe_redis()
     key = f"player_sync_data:{task_id}"
-    redis_manager.client.delete(key)
+    redis_client.delete(key)

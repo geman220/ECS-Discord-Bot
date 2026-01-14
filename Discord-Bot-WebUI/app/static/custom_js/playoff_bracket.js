@@ -60,6 +60,8 @@ export class PlayoffBracket {
     setupEventDelegation() {
         const container = document.getElementById('playoff-bracket-container') || document.body;
         container.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const btn = e.target.closest('[data-action="playoff-match-report"]');
             if (btn) {
                 const matchId = btn.dataset.matchId;

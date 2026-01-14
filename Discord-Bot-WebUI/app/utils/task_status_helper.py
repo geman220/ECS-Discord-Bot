@@ -10,6 +10,7 @@ the application, including match management and monitoring pages.
 import json
 import logging
 import time
+import threading
 import redis
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, Union
@@ -17,7 +18,9 @@ from typing import Dict, Any, Optional, Union
 logger = logging.getLogger(__name__)
 
 # Simple in-memory cache to prevent concurrent requests to same match
+# Protected by lock for thread safety
 _request_cache = {}
+_request_cache_lock = threading.Lock()
 _CACHE_TTL = 30  # 30 seconds
 
 # Redis connection management - uses centralized UnifiedRedisManager
@@ -101,12 +104,24 @@ def get_task_status_metrics() -> Dict[str, Any]:
     cache_total = _redis_operation_metrics['cache_hits'] + _redis_operation_metrics['cache_misses']
     cache_hit_rate = (_redis_operation_metrics['cache_hits'] / cache_total * 100) if cache_total > 0 else 0
     
+    # Check Redis pool status via UnifiedRedisManager
+    pool_initialized = False
+    max_connections = None
+    try:
+        from app.utils.redis_manager import UnifiedRedisManager
+        redis_manager = UnifiedRedisManager()
+        pool_initialized = redis_manager._pool is not None
+        if pool_initialized and hasattr(redis_manager._pool, 'max_connections'):
+            max_connections = redis_manager._pool.max_connections
+    except Exception:
+        pass
+
     return {
         'redis_pool_status': {
-            'pool_initialized': _redis_pool is not None,
+            'pool_initialized': pool_initialized,
             'connection_failures': _redis_connection_failures,
             'circuit_breaker_open': _redis_connection_failures >= _max_redis_failures,
-            'max_connections': 10 if _redis_pool else None,
+            'max_connections': max_connections,
         },
         'operation_metrics': {
             'total_requests': _redis_operation_metrics['total_requests'],
@@ -149,14 +164,16 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
     # Check in-memory request cache first to prevent concurrent duplicate requests
     current_time = time.time()
     cache_key = f"task_status_{match_id}"
-    
-    if cache_key in _request_cache:
-        cached_data, cached_time = _request_cache[cache_key]
-        if current_time - cached_time < _CACHE_TTL:
-            _redis_operation_metrics['cache_hits'] += 1
-            logger.debug(f"Serving match {match_id} from in-memory cache")
-            return cached_data
-    
+
+    # Thread-safe cache read
+    with _request_cache_lock:
+        if cache_key in _request_cache:
+            cached_data, cached_time = _request_cache[cache_key]
+            if current_time - cached_time < _CACHE_TTL:
+                _redis_operation_metrics['cache_hits'] += 1
+                logger.debug(f"Serving match {match_id} from in-memory cache")
+                return cached_data
+
     # Track cache miss for in-memory cache
     _redis_operation_metrics['cache_misses'] += 1
     
@@ -380,18 +397,19 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
             'source': 'real-time'
         }
         
-        # Cache the result to prevent duplicate requests
-        _request_cache[cache_key] = (result, current_time)
-        
-        # Clean up old cache entries periodically
-        if len(_request_cache) > 100:  # Simple cleanup when cache gets large
-            cutoff_time = current_time - _CACHE_TTL
-            keys_to_remove = [k for k, (_, cached_time) in _request_cache.items() 
-                             if current_time - cached_time > _CACHE_TTL]
-            for k in keys_to_remove:
-                del _request_cache[k]
-            logger.debug(f"Cleaned up {len(keys_to_remove)} expired cache entries")
-            
+        # Thread-safe cache write and cleanup
+        with _request_cache_lock:
+            # Cache the result to prevent duplicate requests
+            _request_cache[cache_key] = (result, current_time)
+
+            # Clean up old cache entries periodically
+            if len(_request_cache) > 100:  # Simple cleanup when cache gets large
+                keys_to_remove = [k for k, (_, cached_time) in _request_cache.items()
+                                 if current_time - cached_time > _CACHE_TTL]
+                for k in keys_to_remove:
+                    del _request_cache[k]
+                logger.debug(f"Cleaned up {len(keys_to_remove)} expired cache entries")
+
         return result
         
     except Exception as e:
@@ -404,8 +422,10 @@ def get_enhanced_match_task_status(match_id: int, use_cache: bool = True) -> Dic
             'cached': False,
             'source': 'error'
         }
-        
-        # Cache error results briefly to prevent repeated failures
-        _request_cache[cache_key] = (error_result, current_time)
-        
+
+        # Thread-safe cache write for error results
+        with _request_cache_lock:
+            # Cache error results briefly to prevent repeated failures
+            _request_cache[cache_key] = (error_result, current_time)
+
         return error_result

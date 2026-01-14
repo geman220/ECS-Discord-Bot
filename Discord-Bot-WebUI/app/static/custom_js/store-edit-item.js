@@ -80,6 +80,8 @@ const StoreEditItem = {
      */
     setupRemoveHandlers() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const removeColorBtn = e.target.closest('[data-action="remove-color"]');
             const removeSizeBtn = e.target.closest('[data-action="remove-size"]');
 

@@ -360,6 +360,8 @@ const Helpers = {
         this._passwordToggleRegistered = true;
 
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const icon = e.target.closest('.form-password-toggle i');
             if (!icon) return;
 
@@ -394,6 +396,8 @@ const Helpers = {
 
         // Delegated click handler
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const el = e.target.closest('.custom-option .form-check-input');
             if (el) {
                 self.updateCustomOptionCheck(el);
@@ -437,6 +441,8 @@ const Helpers = {
         const self = this;
 
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const icon = e.target.closest('.speech-to-text i');
             if (!icon) return;
 
@@ -482,6 +488,8 @@ const Helpers = {
 
         // Delegated click handler for sidebar toggles (Flowbite pattern)
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const el = e.target.closest('[data-sidebar-toggle], [data-drawer-toggle]');
             if (!el) return;
 
@@ -503,6 +511,8 @@ const Helpers = {
 
         // Delegated click handler for app overlay (closes sidebars)
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             if (!e.target.closest('.app-overlay')) return;
 
             const appOverlay = e.target.closest('.app-overlay');

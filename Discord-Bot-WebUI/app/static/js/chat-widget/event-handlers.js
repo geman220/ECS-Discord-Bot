@@ -27,6 +27,9 @@ export function handleTriggerClick(e) {
  * @param {Event} e - Click event
  */
 export function handleConversationClick(e) {
+  // Guard: ensure e.target is an Element with closest method
+  if (!e.target || typeof e.target.closest !== 'function') return;
+
   const conversation = e.target.closest('.c-chat-widget__conversation, .c-chat-widget__online-user, .c-chat-widget__search-result');
   if (!conversation) return;
 

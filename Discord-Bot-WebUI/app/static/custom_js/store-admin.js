@@ -49,6 +49,8 @@ const StoreAdmin = {
 
         // Delegated click handler for add/remove color/size
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             // Add color
             if (e.target.closest('#add-color')) {
                 const container = document.getElementById('colors-container');
@@ -194,6 +196,8 @@ const StoreAdmin = {
      */
     setupItemDeletion() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const deleteBtn = e.target.closest('[data-action="delete-item"]');
             if (!deleteBtn) return;
 
@@ -274,6 +278,8 @@ const StoreAdmin = {
      */
     setupOrderStatusUpdates() {
         document.addEventListener('change', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const statusSelect = e.target.closest('[data-action="update-order-status"]');
             if (!statusSelect) return;
 
@@ -367,6 +373,8 @@ const StoreAdmin = {
 
         // Delegated click handler for bulk buttons
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             // Bulk update button
             if (e.target.closest('#bulk-update-btn')) {
                 self.handleBulkUpdate();
@@ -612,6 +620,8 @@ const StoreAdmin = {
 
         // Delegated click handler for confirm reset button
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             if (!e.target.closest('#confirmResetBtn')) return;
 
             const resetTypeInput = document.querySelector('input[name="resetType"]:checked');
@@ -709,6 +719,8 @@ const StoreAdmin = {
      */
     setupOrderDeletion() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const deleteBtn = e.target.closest('[data-action="delete-order"]');
             if (!deleteBtn) return;
 

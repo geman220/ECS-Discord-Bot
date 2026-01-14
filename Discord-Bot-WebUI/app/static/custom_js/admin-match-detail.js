@@ -52,6 +52,8 @@ function initEventDelegation() {
  * @param {Event} e - Click event
  */
 function handleClick(e) {
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
     const action = e.target.closest('[data-action]');
     if (!action) return;
 

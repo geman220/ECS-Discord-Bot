@@ -13,35 +13,35 @@
                 <span>Manage Passes</span>
             </div>
             <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <i class="ti ti-id text-blue-600"></i>
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
                 Manage Passes
             </h1>
             <p class="text-gray-500 dark:text-gray-400">View and manage all ECS Membership and Pub League wallet passes</p>
         </div>
         <div class="flex gap-2 flex-wrap">
             <a href="{{ url_for('wallet_admin.scanner') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors">
-                <i class="ti ti-qrcode mr-2"></i>Scanner
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>Scanner
             </a>
             <a href="{{ url_for('wallet_admin.checkins_list') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
-                <i class="ti ti-list-check mr-2"></i>Check-ins
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>Check-ins
             </a>
             {% if 'Global Admin' in user_roles %}
             <div class="relative">
                 <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" id="createPassDropdownBtn">
-                    <i class="ti ti-plus mr-2"></i>Create Pass
-                    <i class="ti ti-chevron-down ml-1"></i>
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Create Pass
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
                 <div id="createPassDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10">
                     <div class="py-1">
                         <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
-                            <i class="ti ti-id-badge-2 mr-2"></i>ECS Membership
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>ECS Membership
                         </a>
                         <a href="{{ url_for('wallet_admin.create_pub_league_pass') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
-                            <i class="ti ti-ball-football mr-2"></i>Pub League
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>Pub League
                         </a>
                         <hr class="my-1 border-gray-200 dark:border-gray-600">
                         <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-modal-target="bulkGenerateModal" data-modal-toggle="bulkGenerateModal">
-                            <i class="ti ti-users mr-2"></i>Bulk Generate for Players
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Bulk Generate for Players
                         </button>
                     </div>
                 </div>
@@ -59,7 +59,7 @@
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.total_passes or 0 }}</h3>
                 </div>
                 <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                    <i class="ti ti-wallet text-blue-600 dark:text-blue-400"></i>
+                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
                 </div>
             </div>
         </div>
@@ -70,7 +70,7 @@
                     <h3 class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.active_passes or 0 }}</h3>
                 </div>
                 <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <i class="ti ti-check text-green-600 dark:text-green-400"></i>
+                    <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
                 </div>
             </div>
         </div>
@@ -81,7 +81,7 @@
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.by_type.ecs_membership.total if stats.by_type and stats.by_type.ecs_membership else 0 }}</h3>
                 </div>
                 <div class="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center">
-                    <i class="ti ti-id-badge-2 text-cyan-600 dark:text-cyan-400"></i>
+                    <svg class="w-5 h-5 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>
                 </div>
             </div>
         </div>
@@ -92,7 +92,7 @@
                     <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ stats.by_type.pub_league.total if stats.by_type and stats.by_type.pub_league else 0 }}</h3>
                 </div>
                 <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                    <i class="ti ti-ball-football text-yellow-600 dark:text-yellow-400"></i>
+                    <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>
                 </div>
             </div>
         </div>
@@ -104,13 +104,13 @@
         <div class="border-b border-gray-200 dark:border-gray-700">
             <nav class="flex space-x-4 px-6" aria-label="Tabs">
                 <a href="{{ url_for('wallet_admin.passes_list', tab='ecs') }}" class="py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 {{ 'border-blue-500 text-blue-600 dark:text-blue-400' if active_tab == 'ecs' or not active_tab else 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }}">
-                    <i class="ti ti-id-badge-2"></i>ECS Memberships
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/></svg>ECS Memberships
                     {% if stats.by_type and stats.by_type.ecs_membership %}
                     <span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">{{ stats.by_type.ecs_membership.active }}</span>
                     {% endif %}
                 </a>
                 <a href="{{ url_for('wallet_admin.passes_list', tab='pub_league') }}" class="py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 {{ 'border-yellow-500 text-yellow-600 dark:text-yellow-400' if active_tab == 'pub_league' else 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600' }}">
-                    <i class="ti ti-ball-football"></i>Pub League
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v4m0 12v4M2 12h4m12 0h4"/></svg>Pub League
                     {% if stats.by_type and stats.by_type.pub_league %}
                     <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">{{ stats.by_type.pub_league.active }}</span>
                     {% endif %}
@@ -127,7 +127,7 @@
                         <input type="hidden" name="tab" value="{{ active_tab or 'ecs' }}">
                         <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by name or email..." class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                         <button type="submit" class="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
-                            <i class="ti ti-search"></i>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                         </button>
                     </form>
                 </div>
@@ -143,7 +143,7 @@
                 {% if search or status_filter and status_filter != 'all' %}
                 <div class="flex items-end">
                     <a href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs') }}" class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
-                        <i class="ti ti-x mr-1"></i>Clear Filters
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Clear Filters
                     </a>
                 </div>
                 {% endif %}
@@ -156,13 +156,13 @@
                     <span class="text-sm text-gray-700 dark:text-gray-300"><span id="selectedCount">0</span> passes selected</span>
                     <div class="flex gap-2 flex-wrap">
                         <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors" data-action="bulk-void-passes">
-                            <i class="ti ti-ban mr-1"></i>Void Selected
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>Void Selected
                         </button>
                         <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" data-action="bulk-reactivate-passes">
-                            <i class="ti ti-refresh mr-1"></i>Reactivate Selected
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Reactivate Selected
                         </button>
                         <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500 border border-gray-300 dark:border-gray-500 rounded-lg transition-colors" data-action="clear-pass-selection">
-                            <i class="ti ti-x mr-1"></i>Clear Selection
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Clear Selection
                         </button>
                     </div>
                 </div>
@@ -229,15 +229,15 @@
                             <td class="px-4 py-3">
                                 {% if wallet_pass.status == 'active' and wallet_pass.is_valid %}
                                 <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded inline-flex items-center">
-                                    <i class="ti ti-check mr-1"></i>Active
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Active
                                 </span>
                                 {% elif wallet_pass.status == 'voided' %}
                                 <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded inline-flex items-center">
-                                    <i class="ti ti-ban mr-1"></i>Voided
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>Voided
                                 </span>
                                 {% elif wallet_pass.is_expired %}
                                 <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded inline-flex items-center">
-                                    <i class="ti ti-clock mr-1"></i>Expired
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Expired
                                 </span>
                                 {% else %}
                                 <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">{{ wallet_pass.status }}</span>
@@ -245,7 +245,7 @@
                             </td>
                             <td class="px-4 py-3">
                                 <span class="px-2 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300 rounded inline-flex items-center">
-                                    <i class="ti ti-download mr-1"></i>{{ wallet_pass.download_count }}
+                                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>{{ wallet_pass.download_count }}
                                 </span>
                             </td>
                             <td class="px-4 py-3">
@@ -256,25 +256,25 @@
                             <td class="px-4 py-3 text-right">
                                 <div class="flex justify-end gap-1">
                                     <a href="{{ url_for('wallet_admin.pass_detail', pass_id=wallet_pass.id) }}" class="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors" title="View Details">
-                                        <i class="ti ti-eye"></i>
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     </a>
                                     <div class="relative">
                                         <button type="button" class="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors pass-actions-btn" data-pass-id="{{ wallet_pass.id }}">
-                                            <i class="ti ti-dots-vertical"></i>
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
                                         </button>
                                         <div class="hidden pass-actions-dropdown absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10" data-dropdown-for="{{ wallet_pass.id }}">
                                             <div class="py-1">
                                                 <a href="{{ url_for('wallet_admin.download_pass', pass_id=wallet_pass.id, platform='apple') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
-                                                    <i class="ti ti-brand-apple mr-2"></i>Download Apple Pass
+                                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>Download Apple Pass
                                                 </a>
                                                 <hr class="my-1 border-gray-200 dark:border-gray-600">
                                                 {% if wallet_pass.status == 'active' %}
                                                 <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="void-pass" data-pass-id="{{ wallet_pass.id }}">
-                                                    <i class="ti ti-ban mr-2"></i>Void Pass
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>Void Pass
                                                 </button>
                                                 {% else %}
                                                 <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="reactivate-pass" data-pass-id="{{ wallet_pass.id }}">
-                                                    <i class="ti ti-refresh mr-2"></i>Reactivate Pass
+                                                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Reactivate Pass
                                                 </button>
                                                 {% endif %}
                                             </div>
@@ -293,7 +293,7 @@
             <nav class="flex items-center justify-center gap-1 mt-6">
                 {% if passes.has_prev %}
                 <a href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=passes.prev_num, status=status_filter, search=search) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                    <i class="ti ti-chevron-left"></i>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                 </a>
                 {% endif %}
 
@@ -311,7 +311,7 @@
 
                 {% if passes.has_next %}
                 <a href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs', page=passes.next_num, status=status_filter, search=search) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
-                    <i class="ti ti-chevron-right"></i>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                 </a>
                 {% endif %}
             </nav>
@@ -320,7 +320,7 @@
             {% else %}
             <!-- Empty State -->
             <div class="text-center py-12">
-                <i class="ti ti-wallet-off text-6xl text-gray-400 dark:text-gray-600 mb-4"></i>
+                <svg class="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
                 <h5 class="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">No Passes Found</h5>
                 <p class="text-gray-400 dark:text-gray-500 mb-4">
                     {% if search or (status_filter and status_filter != 'all') %}
@@ -333,11 +333,11 @@
                 </p>
                 {% if search or (status_filter and status_filter != 'all') %}
                 <a href="{{ url_for('wallet_admin.passes_list', tab=active_tab or 'ecs') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors">
-                    <i class="ti ti-x mr-1"></i>Clear Filters
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Clear Filters
                 </a>
                 {% elif active_tab != 'pub_league' and 'Global Admin' in user_roles %}
                 <a href="{{ url_for('wallet_admin.create_ecs_pass') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                    <i class="ti ti-plus mr-1"></i>Create First Pass
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>Create First Pass
                 </a>
                 {% endif %}
             </div>
@@ -353,10 +353,10 @@
         <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
             <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-users"></i>Bulk Generate Passes
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Bulk Generate Passes
                 </h3>
                 <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="bulkGenerateModal">
-                    <i class="ti ti-x text-xl"></i>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
             <div class="p-4 md:p-5 space-y-4">
@@ -385,7 +385,7 @@
                 </div>
 
                 <div class="flex items-start p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <i class="ti ti-info-circle text-blue-500 mt-0.5 mr-2"></i>
+                    <svg class="w-4 h-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <p class="text-sm text-blue-700 dark:text-blue-300">
                         <strong>Note:</strong> Only players who are active, have a team assignment, and have a user account will receive passes. Players who already have a non-voided pass of this type will be skipped.
                     </p>
@@ -399,7 +399,7 @@
             </div>
             <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
                 <button type="button" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" data-action="bulk-generate-passes">
-                    <i class="ti ti-bolt mr-1"></i>Generate Passes
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Generate Passes
                 </button>
                 <button type="button" data-modal-hide="bulkGenerateModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Close</button>
             </div>
@@ -413,10 +413,10 @@
         <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
             <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-ban text-red-500"></i>Bulk Void Passes
+                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>Bulk Void Passes
                 </h3>
                 <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="bulkVoidModal">
-                    <i class="ti ti-x text-xl"></i>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
             <div class="p-4 md:p-5 space-y-4">
@@ -428,7 +428,7 @@
                 </div>
 
                 <div class="flex items-start p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                    <i class="ti ti-alert-triangle text-yellow-500 mt-0.5 mr-2"></i>
+                    <svg class="w-5 h-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
                     <p class="text-sm text-yellow-700 dark:text-yellow-300">
                         <strong>Warning:</strong> Voided passes will be marked as invalid. Push notifications will be sent to affected users' devices.
                     </p>
@@ -436,7 +436,7 @@
             </div>
             <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
                 <button type="button" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800" data-action="confirm-bulk-void">
-                    <i class="ti ti-ban mr-1"></i>Void Passes
+                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>Void Passes
                 </button>
                 <button type="button" data-modal-hide="bulkVoidModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
             </div>

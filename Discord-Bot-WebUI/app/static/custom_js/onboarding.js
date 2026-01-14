@@ -108,6 +108,8 @@ export function initOnboarding() {
 
         // Single delegated change listener for image input - uses Cropper.js
         document.addEventListener('change', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             if (e.target.id === 'image' && e.target.closest('#onboardingSlideModal')) {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -363,6 +365,8 @@ export function initOnboarding() {
 
         // Single delegated submit listener for onboarding form
         document.addEventListener('submit', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const form = e.target;
             if (!form.closest || !form.closest('#onboardingSlideModal')) return;
             if (form.tagName !== 'FORM') return;
@@ -388,7 +392,9 @@ export function initOnboarding() {
 
         // Single delegated input listener for real-time validation feedback removal
         document.addEventListener('input', function(e) {
-            if (!e.target.closest || !e.target.closest('#onboardingSlideModal')) return;
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
+            if (!e.target.closest('#onboardingSlideModal')) return;
             if (e.target.matches('input[required], select[required], textarea[required]')) {
                 if (e.target.checkValidity()) {
                     e.target.classList.remove('is-invalid');

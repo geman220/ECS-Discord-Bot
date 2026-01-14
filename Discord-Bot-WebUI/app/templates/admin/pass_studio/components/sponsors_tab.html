@@ -1,427 +1,176 @@
-{# Sponsors Tab Component #}
+{# Sponsors Tab Component - Flowbite/Tailwind #}
 {# Manage sponsors that appear on wallet passes #}
 
 <!-- Sponsor Info -->
-<div class="alert alert-info mb-4" data-alert>
-    <div class="d-flex">
-        <i class="ti ti-building-store me-2 fs-4"></i>
-        <div>
-            <strong>Pass Sponsors</strong>
-            <p class="mb-0 mt-1">
-                Sponsors can appear on the back of passes or in auxiliary fields.
-                You can also optionally create a location from a sponsor's address for proximity notifications.
-            </p>
-        </div>
+<div class="flex items-center p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+    <svg class="flex-shrink-0 w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+    </svg>
+    <div>
+        <span class="font-semibold">Pass Sponsors</span>
+        <p class="mt-1">
+            Sponsors can appear on the back of passes or in auxiliary fields.
+            You can also optionally create a location from a sponsor's address for proximity notifications.
+        </p>
     </div>
 </div>
 
-<!-- Add Sponsor Button -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h6 class="mb-0">Sponsors</h6>
-    <button type="button" class="c-btn c-btn--primary c-btn--sm js-add-sponsor" data-action="add-sponsor">
-        <i class="ti ti-plus me-1"></i> Add Sponsor
+<!-- Header with Add Button -->
+<div class="flex justify-between items-center mb-4">
+    <h6 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+        Sponsors
+    </h6>
+    <button type="button"
+            class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+            data-action="add-sponsor">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Add Sponsor
     </button>
 </div>
 
 <!-- Sponsors List -->
-<div class="c-card">
-    <div class="c-card__body p-0">
-        {% if sponsors %}
-        <div class="c-table-wrapper" data-table-responsive>
-            <table class="c-c-table c-table--hoverable mb-0" data-mobile-table data-table-type="sponsors" data-table>
-                <thead scope="col">
-                    <tr>
-                        <th scope="col">Name</th>
-                        <th scope="col">Display Name</th>
-                        <th scope="col">Type</th>
-                        <th scope="col">Location</th>
-                        <th scope="col">Applies To</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for sponsor in sponsors %}
-                    <tr class="{{ 'opacity-50' if not sponsor.is_active }}">
-                        <td data-label="Name">
-                            <strong>{{ sponsor.name }}</strong>
-                            {% if sponsor.website_url %}
-                            <br>
-                            <small><a href="{{ sponsor.website_url }}" target="_blank" class="text-muted">{{ sponsor.website_url|truncate(30) }}</a></small>
-                            {% endif %}
-                        </td>
-                        <td data-label="Display Name">{{ sponsor.display_name }}</td>
-                        <td data-label="Type">
-                            <span class="badge bg-label-{{ 'warning' if sponsor.sponsor_type == 'presenting' else 'info' if sponsor.sponsor_type == 'venue' else 'secondary' }}" data-badge>
-                                {{ sponsor.sponsor_type|title }}
-                            </span>
-                        </td>
-                        <td data-label="Location">
-                            <span class="badge bg-label-{{ 'primary' if sponsor.display_location == 'back' else 'info' }}" data-badge>
-                                {{ sponsor.display_location|title }}
-                            </span>
-                        </td>
-                        <td data-label="Applies To">
-                            <span class="badge bg-label-{{ 'primary' if sponsor.applies_to == 'all' else 'success' if sponsor.applies_to == 'ecs_membership' else 'info' }}" data-badge>
-                                {{ 'All' if sponsor.applies_to == 'all' else 'ECS' if sponsor.applies_to == 'ecs_membership' else 'Pub League' }}
-                            </span>
-                        </td>
-                        <td data-label="Status">
-                            {% if sponsor.is_active %}
-                            <span class="badge bg-success" data-badge>Active</span>
-                            {% else %}
-                            <span class="badge bg-secondary" data-badge>Inactive</span>
-                            {% endif %}
-                        </td>
-                        <td data-label="Actions">
-                            <div class="btn-group btn-group-sm">
-                                <button type="button" class="c-btn c-btn--outline-primary js-edit-sponsor" data-action="edit-sponsor" data-sponsor-id="{{ sponsor.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
-                                <button type="button" class="c-btn btn-outline-{{ 'warning' if sponsor.is_active else 'success' }} js-toggle-sponsor" data-action="toggle-sponsor" data-sponsor-id="{{ sponsor.id }}" data-active="{{ 'false' if sponsor.is_active else 'true' }}" aria-label="View"><i class="ti ti-{{ 'eye-off' if sponsor.is_active else 'eye' }}"></i></button>
-                                <button type="button" class="c-btn c-btn--outline-danger js-delete-sponsor" data-action="delete-sponsor" data-sponsor-id="{{ sponsor.id }}" data-sponsor-name="{{ sponsor.name }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-center py-5">
-            <i class="ti ti-building-store fs-1 text-muted"></i>
-            <p class="mt-3 text-muted">No sponsors configured yet.</p>
-            <p class="text-muted small">Add sponsors to display their information on passes.</p>
-            <button type="button" class="c-btn c-btn--primary js-add-sponsor" data-action="add-sponsor">
-                <i class="ti ti-plus me-1"></i> Add First Sponsor
+<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    {% if sponsors %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Name</th>
+                    <th scope="col" class="px-4 py-3">Display Name</th>
+                    <th scope="col" class="px-4 py-3">Type</th>
+                    <th scope="col" class="px-4 py-3">Location</th>
+                    <th scope="col" class="px-4 py-3">Applies To</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sponsor in sponsors %}
+                <tr class="border-b border-gray-200 dark:border-gray-700 {{ 'opacity-50' if not sponsor.is_active }}">
+                    <td class="px-4 py-3">
+                        <div class="font-medium text-gray-900 dark:text-white">{{ sponsor.name }}</div>
+                        {% if sponsor.website_url %}
+                        <a href="{{ sponsor.website_url }}" target="_blank" class="text-xs text-gray-500 dark:text-gray-400 hover:text-primary-600 dark:hover:text-primary-400">{{ sponsor.website_url|truncate(30) }}</a>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-gray-900 dark:text-white">{{ sponsor.display_name }}</td>
+                    <td class="px-4 py-3">
+                        {% if sponsor.sponsor_type == 'presenting' %}
+                        <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-yellow-900 dark:text-yellow-300">Presenting</span>
+                        {% elif sponsor.sponsor_type == 'venue' %}
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">Venue</span>
+                        {% else %}
+                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">Partner</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="bg-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-100 text-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-900 dark:text-{{ 'primary' if sponsor.display_location == 'back' else 'blue' }}-300">
+                            {{ sponsor.display_location|title }}
+                        </span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if sponsor.applies_to == 'all' %}
+                        <span class="bg-primary-100 text-primary-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-primary-900 dark:text-primary-300">All</span>
+                        {% elif sponsor.applies_to == 'ecs_membership' %}
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-green-900 dark:text-green-300">ECS</span>
+                        {% else %}
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">Pub League</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if sponsor.is_active %}
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Active</span>
+                        {% else %}
+                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="inline-flex rounded-md shadow-sm" role="group">
+                            <button type="button"
+                                    class="px-2 py-1.5 text-sm font-medium text-primary-700 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-primary-400 dark:hover:bg-gray-600"
+                                    data-action="edit-sponsor"
+                                    data-sponsor-id="{{ sponsor.id }}"
+                                    title="Edit">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            <button type="button"
+                                    class="px-2 py-1.5 text-sm font-medium {{ 'text-yellow-700 dark:text-yellow-400' if sponsor.is_active else 'text-green-700 dark:text-green-400' }} bg-white border-t border-b border-gray-200 hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+                                    data-action="toggle-sponsor"
+                                    data-sponsor-id="{{ sponsor.id }}"
+                                    data-active="{{ 'false' if sponsor.is_active else 'true' }}"
+                                    title="{{ 'Deactivate' if sponsor.is_active else 'Activate' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    {% if sponsor.is_active %}
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                                    {% else %}
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    {% endif %}
+                                </svg>
+                            </button>
+                            <button type="button"
+                                    class="px-2 py-1.5 text-sm font-medium text-red-700 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-red-400 dark:hover:bg-gray-600"
+                                    data-action="delete-sponsor"
+                                    data-sponsor-id="{{ sponsor.id }}"
+                                    data-sponsor-name="{{ sponsor.name }}"
+                                    title="Delete">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <svg class="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">No sponsors configured</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Add sponsors to display their information on passes.</p>
+        <div class="mt-6">
+            <button type="button"
+                    class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                    data-action="add-sponsor">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add First Sponsor
             </button>
         </div>
-        {% endif %}
     </div>
+    {% endif %}
 </div>
 
-<!-- Sponsor data for JavaScript -->
-<script>
-// Event delegation
-document.addEventListener('click', function(e) {
-    const toggleBtn = e.target.closest('[data-action="toggle-sponsor"]');
-    if (toggleBtn) {
-        toggleSponsor(toggleBtn.dataset.id, toggleBtn.dataset.active === 'true');
-    }
-});
-
-const sponsorsData = [
-    {% for sponsor in sponsors %}
-    {
-        id: {{ sponsor.id }},
-        name: '{{ sponsor.name|e }}',
-        display_name: '{{ sponsor.display_name|e }}',
-        description: `{{ sponsor.description|e if sponsor.description else "" }}`,
-        website_url: '{{ sponsor.website_url|e if sponsor.website_url else "" }}',
-        sponsor_type: '{{ sponsor.sponsor_type }}',
-        applies_to: '{{ sponsor.applies_to }}',
-        display_location: '{{ sponsor.display_location }}',
-        is_active: {{ 'true' if sponsor.is_active else 'false' }}
-    }{{ ',' if not loop.last }}
-    {% endfor %}
-];
-
-function addSponsor() {
-    Swal.fire({
-        title: 'Add Sponsor',
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <label class="form-label">Name <span class="text-danger">*</span></label>
-                    <input type="text" id="sponsor-name" class="form-control" placeholder="e.g., Hellbent Brewing" data-form-control>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Display Name</label>
-                    <input type="text" id="sponsor-display" class="form-control" placeholder="Text shown on pass (leave blank to use name)" data-form-control>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Description</label>
-                    <textarea id="sponsor-desc" class="form-control" rows="2" placeholder="Optional description for back of pass" data-form-control></textarea>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Website URL</label>
-                    <input type="url" id="sponsor-url" class="form-control" placeholder="https://..." data-form-control>
-                </div>
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <label class="form-label">Sponsor Type</label>
-                        <select id="sponsor-type" class="form-select" data-form-select>
-                            <option value="partner">Partner</option>
-                            <option value="presenting">Presenting</option>
-                            <option value="venue">Venue</option>
-                        </select>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <label class="form-label">Display Location</label>
-                        <select id="sponsor-location" class="form-select" data-form-select>
-                            <option value="back">Back of Pass</option>
-                            <option value="auxiliary">Auxiliary Field</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Applies To</label>
-                    <select id="sponsor-applies" class="form-select" data-form-select>
-                        <option value="{{ pass_type_code }}">This pass type only</option>
-                        <option value="all">All pass types</option>
-                    </select>
-                </div>
-                <hr>
-                <p class="text-muted small mb-2">Optional: Create a location from sponsor address</p>
-                <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="sponsor-create-loc">
-                    <label class="form-check-label" for="sponsor-create-loc">
-                        Also create as a location
-                    </label>
-                </div>
-                <div id="sponsor-loc-fields" class="d-none">
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Latitude</label>
-                            <input type="number" id="sponsor-lat" class="form-control" step="0.0001" placeholder="47.7240" data-form-control>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">Longitude</label>
-                            <input type="number" id="sponsor-lng" class="form-control" step="0.0001" placeholder="-122.2958" data-form-control>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Address</label>
-                        <input type="text" id="sponsor-address" class="form-control" placeholder="123 Main St" data-form-control>
-                    </div>
-                    <div class="row">
-                        <div class="col-6 mb-3">
-                            <label class="form-label">City</label>
-                            <input type="text" id="sponsor-city" class="form-control" placeholder="Seattle" data-form-control>
-                        </div>
-                        <div class="col-6 mb-3">
-                            <label class="form-label">State</label>
-                            <input type="text" id="sponsor-state" class="form-control" placeholder="WA" data-form-control>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `,
-        width: '500px',
-        showCancelButton: true,
-        confirmButtonText: 'Add Sponsor',
-        didOpen: () => {
-            document.getElementById('sponsor-create-loc').addEventListener('change', function() {
-                document.getElementById('sponsor-loc-fields').style.display = this.checked ? 'block' : 'none';
-            });
-        },
-        preConfirm: () => {
-            const name = document.getElementById('sponsor-name').value.trim();
-            if (!name) {
-                Swal.showValidationMessage('Name is required');
-                return false;
-            }
-
-            const data = {
-                name,
-                display_name: document.getElementById('sponsor-display').value.trim() || name,
-                description: document.getElementById('sponsor-desc').value.trim(),
-                website_url: document.getElementById('sponsor-url').value.trim(),
-                sponsor_type: document.getElementById('sponsor-type').value,
-                display_location: document.getElementById('sponsor-location').value,
-                applies_to: document.getElementById('sponsor-applies').value
-            };
-
-            if (document.getElementById('sponsor-create-loc').checked) {
-                const lat = parseFloat(document.getElementById('sponsor-lat').value);
-                const lng = parseFloat(document.getElementById('sponsor-lng').value);
-                if (isNaN(lat) || isNaN(lng)) {
-                    Swal.showValidationMessage('Latitude and longitude are required to create a location');
-                    return false;
-                }
-                data.create_location = true;
-                data.latitude = lat;
-                data.longitude = lng;
-                data.address = document.getElementById('sponsor-address').value.trim();
-                data.city = document.getElementById('sponsor-city').value.trim();
-                data.state = document.getElementById('sponsor-state').value.trim();
-            }
-
-            return data;
-        }
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/sponsors`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrf_token]').value
-                    },
-                    body: JSON.stringify(result.value)
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    PassStudio.showToast('Sponsor added', 'success');
-                    location.reload();
-                } else {
-                    PassStudio.showToast(data.error || 'Error adding sponsor', 'error');
-                }
-            } catch (error) {
-                PassStudio.showToast('Error adding sponsor', 'error');
-            }
-        }
-    });
-}
-
-function editSponsor(sponsorId) {
-    const sponsor = sponsorsData.find(s => s.id === sponsorId);
-    if (!sponsor) return;
-
-    Swal.fire({
-        title: 'Edit Sponsor',
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <label class="form-label">Name <span class="text-danger">*</span></label>
-                    <input type="text" id="edit-sponsor-name" class="form-control" value="${sponsor.name}" data-form-control>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Display Name</label>
-                    <input type="text" id="edit-sponsor-display" class="form-control" value="${sponsor.display_name}" data-form-control>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Description</label>
-                    <textarea id="edit-sponsor-desc" class="form-control" rows="2" data-form-control>${sponsor.description}</textarea>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Website URL</label>
-                    <input type="url" id="edit-sponsor-url" class="form-control" value="${sponsor.website_url}" data-form-control>
-                </div>
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <label class="form-label">Sponsor Type</label>
-                        <select id="edit-sponsor-type" class="form-select" data-form-select>
-                            <option value="partner" ${sponsor.sponsor_type === 'partner' ? 'selected' : ''}>Partner</option>
-                            <option value="presenting" ${sponsor.sponsor_type === 'presenting' ? 'selected' : ''}>Presenting</option>
-                            <option value="venue" ${sponsor.sponsor_type === 'venue' ? 'selected' : ''}>Venue</option>
-                        </select>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <label class="form-label">Display Location</label>
-                        <select id="edit-sponsor-location" class="form-select" data-form-select>
-                            <option value="back" ${sponsor.display_location === 'back' ? 'selected' : ''}>Back of Pass</option>
-                            <option value="auxiliary" ${sponsor.display_location === 'auxiliary' ? 'selected' : ''}>Auxiliary Field</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Applies To</label>
-                    <select id="edit-sponsor-applies" class="form-select" data-form-select>
-                        <option value="ecs_membership" ${sponsor.applies_to === 'ecs_membership' ? 'selected' : ''}>ECS Only</option>
-                        <option value="pub_league" ${sponsor.applies_to === 'pub_league' ? 'selected' : ''}>Pub League Only</option>
-                        <option value="all" ${sponsor.applies_to === 'all' ? 'selected' : ''}>All pass types</option>
-                    </select>
-                </div>
-            </div>
-        `,
-        width: '500px',
-        showCancelButton: true,
-        confirmButtonText: 'Save Changes',
-        preConfirm: () => {
-            const name = document.getElementById('edit-sponsor-name').value.trim();
-            if (!name) {
-                Swal.showValidationMessage('Name is required');
-                return false;
-            }
-
-            return {
-                name,
-                display_name: document.getElementById('edit-sponsor-display').value.trim() || name,
-                description: document.getElementById('edit-sponsor-desc').value.trim(),
-                website_url: document.getElementById('edit-sponsor-url').value.trim(),
-                sponsor_type: document.getElementById('edit-sponsor-type').value,
-                display_location: document.getElementById('edit-sponsor-location').value,
-                applies_to: document.getElementById('edit-sponsor-applies').value
-            };
-        }
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/sponsors/${sponsorId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrf_token]').value
-                    },
-                    body: JSON.stringify(result.value)
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    PassStudio.showToast('Sponsor updated', 'success');
-                    location.reload();
-                } else {
-                    PassStudio.showToast(data.error || 'Error updating sponsor', 'error');
-                }
-            } catch (error) {
-                PassStudio.showToast('Error updating sponsor', 'error');
-            }
-        }
-    });
-}
-
-async function toggleSponsor(sponsorId, active) {
-    try {
-        const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/sponsors/${sponsorId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
-            },
-            body: JSON.stringify({ is_active: active })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            PassStudio.showToast(`Sponsor ${active ? 'activated' : 'deactivated'}`, 'success');
-            location.reload();
-        } else {
-            PassStudio.showToast(data.error || 'Error updating sponsor', 'error');
-        }
-    } catch (error) {
-        PassStudio.showToast('Error updating sponsor', 'error');
-    }
-}
-
-async function deleteSponsor(sponsorId, name) {
-    const result = await Swal.fire({
-        title: 'Delete Sponsor?',
-        text: `Are you sure you want to delete "${name}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#d33',
-        confirmButtonText: 'Yes, delete'
-    });
-
-    if (result.isConfirmed) {
-        try {
-            const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/sponsors/${sponsorId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrf_token]').value
-                }
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                PassStudio.showToast('Sponsor deleted', 'success');
-                location.reload();
-            } else {
-                PassStudio.showToast(data.error || 'Error deleting sponsor', 'error');
-            }
-        } catch (error) {
-            PassStudio.showToast('Error deleting sponsor', 'error');
-        }
-    }
+{# SponsorsManager initialization data #}
+<script type="application/json" id="sponsors-manager-init-data">
+{
+    "passTypeCode": "{{ pass_type_code }}",
+    "sponsors": [
+        {% for sponsor in sponsors %}
+        {
+            "id": {{ sponsor.id }},
+            "name": {{ sponsor.name|tojson }},
+            "display_name": {{ sponsor.display_name|tojson }},
+            "description": {{ (sponsor.description or '')|tojson }},
+            "website_url": {{ (sponsor.website_url or '')|tojson }},
+            "sponsor_type": "{{ sponsor.sponsor_type }}",
+            "applies_to": "{{ sponsor.applies_to }}",
+            "display_location": "{{ sponsor.display_location }}",
+            "is_active": {{ 'true' if sponsor.is_active else 'false' }}
+        }{{ ',' if not loop.last }}
+        {% endfor %}
+    ]
 }
 </script>

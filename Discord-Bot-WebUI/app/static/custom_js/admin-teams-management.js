@@ -53,6 +53,8 @@ class AdminTeamsManager {
      */
     setupEventDelegation() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             // Create team button (bubble capture)
             const createBtn = e.target.closest('.js-create-team');
             if (createBtn) {

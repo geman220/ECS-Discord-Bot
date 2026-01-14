@@ -32,11 +32,11 @@ class TaskManager:
         return get_safe_redis()
     
     @classmethod
-    def register_task(cls, task_id: str, task_type: str, user_id: int, 
+    def register_task(cls, task_id: str, task_type: str, user_id: int,
                      description: str, metadata: Dict = None) -> bool:
         """
         Register a task in the global registry for monitoring.
-        
+
         Args:
             task_id: Celery task ID
             task_type: Type of task (e.g., 'player_sync', 'report_generation')
@@ -54,23 +54,26 @@ class TaskManager:
                 'created_at': datetime.utcnow().isoformat(),
                 'status': 'PENDING'
             }
-            
-            # Store in Redis hash
+
             redis_client = cls._get_redis_client()
-            redis_client.hset(
-                f"{cls.TASK_REGISTRY_KEY}:{task_id}", 
-                mapping={k: json.dumps(v) if isinstance(v, (dict, list)) else str(v) 
+            task_key = f"{cls.TASK_REGISTRY_KEY}:{task_id}"
+            user_key = f"user_tasks:{user_id}"
+
+            # Use pipeline for atomic batch operations
+            pipe = redis_client.pipeline()
+            pipe.hset(
+                task_key,
+                mapping={k: json.dumps(v) if isinstance(v, (dict, list)) else str(v)
                         for k, v in task_data.items()}
             )
-            redis_client.expire(f"{cls.TASK_REGISTRY_KEY}:{task_id}", cls.TASK_TTL)
-            
-            # Add to user's task list
-            redis_client.sadd(f"user_tasks:{user_id}", task_id)
-            redis_client.expire(f"user_tasks:{user_id}", cls.TASK_TTL)
-            
+            pipe.expire(task_key, cls.TASK_TTL)
+            pipe.sadd(user_key, task_id)
+            pipe.expire(user_key, cls.TASK_TTL)
+            pipe.execute()
+
             logger.info(f"Registered task {task_id} for user {user_id}: {description}")
             return True
-            
+
         except Exception as e:
             logger.error(f"Failed to register task {task_id}: {e}")
             return False

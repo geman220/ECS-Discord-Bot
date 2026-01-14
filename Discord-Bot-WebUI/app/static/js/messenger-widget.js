@@ -68,6 +68,9 @@ class MessengerWidget {
   bindEvents() {
     // Event delegation for all actions
     this.widget.addEventListener('click', (e) => {
+      // Guard: ensure e.target is an Element with closest method
+      if (!e.target || typeof e.target.closest !== 'function') return;
+
       const action = e.target.closest('[data-action]');
       if (action) {
         e.preventDefault();

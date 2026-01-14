@@ -25,6 +25,8 @@ export function setupDragAndDrop() {
 
     // Drag start on draggable player cards
     document.addEventListener('dragstart', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const playerCard = e.target.closest('.js-draggable-player');
         if (playerCard) {
             const playerId = playerCard.dataset.playerId;
@@ -42,6 +44,8 @@ export function setupDragAndDrop() {
 
     // Drag end on draggable player cards
     document.addEventListener('dragend', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const playerCard = e.target.closest('.js-draggable-player');
         if (playerCard) {
             playerCard.classList.remove('opacity-50', 'dragging');
@@ -53,6 +57,8 @@ export function setupDragAndDrop() {
 
     // Drag over on drop zones
     document.addEventListener('dragover', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const dropZone = e.target.closest('.js-draft-drop-zone');
         if (dropZone) {
             e.preventDefault();
@@ -71,6 +77,8 @@ export function setupDragAndDrop() {
 
     // Drag leave on drop zones
     document.addEventListener('dragleave', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const dropZone = e.target.closest('.js-draft-drop-zone');
         if (dropZone && !dropZone.contains(e.relatedTarget)) {
             dropZone.classList.remove('drag-over', 'drag-over-available', 'drag-over-team');
@@ -79,6 +87,8 @@ export function setupDragAndDrop() {
 
     // Drop on drop zones
     document.addEventListener('drop', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const dropZone = e.target.closest('.js-draft-drop-zone');
         if (dropZone) {
             e.preventDefault();

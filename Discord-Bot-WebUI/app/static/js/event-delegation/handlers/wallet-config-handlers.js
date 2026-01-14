@@ -34,10 +34,10 @@ window.EventDelegation.register('toggle-detail', (element, event) => {
         const isHidden = detailElement.classList.contains('hidden');
         if (isHidden) {
             detailElement.classList.remove('hidden');
-            element.innerHTML = '<i class="ti ti-chevron-up me-1"></i> Hide Details';
+            element.innerHTML = '<svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg> Hide Details';
         } else {
             detailElement.classList.add('hidden');
-            element.innerHTML = '<i class="ti ti-chevron-down me-1"></i> View Details';
+            element.innerHTML = '<svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg> View Details';
         }
     }
 });
@@ -414,8 +414,8 @@ window.EventDelegation.register('validate-certificate', (element, event) => {
         window.Swal.fire({
             title: 'Certificate Valid',
             html: `
-                <div class="text-start">
-                    <p><strong>Status:</strong> <span class="badge bg-success">Valid</span></p>
+                <div class="text-left">
+                    <p><strong>Status:</strong> <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Valid</span></p>
                     <p><strong>Expires:</strong> December 31, 2025</p>
                     <p><strong>Type:</strong> Apple Wallet Signing Certificate</p>
                 </div>
@@ -535,7 +535,7 @@ window.EventDelegation.register('refresh-wallet-stats', (element, event) => {
     event.preventDefault();
     const button = element.closest('button') || element;
     const originalHtml = button.innerHTML;
-    button.innerHTML = '<i class="ti ti-loader me-1"></i>Refreshing...';
+    button.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1"></span>Refreshing...';
     button.disabled = true;
 
     setTimeout(() => {
@@ -584,7 +584,7 @@ window.EventDelegation.register('view-pass-stats', (element, event) => {
     window.Swal.fire({
         title: 'Pass Statistics',
         html: `
-            <div class="text-start">
+            <div class="text-left">
                 <div class="mb-3">
                     <strong>Total Passes Issued:</strong> 1,234<br>
                     <strong>Active Passes:</strong> 1,156<br>
@@ -592,14 +592,14 @@ window.EventDelegation.register('view-pass-stats', (element, event) => {
                 </div>
                 <div class="mb-3">
                     <strong>Platform Breakdown:</strong><br>
-                    <ul class="ms-4">
+                    <ul class="ml-4 list-disc">
                         <li>Apple Wallet: 856 (74%)</li>
                         <li>Google Wallet: 300 (26%)</li>
                     </ul>
                 </div>
                 <div class="mb-3">
                     <strong>This Month:</strong><br>
-                    <ul class="ms-4">
+                    <ul class="ml-4 list-disc">
                         <li>New Passes: 45</li>
                         <li>Updates: 23</li>
                         <li>Revocations: 3</li>
@@ -621,26 +621,26 @@ window.EventDelegation.register('export-pass-data', (element, event) => {
     window.Swal.fire({
         title: 'Export Pass Data',
         html: `
-            <div class="text-start">
+            <div class="text-left">
                 <div class="mb-3">
-                    <label class="form-label">Export Format</label>
-                    <select class="form-select" id="exportFormat" data-form-select>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Export Format</label>
+                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="exportFormat">
                         <option value="csv">CSV</option>
                         <option value="json">JSON</option>
                         <option value="xlsx">Excel (XLSX)</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Pass Type</label>
-                    <select class="form-select" id="exportPassType" data-form-select>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Pass Type</label>
+                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="exportPassType">
                         <option value="all">All Types</option>
                         <option value="ecs">ECS Membership</option>
                         <option value="pub">Pub League</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Date Range</label>
-                    <select class="form-select" id="exportDateRange" data-form-select>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date Range</label>
+                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="exportDateRange">
                         <option value="all">All Time</option>
                         <option value="year">This Year</option>
                         <option value="month">This Month</option>
@@ -753,7 +753,7 @@ window.EventDelegation.register('copy-to-clipboard', (element, event) => {
     navigator.clipboard.writeText(text).then(() => {
         // Show brief feedback
         const originalHtml = element.innerHTML;
-        element.innerHTML = '<i class="ti ti-check"></i>';
+        element.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
         setTimeout(() => { element.innerHTML = originalHtml; }, 1500);
     }).catch(err => {
         console.error('Failed to copy:', err);
@@ -787,16 +787,16 @@ window.EventDelegation.register('save-woocommerce-url', (element, event) => {
     const url = urlInput ? urlInput.value.trim() : '';
 
     if (!url) {
-        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>URL is required</span>';
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-red-600 dark:text-red-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>URL is required</span>';
         return;
     }
 
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>URL must start with http:// or https://</span>';
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-red-600 dark:text-red-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>URL must start with http:// or https://</span>';
         return;
     }
 
-    if (statusDiv) statusDiv.innerHTML = '<span class="text-info"><i class="ti ti-loader ti-spin me-1"></i>Saving...</span>';
+    if (statusDiv) statusDiv.innerHTML = '<span class="text-blue-600 dark:text-blue-400 flex items-center"><span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1"></span>Saving...</span>';
 
     const csrfMeta = document.querySelector('meta[name="csrf-token"]');
     const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
@@ -812,14 +812,14 @@ window.EventDelegation.register('save-woocommerce-url', (element, event) => {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            if (statusDiv) statusDiv.innerHTML = '<span class="text-success"><i class="ti ti-check me-1"></i>Saved successfully!</span>';
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-green-600 dark:text-green-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Saved successfully!</span>';
             if (warningDiv) warningDiv.style.display = 'none';
         } else {
-            if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>' + escapeHtml(data.error || 'Failed to save') + '</span>';
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-red-600 dark:text-red-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' + escapeHtml(data.error || 'Failed to save') + '</span>';
         }
     })
     .catch(error => {
-        if (statusDiv) statusDiv.innerHTML = '<span class="text-danger"><i class="ti ti-x me-1"></i>Error: ' + escapeHtml(error.message) + '</span>';
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-red-600 dark:text-red-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Error: ' + escapeHtml(error.message) + '</span>';
     });
 });
 
@@ -833,8 +833,8 @@ window.EventDelegation.register('validate-plugin-connection', (element, event) =
     if (!resultDiv) return;
 
     resultDiv.innerHTML = `
-        <div class="alert alert-info mb-0" data-alert>
-            <i class="ti ti-loader ti-spin me-2"></i>
+        <div class="flex items-center p-4 rounded-lg bg-blue-50 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300" data-alert>
+            <span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></span>
             Checking webhook endpoint...
         </div>
     `;
@@ -847,32 +847,30 @@ window.EventDelegation.register('validate-plugin-connection', (element, event) =
         .then(data => {
             if (data.status === 'ok') {
                 resultDiv.innerHTML = `
-                    <div class="alert alert-success mb-3" data-alert>
-                        <i class="ti ti-circle-check me-2"></i>
-                        <strong>Webhook Endpoint:</strong> Accessible and responding correctly
+                    <div class="flex items-center p-4 mb-3 rounded-lg bg-green-50 text-green-800 dark:bg-green-900/50 dark:text-green-300" data-alert>
+                        <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <strong>Webhook Endpoint:</strong>&nbsp;Accessible and responding correctly
                     </div>
-                    <div class="c-card bg-body-tertiary">
-                        <div class="c-card__body">
-                            <h6>Connection Details</h6>
-                            <table class="c-table c-table--compact mb-0" data-table data-mobile-table data-table-type="config">
-                                <tr>
-                                    <td><strong>Status</strong></td>
-                                    <td><span class="badge bg-label-success" data-badge>OK</span></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Webhook URL</strong></td>
-                                    <td><code>${escapeHtml(data.webhook_url || 'N/A')}</code></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Message</strong></td>
-                                    <td>${escapeHtml(data.message || 'Endpoint reachable')}</td>
-                                </tr>
-                            </table>
+                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Connection Details</h6>
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Status</span>
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">OK</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Webhook URL</span>
+                                <code class="text-gray-900 dark:text-white">${escapeHtml(data.webhook_url || 'N/A')}</code>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Message</span>
+                                <span class="text-gray-900 dark:text-white">${escapeHtml(data.message || 'Endpoint reachable')}</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="alert alert-info mt-3 mb-0" data-alert>
-                        <i class="ti ti-info-circle me-2"></i>
-                        <strong>Next Step:</strong> To fully test the integration, create a test order in WooCommerce with a product like "ECS 2026 Membership Card (testing)" - the pass will be created when payment is received (order moves to "processing" status).
+                    <div class="flex items-center p-4 mt-3 rounded-lg bg-blue-50 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300" data-alert>
+                        <svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div><strong>Next Step:</strong> To fully test the integration, create a test order in WooCommerce with a product like "ECS 2026 Membership Card (testing)" - the pass will be created when payment is received (order moves to "processing" status).</div>
                     </div>
                 `;
             } else {
@@ -881,10 +879,12 @@ window.EventDelegation.register('validate-plugin-connection', (element, event) =
         })
         .catch(error => {
             resultDiv.innerHTML = `
-                <div class="alert alert-danger mb-0" data-alert>
-                    <i class="ti ti-alert-circle me-2"></i>
-                    <strong>Error:</strong> Could not reach webhook endpoint
-                    <p class="mb-0 mt-2 small">${escapeHtml(error.message)}</p>
+                <div class="flex items-start p-4 rounded-lg bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-300" data-alert>
+                    <svg class="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <div>
+                        <strong>Error:</strong> Could not reach webhook endpoint
+                        <p class="mt-2 text-sm">${escapeHtml(error.message)}</p>
+                    </div>
                 </div>
             `;
         });

@@ -39,6 +39,8 @@ export function subPoolShowAlert(type, message) {
 // Global drag and drop functions for substitute pool management
 // Use unique names to avoid conflicts with draft-system.js drag handlers
 export function subPoolHandleDragStart(event) {
+    // Guard: ensure event.target is an Element with closest method
+    if (!event.target || typeof event.target.closest !== 'function') return;
     const card = event.target.closest('.player-card, .player-list-item');
     if (card) {
         card.classList.add('dragging');
@@ -52,6 +54,8 @@ export function subPoolHandleDragStart(event) {
 }
 
 export function subPoolHandleDragEnd(event) {
+    // Guard: ensure event.target is an Element with closest method
+    if (!event.target || typeof event.target.closest !== 'function') return;
     const card = event.target.closest('.player-card, .player-list-item');
     if (card) {
         card.classList.remove('dragging');
@@ -72,7 +76,14 @@ export function subPoolHandleDrop(event) {
     const dropZone = event.currentTarget;
     dropZone.classList.remove('drag-over');
 
-    const data = JSON.parse(event.dataTransfer.getData('text/plain'));
+    let data;
+    try {
+        data = JSON.parse(event.dataTransfer.getData('text/plain'));
+    } catch (e) {
+        console.error('Failed to parse drag data:', e);
+        window.subPoolShowAlert('error', 'Invalid drag data');
+        return;
+    }
     const targetStatus = dropZone.dataset.status;
     const targetLeague = dropZone.dataset.league;
 

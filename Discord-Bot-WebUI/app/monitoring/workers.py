@@ -40,7 +40,7 @@ def get_workers():
         try:
             from app.utils.redis_manager import UnifiedRedisManager
             redis_manager = UnifiedRedisManager()
-            direct_redis = redis_manager.get_decoded_client()
+            direct_redis = redis_manager.client  # Use property, not method
             direct_redis.ping()
             logger.info("Direct Redis connection successful for workers")
             redis_client = direct_redis

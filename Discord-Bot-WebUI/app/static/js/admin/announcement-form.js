@@ -167,6 +167,9 @@ const AnnouncementForm = {
     initDeleteHandler: function(context) {
         // Use event delegation for delete buttons
         context.addEventListener('click', async function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
+
             const btn = e.target.closest('[data-action="delete-announcement"]');
             if (!btn) return;
 

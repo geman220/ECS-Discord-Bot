@@ -1,449 +1,538 @@
-{# Appearance Tab Component #}
+{# Appearance Tab Component - Flowbite/Tailwind #}
 {# Configure pass colors, logo text, assets, and visual branding #}
 
-<form id="appearance-form" data-action="save-appearance">
+<form id="appearance-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
     {# Pass Style Selector - determines overall layout #}
-    <div class="mb-4">
-        <h6 class="text-primary mb-3"><i class="ti ti-layout me-2"></i>Apple Wallet Pass Style</h6>
-        <p class="text-muted small mb-3">Choose the pass layout style. This affects how fields and images are arranged.</p>
+    <div class="mb-6">
+        <h6 class="flex items-center text-lg font-semibold text-primary-600 dark:text-primary-400 mb-3">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
+            </svg>
+            Apple Wallet Pass Style
+        </h6>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Choose the pass layout style. This affects how fields and images are arranged.</p>
 
-        <div class="row">
-            <div class="col-12">
-                <div class="btn-group w-100" role="group" aria-label="Pass style selector">
-                    <input type="radio" class="btn-check" name="apple_pass_style" id="style_generic" value="generic"
-                           {% if (pass_type.apple_pass_style or 'generic') == 'generic' %}checked{% endif %}
-                           data-on-change="update-pass-style">
-                    <label class="c-btn c-btn--outline-primary" for="style_generic">
-                        <i class="ti ti-id-badge me-1"></i>Generic
-                        <span class="badge bg-success ms-1" data-badge>Recommended</span>
-                    </label>
+        {# Radio Button Group #}
+        <div class="flex flex-wrap gap-2">
+            <div class="flex items-center">
+                <input type="radio" id="style_generic" name="apple_pass_style" value="generic"
+                       {% if (pass_type.apple_pass_style or 'generic') == 'generic' %}checked{% endif %}
+                       data-on-change="update-pass-style"
+                       class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="style_generic" class="ml-2 flex items-center text-sm font-medium text-gray-900 dark:text-gray-300">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                    </svg>
+                    Generic
+                    <span class="ml-2 bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Recommended</span>
+                </label>
+            </div>
 
-                    <input type="radio" class="btn-check" name="apple_pass_style" id="style_storeCard" value="storeCard"
-                           {% if pass_type.apple_pass_style == 'storeCard' %}checked{% endif %}
-                           data-on-change="update-pass-style">
-                    <label class="c-btn c-btn--outline-primary" for="style_storeCard">
-                        <i class="ti ti-credit-c-card me-1"></i>Store Card
-                    </label>
+            <div class="flex items-center ml-4">
+                <input type="radio" id="style_storeCard" name="apple_pass_style" value="storeCard"
+                       {% if pass_type.apple_pass_style == 'storeCard' %}checked{% endif %}
+                       data-on-change="update-pass-style"
+                       class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="style_storeCard" class="ml-2 flex items-center text-sm font-medium text-gray-900 dark:text-gray-300">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                    </svg>
+                    Store Card
+                </label>
+            </div>
 
-                    <input type="radio" class="btn-check" name="apple_pass_style" id="style_eventTicket" value="eventTicket"
-                           {% if pass_type.apple_pass_style == 'eventTicket' %}checked{% endif %}
-                           data-on-change="update-pass-style">
-                    <label class="c-btn c-btn--outline-primary" for="style_eventTicket">
-                        <i class="ti ti-ticket me-1"></i>Event Ticket
-                    </label>
-                </div>
+            <div class="flex items-center ml-4">
+                <input type="radio" id="style_eventTicket" name="apple_pass_style" value="eventTicket"
+                       {% if pass_type.apple_pass_style == 'eventTicket' %}checked{% endif %}
+                       data-on-change="update-pass-style"
+                       class="w-4 h-4 text-primary-600 bg-gray-100 border-gray-300 focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                <label for="style_eventTicket" class="ml-2 flex items-center text-sm font-medium text-gray-900 dark:text-gray-300">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"/>
+                    </svg>
+                    Event Ticket
+                </label>
             </div>
         </div>
 
         {# Style descriptions #}
         <div class="mt-3" id="style-description">
-            <div class="alert alert-info py-2 mb-0" id="style-desc-generic" class="{% if (pass_type.apple_pass_style or 'generic') != 'generic' %}u-hidden{% endif %}" data-alert>
-                <strong>Generic Pass:</strong> Clean layout with thumbnail image in header. Primary field displayed separately below.
-                Best for membership cards - fields are clearly readable without overlapping images.
+            <div id="style-desc-generic" class="{% if (pass_type.apple_pass_style or 'generic') != 'generic' %}hidden{% endif %} flex items-center p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+                <svg class="flex-shrink-0 inline w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <span><strong class="font-medium">Generic Pass:</strong> Clean layout with thumbnail image in header. Primary field displayed separately below. Best for membership cards - fields are clearly readable without overlapping images.</span>
             </div>
-            <div class="alert alert-info py-2 mb-0" id="style-desc-storeCard" class="{% if pass_type.apple_pass_style != 'storeCard' %}u-hidden{% endif %}" data-alert>
-                <strong>Store Card:</strong> Strip image as banner with primary field overlaid on top.
-                Good for loyalty/points cards. <span class="text-warning">Note: Text appears ON the strip image.</span>
+            <div id="style-desc-storeCard" class="{% if pass_type.apple_pass_style != 'storeCard' %}hidden{% endif %} flex items-center p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+                <svg class="flex-shrink-0 inline w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <span><strong class="font-medium">Store Card:</strong> Strip image as banner with primary field overlaid on top. Good for loyalty/points cards. <span class="text-yellow-600 dark:text-yellow-400">Note: Text appears ON the strip image.</span></span>
             </div>
-            <div class="alert alert-info py-2 mb-0" id="style-desc-eventTicket" class="{% if pass_type.apple_pass_style != 'eventTicket' %}u-hidden{% endif %}" data-alert>
-                <strong>Event Ticket:</strong> Strip image displayed cleanly with notch at top. Fields appear below the strip - no overlay!
-                Great for membership cards with a banner image.
+            <div id="style-desc-eventTicket" class="{% if pass_type.apple_pass_style != 'eventTicket' %}hidden{% endif %} flex items-center p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+                <svg class="flex-shrink-0 inline w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+                <span><strong class="font-medium">Event Ticket:</strong> Strip image displayed cleanly with notch at top. Fields appear below the strip - no overlay! Great for membership cards with a banner image.</span>
             </div>
         </div>
     </div>
 
-    <hr>
+    <hr class="h-px my-6 bg-gray-200 border-0 dark:bg-gray-700">
 
     {# Colors Section #}
-    <div class="mb-4">
-        <h6 class="text-primary mb-3"><i class="ti ti-palette me-2"></i>Pass Colors</h6>
+    <div class="mb-6">
+        <h6 class="flex items-center text-lg font-semibold text-primary-600 dark:text-primary-400 mb-3">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+            </svg>
+            Pass Colors
+        </h6>
 
-        <div class="row">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             {# Background Color #}
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Background Color</label>
-                <div class="input-group" data-input-group>
+            <div>
+                <label for="background_color" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Background Color</label>
+                <div class="flex">
                     <input type="color"
-                           class="form-control form-control-color color-input"
                            id="background_color"
                            name="background_color"
                            value="{{ pass_type.background_color }}"
-                           title="Choose background color" data-form-control>
+                           data-on-input="sync-color-input" data-target="background_color"
+                           class="p-1 h-10 w-14 block bg-white border border-gray-300 cursor-pointer rounded-l-lg dark:bg-gray-700 dark:border-gray-600">
                     <input type="text"
-                           class="form-control"
-                           value="{{ pass_type.background_color }}"
                            id="background_color_text"
+                           value="{{ pass_type.background_color }}"
                            maxlength="7"
                            pattern="^#[0-9A-Fa-f]{6}$"
-                           data-on-input="sync-color-input" data-target="background_color" data-form-control>
+                           data-on-input="sync-color-input" data-target="background_color"
+                           class="flex-1 bg-gray-50 border border-l-0 border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                 </div>
-                <small class="text-muted">Main background of the pass</small>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Main background of the pass</p>
             </div>
 
             {# Foreground Color #}
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Foreground Color</label>
-                <div class="input-group" data-input-group>
+            <div>
+                <label for="foreground_color" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Foreground Color</label>
+                <div class="flex">
                     <input type="color"
-                           class="form-control form-control-color color-input"
                            id="foreground_color"
                            name="foreground_color"
                            value="{{ pass_type.foreground_color }}"
-                           title="Choose text color" data-form-control>
+                           data-on-input="sync-color-input" data-target="foreground_color"
+                           class="p-1 h-10 w-14 block bg-white border border-gray-300 cursor-pointer rounded-l-lg dark:bg-gray-700 dark:border-gray-600">
                     <input type="text"
-                           class="form-control"
-                           value="{{ pass_type.foreground_color }}"
                            id="foreground_color_text"
+                           value="{{ pass_type.foreground_color }}"
                            maxlength="7"
                            pattern="^#[0-9A-Fa-f]{6}$"
-                           data-on-input="sync-color-input" data-target="foreground_color" data-form-control>
+                           data-on-input="sync-color-input" data-target="foreground_color"
+                           class="flex-1 bg-gray-50 border border-l-0 border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                 </div>
-                <small class="text-muted">Main text and values</small>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Main text and values</p>
             </div>
 
             {# Label Color #}
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Label Color</label>
-                <div class="input-group" data-input-group>
+            <div>
+                <label for="label_color" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Label Color</label>
+                <div class="flex">
                     <input type="color"
-                           class="form-control form-control-color color-input"
                            id="label_color"
                            name="label_color"
                            value="{{ pass_type.label_color }}"
-                           title="Choose label color" data-form-control>
+                           data-on-input="sync-color-input" data-target="label_color"
+                           class="p-1 h-10 w-14 block bg-white border border-gray-300 cursor-pointer rounded-l-lg dark:bg-gray-700 dark:border-gray-600">
                     <input type="text"
-                           class="form-control"
-                           value="{{ pass_type.label_color }}"
                            id="label_color_text"
+                           value="{{ pass_type.label_color }}"
                            maxlength="7"
                            pattern="^#[0-9A-Fa-f]{6}$"
-                           data-on-input="sync-color-input" data-target="label_color" data-form-control>
+                           data-on-input="sync-color-input" data-target="label_color"
+                           class="flex-1 bg-gray-50 border border-l-0 border-gray-300 text-gray-900 text-sm rounded-r-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                 </div>
-                <small class="text-muted">Field labels (e.g., "MEMBER")</small>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Field labels (e.g., "MEMBER")</p>
             </div>
         </div>
 
         {# Color Presets #}
-        <div class="mt-2">
-            <small class="text-muted d-block mb-2">Quick presets:</small>
-            <div class="d-flex gap-2 flex-wrap">
-                <button type="button" class="c-btn c-btn--sm bg-ecs-green text-white"
-                        data-action="apply-color-preset" data-bg="#1a472a" data-fg="#ffffff" data-label="#c8c8c8">
+        <div class="mt-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Quick presets:</p>
+            <div class="flex flex-wrap gap-2">
+                <button type="button"
+                        data-action="apply-color-preset" data-bg="#1a472a" data-fg="#ffffff" data-label="#c8c8c8"
+                        class="px-3 py-2 text-xs font-medium text-white rounded-lg focus:ring-4 focus:outline-none focus:ring-green-300"
+                        style="background-color: #1a472a;">
                     ECS Green
                 </button>
-                <button type="button" class="c-btn c-btn--sm bg-sounders-blue text-white"
-                        data-action="apply-color-preset" data-bg="#213e96" data-fg="#ffffff" data-label="#c8c8c8">
+                <button type="button"
+                        data-action="apply-color-preset" data-bg="#213e96" data-fg="#ffffff" data-label="#c8c8c8"
+                        class="px-3 py-2 text-xs font-medium text-white rounded-lg focus:ring-4 focus:outline-none focus:ring-blue-300"
+                        style="background-color: #213e96;">
                     Sounders Blue
                 </button>
-                <button type="button" class="c-btn c-btn--sm bg-dark text-white"
-                        data-action="apply-color-preset" data-bg="#000000" data-fg="#ffffff" data-label="#999999">
+                <button type="button"
+                        data-action="apply-color-preset" data-bg="#000000" data-fg="#ffffff" data-label="#999999"
+                        class="px-3 py-2 text-xs font-medium text-white bg-gray-800 rounded-lg hover:bg-gray-900 focus:ring-4 focus:outline-none focus:ring-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700">
                     Dark Mode
                 </button>
-                <button type="button" class="c-btn c-btn--sm bg-deep-red text-white"
-                        data-action="apply-color-preset" data-bg="#8b0000" data-fg="#ffffff" data-label="#ffcccc">
+                <button type="button"
+                        data-action="apply-color-preset" data-bg="#8b0000" data-fg="#ffffff" data-label="#ffcccc"
+                        class="px-3 py-2 text-xs font-medium text-white rounded-lg focus:ring-4 focus:outline-none focus:ring-red-300"
+                        style="background-color: #8b0000;">
                     Deep Red
                 </button>
             </div>
         </div>
     </div>
 
-    <hr>
+    <hr class="h-px my-6 bg-gray-200 border-0 dark:bg-gray-700">
 
     {# Logo & Branding Section #}
-    <div class="mb-4">
-        <h6 class="text-primary mb-3"><i class="ti ti-typography me-2"></i>Logo & Branding</h6>
+    <div class="mb-6">
+        <h6 class="flex items-center text-lg font-semibold text-primary-600 dark:text-primary-400 mb-3">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16"/>
+            </svg>
+            Logo & Branding
+        </h6>
 
-        <div class="row">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {# Logo Text #}
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Logo Text</label>
+            <div>
+                <label for="logo_text" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Logo Text</label>
                 <input type="text"
-                       class="form-control"
                        id="logo_text"
                        name="logo_text"
                        value="{{ pass_type.logo_text }}"
                        maxlength="50"
                        placeholder="e.g., ECS FC"
-                       data-on-input="update-preview-field" data-form-control>
-                <small class="text-muted">Text displayed at the top of the pass (max 50 chars)</small>
+                       data-on-input="update-preview-field"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Text displayed at the top of the pass (max 50 chars)</p>
             </div>
 
             {# Show Logo Toggle #}
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Logo Display</label>
-                <div class="form-check form-switch mt-2">
-                    <input class="form-check-input" type="checkbox" id="show_logo" name="show_logo"
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Logo Display</label>
+                <label class="relative inline-flex items-center cursor-pointer mt-2">
+                    <input type="checkbox"
+                           id="show_logo"
+                           name="show_logo"
                            {% if pass_type.show_logo is not defined or pass_type.show_logo != false %}checked{% endif %}
-                           data-on-change="toggle-logo-visibility">
-                    <label class="form-check-label" for="show_logo">Show logo image on pass</label>
-                </div>
-                <small class="text-muted">Uncheck to hide the logo even if one is uploaded</small>
+                           data-on-change="toggle-logo-visibility"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Show logo image on pass</span>
+                </label>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Uncheck to hide the logo even if one is uploaded</p>
             </div>
         </div>
     </div>
 
-    <hr>
+    <hr class="h-px my-6 bg-gray-200 border-0 dark:bg-gray-700">
 
     {# Apple Wallet Assets Section #}
-    {# Assets vary by pass style:
-       - generic: icon, logo, thumbnail
-       - storeCard/eventTicket: icon, logo, strip
-    #}
-    <div class="mb-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="text-primary mb-0"><i class="ti ti-brand-apple me-2"></i>Apple Wallet Assets</h6>
-            <div class="dropdown">
-                <button class="c-btn c-btn--primary c-btn--sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" data-dropdown-toggle>
-                    <i class="ti ti-upload me-1"></i>Upload Asset
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end" data-dropdown-menu>
-                    <li><h6 class="dropdown-header">Required</h6></li>
-                    <li><a class="dropdown-item js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="icon">
-                        <i class="ti ti-app-window me-2"></i>Icon (29x29)
-                    </a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><h6 class="dropdown-header">Optional</h6></li>
-                    <li><a class="dropdown-item js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="logo">
-                        <i class="ti ti-photo me-2"></i>Logo (160x50)
-                    </a></li>
-                    <li><a class="dropdown-item js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="strip">
-                        <i class="ti ti-layout-distribute-horizontal me-2"></i>Strip (375x123)
-                    </a></li>
-                    <li><a class="dropdown-item js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="thumbnail">
-                        <i class="ti ti-photo-square-rounded me-2"></i>Thumbnail (90x90)
-                    </a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><h6 class="dropdown-header">High Resolution (@2x)</h6></li>
-                    <li><a class="dropdown-item js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="icon2x">
-                        <i class="ti ti-app-window me-2"></i>Icon @2x (58x58)
-                    </a></li>
-                    <li><a class="dropdown-item js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="logo2x">
-                        <i class="ti ti-photo me-2"></i>Logo @2x (320x100)
-                    </a></li>
-                    <li><a class="dropdown-item js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="strip2x">
-                        <i class="ti ti-layout-distribute-horizontal me-2"></i>Strip @2x (750x246)
-                    </a></li>
-                    <li><a class="dropdown-item js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="thumbnail2x">
-                        <i class="ti ti-photo-square-rounded me-2"></i>Thumbnail @2x (180x180)
-                    </a></li>
-                </ul>
+    <div class="mb-6">
+        <div class="flex justify-between items-center mb-3">
+            <h6 class="flex items-center text-lg font-semibold text-primary-600 dark:text-primary-400">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                Apple Wallet Assets
+            </h6>
+            <button id="assetDropdownButton" data-dropdown-toggle="assetDropdown" type="button"
+                    class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 text-center inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                </svg>
+                Upload Asset
+                <svg class="w-2.5 h-2.5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 10 6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 4 4 4-4"/>
+                </svg>
+            </button>
+
+            {# Dropdown menu #}
+            <div id="assetDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow-lg w-56 dark:bg-gray-700 dark:divide-gray-600">
+                <div class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                    <p class="px-4 py-1 text-xs font-semibold text-gray-400 uppercase dark:text-gray-500">Required</p>
+                    <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="icon">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
+                        </svg>
+                        Icon (29x29)
+                    </a>
+                </div>
+                <div class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                    <p class="px-4 py-1 text-xs font-semibold text-gray-400 uppercase dark:text-gray-500">Optional</p>
+                    <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="logo">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Logo (160x50)
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="strip">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+                        </svg>
+                        Strip (375x123)
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="thumbnail">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Thumbnail (90x90)
+                    </a>
+                </div>
+                <div class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                    <p class="px-4 py-1 text-xs font-semibold text-gray-400 uppercase dark:text-gray-500">High Resolution (@2x)</p>
+                    <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="icon2x">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5z"/>
+                        </svg>
+                        Icon @2x (58x58)
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="logo2x">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Logo @2x (320x100)
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="strip2x">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+                        </svg>
+                        Strip @2x (750x246)
+                    </a>
+                    <a href="#" class="flex items-center px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 js-open-asset-cropper" data-action="open-asset-cropper" data-asset-type="thumbnail2x">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Thumbnail @2x (180x180)
+                    </a>
+                </div>
             </div>
         </div>
-        <p class="text-muted small mb-3">Click any card below to replace, or use the Upload button to add new assets.</p>
 
-        {# Required Assets (all styles) #}
-        <div class="mb-3">
-            <span class="badge bg-danger mb-2" data-badge>Required</span>
-            <div class="row">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Click any card below to replace, or use the Upload button to add new assets.</p>
+
+        {# Required Assets #}
+        <div class="mb-4">
+            <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-red-900 dark:text-red-300 mb-2 inline-block">Required</span>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {# Icon #}
-                <div class="col-md-4 col-lg-3 mb-3">
-                    <div class="asset-upload-c-card js-open-asset-cropper" data-asset-type="icon" data-action="open-asset-cropper">
-                        <div class="asset-preview">
-                            {% if assets.get('icon') %}
-                            <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['icon'].id) }}"
-                                 alt="Icon" id="asset-preview-icon">
-                            <span class="badge bg-success position-absolute top-0 end-0 m-1" data-badge><i class="ti ti-check"></i></span>
-                            {% else %}
-                            <div class="asset-placeholder">
-                                <i class="ti ti-photo fs-1"></i>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="asset-info">
-                            <strong>Icon</strong>
-                            <small class="text-muted d-block">29x29 points (@2x: 58x58px)</small>
-                            <small class="text-muted d-block">Shown on lock screen</small>
-                        </div>
+                <div class="asset-upload-card cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:border-primary-500 hover:shadow-md transition-all js-open-asset-cropper" data-asset-type="icon" data-action="open-asset-cropper">
+                    <div class="h-16 bg-gray-100 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center relative overflow-hidden">
+                        {% if assets.get('icon') %}
+                        <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['icon'].id) }}" alt="Icon" id="asset-preview-icon" class="w-full h-full object-contain">
+                        <span class="absolute top-1 right-1 bg-green-500 text-white rounded-full p-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </span>
+                        {% else %}
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        {% endif %}
                     </div>
+                    <p class="font-medium text-sm text-gray-900 dark:text-white">Icon</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">29x29 (@2x: 58x58)</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500">Lock screen</p>
                 </div>
 
                 {# Logo #}
-                <div class="col-md-4 col-lg-3 mb-3">
-                    <div class="asset-upload-c-card js-open-asset-cropper" data-asset-type="logo" data-action="open-asset-cropper">
-                        <div class="asset-preview">
-                            {% if assets.get('logo') %}
-                            <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['logo'].id) }}"
-                                 alt="Logo" id="asset-preview-logo">
-                            <span class="badge bg-success position-absolute top-0 end-0 m-1" data-badge><i class="ti ti-check"></i></span>
-                            {% else %}
-                            <div class="asset-placeholder">
-                                <i class="ti ti-photo fs-1"></i>
-                            </div>
-                            {% endif %}
-                        </div>
-                        <div class="asset-info">
-                            <strong>Logo</strong>
-                            <small class="text-muted d-block">160x50 points (@2x: 320x100px)</small>
-                            <small class="text-muted d-block">Displayed in pass header</small>
-                        </div>
+                <div class="asset-upload-card cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:border-primary-500 hover:shadow-md transition-all js-open-asset-cropper" data-asset-type="logo" data-action="open-asset-cropper">
+                    <div class="h-16 bg-gray-100 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center relative overflow-hidden">
+                        {% if assets.get('logo') %}
+                        <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['logo'].id) }}" alt="Logo" id="asset-preview-logo" class="w-full h-full object-contain">
+                        <span class="absolute top-1 right-1 bg-green-500 text-white rounded-full p-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </span>
+                        {% else %}
+                        <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        {% endif %}
                     </div>
+                    <p class="font-medium text-sm text-gray-900 dark:text-white">Logo</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">160x50 (@2x: 320x100)</p>
+                    <p class="text-xs text-gray-400 dark:text-gray-500">Pass header</p>
                 </div>
             </div>
         </div>
 
         {# Style-specific Assets #}
         <div>
-            <span class="badge bg-secondary mb-2" data-badge>Optional - Style Specific</span>
-            <div class="row">
+            <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300 mb-2 inline-block">Optional - Style Specific</span>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {# Strip - for storeCard and eventTicket #}
-                <div class="col-md-4 col-lg-3 mb-3 asset-strip-container {% if (pass_type.apple_pass_style or 'generic') == 'generic' %}u-hidden{% endif %}" id="asset-strip-wrapper">
-                    <div class="asset-upload-c-card js-open-asset-cropper" data-asset-type="strip" data-action="open-asset-cropper">
-                        <div class="asset-preview">
+                <div id="asset-strip-wrapper" class="asset-strip-container {% if (pass_type.apple_pass_style or 'generic') == 'generic' %}hidden{% endif %}">
+                    <div class="asset-upload-card cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:border-primary-500 hover:shadow-md transition-all js-open-asset-cropper" data-asset-type="strip" data-action="open-asset-cropper">
+                        <div class="h-16 bg-gray-100 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center relative overflow-hidden">
                             {% if assets.get('strip') %}
-                            <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['strip'].id) }}"
-                                 alt="Strip" id="asset-preview-strip">
-                            <span class="badge bg-success position-absolute top-0 end-0 m-1" data-badge><i class="ti ti-check"></i></span>
+                            <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['strip'].id) }}" alt="Strip" id="asset-preview-strip" class="w-full h-full object-contain">
+                            <span class="absolute top-1 right-1 bg-green-500 text-white rounded-full p-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </span>
                             {% else %}
-                            <div class="asset-placeholder">
-                                <i class="ti ti-photo fs-1"></i>
-                            </div>
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
                             {% endif %}
                         </div>
-                        <div class="asset-info">
-                            <strong>Strip <span class="badge bg-primary ms-1" data-badge>Main Image</span></strong>
-                            <small class="text-muted d-block">375x123 points (@2x: 750x246px)</small>
-                            <small class="text-muted d-block">Banner - primary field overlays this</small>
+                        <div class="flex items-center gap-1">
+                            <p class="font-medium text-sm text-gray-900 dark:text-white">Strip</p>
+                            <span class="bg-primary-100 text-primary-800 text-xs font-medium px-1.5 py-0.5 rounded dark:bg-primary-900 dark:text-primary-300">Main</span>
                         </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">375x123 (@2x: 750x246)</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500">Banner image</p>
                     </div>
                 </div>
 
                 {# Thumbnail - for generic only #}
-                <div class="col-md-4 col-lg-3 mb-3 asset-thumbnail-container {% if (pass_type.apple_pass_style or 'generic') != 'generic' %}u-hidden{% endif %}" id="asset-thumbnail-wrapper">
-                    <div class="asset-upload-c-card js-open-asset-cropper" data-asset-type="thumbnail" data-action="open-asset-cropper">
-                        <div class="asset-preview">
+                <div id="asset-thumbnail-wrapper" class="asset-thumbnail-container {% if (pass_type.apple_pass_style or 'generic') != 'generic' %}hidden{% endif %}">
+                    <div class="asset-upload-card cursor-pointer bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 hover:border-primary-500 hover:shadow-md transition-all js-open-asset-cropper" data-asset-type="thumbnail" data-action="open-asset-cropper">
+                        <div class="h-16 bg-gray-100 dark:bg-gray-700 rounded-lg mb-2 flex items-center justify-center relative overflow-hidden">
                             {% if assets.get('thumbnail') %}
-                            <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['thumbnail'].id) }}"
-                                 alt="Thumbnail" id="asset-preview-thumbnail">
-                            <span class="badge bg-success position-absolute top-0 end-0 m-1" data-badge><i class="ti ti-check"></i></span>
+                            <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['thumbnail'].id) }}" alt="Thumbnail" id="asset-preview-thumbnail" class="w-full h-full object-contain">
+                            <span class="absolute top-1 right-1 bg-green-500 text-white rounded-full p-1">
+                                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </span>
                             {% else %}
-                            <div class="asset-placeholder">
-                                <i class="ti ti-photo fs-1"></i>
-                            </div>
+                            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                            </svg>
                             {% endif %}
                         </div>
-                        <div class="asset-info">
-                            <strong>Thumbnail <span class="badge bg-primary ms-1" data-badge>Main Image</span></strong>
-                            <small class="text-muted d-block">90x90 points (@2x: 180x180px)</small>
-                            <small class="text-muted d-block">Square image in header area</small>
+                        <div class="flex items-center gap-1">
+                            <p class="font-medium text-sm text-gray-900 dark:text-white">Thumbnail</p>
+                            <span class="bg-primary-100 text-primary-800 text-xs font-medium px-1.5 py-0.5 rounded dark:bg-primary-900 dark:text-primary-300">Main</span>
                         </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">90x90 (@2x: 180x180)</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500">Header image</p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <hr>
+    <hr class="h-px my-6 bg-gray-200 border-0 dark:bg-gray-700">
 
     {# Google Wallet Settings #}
-    <div class="mb-4">
-        <h6 class="text-primary mb-3"><i class="ti ti-brand-google me-2"></i>Google Wallet</h6>
-        <p class="text-muted small mb-3">Google Wallet uses external image URLs instead of embedded images.</p>
+    <div class="mb-6">
+        <h6 class="flex items-center text-lg font-semibold text-primary-600 dark:text-primary-400 mb-3">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            Google Wallet
+        </h6>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Google Wallet uses external image URLs instead of embedded images.</p>
 
-        <div class="row">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {# Hero Image URL #}
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Hero Image URL</label>
-                <div class="input-group" data-input-group>
-                    <span class="input-group-text"><i class="ti ti-photo"></i></span>
+            <div>
+                <label for="google_hero_image_url" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Hero Image URL</label>
+                <div class="flex">
+                    <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:text-gray-400 dark:border-gray-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </span>
                     <input type="url"
-                           class="form-control"
                            id="google_hero_image_url"
                            name="google_hero_image_url"
                            value="{{ pass_type.google_hero_image_url or '' }}"
                            placeholder="https://example.com/hero.png"
-                           data-on-input="update-google-preview" data-form-control>
+                           data-on-input="update-google-preview"
+                           class="rounded-none rounded-r-lg bg-gray-50 border border-gray-300 text-gray-900 focus:ring-primary-500 focus:border-primary-500 block flex-1 min-w-0 w-full text-sm p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                 </div>
-                <small class="text-muted">Banner image at top (recommended: 1032x336px)</small>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Banner image at top (recommended: 1032x336px)</p>
             </div>
 
             {# Logo URL #}
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Logo URL</label>
-                <div class="input-group" data-input-group>
-                    <span class="input-group-text"><i class="ti ti-building"></i></span>
+            <div>
+                <label for="google_logo_url" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Logo URL</label>
+                <div class="flex">
+                    <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:text-gray-400 dark:border-gray-600">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </span>
                     <input type="url"
-                           class="form-control"
                            id="google_logo_url"
                            name="google_logo_url"
                            value="{{ pass_type.google_logo_url or '' }}"
                            placeholder="https://example.com/logo.png"
-                           data-on-input="update-google-preview" data-form-control>
+                           data-on-input="update-google-preview"
+                           class="rounded-none rounded-r-lg bg-gray-50 border border-gray-300 text-gray-900 focus:ring-primary-500 focus:border-primary-500 block flex-1 min-w-0 w-full text-sm p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
                 </div>
-                <small class="text-muted">Square logo image (optional, uses Apple logo if blank)</small>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Square logo image (optional, uses Apple logo if blank)</p>
             </div>
         </div>
 
         {# Preview hint #}
         {% if pass_type.google_hero_image_url or pass_type.google_logo_url %}
-        <div class="alert alert-success py-2 mb-0" data-alert>
-            <i class="ti ti-check me-1"></i>
-            Google Wallet images configured. Switch to Google preview to see them.
+        <div class="flex items-center p-4 mt-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-green-900/50 dark:text-green-300">
+            <svg class="flex-shrink-0 inline w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+            </svg>
+            <span>Google Wallet images configured. Switch to Google preview to see them.</span>
         </div>
         {% else %}
-        <div class="alert alert-info py-2 mb-0" data-alert>
-            <i class="ti ti-info-circle me-1"></i>
-            Add URLs above to customize Google Wallet appearance. If left blank, Apple assets will be used where possible.
+        <div class="flex items-center p-4 mt-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+            <svg class="flex-shrink-0 inline w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+            <span>Add URLs above to customize Google Wallet appearance. If left blank, Apple assets will be used where possible.</span>
         </div>
         {% endif %}
     </div>
 
-    <hr>
+    <hr class="h-px my-6 bg-gray-200 border-0 dark:bg-gray-700">
 
     {# Barcode Settings #}
-    <div class="mb-4">
-        <h6 class="text-primary mb-3"><i class="ti ti-qrcode me-2"></i>Barcode Settings</h6>
+    <div class="mb-6">
+        <h6 class="flex items-center text-lg font-semibold text-primary-600 dark:text-primary-400 mb-3">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/>
+            </svg>
+            Barcode Settings
+        </h6>
 
-        <div class="form-check form-switch">
-            <input class="form-check-input"
-                   type="checkbox"
+        <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox"
                    id="suppress_barcode"
                    name="suppress_barcode"
                    {% if pass_type.suppress_barcode %}checked{% endif %}
-                   data-on-change="update-barcode-preview">
-            <label class="form-check-label" for="suppress_barcode">
-                <strong>Hide Barcode</strong>
-            </label>
-        </div>
-        <small class="text-muted d-block mt-1">
-            Enable this to hide the QR code from the pass. Useful if you don't need scanning functionality.
-        </small>
+                   data-on-change="update-barcode-preview"
+                   class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Hide Barcode</span>
+        </label>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Enable this to hide the QR code from the pass. Useful if you don't need scanning functionality.</p>
     </div>
 
-    <hr>
+    <hr class="h-px my-6 bg-gray-200 border-0 dark:bg-gray-700">
 
     {# Save Button #}
-    <div class="d-flex justify-content-end">
-        <button type="button" class="c-btn c-btn--primary transform-none" data-action="save-appearance">
-            <i class="ti ti-device-floppy me-1"></i> Save Appearance
+    <div class="flex justify-end">
+        <button type="button" data-action="save-appearance"
+                class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+            </svg>
+            Save Appearance
         </button>
     </div>
 </form>
-
-{#
-  ============================================================================
-  INLINE SCRIPT REMOVED - STANDARDIZATION COMPLIANCE
-  ============================================================================
-
-  This inline script block has been removed per modal standardization guidelines.
-  All functionality should be moved to:
-  /app/static/custom_js/pass-studio-appearance.js (or similar external JS file)
-
-  Functions that need to be externalized:
-  - applyColorPreset(bg, fg, label) - use data-action="apply-color-preset"
-  - Color input sync handlers - use event delegation on .color-input
-
-  Use data attributes for event binding:
-  - data-action="apply-color-preset" data-bg="#xxx" data-fg="#xxx" data-label="#xxx"
-  - data-action="sync-color-input" data-target="color_field_id"
-  - data-action="update-pass-style"
-  - data-action="update-preview-field"
-  - data-action="toggle-logo-visibility"
-  - data-action="open-asset-cropper" data-asset-type="icon|logo|strip|thumbnail"
-  - data-action="update-google-preview"
-  - data-action="update-barcode-preview"
-  - data-action="save-appearance" (form submission)
-
-  ============================================================================
-#}

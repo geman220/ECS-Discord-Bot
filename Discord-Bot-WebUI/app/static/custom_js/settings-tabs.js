@@ -40,6 +40,8 @@ export const SettingsTabs = {
         initContainer(container) {
             // Event delegation for tab clicks
             container.addEventListener('click', (e) => {
+                // Guard: ensure e.target is an Element with closest method
+                if (!e.target || typeof e.target.closest !== 'function') return;
                 const trigger = e.target.closest(this.SELECTORS.TRIGGER);
                 if (!trigger) return;
 
@@ -53,6 +55,8 @@ export const SettingsTabs = {
 
             // Keyboard navigation
             container.addEventListener('keydown', (e) => {
+                // Guard: ensure e.target is an Element with closest method
+                if (!e.target || typeof e.target.closest !== 'function') return;
                 const trigger = e.target.closest(this.SELECTORS.TRIGGER);
                 if (!trigger) return;
 

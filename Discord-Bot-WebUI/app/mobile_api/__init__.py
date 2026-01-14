@@ -27,6 +27,7 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
 - messages: Direct messaging between users
 - ecs_fc_matches: ECS FC match details and RSVP management
 - stats: League-separated statistics and leaderboards
+- pitch_view: Unified pitch view for draft and match lineups
 
 All endpoints are CSRF-exempt and use JWT authentication where required.
 """
@@ -68,6 +69,7 @@ def register_mobile_api_routes():
         messages,
         ecs_fc_matches,
         stats,
+        pitch_view,
     )
 
 

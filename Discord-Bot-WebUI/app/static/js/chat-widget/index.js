@@ -50,6 +50,9 @@ function bindEvents() {
 
   // Delegated click handler for all chat widget interactions
   document.addEventListener('click', (e) => {
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
+
     const widget = e.target.closest('.c-chat-widget');
     if (!widget) return;
 
@@ -107,6 +110,9 @@ function bindEvents() {
 
   // Delegated input/keydown for composer and search
   document.addEventListener('input', (e) => {
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
+
     if (!e.target.closest('.c-chat-widget')) return;
 
     if (e.target.matches('.c-chat-widget__composer-input, [data-chat-composer]')) {
@@ -117,6 +123,9 @@ function bindEvents() {
   });
 
   document.addEventListener('keydown', (e) => {
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
+
     if (!e.target.closest('.c-chat-widget')) return;
 
     if (e.target.matches('.c-chat-widget__composer-input, [data-chat-composer]')) {

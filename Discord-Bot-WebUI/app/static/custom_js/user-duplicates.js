@@ -64,7 +64,14 @@ function handlePrimarySelection() {
  */
 export function handleMerge() {
     const groupId = this.dataset.group;
-    const allUserIds = JSON.parse(this.dataset.users);
+    let allUserIds;
+    try {
+        allUserIds = JSON.parse(this.dataset.users);
+    } catch (e) {
+        console.error('Failed to parse user IDs:', e);
+        showToast('Error reading user data', 'error');
+        return;
+    }
     const primaryRadio = document.querySelector(`input[name="primary-${groupId}"]:checked`);
 
     if (!primaryRadio) {
@@ -126,7 +133,14 @@ function performMerge(primaryUserId, duplicateUserIds) {
  * @param {HTMLElement} btn - The dismiss button element
  */
 export function handleDismissGroup(btn) {
-    const userIds = JSON.parse(btn.dataset.userIds);
+    let userIds;
+    try {
+        userIds = JSON.parse(btn.dataset.userIds);
+    } catch (e) {
+        console.error('Failed to parse user IDs:', e);
+        showToast('Error reading user data', 'error');
+        return;
+    }
 
     if (typeof window.Swal !== 'undefined') {
         window.Swal.fire({
@@ -203,6 +217,8 @@ export function runScan(event) {
 
 // Register event delegation for dismiss group
 document.addEventListener('click', function(e) {
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
     if (e.target.closest('.js-dismiss-group')) {
         handleDismissGroup(e.target.closest('.js-dismiss-group'));
     }

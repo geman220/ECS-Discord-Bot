@@ -17,22 +17,23 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.core import celery
 from app.database.db_models import DBMonitoringSnapshot
-from app.utils.redis_manager import RedisManager
+from app.utils.redis_manager import UnifiedRedisManager
 from app.utils.task_session_manager import task_session
 from app.services.redis_connection_service import get_redis_service
 
-# Configure logger for this module.
+# Use standard logger - logging config should be centralized
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-handler.setFormatter(formatter)
-if not logger.handlers:
-    logger.addHandler(handler)
 
 
-@celery.task(name='app.tasks.monitoring_tasks.collect_db_stats')
-def collect_db_stats():
+@celery.task(
+    name='app.tasks.monitoring_tasks.collect_db_stats',
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    autoretry_for=(Exception,),
+    retry_backoff=True
+)
+def collect_db_stats(self):
     """
     Collect and store database statistics.
 
@@ -118,8 +119,15 @@ def collect_db_stats():
             raise
 
 
-@celery.task(name='app.tasks.monitoring_tasks.check_for_session_leaks')
-def check_for_session_leaks():
+@celery.task(
+    name='app.tasks.monitoring_tasks.check_for_session_leaks',
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    autoretry_for=(Exception,),
+    retry_backoff=True
+)
+def check_for_session_leaks(self):
     """
     Check for potential database session leaks.
     
@@ -209,8 +217,15 @@ def check_for_session_leaks():
             raise
 
 
-@celery.task(name='app.tasks.monitoring_tasks.monitor_redis_connections')
-def monitor_redis_connections():
+@celery.task(
+    name='app.tasks.monitoring_tasks.monitor_redis_connections',
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    autoretry_for=(Exception,),
+    retry_backoff=True
+)
+def monitor_redis_connections(self):
     """
     Monitor Redis connection usage and detect potential leaks.
     
@@ -234,12 +249,12 @@ def monitor_redis_connections():
             # Get comprehensive service metrics
             service_metrics = redis_service.get_metrics()
             
-            # Also get legacy RedisManager stats for comparison/compatibility
+            # Also get UnifiedRedisManager stats for comparison/compatibility
             try:
-                redis_manager = RedisManager()
+                redis_manager = UnifiedRedisManager()
                 legacy_stats = redis_manager.get_connection_stats()
             except Exception as e:
-                logger.warning(f"Could not get legacy Redis manager stats: {e}")
+                logger.warning(f"Could not get unified Redis manager stats: {e}")
                 legacy_stats = {}
             
             # Extract pool stats from centralized service
@@ -281,8 +296,15 @@ def monitor_redis_connections():
             raise
 
 
-@celery.task(name='app.tasks.monitoring_tasks.monitor_queue_backlogs')
-def monitor_queue_backlogs():
+@celery.task(
+    name='app.tasks.monitoring_tasks.monitor_queue_backlogs',
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+    autoretry_for=(Exception,),
+    retry_backoff=True
+)
+def monitor_queue_backlogs(self):
     """
     Monitor Celery queues for excessive backlogs and alert when thresholds are exceeded.
     

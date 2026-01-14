@@ -19,7 +19,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, jsonif
 from flask_login import login_required
 from sqlalchemy.orm import joinedload
 
-from app.models import Match, Availability, Player, Team
+from app.models import Match, Availability, Player, Team, MatchLineup, player_teams
 from app.models_ecs import EcsFcMatch, EcsFcAvailability
 from app.tasks.tasks_rsvp import update_rsvp
 from app.utils.user_helpers import safe_current_user
@@ -780,7 +780,7 @@ def live_report_match(match_id):
         })
     
     logger.info(f"User {safe_current_user.id} reporting match {match_id} for team {reporting_team_id}")
-    
+
     return render_template(
         'live_reporting_flowbite.html',
         match=match,
@@ -788,3 +788,151 @@ def live_report_match(match_id):
         away_players=away_players,
         team_id=reporting_team_id
     )
+
+
+@match_pages.route('/matches/<int:match_id>/teams/<int:team_id>/lineup')
+@login_required
+def match_lineup(match_id, team_id):
+    """
+    Display the match lineup editor for a specific team.
+
+    This view allows coaches to create and edit lineup assignments for a match,
+    with RSVP status indicators and real-time collaboration between coaches.
+
+    Args:
+        match_id: ID of the match
+        team_id: ID of the team to create lineup for
+
+    Returns:
+        Rendered match lineup template
+    """
+    session = g.db_session
+
+    try:
+        # Get match with related data
+        match = session.query(Match).options(
+            joinedload(Match.home_team).joinedload(Team.players),
+            joinedload(Match.away_team).joinedload(Team.players),
+            joinedload(Match.schedule)
+        ).get(match_id)
+
+        if not match:
+            logger.warning(f"Match not found for lineup: {match_id}")
+            show_error('Match not found.')
+            return redirect(url_for('main.index'))
+
+        # Verify team is part of this match
+        if team_id not in [match.home_team_id, match.away_team_id]:
+            logger.warning(f"Team {team_id} not part of match {match_id}")
+            show_error('Team is not part of this match.')
+            return redirect(url_for('match_pages.view_match', match_id=match_id))
+
+        # Determine which team we're editing
+        team = match.home_team if team_id == match.home_team_id else match.away_team
+        opponent = match.away_team if team_id == match.home_team_id else match.home_team
+
+        # Check if user is authorized (must be coach for this team or admin)
+        from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission
+        from sqlalchemy import and_
+
+        if is_impersonation_active():
+            user_roles = get_effective_roles()
+            is_global_admin = 'Global Admin' in user_roles
+        else:
+            user_roles = [role.name for role in safe_current_user.roles]
+            is_global_admin = 'Global Admin' in user_roles
+
+        # Check if user is coach for this team
+        is_coach = False
+        if hasattr(safe_current_user, 'player') and safe_current_user.player:
+            player = safe_current_user.player
+            coach_check = session.execute(
+                player_teams.select().where(
+                    and_(
+                        player_teams.c.player_id == player.id,
+                        player_teams.c.team_id == team_id,
+                        player_teams.c.is_coach == True
+                    )
+                )
+            ).first()
+            is_coach = coach_check is not None
+
+        if not is_global_admin and not is_coach:
+            logger.warning(f"User {safe_current_user.id} not authorized for lineup {match_id} team {team_id}")
+            show_error('You must be a coach for this team to edit the lineup.')
+            return redirect(url_for('match_pages.view_match', match_id=match_id))
+
+        # Get existing lineup if any
+        lineup = session.query(MatchLineup).filter_by(
+            match_id=match_id,
+            team_id=team_id
+        ).first()
+
+        # Get roster with RSVP status
+        roster = []
+        player_ids = [p.id for p in team.players]
+
+        # Get availability records
+        availability_records = session.query(Availability).filter(
+            Availability.match_id == match_id,
+            Availability.player_id.in_(player_ids)
+        ).all()
+        availability_lookup = {a.player_id: a for a in availability_records}
+
+        # Map RSVP responses to colors
+        rsvp_colors = {'yes': 'green', 'maybe': 'yellow', 'no': 'red'}
+
+        for player in team.players:
+            avail = availability_lookup.get(player.id)
+            rsvp_status = avail.response if avail else 'unavailable'
+            rsvp_color = rsvp_colors.get(rsvp_status, 'gray')
+
+            # Get player stats
+            from app.models import PlayerSeasonStats, PlayerCareerStats, PlayerAttendanceStats
+
+            career_stats = session.query(PlayerCareerStats).filter_by(player_id=player.id).first()
+            attendance_stats = session.query(PlayerAttendanceStats).filter_by(player_id=player.id).first()
+
+            roster.append({
+                'player_id': player.id,
+                'name': player.name,
+                'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
+                'favorite_position': player.favorite_position,
+                'other_positions': player.other_positions,
+                'rsvp_status': rsvp_status,
+                'rsvp_color': rsvp_color,
+                'stats': {
+                    'goals': career_stats.goals if career_stats else 0,
+                    'assists': career_stats.assists if career_stats else 0,
+                    'attendance_rate': attendance_stats.attendance_rate if attendance_stats else None
+                }
+            })
+
+        # Prepare lineup data for template
+        lineup_data = None
+        if lineup:
+            lineup_data = {
+                'id': lineup.id,
+                'positions': lineup.positions or [],
+                'notes': lineup.notes,
+                'version': lineup.version
+            }
+
+        return render_template(
+            'match_lineup_flowbite.html',
+            match=match,
+            team=team,
+            opponent=opponent,
+            is_coach=is_coach or is_global_admin,
+            lineup=lineup_data,
+            roster=roster
+        )
+
+    except Exception as e:
+        logger.exception(f"Error loading match lineup for match {match_id} team {team_id}: {str(e)}")
+        try:
+            session.rollback()
+        except Exception:
+            pass
+        show_error('An error occurred while loading the lineup editor.')
+        return redirect(url_for('match_pages.view_match', match_id=match_id))

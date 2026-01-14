@@ -8,7 +8,20 @@ It uses celery.worker_main with defined options to launch the worker.
 """
 
 import sys
+import signal
 from celery_worker_base_prefork import celery_app as celery, logger
+
+
+def graceful_shutdown_handler(signum, frame):
+    """Handle shutdown signals gracefully."""
+    signal_name = signal.Signals(signum).name
+    logger.info(f"Received {signal_name} signal - initiating graceful shutdown...")
+    sys.exit(0)
+
+
+# Register signal handlers for graceful shutdown
+signal.signal(signal.SIGTERM, graceful_shutdown_handler)
+signal.signal(signal.SIGINT, graceful_shutdown_handler)
 
 if __name__ == '__main__':
     try:
@@ -18,9 +31,9 @@ if __name__ == '__main__':
             '--loglevel=INFO',
             '-Q', 'discord',
             '--pool=prefork',
-            '--concurrency=2',  # Reduce concurrency to lower memory pressure
-            '--max-tasks-per-child=50',  # Restart workers more frequently
-            '--max-memory-per-child=250000'  # Increase memory limit from 150MB to 250MB
+            '--concurrency=2',
+            '--max-tasks-per-child=500',  # Increased from 50 to reduce restart overhead
+            '--max-memory-per-child=250000'
         ])
     except Exception as e:
         logger.error(f"Failed to start worker: {e}", exc_info=True)

@@ -89,6 +89,9 @@ const AdminDashboard = {
      */
     initEventDelegation: function(context) {
         context.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
+
             const actionElement = e.target.closest('[data-action]');
             if (!actionElement) return;
 

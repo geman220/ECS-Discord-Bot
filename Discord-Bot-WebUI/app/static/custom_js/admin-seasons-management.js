@@ -368,6 +368,8 @@ class AdminSeasonsManager {
 
         // Delegated click handler for detail page buttons
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             // Edit season buttons
             const editBtn = e.target.closest('.js-edit-season');
             if (editBtn) {

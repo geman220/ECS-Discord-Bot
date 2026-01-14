@@ -1,0 +1,390 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Match Lineup - {{ team.name }} vs {{ opponent.name }}{% endblock %}
+
+{% block custom_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/features/pitch-view.css') }}">
+<style>
+/* RSVP Indicator Styles */
+.rsvp-indicator {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid white;
+    z-index: 5;
+}
+.rsvp-green { background-color: #22c55e; }
+.rsvp-yellow { background-color: #eab308; }
+.rsvp-red { background-color: #ef4444; }
+.rsvp-gray { background-color: #6b7280; }
+
+/* RSVP Border on player cards */
+.rsvp-border-green { border-left: 4px solid #22c55e !important; }
+.rsvp-border-yellow { border-left: 4px solid #eab308 !important; }
+.rsvp-border-red { border-left: 4px solid #ef4444 !important; }
+.rsvp-border-gray { border-left: 4px solid #6b7280 !important; }
+
+/* Player token with RSVP */
+.positioned-player.rsvp-yes .player-profile-img,
+.positioned-player.rsvp-yes .player-initials {
+    box-shadow: 0 0 0 3px #22c55e, 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.positioned-player.rsvp-maybe .player-profile-img,
+.positioned-player.rsvp-maybe .player-initials {
+    box-shadow: 0 0 0 3px #eab308, 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.positioned-player.rsvp-no .player-profile-img,
+.positioned-player.rsvp-no .player-initials {
+    box-shadow: 0 0 0 3px #ef4444, 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.positioned-player.rsvp-unavailable .player-profile-img,
+.positioned-player.rsvp-unavailable .player-initials {
+    box-shadow: 0 0 0 3px #6b7280, 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Coach presence indicators */
+.coach-presence {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.coach-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #22c55e, #15803d);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 12px;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.coach-avatar.animate-pulse {
+    animation: coach-pulse 2s infinite;
+}
+@keyframes coach-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Mobile optimizations */
+@media (max-width: 767px) {
+    .soccer-pitch {
+        min-height: 500px;
+        padding: 12px;
+    }
+    .position-zone {
+        min-width: 50px;
+        min-height: 60px;
+        padding: 4px;
+    }
+    .positioned-player .player-profile-img,
+    .positioned-player .player-initials {
+        width: 36px;
+        height: 36px;
+    }
+    .position-label {
+        font-size: 0.7rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block main_content %}
+<div class="container mx-auto px-4 py-4 md:py-8">
+    <!-- Match Header -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 md:p-6 mb-4 md:mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold text-ecs-green">Match Lineup</h1>
+                <p class="text-gray-600 dark:text-gray-400 text-sm md:text-base">
+                    {{ team.name }} vs {{ opponent.name }}
+                    <span class="mx-2">|</span>
+                    {{ match.date.strftime('%b %d, %Y') if match.date else 'TBD' }}
+                    {% if match.time %}@ {{ match.time.strftime('%I:%M %p') }}{% endif %}
+                </p>
+                {% if match.location %}
+                <p class="text-gray-500 dark:text-gray-500 text-sm mt-1">
+                    <i class="ti ti-map-pin mr-1"></i>{{ match.location }}
+                </p>
+                {% endif %}
+            </div>
+            <div class="flex items-center gap-4">
+                <!-- Coach Presence -->
+                <div class="coach-presence" id="coachPresence">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Coaches online:</span>
+                    <div class="flex -space-x-2" id="coachAvatars">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+                <!-- Back Button -->
+                <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm">
+                    <i class="ti ti-arrow-left"></i>
+                    <span class="hidden sm:inline">Back to Match</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- RSVP Legend -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-3 mb-4 md:mb-6">
+        <div class="flex flex-wrap items-center gap-4 text-sm">
+            <span class="font-medium text-gray-700 dark:text-gray-300">RSVP Status:</span>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-green-500"></span>
+                <span class="text-gray-600 dark:text-gray-400">Yes</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                <span class="text-gray-600 dark:text-gray-400">Maybe</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                <span class="text-gray-600 dark:text-gray-400">No</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <span class="w-3 h-3 rounded-full bg-gray-500"></span>
+                <span class="text-gray-600 dark:text-gray-400">No Response</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6">
+        <!-- Available Players Pool -->
+        <div class="lg:col-span-4 order-2 lg:order-1">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden lg:sticky lg:top-4">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-users text-ecs-green"></i>
+                        Available Players
+                    </h2>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green" id="availablePlayerCount">
+                        {{ roster|length }}
+                    </span>
+                </div>
+                <div class="p-4">
+                    <!-- Search -->
+                    <div class="mb-3">
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                                <i class="ti ti-search"></i>
+                            </span>
+                            <input type="text" id="playerSearch" placeholder="Search players..."
+                                   class="w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                        </div>
+                    </div>
+                    <!-- RSVP Filter -->
+                    <div class="mb-3">
+                        <select id="rsvpFilter" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">All Players</option>
+                            <option value="yes">Yes Only</option>
+                            <option value="maybe">Maybe Only</option>
+                            <option value="no">No Only</option>
+                            <option value="unavailable">No Response</option>
+                        </select>
+                    </div>
+
+                    <!-- Players List -->
+                    <div id="availablePlayersList" class="space-y-2 max-h-[50vh] lg:max-h-[60vh] overflow-y-auto">
+                        {% for player in roster %}
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-grab js-draggable-player rsvp-border-{{ player.rsvp_color }}"
+                             data-player-id="{{ player.player_id }}"
+                             data-player-name="{{ player.name|lower }}"
+                             data-rsvp="{{ player.rsvp_status }}"
+                             draggable="true">
+                            <div class="relative flex-shrink-0">
+                                <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
+                                     alt="{{ player.name }}"
+                                     class="w-10 h-10 rounded-full object-cover">
+                                <span class="rsvp-indicator rsvp-{{ player.rsvp_color }}"></span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 flex-shrink-0 ml-2">{{ player.favorite_position or 'Any' }}</span>
+                                </div>
+                                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    <span class="text-green-500" title="Goals"><i class="ti ti-ball-football"></i> {{ player.stats.goals }}</span>
+                                    <span class="text-blue-500" title="Assists"><i class="ti ti-shoe"></i> {{ player.stats.assists }}</span>
+                                    {% if player.stats.attendance_rate %}
+                                    <span class="{{ 'text-green-500' if player.stats.attendance_rate >= 80 else 'text-yellow-500' if player.stats.attendance_rate >= 60 else 'text-red-500' }}" title="Attendance">
+                                        <i class="ti ti-calendar-check"></i> {{ "%.0f"|format(player.stats.attendance_rate) }}%
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <i class="ti ti-grip-vertical text-gray-400 flex-shrink-0"></i>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Soccer Pitch -->
+        <div class="lg:col-span-8 order-1 lg:order-2">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <h3 class="font-semibold text-gray-900 dark:text-white">{{ team.name }} Formation</h3>
+                    <span class="text-sm text-gray-500 dark:text-gray-400" id="lineupVersion">
+                        v{{ lineup.version if lineup else 1 }}
+                    </span>
+                </div>
+                <div class="p-2 md:p-4">
+                    <!-- Soccer Pitch -->
+                    <div class="soccer-pitch" id="pitch" data-team-id="{{ team.id }}" data-match-id="{{ match.id }}">
+                        <div class="pitch-background">
+                            <div class="goal-area goal-area-top"></div>
+                            <div class="goal-area goal-area-bottom"></div>
+                            <div class="center-circle"></div>
+                            <div class="center-line"></div>
+                            <div class="penalty-area penalty-area-top"></div>
+                            <div class="penalty-area penalty-area-bottom"></div>
+                        </div>
+
+                        <!-- Position Zones -->
+                        <div class="position-zone striker-zone js-position-drop-zone" data-position="st">
+                            <div class="position-label">ST <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-st"></div>
+                        </div>
+
+                        <div class="position-zone leftwing-zone js-position-drop-zone" data-position="lw">
+                            <div class="position-label">LW <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-lw"></div>
+                        </div>
+
+                        <div class="position-zone rightwing-zone js-position-drop-zone" data-position="rw">
+                            <div class="position-label">RW <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-rw"></div>
+                        </div>
+
+                        <div class="position-zone cam-zone js-position-drop-zone" data-position="cam">
+                            <div class="position-label">CAM <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-cam"></div>
+                        </div>
+
+                        <div class="position-zone cm-zone js-position-drop-zone" data-position="cm">
+                            <div class="position-label">CM <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-cm"></div>
+                        </div>
+
+                        <div class="position-zone cdm-zone js-position-drop-zone" data-position="cdm">
+                            <div class="position-label">CDM <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-cdm"></div>
+                        </div>
+
+                        <div class="position-zone leftwingback-zone js-position-drop-zone" data-position="lwb">
+                            <div class="position-label">LWB <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-lwb"></div>
+                        </div>
+
+                        <div class="position-zone rightwingback-zone js-position-drop-zone" data-position="rwb">
+                            <div class="position-label">RWB <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-rwb"></div>
+                        </div>
+
+                        <div class="position-zone leftback-zone js-position-drop-zone" data-position="lb">
+                            <div class="position-label">LB <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-lb"></div>
+                        </div>
+
+                        <div class="position-zone centerback-zone js-position-drop-zone" data-position="cb">
+                            <div class="position-label">CB <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-cb"></div>
+                        </div>
+
+                        <div class="position-zone rightback-zone js-position-drop-zone" data-position="rb">
+                            <div class="position-label">RB <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-rb"></div>
+                        </div>
+
+                        <div class="position-zone goalkeeper-zone js-position-drop-zone" data-position="gk">
+                            <div class="position-label">GK <span class="position-count">(0)</span></div>
+                            <div class="position-players" id="position-gk"></div>
+                        </div>
+                    </div>
+
+                    <!-- Bench -->
+                    <div class="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        <div class="position-zone bench-zone js-position-drop-zone w-full" data-position="bench">
+                            <div class="position-label mb-2">BENCH <span class="position-count">(0)</span></div>
+                            <div class="position-players flex flex-wrap gap-2" id="position-bench"></div>
+                        </div>
+                    </div>
+
+                    <!-- Formation Stats -->
+                    <div class="grid grid-cols-5 gap-2 mt-4 text-center">
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                            <div class="text-lg font-bold text-gray-900 dark:text-white" id="gk-count">0</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">GK</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                            <div class="text-lg font-bold text-gray-900 dark:text-white" id="def-count">0</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">DEF</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                            <div class="text-lg font-bold text-gray-900 dark:text-white" id="mid-count">0</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">MID</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                            <div class="text-lg font-bold text-gray-900 dark:text-white" id="fwd-count">0</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">FWD</div>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                            <div class="text-lg font-bold text-gray-900 dark:text-white" id="bench-count">0</div>
+                            <div class="text-xs text-gray-500 dark:text-gray-400">BENCH</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes Section -->
+            <div class="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    <i class="ti ti-notes mr-1"></i>Lineup Notes
+                </label>
+                <textarea id="lineupNotes" rows="3"
+                          class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green"
+                          placeholder="Add notes about rotation, substitution plans, etc...">{{ lineup.notes if lineup else '' }}</textarea>
+                <div class="flex justify-end mt-2">
+                    <button id="saveNotesBtn" class="px-4 py-2 bg-ecs-green text-white rounded-lg text-sm hover:bg-ecs-green/90 transition-colors">
+                        Save Notes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center">
+    <div class="bg-white dark:bg-gray-800 rounded-xl p-6 text-center">
+        <div class="animate-spin w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full mx-auto mb-3"></div>
+        <p class="text-gray-600 dark:text-gray-300">Saving...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+  window.MatchLineupConfig = {
+    matchId: {{ match.id }},
+    teamId: {{ team.id }},
+    teamName: {{ team.name | tojson | safe }},
+    opponentName: {{ opponent.name | tojson | safe }},
+    isCoach: {{ is_coach | tojson | safe }},
+    initialLineup: {{ lineup | tojson | safe }},
+    roster: {{ roster | tojson | safe }}
+  };
+</script>
+<script type="module" src="{{ url_for('static', filename='js/match-lineup.js') }}"></script>
+{% endblock %}

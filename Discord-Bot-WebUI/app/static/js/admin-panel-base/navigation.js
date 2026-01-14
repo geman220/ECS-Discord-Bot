@@ -22,6 +22,9 @@ export function initMobileNavigation(context) {
 
     // Single delegated click listener for all nav links
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const link = e.target.closest('[data-nav-link], .navbar-nav .nav-link');
         if (!link) return;
 

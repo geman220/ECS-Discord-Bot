@@ -1,0 +1,246 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Pass Studio{% endblock %}
+
+{% block main_content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <span>Admin</span>
+                <span>/</span>
+                <span>Digital Wallets</span>
+                <span>/</span>
+                <span>Pass Studio</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                </svg>
+                Pass Studio
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">Design and configure your digital wallet passes</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Prerequisites Check -->
+    {% if not wallet_config.ready %}
+    <div class="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 rounded-lg p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0">
+                <svg class="w-10 h-10 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Setup Required</h5>
+                <p class="text-gray-600 dark:text-gray-300 mb-3">Before you can design passes, you need to complete the initial setup:</p>
+                <ul class="list-disc list-inside text-gray-600 dark:text-gray-400 mb-4 space-y-1">
+                    {% if not wallet_config.progress.certificates %}
+                    <li>Upload Apple Wallet certificates</li>
+                    {% endif %}
+                    {% if not wallet_config.progress.assets %}
+                    <li>Upload pass assets (icon, logo)</li>
+                    {% endif %}
+                </ul>
+                <a href="{{ url_for('wallet_config.setup_wizard') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-900 bg-yellow-400 hover:bg-yellow-500 rounded-lg transition-colors">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                    </svg>
+                    Run Setup Wizard
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pass Type Selection -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- ECS Membership Pass -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border {{ 'border-green-300 dark:border-green-700' if ecs_type else 'border-yellow-300 dark:border-yellow-700' }}">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-lg flex items-center justify-center" style="background-color: {{ ecs_type.background_color if ecs_type else '#1a472a' }};">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">ECS Membership Pass</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Annual supporter membership card</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-5">
+                {% if ecs_type %}
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            Active
+                        </span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ ecs_type.validity_type|title }} validity</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-3 py-1 rounded text-xs font-medium" style="background-color: {{ ecs_type.background_color }}; color: {{ ecs_type.foreground_color }};">
+                            {{ ecs_type.logo_text }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Configure colors, fields, locations, and more for your ECS membership passes.
+                        Includes support for <strong class="text-gray-700 dark:text-gray-300">subgroups</strong> like Gorilla FC and North End Faithful.
+                    </p>
+                    <a href="{{ url_for('pass_studio.studio', pass_type_code='ecs_membership') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                        </svg>
+                        Open in Studio
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <svg class="w-12 h-12 mx-auto text-yellow-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <p class="text-gray-500 dark:text-gray-400 mb-4">Pass type not configured</p>
+                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-yellow-800 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:hover:bg-yellow-800 rounded-lg transition-colors">
+                        Run Setup
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Pub League Pass -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border {{ 'border-green-300 dark:border-green-700' if pub_type else 'border-yellow-300 dark:border-yellow-700' }}">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-lg flex items-center justify-center" style="background-color: {{ pub_type.background_color if pub_type else '#213e96' }};">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Pub League Pass</h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Seasonal player registration card</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-5">
+                {% if pub_type %}
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                            Active
+                        </span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">{{ pub_type.validity_type|title }} validity</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center px-3 py-1 rounded text-xs font-medium" style="background-color: {{ pub_type.background_color }}; color: {{ pub_type.foreground_color }};">
+                            {{ pub_type.logo_text }}
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Configure colors, fields, locations, and more for your Pub League player passes.
+                        Includes support for <strong class="text-gray-700 dark:text-gray-300">team names</strong> and season information.
+                    </p>
+                    <a href="{{ url_for('pass_studio.studio', pass_type_code='pub_league') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                        </svg>
+                        Open in Studio
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <svg class="w-12 h-12 mx-auto text-yellow-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                    <p class="text-gray-500 dark:text-gray-400 mb-4">Pass type not configured</p>
+                    <a href="{{ url_for('wallet_config.setup_wizard') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-yellow-800 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:hover:bg-yellow-800 rounded-lg transition-colors">
+                        Run Setup
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Help -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                How Pass Studio Works
+            </h3>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 dark:text-white">Appearance</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Set colors, logo text, and branding</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-cyan-600 dark:text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 dark:text-white">Fields</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Configure what info appears on passes</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 dark:text-white">Locations</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Add partner venues for notifications</p>
+                    </div>
+                </div>
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/50 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 class="font-medium text-gray-900 dark:text-white">Sponsors</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Manage sponsor info on passes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-blue-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                    Changes made in the studio are saved as drafts. Use the <strong class="text-gray-700 dark:text-gray-300">Publish</strong> button to push updates to all existing passes on user devices.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

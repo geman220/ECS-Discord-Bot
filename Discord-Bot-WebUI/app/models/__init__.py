@@ -32,6 +32,10 @@ from .matches import (
     AutoScheduleConfig, ScheduleTemplate, WeekConfiguration, SeasonConfiguration
 )
 
+from .match_lineup import (
+    MatchLineup
+)
+
 from .stats import (
     PlayerSeasonStats, PlayerCareerStats, Standings, StatChangeLog,
     PlayerAttendanceStats, PlayerEventType, PlayerEvent, 
@@ -165,6 +169,9 @@ __all__ = [
     'Schedule', 'Match', 'Availability', 'TemporarySubAssignment',
     'AutoScheduleConfig', 'ScheduleTemplate', 'WeekConfiguration', 'SeasonConfiguration',
     'help_topic_roles',
+
+    # Match lineup models
+    'MatchLineup',
     
     # Statistics models
     'PlayerSeasonStats', 'PlayerCareerStats', 'Standings', 'StatChangeLog',

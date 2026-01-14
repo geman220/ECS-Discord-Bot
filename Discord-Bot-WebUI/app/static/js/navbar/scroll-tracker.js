@@ -34,7 +34,7 @@ export function initScrollTracking() {
 
       ticking = true;
     }
-  });
+  }, { passive: true });
 }
 
 export default { initScrollTracking };

@@ -75,6 +75,8 @@ function initializeSwipeNavigation() {
 
     // Delegated touchstart handler
     document.addEventListener('touchstart', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const tabContent = e.target.closest('[data-role="tab-content"]');
         if (tabContent) {
             _swipeTouchStartX = e.changedTouches[0].screenX;
@@ -83,6 +85,8 @@ function initializeSwipeNavigation() {
 
     // Delegated touchend handler
     document.addEventListener('touchend', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const tabContent = e.target.closest('[data-role="tab-content"]');
         if (!tabContent) return;
 
@@ -149,6 +153,8 @@ function initializeTabAutoScroll() {
 
     // Also handle click events as fallback
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const tab = e.target.closest('[data-action="switch-tab"]');
         if (tab) {
             // Small delay to allow tab state to update

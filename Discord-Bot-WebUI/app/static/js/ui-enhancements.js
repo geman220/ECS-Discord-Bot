@@ -73,6 +73,8 @@ function initMatchHistoryCollapse() {
 
         // Single delegated click listener for ALL date headers
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const header = e.target.closest('.c-match-history__date-header');
             if (header) {
                 const group = header.closest('.c-match-history__date-group');
@@ -85,6 +87,8 @@ function initMatchHistoryCollapse() {
         // Single delegated keydown listener for ALL date headers
         document.addEventListener('keydown', function(e) {
             if (e.key !== 'Enter' && e.key !== ' ') return;
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
 
             const header = e.target.closest('.c-match-history__date-header');
             if (header) {

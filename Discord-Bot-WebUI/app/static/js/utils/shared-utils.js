@@ -189,6 +189,48 @@ export function formatCurrency(amount, currency = 'USD') {
 // ============================================================================
 
 /**
+ * Check if a value is a DOM Element
+ * @param {*} target - Value to check
+ * @returns {boolean} True if target is a DOM Element
+ */
+export function isElement(target) {
+    return target instanceof Element;
+}
+
+/**
+ * Safely get the target element from an event
+ * Returns null if target is not an Element (e.g., text node, document)
+ * @param {Event} event - DOM event
+ * @returns {Element|null} Target element or null
+ */
+export function getTargetElement(event) {
+    return event?.target instanceof Element ? event.target : null;
+}
+
+/**
+ * Safely find the closest ancestor matching a selector from an event target
+ * Guards against non-Element targets (text nodes, document, etc.)
+ * @param {Event} event - DOM event
+ * @param {string} selector - CSS selector
+ * @returns {Element|null} Matching ancestor element or null
+ */
+export function findClosest(event, selector) {
+    const target = event?.target;
+    if (!target || typeof target.closest !== 'function') return null;
+    return target.closest(selector);
+}
+
+/**
+ * Check if event target matches or is contained within a selector
+ * @param {Event} event - DOM event
+ * @param {string} selector - CSS selector
+ * @returns {boolean} True if target matches or is within selector
+ */
+export function targetMatches(event, selector) {
+    return findClosest(event, selector) !== null;
+}
+
+/**
  * Get CSS custom property value
  * @param {string} propertyName - CSS custom property name (with or without --)
  * @param {Element} element - Element to get property from (default: documentElement)
@@ -294,6 +336,10 @@ export const SharedUtils = {
     formatCurrency,
 
     // DOM
+    isElement,
+    getTargetElement,
+    findClosest,
+    targetMatches,
     getCSSVariable,
     setCSSVariable,
     debounce,
@@ -325,7 +371,13 @@ if (typeof window !== 'undefined') {
     window.formatNumber = window.formatNumber || formatNumber;
     window.formatCurrency = window.formatCurrency || formatCurrency;
 
-    // DOM
+    // DOM - Event Safety
+    window.isElement = window.isElement || isElement;
+    window.getTargetElement = window.getTargetElement || getTargetElement;
+    window.findClosest = window.findClosest || findClosest;
+    window.targetMatches = window.targetMatches || targetMatches;
+
+    // DOM - CSS/Utilities
     window.getCSSVariable = window.getCSSVariable || getCSSVariable;
     window.setCSSVariable = window.setCSSVariable || setCSSVariable;
     window.debounce = window.debounce || debounce;

@@ -63,6 +63,9 @@ export const TabsController = {
 
             // Use event delegation on the container
             container.addEventListener('click', (e) => {
+                // Guard: ensure e.target is an Element with closest method
+                if (!e.target || typeof e.target.closest !== 'function') return;
+
                 const trigger = e.target.closest(this.SELECTORS.TAB_TRIGGER);
                 if (!trigger) return;
 
@@ -76,6 +79,9 @@ export const TabsController = {
 
             // Keyboard navigation support
             container.addEventListener('keydown', (e) => {
+                // Guard: ensure e.target is an Element with closest method
+                if (!e.target || typeof e.target.closest !== 'function') return;
+
                 const trigger = e.target.closest(this.SELECTORS.TAB_TRIGGER);
                 if (!trigger) return;
 

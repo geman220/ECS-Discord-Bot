@@ -71,7 +71,7 @@
                 {% endif %}
 
                 {% if safe_current_user.has_permission('view_rsvps') %}
-                <div class="mt-4">
+                <div class="mt-4 flex flex-wrap gap-2">
                     {% if is_ecs_fc_match %}
                     <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string) }}"
                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/30 hover:bg-white/10 transition-colors">
@@ -81,6 +81,17 @@
                     <a href="{{ url_for('admin.rsvp_status', match_id=match.id) }}"
                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/30 hover:bg-white/10 transition-colors">
                         <i class="ti ti-users"></i>Manage RSVPs
+                    </a>
+                    <!-- Match Lineup Links for Coaches -->
+                    <a href="{{ url_for('match_pages.match_lineup', match_id=match.id, team_id=match.home_team_id) }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/30 hover:bg-white/10 transition-colors"
+                       title="Edit {{ match.home_team.name }} lineup">
+                        <i class="ti ti-layout-grid"></i>{{ match.home_team.name }} Lineup
+                    </a>
+                    <a href="{{ url_for('match_pages.match_lineup', match_id=match.id, team_id=match.away_team_id) }}"
+                       class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-white/30 hover:bg-white/10 transition-colors"
+                       title="Edit {{ match.away_team.name }} lineup">
+                        <i class="ti ti-layout-grid"></i>{{ match.away_team.name }} Lineup
                     </a>
                     {% endif %}
                 </div>
@@ -428,27 +439,42 @@
 
     <!-- Mobile Action Bar -->
     <div class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 lg:hidden z-40">
-        <div class="flex gap-2">
-            {% if safe_current_user.has_permission('view_rsvps') %}
-            <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string if is_ecs_fc_match else match.id) }}"
-               class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-ecs-green text-white font-medium">
-                <i class="ti ti-users"></i>RSVPs
-            </a>
-            {% endif %}
+        <div class="flex flex-col gap-2">
+            <div class="flex gap-2">
+                {% if safe_current_user.has_permission('view_rsvps') %}
+                <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string if is_ecs_fc_match else match.id) }}"
+                   class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-ecs-green text-white font-medium">
+                    <i class="ti ti-users"></i>RSVPs
+                </a>
+                {% endif %}
 
-            {% if safe_current_user.has_permission('view_match_reporting') %}
-            {% if is_ecs_fc_match %}
-            <button class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 text-white font-medium edit-match-btn"
-                    data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
-                <i class="ti ti-report"></i>Report
-            </button>
-            {% else %}
-            <button class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 text-white font-medium edit-match-btn"
-                    data-match-id="{{ match.id }}">
-                <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %}"></i>
-                {% if match.reported %}Edit{% else %}Report{% endif %}
-            </button>
-            {% endif %}
+                {% if safe_current_user.has_permission('view_match_reporting') %}
+                {% if is_ecs_fc_match %}
+                <button class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 text-white font-medium edit-match-btn"
+                        data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
+                    <i class="ti ti-report"></i>Report
+                </button>
+                {% else %}
+                <button class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 text-white font-medium edit-match-btn"
+                        data-match-id="{{ match.id }}">
+                    <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %}"></i>
+                    {% if match.reported %}Edit{% else %}Report{% endif %}
+                </button>
+                {% endif %}
+                {% endif %}
+            </div>
+            {% if not is_ecs_fc_match and safe_current_user.has_permission('view_rsvps') %}
+            <!-- Mobile Lineup Links -->
+            <div class="flex gap-2">
+                <a href="{{ url_for('match_pages.match_lineup', match_id=match.id, team_id=match.home_team_id) }}"
+                   class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium">
+                    <i class="ti ti-layout-grid"></i>{{ match.home_team.name[:10] }}{% if match.home_team.name|length > 10 %}...{% endif %} Lineup
+                </a>
+                <a href="{{ url_for('match_pages.match_lineup', match_id=match.id, team_id=match.away_team_id) }}"
+                   class="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium">
+                    <i class="ti ti-layout-grid"></i>{{ match.away_team.name[:10] }}{% if match.away_team.name|length > 10 %}...{% endif %} Lineup
+                </a>
+            </div>
             {% endif %}
         </div>
     </div>

@@ -76,12 +76,16 @@ function setupEventListeners() {
     });
 
     document.addEventListener('dragover', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         if (e.target.closest('.week-card')) {
             handleDragOver(e);
         }
     });
 
     document.addEventListener('drop', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const weekCard = e.target.closest('.week-card');
         if (weekCard) {
             handleDrop.call(weekCard, e);
@@ -392,6 +396,8 @@ function handleDrop(e) {
 
 // Event delegation handler
 document.addEventListener('click', function(e) {
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
     const target = e.target.closest('[data-action]');
     if (!target) return;
 
@@ -424,6 +430,8 @@ document.addEventListener('click', function(e) {
 
 // Handle select changes for week type updates
 document.addEventListener('change', function(e) {
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
     const target = e.target.closest('[data-action="update-week-card"]');
     if (target) {
         updateWeekCard(target);

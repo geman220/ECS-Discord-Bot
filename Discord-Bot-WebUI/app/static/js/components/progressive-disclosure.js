@@ -135,6 +135,9 @@ export const ProgressiveDisclosure = {
 
       // Click handler
       context.addEventListener('click', (e) => {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const trigger = e.target.closest(this.SELECTORS.TRIGGER);
         if (!trigger) return;
 
@@ -147,6 +150,9 @@ export const ProgressiveDisclosure = {
 
       // Keyboard handler
       context.addEventListener('keydown', (e) => {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const trigger = e.target.closest(this.SELECTORS.TRIGGER);
         if (!trigger) return;
 

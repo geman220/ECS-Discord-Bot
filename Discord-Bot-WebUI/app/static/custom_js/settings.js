@@ -139,6 +139,8 @@ let _initialized = false;
 
     // Delegated click handler for buttons
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         // Resend code button
         if (e.target.closest('#resendCodeBtn')) {
             fetch('/account/resend-sms-confirmation', {

@@ -111,7 +111,11 @@ const PassStudio = {
                     // Replace placeholder with actual image
                     preview.innerHTML = `
                         <img src="${safeUrl}" alt="${safeType}" id="asset-preview-${safeType}">
-                        <span class="badge bg-success position-absolute top-0 end-0 m-1"><i class="ti ti-check"></i></span>
+                        <span class="absolute top-1 right-1 bg-green-500 text-white rounded-full p-1">
+                            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                            </svg>
+                        </span>
                     `;
                 }
             }
@@ -180,9 +184,15 @@ const PassStudio = {
     setPreviewPlatform(platform) {
         this.currentPlatform = platform;
 
-        // Update button states
+        // Update button states with proper Tailwind classes
         document.querySelectorAll('[data-platform]').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.platform === platform);
+            const isActive = btn.dataset.platform === platform;
+            // Toggle active/inactive Tailwind classes
+            btn.classList.toggle('platform-toggle-active', isActive);
+            btn.classList.toggle('text-primary-700', isActive);
+            btn.classList.toggle('dark:text-primary-400', isActive);
+            btn.classList.toggle('text-gray-700', !isActive);
+            btn.classList.toggle('dark:text-gray-300', !isActive);
         });
 
         // Show/hide preview containers
@@ -317,13 +327,15 @@ const PassStudio = {
             const previewArea = previewCard.querySelector('.asset-preview');
             if (previewArea) {
                 previewArea.innerHTML = `
-                    <div class="asset-placeholder">
-                        <i class="ti ti-photo fs-1"></i>
+                    <div class="asset-placeholder flex items-center justify-center text-gray-400">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
                     </div>
                 `;
             }
-            // Remove the uploaded badge
-            const badge = previewCard.querySelector('.badge.bg-success');
+            // Remove the uploaded badge (Tailwind version)
+            const badge = previewCard.querySelector('.bg-green-500');
             if (badge) badge.remove();
         }
 
@@ -346,9 +358,11 @@ const PassStudio = {
             } else {
                 heroPreview.style.backgroundImage = '';
                 heroPreview.innerHTML = `
-                    <div class="google-hero-placeholder">
-                        <i class="ti ti-photo-plus"></i>
-                        <span>Hero Image</span>
+                    <div class="google-hero-placeholder text-center text-gray-400">
+                        <svg class="w-8 h-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        <span class="text-xs">Hero Image</span>
                     </div>
                 `;
             }
@@ -361,8 +375,10 @@ const PassStudio = {
                 logoPreview.innerHTML = `<img src="${escapeHtml(this.assets.logo.url)}" alt="Logo">`;
             } else {
                 logoPreview.innerHTML = `
-                    <div class="google-logo-placeholder">
-                        <i class="ti ti-building"></i>
+                    <div class="google-logo-placeholder text-gray-400 flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                        </svg>
                     </div>
                 `;
             }

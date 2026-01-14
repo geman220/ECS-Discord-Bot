@@ -186,6 +186,8 @@ import { showToast } from '../js/services/toast-service.js';
      */
     function initEditModeToggles() {
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             // Handle Edit button click
             const editBtn = e.target.closest('[data-action="edit-toggle"]');
             if (editBtn) {
@@ -294,6 +296,8 @@ import { showToast } from '../js/services/toast-service.js';
     function initContactModal() {
         // Delegated submit handler for contact modal form
         document.addEventListener('submit', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const form = e.target;
             // Check if this is the contact modal form
             if (!form.closest('#contactModal')) return;
@@ -399,6 +403,8 @@ import { showToast } from '../js/services/toast-service.js';
      */
     function initProfileImageActions() {
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const imageAction = e.target.closest('[data-image-action]');
             if (!imageAction) return;
 
@@ -490,6 +496,8 @@ import { showToast } from '../js/services/toast-service.js';
     function initTabSync() {
         // Delegated shown.bs.tab handler for profile tabs
         document.addEventListener('shown.bs.tab', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const tabContainer = e.target.closest('[data-component="profile-tabs"]');
             if (!tabContainer) return;
 
@@ -513,6 +521,8 @@ import { showToast } from '../js/services/toast-service.js';
      */
     function initMatchStatActions() {
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             // Handle Edit button
             const editBtn = e.target.closest('[data-action="edit-match-stat"]');
             if (editBtn) {

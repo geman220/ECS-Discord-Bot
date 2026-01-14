@@ -45,6 +45,9 @@ const MobileDraft = {
         this._tapToSelectRegistered = true;
 
         document.addEventListener('click', function(e) {
+          // Guard: ensure e.target is an Element with closest method
+          if (!e.target || typeof e.target.closest !== 'function') return;
+
           const card = e.target.closest('[data-component="player-card"], [data-component="player-item"]');
           if (!card) return;
 
@@ -311,6 +314,9 @@ const MobileDraft = {
         this._removeButtonsRegistered = true;
 
         document.addEventListener('click', function(e) {
+          // Guard: ensure e.target is an Element with closest method
+          if (!e.target || typeof e.target.closest !== 'function') return;
+
           const btn = e.target.closest('[data-action="remove-player"]');
           if (!btn) return;
 

@@ -57,6 +57,8 @@ const SeasonalSchedule = {
      */
     setupToggleEditMode() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const toggleBtn = e.target.closest('[data-action="toggle-edit"]');
             if (!toggleBtn) return;
 
@@ -98,6 +100,8 @@ const SeasonalSchedule = {
      */
     setupFilters() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const filterBtn = e.target.closest('[data-action="apply-filters"]');
             if (!filterBtn) return;
 
@@ -163,6 +167,8 @@ const SeasonalSchedule = {
      */
     setupWeekOperations() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             // Toggle week
             const toggleBtn = e.target.closest('[data-action="toggle-week"]');
             if (toggleBtn) {
@@ -483,6 +489,8 @@ const SeasonalSchedule = {
      */
     setupMatchOperations() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             // Edit match
             const editBtn = e.target.closest('[data-action="edit-match"]');
             if (editBtn) {
@@ -632,6 +640,8 @@ const SeasonalSchedule = {
 
         // Save match from edit modal
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const saveBtn = e.target.closest('[data-action="save-match-modal"]');
             if (saveBtn) {
                 self.saveMatchFromModal();
@@ -762,6 +772,8 @@ const SeasonalSchedule = {
      */
     setupExportOptions() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const exportBtn = e.target.closest('[data-action="export-csv"]');
             if (exportBtn) {
                 this.exportToCSV();

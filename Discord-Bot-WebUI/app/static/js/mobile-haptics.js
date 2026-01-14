@@ -343,6 +343,9 @@ const Haptics = {
 
     // Single delegated click listener for ALL buttons and nav links
     document.addEventListener('click', function(e) {
+      // Guard: ensure e.target is an Element with closest method
+      if (!e.target || typeof e.target.closest !== 'function') return;
+
       // Handle buttons
       const btn = e.target.closest('.btn:not([data-haptics="false"])');
       if (btn) {

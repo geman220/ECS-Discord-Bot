@@ -370,6 +370,8 @@ const DropdownController = {
 
       // Close if clicking outside
       document.addEventListener('click', (e) => {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         if (!e.target.closest('.c-dropdown-modern') && this.activeDropdown) {
           this.close(this.activeDropdown);
         }

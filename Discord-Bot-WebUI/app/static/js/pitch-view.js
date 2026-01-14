@@ -163,6 +163,8 @@ class PitchViewSystem {
 
         // Drag start on available player cards
         document.addEventListener('dragstart', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const playerCard = e.target.closest('.js-draggable-player');
             if (playerCard) {
                 const playerId = playerCard.dataset.playerId;
@@ -175,6 +177,8 @@ class PitchViewSystem {
 
         // Drag end
         document.addEventListener('dragend', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const playerCard = e.target.closest('.js-draggable-player');
             if (playerCard) {
                 playerCard.classList.remove('dragging');
@@ -184,6 +188,8 @@ class PitchViewSystem {
 
         // Drag over position zones
         document.addEventListener('dragover', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const dropZone = e.target.closest('.js-position-drop-zone');
             if (dropZone) {
                 e.preventDefault();
@@ -194,6 +200,8 @@ class PitchViewSystem {
 
         // Drag leave position zones
         document.addEventListener('dragleave', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const dropZone = e.target.closest('.js-position-drop-zone');
             if (dropZone && !dropZone.contains(e.relatedTarget)) {
                 dropZone.classList.remove('drag-over');
@@ -202,6 +210,8 @@ class PitchViewSystem {
 
         // Drop on position zones
         document.addEventListener('drop', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const dropZone = e.target.closest('.js-position-drop-zone');
             if (dropZone) {
                 e.preventDefault();

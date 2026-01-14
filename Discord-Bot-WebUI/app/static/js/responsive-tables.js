@@ -154,7 +154,7 @@ const ResponsiveTables = {
           } else {
             this.classList.remove('is-scrolled');
           }
-        });
+        }, { passive: true });
       });
     },
     

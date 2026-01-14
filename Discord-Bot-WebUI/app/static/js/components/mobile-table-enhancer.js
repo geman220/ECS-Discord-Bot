@@ -377,6 +377,9 @@ export const MobileTableEnhancer = {
 
       // Click handler for expandable rows (mobile only)
       context.addEventListener('click', (e) => {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         // Only on mobile
         if (window.innerWidth >= this.MOBILE_BREAKPOINT) {
           return;
@@ -396,6 +399,9 @@ export const MobileTableEnhancer = {
 
       // Keyboard handler
       context.addEventListener('keydown', (e) => {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         if (window.innerWidth >= this.MOBILE_BREAKPOINT) {
           return;
         }

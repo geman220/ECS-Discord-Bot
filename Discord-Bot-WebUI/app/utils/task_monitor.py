@@ -138,13 +138,18 @@ class TaskMonitor:
                     task_name = task_info.get("task_name")
 
                     # Safety check: Don't revoke certain critical tasks that may run long
-                    safe_task_patterns = [
-                        'app.tasks.security_cleanup',  # These are legitimate and should run
-                        'app.tasks.tasks_cache_management',  # Cache tasks can be slow
-                        'app.tasks.monitoring_tasks',  # Monitoring tasks are periodic
+                    # Use startswith() for secure prefix matching (not substring matching)
+                    safe_task_prefixes = [
+                        'app.tasks.security_cleanup.',      # Security cleanup tasks
+                        'app.tasks.tasks_cache_management.',  # Cache management tasks
+                        'app.tasks.monitoring_tasks.',      # Monitoring tasks
+                        'app.utils.task_monitor.',          # Task monitor's own tasks
                     ]
 
-                    is_safe_task = any(pattern in task_name for pattern in safe_task_patterns)
+                    # Check if task_name starts with any safe prefix (secure matching)
+                    is_safe_task = task_name and any(
+                        task_name.startswith(prefix) for prefix in safe_task_prefixes
+                    )
 
                     # For safe tasks, use a much longer threshold (6 hours)
                     threshold_to_use = 21600 if is_safe_task else self.zombie_threshold

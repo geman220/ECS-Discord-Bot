@@ -66,7 +66,7 @@ window.EventDelegation.register('void-pass', (element, event) => {
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#dc3545',
-        confirmButtonText: '<i class="ti ti-ban me-1"></i>Void Pass',
+        confirmButtonText: '<svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="2"/><path stroke-linecap="round" stroke-width="2" d="M4 4l16 16"/></svg>Void Pass',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -110,7 +110,7 @@ window.EventDelegation.register('reactivate-pass', (element, event) => {
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('success') : '#28a745',
-        confirmButtonText: '<i class="ti ti-refresh me-1"></i>Reactivate',
+        confirmButtonText: '<svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Reactivate',
         cancelButtonText: 'Cancel'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -350,26 +350,26 @@ window.EventDelegation.register('bulk-generate-passes', (element, event) => {
     .then(response => response.json())
     .then(data => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="ti ti-bolt me-1"></i>Generate Passes';
+        btn.innerHTML = '<svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Generate Passes';
 
         if (resultsDiv) resultsDiv.classList.remove('hidden');
 
         if (data.error) {
-            if (resultsContent) resultsContent.innerHTML = `<div class="alert alert-danger" data-alert>${escapeHtml(data.error)}</div>`;
+            if (resultsContent) resultsContent.innerHTML = `<div class="flex items-center p-4 rounded-lg bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-300" data-alert><svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>${escapeHtml(data.error)}</div>`;
             return;
         }
 
         let html = `
             <div class="mb-2"><strong>Total eligible:</strong> ${data.total_eligible}</div>
-            <div class="mb-2 text-success"><i class="ti ti-check me-1"></i><strong>Created:</strong> ${data.success?.length || 0}</div>
-            <div class="mb-2 text-info"><i class="ti ti-minus me-1"></i><strong>Skipped (already have pass):</strong> ${data.skipped?.length || 0}</div>
-            <div class="mb-2 text-danger"><i class="ti ti-x me-1"></i><strong>Failed:</strong> ${data.failed?.length || 0}</div>
+            <div class="mb-2 text-green-600 dark:text-green-400"><svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><strong>Created:</strong> ${data.success?.length || 0}</div>
+            <div class="mb-2 text-blue-600 dark:text-blue-400"><svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg><strong>Skipped (already have pass):</strong> ${data.skipped?.length || 0}</div>
+            <div class="mb-2 text-red-600 dark:text-red-400"><svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg><strong>Failed:</strong> ${data.failed?.length || 0}</div>
         `;
 
         if (data.failed?.length > 0) {
-            html += '<details class="mt-2"><summary class="text-danger">View failures</summary><ul class="small mt-2">';
+            html += '<details class="mt-2"><summary class="text-red-600 dark:text-red-400 cursor-pointer">View failures</summary><ul class="text-sm mt-2 space-y-1">';
             data.failed.forEach(f => {
-                html += `<li>${escapeHtml(f.player_name || String(f.player_id))}: ${escapeHtml(f.error)}</li>`;
+                html += `<li class="text-gray-700 dark:text-gray-300">${escapeHtml(f.player_name || String(f.player_id))}: ${escapeHtml(f.error)}</li>`;
             });
             html += '</ul></details>';
         }
@@ -378,8 +378,8 @@ window.EventDelegation.register('bulk-generate-passes', (element, event) => {
     })
     .catch(err => {
         btn.disabled = false;
-        btn.innerHTML = '<i class="ti ti-bolt me-1"></i>Generate Passes';
-        if (resultsContent) resultsContent.innerHTML = `<div class="alert alert-danger" data-alert>Error generating passes. Please try again.</div>`;
+        btn.innerHTML = '<svg class="inline w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Generate Passes';
+        if (resultsContent) resultsContent.innerHTML = `<div class="flex items-center p-4 rounded-lg bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-300" data-alert><svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Error generating passes. Please try again.</div>`;
         if (resultsDiv) resultsDiv.classList.remove('hidden');
     });
 });
@@ -416,47 +416,47 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
         .then(data => {
             let html = `
                 <div class="mb-3">
-                    <h6 class="mb-0">${data.player_name}</h6>
-                    <small class="text-muted">Player ID: ${data.player_id}</small>
+                    <h6 class="font-semibold text-gray-900 dark:text-white">${data.player_name}</h6>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Player ID: ${data.player_id}</p>
                 </div>
 
-                <div class="alert alert-${data.eligible ? 'success' : 'warning'} d-flex align-items-center" data-alert>
-                    <i class="ti ti-${data.eligible ? 'circle-check' : 'alert-triangle'} me-2 fs-4"></i>
+                <div class="flex items-center p-4 mb-4 rounded-lg ${data.eligible ? 'bg-green-50 text-green-800 dark:bg-green-900/50 dark:text-green-300' : 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300'}">
+                    ${data.eligible ? '<svg class="w-6 h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>' : '<svg class="w-6 h-6 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>'}
                     <div>
                         <strong>${data.eligible ? 'Eligible for Wallet Pass' : 'Not Currently Eligible'}</strong>
-                        <p class="mb-0 small">${data.eligible ? 'This player meets all requirements.' : 'See issues below.'}</p>
+                        <p class="text-sm">${data.eligible ? 'This player meets all requirements.' : 'See issues below.'}</p>
                     </div>
                 </div>
             `;
 
             if (data.issues && data.issues.length > 0) {
-                html += '<h6 class="mt-3 mb-2">Issues to Resolve:</h6><ul class="list-unstyled mb-0">';
+                html += '<h6 class="mt-3 mb-2 font-semibold text-gray-900 dark:text-white">Issues to Resolve:</h6><ul class="space-y-2">';
                 data.issues.forEach(issue => {
-                    html += `<li class="text-danger mb-2"><i class="ti ti-x me-2"></i>${escapeHtml(issue)}</li>`;
+                    html += `<li class="flex items-center text-red-600 dark:text-red-400"><svg class="w-4 h-4 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>${escapeHtml(issue)}</li>`;
                 });
                 html += '</ul>';
             }
 
             if (data.info) {
                 html += `
-                    <hr class="my-3">
-                    <h6 class="mb-2">Player Details</h6>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <small class="text-muted d-block">Status</small>
-                            <span class="badge ${data.info.is_current_player ? 'bg-success' : 'bg-secondary'}" data-badge>${data.info.is_current_player ? 'Active' : 'Inactive'}</span>
+                    <hr class="my-3 border-gray-200 dark:border-gray-700">
+                    <h6 class="mb-2 font-semibold text-gray-900 dark:text-white">Player Details</h6>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Status</p>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${data.info.is_current_player ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">${data.info.is_current_player ? 'Active' : 'Inactive'}</span>
                         </div>
-                        <div class="col-6">
-                            <small class="text-muted d-block">User Account</small>
-                            <span class="badge ${data.info.has_user_account ? 'bg-success' : 'bg-secondary'}" data-badge>${data.info.has_user_account ? 'Yes' : 'No'}</span>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">User Account</p>
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${data.info.has_user_account ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">${data.info.has_user_account ? 'Yes' : 'No'}</span>
                         </div>
-                        <div class="col-6">
-                            <small class="text-muted d-block">Primary Team</small>
-                            <span>${data.info.primary_team ? escapeHtml(data.info.primary_team) : '<em class="text-muted">None</em>'}</span>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Primary Team</p>
+                            <span class="text-gray-900 dark:text-white">${data.info.primary_team ? escapeHtml(data.info.primary_team) : '<em class="text-gray-500 dark:text-gray-400">None</em>'}</span>
                         </div>
-                        <div class="col-6">
-                            <small class="text-muted d-block">League</small>
-                            <span>${data.info.league ? escapeHtml(data.info.league) : '<em class="text-muted">None</em>'}</span>
+                        <div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">League</p>
+                            <span class="text-gray-900 dark:text-white">${data.info.league ? escapeHtml(data.info.league) : '<em class="text-gray-500 dark:text-gray-400">None</em>'}</span>
                         </div>
                     </div>
                 `;
@@ -466,7 +466,7 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
         })
         .catch(error => {
             if (modalBody) {
-                modalBody.innerHTML = '<div class="alert alert-danger" data-alert><i class="ti ti-alert-circle me-2"></i>Error checking eligibility. Please try again.</div>';
+                modalBody.innerHTML = '<div class="flex items-center p-4 rounded-lg bg-red-50 text-red-800 dark:bg-red-900/50 dark:text-red-300"><svg class="w-5 h-5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Error checking eligibility. Please try again.</div>';
             }
         });
 });

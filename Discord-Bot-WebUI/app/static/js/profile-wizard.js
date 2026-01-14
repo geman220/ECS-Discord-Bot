@@ -66,6 +66,8 @@ class ProfileWizard {
 
     // Delegated click handler for wizard navigation
     document.addEventListener('click', (e) => {
+      // Guard: ensure e.target is an Element with closest method
+      if (!e.target || typeof e.target.closest !== 'function') return;
       if (!self.elements.form) return;
       if (!self.elements.form.contains(e.target) && !e.target.closest('#wizardForm')) return;
 

@@ -1,385 +1,186 @@
-{# Locations Tab Component #}
+{# Locations Tab Component - Flowbite/Tailwind #}
 {# Manage partner locations for location-based notifications #}
 
 <!-- Location Limit Info -->
-<div class="alert alert-{{ 'warning' if location_count >= 8 else 'info' }} mb-4" data-alert>
-    <div class="d-flex">
-        <i class="ti ti-map-pin me-2 fs-4"></i>
-        <div>
-            <strong>Location-Based Notifications</strong>
-            <p class="mb-0 mt-1">
-                Apple Wallet allows up to <strong>10 locations</strong> per pass.
-                When a user approaches one of these locations, their phone shows a notification.
-                <br>
-                <strong>Current: {{ location_count }}/{{ max_locations }}</strong>
-                {% if location_count >= 10 %}
-                <span class="text-danger ms-2">(Limit reached)</span>
-                {% endif %}
-            </p>
-        </div>
+<div class="flex items-center p-4 mb-4 text-sm rounded-lg {{ 'text-yellow-800 bg-yellow-50 dark:bg-yellow-900/50 dark:text-yellow-300' if location_count >= 8 else 'text-blue-800 bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300' }}">
+    <svg class="flex-shrink-0 w-5 h-5 mr-3" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+    </svg>
+    <div>
+        <span class="font-semibold">Location-Based Notifications</span>
+        <p class="mt-1">
+            Apple Wallet allows up to <strong>10 locations</strong> per pass.
+            When a user approaches one of these locations, their phone shows a notification.
+        </p>
+        <p class="mt-1 font-medium">
+            Current: {{ location_count }}/{{ max_locations }}
+            {% if location_count >= 10 %}
+            <span class="text-red-600 dark:text-red-400 ml-2">(Limit reached)</span>
+            {% endif %}
+        </p>
     </div>
 </div>
 
-<!-- Add Location Button -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h6 class="mb-0">Partner Locations</h6>
-    <button type="button" class="c-btn c-btn--primary c-btn--sm js-add-location" data-action="add-location" {{ 'disabled' if location_count >= 10 }}>
-        <i class="ti ti-plus me-1"></i> Add Location
+<!-- Header with Add Button -->
+<div class="flex justify-between items-center mb-4">
+    <h6 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        Partner Locations
+    </h6>
+    <button type="button"
+            class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            data-action="add-location"
+            {{ 'disabled' if location_count >= 10 }}>
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+        Add Location
     </button>
 </div>
 
 <!-- Locations List -->
-<div class="c-card">
-    <div class="c-card__body p-0">
-        {% if locations %}
-        <div class="c-table-wrapper" data-table-responsive>
-            <table class="c-c-table c-table--hoverable mb-0" data-mobile-table data-table-type="locations" data-table>
-                <thead scope="col">
-                    <tr>
-                        <th scope="col">Name</th>
-                        <th scope="col">Address</th>
-                        <th scope="col">Notification Text</th>
-                        <th scope="col">Applies To</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for location in locations %}
-                    <tr class="{{ 'opacity-50' if not location.is_active }}">
-                        <td data-label="Name">
-                            <strong>{{ location.name }}</strong>
-                            <br>
-                            <small class="text-muted">
-                                <i class="ti ti-map-pin me-1"></i>
-                                {{ "%.4f"|format(location.latitude) }}, {{ "%.4f"|format(location.longitude) }}
-                            </small>
-                        </td>
-                        <td data-label="Address">
-                            {% if location.address %}
-                            {{ location.address }}<br>
-                            <small class="text-muted">{{ location.city }}, {{ location.state }}</small>
-                            {% else %}
-                            <span class="text-muted">—</span>
-                            {% endif %}
-                        </td>
-                        <td data-label="Notification Text">
-                            <small>{{ location.relevant_text }}</small>
-                        </td>
-                        <td data-label="Applies To">
-                            <span class="badge bg-label-{{ 'primary' if location.applies_to == 'all' else 'success' if location.applies_to == 'ecs_membership' else 'info' }}" data-badge>
-                                {{ 'All Passes' if location.applies_to == 'all' else 'ECS Only' if location.applies_to == 'ecs_membership' else 'Pub League' }}
-                            </span>
-                        </td>
-                        <td data-label="Status">
-                            {% if location.is_active %}
-                            <span class="badge bg-success" data-badge>Active</span>
-                            {% else %}
-                            <span class="badge bg-secondary" data-badge>Inactive</span>
-                            {% endif %}
-                        </td>
-                        <td data-label="Actions">
-                            <div class="btn-group btn-group-sm">
-                                <button type="button" class="c-btn c-btn--outline-primary js-edit-location" data-action="edit-location" data-location-id="{{ location.id }}" aria-label="Edit"><i class="ti ti-edit"></i></button>
-                                <button type="button" class="c-btn btn-outline-{{ 'warning' if location.is_active else 'success' }} js-toggle-location" data-action="toggle-location" data-location-id="{{ location.id }}" data-active="{{ 'false' if location.is_active else 'true' }}" aria-label="View"><i class="ti ti-{{ 'eye-off' if location.is_active else 'eye' }}"></i></button>
-                                <button type="button" class="c-btn c-btn--outline-danger js-delete-location" data-action="delete-location" data-location-id="{{ location.id }}" data-location-name="{{ location.name }}" aria-label="Delete"><i class="ti ti-trash"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-center py-5">
-            <i class="ti ti-map-pin fs-1 text-muted"></i>
-            <p class="mt-3 text-muted">No locations configured yet.</p>
-            <p class="text-muted small">Add partner venues to enable location-based notifications.</p>
-            <button type="button" class="c-btn c-btn--primary js-add-location" data-action="add-location">
-                <i class="ti ti-plus me-1"></i> Add First Location
+<div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+    {% if locations %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Name</th>
+                    <th scope="col" class="px-4 py-3">Address</th>
+                    <th scope="col" class="px-4 py-3">Notification Text</th>
+                    <th scope="col" class="px-4 py-3">Applies To</th>
+                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for location in locations %}
+                <tr class="border-b border-gray-200 dark:border-gray-700 {{ 'opacity-50' if not location.is_active }}">
+                    <td class="px-4 py-3">
+                        <div class="font-medium text-gray-900 dark:text-white">{{ location.name }}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            <svg class="inline w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/>
+                            </svg>
+                            {{ "%.4f"|format(location.latitude) }}, {{ "%.4f"|format(location.longitude) }}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if location.address %}
+                        <div class="text-gray-900 dark:text-white">{{ location.address }}</div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ location.city }}, {{ location.state }}</div>
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-xs">{{ location.relevant_text }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if location.applies_to == 'all' %}
+                        <span class="bg-primary-100 text-primary-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-primary-900 dark:text-primary-300">All Passes</span>
+                        {% elif location.applies_to == 'ecs_membership' %}
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-green-900 dark:text-green-300">ECS Only</span>
+                        {% else %}
+                        <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded dark:bg-blue-900 dark:text-blue-300">Pub League</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if location.is_active %}
+                        <span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-green-900 dark:text-green-300">Active</span>
+                        {% else %}
+                        <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="inline-flex rounded-md shadow-sm" role="group">
+                            <button type="button"
+                                    class="px-2 py-1.5 text-sm font-medium text-primary-700 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-primary-400 dark:hover:bg-gray-600"
+                                    data-action="edit-location"
+                                    data-location-id="{{ location.id }}"
+                                    title="Edit">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                </svg>
+                            </button>
+                            <button type="button"
+                                    class="px-2 py-1.5 text-sm font-medium {{ 'text-yellow-700 dark:text-yellow-400' if location.is_active else 'text-green-700 dark:text-green-400' }} bg-white border-t border-b border-gray-200 hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:hover:bg-gray-600"
+                                    data-action="toggle-location"
+                                    data-location-id="{{ location.id }}"
+                                    data-active="{{ 'false' if location.is_active else 'true' }}"
+                                    title="{{ 'Deactivate' if location.is_active else 'Activate' }}">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    {% if location.is_active %}
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                                    {% else %}
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                    {% endif %}
+                                </svg>
+                            </button>
+                            <button type="button"
+                                    class="px-2 py-1.5 text-sm font-medium text-red-700 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-red-500 dark:bg-gray-700 dark:border-gray-600 dark:text-red-400 dark:hover:bg-gray-600"
+                                    data-action="delete-location"
+                                    data-location-id="{{ location.id }}"
+                                    data-location-name="{{ location.name }}"
+                                    title="Delete">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <svg class="mx-auto w-12 h-12 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">No locations configured</h3>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Add partner venues to enable location-based notifications.</p>
+        <div class="mt-6">
+            <button type="button"
+                    class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-4 py-2 inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                    data-action="add-location">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add First Location
             </button>
         </div>
-        {% endif %}
     </div>
+    {% endif %}
 </div>
 
-<!-- Location data for JavaScript -->
-<script>
-// Event delegation
-document.addEventListener('click', function(e) {
-    const toggleBtn = e.target.closest('[data-action="toggle-location"]');
-    if (toggleBtn) {
-        toggleLocation(toggleBtn.dataset.id, toggleBtn.dataset.active === 'true');
-    }
-});
-
-const locationsData = [
-    {% for location in locations %}
-    {
-        id: {{ location.id }},
-        name: '{{ location.name|e }}',
-        latitude: {{ location.latitude }},
-        longitude: {{ location.longitude }},
-        relevant_text: '{{ location.relevant_text|e }}',
-        address: '{{ location.address|e if location.address else "" }}',
-        city: '{{ location.city|e if location.city else "" }}',
-        state: '{{ location.state|e if location.state else "" }}',
-        applies_to: '{{ location.applies_to }}',
-        location_type: '{{ location.location_type }}',
-        is_active: {{ 'true' if location.is_active else 'false' }}
-    }{{ ',' if not loop.last }}
-    {% endfor %}
-];
-
-function addLocation() {
-    Swal.fire({
-        title: 'Add Location',
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <label class="form-label">Name <span class="text-danger">*</span></label>
-                    <input type="text" id="loc-name" class="form-control" placeholder="e.g., Hellbent Brewing" data-form-control>
-                </div>
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <label class="form-label">Latitude <span class="text-danger">*</span></label>
-                        <input type="number" id="loc-lat" class="form-control" step="0.0001" placeholder="47.7240" data-form-control>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <label class="form-label">Longitude <span class="text-danger">*</span></label>
-                        <input type="number" id="loc-lng" class="form-control" step="0.0001" placeholder="-122.2958" data-form-control>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Notification Text</label>
-                    <input type="text" id="loc-text" class="form-control" placeholder="Text shown when user is nearby" data-form-control>
-                    <small class="text-muted">Leave blank to use the location name</small>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Address (optional)</label>
-                    <input type="text" id="loc-address" class="form-control" placeholder="123 Main St" data-form-control>
-                </div>
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <label class="form-label">City</label>
-                        <input type="text" id="loc-city" class="form-control" placeholder="Seattle" data-form-control>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <label class="form-label">State</label>
-                        <input type="text" id="loc-state" class="form-control" placeholder="WA" data-form-control>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Applies To</label>
-                    <select id="loc-applies" class="form-select" data-form-select>
-                        <option value="{{ pass_type_code }}">This pass type only</option>
-                        <option value="all">All pass types</option>
-                    </select>
-                </div>
-            </div>
-        `,
-        width: '500px',
-        showCancelButton: true,
-        confirmButtonText: 'Add Location',
-        preConfirm: () => {
-            const name = document.getElementById('loc-name').value.trim();
-            const lat = parseFloat(document.getElementById('loc-lat').value);
-            const lng = parseFloat(document.getElementById('loc-lng').value);
-
-            if (!name || isNaN(lat) || isNaN(lng)) {
-                Swal.showValidationMessage('Name, latitude, and longitude are required');
-                return false;
-            }
-
-            return {
-                name,
-                latitude: lat,
-                longitude: lng,
-                relevant_text: document.getElementById('loc-text').value.trim() || name,
-                address: document.getElementById('loc-address').value.trim(),
-                city: document.getElementById('loc-city').value.trim(),
-                state: document.getElementById('loc-state').value.trim(),
-                applies_to: document.getElementById('loc-applies').value
-            };
-        }
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/locations`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrf_token]').value
-                    },
-                    body: JSON.stringify(result.value)
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    PassStudio.showToast('Location added', 'success');
-                    location.reload();
-                } else {
-                    PassStudio.showToast(data.error || 'Error adding location', 'error');
-                }
-            } catch (error) {
-                PassStudio.showToast('Error adding location', 'error');
-            }
-        }
-    });
-}
-
-function editLocation(locationId) {
-    const loc = locationsData.find(l => l.id === locationId);
-    if (!loc) return;
-
-    Swal.fire({
-        title: 'Edit Location',
-        html: `
-            <div class="text-start">
-                <div class="mb-3">
-                    <label class="form-label">Name <span class="text-danger">*</span></label>
-                    <input type="text" id="edit-loc-name" class="form-control" value="${loc.name}" data-form-control>
-                </div>
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <label class="form-label">Latitude <span class="text-danger">*</span></label>
-                        <input type="number" id="edit-loc-lat" class="form-control" step="0.0001" value="${loc.latitude}" data-form-control>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <label class="form-label">Longitude <span class="text-danger">*</span></label>
-                        <input type="number" id="edit-loc-lng" class="form-control" step="0.0001" value="${loc.longitude}" data-form-control>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Notification Text</label>
-                    <input type="text" id="edit-loc-text" class="form-control" value="${loc.relevant_text}" data-form-control>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Address</label>
-                    <input type="text" id="edit-loc-address" class="form-control" value="${loc.address}" data-form-control>
-                </div>
-                <div class="row">
-                    <div class="col-6 mb-3">
-                        <label class="form-label">City</label>
-                        <input type="text" id="edit-loc-city" class="form-control" value="${loc.city}" data-form-control>
-                    </div>
-                    <div class="col-6 mb-3">
-                        <label class="form-label">State</label>
-                        <input type="text" id="edit-loc-state" class="form-control" value="${loc.state}" data-form-control>
-                    </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Applies To</label>
-                    <select id="edit-loc-applies" class="form-select" data-form-select>
-                        <option value="ecs_membership" ${loc.applies_to === 'ecs_membership' ? 'selected' : ''}>ECS Only</option>
-                        <option value="pub_league" ${loc.applies_to === 'pub_league' ? 'selected' : ''}>Pub League Only</option>
-                        <option value="all" ${loc.applies_to === 'all' ? 'selected' : ''}>All pass types</option>
-                    </select>
-                </div>
-            </div>
-        `,
-        width: '500px',
-        showCancelButton: true,
-        confirmButtonText: 'Save Changes',
-        preConfirm: () => {
-            const name = document.getElementById('edit-loc-name').value.trim();
-            const lat = parseFloat(document.getElementById('edit-loc-lat').value);
-            const lng = parseFloat(document.getElementById('edit-loc-lng').value);
-
-            if (!name || isNaN(lat) || isNaN(lng)) {
-                Swal.showValidationMessage('Name, latitude, and longitude are required');
-                return false;
-            }
-
-            return {
-                name,
-                latitude: lat,
-                longitude: lng,
-                relevant_text: document.getElementById('edit-loc-text').value.trim() || name,
-                address: document.getElementById('edit-loc-address').value.trim(),
-                city: document.getElementById('edit-loc-city').value.trim(),
-                state: document.getElementById('edit-loc-state').value.trim(),
-                applies_to: document.getElementById('edit-loc-applies').value
-            };
-        }
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/locations/${locationId}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrf_token]').value
-                    },
-                    body: JSON.stringify(result.value)
-                });
-
-                const data = await response.json();
-                if (data.success) {
-                    PassStudio.showToast('Location updated', 'success');
-                    location.reload();
-                } else {
-                    PassStudio.showToast(data.error || 'Error updating location', 'error');
-                }
-            } catch (error) {
-                PassStudio.showToast('Error updating location', 'error');
-            }
-        }
-    });
-}
-
-async function toggleLocation(locationId, active) {
-    try {
-        const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/locations/${locationId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrf_token]').value
-            },
-            body: JSON.stringify({ is_active: active })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            PassStudio.showToast(`Location ${active ? 'activated' : 'deactivated'}`, 'success');
-            location.reload();
-        } else {
-            PassStudio.showToast(data.error || 'Error updating location', 'error');
-        }
-    } catch (error) {
-        PassStudio.showToast('Error updating location', 'error');
-    }
-}
-
-async function deleteLocation(locationId, name) {
-    const result = await Swal.fire({
-        title: 'Delete Location?',
-        text: `Are you sure you want to delete "${name}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : '#d33',
-        confirmButtonText: 'Yes, delete'
-    });
-
-    if (result.isConfirmed) {
-        try {
-            const response = await fetch(`/admin/wallet/studio/{{ pass_type_code }}/locations/${locationId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRFToken': document.querySelector('[name=csrf_token]').value
-                }
-            });
-
-            const data = await response.json();
-            if (data.success) {
-                PassStudio.showToast('Location deleted', 'success');
-                location.reload();
-            } else {
-                PassStudio.showToast(data.error || 'Error deleting location', 'error');
-            }
-        } catch (error) {
-            PassStudio.showToast('Error deleting location', 'error');
-        }
-    }
+{# LocationsManager initialization data - parsed by pass-studio-locations.js #}
+<script type="application/json" id="locations-manager-init-data">
+{
+    "passTypeCode": "{{ pass_type_code }}",
+    "maxLocations": {{ max_locations }},
+    "locations": [
+        {% for location in locations %}
+        {
+            "id": {{ location.id }},
+            "name": {{ location.name|tojson }},
+            "latitude": {{ location.latitude }},
+            "longitude": {{ location.longitude }},
+            "relevant_text": {{ location.relevant_text|tojson }},
+            "address": {{ (location.address or '')|tojson }},
+            "city": {{ (location.city or '')|tojson }},
+            "state": {{ (location.state or '')|tojson }},
+            "applies_to": "{{ location.applies_to }}",
+            "location_type": "{{ location.location_type }}",
+            "is_active": {{ 'true' if location.is_active else 'false' }}
+        }{{ ',' if not loop.last }}
+        {% endfor %}
+    ]
 }
 </script>

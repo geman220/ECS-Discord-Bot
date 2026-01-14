@@ -211,6 +211,8 @@ export function initRsvp() {
 
     // Attach event listeners for RSVP radio buttons using event delegation
     document.addEventListener('click', function(event) {
+        // Guard: ensure event.target is an Element with closest method
+        if (!event.target || typeof event.target.closest !== 'function') return;
         const element = event.target.closest('.btn-check.rsvp-input');
         if (!element) return;
 

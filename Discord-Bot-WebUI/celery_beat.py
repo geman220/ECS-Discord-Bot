@@ -38,23 +38,44 @@ def verify_redis():
 
 def setup_beat_directory():
     """Create the directory for Celery beat schedule files."""
-    try:
-        beat_dir = '/tmp/celerybeat'
-        os.makedirs(beat_dir, exist_ok=True)
-        logger.info(f"Created beat directory: {beat_dir}")
-        os.chmod(beat_dir, 0o755)
-        return True
-    except Exception as e:
-        logger.error(f"Failed to create beat directory: {str(e)}")
-        return False
+    # Use persistent location instead of /tmp (which can be cleared on reboot)
+    # Fall back to /tmp if persistent location is not writable
+    beat_dirs = [
+        '/app/data/celerybeat',  # Preferred: persistent volume in Docker
+        '/var/lib/celerybeat',   # Alternative: standard Linux service data
+        '/tmp/celerybeat'        # Fallback: temporary directory
+    ]
+
+    for beat_dir in beat_dirs:
+        try:
+            os.makedirs(beat_dir, exist_ok=True)
+            # Test write access
+            test_file = os.path.join(beat_dir, '.write_test')
+            with open(test_file, 'w') as f:
+                f.write('test')
+            os.remove(test_file)
+            # Set appropriate permissions (owner read/write/execute)
+            os.chmod(beat_dir, 0o700)
+            logger.info(f"Using beat directory: {beat_dir}")
+            return beat_dir
+        except (OSError, PermissionError) as e:
+            logger.warning(f"Cannot use beat directory {beat_dir}: {e}")
+            continue
+
+    logger.error("Failed to create any beat directory")
+    return None
 
 
 def start_beat():
     """Start the Celery beat scheduler."""
+    beat_dir = setup_beat_directory()
+    if not beat_dir:
+        raise RuntimeError("No writable beat directory available")
+
     try:
-        schedule_file = '/tmp/celerybeat/celerybeat-schedule'
-        pid_file = '/tmp/celerybeat/celerybeat.pid'
-        
+        schedule_file = os.path.join(beat_dir, 'celerybeat-schedule')
+        pid_file = os.path.join(beat_dir, 'celerybeat.pid')
+
         beat = Beat(
             app=celery,
             loglevel='INFO',
@@ -62,7 +83,7 @@ def start_beat():
             pidfile=pid_file,
             max_interval=300,
             scheduler_cls='celery.beat.PersistentScheduler',
-            working_directory='/tmp/celerybeat'
+            working_directory=beat_dir
         )
         
         logger.info("Starting beat scheduler...")
@@ -76,20 +97,15 @@ def start_beat():
 if __name__ == '__main__':
     try:
         logger.info("Initializing Celery beat scheduler")
-        
+
         # Verify Redis connection
         if not verify_redis():
             logger.error("Redis verification failed. Exiting.")
             sys.exit(1)
-        
-        # Setup beat schedule directory
-        if not setup_beat_directory():
-            logger.error("Beat directory setup failed. Exiting.")
-            sys.exit(1)
-        
-        # Start the beat scheduler
+
+        # Start the beat scheduler (directory setup is handled internally)
         start_beat()
-        
+
     except Exception as e:
         logger.error(f"Beat scheduler failed: {str(e)}")
         sys.exit(1)

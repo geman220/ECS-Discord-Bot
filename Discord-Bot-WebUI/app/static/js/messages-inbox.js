@@ -101,6 +101,9 @@ function setupEventListeners() {
 
     // Delegated click handler for all inbox interactions
     document.addEventListener('click', (e) => {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         // New conversation buttons
         if (e.target.closest('[data-action="new-conversation"]')) {
             openNewConversationModal(e);
@@ -139,9 +142,13 @@ function setupEventListeners() {
         // User search result clicks
         const userResultItem = e.target.closest('.c-user-search-results__item');
         if (userResultItem && userResultItem.dataset.userId) {
-            const userData = JSON.parse(userResultItem.dataset.user || '{}');
-            if (userData.id) {
-                openConversation(userData);
+            try {
+                const userData = JSON.parse(userResultItem.dataset.user || '{}');
+                if (userData.id) {
+                    openConversation(userData);
+                }
+            } catch (e) {
+                console.error('Failed to parse user data:', e);
             }
             return;
         }

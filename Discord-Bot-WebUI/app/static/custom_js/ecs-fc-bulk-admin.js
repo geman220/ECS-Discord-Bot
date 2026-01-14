@@ -51,6 +51,8 @@ export class ECSFCScheduleManager {
     setupEventDelegation() {
         // Event delegation for all schedule actions
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const action = e.target.closest('[data-action]')?.dataset.action;
             if (!action) return;
 

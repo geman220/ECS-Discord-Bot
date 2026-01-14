@@ -163,41 +163,51 @@ class UnifiedRedisManager:
                     raise ConnectionError(f"Unable to connect to Redis after {max_retries} attempts")
 
     def _create_fallback_clients(self):
-        """Create fallback clients that silently fail for graceful degradation."""
+        """Create fallback clients that log warnings for graceful degradation."""
         from types import SimpleNamespace
-        
-        logger.debug("Creating fallback Redis clients for graceful degradation")
-        
+
+        logger.warning("Creating fallback Redis clients - Redis is unavailable!")
+
+        # Track if we've logged recently to avoid log spam
+        _fallback_log_count = {'count': 0}
+
+        def _log_fallback_usage(operation, *args):
+            """Log fallback usage with rate limiting to avoid spam."""
+            _fallback_log_count['count'] += 1
+            # Log first 5 operations, then every 100th
+            if _fallback_log_count['count'] <= 5 or _fallback_log_count['count'] % 100 == 0:
+                logger.warning(f"Redis fallback: {operation} called (Redis unavailable) - count: {_fallback_log_count['count']}")
+
         # Create dummy clients
         self._decoded_client = SimpleNamespace()
         self._raw_client = SimpleNamespace()
-        
-        # Add dummy methods
+
+        # Add dummy methods that log warnings
         for client in [self._decoded_client, self._raw_client]:
-            client.ping = lambda: False
-            client.get = lambda key: None
-            client.set = lambda key, value, ex=None, px=None, nx=False, xx=False, keepttl=False, **kwargs: False
-            client.setex = lambda key, seconds, value: False  # Add missing setex method
-            client.delete = lambda *keys: 0
-            client.exists = lambda key: False
-            client.keys = lambda pattern: []
-            client.hgetall = lambda key: {}
-            client.hset = lambda key, field, value: False
-            client.hmset = lambda key, mapping: False
-            client.expire = lambda key, seconds: False
-            client.ttl = lambda key: -1
-            client.scan = lambda cursor=0, match=None, count=None: (0, [])
-            client.scan_iter = lambda match=None, count=None: iter([])  # Add scan_iter for compatibility
-            client.pipeline = lambda: SimpleNamespace(execute=lambda: [])
+            client.ping = lambda: (_log_fallback_usage('ping'), False)[1]
+            client.get = lambda key: (_log_fallback_usage('get', key), None)[1]
+            client.set = lambda key, value, ex=None, px=None, nx=False, xx=False, keepttl=False, **kwargs: (_log_fallback_usage('set', key), False)[1]
+            client.setex = lambda key, seconds, value: (_log_fallback_usage('setex', key), False)[1]
+            client.delete = lambda *keys: (_log_fallback_usage('delete', keys), 0)[1]
+            client.exists = lambda key: (_log_fallback_usage('exists', key), False)[1]
+            client.keys = lambda pattern: (_log_fallback_usage('keys', pattern), [])[1]
+            client.hgetall = lambda key: (_log_fallback_usage('hgetall', key), {})[1]
+            client.hset = lambda key, field=None, value=None, mapping=None: (_log_fallback_usage('hset', key), False)[1]
+            client.hmset = lambda key, mapping: (_log_fallback_usage('hmset', key), False)[1]
+            client.expire = lambda key, seconds: (_log_fallback_usage('expire', key), False)[1]
+            client.ttl = lambda key: (_log_fallback_usage('ttl', key), -1)[1]
+            client.scan = lambda cursor=0, match=None, count=None: (_log_fallback_usage('scan'), (0, []))[1]
+            client.scan_iter = lambda match=None, count=None: (_log_fallback_usage('scan_iter'), iter([]))[1]
+            client.pipeline = lambda: SimpleNamespace(execute=lambda: (_log_fallback_usage('pipeline.execute'), [])[1])
             # Add Redis 'control' attribute for Celery compatibility
-            client.control = SimpleNamespace(revoke=lambda task_id, terminate=True: None)
+            client.control = SimpleNamespace(revoke=lambda task_id, terminate=True: _log_fallback_usage('control.revoke', task_id))
             # Add Redis Streams methods for event consumer compatibility
-            client.xgroup_create = lambda stream, group, id='0', mkstream=True: False
-            client.xreadgroup = lambda group, consumer, streams, count=None, block=None: {}
-            client.xack = lambda stream, group, *ids: 0
-            client.xadd = lambda stream, fields, id='*', maxlen=None, approximate=True: None
-            client.xpending_range = lambda stream, group, consumer=None, start='-', end='+', count=None: []  # Fix for event consumer
-            client.xpending = lambda stream, group: {'consumers': [], 'pending': 0, 'min': None, 'max': None}
+            client.xgroup_create = lambda stream, group, id='0', mkstream=True: (_log_fallback_usage('xgroup_create'), False)[1]
+            client.xreadgroup = lambda group, consumer, streams, count=None, block=None: (_log_fallback_usage('xreadgroup'), {})[1]
+            client.xack = lambda stream, group, *ids: (_log_fallback_usage('xack'), 0)[1]
+            client.xadd = lambda stream, fields, id='*', maxlen=None, approximate=True: (_log_fallback_usage('xadd'), None)[1]
+            client.xpending_range = lambda stream, group, consumer=None, start='-', end='+', count=None: (_log_fallback_usage('xpending_range'), [])[1]
+            client.xpending = lambda stream, group: (_log_fallback_usage('xpending'), {'consumers': [], 'pending': 0, 'min': None, 'max': None})[1]
 
     @property
     def client(self) -> Redis:
@@ -244,16 +254,22 @@ class UnifiedRedisManager:
     def _check_health(self):
         """Periodic health check to ensure connections are alive."""
         current_time = time.time()
-        
+
         if current_time - self._last_health_check > self._health_check_interval:
             try:
-                # Just update the timestamp - rely on Redis being available as intended
-                # If there are connection issues, they'll be caught during actual operations
+                # Actually ping Redis to verify connection is alive
+                if self._decoded_client:
+                    self._decoded_client.ping()
                 self._last_health_check = current_time
             except Exception as e:
-                # Log but don't reinitialize - let actual operations handle failures
-                logger.debug(f"Redis health check completed with note: {e}")
+                # Log at WARNING level so health issues are visible
+                logger.warning(f"Redis health check failed: {e}")
                 self._last_health_check = current_time
+                # Attempt to reinitialize if ping fails
+                try:
+                    self._reinitialize()
+                except Exception as reinit_error:
+                    logger.error(f"Redis reinitialization failed after health check: {reinit_error}")
     
     def _reinitialize(self):
         """Reinitialize connection pool and clients atomically."""

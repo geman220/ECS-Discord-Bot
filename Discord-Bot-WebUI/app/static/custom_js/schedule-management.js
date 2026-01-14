@@ -67,6 +67,8 @@ export class ScheduleManager {
      */
     setupEventDelegation() {
         document.addEventListener('click', (e) => {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             const btn = e.target.closest('[data-action="remove-match-row"]');
             if (btn) {
                 btn.closest('.row')?.remove();
@@ -106,6 +108,8 @@ export class ScheduleManager {
 
         // Delegated click handler for add time slot button
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             if (e.target.closest('#addTimeSlotBtn')) {
                 e.preventDefault();
                 self.addSingleWeekTimeSlot();
@@ -216,6 +220,8 @@ export class ScheduleManager {
 
         // Single delegated click listener for all schedule buttons
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             // Add match button
             const addBtn = e.target.closest('.schedule-add-match-btn');
             if (addBtn) {

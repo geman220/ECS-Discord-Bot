@@ -76,9 +76,14 @@ def configure_db_settings(app):
         is_sqlite = 'sqlite' in db_uri.lower()
         
         if is_testing and is_sqlite:
-            # For SQLite testing, use minimal engine options
+            # For SQLite testing, use StaticPool to ensure the same connection
+            # is reused. Without this, each new connection creates a new empty
+            # database, causing "no such table" errors.
+            from sqlalchemy.pool import StaticPool
             engine_options = {
-                'pool_pre_ping': False,  # Not needed for SQLite
+                'poolclass': StaticPool,
+                'connect_args': {'check_same_thread': False},
+                'pool_pre_ping': False,
                 'echo': False
             }
             logger.info("Using SQLite engine options for testing")

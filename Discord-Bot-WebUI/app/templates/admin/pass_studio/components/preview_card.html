@@ -1,233 +1,289 @@
-{# Pass Preview Card Component - Realistic Apple/Google Wallet Preview #}
+{# Pass Preview Card Component - Pure Tailwind/Flowbite #}
 {# Displays a visual mockup of the wallet pass that updates in real-time #}
-{# Shows actual database field configuration - if no fields, shows empty state #}
 {#
-   PASS STYLES:
-   - generic: Thumbnail on right side of header, all fields cleanly separated
-   - storeCard: Strip image with primary field OVERLAID on top
-   - eventTicket: Same as storeCard but with notch at top
+   APPLE WALLET PASS STYLES:
+   - generic: Logo + Logo Text + Thumbnail in header. Primary fields below header. No strip.
+   - storeCard: Logo + Logo Text in header. Strip with primary field OVERLAID.
+   - eventTicket: Logo + Logo Text in header. Clean strip (no overlay). Primary fields below strip.
 #}
 
 {# Platform Toggle #}
-<div class="btn-group w-100 mb-3" role="group" aria-label="Platform preview toggle">
-    <button type="button" class="c-btn c-btn--outline-primary active" data-platform="apple" data-action="toggle-platform">
-        <i class="ti ti-brand-apple me-1"></i>Apple
+<div class="inline-flex rounded-md shadow-sm w-full mb-4" role="group" aria-label="Platform preview toggle">
+    <button type="button"
+            class="flex-1 px-4 py-2 text-sm font-medium text-primary-700 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-primary-400 dark:hover:bg-gray-600 platform-toggle-active"
+            data-platform="apple"
+            data-action="toggle-platform">
+        <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+        </svg>
+        Apple
     </button>
-    <button type="button" class="c-btn c-btn--outline-primary" data-platform="google" data-action="toggle-platform">
-        <i class="ti ti-brand-google me-1"></i>Google
+    <button type="button"
+            class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 focus:z-10 focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600"
+            data-platform="google"
+            data-action="toggle-platform">
+        <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+        </svg>
+        Google
     </button>
 </div>
 
 {# ========== APPLE WALLET PREVIEW ========== #}
-{# Supports generic, storeCard, and eventTicket styles #}
+{% set current_style = pass_type.apple_pass_style or 'eventTicket' %}
+{% set header_fields = front_fields|selectattr('field_location', 'equalto', 'header')|rejectattr('is_visible', 'equalto', false)|list %}
+{% set primary_fields = front_fields|selectattr('field_location', 'equalto', 'primary')|rejectattr('is_visible', 'equalto', false)|list %}
+{% set secondary_fields = front_fields|selectattr('field_location', 'equalto', 'secondary')|rejectattr('is_visible', 'equalto', false)|list %}
+{% set auxiliary_fields = front_fields|selectattr('field_location', 'equalto', 'auxiliary')|rejectattr('is_visible', 'equalto', false)|list %}
+
 <div id="apple-preview" class="pass-preview-platform">
-    {% set current_style = pass_type.apple_pass_style or 'generic' %}
-    <div class="apple-pass-card pass-style-{{ current_style }}" id="pass-preview"
-         style="background-color: {{ pass_type.background_color }}; color: {{ pass_type.foreground_color }};"
+    {# Apple Wallet Pass Card - 320px width, rounded corners, shadow #}
+    <div class="relative w-80 mx-auto rounded-xl overflow-hidden flex flex-col shadow-2xl"
+         id="pass-preview"
+         style="background-color: {{ pass_type.background_color or '#1a1a2e' }}; color: {{ pass_type.foreground_color or '#ffffff' }}; min-height: 420px; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;"
          data-pass-style="{{ current_style }}">
 
         {# Event Ticket notch at top #}
-        <div class="pass-notch {% if current_style != 'eventTicket' %}u-hidden{% endif %}" id="preview-notch"></div>
+        {% if current_style == 'eventTicket' %}
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-1.5 bg-gray-900 dark:bg-gray-800 rounded-b-md z-20" id="preview-notch"></div>
+        {% endif %}
 
-        {# Dynamic Fields from Database #}
-        {# Note: is_visible defaults to True, so we check for not being explicitly False #}
-        {% set header_fields = front_fields|selectattr('field_location', 'equalto', 'header')|rejectattr('is_visible', 'equalto', false)|list %}
-        {% set primary_fields = front_fields|selectattr('field_location', 'equalto', 'primary')|rejectattr('is_visible', 'equalto', false)|list %}
-        {% set secondary_fields = front_fields|selectattr('field_location', 'equalto', 'secondary')|rejectattr('is_visible', 'equalto', false)|list %}
-        {% set auxiliary_fields = front_fields|selectattr('field_location', 'equalto', 'auxiliary')|rejectattr('is_visible', 'equalto', false)|list %}
-
-        {# ===== HEADER ROW - Logo (optional) + Logo Text + Header Fields (+ Thumbnail for generic) ===== #}
-        <div class="pass-header">
-            {# Logo - optional, only show if uploaded AND show_logo is True #}
+        {# ===== HEADER ROW ===== #}
+        <div class="flex items-center px-4 py-3 gap-2">
+            {# Logo - optional #}
             {% set show_logo = pass_type.show_logo if pass_type.show_logo is not none else true %}
-            <div class="pass-logo{% if not assets.get('logo') or not show_logo %} d-none{% endif %}" id="preview-logo">
-                {% if assets.get('logo') %}
-                <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['logo'].id) }}" alt="Logo">
+            {% if assets.get('logo') and show_logo %}
+            <div class="w-10 h-10 flex-shrink-0 flex items-center justify-center" id="preview-logo">
+                <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['logo'].id) }}" alt="Logo" class="max-w-full max-h-full object-contain">
+            </div>
+            {% endif %}
+
+            {# Logo Text #}
+            <div class="text-base font-semibold truncate" id="preview-logo-text">{{ pass_type.logo_text or 'ECS FC' }}</div>
+
+            {# Header Fields - pushed right #}
+            <div class="flex gap-4 ml-auto text-right" id="preview-header-fields">
+                {% if header_fields %}
+                    {% for field in header_fields %}
+                    <div class="min-w-[40px]">
+                        <div class="text-[9px] uppercase tracking-wide opacity-80 mb-0.5 pass-field-label" style="color: {{ pass_type.label_color or '#999999' }};">{{ field.label }}</div>
+                        <div class="text-sm font-semibold leading-tight">
+                            {%- set var_name = field.value_template|replace('{{', '')|replace('}}', '')|trim if field.value_template else '' -%}
+                            {{ sample_data.get(var_name, field.default_value or 'Value') }}
+                        </div>
+                    </div>
+                    {% endfor %}
                 {% endif %}
             </div>
-            <div class="pass-logo-text" id="preview-logo-text">{{ pass_type.logo_text }}</div>
 
-            {# Header Fields - appear on right side of header row #}
-            <div class="pass-header-fields{% if not header_fields %} d-none{% endif %}" id="preview-header-fields">
-                {% for field in header_fields %}
-                <div class="pass-header-field">
-                    <div class="pass-field-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</div>
-                    <div class="pass-field-value">
+            {# Thumbnail - Only for generic passes #}
+            {% if current_style == 'generic' %}
+            <div class="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-white/10" id="preview-thumbnail">
+                {% if assets.get('thumbnail') %}
+                <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['thumbnail'].id) }}" alt="Thumbnail" class="w-full h-full object-cover">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center text-white/40 border border-dashed border-white/30 rounded-lg">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        {# ===== STRIP IMAGE AREA (storeCard & eventTicket only) ===== #}
+        {% if current_style != 'generic' %}
+        <div class="relative w-full h-24 bg-white/5 overflow-hidden" id="preview-strip">
+            {% if assets.get('strip') %}
+            <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['strip'].id) }}" alt="Strip" class="absolute inset-0 w-full h-full object-cover">
+            {% else %}
+            <div class="w-full h-full flex flex-col items-center justify-center text-white/30">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="text-[10px] mt-1">Strip Image (1125×432)</span>
+            </div>
+            {% endif %}
+
+            {# Primary Field Overlay - ONLY for storeCard #}
+            {% if current_style == 'storeCard' %}
+            <div class="absolute bottom-0 left-0 right-0 px-4 py-3 bg-gradient-to-t from-black/60 to-transparent" id="preview-primary-overlay">
+                {% if primary_fields %}
+                    {% for field in primary_fields %}
+                    <div class="text-[9px] uppercase tracking-wide mb-0.5 pass-field-label" style="color: {{ pass_type.label_color or '#999999' }}; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">{{ field.label }}</div>
+                    <div class="text-xl font-semibold" style="text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
                         {%- set var_name = field.value_template|replace('{{', '')|replace('}}', '')|trim if field.value_template else '' -%}
-                        {{ sample_data.get(var_name, field.value_template or field.default_value or '') }}
+                        {{ sample_data.get(var_name, field.default_value or 'Value') }}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <div class="text-[9px] uppercase tracking-wide mb-0.5 opacity-50 pass-field-label" style="color: {{ pass_type.label_color or '#999999' }};">MEMBER</div>
+                <div class="text-xl font-semibold opacity-50">Name</div>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {# ===== PRIMARY FIELDS SECTION ===== #}
+        {# For generic: appears below header. For eventTicket: appears below strip. For storeCard: hidden #}
+        {% if current_style != 'storeCard' %}
+        <div class="px-4 py-3" id="preview-primary-section">
+            {% if primary_fields %}
+                {% for field in primary_fields %}
+                <div class="mb-2 last:mb-0">
+                    <div class="text-[9px] uppercase tracking-wide mb-0.5 pass-field-label" style="color: {{ pass_type.label_color or '#999999' }};">{{ field.label }}</div>
+                    <div class="text-xl font-semibold leading-tight">
+                        {%- set var_name = field.value_template|replace('{{', '')|replace('}}', '')|trim if field.value_template else '' -%}
+                        {{ sample_data.get(var_name, field.default_value or 'Value') }}
                     </div>
                 </div>
                 {% endfor %}
-            </div>
-
-            {# Thumbnail - Only for generic passes, appears on right side of header #}
-            <div class="pass-thumbnail {% if current_style != 'generic' %}u-hidden{% endif %}" id="preview-thumbnail">
-                {% if assets.get('thumbnail') %}
-                <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['thumbnail'].id) }}" alt="Thumbnail">
-                {% else %}
-                <div class="pass-thumbnail-placeholder">
-                    <i class="ti ti-photo"></i>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        {# ===== STRIP AREA - For storeCard (with overlay) and eventTicket (clean, no overlay) ===== #}
-        <div class="pass-strip-area {% if current_style == 'generic' %}u-hidden{% endif %}" id="preview-strip">
-            {# Strip image as background #}
-            {% if assets.get('strip') %}
-            <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['strip'].id) }}" alt="Strip" class="pass-strip-image">
-            {% endif %}
-
-            {# Primary Field Overlay - ONLY for storeCard (eventTicket keeps strip clean) #}
-            <div class="pass-primary-field-overlay {% if current_style == 'eventTicket' %}u-hidden{% endif %}" id="preview-primary-overlay">
-                {% if primary_fields %}
-                    {% for field in primary_fields %}
-                    <div class="pass-field-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</div>
-                    <div class="pass-field-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</div>
-                    {% endfor %}
-                {% else %}
-                <div class="pass-field-label u-opacity-50" style="color: {{ pass_type.label_color }};">MEMBER</div>
-                <div class="pass-field-value u-opacity-50">No primary field</div>
-                {% endif %}
-            </div>
-        </div>
-
-        {# ===== PRIMARY FIELDS SECTION - Only for generic passes (below header, separated) ===== #}
-        <div class="pass-primary-fields-section {% if current_style != 'generic' %}u-hidden{% endif %}" id="preview-primary-section">
-            {% if primary_fields %}
-                {% for field in primary_fields %}
-                <div class="pass-field primary-field">
-                    <div class="pass-field-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</div>
-                    <div class="pass-field-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</div>
-                </div>
-                {% endfor %}
             {% else %}
-            <div class="pass-field primary-field">
-                <div class="pass-field-label u-opacity-50" style="color: {{ pass_type.label_color }};">MEMBER</div>
-                <div class="pass-field-value u-opacity-50">No primary field</div>
+            <div class="opacity-50">
+                <div class="text-[9px] uppercase tracking-wide mb-0.5 pass-field-label" style="color: {{ pass_type.label_color or '#999999' }};">MEMBER</div>
+                <div class="text-xl font-semibold">No primary field</div>
             </div>
             {% endif %}
         </div>
+        {% endif %}
 
-        {# ===== SECONDARY/AUXILIARY FIELDS - Below strip (or below primary for generic) ===== #}
-        {% if secondary_fields or auxiliary_fields %}
-        <div class="pass-secondary-fields">
+        {# ===== SECONDARY FIELDS ROW ===== #}
+        {% if secondary_fields %}
+        <div class="flex flex-wrap gap-4 px-4 py-2" id="preview-secondary-row">
             {% for field in secondary_fields %}
-            <div class="pass-field">
-                <div class="pass-field-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</div>
-                <div class="pass-field-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</div>
-            </div>
-            {% endfor %}
-            {% for field in auxiliary_fields %}
-            <div class="pass-field">
-                <div class="pass-field-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</div>
-                <div class="pass-field-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</div>
+            <div class="flex-1 min-w-[70px]">
+                <div class="text-[9px] uppercase tracking-wide mb-0.5 pass-field-label" style="color: {{ pass_type.label_color or '#999999' }};">{{ field.label }}</div>
+                <div class="text-sm font-medium leading-snug">
+                    {%- set var_name = field.value_template|replace('{{', '')|replace('}}', '')|trim if field.value_template else '' -%}
+                    {{ sample_data.get(var_name, field.default_value or 'Value') }}
+                </div>
             </div>
             {% endfor %}
         </div>
         {% endif %}
 
-        {# ===== BARCODE AREA - Always at bottom ===== #}
-        <div class="pass-barcode-area" id="preview-barcode-area">
-            <div class="pass-barcode">
-                <svg width="140" height="140" viewBox="0 0 100 100">
-                    {# Simplified QR code pattern #}
-                    <rect fill="#000" x="10" y="10" width="25" height="25"/>
-                    <rect fill="#fff" x="15" y="15" width="15" height="15"/>
-                    <rect fill="#000" x="18" y="18" width="9" height="9"/>
-                    <rect fill="#000" x="65" y="10" width="25" height="25"/>
-                    <rect fill="#fff" x="70" y="15" width="15" height="15"/>
-                    <rect fill="#000" x="73" y="18" width="9" height="9"/>
-                    <rect fill="#000" x="10" y="65" width="25" height="25"/>
-                    <rect fill="#fff" x="15" y="70" width="15" height="15"/>
-                    <rect fill="#000" x="18" y="73" width="9" height="9"/>
-                    <rect fill="#000" x="40" y="40" width="20" height="20"/>
-                    <rect fill="#000" x="40" y="10" width="5" height="5"/>
-                    <rect fill="#000" x="50" y="15" width="5" height="5"/>
-                    <rect fill="#000" x="45" y="25" width="5" height="5"/>
-                    <rect fill="#000" x="65" y="45" width="5" height="5"/>
-                    <rect fill="#000" x="75" y="50" width="5" height="5"/>
-                    <rect fill="#000" x="85" y="45" width="5" height="5"/>
-                    <rect fill="#000" x="70" y="70" width="5" height="5"/>
-                    <rect fill="#000" x="80" y="75" width="5" height="5"/>
-                    <rect fill="#000" x="85" y="85" width="5" height="5"/>
-                </svg>
+        {# ===== AUXILIARY FIELDS ROW ===== #}
+        {% if auxiliary_fields %}
+        <div class="flex flex-wrap gap-4 px-4 py-2" id="preview-auxiliary-row">
+            {% for field in auxiliary_fields %}
+            <div class="flex-1 min-w-[70px]">
+                <div class="text-[9px] uppercase tracking-wide mb-0.5 pass-field-label" style="color: {{ pass_type.label_color or '#999999' }};">{{ field.label }}</div>
+                <div class="text-sm font-medium leading-snug">
+                    {%- set var_name = field.value_template|replace('{{', '')|replace('}}', '')|trim if field.value_template else '' -%}
+                    {{ sample_data.get(var_name, field.default_value or 'Value') }}
+                </div>
             </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {# ===== BARCODE AREA ===== #}
+        <div class="mt-auto p-4 bg-white rounded-b-xl text-center pass-barcode-area" id="preview-barcode-area">
+            <svg class="mx-auto" width="100" height="100" viewBox="0 0 100 100">
+                {# QR Code Pattern #}
+                <rect fill="#000" x="10" y="10" width="25" height="25"/>
+                <rect fill="#fff" x="15" y="15" width="15" height="15"/>
+                <rect fill="#000" x="18" y="18" width="9" height="9"/>
+                <rect fill="#000" x="65" y="10" width="25" height="25"/>
+                <rect fill="#fff" x="70" y="15" width="15" height="15"/>
+                <rect fill="#000" x="73" y="18" width="9" height="9"/>
+                <rect fill="#000" x="10" y="65" width="25" height="25"/>
+                <rect fill="#fff" x="15" y="70" width="15" height="15"/>
+                <rect fill="#000" x="18" y="73" width="9" height="9"/>
+                <rect fill="#000" x="40" y="40" width="20" height="20"/>
+                <rect fill="#000" x="40" y="10" width="5" height="5"/>
+                <rect fill="#000" x="50" y="15" width="5" height="5"/>
+                <rect fill="#000" x="65" y="45" width="5" height="5"/>
+                <rect fill="#000" x="75" y="50" width="5" height="5"/>
+                <rect fill="#000" x="70" y="70" width="5" height="5"/>
+                <rect fill="#000" x="80" y="75" width="5" height="5"/>
+            </svg>
         </div>
     </div>
 </div>
 
 {# ========== GOOGLE WALLET PREVIEW ========== #}
-<div id="google-preview" class="pass-preview-platform d-none">
-    <div class="google-pass-card">
+<div id="google-preview" class="pass-preview-platform hidden">
+    <div class="w-80 mx-auto rounded-xl overflow-hidden shadow-lg bg-white dark:bg-gray-800">
         {# Hero Image #}
-        <div class="google-hero-image" id="preview-google-hero"
+        <div class="h-24 bg-gray-200 dark:bg-gray-700 bg-cover bg-center flex items-center justify-center" id="preview-google-hero"
              {% if pass_type.google_hero_image_url %}
+             style="background-image: url('{{ pass_type.google_hero_image_url }}');"
              {% endif %}>
             {% if not pass_type.google_hero_image_url %}
-            <div class="google-hero-placeholder">
-                <i class="ti ti-photo-plus"></i>
-                <span>Hero Image</span>
+            <div class="text-center text-gray-400">
+                <svg class="w-8 h-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span class="text-xs">Hero Image</span>
             </div>
             {% endif %}
         </div>
 
         {# Pass Content #}
-        <div class="google-pass-content" style="background-color: {{ pass_type.background_color }}; color: {{ pass_type.foreground_color }};">
+        <div class="p-4 google-pass-content" style="background-color: {{ pass_type.background_color or '#1a1a2e' }}; color: {{ pass_type.foreground_color or '#ffffff' }};">
             {# Header with logo #}
-            <div class="google-header">
-                <div class="google-logo" id="preview-google-logo">
+            <div class="flex items-center mb-4">
+                <div class="w-10 h-10 rounded-lg overflow-hidden mr-3 flex items-center justify-center bg-gray-200 dark:bg-gray-600" id="preview-google-logo">
                     {% if pass_type.google_logo_url %}
-                    <img src="{{ pass_type.google_logo_url }}" alt="Logo">
+                    <img src="{{ pass_type.google_logo_url }}" alt="Logo" class="w-full h-full object-contain">
                     {% elif assets.get('logo') %}
-                    <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['logo'].id) }}" alt="Logo">
+                    <img src="{{ url_for('wallet_config.get_asset', asset_id=assets['logo'].id) }}" alt="Logo" class="w-full h-full object-contain">
                     {% else %}
-                    <div class="google-logo-placeholder">
-                        <i class="ti ti-building"></i>
-                    </div>
+                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                    </svg>
                     {% endif %}
                 </div>
-                <div class="google-header-text">
-                    <div class="google-card-title">{{ pass_type.name }}</div>
-                    <div class="google-card-subtitle" style="color: {{ pass_type.label_color }};">
+                <div class="flex-1">
+                    <div class="font-semibold">{{ pass_type.name or 'Pass Name' }}</div>
+                    <div class="text-xs opacity-70 google-card-subtitle" style="color: {{ pass_type.label_color or '#999999' }};">
                         {% if pass_type_code == 'ecs_membership' %}Member{% else %}Player{% endif %}
                     </div>
                 </div>
             </div>
 
-            {# Primary Value from database #}
-            {% if primary_fields %}
-            <div class="google-primary-value">
-                {% for field in primary_fields %}
-                {{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}
-                {% endfor %}
+            {# Primary Value #}
+            <div class="text-xl font-bold mb-4" id="preview-google-primary">
+                {% if primary_fields %}
+                    {% for field in primary_fields %}
+                        {%- set var_name = field.value_template|replace('{{', '')|replace('}}', '')|trim if field.value_template else '' -%}
+                        {{ sample_data.get(var_name, field.default_value or 'Name') }}
+                    {% endfor %}
+                {% else %}
+                <span class="opacity-50">No primary field</span>
+                {% endif %}
             </div>
-            {% else %}
-            <div class="google-primary-value text-muted">No primary field configured</div>
-            {% endif %}
 
-            {# Info Rows from database #}
+            {# Info Rows #}
             {% if secondary_fields or auxiliary_fields %}
-            <div class="google-info-rows">
+            <div class="border-t border-white/10 pt-3 space-y-2">
                 {% for field in secondary_fields %}
-                <div class="google-info-row">
-                    <span class="google-info-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</span>
-                    <span class="google-info-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</span>
+                <div class="flex justify-between">
+                    <span class="text-xs opacity-70 google-info-label" style="color: {{ pass_type.label_color or '#999999' }};">{{ field.label }}</span>
+                    <span class="text-sm font-medium">
+                        {%- set var_name = field.value_template|replace('{{', '')|replace('}}', '')|trim if field.value_template else '' -%}
+                        {{ sample_data.get(var_name, field.default_value or 'Value') }}
+                    </span>
                 </div>
                 {% endfor %}
                 {% for field in auxiliary_fields %}
-                <div class="google-info-row">
-                    <span class="google-info-label" style="color: {{ pass_type.label_color }};">{{ field.label }}</span>
-                    <span class="google-info-value">{{ sample_data.get(field.value_template|replace('{{', '')|replace('}}', ''), field.value_template) if field.value_template else field.default_value or '' }}</span>
+                <div class="flex justify-between">
+                    <span class="text-xs opacity-70 google-info-label" style="color: {{ pass_type.label_color or '#999999' }};">{{ field.label }}</span>
+                    <span class="text-sm font-medium">
+                        {%- set var_name = field.value_template|replace('{{', '')|replace('}}', '')|trim if field.value_template else '' -%}
+                        {{ sample_data.get(var_name, field.default_value or 'Value') }}
+                    </span>
                 </div>
                 {% endfor %}
             </div>
             {% endif %}
 
             {# Barcode #}
-            <div class="google-barcode-area">
-                <svg width="120" height="120" viewBox="0 0 100 100">
+            <div class="mt-4 p-4 bg-white/10 rounded-lg text-center google-barcode-area">
+                <svg class="mx-auto" width="80" height="80" viewBox="0 0 100 100">
                     <rect fill="#000" x="10" y="10" width="25" height="25"/>
                     <rect fill="#fff" x="15" y="15" width="15" height="15"/>
                     <rect fill="#000" x="18" y="18" width="9" height="9"/>
@@ -246,11 +302,10 @@
 
 {# Preview Info #}
 <div class="mt-3 text-center">
-    <small class="text-muted d-block">
-        <i class="ti ti-info-circle me-1"></i>
-        Preview reflects your current field configuration.
-        {% if not front_fields %}
-        <br><strong class="text-warning">No fields configured - add fields in the Fields tab.</strong>
-        {% endif %}
-    </small>
+    <p class="text-xs text-gray-500 dark:text-gray-400">
+        <svg class="inline w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+        </svg>
+        Preview updates as you make changes
+    </p>
 </div>

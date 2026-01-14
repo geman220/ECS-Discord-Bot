@@ -17,6 +17,8 @@ function initMatchStats() {
 
     // Event delegation for Edit buttons
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const editBtn = e.target.closest('.edit-match-stat-btn');
         if (editBtn) {
             const statId = editBtn.dataset.statId;

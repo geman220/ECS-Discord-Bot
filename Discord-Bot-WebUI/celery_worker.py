@@ -10,9 +10,28 @@ Combining these saves memory since player sync runs infrequently.
 
 import sys
 import gc
+import signal
 import psutil
 import os
 from celery_worker_base import celery_app as celery, logger
+
+# Graceful shutdown flag
+_shutdown_requested = False
+
+
+def graceful_shutdown_handler(signum, frame):
+    """Handle shutdown signals gracefully."""
+    global _shutdown_requested
+    signal_name = signal.Signals(signum).name
+    logger.info(f"Received {signal_name} signal - initiating graceful shutdown...")
+    _shutdown_requested = True
+    # Let Celery handle the actual shutdown
+    sys.exit(0)
+
+
+# Register signal handlers for graceful shutdown
+signal.signal(signal.SIGTERM, graceful_shutdown_handler)
+signal.signal(signal.SIGINT, graceful_shutdown_handler)
 
 def log_memory_usage():
     """Log current memory usage to help debug OOM issues."""
@@ -48,7 +67,7 @@ if __name__ == '__main__':
             '--pool=prefork',  # Changed from eventlet - eventlet was deadlocking
             '--concurrency=2',  # Reduced for prefork
             '--prefetch-multiplier=1',
-            '--max-tasks-per-child=50',
+            '--max-tasks-per-child=500',  # Increased from 50 to reduce restart overhead
             '--time-limit=300',
             '--soft-time-limit=240',
             '--max-memory-per-child=250000'

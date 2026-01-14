@@ -22,6 +22,8 @@ export function initWaitlistRegisterAuthenticated() {
 
     // Event delegation for actions
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const target = e.target.closest('[data-action]');
         if (!target) return;
 

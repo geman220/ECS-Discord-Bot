@@ -60,6 +60,8 @@ class AdminSeasonWizardManager {
 
         // Delegated click handler for all wizard interactions
         document.addEventListener('click', function(e) {
+            // Guard: ensure e.target is an Element with closest method
+            if (!e.target || typeof e.target.closest !== 'function') return;
             // Step navigation
             const stepBtn = e.target.closest('.js-goto-step');
             if (stepBtn) {

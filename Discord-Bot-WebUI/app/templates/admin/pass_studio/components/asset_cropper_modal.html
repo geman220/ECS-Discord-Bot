@@ -1,73 +1,146 @@
 {# Asset Cropper Modal - For uploading and cropping pass assets #}
+{# Flowbite/Tailwind Implementation #}
 
-<div class="modal c-modal fade" id="assetCropperModal" tabindex="-1" aria-labelledby="assetCropperModalLabel" aria-hidden="true" data-modal>
-    <div class="modal-dialog c-modal__dialog modal-dialog-centered c-modal__dialog--centered modal-lg c-modal__dialog--lg" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header>
-                <h5 class="modal-title c-modal__title" id="assetCropperModalLabel">
-                    <i class="ti ti-crop me-2"></i>
-                    Upload <span id="cropper-asset-name">Asset</span>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
+<!-- Asset Cropper Modal -->
+<div id="assetCropperModal"
+     tabindex="-1"
+     aria-hidden="true"
+     class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full"
+     data-modal-backdrop="static">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Upload <span id="cropper-asset-name" class="ml-1">Asset</span>
+                </h3>
+                <button type="button"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
+                        data-action="hide-modal" data-modal-id="assetCropperModal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
             </div>
-            <div class="modal-body c-modal__body" data-modal-body>
+
+            <!-- Modal body -->
+            <div class="p-4 md:p-5 space-y-4">
                 {# Upload Area (shown initially) #}
-                <div id="cropper-upload-area" class="text-center py-5">
-                    <div class="mb-3">
-                        <i class="ti ti-cloud-upload display-1 text-muted"></i>
+                <div id="cropper-upload-area" class="text-center py-8">
+                    <div class="mb-4">
+                        <svg class="mx-auto w-16 h-16 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
                     </div>
-                    <p class="text-muted mb-2">
-                        Upload an image to crop to <strong><span id="cropper-dimensions">29x29</span>px</strong>
+                    <p class="text-gray-500 dark:text-gray-400 mb-2">
+                        Upload an image to crop to <strong class="text-gray-700 dark:text-gray-300"><span id="cropper-dimensions">29x29</span>px</strong>
                     </p>
-                    <p class="text-muted small mb-4">
+                    <p class="text-sm text-gray-400 dark:text-gray-500 mb-6">
                         Supported formats: PNG, JPG, GIF, WebP
                     </p>
-                    <input type="file" id="cropper-file-input" accept="image/*" class="d-none" data-action="load-image">
-                    <button type="button" class="c-btn c-btn--primary c-btn--lg transform-none" data-action="trigger-file-input" data-target="cropper-file-input">
-                        <i class="ti ti-upload me-2"></i>Choose Image
+                    <input type="file"
+                           id="cropper-file-input"
+                           accept="image/*"
+                           class="hidden"
+                           data-action="load-image">
+                    <button type="button"
+                            class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 inline-flex items-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
+                            data-action="trigger-file-input"
+                            data-target="cropper-file-input">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                        </svg>
+                        Choose Image
                     </button>
                 </div>
 
                 {# Cropper Canvas (shown after image loaded) #}
-                <div id="cropper-canvas-area" class="d-none">
-                    <div class="d-flex justify-content-center mb-3">
-                        <div class="cropper-canvas-wrapper">
+                <div id="cropper-canvas-area" class="hidden">
+                    <div class="flex justify-center mb-4">
+                        <div class="cropper-canvas-wrapper border border-gray-200 dark:border-gray-600 rounded-lg overflow-hidden">
                             <canvas id="asset-cropper-canvas" class="cropper-canvas"></canvas>
                         </div>
                     </div>
 
                     {# Cropper Controls #}
-                    <div class="d-flex justify-content-center gap-2 mb-3">
-                        <button type="button" class="c-btn c-btn--outline-secondary transform-none" data-action="zoom-out" title="Zoom Out">
-                            <i class="ti ti-zoom-out"></i>
+                    <div class="flex justify-center gap-2 mb-4">
+                        <button type="button"
+                                class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600"
+                                data-action="zoom-out"
+                                title="Zoom Out">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7"/>
+                            </svg>
                         </button>
-                        <button type="button" class="c-btn c-btn--outline-secondary transform-none" data-action="zoom-in" title="Zoom In">
-                            <i class="ti ti-zoom-in"></i>
+                        <button type="button"
+                                class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600"
+                                data-action="zoom-in"
+                                title="Zoom In">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/>
+                            </svg>
                         </button>
-                        <button type="button" class="c-btn c-btn--outline-secondary transform-none" data-action="reset-position" title="Reset Position">
-                            <i class="ti ti-refresh"></i>
+                        <button type="button"
+                                class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-2 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600"
+                                data-action="reset-position"
+                                title="Reset Position">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                            </svg>
                         </button>
                     </div>
 
-                    <div class="alert alert-info py-2 mb-0" data-alert>
-                        <i class="ti ti-info-circle me-1"></i>
-                        <strong>Tip:</strong> Drag to position, scroll to zoom. The visible area will be saved.
+                    <div class="flex items-center p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+                        <svg class="flex-shrink-0 w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                        <span><strong>Tip:</strong> Drag to position, scroll to zoom. The visible area will be saved.</span>
                     </div>
                 </div>
             </div>
-            <div class="modal-footer c-modal__footer d-flex justify-content-between" data-modal-footer>
+
+            <!-- Modal footer -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
                 <div>
-                    <button type="button" class="c-btn c-btn--outline-danger d-none transform-none" id="cropper-delete-btn" data-action="delete-asset">
-                        <i class="ti ti-trash me-1"></i>Remove Asset
+                    <button type="button"
+                            class="hidden px-4 py-2 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-lg hover:bg-red-50 focus:ring-4 focus:outline-none focus:ring-red-100 dark:bg-gray-700 dark:text-red-400 dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700 inline-flex items-center"
+                            id="cropper-delete-btn"
+                            data-action="delete-asset">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Remove Asset
                     </button>
                 </div>
-                <div class="d-flex gap-2">
-                    <button type="button" class="c-btn c-btn--outline-secondary transform-none" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                    <button type="button" class="c-btn c-btn--outline-primary d-none transform-none" id="cropper-change-btn" data-action="change-image">
-                        <i class="ti ti-photo me-1"></i>Change Image
+                <div class="flex gap-2">
+                    <button type="button"
+                            class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 hover:text-gray-900 focus:ring-4 focus:outline-none focus:ring-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 dark:hover:text-white dark:focus:ring-gray-700"
+                            data-action="hide-modal" data-modal-id="assetCropperModal">
+                        Cancel
                     </button>
-                    <button type="button" class="c-btn c-btn--primary transform-none" id="cropper-save-btn" data-action="save-and-upload" disabled>
-                        <i class="ti ti-device-floppy me-1"></i>Save Asset
+                    <button type="button"
+                            class="hidden px-4 py-2 text-sm font-medium text-primary-700 bg-white border border-primary-300 rounded-lg hover:bg-primary-50 focus:ring-4 focus:outline-none focus:ring-primary-100 dark:bg-gray-700 dark:text-primary-400 dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700 inline-flex items-center"
+                            id="cropper-change-btn"
+                            data-action="change-image">
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                        Change Image
+                    </button>
+                    <button type="button"
+                            class="px-4 py-2 text-sm font-medium text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 rounded-lg dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 inline-flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            id="cropper-save-btn"
+                            data-action="save-and-upload"
+                            disabled>
+                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                        </svg>
+                        Save Asset
                     </button>
                 </div>
             </div>

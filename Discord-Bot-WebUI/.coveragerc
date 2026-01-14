@@ -1,6 +1,6 @@
 [run]
 source = app
-omit = 
+omit =
     app/__init__.py
     app/core/__init__.py
     */migrations/*
@@ -11,6 +11,21 @@ omit =
     wsgi.py
     */celery_*.py
     healthcheck.py
+    # Backwards compatibility shims (just re-export from packages)
+    app/models.py
+    app/models_draft_predictions.py
+    app/models_ecs.py
+    app/models_ecs_subs.py
+    app/models_substitute_pools.py
+    app/external_api.py
+    # Logging infrastructure (no business logic)
+    app/log_config/*
+    app/loggers.py
+    app/sql_log.py
+    # Demo/unused routes
+    app/routes/demo.py
+    # Repository pattern (currently unused)
+    app/repositories/*
 
 [report]
 exclude_lines =

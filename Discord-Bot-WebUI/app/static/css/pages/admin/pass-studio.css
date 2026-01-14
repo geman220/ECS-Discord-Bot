@@ -40,36 +40,58 @@
 
 /* ============================================================================
    2. APPLE WALLET PASS PREVIEW
-   Accurate StoreCard layout matching real Apple Wallet
+   Accurate layout matching real Apple Wallet passes
+   Reference: https://developer.apple.com/design/human-interface-guidelines/wallet
    ============================================================================ */
 
+/* === PASS CARD CONTAINER === */
 .pass-studio-page .apple-pass-card {
     width: 320px;
-    min-height: 440px;
-    border-radius: var(--radius-lg, 12px);
+    min-height: 420px;
+    border-radius: 12px;
     margin: 0 auto;
-    box-shadow: var(--shadow-xl, 0 4px 20px rgba(0, 0, 0, 0.3));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
     position: relative;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
 }
 
-/* Header: Logo + Logo Text */
+/* === EVENT TICKET NOTCH === */
+.pass-studio-page .pass-notch {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 32px;
+    height: 6px;
+    background: var(--color-bg-secondary, #1a1a1a);
+    border-radius: 0 0 6px 6px;
+    z-index: 20;
+}
+
+.pass-studio-page .apple-pass-card.pass-style-eventTicket .pass-notch {
+    display: block;
+}
+
+/* === HEADER ROW === */
+/* Layout: [Logo] [Logo Text] --flex-grow-- [Header Fields] [Thumbnail?] */
 .pass-studio-page .pass-header {
     display: flex;
     align-items: center;
-    padding: var(--space-3, 12px) var(--space-4, 16px);
-    min-height: 50px;
+    padding: 12px 16px;
+    min-height: 44px;
+    gap: 8px;
 }
 
+/* Logo image (optional) */
 .pass-studio-page .pass-logo {
-    width: 50px;
-    height: 35px;
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    margin-right: var(--space-2, 10px);
+    justify-content: center;
     flex-shrink: 0;
 }
 
@@ -79,31 +101,20 @@
     object-fit: contain;
 }
 
-.pass-studio-page .pass-logo-placeholder {
-    width: 40px;
-    height: 30px;
-    border: var(--border-width, 1px) dashed rgba(255, 255, 255, 0.3);
-    border-radius: var(--radius-sm, 4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: rgba(255, 255, 255, 0.4);
-    font-size: var(--text-xs, 0.75rem);
-}
-
+/* Logo text */
 .pass-studio-page .pass-logo-text {
-    font-size: var(--text-base, 0.95rem);
-    font-weight: var(--font-semibold, 600);
+    font-size: 16px;
+    font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 120px;
+    flex-shrink: 0;
 }
 
-/* Header Fields - appear on right side of header, pushed to the right */
+/* Header fields - pushed to the right */
 .pass-studio-page .pass-header-fields {
     display: flex;
-    gap: var(--space-3, 12px);
+    gap: 16px;
     margin-left: auto;
     text-align: right;
 }
@@ -113,158 +124,27 @@
 }
 
 .pass-studio-page .pass-header-field .pass-field-label {
-    font-size: 0.5rem;
+    font-size: 9px;
     text-transform: uppercase;
-    letter-spacing: 0.3px;
-    margin-bottom: 1px;
-    font-weight: var(--font-medium, 500);
-    opacity: 0.8;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+    opacity: 0.9;
 }
 
 .pass-studio-page .pass-header-field .pass-field-value {
-    font-size: var(--text-xs, 0.75rem);
-    font-weight: var(--font-semibold, 600);
-    line-height: var(--leading-tight, 1.1);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.2;
 }
 
-/* Strip Area - contains PRIMARY FIELD overlaid on top */
-.pass-studio-page .pass-strip-area {
-    height: 123px;
-    position: relative;
-    display: flex;
-    align-items: flex-end;
-    justify-content: flex-start;
-    overflow: hidden;
-}
-
-.pass-studio-page .pass-strip-image {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    z-index: 0;
-}
-
-/* Primary field overlaid ON the strip */
-.pass-studio-page .pass-primary-field-overlay {
-    position: relative;
-    z-index: 1;
-    padding: var(--space-3, 12px) var(--space-4, 16px);
-    width: 100%;
-    /* Text shadow for readability over images */
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-}
-
-.pass-studio-page .pass-field-label {
-    font-size: 0.6rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: var(--space-1, 2px);
-    font-weight: var(--font-medium, 500);
-}
-
-.pass-studio-page .pass-field-value {
-    font-size: var(--text-lg, 1.2rem);
-    font-weight: var(--font-semibold, 600);
-    line-height: var(--leading-tight, 1.2);
-}
-
-/* Dynamic label styling from JS */
-.pass-studio-page .pass-field-label--dynamic,
-.pass-studio-page .pass-field-label[style*="color"] {
-    /* Placeholder for dynamic color injection via JS */
-}
-
-.pass-studio-page .pass-field-value--muted {
-    opacity: 0.5;
-}
-
-/* Secondary/Auxiliary Fields - below strip, in a row */
-.pass-studio-page .pass-secondary-fields {
-    display: flex;
-    flex-wrap: wrap;
-    padding: var(--space-3, 12px) var(--space-4, 16px);
-    gap: var(--space-4, 16px);
-}
-
-.pass-studio-page .pass-field {
-    flex: 1;
-    min-width: 60px;
-}
-
-.pass-studio-page .pass-field .pass-field-label {
-    font-size: 0.55rem;
-}
-
-.pass-studio-page .pass-field .pass-field-value {
-    font-size: var(--text-sm, 0.85rem);
-    font-weight: var(--font-medium, 500);
-    text-shadow: none;
-}
-
-/* Barcode Area - white background at bottom */
-.pass-studio-page .pass-barcode-area {
-    margin-top: auto;
-    padding: var(--space-5, 20px) var(--space-4, 16px);
-    text-align: center;
-    background: var(--color-neutral-0, var(--color-white));
-}
-
-.pass-studio-page .pass-barcode svg {
-    display: block;
-    margin: 0 auto;
-}
-
-/* Event Ticket notch at top */
-.pass-studio-page .pass-notch {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 30px;
-    height: 8px;
-    background: var(--color-bg-secondary, #f4f5f7);
-    border-radius: 0 0 8px 8px;
-    z-index: 10;
-    display: none;
-}
-
-/* Generic pass style - fields below header, no strip overlay */
-/* High specificity to override default display */
-.pass-studio-page .apple-pass-card.pass-style-generic .pass-strip-area {
-    display: none;
-}
-
-.pass-studio-page .pass-style-generic .pass-secondary-fields {
-    border-top: var(--border-width, 1px) solid rgba(255, 255, 255, 0.1);
-}
-
-/* Thumbnail area for generic passes */
-.pass-studio-page .pass-thumbnail-preview {
-    width: 60px;
-    height: 60px;
-    border-radius: var(--radius-md, 8px);
-    overflow: hidden;
-    flex-shrink: 0;
-    margin-left: auto;
-}
-
-.pass-studio-page .pass-thumbnail-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Thumbnail in header - for generic passes */
+/* Thumbnail for generic passes */
 .pass-studio-page .pass-thumbnail {
     width: 60px;
     height: 60px;
-    border-radius: var(--radius-md, 8px);
+    border-radius: 8px;
     overflow: hidden;
     flex-shrink: 0;
-    margin-left: auto;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .pass-studio-page .pass-thumbnail img {
@@ -274,41 +154,164 @@
 }
 
 .pass-studio-page .pass-thumbnail-placeholder {
-    width: 60px;
-    height: 60px;
-    border: var(--border-width, 1px) dashed rgba(255, 255, 255, 0.3);
-    border-radius: var(--radius-md, 8px);
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: rgba(255, 255, 255, 0.4);
-    font-size: var(--text-base, 1rem);
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
 }
 
-/* Primary fields section - only for generic passes */
-.pass-studio-page .pass-primary-fields-section {
-    padding: var(--space-4, 16px);
-    border-bottom: var(--border-width, 1px) solid rgba(255, 255, 255, 0.1);
+/* === STRIP IMAGE AREA === */
+.pass-studio-page .pass-strip-area {
+    width: 100%;
+    height: 98px; /* Apple's strip height ratio for 320px width */
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.05);
 }
 
-.pass-studio-page .pass-primary-fields-section .pass-field-label {
-    font-size: 0.6rem;
+.pass-studio-page .pass-strip-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pass-studio-page .pass-strip-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+/* Primary overlay - ONLY for storeCard */
+.pass-studio-page .pass-primary-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 16px;
+    background: linear-gradient(transparent, rgba(0, 0, 0, 0.6));
+    z-index: 1;
+}
+
+.pass-studio-page .pass-primary-overlay .pass-field-label {
+    font-size: 9px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: var(--space-1, 2px);
-    font-weight: var(--font-medium, 500);
+    margin-bottom: 2px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-.pass-studio-page .pass-primary-fields-section .pass-field-value {
-    font-size: var(--text-xl, 1.4rem);
-    font-weight: var(--font-semibold, 600);
-    line-height: var(--leading-tight, 1.2);
+.pass-studio-page .pass-primary-overlay .pass-field-value {
+    font-size: 20px;
+    font-weight: 600;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-/* Event Ticket style - show notch */
-/* High specificity to override default display */
-.pass-studio-page .apple-pass-card.pass-style-eventTicket .pass-notch {
+/* === PRIMARY FIELDS SECTION === */
+/* For generic & eventTicket: below header/strip */
+.pass-studio-page .pass-primary-section {
+    padding: 12px 16px;
+}
+
+.pass-studio-page .pass-field-primary .pass-field-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.pass-studio-page .pass-field-primary .pass-field-value {
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.pass-studio-page .pass-field-empty {
+    opacity: 0.5;
+}
+
+/* === SECONDARY & AUXILIARY FIELD ROWS === */
+.pass-studio-page .pass-secondary-row,
+.pass-studio-page .pass-auxiliary-row {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 8px 16px;
+    gap: 16px;
+}
+
+.pass-studio-page .pass-secondary-row:empty,
+.pass-studio-page .pass-auxiliary-row:empty {
+    display: none;
+}
+
+.pass-studio-page .pass-field {
+    flex: 1;
+    min-width: 70px;
+}
+
+.pass-studio-page .pass-field .pass-field-label {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.pass-studio-page .pass-field .pass-field-value {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+/* === BARCODE AREA === */
+.pass-studio-page .pass-barcode-area {
+    margin-top: auto;
+    padding: 16px;
+    text-align: center;
+    background: #ffffff;
+    border-radius: 0 0 12px 12px;
+}
+
+.pass-studio-page .pass-barcode {
+    display: inline-block;
+}
+
+.pass-studio-page .pass-barcode svg {
     display: block;
+}
+
+/* === PASS STYLE VARIATIONS === */
+
+/* Generic: no strip, thumbnail in header */
+.pass-studio-page .apple-pass-card.pass-style-generic .pass-strip-area {
+    display: none;
+}
+
+.pass-studio-page .apple-pass-card.pass-style-generic .pass-notch {
+    display: none;
+}
+
+/* Store Card: strip with overlay */
+.pass-studio-page .apple-pass-card.pass-style-storeCard .pass-notch {
+    display: none;
+}
+
+.pass-studio-page .apple-pass-card.pass-style-storeCard .pass-thumbnail {
+    display: none;
+}
+
+/* Event Ticket: clean strip, fields below */
+.pass-studio-page .apple-pass-card.pass-style-eventTicket .pass-thumbnail {
+    display: none;
 }
 
 /* ============================================================================
@@ -679,11 +682,6 @@
    Limits bar, sortable containers, and field configuration
    ============================================================================ */
 
-/* Tab content */
-.pass-studio-page .tab-pane {
-    padding-top: var(--space-4, 1rem);
-}
-
 /* Variable chips */
 .pass-studio-page .variable-chip {
     display: inline-flex;
@@ -847,25 +845,6 @@
     box-shadow: var(--shadow-lg, 0 4px 16px rgba(0, 0, 0, 0.15));
 }
 
-/* Value section tabs */
-.pass-studio-page .value-section .nav-tabs {
-    border-bottom: none;
-}
-
-.pass-studio-page .value-section .nav-tabs .nav-link {
-    font-size: var(--text-xs, 0.75rem);
-    padding: var(--space-1, 4px) var(--space-2, 10px);
-    border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
-    border: var(--border-width, 1px) solid transparent;
-    margin-right: var(--space-1, 2px);
-}
-
-.pass-studio-page .value-section .nav-tabs .nav-link.active {
-    background: var(--color-bg-tertiary);
-    border-color: var(--color-border-primary);
-    border-bottom-color: var(--color-bg-tertiary);
-}
-
 /* Field preview */
 .pass-studio-page .field-preview {
     background: var(--color-bg-tertiary);
@@ -876,45 +855,6 @@
 
 .pass-studio-page .field-preview .preview-value {
     color: var(--color-primary);
-}
-
-/* Small nav tabs variant */
-.pass-studio-page .nav-tabs-sm .nav-link {
-    font-size: 0.8125rem;
-    padding: var(--space-2, 6px) var(--space-3, 12px);
-}
-
-/* Button icon variant - more specific to override Bootstrap button styles */
-.pass-studio-page .field-card .btn.btn-icon,
-.pass-studio-page .field-card button.btn-icon {
-    padding: var(--space-1, 4px) var(--space-2, 8px);
-    line-height: 1;
-    min-width: auto;
-    height: auto;
-}
-
-.pass-studio-page .field-card .btn.btn-icon i,
-.pass-studio-page .field-card button.btn-icon i {
-    font-size: var(--text-base, 1rem);
-}
-
-/* Fix visibility toggle in field cards */
-.pass-studio-page .field-card .form-switch {
-    padding-left: 2.5em;
-    min-height: auto;
-}
-
-.pass-studio-page .field-card .form-switch .form-check-input {
-    width: 2em;
-    height: 1em;
-    margin-left: -2.5em;
-}
-
-/* Field card form controls */
-.pass-studio-page .field-card .form-control-sm,
-.pass-studio-page .field-card .form-select-sm {
-    font-size: 0.8125rem;
-    padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
 }
 
 /* Empty state for no fields */
@@ -928,28 +868,10 @@
     padding-top: var(--space-2, 8px);
 }
 
-/* More specific selector to override Bootstrap button styles */
-.pass-studio-page .field-card .alignment-btns .btn,
-.pass-studio-page .field-card .alignment-btns button.btn {
-    padding: var(--space-1, 2px) var(--space-2, 6px);
-    font-size: var(--text-sm, 0.875rem);
-}
-
-.pass-studio-page .field-card .alignment-btns .btn-check:checked + .btn {
-    background-color: var(--color-primary);
-    border-color: var(--color-primary);
-    color: var(--color-neutral-0);
-}
-
 /* Format options section in field cards */
 .pass-studio-page .field-card .format-section {
     border-top: var(--border-width, 1px) solid var(--color-border-primary);
     padding-top: var(--space-2, 8px);
-}
-
-.pass-studio-page .field-card .format-section .form-label {
-    font-size: 0.7rem;
-    margin-bottom: var(--space-1, 0.25rem);
 }
 
 /* ============================================================================
@@ -1077,59 +999,9 @@
     border-bottom-color: var(--color-border-primary);
 }
 
-/* Dark mode tab content - high specificity to override Bootstrap */
-[data-style="dark"] .pass-studio-page .value-section .tab-content,
-[data-style="dark"] .pass-studio-page .value-section .tab-content {
-    background: var(--color-bg-tertiary);
-    border-color: var(--color-border-primary);
-}
-
-[data-style="dark"] .pass-studio-page .value-section .nav-tabs .nav-link.active,
-[data-style="dark"] .pass-studio-page .value-section .nav-tabs .nav-link.active {
-    background: var(--color-bg-tertiary);
-    border-color: var(--color-border-primary);
-    border-bottom-color: var(--color-bg-tertiary);
-    color: var(--color-text-primary);
-}
-
-[data-style="dark"] .pass-studio-page .value-section .nav-tabs .nav-link,
-[data-style="dark"] .pass-studio-page .value-section .nav-tabs .nav-link {
-    color: var(--color-text-muted);
-}
-
 [data-style="dark"] .pass-studio-page .field-preview,
 [data-style="dark"] .pass-studio-page .field-preview {
     background: var(--color-bg-tertiary);
-}
-
-[data-style="dark"] .pass-studio-page .field-card .form-control,
-[data-style="dark"] .pass-studio-page .field-card .form-select,
-[data-style="dark"] .pass-studio-page .field-card .form-control,
-[data-style="dark"] .pass-studio-page .field-card .form-select {
-    background-color: var(--color-bg-primary);
-    border-color: var(--color-border-primary);
-    color: var(--color-text-primary);
-}
-
-[data-style="dark"] .pass-studio-page .field-card .form-control:focus,
-[data-style="dark"] .pass-studio-page .field-card .form-select:focus,
-[data-style="dark"] .pass-studio-page .field-card .form-control:focus,
-[data-style="dark"] .pass-studio-page .field-card .form-select:focus {
-    background-color: var(--color-bg-primary);
-    border-color: var(--color-primary);
-    color: var(--color-text-primary);
-}
-
-[data-style="dark"] .pass-studio-page .field-card .alignment-btns .btn-outline-secondary,
-[data-style="dark"] .pass-studio-page .field-card .alignment-btns .btn-outline-secondary {
-    border-color: var(--color-border-primary);
-    color: var(--color-text-muted);
-}
-
-[data-style="dark"] .pass-studio-page .field-card .alignment-btns .btn-outline-secondary:hover,
-[data-style="dark"] .pass-studio-page .field-card .alignment-btns .btn-outline-secondary:hover {
-    background-color: var(--color-hover-bg);
-    color: var(--color-text-primary);
 }
 
 [data-style="dark"] .pass-studio-page .fields-sortable-container .empty-state,
@@ -1146,24 +1018,6 @@
 [data-style="dark"] .pass-studio-page .field-location-badge,
 [data-style="dark"] .pass-studio-page .field-location-badge {
     opacity: 0.9;
-}
-
-/* Dark mode dropdown menus */
-[data-style="dark"] .pass-studio-page .field-card .dropdown-menu,
-[data-style="dark"] .pass-studio-page .field-card .dropdown-menu {
-    background-color: var(--color-bg-primary);
-    border-color: var(--color-border-primary);
-}
-
-[data-style="dark"] .pass-studio-page .field-card .dropdown-item,
-[data-style="dark"] .pass-studio-page .field-card .dropdown-item {
-    color: var(--color-text-primary);
-}
-
-[data-style="dark"] .pass-studio-page .field-card .dropdown-item:hover,
-[data-style="dark"] .pass-studio-page .field-card .dropdown-item:hover {
-    background-color: var(--color-hover-bg);
-    color: var(--color-text-primary);
 }
 
 /* ============================================================================

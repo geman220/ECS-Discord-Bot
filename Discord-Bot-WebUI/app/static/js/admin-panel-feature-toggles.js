@@ -36,6 +36,9 @@ function initAdminPanelFeatureToggles() {
 function initializeToggleHandlers() {
     // Event delegation for all toggle switches
     document.addEventListener('change', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const toggle = e.target.closest('[data-setting-toggle]');
         if (!toggle) return;
 
@@ -125,6 +128,9 @@ function handleToggleChange(toggle, settingKey, isEnabled) {
 function initializeFormHandlers() {
     // Event delegation for form submissions
     document.addEventListener('submit', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const form = e.target.closest('[data-setting-form]');
         if (!form) return;
 

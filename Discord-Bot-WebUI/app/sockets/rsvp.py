@@ -164,7 +164,20 @@ def emit_rsvp_update(match_id, player_id, availability, source='system', player_
         
         # Skip summary emission for real-time performance - clients can calculate locally
         # emit_rsvp_summary(match_id)  # Commented out for speed
-        
+
+        # Also emit to lineup rooms for coaches viewing pitch view
+        if team_id:
+            try:
+                from app.sockets.match_lineup import emit_rsvp_to_lineup_room
+                # Get RSVP color
+                color_map = {'yes': 'green', 'maybe': 'yellow', 'no': 'red'}
+                color = color_map.get(availability, 'gray')
+                emit_rsvp_to_lineup_room(match_id, team_id, player_id, availability, color)
+            except ImportError:
+                pass  # match_lineup module not loaded yet
+            except Exception as e:
+                logger.warning(f"Failed to emit RSVP to lineup room: {e}")
+
     except Exception as e:
         logger.error(f"Error emitting RSVP update: {str(e)}", exc_info=True)
 

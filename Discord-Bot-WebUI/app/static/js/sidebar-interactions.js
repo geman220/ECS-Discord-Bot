@@ -130,6 +130,8 @@ function setupEventDelegation() {
 
 function handleClick(event) {
   const target = event.target;
+  // Guard: ensure target is an Element with closest method
+  if (!target || typeof target.closest !== 'function') return;
   const actionElement = target.closest('[data-action]');
   const action = actionElement?.getAttribute('data-action');
 
@@ -179,6 +181,9 @@ function handleOutsideClick(event) {
 
   // Only if sidebar is open
   if (!State.isSidebarOpen) return;
+
+  // Guard: ensure event.target is valid
+  if (!event.target) return;
 
   // Check if click is outside sidebar
   if (!sidebar.contains(event.target)) {

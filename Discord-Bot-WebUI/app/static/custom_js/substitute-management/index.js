@@ -144,6 +144,8 @@ function registerJQueryHandlers() {
  */
 function registerDelegationHandlers() {
   document.addEventListener('click', (e) => {
+    // Guard: ensure e.target is an Element with closest method
+    if (!e.target || typeof e.target.closest !== 'function') return;
     const retryActivity = e.target.closest('[data-action="retry-activity"]');
     if (retryActivity) {
       const league = retryActivity.dataset.league;

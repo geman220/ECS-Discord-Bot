@@ -26,6 +26,8 @@ export function setupEventDelegation() {
 
     // Event delegation for draft player buttons
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         // Draft player button
         if (e.target.closest('.js-draft-player')) {
             const btn = e.target.closest('.js-draft-player');

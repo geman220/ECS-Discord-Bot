@@ -180,6 +180,8 @@ function initCoachDashboard() {
 
     // Request Sub button delegation
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const btn = e.target.closest('[data-action="request-sub"]');
         if (btn) {
             e.preventDefault();
@@ -192,6 +194,8 @@ function initCoachDashboard() {
 
     // Match report form submission - using document-level delegation
     document.addEventListener('submit', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const form = e.target.closest('.report-match-form');
         if (form) {
             e.preventDefault();

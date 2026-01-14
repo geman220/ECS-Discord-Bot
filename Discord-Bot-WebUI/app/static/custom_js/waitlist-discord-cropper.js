@@ -107,7 +107,7 @@ function initWaitlistDiscordCropper() {
         }
     }, { passive: false });
 
-    document.addEventListener('touchend', endDrag);
+    document.addEventListener('touchend', endDrag, { passive: true });
 
     // Form validation - delegated submit
     document.addEventListener('submit', function(e) {

@@ -159,6 +159,8 @@ const ResponsiveSystem = {
 
       // Single delegated touchstart listener for ALL interactive elements
       document.addEventListener('touchstart', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const el = e.target.closest('button, .btn, a.nav-link, .card-header');
         if (el) {
           el.classList.add('touch-active');
@@ -167,6 +169,8 @@ const ResponsiveSystem = {
 
       // Single delegated touchend listener for ALL interactive elements
       document.addEventListener('touchend', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const el = e.target.closest('button, .btn, a.nav-link, .card-header');
         if (el) {
           el.classList.remove('touch-active');
@@ -280,6 +284,8 @@ const ResponsiveSystem = {
 
       // Single delegated click listener for ALL modal close buttons (haptic feedback)
       document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const closeBtn = e.target.closest('.btn-close, [data-modal-hide], [data-dismiss="modal"]');
         if (closeBtn && window.Haptics) {
           window.Haptics.light();
@@ -313,7 +319,7 @@ const ResponsiveSystem = {
         modalDialog.classList.add('swiping');
       }, { passive: true });
 
-      // Touch move
+      // Touch move - passive: false needed because we call preventDefault()
       modalHeader.addEventListener('touchmove', (e) => {
         if (!isDragging) return;
 
@@ -329,7 +335,7 @@ const ResponsiveSystem = {
           modalDialog.style.transform = `translateY(var(--swipe-offset))`;
           modalDialog.classList.add('transition-none');
         }
-      });
+      }, { passive: false });
 
       // Touch end
       modalHeader.addEventListener('touchend', (e) => {
@@ -395,6 +401,8 @@ const ResponsiveSystem = {
       // Single delegated focusin listener for ALL modal inputs
       document.addEventListener('focusin', (e) => {
         const input = e.target;
+        // Guard: ensure input is an Element with closest method
+        if (!input || typeof input.closest !== 'function') return;
         const modal = input.closest('.modal, [data-modal]');
 
         // Only handle inputs inside modals
@@ -413,6 +421,8 @@ const ResponsiveSystem = {
       // Single delegated focusout listener for ALL modal inputs
       document.addEventListener('focusout', (e) => {
         const input = e.target;
+        // Guard: ensure input is an Element with closest method
+        if (!input || typeof input.closest !== 'function') return;
         const modal = input.closest('.modal, [data-modal]');
 
         // Only handle inputs inside modals
@@ -511,7 +521,7 @@ const ResponsiveSystem = {
             scrollHint.classList.add('hidden');
           }
         }
-      }, true); // Use capture phase to catch scroll on elements
+      }, { capture: true, passive: true }); // Use capture phase to catch scroll on elements
     },
 
     /**
@@ -589,6 +599,8 @@ const ResponsiveSystem = {
 
       // Single delegated click listener for ALL anchor links
       document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
         const anchor = e.target.closest('a[href^="#"]');
         if (!anchor) return;
 

@@ -87,12 +87,21 @@ class CacheManager:
             return False
     
     def invalidate_pattern(self, pattern: str) -> int:
-        """Invalidate all keys matching pattern"""
+        """Invalidate all keys matching pattern using SCAN (non-blocking)"""
         try:
-            keys = self.redis.keys(pattern)
-            if keys:
-                return self.redis.delete(*keys)
-            return 0
+            # Use SCAN instead of KEYS to avoid blocking Redis
+            # KEYS is O(N) and blocks the server; SCAN is incremental
+            deleted_count = 0
+            cursor = 0
+
+            while True:
+                cursor, keys = self.redis.scan(cursor=cursor, match=pattern, count=100)
+                if keys:
+                    deleted_count += self.redis.delete(*keys)
+                if cursor == 0:
+                    break
+
+            return deleted_count
         except Exception as e:
             logger.error(f"Error invalidating pattern {pattern}: {e}")
             return 0

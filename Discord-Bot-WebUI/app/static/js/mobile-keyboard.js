@@ -342,6 +342,9 @@ const MobileKeyboard = {
 
       // Prevent rubber band scrolling when keyboard is open
       document.addEventListener('touchmove', (e) => {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         if (this.state.isVisible && this.state.activeInput) {
           const scrollable = e.target.closest('[data-modal-body], [data-table-responsive], [data-scrollable]');
           if (!scrollable) {

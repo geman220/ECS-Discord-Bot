@@ -146,10 +146,12 @@ class SafeRedisClient:
                 return value if value is not None else default
             return default
     
-    def hset(self, key: str, field: str, value: Any) -> bool:
-        """Safely set a hash field value."""
+    def hset(self, key: str, field: str = None, value: Any = None, mapping: Dict[str, Any] = None) -> bool:
+        """Safely set a hash field value or multiple fields via mapping."""
         with self.safe_operation("hset", False) as (client, should_proceed):
             if should_proceed:
+                if mapping is not None:
+                    return bool(client.hset(key, mapping=mapping))
                 return bool(client.hset(key, field, value))
             return False
     
@@ -209,7 +211,58 @@ class SafeRedisClient:
                 items = client.lrange(key, start, end)
                 return [item.decode('utf-8') if isinstance(item, bytes) else item for item in items]
             return []
-    
+
+    def lpush(self, key: str, *values) -> int:
+        """Safely push values to the head of a list."""
+        with self.safe_operation("lpush", 0) as (client, should_proceed):
+            if should_proceed:
+                return client.lpush(key, *values)
+            return 0
+
+    def rpush(self, key: str, *values) -> int:
+        """Safely push values to the tail of a list."""
+        with self.safe_operation("rpush", 0) as (client, should_proceed):
+            if should_proceed:
+                return client.rpush(key, *values)
+            return 0
+
+    def sadd(self, key: str, *values) -> int:
+        """Safely add members to a set."""
+        with self.safe_operation("sadd", 0) as (client, should_proceed):
+            if should_proceed:
+                return client.sadd(key, *values)
+            return 0
+
+    def smembers(self, key: str) -> set:
+        """Safely get all members of a set."""
+        with self.safe_operation("smembers", set()) as (client, should_proceed):
+            if should_proceed:
+                members = client.smembers(key)
+                return {m.decode('utf-8') if isinstance(m, bytes) else m for m in members}
+            return set()
+
+    def srem(self, key: str, *values) -> int:
+        """Safely remove members from a set."""
+        with self.safe_operation("srem", 0) as (client, should_proceed):
+            if should_proceed:
+                return client.srem(key, *values)
+            return 0
+
+    def type(self, key: str) -> str:
+        """Safely get the type of a key."""
+        with self.safe_operation("type", "none") as (client, should_proceed):
+            if should_proceed:
+                result = client.type(key)
+                return result.decode('utf-8') if isinstance(result, bytes) else result
+            return "none"
+
+    def execute_command(self, *args, **kwargs) -> Any:
+        """Safely execute a raw Redis command."""
+        with self.safe_operation("execute_command", None) as (client, should_proceed):
+            if should_proceed:
+                return client.execute_command(*args, **kwargs)
+            return None
+
     def pipeline(self):
         """Get a pipeline for batch operations."""
         if not self.is_available:

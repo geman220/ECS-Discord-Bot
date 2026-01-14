@@ -254,6 +254,10 @@ import './message-management.js';
 import './messages-inbox.js';
 import './pass-studio.js';
 import './pass-studio-cropper.js';
+import './pass-studio-fields.js';
+import './pass-studio-locations.js';
+import './pass-studio-sponsors.js';
+import './pass-studio-subgroups.js';
 import './security-dashboard.js';
 
 // ============================================================================

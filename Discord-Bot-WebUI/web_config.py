@@ -10,6 +10,7 @@ from datetime import timedelta, datetime
 import os
 
 import pytz
+from sqlalchemy.pool import StaticPool
 
 class Config:
     """Application configuration settings."""
@@ -175,19 +176,23 @@ class Config:
 class TestingConfig(Config):
     """Testing configuration settings."""
     TESTING = True
-    
+
     # Use in-memory SQLite for testing
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    
+
     # Remove PostgreSQL-specific pool settings for SQLite
     SQLALCHEMY_POOL_SIZE = None
     SQLALCHEMY_MAX_OVERFLOW = None
     SQLALCHEMY_POOL_TIMEOUT = None
     SQLALCHEMY_POOL_RECYCLE = None
-    
-    # SQLite engine options
+
+    # SQLite engine options - CRITICAL: Use StaticPool for in-memory databases
+    # Without StaticPool, each new connection creates a NEW empty database,
+    # causing "no such table" errors when tests share the same database instance.
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': False,  # Not needed for SQLite
+        'poolclass': StaticPool,
+        'connect_args': {'check_same_thread': False},
+        'pool_pre_ping': False,
         'echo': False
     }
     

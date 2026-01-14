@@ -13,6 +13,24 @@ from unittest.mock import Mock, patch, MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # =============================================================================
+# PATCH JSONB FOR SQLITE COMPATIBILITY (must be done before importing models)
+# =============================================================================
+# SQLite doesn't support JSONB, so we patch it to use JSON instead.
+# This must happen before any models that use JSONB are imported.
+
+from sqlalchemy import JSON
+from sqlalchemy.dialects import postgresql
+
+# Create a JSON type that behaves like JSONB for SQLite
+class SQLiteCompatibleJSONB(JSON):
+    """JSONB replacement that works with SQLite - just uses JSON."""
+    pass
+
+# Patch the JSONB in postgresql dialects so imports use our compatible version
+postgresql.JSONB = SQLiteCompatibleJSONB
+postgresql.json.JSONB = SQLiteCompatibleJSONB
+
+# =============================================================================
 # MOCK REDIS CLIENT (module-level so available to all fixtures)
 # =============================================================================
 
@@ -62,10 +80,20 @@ def app():
         from app import create_app
         app = create_app('web_config.TestingConfig')
 
+    # Import SQLAlchemy pooling for in-memory database
+    from sqlalchemy.pool import StaticPool
+
     # Override config for testing
+    # CRITICAL: SQLite in-memory databases require StaticPool to share
+    # the same connection across all operations. Without this, each new
+    # connection creates a new empty database, causing "no such table" errors.
     app.config.update({
         'TESTING': True,
         'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+        'SQLALCHEMY_ENGINE_OPTIONS': {
+            'poolclass': StaticPool,
+            'connect_args': {'check_same_thread': False},
+        },
         'WTF_CSRF_ENABLED': False,
         'SECRET_KEY': 'test-secret-key',
         'JWT_SECRET_KEY': 'test-jwt-secret',
@@ -91,8 +119,14 @@ def app():
 
 @pytest.fixture(scope='session')
 def _database(app):
-    """Create database for tests."""
+    """Create database for tests.
+
+    CRITICAL: Uses session scope so tables are created once and shared.
+    The `db` fixture handles per-test cleanup via DELETE statements.
+    """
     from app.core import db as _db
+
+    # Create all tables once for the test session
     _db.create_all()
     yield _db
     _db.drop_all()
@@ -103,8 +137,13 @@ def db(_database, app):
     """Create clean database for each test by deleting data after."""
     from tests.factories import set_factory_session
 
-    # Ensure clean session state at START of test (handles previous test failures)
+    # CRITICAL: Clean session state at START of test
+    # This prevents identity map conflicts from previous tests
+    # Note: We use rollback() + expunge_all() but NOT session.remove()
+    # because session.remove() can cause connection recycling, and with
+    # SQLite in-memory databases, each connection has its own database.
     _database.session.rollback()
+    _database.session.expunge_all()  # Clear identity map
 
     # Set factory session
     set_factory_session(_database.session)
@@ -112,15 +151,41 @@ def db(_database, app):
     yield _database
 
     # Clean up after test - delete all data from tables
-    # Order matters due to foreign keys
     with app.app_context():
         _database.session.rollback()  # Clear any pending transaction
 
+        # Disable FK constraints for SQLite during cleanup
+        try:
+            _database.session.execute(_database.text('PRAGMA foreign_keys = OFF'))
+        except Exception:
+            pass
+
         # Delete in order to avoid FK constraint issues
+        # Include all potential tables that tests might create data in
+        # Table names verified from model __tablename__ attributes
         tables_to_clean = [
-            'availability', 'player_teams', 'matches', 'schedules',
-            'players', 'teams', 'leagues', 'seasons',
-            'user_roles', 'users', 'roles'
+            # Audit and logging tables
+            'admin_audit_log', 'audit_logs',
+            # Player stats
+            'player_season_stats', 'player_career_stats',
+            # Match-related tables
+            'match_events', 'sub_requests', 'availability',
+            # Player-team relationships
+            'player_teams', 'player_league',
+            # Schedules and matches (schedule is singular, matches is plural)
+            'matches', 'schedule',
+            # Players (singular)
+            'player',
+            # Teams and leagues (all singular)
+            'team', 'league', 'season',
+            # Notifications (plural)
+            'notifications', 'announcements',
+            # Role relationships
+            'user_roles', 'role_permissions',
+            # Users last (many FKs point to it) - plural
+            'users',
+            # Roles and permissions - plural
+            'roles', 'permissions'
         ]
 
         for table in tables_to_clean:
@@ -129,8 +194,18 @@ def db(_database, app):
             except Exception:
                 pass  # Table might not exist or other issue
 
+        # Re-enable FK constraints
+        try:
+            _database.session.execute(_database.text('PRAGMA foreign_keys = ON'))
+        except Exception:
+            pass
+
         _database.session.commit()
-        _database.session.remove()
+
+        # Clear all objects from session identity map to prevent stale references
+        # Note: Do NOT call session.remove() - it can cause connection recycling
+        # which breaks SQLite in-memory databases
+        _database.session.expunge_all()
 
 
 @pytest.fixture(autouse=True)

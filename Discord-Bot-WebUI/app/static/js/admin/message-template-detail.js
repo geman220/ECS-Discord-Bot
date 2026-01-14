@@ -224,6 +224,9 @@ function insertVariable(variable, targetId) {
  */
 function initVariableButtons() {
     document.addEventListener('click', function(e) {
+        // Guard: ensure e.target is an Element with closest method
+        if (!e.target || typeof e.target.closest !== 'function') return;
+
         const varBtn = e.target.closest('.var-btn');
         if (!varBtn) return;
 
