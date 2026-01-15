@@ -299,7 +299,7 @@ class PubLeagueOrderClaim(db.Model):
     line_item = db.relationship(
         'PubLeagueOrderLineItem',
         foreign_keys=[line_item_id],
-        back_populates='claim'
+        uselist=False
     )
     created_by = db.relationship('User', foreign_keys=[created_by_user_id])
     claimed_by_player = db.relationship('Player', foreign_keys=[claimed_by_player_id])
