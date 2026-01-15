@@ -229,6 +229,14 @@ def link_self():
         # Link the pass
         PubLeagueOrderService.link_pass_to_player(line_item, player, current_user)
 
+        # Activate player for the division (set is_current_player, sync roles)
+        PlayerActivationService.activate_player_for_league(
+            player=player,
+            user=current_user,
+            division=line_item.division,
+            jersey_size=line_item.jersey_size
+        )
+
         # Set primary user if not set
         if not order.primary_user_id:
             order.primary_user_id = current_user.id
@@ -316,6 +324,16 @@ def assign_to_user():
 
         # Link the pass
         PubLeagueOrderService.link_pass_to_player(line_item, player, user)
+
+        # Activate player for the division (set is_current_player, sync roles)
+        # Only activates roles if user exists and is approved
+        if user:
+            PlayerActivationService.activate_player_for_league(
+                player=player,
+                user=user,
+                division=line_item.division,
+                jersey_size=line_item.jersey_size
+            )
 
         return jsonify({
             'success': True,
