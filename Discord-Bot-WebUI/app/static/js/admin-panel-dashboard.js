@@ -104,7 +104,7 @@ function openNavigationSettings() {
             allowOutsideClick: false
         });
 
-        fetch('/admin-panel/api/navigation-settings')
+        fetch('/admin-panel/navigation-settings')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -177,7 +177,7 @@ function saveNavigationSettings() {
         mobile_features_navigation_enabled: document.getElementById('mobileFeaturesNav').checked
     };
 
-    return fetch('/admin-panel/api/navigation-settings', {
+    return fetch('/admin-panel/navigation-settings', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -207,7 +207,7 @@ function openRegistrationSettings() {
             allowOutsideClick: false
         });
 
-        fetch('/admin-panel/api/registration-settings')
+        fetch('/admin-panel/registration-settings')
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
@@ -304,7 +304,7 @@ function saveRegistrationSettings() {
         require_referee_willingness: document.getElementById('requireReferee').checked
     };
 
-    return fetch('/admin-panel/api/registration-settings', {
+    return fetch('/admin-panel/registration-settings', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

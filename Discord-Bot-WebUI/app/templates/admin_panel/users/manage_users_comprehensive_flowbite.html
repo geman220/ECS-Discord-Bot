@@ -612,6 +612,17 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.classList.add('hidden');
         modal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('overflow-hidden');
+
+        // Clean up any Flowbite-created backdrop elements that might be lingering
+        // Flowbite creates backdrop divs with classes like 'bg-gray-900/50 fixed inset-0 z-40'
+        document.querySelectorAll('body > div.fixed.inset-0[class*="z-4"]').forEach(backdrop => {
+            // Only remove if it looks like a backdrop (has opacity/bg classes and no content)
+            if (backdrop.children.length === 0 || backdrop.classList.contains('bg-gray-900/50') ||
+                backdrop.classList.contains('bg-dark-backdrop/70') || backdrop.classList.contains('bg-gray-900/80')) {
+                backdrop.remove();
+            }
+        });
+
         // Also close any SweetAlert popups that might be open
         if (typeof Swal !== 'undefined' && Swal.isVisible()) {
             Swal.close();
