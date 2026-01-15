@@ -248,6 +248,15 @@ def approve_user(user_id: int):
         if waitlist_role and waitlist_role in user.roles:
             user.roles.remove(waitlist_role)
 
+        # Remove any existing league roles before adding new one (prevent role accumulation)
+        existing_league_roles = ['pl-premier', 'pl-classic', 'pl-ecs-fc']
+        for league_role_name in existing_league_roles:
+            if league_role_name != new_role_name:  # Don't remove the one we're about to add
+                existing_role = db.session.query(Role).filter_by(name=league_role_name).first()
+                if existing_role and existing_role in user.roles:
+                    user.roles.remove(existing_role)
+                    logger.info(f"Removed old league role {league_role_name} from user {user.id}")
+
         # Add the new approved role
         if new_role not in user.roles:
             user.roles.append(new_role)
@@ -296,7 +305,6 @@ def approve_user(user_id: int):
 
     except Exception as e:
         logger.error(f"Error approving user {user_id}: {str(e)}")
-        db.session.rollback()
         return jsonify({'success': False, 'message': 'Error processing approval'}), 500
 
 
@@ -371,7 +379,6 @@ def deny_user(user_id: int):
 
     except Exception as e:
         logger.error(f"Error denying user {user_id}: {str(e)}")
-        db.session.rollback()
         return jsonify({'success': False, 'message': 'Error processing denial'}), 500
 
 

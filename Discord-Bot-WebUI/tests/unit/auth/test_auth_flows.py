@@ -426,7 +426,6 @@ class TestPermissionChecks:
 # =============================================================================
 
 @pytest.mark.unit
-@pytest.mark.skip(reason="Session isolation issue with SQLite in-memory DB - passes individually")
 class TestPasswordResetFlow:
     """Test password reset flow - tokens generated and validated correctly."""
 
@@ -591,7 +590,6 @@ class TestPasswordResetFlow:
 # =============================================================================
 
 @pytest.mark.unit
-@pytest.mark.skip(reason="Session isolation issue with SQLite in-memory DB - passes individually")
 class TestTwoFactorAuthentication:
     """Test 2FA flow - users with 2FA must verify before gaining access."""
 

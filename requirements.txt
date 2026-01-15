@@ -1,4 +1,4 @@
-aiohttp==3.10.5
+aiohttp>=3.10.5
 alembic==1.13.2
 celery==5.4.0
 discord.py==2.4.0
@@ -18,7 +18,9 @@ psycopg2-binary==2.9.9
 pydantic==2.9.0
 pytest==8.3.2
 python-dotenv==1.0.1
+python-engineio>=4.9.0
 python-multipart==0.0.9
+python-socketio>=5.11.0
 python_dateutil==2.9.0.post0
 pytz==2024.1
 Requests==2.32.3

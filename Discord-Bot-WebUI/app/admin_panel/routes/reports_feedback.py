@@ -19,6 +19,7 @@ from sqlalchemy import func, and_
 
 from .. import admin_panel_bp
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 from app.models import Feedback, FeedbackReply, Note, Match, Player, Availability, User, Season
 from app.models_ecs import EcsFcMatch, EcsFcAvailability
 from app.models.admin_config import AdminAuditLog
@@ -380,6 +381,7 @@ def view_feedback(feedback_id):
 @admin_panel_bp.route('/feedback/<int:feedback_id>/close', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def close_feedback(feedback_id):
     """Close a feedback entry."""
     session = g.db_session
@@ -390,7 +392,6 @@ def close_feedback(feedback_id):
 
     feedback.status = 'Closed'
     feedback.closed_at = datetime.utcnow()
-    session.commit()
 
     if feedback.user and feedback.user.email:
         try:
@@ -421,6 +422,7 @@ def close_feedback(feedback_id):
 @admin_panel_bp.route('/feedback/<int:feedback_id>/delete', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def delete_feedback(feedback_id):
     """Delete a feedback entry."""
     session = g.db_session
@@ -430,7 +432,6 @@ def delete_feedback(feedback_id):
         abort(404)
 
     session.delete(feedback)
-    session.commit()
 
     AdminAuditLog.log_action(
         user_id=current_user.id,

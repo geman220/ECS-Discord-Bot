@@ -25,6 +25,7 @@ from .. import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -410,6 +411,7 @@ def _generate_discord_preview(data: dict) -> dict:
 @admin_panel_bp.route('/league-management/wizard/api/create-season', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def wizard_create_season():
     """
     Create season from wizard data (final submit).
@@ -443,7 +445,6 @@ def wizard_create_season():
         )
 
         if success:
-            db.session.commit()
             return jsonify({
                 'success': True,
                 'message': message,
@@ -451,7 +452,6 @@ def wizard_create_season():
                 'redirect_url': url_for('admin_panel.league_management_dashboard')
             })
         else:
-            db.session.rollback()
             return jsonify({
                 'success': False,
                 'message': message
@@ -462,13 +462,6 @@ def wizard_create_season():
         return jsonify({
             'success': False,
             'message': 'Season creation service not available. Please try the legacy wizard.'
-        }), 500
-    except Exception as e:
-        logger.error(f"Error creating season: {e}", exc_info=True)
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': f'Failed to create season: {str(e)}'
         }), 500
 
 
@@ -581,140 +574,110 @@ def league_management_team_detail(team_id):
 @admin_panel_bp.route('/league-management/teams/api/create', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def league_management_create_team():
     """
     Create a new team with automatic Discord resource queuing.
     """
-    try:
-        from app.services.league_management_service import LeagueManagementService
+    from app.services.league_management_service import LeagueManagementService
 
-        data = request.get_json()
-        name = data.get('name')
-        league_id = data.get('league_id')
+    data = request.get_json()
+    name = data.get('name')
+    league_id = data.get('league_id')
 
-        if not name or not league_id:
-            return jsonify({
-                'success': False,
-                'message': 'Team name and league are required'
-            }), 400
-
-        service = LeagueManagementService(db.session)
-        success, message, team = service.create_team(
-            name=name,
-            league_id=league_id,
-            user_id=current_user.id
-        )
-
-        if success:
-            db.session.commit()
-            return jsonify({
-                'success': True,
-                'message': message,
-                'team': {
-                    'id': team.id,
-                    'name': team.name
-                }
-            })
-        else:
-            db.session.rollback()
-            return jsonify({
-                'success': False,
-                'message': message
-            }), 400
-
-    except Exception as e:
-        logger.error(f"Error creating team: {e}")
-        db.session.rollback()
+    if not name or not league_id:
         return jsonify({
             'success': False,
-            'message': 'Failed to create team'
-        }), 500
+            'message': 'Team name and league are required'
+        }), 400
+
+    service = LeagueManagementService(db.session)
+    success, message, team = service.create_team(
+        name=name,
+        league_id=league_id,
+        user_id=current_user.id
+    )
+
+    if success:
+        return jsonify({
+            'success': True,
+            'message': message,
+            'team': {
+                'id': team.id,
+                'name': team.name
+            }
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'message': message
+        }), 400
 
 
 @admin_panel_bp.route('/league-management/teams/api/<int:team_id>/update', methods=['PUT'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def league_management_update_team(team_id):
     """
     Update team (rename triggers Discord update).
     """
-    try:
-        from app.services.league_management_service import LeagueManagementService
+    from app.services.league_management_service import LeagueManagementService
 
-        data = request.get_json()
-        new_name = data.get('name')
+    data = request.get_json()
+    new_name = data.get('name')
 
-        if not new_name:
-            return jsonify({
-                'success': False,
-                'message': 'New team name is required'
-            }), 400
-
-        service = LeagueManagementService(db.session)
-        success, message = service.rename_team(
-            team_id=team_id,
-            new_name=new_name,
-            user_id=current_user.id
-        )
-
-        if success:
-            db.session.commit()
-            return jsonify({
-                'success': True,
-                'message': message
-            })
-        else:
-            db.session.rollback()
-            return jsonify({
-                'success': False,
-                'message': message
-            }), 400
-
-    except Exception as e:
-        logger.error(f"Error updating team: {e}")
-        db.session.rollback()
+    if not new_name:
         return jsonify({
             'success': False,
-            'message': 'Failed to update team'
-        }), 500
+            'message': 'New team name is required'
+        }), 400
+
+    service = LeagueManagementService(db.session)
+    success, message = service.rename_team(
+        team_id=team_id,
+        new_name=new_name,
+        user_id=current_user.id
+    )
+
+    if success:
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'message': message
+        }), 400
 
 
 @admin_panel_bp.route('/league-management/teams/api/<int:team_id>/delete', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def league_management_delete_team(team_id):
     """
     Delete team with Discord cleanup queue.
     """
-    try:
-        from app.services.league_management_service import LeagueManagementService
+    from app.services.league_management_service import LeagueManagementService
 
-        service = LeagueManagementService(db.session)
-        success, message = service.delete_team(
-            team_id=team_id,
-            user_id=current_user.id
-        )
+    service = LeagueManagementService(db.session)
+    success, message = service.delete_team(
+        team_id=team_id,
+        user_id=current_user.id
+    )
 
-        if success:
-            db.session.commit()
-            return jsonify({
-                'success': True,
-                'message': message
-            })
-        else:
-            db.session.rollback()
-            return jsonify({
-                'success': False,
-                'message': message
-            }), 400
-
-    except Exception as e:
-        logger.error(f"Error deleting team: {e}")
-        db.session.rollback()
+    if success:
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+    else:
         return jsonify({
             'success': False,
-            'message': 'Failed to delete team'
-        }), 500
+            'message': message
+        }), 400
 
 
 @admin_panel_bp.route('/league-management/teams/api/<int:team_id>/sync-discord', methods=['POST'])
@@ -878,121 +841,102 @@ def league_management_rollover_preview(season_id):
 @admin_panel_bp.route('/league-management/seasons/api/<int:season_id>/set-current', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def league_management_set_current_season(season_id):
     """
     Set season as current (with optional rollover).
     """
-    try:
-        from app.models import Season
-        from app.services.league_management_service import LeagueManagementService
+    from app.models import Season
+    from app.services.league_management_service import LeagueManagementService
 
-        data = request.get_json() or {}
-        perform_rollover = data.get('perform_rollover', False)
+    data = request.get_json() or {}
+    perform_rollover = data.get('perform_rollover', False)
 
-        season = Season.query.get_or_404(season_id)
+    season = Season.query.get_or_404(season_id)
 
-        # Log action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='set_current_season',
-            resource_type='season',
-            resource_id=str(season_id),
-            new_value=f'Set {season.name} as current (rollover={perform_rollover})',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
+    # Log action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='set_current_season',
+        resource_type='season',
+        resource_id=str(season_id),
+        new_value=f'Set {season.name} as current (rollover={perform_rollover})',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
 
-        # Get current season of same type
-        old_current = Season.query.filter(
-            Season.league_type == season.league_type,
-            Season.is_current == True,
-            Season.id != season_id
-        ).first()
+    # Get current season of same type
+    old_current = Season.query.filter(
+        Season.league_type == season.league_type,
+        Season.is_current == True,
+        Season.id != season_id
+    ).first()
 
-        if perform_rollover and old_current:
-            service = LeagueManagementService(db.session)
-            success = service.perform_rollover(old_current, season, current_user.id)
-            if not success:
-                return jsonify({
-                    'success': False,
-                    'message': 'Rollover failed'
-                }), 500
+    if perform_rollover and old_current:
+        service = LeagueManagementService(db.session)
+        success = service.perform_rollover(old_current, season, current_user.id)
+        if not success:
+            return jsonify({
+                'success': False,
+                'message': 'Rollover failed'
+            }), 500
 
-        # Clear old current
-        if old_current:
-            old_current.is_current = False
+    # Clear old current
+    if old_current:
+        old_current.is_current = False
 
-        # Set new current
-        season.is_current = True
-        db.session.commit()
+    # Set new current
+    season.is_current = True
 
-        return jsonify({
-            'success': True,
-            'message': f'{season.name} is now the current season'
-        })
-
-    except Exception as e:
-        logger.error(f"Error setting current season: {e}")
-        db.session.rollback()
-        return jsonify({
-            'success': False,
-            'message': 'Failed to set current season'
-        }), 500
+    return jsonify({
+        'success': True,
+        'message': f'{season.name} is now the current season'
+    })
 
 
 @admin_panel_bp.route('/league-management/seasons/api/<int:season_id>/delete', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin'])  # Only Global Admin can delete seasons
+@transactional
 def league_management_delete_season(season_id):
     """
     Delete season with comprehensive cleanup.
     """
-    try:
-        from app.models import Season
-        from app.services.league_management_service import LeagueManagementService
+    from app.models import Season
+    from app.services.league_management_service import LeagueManagementService
 
-        season = Season.query.get_or_404(season_id)
+    season = Season.query.get_or_404(season_id)
 
-        if season.is_current:
-            return jsonify({
-                'success': False,
-                'message': 'Cannot delete current season. Set another season as current first.'
-            }), 400
-
-        # Log action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='delete_season',
-            resource_type='season',
-            resource_id=str(season_id),
-            old_value=season.name,
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        service = LeagueManagementService(db.session)
-        success, message = service.delete_season(season_id, current_user.id)
-
-        if success:
-            db.session.commit()
-            return jsonify({
-                'success': True,
-                'message': message
-            })
-        else:
-            db.session.rollback()
-            return jsonify({
-                'success': False,
-                'message': message
-            }), 400
-
-    except Exception as e:
-        logger.error(f"Error deleting season: {e}")
-        db.session.rollback()
+    if season.is_current:
         return jsonify({
             'success': False,
-            'message': 'Failed to delete season'
-        }), 500
+            'message': 'Cannot delete current season. Set another season as current first.'
+        }), 400
+
+    # Log action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='delete_season',
+        resource_type='season',
+        resource_id=str(season_id),
+        old_value=season.name,
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    service = LeagueManagementService(db.session)
+    success, message = service.delete_season(season_id, current_user.id)
+
+    if success:
+        return jsonify({
+            'success': True,
+            'message': message
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'message': message
+        }), 400
 
 
 # =============================================================================

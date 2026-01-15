@@ -21,6 +21,7 @@ from app.models.admin_config import AdminAuditLog
 from app.models import User, Role, user_roles
 from app.decorators import role_required
 from app.utils.db_utils import transactional
+from app.tasks.tasks_discord import assign_roles_to_player_task
 
 # Set up the module logger
 logger = logging.getLogger(__name__)
@@ -134,8 +135,7 @@ def create_role_comprehensive():
         )
         
         db.session.add(role)
-        db.session.commit()
-        
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -183,9 +183,7 @@ def edit_role_comprehensive(role_id):
         # Update role
         role.name = name
         role.description = description
-        
-        db.session.commit()
-        
+
         # Log the action
         new_data = {
             'name': role.name,
@@ -238,8 +236,7 @@ def delete_role_comprehensive(role_id):
         
         role_name = role.name
         db.session.delete(role)
-        db.session.commit()
-        
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -311,8 +308,7 @@ def assign_role_to_user_comprehensive(role_id):
         
         # Add role to user
         user.roles.append(role)
-        db.session.commit()
-        
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -323,7 +319,12 @@ def assign_role_to_user_comprehensive(role_id):
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
+
+        # Trigger Discord role sync
+        if user.player and user.player.discord_id:
+            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+            logger.info(f"Triggered Discord role sync for user {user.id} after role assignment")
+
         flash(f'Role "{role.name}" assigned to user "{user.username}" successfully!', 'success')
         return jsonify({'success': True, 'message': 'Role assigned successfully'})
         
@@ -348,8 +349,7 @@ def remove_role_from_user_comprehensive(role_id, user_id):
         
         # Remove role from user
         user.roles.remove(role)
-        db.session.commit()
-        
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -360,7 +360,12 @@ def remove_role_from_user_comprehensive(role_id, user_id):
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
+
+        # Trigger Discord role sync
+        if user.player and user.player.discord_id:
+            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+            logger.info(f"Triggered Discord role sync for user {user.id} after role removal")
+
         flash(f'Role "{role.name}" removed from user "{user.username}" successfully!', 'success')
         return jsonify({'success': True, 'message': 'Role removed successfully'})
 

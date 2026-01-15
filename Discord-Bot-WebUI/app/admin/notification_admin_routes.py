@@ -6,6 +6,7 @@ from app.models.communication import Notification
 from app.services.notification_service import notification_service
 from app.core import db
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 import logging
 from datetime import datetime, timedelta
 
@@ -215,35 +216,29 @@ def admin_test_notification():
 @notification_admin_bp.route('/cleanup-tokens', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def cleanup_invalid_tokens():
     """Clean up invalid/inactive FCM tokens"""
-    try:
-        # TODO: Implement token validation and cleanup
-        # This would typically involve:
-        # 1. Testing tokens against Firebase
-        # 2. Removing invalid ones from database
-        # 3. Marking inactive tokens
-        
-        # For now, just remove tokens that haven't been updated in 90 days
-        cutoff_date = datetime.utcnow() - timedelta(days=90)
-        old_tokens = UserFCMToken.query.filter(
-            UserFCMToken.updated_at < cutoff_date
-        ).all()
-        
-        count = len(old_tokens)
-        for token in old_tokens:
-            token.is_active = False
-        
-        db.session.commit()
-        
-        return jsonify({
-            'msg': f'Cleaned up {count} old tokens',
-            'count': count
-        }), 200
-        
-    except Exception as e:
-        logger.error(f"Error cleaning up tokens: {e}")
-        return jsonify({'msg': 'Internal server error'}), 500
+    # TODO: Implement token validation and cleanup
+    # This would typically involve:
+    # 1. Testing tokens against Firebase
+    # 2. Removing invalid ones from database
+    # 3. Marking inactive tokens
+
+    # For now, just remove tokens that haven't been updated in 90 days
+    cutoff_date = datetime.utcnow() - timedelta(days=90)
+    old_tokens = UserFCMToken.query.filter(
+        UserFCMToken.updated_at < cutoff_date
+    ).all()
+
+    count = len(old_tokens)
+    for token in old_tokens:
+        token.is_active = False
+
+    return jsonify({
+        'msg': f'Cleaned up {count} old tokens',
+        'count': count
+    }), 200
 
 @notification_admin_bp.route('/tokens')
 @login_required

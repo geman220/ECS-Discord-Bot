@@ -22,6 +22,7 @@ from .. import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 # Set up the module logger
 logger = logging.getLogger(__name__)
@@ -159,31 +160,32 @@ def ispy_seasons():
 @admin_panel_bp.route('/ispy/seasons/create', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def create_ispy_season():
     """Create a new I-Spy season."""
     try:
         if not ISPY_TABLES_AVAILABLE:
             return jsonify({'success': False, 'message': 'I-Spy database tables not found. Run migrations.'}), 503
-        
+
         if request.method == 'POST':
             data = request.get_json()
-            
+
             name = data.get('name')
             description = data.get('description', '')
             start_date = data.get('start_date')
             end_date = data.get('end_date')
             is_active = data.get('is_active', False)
-            
+
             if not name:
                 return jsonify({'success': False, 'message': 'Season name is required'}), 400
-            
+
             # Parse dates
             try:
                 start_date = datetime.strptime(start_date, '%Y-%m-%d') if start_date else None
                 end_date = datetime.strptime(end_date, '%Y-%m-%d') if end_date else None
             except ValueError:
                 return jsonify({'success': False, 'message': 'Invalid date format'}), 400
-            
+
             # Create new season
             season = ISpySeason(
                 name=name,
@@ -193,10 +195,9 @@ def create_ispy_season():
                 is_active=is_active,
                 created_by=current_user.id
             )
-            
+
             db.session.add(season)
-            db.session.commit()
-            
+
             # Log the action
             AdminAuditLog.log_action(
                 user_id=current_user.id,
@@ -207,16 +208,16 @@ def create_ispy_season():
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
-            
+
             return jsonify({
                 'success': True,
                 'message': f'I-Spy season "{name}" created successfully',
                 'season_id': season.id
             })
-        
+
         # GET request - return form
         return render_template('admin_panel/ispy/season_form_flowbite.html')
-        
+
     except Exception as e:
         logger.error(f"Error creating I-Spy season: {e}")
         if request.method == 'POST':
@@ -260,28 +261,29 @@ def ispy_categories():
 @admin_panel_bp.route('/ispy/categories/create', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def create_ispy_category():
     """Create a new I-Spy category."""
     try:
         if not ISPY_TABLES_AVAILABLE:
             return jsonify({'success': False, 'message': 'I-Spy database tables not found. Run migrations.'}), 503
-        
+
         data = request.get_json()
-        
+
         name = data.get('name')
         description = data.get('description', '')
         color = data.get('color', '#007bff')
         icon = data.get('icon', 'ti-eye')
         is_active = data.get('is_active', True)
-        
+
         if not name:
             return jsonify({'success': False, 'message': 'Category name is required'}), 400
-        
+
         # Check for duplicate name
         existing = ISpyCategory.query.filter_by(name=name).first()
         if existing:
             return jsonify({'success': False, 'message': 'Category name already exists'}), 400
-        
+
         # Create new category
         category = ISpyCategory(
             name=name,
@@ -291,10 +293,9 @@ def create_ispy_category():
             is_active=is_active,
             created_by=current_user.id
         )
-        
+
         db.session.add(category)
-        db.session.commit()
-        
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -305,13 +306,13 @@ def create_ispy_category():
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
+
         return jsonify({
             'success': True,
             'message': f'I-Spy category "{name}" created successfully',
             'category_id': category.id
         })
-        
+
     except Exception as e:
         logger.error(f"Error creating I-Spy category: {e}")
         return jsonify({'success': False, 'message': 'Failed to create category'}), 500
@@ -420,30 +421,31 @@ def ispy_players():
 @admin_panel_bp.route('/ispy/players/<int:user_id>/jail', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def jail_ispy_user(user_id):
     """Jail or unjail an I-Spy user."""
     try:
         if not ISPY_TABLES_AVAILABLE:
             return jsonify({'success': False, 'message': 'I-Spy database tables not found. Run migrations.'}), 503
-        
+
         data = request.get_json()
         action = data.get('action')  # 'jail' or 'release'
         reason = data.get('reason', 'Admin action')
         duration = data.get('duration', 24)  # hours
-        
+
         if action not in ['jail', 'release']:
             return jsonify({'success': False, 'message': 'Invalid action'}), 400
-        
+
         if action == 'jail':
             # Check if user is already jailed
             existing_jail = ISpyUserJail.query.filter_by(
                 user_id=user_id,
                 is_jailed=True
             ).first()
-            
+
             if existing_jail:
                 return jsonify({'success': False, 'message': 'User is already jailed'}), 400
-            
+
             # Create jail record
             jail_until = datetime.utcnow() + timedelta(hours=duration)
             jail_record = ISpyUserJail(
@@ -454,29 +456,27 @@ def jail_ispy_user(user_id):
                 jail_until=jail_until,
                 is_jailed=True
             )
-            
+
             db.session.add(jail_record)
             message = f'User jailed for {duration} hours'
-            
+
         else:  # release
             # Find and update jail record
             jail_record = ISpyUserJail.query.filter_by(
                 user_id=user_id,
                 is_jailed=True
             ).first()
-            
+
             if not jail_record:
                 return jsonify({'success': False, 'message': 'User is not jailed'}), 400
-            
+
             jail_record.is_jailed = False
             jail_record.released_by = current_user.id
             jail_record.released_at = datetime.utcnow()
             jail_record.release_reason = reason
-            
+
             message = 'User released from jail'
-        
-        db.session.commit()
-        
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -487,13 +487,13 @@ def jail_ispy_user(user_id):
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
+
         return jsonify({
             'success': True,
             'message': message,
             'action': action
         })
-        
+
     except Exception as e:
         logger.error(f"Error managing I-Spy user jail: {e}")
         return jsonify({'success': False, 'message': 'Failed to update jail status'}), 500

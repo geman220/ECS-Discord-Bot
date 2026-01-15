@@ -22,6 +22,7 @@ from flask import (
 from flask_login import login_required, current_user
 from app.admin_panel import admin_panel_bp
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 from typing import Dict, Any, Optional
 
 # Default theme colors (ECS Brand + Flowbite/Tailwind)
@@ -896,12 +897,13 @@ def save_current_as_preset():
 @admin_panel_bp.route('/appearance/presets/<int:preset_id>/update', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def update_preset(preset_id):
     """
     Update an existing preset's name, description, or colors.
     """
     try:
-        from app.models import ThemePreset, db
+        from app.models import ThemePreset
 
         preset = ThemePreset.query.get(preset_id)
         if not preset:
@@ -922,8 +924,6 @@ def update_preset(preset_id):
                 return jsonify({"success": False, "message": "Invalid color structure"}), 400
             preset.colors = colors
 
-        db.session.commit()
-
         return jsonify({
             "success": True,
             "message": f"Preset '{preset.name}' updated successfully.",
@@ -938,12 +938,14 @@ def update_preset(preset_id):
 @admin_panel_bp.route('/appearance/presets/<int:preset_id>/delete', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def delete_preset(preset_id):
     """
     Delete a theme preset (cannot delete system presets).
     """
     try:
-        from app.models import ThemePreset, db
+        from app.models import ThemePreset
+        from app.core import db
 
         preset = ThemePreset.query.get(preset_id)
         if not preset:
@@ -954,7 +956,6 @@ def delete_preset(preset_id):
 
         name = preset.name
         db.session.delete(preset)
-        db.session.commit()
 
         return jsonify({
             "success": True,
@@ -1054,13 +1055,14 @@ def apply_preset():
 @admin_panel_bp.route('/appearance/presets/save', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def save_preset():
     """
     Save a new theme preset with all settings.
     Used by the appearance page JS to save presets from the modal.
     """
     try:
-        from app.models import ThemePreset, db
+        from app.models import ThemePreset
 
         data = request.get_json()
         if not data:
@@ -1096,8 +1098,6 @@ def save_preset():
             # Clear other defaults first
             ThemePreset.query.filter(ThemePreset.id != preset.id).update({'is_default': False})
             preset.is_default = True
-
-        db.session.commit()
 
         return jsonify({
             "success": True,

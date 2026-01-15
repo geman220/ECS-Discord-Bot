@@ -76,10 +76,9 @@ def edit_template(template_id: int):
             template.is_active = 'is_active' in request.form
             template.updated_by = safe_current_user.id
             template.updated_at = datetime.utcnow()
-            
+
             db.session.add(template)
-            db.session.commit()
-            
+
             flash(f'Template "{template.name}" updated successfully', 'success')
             return redirect(url_for('admin.message_config.view_category', category_id=template.category_id))
         
@@ -145,15 +144,14 @@ def update_template_api(template_id: int):
             
         template.updated_by = safe_current_user.id
         template.updated_at = datetime.utcnow()
-        
+
         db.session.add(template)
-        db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Template "{template.name}" updated successfully'
         })
-        
+
     except Exception as e:
         logger.error(f"Error updating template {template_id}: {e}")
         return jsonify({'success': False, 'error': 'Failed to update template'}), 500
@@ -232,16 +230,15 @@ def create_template_api():
             created_by=safe_current_user.id,
             updated_by=safe_current_user.id
         )
-        
+
         db.session.add(template)
-        db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Template "{template.name}" created successfully',
             'template_id': template.id
         })
-        
+
     except Exception as e:
         logger.error(f"Error creating template: {e}")
         return jsonify({'success': False, 'error': 'Failed to create template'}), 500
@@ -267,16 +264,15 @@ def toggle_template_status(template_id: int):
         template.is_active = bool(is_active)
         template.updated_by = safe_current_user.id
         template.updated_at = datetime.utcnow()
-        
+
         db.session.add(template)
-        db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Template "{template.name}" {"activated" if is_active else "deactivated"}',
             'is_active': template.is_active
         })
-        
+
     except Exception as e:
         logger.error(f"Error toggling template {template_id} status: {e}")
         return jsonify({'success': False, 'error': 'Failed to toggle template status'}), 500
@@ -301,17 +297,16 @@ def update_category_api(category_id: int):
             category.name = data['name']
         if 'description' in data:
             category.description = data['description']
-            
+
         category.updated_at = datetime.utcnow()
-        
+
         db.session.add(category)
-        db.session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f'Category "{category.name}" updated successfully'
         })
-        
+
     except Exception as e:
         logger.error(f"Error updating category {category_id}: {e}")
         return jsonify({'success': False, 'error': 'Failed to update category'}), 500

@@ -177,7 +177,7 @@ class TestingConfig(Config):
     """Testing configuration settings."""
     TESTING = True
 
-    # Use in-memory SQLite for testing
+    # Use in-memory SQLite for local testing with StaticPool
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
 
     # Remove PostgreSQL-specific pool settings for SQLite

@@ -18,6 +18,7 @@ from app import csrf
 from app.core import db
 from app.decorators import role_required
 from app.alert_helpers import show_success, show_error, show_info
+from app.utils.db_utils import transactional
 from app.models import User, Player, Role, Team, League, Season
 from app.models_substitute_pools import (
     SubstitutePool, SubstitutePoolHistory, SubstituteRequest, 
@@ -181,6 +182,7 @@ def manage_league_pool(league_type: str):
 @substitute_pool_bp.route('/admin/substitute-pools/<league_type>/add-player', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
 def add_player_to_pool(league_type: str):
     """
     Add a player to the substitute pool for a specific league.
@@ -322,11 +324,7 @@ def add_player_to_pool(league_type: str):
             )
             message = f"{player.name} has been added to the {league_type} substitute pool"
         
-        logger.info(f"Attempting to commit transaction...")
-        session.commit()
-        logger.info(f"Transaction committed successfully")
-
-        # Trigger Discord role update
+        # Trigger Discord role update (after transaction commits via @transactional)
         from app.tasks.tasks_discord import assign_roles_to_player_task
         try:
             task = assign_roles_to_player_task.delay(player_id=player.id, only_add=False)
@@ -348,13 +346,13 @@ def add_player_to_pool(league_type: str):
         
     except Exception as e:
         logger.error(f"Error adding player to pool: {e}", exc_info=True)
-        session.rollback()
-        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
+        raise  # Let @transactional handle rollback
 
 
 @substitute_pool_bp.route('/admin/substitute-pools/<league_type>/remove-player', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
 def remove_player_from_pool(league_type: str):
     """
     Remove a player from the substitute pool.
@@ -423,10 +421,8 @@ def remove_player_from_pool(league_type: str):
             player_id, pool_entry.league_id, 'REMOVED',
             f"Player removed from {league_type} pool", safe_current_user.id, pool_entry.id, session
         )
-        
-        session.commit()
 
-        # Trigger Discord role update
+        # Trigger Discord role update (after transaction commits via @transactional)
         from app.tasks.tasks_discord import assign_roles_to_player_task
         try:
             task = assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
@@ -441,13 +437,13 @@ def remove_player_from_pool(league_type: str):
         
     except Exception as e:
         logger.error(f"Error removing player from pool: {e}", exc_info=True)
-        session.rollback()
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+        raise  # Let @transactional handle rollback
 
 
 @substitute_pool_bp.route('/admin/substitute-pools/<league_type>/update-preferences', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
 def update_pool_preferences(league_type: str):
     """
     Update a player's substitute pool preferences.
@@ -489,18 +485,15 @@ def update_pool_preferences(league_type: str):
             player_id, pool_entry.league_id, 'UPDATED',
             f"Preferences updated for {league_type} pool", safe_current_user.id, pool_entry.id, session
         )
-        
-        session.commit()
-        
+
         return jsonify({
             'success': True,
             'message': f"Preferences updated for {pool_entry.player.name}"
         })
-        
+
     except Exception as e:
         logger.error(f"Error updating pool preferences: {e}", exc_info=True)
-        session.rollback()
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+        raise  # Let @transactional handle rollback
 
 
 @substitute_pool_bp.route('/admin/substitute-pools/<league_type>/statistics')
@@ -754,138 +747,125 @@ def get_substitute_requests(league_type: str):
 @substitute_pool_bp.route('/admin/substitute-pools/<league_type>/requests/<int:request_id>/cancel', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
 def cancel_substitute_request(league_type: str, request_id: int):
     """
     Cancel a substitute request.
     """
-    try:
-        if league_type not in LEAGUE_TYPES:
-            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
-        
-        session = g.db_session
-        
-        # Find the request
-        from app.models import Match, Team, League, Season
-        request = session.query(SubstituteRequest).join(
-            Match, SubstituteRequest.match_id == Match.id
-        ).join(
-            Team, SubstituteRequest.team_id == Team.id
-        ).join(
-            League, Team.league_id == League.id
-        ).join(
-            Season, League.season_id == Season.id
-        ).filter(
-            SubstituteRequest.id == request_id,
-            Season.league_type == league_type
-        ).first()
-        
-        if not request:
-            return jsonify({'success': False, 'message': 'Request not found'}), 404
-        
-        if request.status != 'OPEN':
-            return jsonify({'success': False, 'message': 'Can only cancel open requests'}), 400
-        
-        # Cancel the request
-        request.status = 'CANCELLED'
-        request.cancelled_at = datetime.utcnow()
-        request.updated_at = datetime.utcnow()
-        
-        session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': f'Substitute request for {request.team.name} has been cancelled'
-        })
-        
-    except Exception as e:
-        logger.error(f"Error cancelling substitute request: {e}", exc_info=True)
-        session.rollback()
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+    if league_type not in LEAGUE_TYPES:
+        return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+    session = g.db_session
+
+    # Find the request
+    from app.models import Match, Team, League, Season
+    request = session.query(SubstituteRequest).join(
+        Match, SubstituteRequest.match_id == Match.id
+    ).join(
+        Team, SubstituteRequest.team_id == Team.id
+    ).join(
+        League, Team.league_id == League.id
+    ).join(
+        Season, League.season_id == Season.id
+    ).filter(
+        SubstituteRequest.id == request_id,
+        Season.league_type == league_type
+    ).first()
+
+    if not request:
+        return jsonify({'success': False, 'message': 'Request not found'}), 404
+
+    if request.status != 'OPEN':
+        return jsonify({'success': False, 'message': 'Can only cancel open requests'}), 400
+
+    # Cancel the request
+    request.status = 'CANCELLED'
+    request.cancelled_at = datetime.utcnow()
+    request.updated_at = datetime.utcnow()
+
+    return jsonify({
+        'success': True,
+        'message': f'Substitute request for {request.team.name} has been cancelled'
+    })
 
 
 @substitute_pool_bp.route('/admin/substitute-pools/<league_type>/requests/<int:request_id>/resend', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
 def resend_substitute_request(league_type: str, request_id: int):
     """
     Resend notifications for a substitute request.
     """
+    if league_type not in LEAGUE_TYPES:
+        return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+    session = g.db_session
+
+    # Find the request
+    from app.models import Match, Team, League, Season
+    request = session.query(SubstituteRequest).join(
+        Match, SubstituteRequest.match_id == Match.id
+    ).join(
+        Team, SubstituteRequest.team_id == Team.id
+    ).join(
+        League, Team.league_id == League.id
+    ).join(
+        Season, League.season_id == Season.id
+    ).filter(
+        SubstituteRequest.id == request_id,
+        Season.league_type == league_type
+    ).first()
+
+    if not request:
+        return jsonify({'success': False, 'message': 'Request not found'}), 404
+
+    if request.status != 'OPEN':
+        return jsonify({'success': False, 'message': 'Can only resend for open requests'}), 400
+
+    # Check if request was sent recently (within last 30 minutes)
+    from datetime import timedelta
+    if request.created_at and request.created_at > datetime.utcnow() - timedelta(minutes=30):
+        time_since = datetime.utcnow() - request.created_at
+        minutes_ago = int(time_since.total_seconds() / 60)
+        return jsonify({
+            'success': False,
+            'message': f'Request was sent only {minutes_ago} minutes ago. Please wait before resending.',
+            'requires_confirmation': True,
+            'time_since_last': minutes_ago
+        }), 400
+
+    # Import and call the notification task
+    from app.tasks.tasks_substitute_pools import notify_substitute_pool_of_request
+
+    # Update the timestamp to indicate resend
+    request.updated_at = datetime.utcnow()
+
+    # Send notifications asynchronously
     try:
-        if league_type not in LEAGUE_TYPES:
-            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
-        
-        session = g.db_session
-        
-        # Find the request
-        from app.models import Match, Team, League, Season
-        request = session.query(SubstituteRequest).join(
-            Match, SubstituteRequest.match_id == Match.id
-        ).join(
-            Team, SubstituteRequest.team_id == Team.id
-        ).join(
-            League, Team.league_id == League.id
-        ).join(
-            Season, League.season_id == Season.id
-        ).filter(
-            SubstituteRequest.id == request_id,
-            Season.league_type == league_type
-        ).first()
-        
-        if not request:
-            return jsonify({'success': False, 'message': 'Request not found'}), 404
-        
-        if request.status != 'OPEN':
-            return jsonify({'success': False, 'message': 'Can only resend for open requests'}), 400
-        
-        # Check if request was sent recently (within last 30 minutes)
-        from datetime import timedelta
-        if request.created_at and request.created_at > datetime.utcnow() - timedelta(minutes=30):
-            time_since = datetime.utcnow() - request.created_at
-            minutes_ago = int(time_since.total_seconds() / 60)
-            return jsonify({
-                'success': False, 
-                'message': f'Request was sent only {minutes_ago} minutes ago. Please wait before resending.',
-                'requires_confirmation': True,
-                'time_since_last': minutes_ago
-            }), 400
-        
-        # Import and call the notification task
-        from app.tasks.tasks_substitute_pools import notify_substitute_pool_of_request
-        
-        # Update the timestamp to indicate resend
-        request.updated_at = datetime.utcnow()
-        session.commit()
-        
-        # Send notifications asynchronously
-        try:
-            task_result = notify_substitute_pool_of_request.delay(request_id, league_type)
-            logger.info(f"Queued substitute notification task {task_result.id} for request {request_id}")
-            
+        task_result = notify_substitute_pool_of_request.delay(request_id, league_type)
+        logger.info(f"Queued substitute notification task {task_result.id} for request {request_id}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Notifications queued for substitute request to {request.team.name}',
+            'task_id': task_result.id
+        })
+    except Exception as task_error:
+        logger.error(f"Failed to queue notification task: {task_error}")
+        # Fall back to synchronous execution
+        result = notify_substitute_pool_of_request(request_id, league_type)
+        if result.get('success'):
             return jsonify({
                 'success': True,
-                'message': f'Notifications queued for substitute request to {request.team.name}',
-                'task_id': task_result.id
+                'message': f'Notifications sent for substitute request to {request.team.name}',
+                'details': result.get('message', '')
             })
-        except Exception as task_error:
-            logger.error(f"Failed to queue notification task: {task_error}")
-            # Fall back to synchronous execution
-            result = notify_substitute_pool_of_request(request_id, league_type)
-            if result.get('success'):
-                return jsonify({
-                    'success': True,
-                    'message': f'Notifications sent for substitute request to {request.team.name}',
-                    'details': result.get('message', '')
-                })
-            else:
-                return jsonify({
-                    'success': False,
-                    'message': f'Failed to send notifications: {result.get("error", "Unknown error")}'
-                }), 500
-        
-    except Exception as e:
-        logger.error(f"Error resending substitute request: {e}", exc_info=True)
-        session.rollback()
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Failed to send notifications: {result.get("error", "Unknown error")}'
+            }), 500
 
 
 @substitute_pool_bp.route('/admin/substitute-pools/match/<match_id>/requests')
@@ -1127,163 +1107,144 @@ def get_substitute_responses_for_assignment(match_type: str, match_id: str):
 @substitute_pool_bp.route('/api/substitute-pools/assign', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
 def assign_substitute_from_pool():
     """
     Assign a substitute from the pool to a specific request.
     """
-    try:
-        data = request.get_json() or request.form
-        
-        request_id = data.get('request_id')
-        player_id = data.get('player_id')
-        position_assigned = data.get('position_assigned', '')
-        notes = data.get('notes', '')
-        
-        if not request_id or not player_id:
-            return jsonify({'success': False, 'error': 'Missing request_id or player_id'}), 400
-        
-        session = g.db_session
-        
-        # Get the substitute request
-        sub_request = session.query(SubstituteRequest).get(request_id)
-        if not sub_request:
-            return jsonify({'success': False, 'error': 'Substitute request not found'}), 404
-        
-        if sub_request.status != 'OPEN':
-            return jsonify({'success': False, 'error': 'Substitute request is not open'}), 400
-        
-        # Get the player
-        player = session.query(Player).get(player_id)
-        if not player:
-            return jsonify({'success': False, 'error': 'Player not found'}), 404
-        
-        # Check if there's already an assignment for this request
-        existing_assignment = session.query(SubstituteAssignment).filter_by(
-            request_id=request_id
-        ).first()
-        
-        if existing_assignment:
-            return jsonify({'success': False, 'error': 'A substitute has already been assigned to this request'}), 400
-        
-        # Create the assignment
-        assignment = SubstituteAssignment(
-            request_id=request_id,
-            player_id=player_id,
-            assigned_by=safe_current_user.id,
-            position_assigned=position_assigned,
-            notes=notes
-        )
-        
-        session.add(assignment)
-        
-        # Update the request status
-        sub_request.status = 'FILLED'
-        sub_request.filled_at = datetime.utcnow()
-        
-        session.commit()
-        
-        # Send notification to the assigned substitute (async)
-        # Use the appropriate notification task based on league type
-        if sub_request.team.league.name == 'ECS FC':
-            from app.tasks.tasks_ecs_fc_subs import notify_assigned_substitute as notify_ecs_fc_substitute
-            notify_ecs_fc_substitute.delay(assignment.id)
-        else:
-            from app.tasks.tasks_substitute_pools import notify_assigned_substitute
-            notify_assigned_substitute.delay(assignment.id)
-        
-        return jsonify({
-            'success': True, 
-            'message': f'Successfully assigned {player.name} as substitute',
-            'assignment_id': assignment.id
-        })
-        
-    except Exception as e:
-        logger.error(f"Error assigning substitute from pool: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': 'An error occurred'}), 500
+    data = request.get_json() or request.form
+
+    request_id = data.get('request_id')
+    player_id = data.get('player_id')
+    position_assigned = data.get('position_assigned', '')
+    notes = data.get('notes', '')
+
+    if not request_id or not player_id:
+        return jsonify({'success': False, 'error': 'Missing request_id or player_id'}), 400
+
+    session = g.db_session
+
+    # Get the substitute request
+    sub_request = session.query(SubstituteRequest).get(request_id)
+    if not sub_request:
+        return jsonify({'success': False, 'error': 'Substitute request not found'}), 404
+
+    if sub_request.status != 'OPEN':
+        return jsonify({'success': False, 'error': 'Substitute request is not open'}), 400
+
+    # Get the player
+    player = session.query(Player).get(player_id)
+    if not player:
+        return jsonify({'success': False, 'error': 'Player not found'}), 404
+
+    # Check if there's already an assignment for this request
+    existing_assignment = session.query(SubstituteAssignment).filter_by(
+        request_id=request_id
+    ).first()
+
+    if existing_assignment:
+        return jsonify({'success': False, 'error': 'A substitute has already been assigned to this request'}), 400
+
+    # Create the assignment
+    assignment = SubstituteAssignment(
+        request_id=request_id,
+        player_id=player_id,
+        assigned_by=safe_current_user.id,
+        position_assigned=position_assigned,
+        notes=notes
+    )
+
+    session.add(assignment)
+
+    # Update the request status
+    sub_request.status = 'FILLED'
+    sub_request.filled_at = datetime.utcnow()
+
+    # Send notification to the assigned substitute (async - after transaction commits via @transactional)
+    # Use the appropriate notification task based on league type
+    if sub_request.team.league.name == 'ECS FC':
+        from app.tasks.tasks_ecs_fc_subs import notify_assigned_substitute as notify_ecs_fc_substitute
+        notify_ecs_fc_substitute.delay(assignment.id)
+    else:
+        from app.tasks.tasks_substitute_pools import notify_assigned_substitute
+        notify_assigned_substitute.delay(assignment.id)
+
+    return jsonify({
+        'success': True,
+        'message': f'Successfully assigned {player.name} as substitute',
+        'assignment_id': assignment.id
+    })
 
 
 @substitute_pool_bp.route('/api/substitute-pools/requests/<int:request_id>', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
 def delete_substitute_request(request_id: int):
     """
     Delete a cancelled substitute request to keep the list clean.
     """
-    try:
-        session = g.db_session
-        
-        # Get the request
-        sub_request = session.query(SubstituteRequest).get(request_id)
-        if not sub_request:
-            return jsonify({'success': False, 'error': 'Request not found'}), 404
-        
-        # Check permissions - only allow deletion if cancelled or by admin
-        is_admin = any(role.name in ['Global Admin', 'Pub League Admin'] for role in safe_current_user.roles)
-        
-        if not is_admin and sub_request.status != 'CANCELLED':
-            return jsonify({'success': False, 'error': 'Only cancelled requests can be deleted'}), 403
-        
-        # Check if user is the requester or admin
-        if not is_admin and sub_request.requested_by != safe_current_user.id:
-            return jsonify({'success': False, 'error': 'You can only delete your own requests'}), 403
-        
-        # Delete related responses and assignments first
-        session.query(SubstituteResponse).filter_by(request_id=request_id).delete()
-        session.query(SubstituteAssignment).filter_by(request_id=request_id).delete()
-        
-        # Delete the request
-        session.delete(sub_request)
-        session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': 'Substitute request deleted successfully'
-        })
-        
-    except Exception as e:
-        logger.error(f"Error deleting substitute request: {e}", exc_info=True)
-        session.rollback()
-        return jsonify({'success': False, 'error': 'An error occurred'}), 500
+    session = g.db_session
+
+    # Get the request
+    sub_request = session.query(SubstituteRequest).get(request_id)
+    if not sub_request:
+        return jsonify({'success': False, 'error': 'Request not found'}), 404
+
+    # Check permissions - only allow deletion if cancelled or by admin
+    is_admin = any(role.name in ['Global Admin', 'Pub League Admin'] for role in safe_current_user.roles)
+
+    if not is_admin and sub_request.status != 'CANCELLED':
+        return jsonify({'success': False, 'error': 'Only cancelled requests can be deleted'}), 403
+
+    # Check if user is the requester or admin
+    if not is_admin and sub_request.requested_by != safe_current_user.id:
+        return jsonify({'success': False, 'error': 'You can only delete your own requests'}), 403
+
+    # Delete related responses and assignments first
+    session.query(SubstituteResponse).filter_by(request_id=request_id).delete()
+    session.query(SubstituteAssignment).filter_by(request_id=request_id).delete()
+
+    # Delete the request
+    session.delete(sub_request)
+
+    return jsonify({
+        'success': True,
+        'message': 'Substitute request deleted successfully'
+    })
 
 
 @substitute_pool_bp.route('/api/substitute-pools/cleanup', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def cleanup_old_substitute_requests():
     """
     Clean up old cancelled requests (admin only).
     Deletes cancelled requests older than 30 days.
     """
-    try:
-        session = g.db_session
-        cutoff_date = datetime.utcnow() - timedelta(days=30)
-        
-        # Find old cancelled requests
-        old_requests = session.query(SubstituteRequest).filter(
-            SubstituteRequest.status == 'CANCELLED',
-            SubstituteRequest.cancelled_at < cutoff_date
-        ).all()
-        
-        deleted_count = 0
-        for request in old_requests:
-            # Delete related data
-            session.query(SubstituteResponse).filter_by(request_id=request.id).delete()
-            session.query(SubstituteAssignment).filter_by(request_id=request.id).delete()
-            session.delete(request)
-            deleted_count += 1
-        
-        session.commit()
-        
-        return jsonify({
-            'success': True,
-            'message': f'Cleaned up {deleted_count} old cancelled requests',
-            'deleted_count': deleted_count
-        })
-        
-    except Exception as e:
-        logger.error(f"Error cleaning up old requests: {e}", exc_info=True)
-        session.rollback()
-        return jsonify({'success': False, 'error': 'An error occurred'}), 500
+    session = g.db_session
+    cutoff_date = datetime.utcnow() - timedelta(days=30)
+
+    # Find old cancelled requests
+    old_requests = session.query(SubstituteRequest).filter(
+        SubstituteRequest.status == 'CANCELLED',
+        SubstituteRequest.cancelled_at < cutoff_date
+    ).all()
+
+    deleted_count = 0
+    for request in old_requests:
+        # Delete related data
+        session.query(SubstituteResponse).filter_by(request_id=request.id).delete()
+        session.query(SubstituteAssignment).filter_by(request_id=request.id).delete()
+        session.delete(request)
+        deleted_count += 1
+
+    return jsonify({
+        'success': True,
+        'message': f'Cleaned up {deleted_count} old cancelled requests',
+        'deleted_count': deleted_count
+    })
 
 
 @substitute_pool_bp.route('/admin/substitute-pools/<league_type>/requests/<int:request_id>', methods=['GET'])
@@ -1391,97 +1352,90 @@ def get_substitute_request_details(league_type: str, request_id: int):
 @substitute_pool_bp.route('/admin/substitute-pools/<league_type>/requests/<int:request_id>/assign', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
 def assign_substitute(league_type: str, request_id: int):
     """
     Assign a substitute to a request.
     """
+    if league_type not in LEAGUE_TYPES:
+        return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+    session = g.db_session
+
+    # Get form data
+    player_id = request.json.get('player_id')
+    position_assigned = request.json.get('position_assigned', '')
+    notes = request.json.get('notes', '')
+
+    if not player_id:
+        return jsonify({'success': False, 'message': 'Player ID is required'}), 400
+
+    # Verify the request exists and is open
+    from app.models import Match, Team, League, Season
+    sub_request = session.query(SubstituteRequest).join(
+        Match, SubstituteRequest.match_id == Match.id
+    ).join(
+        Team, SubstituteRequest.team_id == Team.id
+    ).join(
+        League, Team.league_id == League.id
+    ).join(
+        Season, League.season_id == Season.id
+    ).filter(
+        SubstituteRequest.id == request_id,
+        Season.league_type == league_type,
+        SubstituteRequest.status == 'OPEN'
+    ).first()
+
+    if not sub_request:
+        return jsonify({'success': False, 'message': 'Request not found or not open'}), 404
+
+    # Verify the player exists and responded positively
+    response = session.query(SubstituteResponse).filter_by(
+        request_id=request_id,
+        player_id=player_id,
+        is_available=True
+    ).first()
+
+    if not response:
+        return jsonify({'success': False, 'message': 'Player has not responded positively to this request'}), 400
+
+    # Check if already assigned
+    existing_assignment = session.query(SubstituteAssignment).filter_by(
+        request_id=request_id
+    ).first()
+
+    if existing_assignment:
+        return jsonify({'success': False, 'message': 'Substitute already assigned to this request'}), 400
+
+    # Create the assignment
+    assignment = SubstituteAssignment(
+        request_id=request_id,
+        player_id=player_id,
+        assigned_by=safe_current_user.id,
+        position_assigned=position_assigned,
+        notes=notes
+    )
+
+    session.add(assignment)
+    session.flush()  # Get the ID
+
+    # Update request status
+    sub_request.status = 'FILLED'
+    sub_request.filled_at = datetime.utcnow()
+    sub_request.updated_at = datetime.utcnow()
+
+    # Send notification to assigned substitute (after transaction commits via @transactional)
+    from app.tasks.tasks_substitute_pools import notify_assigned_substitute
     try:
-        if league_type not in LEAGUE_TYPES:
-            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
-        
-        session = g.db_session
-        
-        # Get form data
-        player_id = request.json.get('player_id')
-        position_assigned = request.json.get('position_assigned', '')
-        notes = request.json.get('notes', '')
-        
-        if not player_id:
-            return jsonify({'success': False, 'message': 'Player ID is required'}), 400
-        
-        # Verify the request exists and is open
-        from app.models import Match, Team, League, Season
-        sub_request = session.query(SubstituteRequest).join(
-            Match, SubstituteRequest.match_id == Match.id
-        ).join(
-            Team, SubstituteRequest.team_id == Team.id
-        ).join(
-            League, Team.league_id == League.id
-        ).join(
-            Season, League.season_id == Season.id
-        ).filter(
-            SubstituteRequest.id == request_id,
-            Season.league_type == league_type,
-            SubstituteRequest.status == 'OPEN'
-        ).first()
-        
-        if not sub_request:
-            return jsonify({'success': False, 'message': 'Request not found or not open'}), 404
-        
-        # Verify the player exists and responded positively
-        response = session.query(SubstituteResponse).filter_by(
-            request_id=request_id,
-            player_id=player_id,
-            is_available=True
-        ).first()
-        
-        if not response:
-            return jsonify({'success': False, 'message': 'Player has not responded positively to this request'}), 400
-        
-        # Check if already assigned
-        existing_assignment = session.query(SubstituteAssignment).filter_by(
-            request_id=request_id
-        ).first()
-        
-        if existing_assignment:
-            return jsonify({'success': False, 'message': 'Substitute already assigned to this request'}), 400
-        
-        # Create the assignment
-        assignment = SubstituteAssignment(
-            request_id=request_id,
-            player_id=player_id,
-            assigned_by=safe_current_user.id,
-            position_assigned=position_assigned,
-            notes=notes
-        )
-        
-        session.add(assignment)
-        session.flush()  # Get the ID
-        
-        # Update request status
-        sub_request.status = 'FILLED'
-        sub_request.filled_at = datetime.utcnow()
-        sub_request.updated_at = datetime.utcnow()
-        
-        # Send notification to assigned substitute
-        from app.tasks.tasks_substitute_pools import notify_assigned_substitute
-        try:
-            notify_assigned_substitute.delay(assignment.id)
-        except Exception as task_error:
-            logger.warning(f"Failed to queue assignment notification: {task_error}")
-            # Continue with the assignment even if notification fails
-        
-        session.commit()
-        
-        player = session.query(Player).get(player_id)
-        
-        return jsonify({
-            'success': True,
-            'message': f'{player.name if player else "Player"} has been assigned as substitute',
-            'assignment_id': assignment.id
-        })
-        
-    except Exception as e:
-        logger.error(f"Error assigning substitute: {e}", exc_info=True)
-        session.rollback()
-        return jsonify({'success': False, 'message': 'An error occurred'}), 500
+        notify_assigned_substitute.delay(assignment.id)
+    except Exception as task_error:
+        logger.warning(f"Failed to queue assignment notification: {task_error}")
+        # Continue with the assignment even if notification fails
+
+    player = session.query(Player).get(player_id)
+
+    return jsonify({
+        'success': True,
+        'message': f'{player.name if player else "Player"} has been assigned as substitute',
+        'assignment_id': assignment.id
+    })

@@ -10,6 +10,7 @@ import re
 from app.models import db, User, AdminAuditLog
 from app.models.admin_config import AdminConfig
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 from app.utils.url_validator import validate_url_for_ssrf, SSRFValidationError
 from .. import admin_panel_bp
 
@@ -936,6 +937,7 @@ def manage_rate_limits():
 @admin_panel_bp.route('/api-management/api-keys', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def manage_api_keys():
     """Manage API keys and authentication."""
     if request.method == 'POST':
@@ -943,17 +945,17 @@ def manage_api_keys():
             data = request.get_json()
             action = data.get('action')  # 'generate', 'revoke', 'update'
             key_name = data.get('key_name', '')
-            
+
             if action == 'generate':
                 import secrets
-                
+
                 # Generate a new API key
                 api_key = f"ecs_{secrets.token_urlsafe(32)}"
-                
+
                 # Store the key (in production, would use proper API key model)
                 key_setting = f"api_key_{key_name.replace(' ', '_').lower()}"
                 AdminConfig.set_setting(key_setting, api_key, current_user.id)
-                
+
                 # Log the generation
                 AdminAuditLog.log_action(
                     user_id=current_user.id,
@@ -964,22 +966,21 @@ def manage_api_keys():
                     ip_address=request.remote_addr,
                     user_agent=request.headers.get('User-Agent')
                 )
-                
+
                 return jsonify({
                     'success': True,
                     'message': f'API key generated for {key_name}',
                     'api_key': api_key
                 })
-                
+
             elif action == 'revoke':
                 key_setting = f"api_key_{key_name.replace(' ', '_').lower()}"
-                
+
                 # Remove the key
                 key_config = AdminConfig.query.filter_by(key=key_setting).first()
                 if key_config:
                     db.session.delete(key_config)
-                    db.session.commit()
-                
+
                 # Log the revocation
                 AdminAuditLog.log_action(
                     user_id=current_user.id,
@@ -990,34 +991,34 @@ def manage_api_keys():
                     ip_address=request.remote_addr,
                     user_agent=request.headers.get('User-Agent')
                 )
-                
+
                 return jsonify({
                     'success': True,
                     'message': f'API key revoked for {key_name}'
                 })
-            
+
         except Exception as e:
             logger.error(f"API key management error: {e}")
             return jsonify({'success': False, 'message': 'Operation failed'}), 500
-    
+
     # GET request - return current API keys (masked for security)
     try:
         api_keys = []
         api_configs = AdminConfig.query.filter(AdminConfig.key.like('api_key_%')).all()
-        
+
         for config in api_configs:
             key_name = config.key.replace('api_key_', '').replace('_', ' ').title()
             masked_key = f"{config.value[:8]}...{config.value[-4:]}" if config.value else "None"
-            
+
             api_keys.append({
                 'name': key_name,
                 'key': masked_key,
                 'created_at': config.created_at.isoformat() if config.created_at else None,
                 'last_used': 'Never'  # Would track usage in production
             })
-        
+
         return jsonify({'api_keys': api_keys})
-        
+
     except Exception as e:
         logger.error(f"Error getting API keys: {e}")
         return jsonify({'error': str(e)}), 500

@@ -12,6 +12,7 @@ from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required
 
 from app.core import db
+from app.utils.db_utils import transactional
 from app.models.wallet_config import WalletSponsor
 from app.decorators import role_required
 
@@ -48,6 +49,7 @@ def sponsors():
 @wallet_config_bp.route('/sponsors/add', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def add_sponsor():
     """Add a new sponsor"""
     try:
@@ -62,7 +64,6 @@ def add_sponsor():
             is_active=request.form.get('is_active') == 'on'
         )
         db.session.add(sponsor)
-        db.session.commit()
 
         flash(f'Sponsor "{sponsor.name}" added successfully.', 'success')
         return redirect(url_for('wallet_config.sponsors'))
@@ -76,6 +77,7 @@ def add_sponsor():
 @wallet_config_bp.route('/sponsors/<int:sponsor_id>/edit', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def edit_sponsor(sponsor_id):
     """Edit an existing sponsor"""
     try:
@@ -90,8 +92,6 @@ def edit_sponsor(sponsor_id):
         sponsor.sponsor_type = request.form.get('sponsor_type', 'partner')
         sponsor.is_active = request.form.get('is_active') == 'on'
 
-        db.session.commit()
-
         flash(f'Sponsor "{sponsor.name}" updated successfully.', 'success')
         return redirect(url_for('wallet_config.sponsors'))
 
@@ -104,13 +104,13 @@ def edit_sponsor(sponsor_id):
 @wallet_config_bp.route('/sponsors/<int:sponsor_id>/delete', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def delete_sponsor(sponsor_id):
     """Delete a sponsor"""
     try:
         sponsor = WalletSponsor.query.get_or_404(sponsor_id)
         name = sponsor.name
         db.session.delete(sponsor)
-        db.session.commit()
 
         flash(f'Sponsor "{name}" deleted successfully.', 'success')
         return redirect(url_for('wallet_config.sponsors'))
@@ -124,12 +124,12 @@ def delete_sponsor(sponsor_id):
 @wallet_config_bp.route('/sponsors/<int:sponsor_id>/toggle', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def toggle_sponsor(sponsor_id):
     """Toggle sponsor active status"""
     try:
         sponsor = WalletSponsor.query.get_or_404(sponsor_id)
         sponsor.is_active = not sponsor.is_active
-        db.session.commit()
 
         status = 'activated' if sponsor.is_active else 'deactivated'
         flash(f'Sponsor "{sponsor.name}" {status}.', 'success')

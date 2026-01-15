@@ -28,6 +28,7 @@ from app.models import (
 from app.decorators import role_required
 from app.services.push_campaign_service import push_campaign_service
 from app.services.push_targeting_service import push_targeting_service
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,7 @@ def campaigns_list():
 @admin_panel_bp.route('/communication/campaigns', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def campaigns_create():
     """Create a new push notification campaign."""
     try:
@@ -213,7 +215,6 @@ def campaigns_create():
 
     except Exception as e:
         logger.error(f"Error creating campaign: {e}")
-        db.session.rollback()
 
         if request.is_json:
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -395,6 +396,7 @@ def campaigns_duplicate(campaign_id):
 @admin_panel_bp.route('/communication/campaigns/<int:campaign_id>', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def campaigns_delete(campaign_id):
     """Delete a draft campaign."""
     try:
@@ -408,7 +410,6 @@ def campaigns_delete(campaign_id):
 
         campaign_name = campaign.name
         db.session.delete(campaign)
-        db.session.commit()
 
         # Log action
         AdminAuditLog.log_action(
@@ -428,7 +429,6 @@ def campaigns_delete(campaign_id):
 
     except Exception as e:
         logger.error(f"Error deleting campaign {campaign_id}: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

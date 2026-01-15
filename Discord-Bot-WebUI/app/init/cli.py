@@ -18,10 +18,15 @@ def init_cli_commands(app):
     Args:
         app: The Flask application instance.
     """
-    from app.cli import build_assets, init_discord_roles, sync_coach_roles
+    from app.cli import (
+        build_assets, init_discord_roles, sync_coach_roles,
+        fix_duplicate_user_roles, add_user_roles_constraint
+    )
     app.cli.add_command(build_assets)
     app.cli.add_command(init_discord_roles)
     app.cli.add_command(sync_coach_roles)
+    app.cli.add_command(fix_duplicate_user_roles)
+    app.cli.add_command(add_user_roles_constraint)
 
     # Register wallet CLI commands
     from app.wallet_pass.cli import wallet as wallet_cli

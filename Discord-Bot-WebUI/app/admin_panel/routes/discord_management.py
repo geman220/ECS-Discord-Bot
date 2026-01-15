@@ -18,6 +18,7 @@ from sqlalchemy.orm import joinedload
 
 from .. import admin_panel_bp
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 from app.models import Player, Team, User, Season, League
 from app.models.admin_config import AdminAuditLog
 from app.tasks.tasks_discord import (
@@ -567,40 +568,34 @@ def discord_onboarding_api():
 @admin_panel_bp.route('/discord/onboarding/retry/<int:user_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def discord_retry_onboarding_contact(user_id):
     """Manually trigger bot contact retry for a user."""
     session = g.db_session
-    try:
-        user = session.query(User).get(user_id)
-        if not user:
-            return jsonify({'error': 'User not found'}), 404
+    user = session.query(User).get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
 
-        # Reset bot interaction status to allow retry
-        user.bot_interaction_status = 'not_contacted'
-        user.last_bot_contact_at = None
-        session.add(user)
-        session.commit()
+    # Reset bot interaction status to allow retry
+    user.bot_interaction_status = 'not_contacted'
+    user.last_bot_contact_at = None
+    session.add(user)
 
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='discord_onboarding_retry',
-            resource_type='user',
-            resource_id=str(user_id),
-            new_value=f'Retry enabled for {user.username}',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
+    # Log the action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='discord_onboarding_retry',
+        resource_type='user',
+        resource_id=str(user_id),
+        new_value=f'Retry enabled for {user.username}',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
 
-        return jsonify({
-            'success': True,
-            'message': f'Contact retry enabled for {user.username}'
-        })
-
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Error enabling contact retry: {e}")
-        return jsonify({'error': str(e)}), 500
+    return jsonify({
+        'success': True,
+        'message': f'Contact retry enabled for {user.username}'
+    })
 
 
 # -----------------------------------------------------------
@@ -689,10 +684,10 @@ def discord_role_mapping():
 @admin_panel_bp.route('/discord/role-mapping/update', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def update_role_mapping():
     """Update the Discord role mapping for a Flask role."""
     from app.models import Role
-    from app.core import db
 
     session = g.db_session
     data = request.json
@@ -702,37 +697,30 @@ def update_role_mapping():
     discord_role_name = data.get('discord_role_name')
     sync_enabled = data.get('sync_enabled', True)
 
-    try:
-        role = session.query(Role).get(role_id)
-        if not role:
-            return jsonify({'success': False, 'error': 'Role not found'}), 404
+    role = session.query(Role).get(role_id)
+    if not role:
+        return jsonify({'success': False, 'error': 'Role not found'}), 404
 
-        role.discord_role_id = discord_role_id if discord_role_id else None
-        role.discord_role_name = discord_role_name if discord_role_name else None
-        role.sync_enabled = sync_enabled
-        role.last_synced_at = datetime.utcnow()
+    role.discord_role_id = discord_role_id if discord_role_id else None
+    role.discord_role_name = discord_role_name if discord_role_name else None
+    role.sync_enabled = sync_enabled
+    role.last_synced_at = datetime.utcnow()
 
-        session.commit()
+    # Log the action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='update_role_mapping',
+        resource_type='role',
+        resource_id=str(role_id),
+        new_value=f"Discord role: {discord_role_name} ({discord_role_id})",
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
 
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='update_role_mapping',
-            resource_type='role',
-            resource_id=str(role_id),
-            new_value=f"Discord role: {discord_role_name} ({discord_role_id})",
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        return jsonify({
-            'success': True,
-            'message': f'Role "{role.name}" mapped to Discord role "{discord_role_name}"'
-        })
-    except Exception as e:
-        session.rollback()
-        logger.error(f"Error updating role mapping: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+    return jsonify({
+        'success': True,
+        'message': f'Role "{role.name}" mapped to Discord role "{discord_role_name}"'
+    })
 
 
 @admin_panel_bp.route('/discord/role-mapping/sync', methods=['POST'])

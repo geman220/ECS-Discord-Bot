@@ -259,12 +259,15 @@ def get_available_players(league_name: str):
 
         query = (
             session.query(Player)
+            .join(Player.user)  # Join to User to check approval status
             .filter(belongs_to_league)
             .filter(Player.is_current_player == True)
+            .filter(User.is_approved == True)  # Only include approved users
             .options(
                 joinedload(Player.career_stats),
                 joinedload(Player.season_stats),
-                selectinload(Player.teams)
+                selectinload(Player.teams),
+                joinedload(Player.user)  # Eager load user for performance
             )
         )
 

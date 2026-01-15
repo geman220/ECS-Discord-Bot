@@ -23,6 +23,7 @@ from app.models.admin_config import AdminConfig, AdminAuditLog
 from app.models.core import User
 from app.models.communication import DeviceToken
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 # Set up the module logger
 logger = logging.getLogger(__name__)
@@ -635,21 +636,21 @@ def toggle_mobile_setting():
 @admin_panel_bp.route('/mobile-features/device-token/deactivate', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def deactivate_device_token():
     """Deactivate a device token."""
     try:
         token_id = request.form.get('token_id')
-        
+
         if not token_id:
             return jsonify({'success': False, 'message': 'Token ID is required'})
-        
+
         device_token = DeviceToken.query.get_or_404(token_id)
-        
+
         # Deactivate the token
         device_token.is_active = False
         device_token.updated_at = datetime.utcnow()
-        db.session.commit()
-        
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -661,12 +662,12 @@ def deactivate_device_token():
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
+
         return jsonify({
             'success': True,
             'message': 'Device token deactivated successfully'
         })
-        
+
     except Exception as e:
         logger.error(f"Error deactivating device token: {e}")
         return jsonify({'success': False, 'message': 'Error deactivating device token'})

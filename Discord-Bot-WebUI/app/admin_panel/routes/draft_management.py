@@ -18,6 +18,7 @@ from sqlalchemy.orm import joinedload
 
 from .. import admin_panel_bp
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 from app.models import DraftOrderHistory, Season, League, Player, Team
 from app.models.admin_config import AdminAuditLog
 from app.core import db
@@ -130,243 +131,215 @@ def draft_history():
 @admin_panel_bp.route('/draft/edit/<int:pick_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def edit_draft_pick(pick_id):
     """Edit a specific draft pick."""
-    try:
-        pick = db.session.query(DraftOrderHistory).filter_by(id=pick_id).first()
-        if not pick:
-            return jsonify({'success': False, 'message': 'Draft pick not found'}), 404
+    pick = db.session.query(DraftOrderHistory).filter_by(id=pick_id).first()
+    if not pick:
+        return jsonify({'success': False, 'message': 'Draft pick not found'}), 404
 
-        data = request.get_json()
-        new_position = data.get('position')
-        if new_position is not None:
-            new_position = int(new_position)
-        new_notes = data.get('notes', '').strip()
-        position_mode = data.get('mode', 'cascading')
+    data = request.get_json()
+    new_position = data.get('position')
+    if new_position is not None:
+        new_position = int(new_position)
+    new_notes = data.get('notes', '').strip()
+    position_mode = data.get('mode', 'cascading')
 
-        position_changed = False
-        swap_result = None
+    position_changed = False
+    swap_result = None
 
-        if new_position and new_position != pick.draft_position:
-            if position_mode == 'absolute':
-                swap_result = DraftService.set_absolute_draft_position(db.session, pick_id, new_position)
-            elif position_mode == 'smart':
-                swap_result = DraftService.insert_draft_position_smart(db.session, pick_id, new_position)
-            elif position_mode == 'insert':
-                swap_result = DraftService.insert_draft_position(db.session, pick_id, new_position)
-            else:
-                swap_result = DraftService.swap_draft_positions(db.session, pick_id, new_position)
+    if new_position and new_position != pick.draft_position:
+        if position_mode == 'absolute':
+            swap_result = DraftService.set_absolute_draft_position(db.session, pick_id, new_position)
+        elif position_mode == 'smart':
+            swap_result = DraftService.insert_draft_position_smart(db.session, pick_id, new_position)
+        elif position_mode == 'insert':
+            swap_result = DraftService.insert_draft_position(db.session, pick_id, new_position)
+        else:
+            swap_result = DraftService.swap_draft_positions(db.session, pick_id, new_position)
 
-            if not swap_result['success']:
-                return jsonify(swap_result), 400
+        if not swap_result['success']:
+            return jsonify(swap_result), 400
 
-            position_changed = True
-            logger.info(f"Swapped draft pick {pick_id} from #{swap_result['old_position']} to #{swap_result['new_position']}")
+        position_changed = True
+        logger.info(f"Swapped draft pick {pick_id} from #{swap_result['old_position']} to #{swap_result['new_position']}")
 
-        notes_changed = False
-        if new_notes != pick.notes:
-            pick.notes = new_notes if new_notes else None
-            pick.updated_at = datetime.utcnow()
-            notes_changed = True
+    notes_changed = False
+    if new_notes != pick.notes:
+        pick.notes = new_notes if new_notes else None
+        pick.updated_at = datetime.utcnow()
+        notes_changed = True
 
-        if position_changed or notes_changed:
-            db.session.commit()
+    if position_changed or notes_changed:
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='draft_pick_edit',
+            resource_type='draft_pick',
+            resource_id=str(pick_id),
+            new_value=f'Position: {new_position}, Notes: {new_notes[:50] if new_notes else ""}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
 
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='draft_pick_edit',
-                resource_type='draft_pick',
-                resource_id=str(pick_id),
-                new_value=f'Position: {new_position}, Notes: {new_notes[:50] if new_notes else ""}',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
+    message_parts = []
+    if position_changed:
+        message_parts.append(f"Moved from #{swap_result['old_position']} to #{swap_result['new_position']}")
+    if notes_changed:
+        message_parts.append("updated notes")
 
-        message_parts = []
-        if position_changed:
-            message_parts.append(f"Moved from #{swap_result['old_position']} to #{swap_result['new_position']}")
-        if notes_changed:
-            message_parts.append("updated notes")
+    message = f"Updated draft pick for {pick.player.name}"
+    if message_parts:
+        message += f" ({', '.join(message_parts)})"
 
-        message = f"Updated draft pick for {pick.player.name}"
-        if message_parts:
-            message += f" ({', '.join(message_parts)})"
-
-        return jsonify({
-            'success': True,
-            'message': message,
-            'pick': {
-                'id': pick.id,
-                'position': pick.draft_position,
-                'notes': pick.notes,
-                'updated_at': pick.updated_at.isoformat() if pick.updated_at else None
-            },
-            'affected_picks': swap_result['affected_picks'] if swap_result else 0
-        })
-
-    except Exception as e:
-        logger.error(f"Error editing draft pick {pick_id}: {e}", exc_info=True)
-        db.session.rollback()
-        return jsonify({'success': False, 'message': 'Failed to update draft pick'}), 500
+    return jsonify({
+        'success': True,
+        'message': message,
+        'pick': {
+            'id': pick.id,
+            'position': pick.draft_position,
+            'notes': pick.notes,
+            'updated_at': pick.updated_at.isoformat() if pick.updated_at else None
+        },
+        'affected_picks': swap_result['affected_picks'] if swap_result else 0
+    })
 
 
 @admin_panel_bp.route('/draft/delete/<int:pick_id>', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def delete_draft_pick(pick_id):
     """Delete a specific draft pick."""
-    try:
-        pick = db.session.query(DraftOrderHistory).filter_by(id=pick_id).first()
-        if not pick:
-            return jsonify({'success': False, 'message': 'Draft pick not found'}), 404
+    pick = db.session.query(DraftOrderHistory).filter_by(id=pick_id).first()
+    if not pick:
+        return jsonify({'success': False, 'message': 'Draft pick not found'}), 404
 
-        player_name = pick.player.name
-        team_name = pick.team.name
-        position = pick.draft_position
-        season_id = pick.season_id
-        league_id = pick.league_id
+    player_name = pick.player.name
+    team_name = pick.team.name
+    position = pick.draft_position
+    season_id = pick.season_id
+    league_id = pick.league_id
 
-        db.session.delete(pick)
+    db.session.delete(pick)
 
-        # Adjust subsequent picks
-        subsequent_picks = db.session.query(DraftOrderHistory).filter(
-            DraftOrderHistory.season_id == season_id,
-            DraftOrderHistory.league_id == league_id,
-            DraftOrderHistory.draft_position > position
-        ).all()
+    # Adjust subsequent picks
+    subsequent_picks = db.session.query(DraftOrderHistory).filter(
+        DraftOrderHistory.season_id == season_id,
+        DraftOrderHistory.league_id == league_id,
+        DraftOrderHistory.draft_position > position
+    ).all()
 
-        for subsequent_pick in subsequent_picks:
-            subsequent_pick.draft_position -= 1
-            subsequent_pick.updated_at = datetime.utcnow()
+    for subsequent_pick in subsequent_picks:
+        subsequent_pick.draft_position -= 1
+        subsequent_pick.updated_at = datetime.utcnow()
 
-        db.session.commit()
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='draft_pick_delete',
+        resource_type='draft_pick',
+        resource_id=str(pick_id),
+        new_value=f'Deleted pick #{position} ({player_name} to {team_name})',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
 
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='draft_pick_delete',
-            resource_type='draft_pick',
-            resource_id=str(pick_id),
-            new_value=f'Deleted pick #{position} ({player_name} to {team_name})',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        return jsonify({
-            'success': True,
-            'message': f'Deleted draft pick #{position} ({player_name} to {team_name})'
-        })
-
-    except Exception as e:
-        logger.error(f"Error deleting draft pick {pick_id}: {e}", exc_info=True)
-        db.session.rollback()
-        return jsonify({'success': False, 'message': 'Failed to delete draft pick'}), 500
+    return jsonify({
+        'success': True,
+        'message': f'Deleted draft pick #{position} ({player_name} to {team_name})'
+    })
 
 
 @admin_panel_bp.route('/draft/clear', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def clear_draft_history():
     """Clear draft history for a specific season and league."""
-    try:
-        data = request.get_json()
-        season_id = data.get('season_id')
-        league_id = data.get('league_id')
+    data = request.get_json()
+    season_id = data.get('season_id')
+    league_id = data.get('league_id')
 
-        if season_id:
-            season_id = int(season_id)
-        if league_id:
-            league_id = int(league_id)
+    if season_id:
+        season_id = int(season_id)
+    if league_id:
+        league_id = int(league_id)
 
-        if not season_id or not league_id:
-            return jsonify({'success': False, 'message': 'Season ID and League ID are required'}), 400
+    if not season_id or not league_id:
+        return jsonify({'success': False, 'message': 'Season ID and League ID are required'}), 400
 
-        season = db.session.query(Season).filter_by(id=season_id).first()
-        league = db.session.query(League).filter_by(id=league_id).first()
+    season = db.session.query(Season).filter_by(id=season_id).first()
+    league = db.session.query(League).filter_by(id=league_id).first()
 
-        if not season or not league:
-            return jsonify({'success': False, 'message': 'Season or League not found'}), 404
+    if not season or not league:
+        return jsonify({'success': False, 'message': 'Season or League not found'}), 404
 
-        picks_count = db.session.query(DraftOrderHistory).filter(
-            DraftOrderHistory.season_id == season_id,
-            DraftOrderHistory.league_id == league_id
-        ).count()
+    picks_count = db.session.query(DraftOrderHistory).filter(
+        DraftOrderHistory.season_id == season_id,
+        DraftOrderHistory.league_id == league_id
+    ).count()
 
-        if picks_count == 0:
-            return jsonify({'success': False, 'message': 'No draft picks found'}), 404
+    if picks_count == 0:
+        return jsonify({'success': False, 'message': 'No draft picks found'}), 404
 
-        deleted_count = db.session.query(DraftOrderHistory).filter(
-            DraftOrderHistory.season_id == season_id,
-            DraftOrderHistory.league_id == league_id
-        ).delete()
+    deleted_count = db.session.query(DraftOrderHistory).filter(
+        DraftOrderHistory.season_id == season_id,
+        DraftOrderHistory.league_id == league_id
+    ).delete()
 
-        db.session.commit()
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='draft_history_clear',
+        resource_type='draft_history',
+        resource_id=f'{season_id}_{league_id}',
+        new_value=f'Cleared {deleted_count} picks for {season.name} - {league.name}',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
 
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='draft_history_clear',
-            resource_type='draft_history',
-            resource_id=f'{season_id}_{league_id}',
-            new_value=f'Cleared {deleted_count} picks for {season.name} - {league.name}',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        return jsonify({
-            'success': True,
-            'message': f'Cleared {deleted_count} draft picks for {season.name} - {league.name}'
-        })
-
-    except Exception as e:
-        logger.error(f"Error clearing draft history: {e}", exc_info=True)
-        db.session.rollback()
-        return jsonify({'success': False, 'message': 'Failed to clear draft history'}), 500
+    return jsonify({
+        'success': True,
+        'message': f'Cleared {deleted_count} draft picks for {season.name} - {league.name}'
+    })
 
 
 @admin_panel_bp.route('/draft/normalize', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def normalize_draft_positions():
     """Normalize draft positions to ensure sequential numbering."""
-    try:
-        data = request.get_json()
-        season_id = data.get('season_id')
-        league_id = data.get('league_id')
+    data = request.get_json()
+    season_id = data.get('season_id')
+    league_id = data.get('league_id')
 
-        if season_id:
-            season_id = int(season_id)
-        if league_id:
-            league_id = int(league_id)
+    if season_id:
+        season_id = int(season_id)
+    if league_id:
+        league_id = int(league_id)
 
-        if not season_id or not league_id:
-            return jsonify({'success': False, 'message': 'Season ID and League ID are required'}), 400
+    if not season_id or not league_id:
+        return jsonify({'success': False, 'message': 'Season ID and League ID are required'}), 400
 
-        season = db.session.query(Season).filter_by(id=season_id).first()
-        league = db.session.query(League).filter_by(id=league_id).first()
+    season = db.session.query(Season).filter_by(id=season_id).first()
+    league = db.session.query(League).filter_by(id=league_id).first()
 
-        if not season or not league:
-            return jsonify({'success': False, 'message': 'Season or League not found'}), 404
+    if not season or not league:
+        return jsonify({'success': False, 'message': 'Season or League not found'}), 404
 
-        result = DraftService.normalize_draft_positions(db.session, season_id, league_id)
+    result = DraftService.normalize_draft_positions(db.session, season_id, league_id)
 
-        if result['success']:
-            db.session.commit()
+    if result['success']:
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='draft_positions_normalize',
+            resource_type='draft_history',
+            resource_id=f'{season_id}_{league_id}',
+            new_value=f'Normalized {result["changes_made"]} positions',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
 
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='draft_positions_normalize',
-                resource_type='draft_history',
-                resource_id=f'{season_id}_{league_id}',
-                new_value=f'Normalized {result["changes_made"]} positions',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-        return jsonify(result)
-
-    except Exception as e:
-        logger.error(f"Error normalizing draft positions: {e}", exc_info=True)
-        db.session.rollback()
-        return jsonify({'success': False, 'message': 'Failed to normalize positions'}), 500
+    return jsonify(result)
 
 
 # -----------------------------------------------------------

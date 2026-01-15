@@ -18,6 +18,7 @@ from app.models.admin_config import AdminAuditLog
 from app.models.communication import DeviceToken, Notification
 from app.models.core import User
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -154,6 +155,7 @@ def push_notification_test():
 @admin_panel_bp.route('/communication/push-notifications/cleanup-tokens', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def push_notification_cleanup_tokens():
     """Clean up invalid/inactive FCM tokens."""
     try:
@@ -173,8 +175,6 @@ def push_notification_cleanup_tokens():
         count = len(old_tokens)
         for token in old_tokens:
             token.is_active = False
-
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(

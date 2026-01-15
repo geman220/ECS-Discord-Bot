@@ -17,6 +17,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.communication import ScheduledMessage
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -51,6 +52,7 @@ def scheduled_messages():
 @admin_panel_bp.route('/communication/scheduled-messages/create', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def create_scheduled_message():
     """Create a new scheduled message."""
     try:
@@ -82,7 +84,6 @@ def create_scheduled_message():
         )
 
         db.session.add(scheduled_message)
-        db.session.commit()
 
         # Log the action
         audit_log = AdminAuditLog(
@@ -93,7 +94,6 @@ def create_scheduled_message():
             details=f'Created scheduled message for {scheduled_send_time}'
         )
         db.session.add(audit_log)
-        db.session.commit()
 
         flash('Scheduled message created successfully!', 'success')
         return redirect(url_for('admin_panel.scheduled_messages'))
@@ -132,6 +132,7 @@ def scheduled_messages_queue():
 @admin_panel_bp.route('/communication/scheduled-messages/new', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def schedule_new_message():
     """Create/schedule a new message."""
     if request.method == 'GET':
@@ -188,7 +189,6 @@ def schedule_new_message():
         )
 
         db.session.add(scheduled_message)
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(
@@ -329,6 +329,7 @@ def edit_scheduled_message():
 @admin_panel_bp.route('/communication/scheduled-messages/<int:message_id>/update', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def update_scheduled_message(message_id):
     """Update an existing scheduled message."""
     try:
@@ -354,7 +355,6 @@ def update_scheduled_message(message_id):
             message.message_type = message_type
 
         message.updated_at = datetime.utcnow()
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(
@@ -375,7 +375,6 @@ def update_scheduled_message(message_id):
         })
 
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error updating scheduled message {message_id}: {e}")
         return jsonify({'success': False, 'message': 'Failed to update message'}), 500
 
@@ -383,6 +382,7 @@ def update_scheduled_message(message_id):
 @admin_panel_bp.route('/communication/scheduled-messages/cancel', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def cancel_scheduled_message():
     """Cancel a pending scheduled message."""
     try:
@@ -400,7 +400,6 @@ def cancel_scheduled_message():
         old_status = message.status
         message.status = 'CANCELLED'
         message.updated_at = datetime.utcnow()
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(
@@ -419,7 +418,6 @@ def cancel_scheduled_message():
         return redirect(url_for('admin_panel.scheduled_messages'))
 
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error cancelling scheduled message: {e}")
         flash('Failed to cancel message. Please try again.', 'error')
         return redirect(url_for('admin_panel.scheduled_messages'))
@@ -428,6 +426,7 @@ def cancel_scheduled_message():
 @admin_panel_bp.route('/communication/scheduled-messages/retry', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def retry_scheduled_message():
     """Retry a failed scheduled message."""
     try:
@@ -447,7 +446,6 @@ def retry_scheduled_message():
         message.send_error = None
         message.scheduled_send_time = datetime.utcnow()  # Reschedule for now
         message.updated_at = datetime.utcnow()
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(
@@ -466,7 +464,6 @@ def retry_scheduled_message():
         return redirect(url_for('admin_panel.scheduled_messages'))
 
     except Exception as e:
-        db.session.rollback()
         logger.error(f"Error retrying scheduled message: {e}")
         flash('Failed to retry message. Please try again.', 'error')
         return redirect(url_for('admin_panel.scheduled_messages'))

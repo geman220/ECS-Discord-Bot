@@ -22,6 +22,7 @@ from .. import admin_panel_bp
 from app.decorators import role_required
 from app.models.admin_config import AdminAuditLog
 from app.sms_helpers import check_sms_config
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -876,139 +877,124 @@ def security_dashboard():
 @admin_panel_bp.route('/system/security/ban-ip', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def security_ban_ip():
     """Manually ban an IP address."""
-    try:
-        from app.models import IPBan
+    from app.models import IPBan
+    from app.core import db
 
-        data = request.get_json()
-        ip_address = data.get('ip_address')
-        reason = data.get('reason', 'Manual ban from admin panel')
-        duration_hours = data.get('duration_hours', 24)
-        permanent = data.get('permanent', False)
+    data = request.get_json()
+    ip_address = data.get('ip_address')
+    reason = data.get('reason', 'Manual ban from admin panel')
+    duration_hours = data.get('duration_hours', 24)
+    permanent = data.get('permanent', False)
 
-        if not ip_address:
-            return jsonify({'success': False, 'message': 'IP address is required'}), 400
+    if not ip_address:
+        return jsonify({'success': False, 'message': 'IP address is required'}), 400
 
-        # Create ban
-        expires_at = None if permanent else datetime.utcnow() + timedelta(hours=duration_hours)
+    # Create ban
+    expires_at = None if permanent else datetime.utcnow() + timedelta(hours=duration_hours)
 
-        ban = IPBan(
-            ip_address=ip_address,
-            reason=reason,
-            banned_by=current_user.username,
-            banned_at=datetime.utcnow(),
-            expires_at=expires_at
-        )
+    ban = IPBan(
+        ip_address=ip_address,
+        reason=reason,
+        banned_by=current_user.username,
+        banned_at=datetime.utcnow(),
+        expires_at=expires_at
+    )
 
-        from app.core import db
-        db.session.add(ban)
-        db.session.commit()
+    db.session.add(ban)
 
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='ban_ip',
-            resource_type='security',
-            resource_id=ip_address,
-            new_value=f'Banned for: {reason}',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
+    # Log the action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='ban_ip',
+        resource_type='security',
+        resource_id=ip_address,
+        new_value=f'Banned for: {reason}',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
 
-        return jsonify({
-            'success': True,
-            'message': f'IP {ip_address} has been banned'
-        })
-
-    except Exception as e:
-        logger.error(f"Error banning IP: {e}")
-        return jsonify({'success': False, 'message': 'Error banning IP'}), 500
+    return jsonify({
+        'success': True,
+        'message': f'IP {ip_address} has been banned'
+    })
 
 
 @admin_panel_bp.route('/system/security/unban-ip', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def security_unban_ip():
     """Unban an IP address."""
-    try:
-        from app.models import IPBan
+    from app.models import IPBan
+    from app.core import db
 
-        data = request.get_json()
-        ip_address = data.get('ip_address')
+    data = request.get_json()
+    ip_address = data.get('ip_address')
 
-        if not ip_address:
-            return jsonify({'success': False, 'message': 'IP address is required'}), 400
+    if not ip_address:
+        return jsonify({'success': False, 'message': 'IP address is required'}), 400
 
-        # Remove from database
-        from app.core import db
-        IPBan.query.filter_by(ip_address=ip_address).delete()
-        db.session.commit()
+    # Remove from database
+    IPBan.query.filter_by(ip_address=ip_address).delete()
 
-        # Also remove from in-memory blacklist if security middleware exists
-        if hasattr(current_app, 'security_middleware') and current_app.security_middleware:
-            if hasattr(current_app.security_middleware, 'rate_limiter'):
-                if ip_address in current_app.security_middleware.rate_limiter.blacklist:
-                    del current_app.security_middleware.rate_limiter.blacklist[ip_address]
+    # Also remove from in-memory blacklist if security middleware exists
+    if hasattr(current_app, 'security_middleware') and current_app.security_middleware:
+        if hasattr(current_app.security_middleware, 'rate_limiter'):
+            if ip_address in current_app.security_middleware.rate_limiter.blacklist:
+                del current_app.security_middleware.rate_limiter.blacklist[ip_address]
 
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='unban_ip',
-            resource_type='security',
-            resource_id=ip_address,
-            new_value='IP unbanned',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
+    # Log the action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='unban_ip',
+        resource_type='security',
+        resource_id=ip_address,
+        new_value='IP unbanned',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
 
-        return jsonify({
-            'success': True,
-            'message': f'IP {ip_address} has been unbanned'
-        })
-
-    except Exception as e:
-        logger.error(f"Error unbanning IP: {e}")
-        return jsonify({'success': False, 'message': 'Error unbanning IP'}), 500
+    return jsonify({
+        'success': True,
+        'message': f'IP {ip_address} has been unbanned'
+    })
 
 
 @admin_panel_bp.route('/system/security/clear-all-bans', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def security_clear_all_bans():
     """Clear all IP bans."""
-    try:
-        from app.models import IPBan
-        from app.core import db
+    from app.models import IPBan
+    from app.core import db
 
-        # Clear database bans
-        count = IPBan.query.delete()
-        db.session.commit()
+    # Clear database bans
+    count = IPBan.query.delete()
 
-        # Clear in-memory blacklist
-        if hasattr(current_app, 'security_middleware') and current_app.security_middleware:
-            if hasattr(current_app.security_middleware, 'rate_limiter'):
-                current_app.security_middleware.rate_limiter.blacklist.clear()
+    # Clear in-memory blacklist
+    if hasattr(current_app, 'security_middleware') and current_app.security_middleware:
+        if hasattr(current_app.security_middleware, 'rate_limiter'):
+            current_app.security_middleware.rate_limiter.blacklist.clear()
 
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='clear_all_bans',
-            resource_type='security',
-            resource_id='all',
-            new_value=f'Cleared {count} bans',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
+    # Log the action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='clear_all_bans',
+        resource_type='security',
+        resource_id='all',
+        new_value=f'Cleared {count} bans',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
 
-        return jsonify({
-            'success': True,
-            'message': f'Cleared {count} IP bans'
-        })
-
-    except Exception as e:
-        logger.error(f"Error clearing bans: {e}")
-        return jsonify({'success': False, 'message': 'Error clearing bans'}), 500
+    return jsonify({
+        'success': True,
+        'message': f'Cleared {count} IP bans'
+    })
 
 
 @admin_panel_bp.route('/api/security/status')

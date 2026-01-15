@@ -25,6 +25,7 @@ from app.models import (
 )
 from app.decorators import role_required
 from app.services.push_targeting_service import push_targeting_service
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,7 @@ def notification_groups_list():
 @admin_panel_bp.route('/communication/notification-groups', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def notification_groups_create():
     """Create a new notification group."""
     try:
@@ -120,7 +122,6 @@ def notification_groups_create():
         )
 
         db.session.add(group)
-        db.session.commit()
 
         # Log action
         AdminAuditLog.log_action(
@@ -147,7 +148,6 @@ def notification_groups_create():
 
     except Exception as e:
         logger.error(f"Error creating notification group: {e}")
-        db.session.rollback()
 
         if request.is_json:
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -229,6 +229,7 @@ def notification_groups_detail(group_id):
 @admin_panel_bp.route('/communication/notification-groups/<int:group_id>', methods=['PUT'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def notification_groups_update(group_id):
     """Update a notification group."""
     try:
@@ -245,8 +246,6 @@ def notification_groups_update(group_id):
         # Update criteria for dynamic groups
         if group.is_dynamic and 'criteria' in data:
             group.criteria = data['criteria']
-
-        db.session.commit()
 
         # Log action
         AdminAuditLog.log_action(
@@ -273,13 +272,13 @@ def notification_groups_update(group_id):
 
     except Exception as e:
         logger.error(f"Error updating notification group {group_id}: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @admin_panel_bp.route('/communication/notification-groups/<int:group_id>', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def notification_groups_delete(group_id):
     """Delete (deactivate) a notification group."""
     try:
@@ -288,7 +287,6 @@ def notification_groups_delete(group_id):
 
         # Soft delete
         group.is_active = False
-        db.session.commit()
 
         # Log action
         AdminAuditLog.log_action(
@@ -308,7 +306,6 @@ def notification_groups_delete(group_id):
 
     except Exception as e:
         logger.error(f"Error deleting notification group {group_id}: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -354,6 +351,7 @@ def notification_groups_members(group_id):
 @admin_panel_bp.route('/communication/notification-groups/<int:group_id>/members', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def notification_groups_add_member(group_id):
     """Add members to a static notification group."""
     try:
@@ -392,8 +390,6 @@ def notification_groups_add_member(group_id):
                 db.session.add(member)
                 added_count += 1
 
-        db.session.commit()
-
         return jsonify({
             'success': True,
             'message': f'Added {added_count} member(s)',
@@ -402,13 +398,13 @@ def notification_groups_add_member(group_id):
 
     except Exception as e:
         logger.error(f"Error adding group members: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @admin_panel_bp.route('/communication/notification-groups/<int:group_id>/members/<int:user_id>', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def notification_groups_remove_member(group_id, user_id):
     """Remove a member from a static notification group."""
     try:
@@ -418,7 +414,6 @@ def notification_groups_remove_member(group_id, user_id):
         ).first_or_404()
 
         db.session.delete(member)
-        db.session.commit()
 
         return jsonify({
             'success': True,
@@ -427,7 +422,6 @@ def notification_groups_remove_member(group_id, user_id):
 
     except Exception as e:
         logger.error(f"Error removing group member: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

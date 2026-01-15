@@ -184,7 +184,6 @@ def duplicate_notification_legacy(notification_id):
             details=f'Duplicated notification {notification_id}'
         )
         db.session.add(audit_log)
-        db.session.commit()
 
         flash('Notification duplicated successfully!', 'success')
         return redirect(url_for('admin_panel.push_notifications'))

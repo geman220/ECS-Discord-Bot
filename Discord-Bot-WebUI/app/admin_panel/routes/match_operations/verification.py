@@ -21,6 +21,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
 from app.utils.user_helpers import safe_current_user
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -230,140 +231,128 @@ def match_verification():
 @admin_panel_bp.route('/verify-match', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def verify_match_legacy():
     """Verify a match result."""
-    try:
-        from app.models import Match
+    from app.models import Match
 
-        match_id = request.form.get('match_id')
-        action = request.form.get('action', 'verify')
+    match_id = request.form.get('match_id')
+    action = request.form.get('action', 'verify')
 
-        if not match_id:
-            flash('Match ID is required for verification.', 'error')
-            return redirect(url_for('admin_panel.match_verification'))
-
-        match = Match.query.get_or_404(match_id)
-
-        if action == 'verify':
-            # Verify the match for both teams
-            match.home_team_verified = True
-            match.home_team_verified_by = current_user.id
-            match.home_team_verified_at = datetime.utcnow()
-            match.away_team_verified = True
-            match.away_team_verified_by = current_user.id
-            match.away_team_verified_at = datetime.utcnow()
-
-            # Log the action
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='verify_match',
-                resource_type='match_operations',
-                resource_id=str(match_id),
-                new_value=f'Verified match: {match.home_team.name if match.home_team else "TBD"} vs {match.away_team.name if match.away_team else "TBD"}',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-            flash(f'Match verified successfully!', 'success')
-
-        elif action == 'reject':
-            # Reject the match result - reset scores and verification
-            match.home_team_score = None
-            match.away_team_score = None
-            match.home_team_verified = False
-            match.home_team_verified_by = None
-            match.home_team_verified_at = None
-            match.away_team_verified = False
-            match.away_team_verified_by = None
-            match.away_team_verified_at = None
-
-            # Log the action
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='reject_match_result',
-                resource_type='match_operations',
-                resource_id=str(match_id),
-                new_value=f'Rejected match result and reset scores',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-
-            flash(f'Match result rejected and scores reset.', 'warning')
-
-        db.session.commit()
+    if not match_id:
+        flash('Match ID is required for verification.', 'error')
         return redirect(url_for('admin_panel.match_verification'))
 
-    except Exception as e:
-        logger.error(f"Error verifying match: {e}")
-        flash('Match verification failed. Check database connectivity and permissions.', 'error')
-        return redirect(url_for('admin_panel.match_verification'))
+    match = Match.query.get_or_404(match_id)
+
+    if action == 'verify':
+        # Verify the match for both teams
+        match.home_team_verified = True
+        match.home_team_verified_by = current_user.id
+        match.home_team_verified_at = datetime.utcnow()
+        match.away_team_verified = True
+        match.away_team_verified_by = current_user.id
+        match.away_team_verified_at = datetime.utcnow()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='verify_match',
+            resource_type='match_operations',
+            resource_id=str(match_id),
+            new_value=f'Verified match: {match.home_team.name if match.home_team else "TBD"} vs {match.away_team.name if match.away_team else "TBD"}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        flash(f'Match verified successfully!', 'success')
+
+    elif action == 'reject':
+        # Reject the match result - reset scores and verification
+        match.home_team_score = None
+        match.away_team_score = None
+        match.home_team_verified = False
+        match.home_team_verified_by = None
+        match.home_team_verified_at = None
+        match.away_team_verified = False
+        match.away_team_verified_by = None
+        match.away_team_verified_at = None
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='reject_match_result',
+            resource_type='match_operations',
+            resource_id=str(match_id),
+            new_value=f'Rejected match result and reset scores',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        flash(f'Match result rejected and scores reset.', 'warning')
+
+    return redirect(url_for('admin_panel.match_verification'))
 
 
 @admin_panel_bp.route('/match-operations/verify-match/<int:match_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def verify_match(match_id):
     """Verify a match result by match ID."""
-    try:
-        from app.models import Match
+    from app.models import Match
 
-        team = request.form.get('team', 'both')
-        action = request.form.get('action', 'verify')
+    team = request.form.get('team', 'both')
+    action = request.form.get('action', 'verify')
 
-        match = Match.query.get_or_404(match_id)
+    match = Match.query.get_or_404(match_id)
 
-        if action == 'verify':
-            if team == 'home' or team == 'both':
-                match.home_team_verified = True
-                match.home_team_verified_by = current_user.id
-                match.home_team_verified_at = datetime.utcnow()
+    if action == 'verify':
+        if team == 'home' or team == 'both':
+            match.home_team_verified = True
+            match.home_team_verified_by = current_user.id
+            match.home_team_verified_at = datetime.utcnow()
 
-            if team == 'away' or team == 'both':
-                match.away_team_verified = True
-                match.away_team_verified_by = current_user.id
-                match.away_team_verified_at = datetime.utcnow()
+        if team == 'away' or team == 'both':
+            match.away_team_verified = True
+            match.away_team_verified_by = current_user.id
+            match.away_team_verified_at = datetime.utcnow()
 
-            # Log the action
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='verify_match',
-                resource_type='match_operations',
-                resource_id=str(match_id),
-                new_value=f'Verified match result for {team} team(s)',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='verify_match',
+            resource_type='match_operations',
+            resource_id=str(match_id),
+            new_value=f'Verified match result for {team} team(s)',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
 
-            flash(f'Match result verified for {team} team(s).', 'success')
+        flash(f'Match result verified for {team} team(s).', 'success')
 
-        elif action == 'reject':
-            # Reset verification and scores
-            match.home_team_verified = False
-            match.home_team_verified_by = None
-            match.home_team_verified_at = None
-            match.away_team_verified = False
-            match.away_team_verified_by = None
-            match.away_team_verified_at = None
-            match.home_team_score = None
-            match.away_team_score = None
+    elif action == 'reject':
+        # Reset verification and scores
+        match.home_team_verified = False
+        match.home_team_verified_by = None
+        match.home_team_verified_at = None
+        match.away_team_verified = False
+        match.away_team_verified_by = None
+        match.away_team_verified_at = None
+        match.home_team_score = None
+        match.away_team_score = None
 
-            # Log the action
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='reject_match_result',
-                resource_type='match_operations',
-                resource_id=str(match_id),
-                new_value=f'Rejected match result and reset scores',
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='reject_match_result',
+            resource_type='match_operations',
+            resource_id=str(match_id),
+            new_value=f'Rejected match result and reset scores',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
 
-            flash(f'Match result rejected and scores reset.', 'warning')
+        flash(f'Match result rejected and scores reset.', 'warning')
 
-        db.session.commit()
-        return redirect(url_for('admin_panel.match_verification'))
-
-    except Exception as e:
-        logger.error(f"Error verifying match: {e}")
-        flash('Match verification failed. Check database connectivity and permissions.', 'error')
-        return redirect(url_for('admin_panel.match_verification'))
+    return redirect(url_for('admin_panel.match_verification'))

@@ -22,6 +22,7 @@ from app.core import db
 from app.models.admin_config import AdminConfig, AdminAuditLog
 from app.models.core import User, Role
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 from ..performance import (cache_admin_data, optimize_admin_queries, admin_stats_cache, 
                            get_performance_report, clear_admin_cache)
 
@@ -611,13 +612,14 @@ def performance_monitoring():
 @admin_panel_bp.route('/performance/clear-cache', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def clear_performance_cache():
     """Clear admin panel cache."""
     try:
         pattern = request.form.get('pattern')  # Optional pattern to clear specific cache keys
         clear_admin_cache(pattern)
         admin_stats_cache.invalidate()
-        
+
         # Log the action
         audit_log = AdminAuditLog(
             admin_id=current_user.id,
@@ -627,8 +629,7 @@ def clear_performance_cache():
             details=f'Cleared admin panel cache{f" with pattern: {pattern}" if pattern else ""}'
         )
         db.session.add(audit_log)
-        db.session.commit()
-        
+
         flash('Cache cleared successfully!', 'success')
         return redirect(url_for('admin_panel.performance_monitoring'))
     except Exception as e:
@@ -760,14 +761,15 @@ def task_monitor():
 @admin_panel_bp.route('/api/quick-actions/bulk-approve', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def quick_bulk_approve():
     """Quick bulk approve pending users."""
     try:
         from app.models.core import User
-        
+
         # Get all pending users
         pending_users = User.query.filter_by(approval_status='pending').limit(10).all()
-        
+
         approved_count = 0
         for user in pending_users:
             user.approval_status = 'approved'
@@ -775,9 +777,7 @@ def quick_bulk_approve():
             user.approved_by = current_user.id
             user.approved_at = datetime.utcnow()
             approved_count += 1
-        
-        db.session.commit()
-        
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -788,13 +788,13 @@ def quick_bulk_approve():
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
+
         return jsonify({
             'success': True,
             'message': f'Approved {approved_count} users',
             'count': approved_count
         })
-        
+
     except Exception as e:
         logger.error(f"Quick bulk approve error: {e}")
         return jsonify({'success': False, 'message': 'Bulk approval failed'}), 500
@@ -849,19 +849,20 @@ def quick_system_backup():
 @admin_panel_bp.route('/api/quick-actions/bulk-send-messages', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def quick_bulk_send_messages():
     """Send quick messages to multiple users."""
     try:
         data = request.get_json()
         message_content = data.get('message', '')
         recipient_type = data.get('recipient_type', 'active_users')  # 'active_users', 'pending', 'all'
-        
+
         if not message_content:
             return jsonify({'success': False, 'message': 'Message content is required'}), 400
-        
+
         from app.models.core import User
         from app.models.notifications import Notification
-        
+
         # Get recipients based on type
         if recipient_type == 'active_users':
             recipients = User.query.filter_by(is_active=True).all()
@@ -869,7 +870,7 @@ def quick_bulk_send_messages():
             recipients = User.query.filter_by(approval_status='pending').all()
         else:  # all
             recipients = User.query.all()
-        
+
         # Create notifications for each recipient
         notifications_created = 0
         for user in recipients:
@@ -883,9 +884,7 @@ def quick_bulk_send_messages():
             )
             db.session.add(notification)
             notifications_created += 1
-        
-        db.session.commit()
-        
+
         # Log the action
         AdminAuditLog.log_action(
             user_id=current_user.id,
@@ -896,13 +895,13 @@ def quick_bulk_send_messages():
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
+
         return jsonify({
             'success': True,
             'message': f'Message sent to {notifications_created} users',
             'count': notifications_created
         })
-        
+
     except Exception as e:
         logger.error(f"Bulk message error: {e}")
         return jsonify({'success': False, 'message': 'Failed to send messages'}), 500

@@ -182,3 +182,129 @@ def sync_coach_roles():
         raise
     finally:
         loop.close()
+
+
+@click.command()
+@with_appcontext
+def fix_duplicate_user_roles():
+    """
+    Fix duplicate entries in the user_roles table.
+
+    This command identifies and removes duplicate user-role associations
+    that can cause SQLAlchemy StaleDataErrors during user updates.
+    """
+    from sqlalchemy import text
+    from app.core import db
+
+    click.echo("Checking for duplicate user_roles entries...")
+
+    # Find duplicates
+    result = db.session.execute(text("""
+        SELECT user_id, role_id, COUNT(*) as cnt
+        FROM user_roles
+        GROUP BY user_id, role_id
+        HAVING COUNT(*) > 1
+    """))
+
+    duplicates = result.fetchall()
+
+    if not duplicates:
+        click.echo("No duplicate user_roles entries found.")
+        return
+
+    click.echo(f"Found {len(duplicates)} user-role combinations with duplicates:")
+
+    total_removed = 0
+    for user_id, role_id, count in duplicates:
+        click.echo(f"  User {user_id}, Role {role_id}: {count} entries (removing {count - 1} duplicates)")
+
+        # Delete all but one entry for each duplicate combination
+        # We keep the first one by using ctid (PostgreSQL row identifier)
+        db.session.execute(text("""
+            DELETE FROM user_roles
+            WHERE ctid IN (
+                SELECT ctid FROM user_roles
+                WHERE user_id = :user_id AND role_id = :role_id
+                OFFSET 1
+            )
+        """), {'user_id': user_id, 'role_id': role_id})
+
+        total_removed += count - 1
+
+    db.session.commit()
+    click.echo(f"Successfully removed {total_removed} duplicate entries.")
+
+
+@click.command()
+@with_appcontext
+def add_user_roles_constraint():
+    """
+    Add unique constraint to user_roles table to prevent duplicate role assignments.
+
+    This command:
+    1. First removes any existing duplicate entries
+    2. Then adds a UNIQUE constraint on (user_id, role_id)
+
+    The constraint allows a user to have multiple different roles, but prevents
+    the same role from being assigned twice to the same user.
+    """
+    from sqlalchemy import text
+    from app.core import db
+
+    click.echo("Adding unique constraint to user_roles table...")
+
+    # First, remove any existing duplicates
+    click.echo("Step 1: Checking for and removing any duplicate entries...")
+    result = db.session.execute(text("""
+        SELECT user_id, role_id, COUNT(*) as cnt
+        FROM user_roles
+        GROUP BY user_id, role_id
+        HAVING COUNT(*) > 1
+    """))
+    duplicates = result.fetchall()
+
+    if duplicates:
+        click.echo(f"Found {len(duplicates)} duplicate combinations, removing...")
+        for user_id, role_id, count in duplicates:
+            db.session.execute(text("""
+                DELETE FROM user_roles
+                WHERE ctid IN (
+                    SELECT ctid FROM user_roles
+                    WHERE user_id = :user_id AND role_id = :role_id
+                    OFFSET 1
+                )
+            """), {'user_id': user_id, 'role_id': role_id})
+        db.session.commit()
+        click.echo("Duplicates removed.")
+    else:
+        click.echo("No duplicates found.")
+
+    # Check if constraint already exists
+    click.echo("Step 2: Checking if constraint already exists...")
+    result = db.session.execute(text("""
+        SELECT constraint_name
+        FROM information_schema.table_constraints
+        WHERE table_name = 'user_roles'
+        AND constraint_type = 'UNIQUE'
+        AND constraint_name = 'unique_user_role'
+    """))
+    existing = result.fetchone()
+
+    if existing:
+        click.echo("Unique constraint 'unique_user_role' already exists.")
+        return
+
+    # Add the unique constraint
+    click.echo("Step 3: Adding unique constraint...")
+    try:
+        db.session.execute(text("""
+            ALTER TABLE user_roles
+            ADD CONSTRAINT unique_user_role UNIQUE (user_id, role_id)
+        """))
+        db.session.commit()
+        click.echo("Successfully added unique constraint 'unique_user_role' on (user_id, role_id).")
+        click.echo("This prevents duplicate role assignments at the database level.")
+    except Exception as e:
+        db.session.rollback()
+        click.echo(f"Error adding constraint: {e}")
+        raise

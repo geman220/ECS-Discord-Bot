@@ -22,6 +22,7 @@ from sqlalchemy import and_, or_, desc
 from sqlalchemy.orm import joinedload
 
 from app.core import db
+from app.utils.db_utils import transactional
 from app.models import Player, User, Team, Season
 from app.models.wallet import (
     WalletPass, WalletPassType, WalletPassCheckin, PassStatus
@@ -395,6 +396,7 @@ def create_ecs_pass():
 @wallet_admin_bp.route('/passes/create/pub-league', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def create_pub_league_pass():
     """Create a new Pub League pass manually"""
     pub_status = pass_service.is_pass_type_ready('pub_league')
@@ -422,7 +424,6 @@ def create_pub_league_pass():
                 woo_order_id=woo_order_id
             )
             db.session.add(wallet_pass)
-            db.session.commit()
 
             flash(f'Pub League pass created for {member_name}', 'success')
             return redirect(url_for('wallet_admin.pass_detail', pass_id=wallet_pass.id))
@@ -549,12 +550,12 @@ def download_pass(pass_id, platform):
 @wallet_admin_bp.route('/api/invalidate-pass/<int:player_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def invalidate_player_pass(player_id):
     """API endpoint to invalidate a player's wallet pass and send push updates"""
     try:
         player = Player.query.get_or_404(player_id)
         player.is_current_player = False
-        db.session.commit()
 
         # Send push notifications to update existing passes on user devices
         push_results = {'apple': None, 'google': None}
@@ -583,12 +584,12 @@ def invalidate_player_pass(player_id):
 @wallet_admin_bp.route('/api/reactivate-pass/<int:player_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def reactivate_player_pass(player_id):
     """API endpoint to reactivate a player's wallet pass and send push updates"""
     try:
         player = Player.query.get_or_404(player_id)
         player.is_current_player = True
-        db.session.commit()
 
         # Send push notifications to update existing passes on user devices
         push_results = {'apple': None, 'google': None}

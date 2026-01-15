@@ -17,6 +17,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models import MessageCategory, MessageTemplate
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ def message_category(category_id):
 @admin_panel_bp.route('/communication/messages/category/create', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def create_message_category():
     """Create a new message category."""
     try:
@@ -54,7 +56,6 @@ def create_message_category():
 
         category = MessageCategory(name=name, description=description)
         db.session.add(category)
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(
@@ -78,6 +79,7 @@ def create_message_category():
 @admin_panel_bp.route('/communication/messages/category/update', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def update_message_category():
     """Update a message category."""
     try:
@@ -91,7 +93,6 @@ def update_message_category():
         category.name = name
         category.description = description
         category.updated_at = datetime.utcnow()
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(
@@ -116,6 +117,7 @@ def update_message_category():
 @admin_panel_bp.route('/communication/messages/category/delete', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def delete_message_category():
     """Delete a message category."""
     try:
@@ -128,7 +130,6 @@ def delete_message_category():
 
         category_name = category.name
         db.session.delete(category)
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(

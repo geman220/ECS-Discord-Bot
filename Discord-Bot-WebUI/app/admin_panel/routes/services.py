@@ -473,8 +473,6 @@ def api_initialize_settings():
                 db.session.add(new_config)
                 settings_reset += 1
 
-        db.session.commit()
-
         AdminAuditLog.log_action(
             user_id=current_user_safe.id,
             action='initialize_settings',
@@ -493,7 +491,6 @@ def api_initialize_settings():
 
     except Exception as e:
         logger.error(f"Error initializing settings: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'message': 'Failed to reset settings.'}), 500
 
 
@@ -577,8 +574,6 @@ def api_approve_all_pending():
             user.approved_at = datetime.utcnow()
             approved_count += 1
 
-        db.session.commit()
-
         AdminAuditLog.log_action(
             user_id=current_user_safe.id,
             action='bulk_approve_users',
@@ -597,7 +592,6 @@ def api_approve_all_pending():
 
     except Exception as e:
         logger.error(f"Error approving pending users: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'message': 'Failed to approve pending users.'}), 500
 
 
@@ -629,8 +623,6 @@ def api_process_waitlist():
             entry.processed_by = current_user_safe.id
             processed_count += 1
 
-        db.session.commit()
-
         AdminAuditLog.log_action(
             user_id=current_user_safe.id,
             action='process_waitlist',
@@ -654,7 +646,6 @@ def api_process_waitlist():
         }), 404
     except Exception as e:
         logger.error(f"Error processing waitlist: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'message': 'Failed to process waitlist.'}), 500
 
 
@@ -691,8 +682,6 @@ def api_sync_templates():
                 db.session.add(template)
                 synced_count += 1
 
-        db.session.commit()
-
         AdminAuditLog.log_action(
             user_id=current_user_safe.id,
             action='sync_templates',
@@ -717,7 +706,6 @@ def api_sync_templates():
         })
     except Exception as e:
         logger.error(f"Error syncing templates: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'message': 'Failed to sync templates.'}), 500
 
 
@@ -857,8 +845,6 @@ def api_toggle_maintenance_mode():
             config = AdminConfig(key='maintenance_mode', value=str(new_state).lower())
             db.session.add(config)
 
-        db.session.commit()
-
         AdminAuditLog.log_action(
             user_id=current_user_safe.id,
             action='toggle_maintenance_mode',
@@ -877,7 +863,6 @@ def api_toggle_maintenance_mode():
 
     except Exception as e:
         logger.error(f"Error toggling maintenance mode: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'message': 'Failed to toggle maintenance mode.'}), 500
 
 
@@ -899,8 +884,6 @@ def api_clear_system_logs():
             AdminAuditLog.timestamp < cutoff_date
         ).delete(synchronize_session=False)
 
-        db.session.commit()
-
         AdminAuditLog.log_action(
             user_id=current_user_safe.id,
             action='clear_system_logs',
@@ -919,7 +902,6 @@ def api_clear_system_logs():
 
     except Exception as e:
         logger.error(f"Error clearing system logs: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'message': 'Failed to clear logs.'}), 500
 
 
@@ -1296,8 +1278,7 @@ def _bulk_approve_users():
         for user in pending_users:
             user.is_approved = True
             count += 1
-        
-        db.session.commit()
+
         return {
             'success': True,
             'message': f'Approved {count} users',
@@ -1327,8 +1308,7 @@ def _cleanup_inactive_users():
             # Instead of deleting, mark as cleaned up
             user.is_active = False
             count += 1
-        
-        db.session.commit()
+
         return {
             'success': True,
             'message': f'Marked {count} inactive users for cleanup',
@@ -1345,26 +1325,41 @@ def _cleanup_inactive_users():
 
 def _assign_default_roles():
     """Assign default roles to users without roles."""
+    from sqlalchemy.orm import joinedload
+    from app.tasks.tasks_discord import assign_roles_to_player_task
+
     try:
-        users_without_roles = User.query.filter(~User.roles.any()).all()
+        # Eager load player relationship for Discord sync
+        users_without_roles = User.query.options(
+            joinedload(User.player)
+        ).filter(~User.roles.any()).all()
         default_role = Role.query.filter_by(name='pub-league-player').first()
-        
+
         if not default_role:
             return {
                 'success': False,
                 'message': 'Default role "pub-league-player" not found',
                 'count': 0
             }
-        
+
         count = 0
+        users_to_sync = []
         for user in users_without_roles:
-            user.roles.append(default_role)
-            count += 1
-        
-        db.session.commit()
+            # Safety check to prevent duplicates
+            if default_role not in user.roles:
+                user.roles.append(default_role)
+                count += 1
+                # Track users for Discord sync
+                if user.player and user.player.discord_id:
+                    users_to_sync.append(user.player.id)
+
+        # Trigger Discord sync for affected users
+        for player_id in users_to_sync:
+            assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
+
         return {
             'success': True,
-            'message': f'Assigned default roles to {count} users',
+            'message': f'Assigned default roles to {count} users, syncing {len(users_to_sync)} to Discord',
             'count': count
         }
     except Exception as e:
@@ -1388,8 +1383,7 @@ def _retry_failed_messages():
             message.send_error = None
             message.last_send_attempt = None
             count += 1
-        
-        db.session.commit()
+
         return {
             'success': True,
             'message': f'Reset {count} failed messages to pending',
@@ -1418,8 +1412,7 @@ def _mark_old_notifications_read():
         for notification in old_notifications:
             notification.read = True
             count += 1
-        
-        db.session.commit()
+
         return {
             'success': True,
             'message': f'Marked {count} old notifications as read',
@@ -1443,8 +1436,7 @@ def _clean_device_tokens():
         
         for token in inactive_tokens:
             db.session.delete(token)
-        
-        db.session.commit()
+
         return {
             'success': True,
             'message': f'Cleaned {count} inactive device tokens',
@@ -1472,9 +1464,7 @@ def _update_match_times():
                 default_time = datetime.combine(match.date, datetime.min.time().replace(hour=19))
                 match.time = default_time.time()
                 count += 1
-        
-        db.session.commit()
-        
+
         return {
             'success': True,
             'message': f'Updated {count} matches with default times',
@@ -1604,16 +1594,13 @@ def _send_player_match_reminder(player, match, match_data, notification_service)
             try:
                 result = notification_service.send_match_reminder(tokens, match_data)
                 if result.get('success', 0) > 0:
-                    db.session.commit()
                     return True
             except Exception as push_err:
                 logger.warning(f"Push notification failed for user {player.user.id}: {push_err}")
 
-        db.session.commit()
         return True  # In-app notification was created
     except Exception as e:
         logger.error(f"Error sending reminder to player {player.id}: {e}")
-        db.session.rollback()
         return False
 
 
@@ -1630,8 +1617,7 @@ def _cleanup_old_notifications():
         count = len(old_notifications)
         for notification in old_notifications:
             db.session.delete(notification)
-        
-        db.session.commit()
+
         return {
             'success': True,
             'message': f'Cleaned up {count} old notifications',

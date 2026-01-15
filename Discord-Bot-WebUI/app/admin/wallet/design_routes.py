@@ -13,6 +13,7 @@ from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required
 
 from app.core import db
+from app.utils.db_utils import transactional
 from app.models.wallet import WalletPassType
 from app.models.wallet_asset import WalletAsset, WalletTemplate
 from app.models.wallet_config import (
@@ -73,6 +74,7 @@ def visual_editor(pass_type):
 @wallet_config_bp.route('/editor/save', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def save_visual_editor():
     """Save changes from visual editor"""
     try:
@@ -94,15 +96,12 @@ def save_visual_editor():
         if logo_text:
             pass_type.logo_text = logo_text
 
-        db.session.commit()
-
         # Update or create template if content provided
         if template_content:
             template = WalletTemplate.get_default(pass_type_id, 'apple')
 
             if template:
                 template.content = template_content
-                db.session.commit()
             else:
                 template = WalletTemplate(
                     pass_type_id=int(pass_type_id),
@@ -112,7 +111,6 @@ def save_visual_editor():
                     is_default=True
                 )
                 db.session.add(template)
-                db.session.commit()
 
         flash(f'{pass_type.name} appearance updated successfully.', 'success')
 
@@ -225,6 +223,7 @@ def pass_design(pass_type):
 @wallet_config_bp.route('/design/<pass_type>/save', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def save_pass_design(pass_type):
     """Save pass design from user-friendly form"""
     try:
@@ -246,8 +245,6 @@ def save_pass_design(pass_type):
             pass_obj.label_color = request.form.get('label_color')
         if request.form.get('logo_text'):
             pass_obj.logo_text = request.form.get('logo_text')
-
-        db.session.commit()
 
         # Update template for the specified platform
         template = WalletTemplate.get_default(pass_obj.id, platform)
@@ -276,7 +273,6 @@ def save_pass_design(pass_type):
                     # Google doesn't have direct equivalents for foreground/label colors
 
                 template.content = json.dumps(content, indent=2)
-                db.session.commit()
             except json.JSONDecodeError:
                 logger.warning("Could not update template JSON")
 
@@ -294,7 +290,6 @@ def save_pass_design(pass_type):
                 elif other_platform == 'google':
                     other_content['hexBackgroundColor'] = pass_obj.background_color
                 other_template.content = json.dumps(other_content, indent=2)
-                db.session.commit()
             except json.JSONDecodeError:
                 logger.warning(f"Could not update {other_platform} template JSON")
 
@@ -357,6 +352,7 @@ def pass_fields(pass_type):
 @wallet_config_bp.route('/fields/<pass_type>/save', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def save_pass_fields(pass_type):
     """Save pass field configurations"""
     try:
@@ -431,8 +427,6 @@ def save_pass_fields(pass_type):
                     display_order=i
                 )
                 db.session.add(new_field)
-
-        db.session.commit()
 
         flash(f'{pass_obj.name} fields updated successfully.', 'success')
         return redirect(url_for('wallet_config.pass_fields', pass_type=pass_type))

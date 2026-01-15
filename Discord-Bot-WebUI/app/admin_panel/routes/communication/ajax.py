@@ -21,6 +21,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.communication import Notification
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +184,7 @@ def get_notification_details(notification_id):
 @admin_panel_bp.route('/push-notifications/<int:notification_id>/duplicate', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def duplicate_notification(notification_id):
     """Duplicate an existing push notification."""
     try:
@@ -202,7 +204,6 @@ def duplicate_notification(notification_id):
         )
 
         db.session.add(duplicate)
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(

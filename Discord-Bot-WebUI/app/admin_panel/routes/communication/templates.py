@@ -17,6 +17,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models import MessageCategory, MessageTemplate, Announcement
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,7 @@ def message_templates():
 @admin_panel_bp.route('/communication/messages/template/create', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def create_message_template():
     """Create a new message template."""
     try:
@@ -81,7 +83,6 @@ def create_message_template():
             created_by=current_user.id
         )
         db.session.add(template)
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(
@@ -105,6 +106,7 @@ def create_message_template():
 @admin_panel_bp.route('/communication/messages/template/update', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def update_message_template():
     """Update a message template."""
     try:
@@ -127,7 +129,6 @@ def update_message_template():
         template.is_active = is_active
         template.updated_at = datetime.utcnow()
         template.updated_by = current_user.id
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(
@@ -152,6 +153,7 @@ def update_message_template():
 @admin_panel_bp.route('/communication/messages/template/toggle', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def toggle_message_template():
     """Toggle a message template active status."""
     try:
@@ -161,7 +163,6 @@ def toggle_message_template():
         old_status = template.is_active
         template.is_active = not template.is_active
         template.updated_at = datetime.utcnow()
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(
@@ -187,6 +188,7 @@ def toggle_message_template():
 @admin_panel_bp.route('/communication/messages/template/delete', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def delete_message_template():
     """Delete a message template."""
     try:
@@ -196,7 +198,6 @@ def delete_message_template():
         template_name = template.name
         category_id = template.category_id
         db.session.delete(template)
-        db.session.commit()
 
         # Log the action
         AdminAuditLog.log_action(
@@ -220,6 +221,7 @@ def delete_message_template():
 @admin_panel_bp.route('/communication/messages/template/<int:template_id>/duplicate', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def duplicate_message_template(template_id):
     """Duplicate a message template."""
     try:
@@ -236,7 +238,6 @@ def duplicate_message_template(template_id):
         )
 
         db.session.add(duplicate)
-        db.session.commit()
 
         # Log the duplication
         AdminAuditLog.log_action(

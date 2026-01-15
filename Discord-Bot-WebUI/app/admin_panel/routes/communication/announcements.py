@@ -17,6 +17,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models import Announcement
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,7 @@ def announcements():
 @admin_panel_bp.route('/communication/announcements/create', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def create_announcement():
     """Create new announcement."""
     if request.method == 'POST':
@@ -79,7 +81,6 @@ def create_announcement():
             )
 
             db.session.add(announcement)
-            db.session.commit()
 
             # Log the action
             audit_log = AdminAuditLog(
@@ -90,7 +91,6 @@ def create_announcement():
                 details=f'Created announcement: {title}'
             )
             db.session.add(audit_log)
-            db.session.commit()
 
             flash('Announcement created successfully!', 'success')
             return redirect(url_for('admin_panel.announcements'))
@@ -107,6 +107,7 @@ def create_announcement():
 @admin_panel_bp.route('/communication/announcements/edit/<int:announcement_id>', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def edit_announcement(announcement_id):
     """Edit existing announcement."""
     announcement = Announcement.query.get_or_404(announcement_id)
@@ -122,8 +123,6 @@ def edit_announcement(announcement_id):
                 flash('Title and content are required.', 'error')
                 return redirect(url_for('admin_panel.edit_announcement', announcement_id=announcement_id))
 
-            db.session.commit()
-
             # Log the action
             audit_log = AdminAuditLog(
                 admin_id=current_user.id,
@@ -133,7 +132,6 @@ def edit_announcement(announcement_id):
                 details=f'Updated announcement: {announcement.title}'
             )
             db.session.add(audit_log)
-            db.session.commit()
 
             flash('Announcement updated successfully!', 'success')
             return redirect(url_for('admin_panel.announcements'))
@@ -150,6 +148,7 @@ def edit_announcement(announcement_id):
 @admin_panel_bp.route('/communication/announcements/delete/<int:announcement_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def delete_announcement(announcement_id):
     """Delete announcement."""
     try:
@@ -157,7 +156,6 @@ def delete_announcement(announcement_id):
         title = announcement.title
 
         db.session.delete(announcement)
-        db.session.commit()
 
         # Log the action
         audit_log = AdminAuditLog(
@@ -168,7 +166,6 @@ def delete_announcement(announcement_id):
             details=f'Deleted announcement: {title}'
         )
         db.session.add(audit_log)
-        db.session.commit()
 
         flash('Announcement deleted successfully!', 'success')
         return redirect(url_for('admin_panel.announcements'))
@@ -181,6 +178,7 @@ def delete_announcement(announcement_id):
 @admin_panel_bp.route('/communication/announcements/manage', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def manage_announcements():
     """Bulk manage announcements."""
     try:
@@ -200,8 +198,6 @@ def manage_announcements():
                     db.session.delete(announcement)
                     processed_count += 1
 
-        db.session.commit()
-
         # Log the action
         audit_log = AdminAuditLog(
             admin_id=current_user.id,
@@ -211,7 +207,6 @@ def manage_announcements():
             details=f'Bulk {action} {processed_count} announcements'
         )
         db.session.add(audit_log)
-        db.session.commit()
 
         flash(f'Successfully {action}d {processed_count} announcements!', 'success')
         return redirect(url_for('admin_panel.announcements'))

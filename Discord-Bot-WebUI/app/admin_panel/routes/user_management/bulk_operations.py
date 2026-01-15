@@ -153,8 +153,6 @@ def bulk_approve_users():
                 logger.error(f"Error bulk approving user {user_id}: {e}")
                 failed_users.append({'id': user_id, 'reason': str(e)})
 
-        db.session.commit()
-
         # Log the bulk action
         AdminAuditLog.log_action(
             user_id=current_user_safe.id,
@@ -210,7 +208,10 @@ def bulk_assign_roles():
 
         for user_id in user_ids:
             try:
-                user = User.query.options(joinedload(User.roles)).get(user_id)
+                user = User.query.options(
+                    joinedload(User.roles),
+                    joinedload(User.player)
+                ).get(user_id)
                 if not user:
                     failed_users.append({'id': user_id, 'reason': 'User not found'})
                     continue
@@ -240,8 +241,6 @@ def bulk_assign_roles():
             except Exception as e:
                 logger.error(f"Error bulk assigning roles to user {user_id}: {e}")
                 failed_users.append({'id': user_id, 'reason': str(e)})
-
-        db.session.commit()
 
         # Log the bulk action
         role_names = [role.name for role in roles]
@@ -300,7 +299,10 @@ def bulk_process_waitlist():
 
         for user_id in user_ids:
             try:
-                user = User.query.options(joinedload(User.roles)).get(user_id)
+                user = User.query.options(
+                    joinedload(User.roles),
+                    joinedload(User.player)
+                ).get(user_id)
                 if not user:
                     failed_users.append({'id': user_id, 'reason': 'User not found'})
                     continue
@@ -335,8 +337,6 @@ def bulk_process_waitlist():
             except Exception as e:
                 logger.error(f"Error processing waitlist user {user_id}: {e}")
                 failed_users.append({'id': user_id, 'reason': str(e)})
-
-        db.session.commit()
 
         # Log the bulk action
         AdminAuditLog.log_action(

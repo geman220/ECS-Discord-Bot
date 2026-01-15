@@ -12,6 +12,7 @@ from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required
 
 from app.core import db
+from app.utils.db_utils import transactional
 from app.models.wallet_config import WalletLocation, WalletSubgroup
 from app.decorators import role_required
 
@@ -48,6 +49,7 @@ def locations():
 @wallet_config_bp.route('/locations/add', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def add_location():
     """Add a new partner location"""
     try:
@@ -64,7 +66,6 @@ def add_location():
             is_active=request.form.get('is_active') == 'on'
         )
         db.session.add(location)
-        db.session.commit()
 
         flash(f'Location "{location.name}" added successfully.', 'success')
         return redirect(url_for('wallet_config.locations'))
@@ -78,6 +79,7 @@ def add_location():
 @wallet_config_bp.route('/locations/<int:location_id>/edit', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def edit_location(location_id):
     """Edit an existing location"""
     try:
@@ -94,8 +96,6 @@ def edit_location(location_id):
         location.location_type = request.form.get('location_type', 'partner_bar')
         location.is_active = request.form.get('is_active') == 'on'
 
-        db.session.commit()
-
         flash(f'Location "{location.name}" updated successfully.', 'success')
         return redirect(url_for('wallet_config.locations'))
 
@@ -108,13 +108,13 @@ def edit_location(location_id):
 @wallet_config_bp.route('/locations/<int:location_id>/delete', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def delete_location(location_id):
     """Delete a location"""
     try:
         location = WalletLocation.query.get_or_404(location_id)
         name = location.name
         db.session.delete(location)
-        db.session.commit()
 
         flash(f'Location "{name}" deleted successfully.', 'success')
         return redirect(url_for('wallet_config.locations'))
@@ -128,12 +128,12 @@ def delete_location(location_id):
 @wallet_config_bp.route('/locations/<int:location_id>/toggle', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def toggle_location(location_id):
     """Toggle location active status"""
     try:
         location = WalletLocation.query.get_or_404(location_id)
         location.is_active = not location.is_active
-        db.session.commit()
 
         status = 'activated' if location.is_active else 'deactivated'
         flash(f'Location "{location.name}" {status}.', 'success')
@@ -173,6 +173,7 @@ def subgroups():
 @wallet_config_bp.route('/subgroups/add', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def add_subgroup():
     """Add a new subgroup"""
     try:
@@ -184,7 +185,6 @@ def add_subgroup():
             is_active=request.form.get('is_active') == 'on'
         )
         db.session.add(subgroup)
-        db.session.commit()
 
         flash(f'Subgroup "{subgroup.name}" added successfully.', 'success')
         return redirect(url_for('wallet_config.subgroups'))
@@ -198,13 +198,13 @@ def add_subgroup():
 @wallet_config_bp.route('/subgroups/<int:subgroup_id>/delete', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def delete_subgroup(subgroup_id):
     """Delete a subgroup"""
     try:
         subgroup = WalletSubgroup.query.get_or_404(subgroup_id)
         name = subgroup.name
         db.session.delete(subgroup)
-        db.session.commit()
 
         flash(f'Subgroup "{name}" deleted successfully.', 'success')
         return redirect(url_for('wallet_config.subgroups'))

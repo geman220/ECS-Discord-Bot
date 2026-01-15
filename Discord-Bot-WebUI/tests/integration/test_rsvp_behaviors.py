@@ -47,7 +47,6 @@ from tests.assertions import (
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Session isolation issue with SQLite in-memory DB - passes individually, fails in full suite")
 class TestRSVPSubmissionBehaviors:
     """Test RSVP submission behaviors.
 
@@ -111,7 +110,6 @@ class TestRSVPSubmissionBehaviors:
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Session isolation issue with SQLite in-memory DB - passes individually")
 class TestRSVPChangeBehaviors:
     """Test RSVP change behaviors."""
 
@@ -292,7 +290,6 @@ class TestRSVPReminderBehaviors:
 
 
 @pytest.mark.integration
-@pytest.mark.skip(reason="Session isolation issue with SQLite in-memory DB - passes individually")
 class TestRSVPTeamContextBehaviors:
     """Test RSVP behaviors in team context."""
 

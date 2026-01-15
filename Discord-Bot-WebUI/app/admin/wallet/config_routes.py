@@ -21,6 +21,7 @@ from flask_login import login_required
 from datetime import datetime
 
 from app.core import db
+from app.utils.db_utils import transactional
 from app.models.wallet import WalletPassType, WalletPass, WalletPassCheckin, PassStatus
 from app.models.wallet_asset import WalletAsset, WalletTemplate, WalletCertificate
 from app.decorators import role_required
@@ -275,6 +276,7 @@ def setup_wizard(step='certificates'):
 @wallet_config_bp.route('/wizard/save-woocommerce-url', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def save_woocommerce_url():
     """Save WooCommerce site URL to database"""
     try:
@@ -1041,6 +1043,7 @@ def diagnostics():
 @wallet_config_bp.route('/init-pass-types', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def init_pass_types():
     """Initialize wallet pass types"""
     try:
@@ -1103,8 +1106,6 @@ def init_pass_types():
             )
             db.session.add(pub_type)
             created.append('Pub League')
-
-        db.session.commit()
 
         if created:
             flash(f'Successfully created pass types: {", ".join(created)}', 'success')

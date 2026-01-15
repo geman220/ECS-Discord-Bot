@@ -331,23 +331,26 @@ def get_eligible_players(league_type, positions=None, gender=None, session=None)
     if not required_role:
         return []
     
-    # Find all players with the required role
+    # Find all eligible players with the required role
+    # Must be: active (is_current_player), approved, and have the sub role
     from app.models import Player, User, Role
     from sqlalchemy.orm import joinedload
-    
+
     players_with_role = session.query(Player).options(
         joinedload(Player.user).joinedload(User.roles)
     ).join(User).join(User.roles).filter(
-        Role.name == required_role
+        Role.name == required_role,
+        Player.is_current_player == True,  # Must be an active player
+        User.is_approved == True  # Must be approved
     ).all()
-    
+
     # Apply gender filter if specified
     if gender:
         players_with_role = [
-            p for p in players_with_role 
+            p for p in players_with_role
             if p.pronouns and gender.lower() in p.pronouns.lower()
         ]
-    
+
     return players_with_role
 
 
@@ -372,19 +375,22 @@ def get_active_substitutes(league_type, session=None, gender_filter=None):
     from sqlalchemy.orm import joinedload
     
     # First, try to get existing SubstitutePool entries
+    # Only include active, approved, current players
     existing_pools = session.query(SubstitutePool).options(
         joinedload(SubstitutePool.player).joinedload(Player.user).joinedload(User.roles)
     ).join(Player).join(User).join(User.roles).filter(
         Role.name == required_role,
-        SubstitutePool.is_active == True
+        SubstitutePool.is_active == True,
+        Player.is_current_player == True,  # Must be an active player
+        User.is_approved == True  # Must be approved
     )
-    
+
     # Apply gender filter if specified
     if gender_filter:
         existing_pools = existing_pools.filter(
             Player.pronouns.ilike(f'%{gender_filter}%')
         )
-    
+
     return existing_pools.all()
 
 

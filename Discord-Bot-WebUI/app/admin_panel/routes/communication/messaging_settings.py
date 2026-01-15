@@ -19,6 +19,7 @@ from app.models import Role
 from app.models.messages import MessagingSettings, MessagingPermission, DirectMessage
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +83,7 @@ def messaging_settings():
 @admin_panel_bp.route('/communication/messaging-settings/update', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def update_messaging_settings():
     """Update global messaging settings."""
     try:
@@ -122,8 +124,6 @@ def update_messaging_settings():
             changes.append(f"read_receipts: {settings.read_receipts} -> {new_receipts}")
             settings.read_receipts = new_receipts
 
-        db.session.commit()
-
         # Log the action
         if changes:
             AdminAuditLog.log_action(
@@ -141,7 +141,6 @@ def update_messaging_settings():
 
     except Exception as e:
         logger.error(f"Error updating messaging settings: {e}")
-        db.session.rollback()
         flash('Failed to update settings. Check database connectivity.', 'error')
         return redirect(url_for('admin_panel.messaging_settings'))
 
@@ -149,6 +148,7 @@ def update_messaging_settings():
 @admin_panel_bp.route('/communication/messaging-settings/permissions', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def update_messaging_permissions():
     """Update role-to-role messaging permissions."""
     try:
@@ -184,8 +184,6 @@ def update_messaging_permissions():
             db.session.add(permission)
             old_value = None
 
-        db.session.commit()
-
         # Log the action
         sender_role = Role.query.get(sender_role_id)
         recipient_role = Role.query.get(recipient_role_id)
@@ -208,13 +206,13 @@ def update_messaging_permissions():
 
     except Exception as e:
         logger.error(f"Error updating messaging permission: {e}")
-        db.session.rollback()
         return jsonify({'success': False, 'error': 'Failed to update permission'}), 500
 
 
 @admin_panel_bp.route('/communication/messaging-settings/permissions/bulk', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def bulk_update_messaging_permissions():
     """Bulk update permissions from the matrix form."""
     try:
@@ -253,8 +251,6 @@ def bulk_update_messaging_permissions():
                         db.session.add(permission)
                         changes.append(f"{sender_id}->{recipient_id}: new->True")
 
-        db.session.commit()
-
         # Log the action
         if changes:
             AdminAuditLog.log_action(
@@ -272,7 +268,6 @@ def bulk_update_messaging_permissions():
 
     except Exception as e:
         logger.error(f"Error bulk updating messaging permissions: {e}")
-        db.session.rollback()
         flash('Failed to update permissions. Check database connectivity.', 'error')
         return redirect(url_for('admin_panel.messaging_settings'))
 

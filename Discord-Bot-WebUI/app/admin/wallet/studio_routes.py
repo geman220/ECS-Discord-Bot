@@ -17,6 +17,7 @@ from flask import Blueprint, render_template, request, jsonify, flash, redirect,
 from flask_login import login_required
 
 from app.core import db
+from app.utils.db_utils import transactional
 from app.models.wallet import WalletPassType
 from app.models.wallet_config import (
     WalletLocation, WalletSponsor, WalletSubgroup,
@@ -293,6 +294,7 @@ def studio(pass_type_code):
 @pass_studio_bp.route('/<pass_type_code>/appearance', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def save_appearance(pass_type_code):
     """Save appearance settings (colors, logo text)"""
     try:
@@ -343,8 +345,6 @@ def save_appearance(pass_type_code):
             else:
                 pass_type.show_logo = str(show_value).lower() in ('true', '1', 'on', 'yes')
 
-        db.session.commit()
-
         # Send push updates to all existing passes of this type
         push_sent = False
         push_result = None
@@ -393,6 +393,7 @@ def save_appearance(pass_type_code):
 @pass_studio_bp.route('/<pass_type_code>/fields', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def save_fields(pass_type_code):
     """Save field configuration"""
     try:
@@ -468,8 +469,6 @@ def save_fields(pass_type_code):
                     )
                     db.session.add(field)
 
-        db.session.commit()
-
         # Send push updates to all existing passes of this type
         push_sent = False
         push_result = None
@@ -490,13 +489,13 @@ def save_fields(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error saving fields: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/fields/<field_key>', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def delete_field(pass_type_code, field_key):
     """Delete a field"""
     try:
@@ -521,13 +520,11 @@ def delete_field(pass_type_code, field_key):
             return jsonify({'success': False, 'error': 'Field not found'}), 404
 
         db.session.delete(field)
-        db.session.commit()
 
         return jsonify({'success': True, 'message': 'Field deleted'})
 
     except Exception as e:
         logger.error(f"Error deleting field: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -563,6 +560,7 @@ def get_locations(pass_type_code):
 @pass_studio_bp.route('/<pass_type_code>/locations', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def add_location(pass_type_code):
     """Add a new location"""
     try:
@@ -598,7 +596,6 @@ def add_location(pass_type_code):
         )
 
         db.session.add(location)
-        db.session.commit()
 
         return jsonify({
             'success': True,
@@ -608,13 +605,13 @@ def add_location(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error adding location: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/locations/<int:location_id>', methods=['PUT'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def update_location(pass_type_code, location_id):
     """Update a location"""
     try:
@@ -633,8 +630,6 @@ def update_location(pass_type_code, location_id):
         location.is_active = data.get('is_active', location.is_active)
         location.display_order = data.get('display_order', location.display_order)
 
-        db.session.commit()
-
         return jsonify({
             'success': True,
             'message': 'Location updated',
@@ -643,25 +638,23 @@ def update_location(pass_type_code, location_id):
 
     except Exception as e:
         logger.error(f"Error updating location: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/locations/<int:location_id>', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def delete_location(pass_type_code, location_id):
     """Delete a location"""
     try:
         location = WalletLocation.query.get_or_404(location_id)
         db.session.delete(location)
-        db.session.commit()
 
         return jsonify({'success': True, 'message': 'Location deleted'})
 
     except Exception as e:
         logger.error(f"Error deleting location: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -695,6 +688,7 @@ def get_sponsors(pass_type_code):
 @pass_studio_bp.route('/<pass_type_code>/sponsors', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def add_sponsor(pass_type_code):
     """Add a new sponsor"""
     try:
@@ -713,7 +707,6 @@ def add_sponsor(pass_type_code):
         )
 
         db.session.add(sponsor)
-        db.session.commit()
 
         # If address with coordinates provided, optionally create location
         if data.get('create_location') and data.get('latitude') and data.get('longitude'):
@@ -730,7 +723,6 @@ def add_sponsor(pass_type_code):
                 is_active=True
             )
             db.session.add(location)
-            db.session.commit()
 
         return jsonify({
             'success': True,
@@ -740,13 +732,13 @@ def add_sponsor(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error adding sponsor: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/sponsors/<int:sponsor_id>', methods=['PUT'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def update_sponsor(pass_type_code, sponsor_id):
     """Update a sponsor"""
     try:
@@ -763,8 +755,6 @@ def update_sponsor(pass_type_code, sponsor_id):
         sponsor.is_active = data.get('is_active', sponsor.is_active)
         sponsor.display_order = data.get('display_order', sponsor.display_order)
 
-        db.session.commit()
-
         return jsonify({
             'success': True,
             'message': 'Sponsor updated',
@@ -773,25 +763,23 @@ def update_sponsor(pass_type_code, sponsor_id):
 
     except Exception as e:
         logger.error(f"Error updating sponsor: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/sponsors/<int:sponsor_id>', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def delete_sponsor(pass_type_code, sponsor_id):
     """Delete a sponsor"""
     try:
         sponsor = WalletSponsor.query.get_or_404(sponsor_id)
         db.session.delete(sponsor)
-        db.session.commit()
 
         return jsonify({'success': True, 'message': 'Sponsor deleted'})
 
     except Exception as e:
         logger.error(f"Error deleting sponsor: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -912,6 +900,7 @@ def get_subgroups():
 @pass_studio_bp.route('/ecs_membership/subgroups', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def add_subgroup():
     """Add a new subgroup"""
     try:
@@ -937,7 +926,6 @@ def add_subgroup():
         )
 
         db.session.add(subgroup)
-        db.session.commit()
 
         return jsonify({
             'success': True,
@@ -947,13 +935,13 @@ def add_subgroup():
 
     except Exception as e:
         logger.error(f"Error adding subgroup: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @pass_studio_bp.route('/ecs_membership/subgroups/<int:subgroup_id>', methods=['PUT'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def update_subgroup(subgroup_id):
     """Update a subgroup"""
     try:
@@ -974,8 +962,6 @@ def update_subgroup(subgroup_id):
         if 'description' in data:
             subgroup.description = data['description'].strip() if data['description'] else None
 
-        db.session.commit()
-
         return jsonify({
             'success': True,
             'message': 'Subgroup updated',
@@ -989,25 +975,23 @@ def update_subgroup(subgroup_id):
 
     except Exception as e:
         logger.error(f"Error updating subgroup: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @pass_studio_bp.route('/ecs_membership/subgroups/<int:subgroup_id>', methods=['DELETE'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def delete_subgroup(subgroup_id):
     """Delete a subgroup"""
     try:
         subgroup = WalletSubgroup.query.get_or_404(subgroup_id)
         db.session.delete(subgroup)
-        db.session.commit()
 
         return jsonify({'success': True, 'message': 'Subgroup deleted'})
 
     except Exception as e:
         logger.error(f"Error deleting subgroup: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1165,6 +1149,7 @@ def delete_asset(pass_type_code, asset_type):
 @pass_studio_bp.route('/<pass_type_code>/google-settings', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def save_google_settings(pass_type_code):
     """
     Save Google Wallet specific settings (hero image URL, logo URL).
@@ -1189,8 +1174,6 @@ def save_google_settings(pass_type_code):
         if 'google_logo_url' in data:
             pass_type.google_logo_url = data['google_logo_url'] or None
 
-        db.session.commit()
-
         return jsonify({
             'success': True,
             'message': 'Google Wallet settings updated',
@@ -1200,7 +1183,6 @@ def save_google_settings(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error saving Google settings: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
@@ -1232,6 +1214,7 @@ def get_google_settings(pass_type_code):
 @pass_studio_bp.route('/init-defaults', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def initialize_defaults():
     """
     Initialize default field configurations from the UI.
@@ -1261,7 +1244,6 @@ def initialize_defaults():
 
     except Exception as e:
         logger.error(f"Error initializing defaults: {str(e)}", exc_info=True)
-        db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

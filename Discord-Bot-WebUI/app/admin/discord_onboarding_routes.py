@@ -334,9 +334,9 @@ def create_new_player_notification():
         try:
             from sqlalchemy import text
             db.session.execute(text("""
-                INSERT INTO new_player_notifications 
-                (user_id, discord_id, discord_username, discord_display_name, 
-                 preferred_league, notification_sent, notification_sent_at, 
+                INSERT INTO new_player_notifications
+                (user_id, discord_id, discord_username, discord_display_name,
+                 preferred_league, notification_sent, notification_sent_at,
                  discord_message_id, error_message)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (user_id) DO UPDATE SET
@@ -353,7 +353,6 @@ def create_new_player_notification():
                 datetime.utcnow() if notification_sent else None,
                 discord_message_id, error_message
             ))
-            db.session.commit()
         except Exception as db_error:
             logger.error(f"Database error creating notification record: {db_error}")
             return jsonify({'error': 'Database error'}), 500
@@ -600,7 +599,6 @@ def admin_test_onboarding():
                     user.last_bot_contact_at = None
                     user.discord_join_detected_at = None
                     g.db_session.add(user)
-                    g.db_session.commit()
                     results.append(f"Reset user state for Discord ID: {discord_id}")
                 else:
                     results.append(f"User not found for Discord ID: {discord_id}")
@@ -617,24 +615,23 @@ def admin_test_onboarding():
                     if 'no_onboarding' in scenario_flags:
                         user.has_completed_onboarding = False
                         results.append("✓ Set onboarding as incomplete")
-                    
+
                     if 'no_league' in scenario_flags:
                         user.preferred_league = None
                         user.league_selection_method = None
                         results.append("✓ Cleared league selection")
-                    
+
                     if 'different_league' in scenario_flags:
                         user.preferred_league = 'pub_league_classic'
                         user.league_selection_method = 'admin_assignment'
                         results.append("✓ Set league to Classic")
-                    
+
                     if 'unapproved' in scenario_flags:
                         user.is_approved = False
                         user.approval_status = 'pending'
                         results.append("✓ Set user as unapproved")
-                    
+
                     g.db_session.add(user)
-                    g.db_session.commit()
                     results.append(f"Applied {len(scenario_flags)} scenario flags")
                 else:
                     results.append(f"User not found for Discord ID: {discord_id}")

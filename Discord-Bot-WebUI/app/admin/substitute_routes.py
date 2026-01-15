@@ -16,6 +16,7 @@ from sqlalchemy import text
 
 from app.decorators import role_required
 from app.alert_helpers import show_error, show_success, show_info
+from app.utils.db_utils import transactional
 from app.admin_helpers import (
     get_available_subs, get_match_subs, assign_sub_to_team,
     remove_sub_assignment, get_player_active_sub_assignments,
@@ -166,6 +167,7 @@ def manage_sub_requests():
 @admin_bp.route('/admin/sub_requests/<int:request_id>', methods=['POST'], endpoint='update_sub_request')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def update_sub_request(request_id):
     """
     Update a sub request's status.
@@ -238,6 +240,7 @@ def update_sub_request(request_id):
 @admin_bp.route('/admin/request_sub', methods=['POST'], endpoint='request_sub')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach', 'ECS FC Coach'])
+@transactional
 def request_sub():
     """
     Create a new sub request.
@@ -479,6 +482,7 @@ def manage_subs():
 @admin_bp.route('/admin/subs/assign', methods=['POST'], endpoint='assign_sub')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def assign_sub():
     """
     Assign a substitute to a team for a specific match.
@@ -521,6 +525,7 @@ def assign_sub():
 @admin_bp.route('/admin/subs/remove/<int:assignment_id>', methods=['POST'], endpoint='remove_sub')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def remove_sub(assignment_id):
     """
     Remove a substitute assignment.
@@ -626,6 +631,7 @@ def get_player_subs(player_id):
 @admin_bp.route('/admin/subs/cleanup', methods=['POST'], endpoint='cleanup_subs')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def cleanup_subs():
     """
     Clean up sub assignments for matches that occurred in the past.

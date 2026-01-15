@@ -21,6 +21,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role, Permission
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 from app.tasks.tasks_discord import assign_roles_to_player_task
 from app.services.discord_role_sync_service import sync_role_assignment, sync_role_removal
 
@@ -115,74 +116,68 @@ def get_role_details():
 @admin_panel_bp.route('/users/roles/assign', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def assign_user_roles():
     """Assign roles to a user."""
-    try:
-        user_id = request.form.get('user_id')
-        role_ids = request.form.getlist('role_ids')
+    user_id = request.form.get('user_id')
+    role_ids = request.form.getlist('role_ids')
 
-        if not user_id:
-            flash('User ID is required', 'error')
-            return redirect(url_for('admin_panel.roles_management'))
-
-        user = User.query.options(joinedload(User.player)).get_or_404(user_id)
-
-        # Track roles for sync
-        old_roles = set(user.roles)
-        new_roles = set()
-
-        # Clear existing roles and assign new ones
-        user.roles.clear()
-        for role_id in role_ids:
-            role = Role.query.get(role_id)
-            if role:
-                user.roles.append(role)
-                new_roles.add(role)
-
-        db.session.commit()
-
-        # Sync Flask->Discord role mappings
-        roles_added = new_roles - old_roles
-        roles_removed = old_roles - new_roles
-
-        for role in roles_added:
-            if role.discord_role_id and role.sync_enabled:
-                try:
-                    sync_role_assignment(user, role)
-                    logger.info(f"Synced Discord role {role.name} for user {user.username}")
-                except Exception as e:
-                    logger.error(f"Failed to sync Discord role {role.name}: {e}")
-
-        for role in roles_removed:
-            if role.discord_role_id and role.sync_enabled:
-                try:
-                    sync_role_removal(user, role)
-                    logger.info(f"Removed Discord role {role.name} from user {user.username}")
-                except Exception as e:
-                    logger.error(f"Failed to remove Discord role {role.name}: {e}")
-
-        # Trigger Discord role sync if player has Discord ID (for team-based roles)
-        if user.player and user.player.discord_id:
-            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
-            logger.info(f"Triggered Discord role sync for user {user.id} after role assignment")
-
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='assign_roles',
-            resource_type='user_roles',
-            resource_id=str(user_id),
-            new_value=f"Assigned roles: {', '.join([Role.query.get(rid).name for rid in role_ids if Role.query.get(rid)])}",
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        flash(f'Roles assigned to "{user.name or user.username}" successfully', 'success')
+    if not user_id:
+        flash('User ID is required', 'error')
         return redirect(url_for('admin_panel.roles_management'))
-    except Exception as e:
-        logger.error(f"Error assigning user roles: {e}")
-        flash('Role assignment failed. Check database connectivity and permissions.', 'error')
-        return redirect(url_for('admin_panel.roles_management'))
+
+    user = User.query.options(joinedload(User.player)).get_or_404(user_id)
+
+    # Track roles for sync
+    old_roles = set(user.roles)
+    new_roles = set()
+
+    # Clear existing roles and assign new ones
+    user.roles.clear()
+    for role_id in role_ids:
+        role = Role.query.get(role_id)
+        if role:
+            user.roles.append(role)
+            new_roles.add(role)
+
+    # Sync Flask->Discord role mappings
+    roles_added = new_roles - old_roles
+    roles_removed = old_roles - new_roles
+
+    for role in roles_added:
+        if role.discord_role_id and role.sync_enabled:
+            try:
+                sync_role_assignment(user, role)
+                logger.info(f"Synced Discord role {role.name} for user {user.username}")
+            except Exception as e:
+                logger.error(f"Failed to sync Discord role {role.name}: {e}")
+
+    for role in roles_removed:
+        if role.discord_role_id and role.sync_enabled:
+            try:
+                sync_role_removal(user, role)
+                logger.info(f"Removed Discord role {role.name} from user {user.username}")
+            except Exception as e:
+                logger.error(f"Failed to remove Discord role {role.name}: {e}")
+
+    # Trigger Discord role sync if player has Discord ID (for team-based roles)
+    if user.player and user.player.discord_id:
+        assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+        logger.info(f"Triggered Discord role sync for user {user.id} after role assignment")
+
+    # Log the action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='assign_roles',
+        resource_type='user_roles',
+        resource_id=str(user_id),
+        new_value=f"Assigned roles: {', '.join([Role.query.get(rid).name for rid in role_ids if Role.query.get(rid)])}",
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    flash(f'Roles assigned to "{user.name or user.username}" successfully', 'success')
+    return redirect(url_for('admin_panel.roles_management'))
 
 
 @admin_panel_bp.route('/users/roles/search', methods=['POST'])

@@ -80,33 +80,55 @@ def app():
         from app import create_app
         app = create_app('web_config.TestingConfig')
 
-    # Import SQLAlchemy pooling for in-memory database
-    from sqlalchemy.pool import StaticPool
+    # Detect if we're in CI/CD with PostgreSQL available
+    import os
+    database_url = os.environ.get('DATABASE_URL', '')
+    use_postgres = database_url.startswith('postgresql')
 
-    # Override config for testing
-    # CRITICAL: SQLite in-memory databases require StaticPool to share
-    # the same connection across all operations. Without this, each new
-    # connection creates a new empty database, causing "no such table" errors.
-    app.config.update({
-        'TESTING': True,
-        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-        'SQLALCHEMY_ENGINE_OPTIONS': {
-            'poolclass': StaticPool,
-            'connect_args': {'check_same_thread': False},
-        },
-        'WTF_CSRF_ENABLED': False,
-        'SECRET_KEY': 'test-secret-key',
-        'JWT_SECRET_KEY': 'test-jwt-secret',
-        'REDIS_URL': 'redis://localhost:6379/15',
-        'CELERY_TASK_ALWAYS_EAGER': True,  # Execute tasks synchronously
-        'CELERY_TASK_EAGER_PROPAGATES': True,
-        'SERVER_NAME': 'localhost:5000',
-        'PREFERRED_URL_SCHEME': 'http',
-        # Disable Redis-based session storage for tests
-        'SESSION_TYPE': 'filesystem',
-        'SESSION_USE_SIGNER': False,
-        'SESSION_PERMANENT': False,
-    })
+    if use_postgres:
+        # CI/CD: Use PostgreSQL - proper session isolation, matches production
+        app.config.update({
+            'TESTING': True,
+            'SQLALCHEMY_DATABASE_URI': database_url,
+            'SQLALCHEMY_ENGINE_OPTIONS': {
+                'pool_pre_ping': True,
+            },
+            'WTF_CSRF_ENABLED': False,
+            'SECRET_KEY': os.environ.get('SECRET_KEY', 'test-secret-key'),
+            'JWT_SECRET_KEY': os.environ.get('JWT_SECRET_KEY', 'test-jwt-secret'),
+            'REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379/0'),
+            'CELERY_TASK_ALWAYS_EAGER': True,
+            'CELERY_TASK_EAGER_PROPAGATES': True,
+            'SERVER_NAME': 'localhost:5000',
+            'PREFERRED_URL_SCHEME': 'http',
+            'SESSION_TYPE': 'filesystem',
+            'SESSION_USE_SIGNER': False,
+            'SESSION_PERMANENT': False,
+        })
+    else:
+        # Local development: Use SQLite in-memory with StaticPool
+        # StaticPool is CRITICAL for SQLite in-memory databases - without it,
+        # each connection creates a new empty database.
+        from sqlalchemy.pool import StaticPool
+        app.config.update({
+            'TESTING': True,
+            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+            'SQLALCHEMY_ENGINE_OPTIONS': {
+                'poolclass': StaticPool,
+                'connect_args': {'check_same_thread': False},
+            },
+            'WTF_CSRF_ENABLED': False,
+            'SECRET_KEY': 'test-secret-key',
+            'JWT_SECRET_KEY': 'test-jwt-secret',
+            'REDIS_URL': 'redis://localhost:6379/15',
+            'CELERY_TASK_ALWAYS_EAGER': True,
+            'CELERY_TASK_EAGER_PROPAGATES': True,
+            'SERVER_NAME': 'localhost:5000',
+            'PREFERRED_URL_SCHEME': 'http',
+            'SESSION_TYPE': 'filesystem',
+            'SESSION_USE_SIGNER': False,
+            'SESSION_PERMANENT': False,
+        })
 
     # Create application context
     ctx = app.app_context()

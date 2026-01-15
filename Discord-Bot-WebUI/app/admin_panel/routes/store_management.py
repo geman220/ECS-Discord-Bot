@@ -23,6 +23,7 @@ from app.models.store import StoreItem, StoreOrder
 from app.models.core import User, Season
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 # Set up the module logger
 logger = logging.getLogger(__name__)
@@ -180,215 +181,198 @@ def store_items():
 @admin_panel_bp.route('/store/items/create', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def create_store_item():
     """Create new store item."""
     if request.method == 'POST':
+        # Get form data
+        name = request.form.get('name', '').strip()
+        description = request.form.get('description', '').strip()
+        image_url = request.form.get('image_url', '').strip()
+        category = request.form.get('category', '').strip()
+        price = request.form.get('price', '').strip()
+
+        # Get colors and sizes
+        colors = []
+        sizes = []
+        for key, value in request.form.items():
+            if key.startswith('color_') and value.strip():
+                colors.append(value.strip())
+            elif key.startswith('size_') and value.strip():
+                sizes.append(value.strip())
+
+        # Validation
+        if not name:
+            flash('Item name is required.', 'error')
+            return render_template('admin_panel/store/item_form_flowbite.html',
+                                 action='create', item=None)
+
+        # Check for duplicate name
+        if StoreItem.query.filter_by(name=name).first():
+            flash('An item with this name already exists.', 'error')
+            return render_template('admin_panel/store/item_form_flowbite.html',
+                                 action='create', item=None)
+
         try:
-            # Get form data
-            name = request.form.get('name', '').strip()
-            description = request.form.get('description', '').strip()
-            image_url = request.form.get('image_url', '').strip()
-            category = request.form.get('category', '').strip()
-            price = request.form.get('price', '').strip()
-            
-            # Get colors and sizes
-            colors = []
-            sizes = []
-            for key, value in request.form.items():
-                if key.startswith('color_') and value.strip():
-                    colors.append(value.strip())
-                elif key.startswith('size_') and value.strip():
-                    sizes.append(value.strip())
-            
-            # Validation
-            if not name:
-                flash('Item name is required.', 'error')
-                return render_template('admin_panel/store/item_form_flowbite.html', 
-                                     action='create', item=None)
-            
-            # Check for duplicate name
-            if StoreItem.query.filter_by(name=name).first():
-                flash('An item with this name already exists.', 'error')
-                return render_template('admin_panel/store/item_form_flowbite.html', 
-                                     action='create', item=None)
-            
-            # Create item
-            item = StoreItem(
-                name=name,
-                description=description or None,
-                image_url=image_url or None,
-                category=category or None,
-                price=float(price) if price else None,
-                available_colors=json.dumps(colors) if colors else None,
-                available_sizes=json.dumps(sizes) if sizes else None,
-                created_by=current_user.id,
-                is_active=True
-            )
-            
-            db.session.add(item)
-            db.session.commit()
-            
-            # Log the action
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='create_store_item',
-                resource_type='store',
-                resource_id=str(item.id),
-                new_value=f"Created store item: {item.name}",
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-            
-            flash(f'Store item "{item.name}" created successfully.', 'success')
-            return redirect(url_for('admin_panel.store_items'))
-            
-        except ValueError as e:
+            price_value = float(price) if price else None
+        except ValueError:
             flash('Invalid price format.', 'error')
-            return render_template('admin_panel/store/item_form_flowbite.html', 
+            return render_template('admin_panel/store/item_form_flowbite.html',
                                  action='create', item=None)
-        except Exception as e:
-            logger.error(f"Error creating store item: {e}")
-            db.session.rollback()
-            flash('Store item creation failed. Check database connectivity and input validation.', 'error')
-            return render_template('admin_panel/store/item_form_flowbite.html', 
-                                 action='create', item=None)
-    
+
+        # Create item
+        item = StoreItem(
+            name=name,
+            description=description or None,
+            image_url=image_url or None,
+            category=category or None,
+            price=price_value,
+            available_colors=json.dumps(colors) if colors else None,
+            available_sizes=json.dumps(sizes) if sizes else None,
+            created_by=current_user.id,
+            is_active=True
+        )
+
+        db.session.add(item)
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='create_store_item',
+            resource_type='store',
+            resource_id=str(item.id),
+            new_value=f"Created store item: {item.name}",
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        flash(f'Store item "{item.name}" created successfully.', 'success')
+        return redirect(url_for('admin_panel.store_items'))
+
     # GET request - show form
-    return render_template('admin_panel/store/item_form_flowbite.html', 
+    return render_template('admin_panel/store/item_form_flowbite.html',
                          action='create', item=None)
 
 
 @admin_panel_bp.route('/store/items/<int:item_id>/edit', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def edit_store_item(item_id):
     """Edit store item."""
     item = StoreItem.query.get_or_404(item_id)
-    
+
     if request.method == 'POST':
+        # Store old values for audit log
+        old_values = {
+            'name': item.name,
+            'description': item.description,
+            'category': item.category,
+            'is_active': item.is_active
+        }
+
+        # Update item
+        item.name = request.form.get('name', '').strip()
+        item.description = request.form.get('description', '').strip() or None
+        item.image_url = request.form.get('image_url', '').strip() or None
+        item.category = request.form.get('category', '').strip() or None
+        price = request.form.get('price', '').strip()
+
         try:
-            # Store old values for audit log
-            old_values = {
-                'name': item.name,
-                'description': item.description,
-                'category': item.category,
-                'is_active': item.is_active
-            }
-            
-            # Update item
-            item.name = request.form.get('name', '').strip()
-            item.description = request.form.get('description', '').strip() or None
-            item.image_url = request.form.get('image_url', '').strip() or None
-            item.category = request.form.get('category', '').strip() or None
-            price = request.form.get('price', '').strip()
             item.price = float(price) if price else None
-            item.is_active = 'is_active' in request.form
-            
-            # Get colors and sizes
-            colors = []
-            sizes = []
-            for key, value in request.form.items():
-                if key.startswith('color_') and value.strip():
-                    colors.append(value.strip())
-                elif key.startswith('size_') and value.strip():
-                    sizes.append(value.strip())
-            
-            item.available_colors = json.dumps(colors) if colors else None
-            item.available_sizes = json.dumps(sizes) if sizes else None
-            item.updated_at = datetime.utcnow()
-            
-            # Validation
-            if not item.name:
-                flash('Item name is required.', 'error')
-                return render_template('admin_panel/store/item_form_flowbite.html', 
-                                     action='edit', item=item)
-            
-            # Check for duplicate name (excluding current item)
-            duplicate = StoreItem.query.filter(
-                and_(StoreItem.name == item.name, StoreItem.id != item.id)
-            ).first()
-            if duplicate:
-                flash('An item with this name already exists.', 'error')
-                return render_template('admin_panel/store/item_form_flowbite.html', 
-                                     action='edit', item=item)
-            
-            db.session.commit()
-            
-            # Log the action
-            changes = []
-            for key, old_value in old_values.items():
-                new_value = getattr(item, key)
-                if old_value != new_value:
-                    changes.append(f"{key}: '{old_value}' → '{new_value}'")
-            
-            if changes:
-                AdminAuditLog.log_action(
-                    user_id=current_user.id,
-                    action='update_store_item',
-                    resource_type='store',
-                    resource_id=str(item.id),
-                    old_value=str(old_values),
-                    new_value=f"Updated: {'; '.join(changes)}",
-                    ip_address=request.remote_addr,
-                    user_agent=request.headers.get('User-Agent')
-                )
-            
-            flash(f'Store item "{item.name}" updated successfully.', 'success')
-            return redirect(url_for('admin_panel.store_items'))
-            
-        except ValueError as e:
+        except ValueError:
             flash('Invalid price format.', 'error')
-            return render_template('admin_panel/store/item_form_flowbite.html', 
+            return render_template('admin_panel/store/item_form_flowbite.html',
                                  action='edit', item=item)
-        except Exception as e:
-            logger.error(f"Error updating store item: {e}")
-            db.session.rollback()
-            flash('Store item update failed. Check database connectivity and permissions.', 'error')
-            return render_template('admin_panel/store/item_form_flowbite.html', 
+
+        item.is_active = 'is_active' in request.form
+
+        # Get colors and sizes
+        colors = []
+        sizes = []
+        for key, value in request.form.items():
+            if key.startswith('color_') and value.strip():
+                colors.append(value.strip())
+            elif key.startswith('size_') and value.strip():
+                sizes.append(value.strip())
+
+        item.available_colors = json.dumps(colors) if colors else None
+        item.available_sizes = json.dumps(sizes) if sizes else None
+        item.updated_at = datetime.utcnow()
+
+        # Validation
+        if not item.name:
+            flash('Item name is required.', 'error')
+            return render_template('admin_panel/store/item_form_flowbite.html',
                                  action='edit', item=item)
-    
+
+        # Check for duplicate name (excluding current item)
+        duplicate = StoreItem.query.filter(
+            and_(StoreItem.name == item.name, StoreItem.id != item.id)
+        ).first()
+        if duplicate:
+            flash('An item with this name already exists.', 'error')
+            return render_template('admin_panel/store/item_form_flowbite.html',
+                                 action='edit', item=item)
+
+        # Log the action
+        changes = []
+        for key, old_value in old_values.items():
+            new_value = getattr(item, key)
+            if old_value != new_value:
+                changes.append(f"{key}: '{old_value}' -> '{new_value}'")
+
+        if changes:
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='update_store_item',
+                resource_type='store',
+                resource_id=str(item.id),
+                old_value=str(old_values),
+                new_value=f"Updated: {'; '.join(changes)}",
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+        flash(f'Store item "{item.name}" updated successfully.', 'success')
+        return redirect(url_for('admin_panel.store_items'))
+
     # GET request - show form
-    return render_template('admin_panel/store/item_form_flowbite.html', 
+    return render_template('admin_panel/store/item_form_flowbite.html',
                          action='edit', item=item)
 
 
 @admin_panel_bp.route('/store/items/<int:item_id>/delete', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
+@transactional
 def delete_store_item(item_id):
     """Delete store item."""
-    try:
-        item = StoreItem.query.get_or_404(item_id)
-        
-        # Check if item has orders
-        order_count = StoreOrder.query.filter_by(item_id=item.id).count()
-        if order_count > 0:
-            flash(f'Cannot delete item "{item.name}" - it has {order_count} associated orders. Consider deactivating instead.', 'error')
-            return redirect(url_for('admin_panel.store_items'))
-        
-        item_name = item.name
-        
-        # Log the action before deletion
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='delete_store_item',
-            resource_type='store',
-            resource_id=str(item.id),
-            old_value=f"Deleted store item: {item_name}",
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-        
-        db.session.delete(item)
-        db.session.commit()
-        
-        flash(f'Store item "{item_name}" deleted successfully.', 'success')
-        
-    except Exception as e:
-        logger.error(f"Error deleting store item: {e}")
-        db.session.rollback()
-        flash('Store item deletion failed. Check database connectivity and item constraints.', 'error')
-    
+    item = StoreItem.query.get_or_404(item_id)
+
+    # Check if item has orders
+    order_count = StoreOrder.query.filter_by(item_id=item.id).count()
+    if order_count > 0:
+        flash(f'Cannot delete item "{item.name}" - it has {order_count} associated orders. Consider deactivating instead.', 'error')
+        return redirect(url_for('admin_panel.store_items'))
+
+    item_name = item.name
+
+    # Log the action before deletion
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='delete_store_item',
+        resource_type='store',
+        resource_id=str(item.id),
+        old_value=f"Deleted store item: {item_name}",
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    db.session.delete(item)
+
+    flash(f'Store item "{item_name}" deleted successfully.', 'success')
+
     return redirect(url_for('admin_panel.store_items'))
 
 
@@ -476,49 +460,42 @@ def store_orders():
 @admin_panel_bp.route('/store/orders/<int:order_id>/update-status', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def update_order_status(order_id):
     """Update order status."""
-    try:
-        order = StoreOrder.query.get_or_404(order_id)
-        new_status = request.form.get('status')
-        
-        if new_status not in ['PENDING', 'PROCESSING', 'ORDERED', 'DELIVERED', 'CANCELLED']:
-            flash('Invalid status.', 'error')
-            return redirect(url_for('admin_panel.store_orders'))
-        
-        old_status = order.status
-        order.status = new_status
-        
-        # Update timestamps based on status
-        if new_status == 'PROCESSING' and old_status == 'PENDING':
-            order.processed_date = datetime.utcnow()
+    order = StoreOrder.query.get_or_404(order_id)
+    new_status = request.form.get('status')
+
+    if new_status not in ['PENDING', 'PROCESSING', 'ORDERED', 'DELIVERED', 'CANCELLED']:
+        flash('Invalid status.', 'error')
+        return redirect(url_for('admin_panel.store_orders'))
+
+    old_status = order.status
+    order.status = new_status
+
+    # Update timestamps based on status
+    if new_status == 'PROCESSING' and old_status == 'PENDING':
+        order.processed_date = datetime.utcnow()
+        order.processed_by = current_user.id
+    elif new_status == 'DELIVERED':
+        order.delivered_date = datetime.utcnow()
+        if not order.processed_by:
             order.processed_by = current_user.id
-        elif new_status == 'DELIVERED':
-            order.delivered_date = datetime.utcnow()
-            if not order.processed_by:
-                order.processed_by = current_user.id
-        
-        db.session.commit()
-        
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='update_order_status',
-            resource_type='store',
-            resource_id=str(order.id),
-            old_value=old_status,
-            new_value=new_status,
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-        
-        flash(f'Order status updated from {old_status} to {new_status}.', 'success')
-        
-    except Exception as e:
-        logger.error(f"Error updating order status: {e}")
-        db.session.rollback()
-        flash('Order status update failed. Check database connectivity and permissions.', 'error')
-    
+
+    # Log the action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='update_order_status',
+        resource_type='store',
+        resource_id=str(order.id),
+        old_value=old_status,
+        new_value=new_status,
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    flash(f'Order status updated from {old_status} to {new_status}.', 'success')
+
     return redirect(url_for('admin_panel.store_orders'))
 
 
@@ -681,6 +658,7 @@ def store_analytics():
 @admin_panel_bp.route('/api/store/items', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def store_items_api():
     """Manage store items via API."""
     if request.method == 'GET':
@@ -700,48 +678,38 @@ def store_items_api():
         except Exception as e:
             logger.error(f"Error getting store items: {e}")
             return jsonify({'error': 'Failed to get store items'}), 500
-    
+
     elif request.method == 'POST':
-        try:
-            data = request.get_json()
-            
-            item = StoreItem(
-                name=data['name'],
-                description=data.get('description', ''),
-                price=data.get('price', 0),
-                category=data.get('category', ''),
-                available_colors=json.dumps(data.get('colors', [])),
-                available_sizes=json.dumps(data.get('sizes', [])),
-                created_by=current_user.id
-            )
-            
-            db.session.add(item)
-            db.session.commit()
-            
-            # Log item creation
-            AdminAuditLog.log_action(
-                user_id=current_user.id,
-                action='create_store_item',
-                resource_type='store',
-                resource_id=str(item.id),
-                new_value=f"Created store item: {item.name}",
-                ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
-            )
-            
-            return jsonify({
-                'success': True,
-                'message': f'Item "{item.name}" created successfully',
-                'item_id': item.id
-            })
-            
-        except Exception as e:
-            logger.error(f"Error creating store item: {e}")
-            db.session.rollback()
-            return jsonify({
-                'success': False,
-                'message': 'Failed to create item'
-            }), 500
+        data = request.get_json()
+
+        item = StoreItem(
+            name=data['name'],
+            description=data.get('description', ''),
+            price=data.get('price', 0),
+            category=data.get('category', ''),
+            available_colors=json.dumps(data.get('colors', [])),
+            available_sizes=json.dumps(data.get('sizes', [])),
+            created_by=current_user.id
+        )
+
+        db.session.add(item)
+
+        # Log item creation
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='create_store_item',
+            resource_type='store',
+            resource_id=str(item.id),
+            new_value=f"Created store item: {item.name}",
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Item "{item.name}" created successfully',
+            'item_id': item.id
+        })
 
 
 @admin_panel_bp.route('/api/store/orders')

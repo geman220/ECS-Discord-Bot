@@ -21,6 +21,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.matches import Match
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -155,98 +156,88 @@ def toggle_league_status():
 @admin_panel_bp.route('/match-operations/season/set-current', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def set_current_season():
     """Set a season as current."""
-    try:
-        from app.models import Season
+    from app.models import Season
 
-        season_id = request.form.get('season_id')
+    season_id = request.form.get('season_id')
 
-        if not season_id:
-            return jsonify({'success': False, 'message': 'Season ID is required'})
+    if not season_id:
+        return jsonify({'success': False, 'message': 'Season ID is required'})
 
-        # Clear current season status from all seasons
-        Season.query.update({'is_current': False})
+    # Clear current season status from all seasons
+    Season.query.update({'is_current': False})
 
-        # Set the selected season as current
-        season = Season.query.get_or_404(season_id)
-        season.is_current = True
-        db.session.commit()
+    # Set the selected season as current
+    season = Season.query.get_or_404(season_id)
+    season.is_current = True
 
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='set_current_season',
-            resource_type='match_operations',
-            resource_id=str(season_id),
-            new_value=f'Set {season.name} as current season',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
+    # Log the action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='set_current_season',
+        resource_type='match_operations',
+        resource_id=str(season_id),
+        new_value=f'Set {season.name} as current season',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
 
-        return jsonify({
-            'success': True,
-            'message': f'Season "{season.name}" set as current season',
-            'season_name': season.name
-        })
-
-    except Exception as e:
-        logger.error(f"Error setting current season: {e}")
-        return jsonify({'success': False, 'message': 'Error updating current season'})
+    return jsonify({
+        'success': True,
+        'message': f'Season "{season.name}" set as current season',
+        'season_name': season.name
+    })
 
 
 @admin_panel_bp.route('/match-operations/teams/rename', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional
 def rename_team():
     """Rename a team and trigger Discord automation."""
+    from app.models import Team
+
+    team_id = request.form.get('team_id')
+    new_name = request.form.get('new_name')
+
+    if not team_id or not new_name:
+        return jsonify({'success': False, 'message': 'Team ID and new name are required'})
+
+    team = Team.query.get_or_404(team_id)
+    old_name = team.name
+
+    # Update team name
+    team.name = new_name.strip()
+
+    # Log the action
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='rename_team',
+        resource_type='match_operations',
+        resource_id=str(team_id),
+        old_value=old_name,
+        new_value=new_name,
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    # Trigger Discord automation for team name change
+    # Updates Discord role names, channel names, etc.
     try:
-        from app.models import Team
+        from app.tasks.tasks_discord import update_team_discord_resources_task
+        update_team_discord_resources_task.delay(team_id=int(team_id), new_team_name=new_name)
+        logger.info(f"Discord automation task queued for team {team_id} rename")
+    except Exception as discord_err:
+        logger.warning(f"Could not queue Discord automation task: {discord_err}")
+        # Don't fail the rename if Discord task fails to queue
 
-        team_id = request.form.get('team_id')
-        new_name = request.form.get('new_name')
+    logger.info(f"Team {team_id} renamed from '{old_name}' to '{new_name}' by user {current_user.id}")
 
-        if not team_id or not new_name:
-            return jsonify({'success': False, 'message': 'Team ID and new name are required'})
-
-        team = Team.query.get_or_404(team_id)
-        old_name = team.name
-
-        # Update team name
-        team.name = new_name.strip()
-        db.session.commit()
-
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='rename_team',
-            resource_type='match_operations',
-            resource_id=str(team_id),
-            old_value=old_name,
-            new_value=new_name,
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        # Trigger Discord automation for team name change
-        # Updates Discord role names, channel names, etc.
-        try:
-            from app.tasks.tasks_discord import update_team_discord_resources_task
-            update_team_discord_resources_task.delay(team_id=int(team_id), new_team_name=new_name)
-            logger.info(f"Discord automation task queued for team {team_id} rename")
-        except Exception as discord_err:
-            logger.warning(f"Could not queue Discord automation task: {discord_err}")
-            # Don't fail the rename if Discord task fails to queue
-
-        logger.info(f"Team {team_id} renamed from '{old_name}' to '{new_name}' by user {current_user.id}")
-
-        return jsonify({
-            'success': True,
-            'message': f'Team renamed from "{old_name}" to "{new_name}" successfully',
-            'old_name': old_name,
-            'new_name': new_name
-        })
-
-    except Exception as e:
-        logger.error(f"Error renaming team: {e}")
-        return jsonify({'success': False, 'message': 'Error renaming team'})
+    return jsonify({
+        'success': True,
+        'message': f'Team renamed from "{old_name}" to "{new_name}" successfully',
+        'old_name': old_name,
+        'new_name': new_name
+    })
