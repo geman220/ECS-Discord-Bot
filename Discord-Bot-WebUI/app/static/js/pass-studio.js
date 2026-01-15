@@ -724,7 +724,31 @@ const PassStudio = {
         }
     },
 
-    async saveAppearance() {
+    /**
+     * Set button loading state
+     */
+    setButtonLoading(button, loading) {
+        if (!button) return;
+        const saveIcon = button.querySelector('.save-icon, .publish-icon');
+        const loadingIcon = button.querySelector('.loading-icon');
+        const btnText = button.querySelector('.btn-text');
+
+        if (loading) {
+            button.disabled = true;
+            button.classList.add('opacity-75', 'cursor-not-allowed');
+            if (saveIcon) saveIcon.classList.add('hidden');
+            if (loadingIcon) loadingIcon.classList.remove('hidden');
+            if (btnText) btnText.textContent = 'Saving...';
+        } else {
+            button.disabled = false;
+            button.classList.remove('opacity-75', 'cursor-not-allowed');
+            if (saveIcon) saveIcon.classList.remove('hidden');
+            if (loadingIcon) loadingIcon.classList.add('hidden');
+        }
+    },
+
+    async saveAppearance(buttonElement) {
+        const button = buttonElement || document.getElementById('save-appearance-btn');
         const form = document.getElementById('appearance-form');
         const formData = new FormData(form);
         const data = Object.fromEntries(formData);
@@ -741,6 +765,10 @@ const PassStudio = {
         const passStyleRadio = document.querySelector('input[name="apple_pass_style"]:checked');
         data.apple_pass_style = passStyleRadio?.value || 'generic';
 
+        // Show loading state
+        this.setButtonLoading(button, true);
+        const btnText = button?.querySelector('.btn-text');
+
         try {
             const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ||
                              document.querySelector('[name=csrf_token]')?.value || '';
@@ -756,7 +784,7 @@ const PassStudio = {
 
             const result = await response.json();
             if (result.success) {
-                this.showToast('Appearance saved successfully', 'success');
+                this.showToast('Changes saved! Click "Publish to Passes" to push updates to devices.', 'success');
                 this.markSaved();
             } else {
                 this.showToast(result.error || 'Error saving appearance', 'error');
@@ -764,6 +792,76 @@ const PassStudio = {
         } catch (error) {
             console.error('Error saving appearance:', error);
             this.showToast('Error saving appearance', 'error');
+        } finally {
+            this.setButtonLoading(button, false);
+            if (btnText) btnText.textContent = 'Save Changes';
+        }
+    },
+
+    async publishChanges(buttonElement) {
+        const button = buttonElement || document.getElementById('publish-changes-btn');
+
+        // First, get the pass count for confirmation
+        try {
+            const countResponse = await fetch(`/admin/wallet/studio/${this.passTypeCode}/pass-count`);
+            const countData = await countResponse.json();
+
+            if (!countData.success) {
+                this.showToast('Error getting pass count', 'error');
+                return;
+            }
+
+            const passCount = countData.count;
+            const passTypeName = countData.pass_type_name;
+
+            // Show confirmation dialog
+            const confirmResult = await window.Swal.fire({
+                title: 'Publish Changes?',
+                html: passCount > 0
+                    ? `This will push updates to <strong>${passCount}</strong> active ${passTypeName} passes.<br><br>Users will see the updated design on their devices.`
+                    : 'There are no active passes to update.',
+                icon: passCount > 0 ? 'question' : 'info',
+                showCancelButton: passCount > 0,
+                confirmButtonText: passCount > 0 ? 'Publish Now' : 'OK',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#16a34a',
+                reverseButtons: true
+            });
+
+            if (!confirmResult.isConfirmed || passCount === 0) {
+                return;
+            }
+
+            // Show loading state
+            this.setButtonLoading(button, true);
+            const btnText = button?.querySelector('.btn-text');
+            if (btnText) btnText.textContent = 'Publishing...';
+
+            // Perform the publish
+            const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') ||
+                             document.querySelector('[name=csrf_token]')?.value || '';
+
+            const response = await fetch(`/admin/wallet/studio/${this.passTypeCode}/publish`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                }
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                this.showToast(result.message || 'Changes published successfully!', 'success');
+            } else {
+                this.showToast(result.error || 'Error publishing changes', 'error');
+            }
+        } catch (error) {
+            console.error('Error publishing changes:', error);
+            this.showToast('Error publishing changes', 'error');
+        } finally {
+            this.setButtonLoading(button, false);
+            const btnText = button?.querySelector('.btn-text');
+            if (btnText) btnText.textContent = 'Publish to Passes';
         }
     },
 

@@ -177,15 +177,29 @@ window.EventDelegation.register('update-barcode-preview', function(element, e) {
 
 /**
  * Save Appearance Action
- * Saves appearance settings to server
+ * Saves appearance settings to server (draft save, no push)
  */
 window.EventDelegation.register('save-appearance', function(element, e) {
     e.preventDefault();
 
     if (window.PassStudio && typeof window.PassStudio.saveAppearance === 'function') {
-        window.PassStudio.saveAppearance();
+        window.PassStudio.saveAppearance(element);
     } else {
         console.error('[save-appearance] PassStudio.saveAppearance not available');
+    }
+});
+
+/**
+ * Publish Changes Action
+ * Pushes saved changes to all active passes with confirmation
+ */
+window.EventDelegation.register('publish-changes', function(element, e) {
+    e.preventDefault();
+
+    if (window.PassStudio && typeof window.PassStudio.publishChanges === 'function') {
+        window.PassStudio.publishChanges(element);
+    } else {
+        console.error('[publish-changes] PassStudio.publishChanges not available');
     }
 });
 

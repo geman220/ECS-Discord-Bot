@@ -294,9 +294,13 @@ def studio(pass_type_code):
 @pass_studio_bp.route('/<pass_type_code>/appearance', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
 def save_appearance(pass_type_code):
-    """Save appearance settings (colors, logo text)"""
+    """
+    Save appearance settings (colors, logo text).
+
+    This saves changes as a draft. Use the publish endpoint to push
+    updates to active passes on user devices.
+    """
     try:
         pass_type = WalletPassType.get_by_code(pass_type_code)
         if not pass_type:
@@ -345,23 +349,13 @@ def save_appearance(pass_type_code):
             else:
                 pass_type.show_logo = str(show_value).lower() in ('true', '1', 'on', 'yes')
 
-        # Send push updates to all existing passes of this type
-        push_sent = False
-        push_result = None
-        try:
-            from app.wallet_pass.services.pass_service import pass_service
-            push_result = pass_service.update_pass_type_design(pass_type.id)
-            push_sent = True
-            logger.info(f"Pushed appearance update to passes: {push_result}")
-        except Exception as push_err:
-            logger.warning(f"Failed to push appearance update: {push_err}")
+        # Commit changes to database
+        db.session.commit()
 
         if request.is_json:
             return jsonify({
                 'success': True,
-                'message': 'Appearance updated',
-                'push_sent': push_sent,
-                'push_result': push_result,
+                'message': 'Appearance saved. Use "Publish Changes" to push updates to active passes.',
                 'data': {
                     'background_color': pass_type.background_color,
                     'foreground_color': pass_type.foreground_color,
@@ -375,15 +369,98 @@ def save_appearance(pass_type_code):
                 }
             })
 
-        flash('Appearance settings saved. Push updates sent to existing passes.', 'success')
+        flash('Appearance settings saved. Use "Publish Changes" to push updates to active passes.', 'success')
         return redirect(url_for('pass_studio.studio', pass_type_code=pass_type_code, tab='appearance'))
 
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Error saving appearance: {str(e)}", exc_info=True)
         if request.is_json:
             return jsonify({'success': False, 'error': str(e)}), 500
         flash(f'Error saving appearance: {str(e)}', 'error')
         return redirect(url_for('pass_studio.studio', pass_type_code=pass_type_code, tab='appearance'))
+
+
+@pass_studio_bp.route('/<pass_type_code>/publish', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def publish_changes(pass_type_code):
+    """
+    Publish saved changes to all active passes.
+
+    This pushes updates to Apple Wallet and Google Wallet devices.
+    The operation runs synchronously but with proper error handling.
+    For large numbers of passes, consider implementing async via Celery.
+    """
+    try:
+        pass_type = WalletPassType.get_by_code(pass_type_code)
+        if not pass_type:
+            return jsonify({'success': False, 'error': 'Pass type not found'}), 404
+
+        # Get count of active passes for this type
+        from app.models.wallet import WalletPass
+        active_pass_count = WalletPass.query.filter_by(
+            pass_type_id=pass_type.id,
+            status='active'
+        ).count()
+
+        if active_pass_count == 0:
+            return jsonify({
+                'success': True,
+                'message': 'No active passes to update.',
+                'passes_updated': 0
+            })
+
+        # Push updates to all passes
+        push_result = None
+        try:
+            from app.wallet_pass.services.pass_service import pass_service
+            push_result = pass_service.update_pass_type_design(pass_type.id)
+            logger.info(f"Published changes to {pass_type.name}: {push_result}")
+        except Exception as push_err:
+            logger.error(f"Failed to publish changes: {push_err}", exc_info=True)
+            return jsonify({
+                'success': False,
+                'error': f'Failed to push updates: {str(push_err)}'
+            }), 500
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully pushed updates to {active_pass_count} passes.',
+            'passes_updated': active_pass_count,
+            'push_result': push_result
+        })
+
+    except Exception as e:
+        logger.error(f"Error publishing changes: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@pass_studio_bp.route('/<pass_type_code>/pass-count', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def get_pass_count(pass_type_code):
+    """Get the count of active passes for confirmation dialog."""
+    try:
+        pass_type = WalletPassType.get_by_code(pass_type_code)
+        if not pass_type:
+            return jsonify({'success': False, 'error': 'Pass type not found'}), 404
+
+        from app.models.wallet import WalletPass
+        active_count = WalletPass.query.filter_by(
+            pass_type_id=pass_type.id,
+            status='active'
+        ).count()
+
+        return jsonify({
+            'success': True,
+            'count': active_count,
+            'pass_type_name': pass_type.name
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting pass count: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # =============================================================================
