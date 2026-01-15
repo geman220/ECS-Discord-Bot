@@ -151,6 +151,11 @@ from .wallet_config import (
     initialize_wallet_config_defaults
 )
 
+from .pub_league_order import (
+    PubLeagueOrder, PubLeagueOrderLineItem, PubLeagueOrderClaim,
+    PubLeagueOrderStatus, PubLeagueLineItemStatus, PubLeagueClaimStatus
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -255,5 +260,9 @@ __all__ = [
     # Wallet configuration models
     'WalletLocation', 'WalletSponsor', 'WalletSubgroup',
     'WalletPassFieldConfig', 'WalletBackField',
-    'initialize_wallet_config_defaults'
+    'initialize_wallet_config_defaults',
+
+    # Pub League order models
+    'PubLeagueOrder', 'PubLeagueOrderLineItem', 'PubLeagueOrderClaim',
+    'PubLeagueOrderStatus', 'PubLeagueLineItemStatus', 'PubLeagueClaimStatus'
 ]

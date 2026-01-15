@@ -153,13 +153,12 @@ class PassService:
         """
         Generate Google Wallet save URL.
 
-        Converts an Apple Wallet pass to Google Wallet format using
-        the pass-converter service.
+        Generates a native Google Wallet pass using JWT signing.
+        Uses the same field configurations as Apple passes for parity.
 
         Args:
             wallet_pass: WalletPass model instance
-            apple_pass_bytes: Optional pre-generated Apple .pkpass bytes.
-                              If not provided, will generate Apple pass first.
+            apple_pass_bytes: Ignored (kept for API compatibility)
 
         Returns:
             URL string for "Add to Google Wallet"
@@ -167,7 +166,7 @@ class PassService:
         if not GOOGLE_WALLET_AVAILABLE:
             raise NotImplementedError(
                 "Google Wallet is not configured. Ensure GOOGLE_WALLET_ISSUER_ID "
-                "is set and pass-converter service is available."
+                "is set and service account credentials are available."
             )
 
         generator = GooglePassGenerator(wallet_pass.pass_type)
@@ -483,6 +482,7 @@ class PassService:
 
         When colors, logos, or other design elements change,
         this pushes updates to all devices with passes of this type.
+        Also updates the Google Wallet class definition.
 
         Args:
             pass_type_id: ID of the pass type that was updated
@@ -500,8 +500,23 @@ class PassService:
         result = {
             'pass_type': pass_type.name,
             'total_passes': 0,
-            'push_results': None
+            'push_results': None,
+            'google_class_updated': False
         }
+
+        # Update Google Wallet class definition with new design
+        try:
+            from app.wallet_pass.generators.google import (
+                GooglePassConfig, ensure_google_wallet_class_exists
+            )
+            config = GooglePassConfig()
+            if config.issuer_id:
+                ensure_google_wallet_class_exists(config, pass_type, force_update=True)
+                result['google_class_updated'] = True
+                logger.info(f"Updated Google Wallet class for {pass_type.name}")
+        except Exception as e:
+            logger.warning(f"Could not update Google Wallet class: {e}")
+            result['google_class_error'] = str(e)
 
         if send_push:
             try:

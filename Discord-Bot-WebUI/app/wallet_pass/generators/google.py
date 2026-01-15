@@ -3,26 +3,28 @@
 """
 Google Wallet Pass Generator
 
-Converts Apple Wallet passes to Google Wallet format using Google's
-official pass-converter service. This approach ensures consistent
-pass designs across both platforms from a single source of truth.
+Generates Google Wallet passes natively using JWT (JSON Web Token).
+This gives full control over pass content including hero images,
+fields, barcodes, and member data.
 
 Architecture:
-  1. Generate Apple .pkpass file (using existing ApplePassGenerator)
-  2. Ensure Google Wallet Class exists (create if needed)
-  3. POST the .pkpass to pass-converter service
-  4. pass-converter returns a Google Wallet "Add to Wallet" URL
+  1. Ensure Google Wallet Class exists (create/update if needed)
+  2. Build genericObject JSON with all pass data
+  3. Sign as JWT using Google service account credentials
+  4. Return "Add to Google Wallet" URL with embedded JWT
 """
 
 import os
 import json
 import logging
-import requests
+import time
 from io import BytesIO
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any, List
+from datetime import datetime
 
 from google.oauth2 import service_account
 from google.auth.transport.requests import AuthorizedSession
+import jwt  # PyJWT library
 
 from .base import BasePassGenerator
 
@@ -34,7 +36,7 @@ WALLET_API_BASE = "https://walletobjects.googleapis.com/walletobjects/v1"
 
 def _check_google_wallet_config() -> Tuple[bool, str]:
     """
-    Check if Google Wallet is properly configured.
+    Check if Google Wallet is properly configured for native JWT generation.
 
     Returns:
         Tuple of (is_available, reason)
@@ -50,9 +52,14 @@ def _check_google_wallet_config() -> Tuple[bool, str]:
     if not os.path.exists(service_account_path):
         return False, f"Service account not found at {service_account_path}"
 
-    converter_url = os.getenv('PASS_CONVERTER_URL', 'http://pass-converter:3000')
-    if not converter_url:
-        return False, "PASS_CONVERTER_URL not configured"
+    # Verify service account file is valid JSON with required fields
+    try:
+        with open(service_account_path, 'r') as f:
+            sa_data = json.load(f)
+            if 'client_email' not in sa_data or 'private_key' not in sa_data:
+                return False, "Service account missing client_email or private_key"
+    except (json.JSONDecodeError, IOError) as e:
+        return False, f"Invalid service account file: {e}"
 
     return True, "OK"
 
@@ -68,7 +75,7 @@ else:
 
 
 class GooglePassConfig:
-    """Configuration for Google Wallet pass generation via pass-converter"""
+    """Configuration for Google Wallet pass generation using native JWT"""
 
     def __init__(self):
         self.issuer_id = os.getenv('GOOGLE_WALLET_ISSUER_ID')
@@ -76,11 +83,7 @@ class GooglePassConfig:
             'GOOGLE_WALLET_SERVICE_ACCOUNT',
             'app/wallet_pass/certs/google-service-account.json'
         )
-        self.converter_url = os.getenv('PASS_CONVERTER_URL', 'http://pass-converter:3000')
-        self.converter_auth_secret = os.getenv(
-            'PASS_CONVERTER_AUTH_SECRET',
-            'ecs-pass-converter-internal-secret'
-        )
+        self._service_account_data = None
 
     def validate(self):
         """Validate that all required configuration exists"""
@@ -92,13 +95,28 @@ class GooglePassConfig:
         if not os.path.exists(self.service_account_path):
             missing.append(f"Service account file not found at {self.service_account_path}")
 
-        if not self.converter_url:
-            missing.append("PASS_CONVERTER_URL not configured")
-
         if missing:
             raise ValueError(f"Google Wallet configuration errors: {'; '.join(missing)}")
 
         return True
+
+    @property
+    def service_account_data(self) -> dict:
+        """Load and cache service account data"""
+        if self._service_account_data is None:
+            with open(self.service_account_path, 'r') as f:
+                self._service_account_data = json.load(f)
+        return self._service_account_data
+
+    @property
+    def service_account_email(self) -> str:
+        """Get service account email for JWT signing"""
+        return self.service_account_data.get('client_email')
+
+    @property
+    def private_key(self) -> str:
+        """Get private key for JWT signing"""
+        return self.service_account_data.get('private_key')
 
     def get_authorized_session(self) -> AuthorizedSession:
         """Get an authorized session for Google Wallet API calls."""
@@ -301,11 +319,10 @@ def _build_class_definition(issuer_id: str, pass_type) -> dict:
 
 class GooglePassGenerator(BasePassGenerator):
     """
-    Generates Google Wallet passes by converting Apple passes.
+    Generates Google Wallet passes natively using JWT.
 
-    Uses Google's official pass-converter service to convert .pkpass
-    files to Google Wallet format. This ensures consistent pass designs
-    across both platforms.
+    Creates passes with full control over content: hero images, fields,
+    barcodes, and member data. No external converter service needed.
     """
 
     def __init__(self, pass_type, config: GooglePassConfig = None):
@@ -324,12 +341,11 @@ class GooglePassGenerator(BasePassGenerator):
 
     def generate(self, wallet_pass, apple_pass_bytes: Optional[bytes] = None) -> str:
         """
-        Generate a Google Wallet pass by converting an Apple pass.
+        Generate a Google Wallet pass using native JWT.
 
         Args:
             wallet_pass: WalletPass model instance
-            apple_pass_bytes: Optional pre-generated Apple .pkpass bytes.
-                              If not provided, will generate using ApplePassGenerator.
+            apple_pass_bytes: Ignored (kept for API compatibility)
 
         Returns:
             URL to add the pass to Google Wallet
@@ -339,20 +355,14 @@ class GooglePassGenerator(BasePassGenerator):
             self.config.validate()
 
             # Ensure Google Wallet class exists before creating objects
-            # This is required by Google - classes must exist before objects
             class_id = ensure_google_wallet_class_exists(self.config, self.pass_type)
             logger.debug(f"Google Wallet class ready: {class_id}")
 
-            # Generate Apple pass if not provided
-            if apple_pass_bytes is None:
-                from .apple import ApplePassGenerator
-                apple_generator = ApplePassGenerator(self.pass_type)
-                apple_pass_file = apple_generator.generate(wallet_pass)
-                apple_pass_bytes = apple_pass_file.getvalue()
-                logger.debug(f"Generated Apple pass for conversion ({len(apple_pass_bytes)} bytes)")
+            # Build the pass object
+            pass_object = self._build_pass_object(wallet_pass, class_id)
 
-            # Convert to Google Wallet via pass-converter service
-            google_wallet_url = self._convert_to_google(apple_pass_bytes, wallet_pass)
+            # Generate JWT and save URL
+            google_wallet_url = self._generate_save_url(pass_object)
 
             logger.info(
                 f"Generated Google Wallet pass for {wallet_pass.member_name} "
@@ -362,7 +372,6 @@ class GooglePassGenerator(BasePassGenerator):
             # Store the URL on the wallet pass for future reference
             wallet_pass.google_pass_url = google_wallet_url
             wallet_pass.google_pass_generated = True
-            from datetime import datetime
             wallet_pass.google_pass_generated_at = datetime.utcnow()
 
             return google_wallet_url
@@ -371,81 +380,218 @@ class GooglePassGenerator(BasePassGenerator):
             logger.error(f"Error generating Google Wallet pass: {e}")
             raise
 
-    def _convert_to_google(self, apple_pass_bytes: bytes, wallet_pass) -> str:
+    def _build_pass_object(self, wallet_pass, class_id: str) -> Dict[str, Any]:
         """
-        Convert Apple .pkpass to Google Wallet URL via pass-converter.
+        Build the Google Wallet genericObject for this pass.
+
+        Reads field configurations from the database (same as Apple) for full parity.
 
         Args:
-            apple_pass_bytes: The .pkpass file as bytes
-            wallet_pass: WalletPass model instance (for logging)
+            wallet_pass: WalletPass model instance
+            class_id: The class ID this object belongs to
 
         Returns:
-            Google Wallet "Add to Wallet" URL
+            Dict representing the genericObject
         """
-        convert_url = f"{self.config.converter_url}/convert/"
+        issuer_id = self.config.issuer_id
+        object_id = f"{issuer_id}.{self.pass_type.code}_{wallet_pass.serial_number}"
 
+        # Get template data (shared with Apple generator)
+        template_data = self.get_template_data(wallet_pass)
+
+        # Get colors from pass type
+        background_color = self.pass_type.background_color or '#213e96'
+
+        # Build the object
+        pass_object = {
+            "id": object_id,
+            "classId": class_id,
+            "genericType": "GENERIC_TYPE_UNSPECIFIED",
+            "hexBackgroundColor": background_color,
+            "cardTitle": {
+                "defaultValue": {
+                    "language": "en",
+                    "value": self.pass_type.name or "Membership"
+                }
+            },
+            "subheader": {
+                "defaultValue": {
+                    "language": "en",
+                    "value": "Member"
+                }
+            },
+            "header": {
+                "defaultValue": {
+                    "language": "en",
+                    "value": wallet_pass.member_name or "Member"
+                }
+            },
+            "state": "ACTIVE"
+        }
+
+        # Add logo if configured
+        logo_url = self.pass_type.google_logo_url or self._get_default_logo_url()
+        if logo_url:
+            pass_object["logo"] = {
+                "sourceUri": {"uri": logo_url},
+                "contentDescription": {
+                    "defaultValue": {"language": "en", "value": "Logo"}
+                }
+            }
+
+        # Add hero image
+        hero_url = _get_hero_image_url(self.pass_type)
+        if hero_url:
+            pass_object["heroImage"] = {
+                "sourceUri": {"uri": hero_url},
+                "contentDescription": {
+                    "defaultValue": {"language": "en", "value": self.pass_type.name}
+                }
+            }
+
+        # Build text modules from database field configurations (same source as Apple)
+        text_modules = self._build_text_modules_from_config(wallet_pass, template_data)
+        if text_modules:
+            pass_object["textModulesData"] = text_modules
+
+        # Add barcode (unless suppressed)
+        if not self.pass_type.suppress_barcode:
+            barcode_data = wallet_pass.barcode_data or wallet_pass.serial_number
+            pass_object["barcode"] = {
+                "type": "QR_CODE",
+                "value": barcode_data,
+                "alternateText": barcode_data
+            }
+
+        logger.debug(f"Built pass object: {json.dumps(pass_object, indent=2, default=str)}")
+        return pass_object
+
+    def _build_text_modules_from_config(self, wallet_pass, template_data: Dict) -> List[Dict]:
+        """
+        Build Google Wallet textModulesData from database field configurations.
+
+        This reads from the same WalletPassFieldConfig table as Apple passes,
+        ensuring field parity between platforms.
+
+        Args:
+            wallet_pass: WalletPass model instance
+            template_data: Template data dictionary
+
+        Returns:
+            List of textModulesData dictionaries
+        """
+        from app.models.wallet_config import WalletPassFieldConfig
+
+        text_modules = []
+
+        # Get field configurations from database (same query as Apple)
+        field_configs = WalletPassFieldConfig.query.filter(
+            WalletPassFieldConfig.pass_type_id == self.pass_type.id,
+            WalletPassFieldConfig.is_visible == True
+        ).order_by(WalletPassFieldConfig.display_order).all()
+
+        logger.debug(f"Found {len(field_configs)} field configs for Google pass")
+
+        for field in field_configs:
+            # Render the value template with pass data
+            value = field.value_template or ''
+            for key, val in template_data.items():
+                value = value.replace('{{' + key + '}}', str(val) if val is not None else '')
+
+            # Skip empty values
+            if not value.strip():
+                continue
+
+            text_modules.append({
+                "id": field.field_key,
+                "header": field.label or field.field_key.replace('_', ' ').title(),
+                "body": value
+            })
+
+        # If no field configs found, use defaults (same fallback as Apple)
+        if not field_configs:
+            logger.warning(f"No field configs found for {self.pass_type.code}, using defaults")
+
+            # Membership year
+            if wallet_pass.membership_year:
+                text_modules.append({
+                    "id": "membership_year",
+                    "header": "Membership Year",
+                    "body": str(wallet_pass.membership_year)
+                })
+
+            # Valid until
+            if wallet_pass.valid_until:
+                valid_str = wallet_pass.valid_until.strftime('%B %d, %Y') if hasattr(wallet_pass.valid_until, 'strftime') else str(wallet_pass.valid_until)
+                text_modules.append({
+                    "id": "valid_until",
+                    "header": "Valid Until",
+                    "body": valid_str
+                })
+
+            # Status
+            text_modules.append({
+                "id": "status",
+                "header": "Status",
+                "body": wallet_pass.status.capitalize() if wallet_pass.status else "Active"
+            })
+
+        return text_modules
+
+    def _get_default_logo_url(self) -> Optional[str]:
+        """Get default logo URL from assets"""
+        base_url = os.getenv('WEBUI_BASE_URL', 'https://portal.ecsfc.com')
         try:
-            response = requests.post(
-                convert_url,
-                files={
-                    'pass': (
-                        f'{wallet_pass.serial_number}.pkpass',
-                        apple_pass_bytes,
-                        'application/vnd.apple.pkpass'
-                    )
-                },
-                headers={
-                    'X-Converter-Auth': self.config.converter_auth_secret
-                },
-                allow_redirects=False,
-                timeout=30
-            )
+            from app.models.wallet_asset import WalletAsset
+            logo_asset = WalletAsset.query.filter_by(
+                pass_type_id=self.pass_type.id,
+                asset_type='logo'
+            ).first()
+            if logo_asset:
+                return f"{base_url}/membership/wallet/assets/{self.pass_type.code}/logo.png"
+        except Exception as e:
+            logger.debug(f"Could not get logo asset: {e}")
+        return None
 
-            # pass-converter returns 302 redirect with Google Wallet URL
-            if response.status_code == 302:
-                google_url = response.headers.get('Location')
-                if google_url:
-                    logger.debug(f"Got Google Wallet URL: {google_url[:50]}...")
-                    return google_url
-                else:
-                    raise ValueError("pass-converter returned 302 but no Location header")
+    def _generate_save_url(self, pass_object: Dict[str, Any]) -> str:
+        """
+        Generate a Google Wallet "Add to Wallet" URL with signed JWT.
 
-            # Handle other response codes
-            elif response.status_code == 200:
-                # Some versions might return URL in body
-                data = response.json() if response.headers.get('content-type', '').startswith('application/json') else {}
-                if 'url' in data:
-                    return data['url']
-                elif 'saveUrl' in data:
-                    return data['saveUrl']
-                raise ValueError(f"pass-converter returned 200 but no URL found in response")
+        Args:
+            pass_object: The genericObject dict
 
-            else:
-                error_msg = response.text[:200] if response.text else "No error message"
-                if response.status_code == 401:
-                    raise ValueError(
-                        f"Google Wallet authentication failed (401). "
-                        f"Check GOOGLE_WALLET_ISSUER_ID and service account credentials. "
-                        f"Response: {error_msg}"
-                    )
-                raise ValueError(
-                    f"pass-converter returned {response.status_code}: {error_msg}"
-                )
+        Returns:
+            URL that opens Google Wallet add dialog
+        """
+        # Build the JWT claims
+        claims = {
+            "iss": self.config.service_account_email,
+            "aud": "google",
+            "typ": "savetowallet",
+            "iat": int(time.time()),
+            "payload": {
+                "genericObjects": [pass_object]
+            },
+            "origins": [os.getenv('WEBUI_BASE_URL', 'https://portal.ecsfc.com')]
+        }
 
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"Cannot connect to pass-converter at {convert_url}: {e}")
-            raise ConnectionError(
-                f"pass-converter service unavailable at {self.config.converter_url}. "
-                "Ensure the pass-converter container is running."
-            )
-        except requests.exceptions.Timeout:
-            logger.error(f"Timeout connecting to pass-converter")
-            raise TimeoutError("pass-converter request timed out after 30 seconds")
+        # Sign the JWT
+        token = jwt.encode(
+            claims,
+            self.config.private_key,
+            algorithm="RS256"
+        )
+
+        # Build the save URL
+        save_url = f"https://pay.google.com/gp/v/save/{token}"
+
+        logger.debug(f"Generated save URL (length: {len(save_url)})")
+        return save_url
 
 
 def validate_google_config() -> tuple:
     """
-    Validate Google Wallet configuration.
+    Validate Google Wallet configuration for native JWT generation.
 
     Returns:
         Tuple of (is_valid: bool, errors: list)
@@ -462,19 +608,16 @@ def validate_google_config() -> tuple:
     )
     if not os.path.exists(service_account_path):
         errors.append(f"Google service account file not found at {service_account_path}")
-
-    converter_url = os.getenv('PASS_CONVERTER_URL', 'http://pass-converter:3000')
-    if not converter_url:
-        errors.append("PASS_CONVERTER_URL not configured")
-
-    # Try to reach pass-converter (optional - don't fail validation if down)
-    if not errors:
+    else:
+        # Verify service account file is valid
         try:
-            response = requests.get(f"{converter_url}/", timeout=5)
-            if response.status_code >= 500:
-                errors.append(f"pass-converter service returned error: {response.status_code}")
-        except requests.exceptions.RequestException as e:
-            # Don't add as error - service might not be up during config validation
-            logger.warning(f"Could not reach pass-converter at {converter_url}: {e}")
+            with open(service_account_path, 'r') as f:
+                sa_data = json.load(f)
+                if 'client_email' not in sa_data:
+                    errors.append("Service account missing client_email")
+                if 'private_key' not in sa_data:
+                    errors.append("Service account missing private_key")
+        except (json.JSONDecodeError, IOError) as e:
+            errors.append(f"Invalid service account file: {e}")
 
     return len(errors) == 0, errors

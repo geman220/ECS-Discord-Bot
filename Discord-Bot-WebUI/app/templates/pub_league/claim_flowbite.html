@@ -1,0 +1,333 @@
+{% extends "mobile_base_flowbite.html" %}
+
+{% block title %}Claim Your Pub League Pass{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Header -->
+    <div class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-full bg-ecs-green/10 dark:bg-ecs-gold/10 flex items-center justify-center">
+                <i class="ti ti-ball-football text-ecs-green dark:text-ecs-gold text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-semibold text-gray-900 dark:text-white">ECS Pub League</h1>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Claim Your Pass</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 pb-24">
+        <!-- Hidden fields -->
+        <input type="hidden" id="claimToken" value="{{ claim.claim_token }}">
+
+        <!-- Hero Card -->
+        <div class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
+                <i class="ti ti-gift text-3xl"></i>
+            </div>
+            <h1 class="text-2xl font-bold mb-2">You've Been Gifted a Pass!</h1>
+            <p class="text-white/80">
+                {% if claim.recipient_name %}
+                {{ claim.recipient_name }}, someone
+                {% else %}
+                Someone
+                {% endif %}
+                has purchased a Pub League pass for you
+            </p>
+        </div>
+
+        <!-- Pass Details -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-6">
+            <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full {% if line_item.division == 'Premier' %}bg-amber-100 dark:bg-amber-900/50{% else %}bg-blue-100 dark:bg-blue-900/50{% endif %} flex items-center justify-center">
+                        <i class="ti ti-trophy {% if line_item.division == 'Premier' %}text-amber-600 dark:text-amber-400{% else %}text-blue-600 dark:text-blue-400{% endif %}"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-gray-900 dark:text-white">{{ line_item.division }} Division Pass</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ order.season_name or 'Current Season' }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="space-y-3">
+                    {% if line_item.jersey_size %}
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ti ti-shirt"></i> Jersey Size
+                        </span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ line_item.jersey_size }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700">
+                        <span class="text-gray-500 dark:text-gray-400 flex items-center gap-2">
+                            <i class="ti ti-calendar"></i> Expires
+                        </span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ claim.expires_at.strftime('%B %d, %Y') if claim.expires_at else 'In 7 days' }}</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <div class="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300">
+                        <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                        <p>Claiming this pass will activate your player status and sync your Discord roles.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Section -->
+        {% if not is_authenticated %}
+        <!-- Not logged in - show login prompt -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-4 py-4 border-b border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/30">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                        <i class="ti ti-brand-discord text-indigo-600 dark:text-indigo-400"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-gray-900 dark:text-white">Login to Claim</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Connect with Discord to continue</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 text-center">
+                <p class="text-gray-600 dark:text-gray-400 mb-6">
+                    To claim your Pub League pass, we need to verify your identity through Discord.
+                </p>
+                <a href="{{ url_for('auth.discord_login', next=request.url) }}"
+                   class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors">
+                    <i class="ti ti-brand-discord text-xl"></i>
+                    Login with Discord
+                </a>
+                <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                    Don't have a Discord account? <a href="https://discord.com/register" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Create one here</a>
+                </p>
+            </div>
+        </div>
+        {% else %}
+        <!-- Logged in - show claim button -->
+        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="px-4 py-4 border-b border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                        <i class="ti ti-check text-green-600 dark:text-green-400"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-semibold text-gray-900 dark:text-white">Ready to Claim</h2>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Logged in as {{ current_user.player.name if current_user.player else current_user.username }}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                    {% if current_user.player and current_user.player.profile_picture_url %}
+                    <img src="{{ current_user.player.profile_picture_url }}" alt="Profile" class="w-14 h-14 rounded-full object-cover">
+                    {% else %}
+                    <div class="w-14 h-14 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                        <i class="ti ti-user text-2xl text-gray-500 dark:text-gray-400"></i>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ current_user.player.name if current_user.player else current_user.username }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ current_user.email or 'No email' }}</p>
+                    </div>
+                </div>
+
+                <button type="button"
+                        id="claimBtn"
+                        data-action="pub-league-process-claim"
+                        class="w-full flex items-center justify-center gap-2 px-6 py-4 text-white bg-ecs-green hover:bg-ecs-green/90 dark:bg-ecs-gold dark:hover:bg-ecs-gold/90 rounded-xl font-medium text-lg transition-colors">
+                    <i class="ti ti-gift text-xl"></i>
+                    Claim My Pass
+                </button>
+
+                <p class="mt-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                    Not you? <a href="{{ url_for('auth.logout', next=request.url) }}" class="text-ecs-green dark:text-ecs-gold hover:underline">Log out and use a different account</a>
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Claimed Success Section (hidden by default) -->
+        <div id="claimSuccess" class="hidden">
+            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-2xl p-6 text-white text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
+                    <i class="ti ti-check text-4xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold mb-2">Pass Claimed!</h1>
+                <p class="text-white/80">Your Pub League pass is ready</p>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                            <i class="ti ti-wallet text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Download Your Pass</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Add to Apple or Google Wallet</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div id="passDownload" class="space-y-4">
+                        <!-- Will be populated by JS -->
+                    </div>
+
+                    <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                        <div class="flex items-start gap-3 text-sm text-blue-700 dark:text-blue-300">
+                            <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                            <div>
+                                <p class="font-medium mb-1">What's next?</p>
+                                <ul class="list-disc list-inside space-y-1 text-blue-600 dark:text-blue-400">
+                                    <li>Your pass is stored in your phone's wallet</li>
+                                    <li>Show it at check-in on game days</li>
+                                    <li>Your Discord roles have been updated</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Return Home Button -->
+            <div class="mt-6 text-center">
+                <a href="{{ url_for('main.index') }}"
+                   class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="ti ti-home"></i>
+                    Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl max-w-sm mx-4 text-center">
+            <div class="animate-spin inline-flex items-center justify-center w-12 h-12 rounded-full border-4 border-gray-200 border-t-ecs-green mb-4"></div>
+            <p id="loadingMessage" class="text-gray-700 dark:text-gray-300 font-medium">Claiming your pass...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const claimToken = document.getElementById('claimToken').value;
+    const claimBtn = document.getElementById('claimBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingMessage = document.getElementById('loadingMessage');
+    const claimSuccess = document.getElementById('claimSuccess');
+
+    function showLoading(message = 'Processing...') {
+        loadingMessage.textContent = message;
+        loadingOverlay.classList.remove('hidden');
+    }
+
+    function hideLoading() {
+        loadingOverlay.classList.add('hidden');
+    }
+
+    async function processClaim() {
+        showLoading('Claiming your pass...');
+
+        try {
+            const response = await fetch('/pub-league/claim/process', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({
+                    claim_token: claimToken
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // Hide claim form, show success
+                document.querySelectorAll('.bg-white, .bg-gradient-to-br').forEach(el => {
+                    if (!el.closest('#claimSuccess')) {
+                        el.classList.add('hidden');
+                    }
+                });
+                claimSuccess.classList.remove('hidden');
+
+                // Show download options
+                const passDownload = document.getElementById('passDownload');
+                if (data.wallet_pass) {
+                    passDownload.innerHTML = `
+                        <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-12 h-12 rounded-full bg-ecs-green/10 dark:bg-ecs-gold/10 flex items-center justify-center">
+                                    <i class="ti ti-wallet text-2xl text-ecs-green dark:text-ecs-gold"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-gray-900 dark:text-white">Your Pub League Pass</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Ready for download</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <a href="${data.wallet_pass.download_url}?platform=apple"
+                                   class="flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors">
+                                    <i class="ti ti-brand-apple text-xl"></i>
+                                    <span class="font-medium">Apple Wallet</span>
+                                </a>
+                                <a href="${data.wallet_pass.download_url}?platform=google"
+                                   class="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i class="ti ti-brand-google text-xl"></i>
+                                    <span class="font-medium">Google Wallet</span>
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Show success toast
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Pass Claimed!',
+                    text: 'Your Pub League pass is ready to download.',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            } else {
+                throw new Error(data.message || 'Failed to claim pass');
+            }
+        } catch (error) {
+            console.error('Error claiming pass:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Claim Failed',
+                text: error.message || 'There was an error claiming your pass. Please try again.',
+                confirmButtonColor: '#1a472a'
+            });
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Event handlers
+    if (claimBtn) {
+        claimBtn.addEventListener('click', processClaim);
+    }
+
+    // Also handle via event delegation
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        if (target.dataset.action === 'pub-league-process-claim') {
+            processClaim();
+        }
+    });
+});
+</script>
+{% endblock %}

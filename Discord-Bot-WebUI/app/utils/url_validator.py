@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 # Format: hostname -> list of allowed ports
 ALLOWED_INTERNAL_HOSTS: Dict[str, List[int]] = {
     'flower': [5555],           # Celery monitoring dashboard
-    'pass-converter': [3000],   # Wallet pass conversion service
     'discord-bot': [5001],      # Bot health endpoint
     'webui': [5000],            # Self-testing
     'redis': [6379],            # Redis cache (if HTTP needed)

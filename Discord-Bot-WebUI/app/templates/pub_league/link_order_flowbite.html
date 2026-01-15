@@ -1,0 +1,1199 @@
+{% extends "mobile_base_flowbite.html" %}
+
+{% block title %}Link Your Pub League Order{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Progress Indicator -->
+    <div class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+        <!-- Progress Bar -->
+        <div class="relative h-1 bg-gray-200 dark:bg-gray-700 rounded-full mb-4 overflow-hidden">
+            <div id="progressBar" class="absolute left-0 top-0 h-full bg-ecs-green dark:bg-ecs-gold transition-all duration-300 rounded-full" style="width: 16.66%"></div>
+        </div>
+        <!-- Step Indicators -->
+        <div class="flex justify-between">
+            <div class="flex flex-col items-center flex-1" data-step-indicator="1">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-ecs-green text-white dark:bg-ecs-gold text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-receipt text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Order</span>
+            </div>
+            <div class="flex flex-col items-center flex-1" data-step-indicator="2">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-brand-discord text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Login</span>
+            </div>
+            <div class="flex flex-col items-center flex-1" data-step-indicator="3">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-users text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Assign</span>
+            </div>
+            <div class="flex flex-col items-center flex-1" data-step-indicator="4">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-arrows-exchange text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Review</span>
+            </div>
+            <div class="flex flex-col items-center flex-1" data-step-indicator="5">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-user text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Profile</span>
+            </div>
+            <div class="flex flex-col items-center flex-1" data-step-indicator="6">
+                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-wallet text-sm"></i>
+                </div>
+                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Pass</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Wizard Content -->
+    <div class="px-4 py-6 pb-24" id="wizardContent">
+        <!-- Hidden fields for state management -->
+        <input type="hidden" id="orderId" value="{{ order.id }}">
+        <input type="hidden" id="wooOrderId" value="{{ order.woo_order_id }}">
+        <input type="hidden" id="currentStep" value="{{ initial_step }}">
+        <input type="hidden" id="hasConflicts" value="{{ 'true' if conflicts else 'false' }}">
+        <input type="hidden" id="profileNeedsUpdate" value="{{ 'true' if profile_needs_update else 'false' }}">
+
+        <!-- Step 1: Order Verification -->
+        <div class="wizard-step{% if initial_step != 1 %} hidden{% endif %}" data-step="1">
+            <div class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
+                    <i class="ti ti-receipt-2 text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold mb-2">Order Found!</h1>
+                <p class="text-white/80">Let's link your Pub League purchase</p>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                            <i class="ti ti-check text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Order #{{ order.woo_order_id }}</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ order.customer_name or 'Customer' }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="space-y-3">
+                        {% for item in line_items %}
+                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-full {% if item.division == 'Premier' %}bg-amber-100 dark:bg-amber-900/50{% else %}bg-blue-100 dark:bg-blue-900/50{% endif %} flex items-center justify-center">
+                                    <i class="ti ti-ball-football {% if item.division == 'Premier' %}text-amber-600 dark:text-amber-400{% else %}text-blue-600 dark:text-blue-400{% endif %}"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">{{ item.division }} Division</p>
+                                    {% if item.jersey_size %}
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Size: {{ item.jersey_size }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% if item.is_assigned() %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-400">
+                                <i class="ti ti-check mr-1"></i> Linked
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-400">
+                                Pending
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="mt-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                        <div class="flex items-start gap-2 text-sm text-blue-700 dark:text-blue-300">
+                            <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                            <p>You have <strong>{{ unassigned_items|length }} pass{% if unassigned_items|length != 1 %}es{% endif %}</strong> to link. You can assign them to yourself or others.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 2: Discord Login -->
+        <div class="wizard-step{% if initial_step != 2 %} hidden{% endif %}" data-step="2">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-indigo-50 dark:bg-indigo-900/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                            <i class="ti ti-brand-discord text-indigo-600 dark:text-indigo-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Login Required</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Connect with Discord to continue</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-6 text-center">
+                    <div class="mb-6">
+                        <i class="ti ti-user-check text-6xl text-gray-300 dark:text-gray-600"></i>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 mb-6">
+                        To link your Pub League pass, we need to verify your identity through Discord.
+                    </p>
+                    <a href="{{ url_for('auth.discord_login', next=request.url) }}"
+                       class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-medium transition-colors">
+                        <i class="ti ti-brand-discord text-xl"></i>
+                        Login with Discord
+                    </a>
+                    <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                        Don't have a Discord account? <a href="https://discord.com/register" target="_blank" class="text-indigo-600 dark:text-indigo-400 hover:underline">Create one here</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Pass Assignment -->
+        <div class="wizard-step{% if initial_step != 3 %} hidden{% endif %}" data-step="3">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mb-4">
+                <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                            <i class="ti ti-users text-purple-600 dark:text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Assign Your Passes</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Link passes to yourself or others</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <!-- Unassigned Passes List -->
+                    <div id="unassignedPasses" class="space-y-3">
+                        {% for item in unassigned_items %}
+                        <div class="pass-item border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden" data-line-item-id="{{ item.id }}">
+                            <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 rounded-full {% if item.division == 'Premier' %}bg-amber-100 dark:bg-amber-900/50{% else %}bg-blue-100 dark:bg-blue-900/50{% endif %} flex items-center justify-center">
+                                        <i class="ti ti-ball-football text-sm {% if item.division == 'Premier' %}text-amber-600 dark:text-amber-400{% else %}text-blue-600 dark:text-blue-400{% endif %}"></i>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-gray-900 dark:text-white text-sm">{{ item.division }} Pass</p>
+                                        {% if item.jersey_size %}
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Size: {{ item.jersey_size }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <span class="pass-status inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-400">
+                                    Not Assigned
+                                </span>
+                            </div>
+                            <div class="p-4 space-y-3">
+                                <!-- Assignment Options -->
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <button type="button"
+                                            data-action="pub-league-link-self"
+                                            data-line-item-id="{{ item.id }}"
+                                            class="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green/90 dark:bg-ecs-gold dark:hover:bg-ecs-gold/90 rounded-lg transition-colors">
+                                        <i class="ti ti-user-plus"></i>
+                                        Assign to Me
+                                    </button>
+                                    <button type="button"
+                                            data-action="pub-league-show-search"
+                                            data-line-item-id="{{ item.id }}"
+                                            class="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
+                                        <i class="ti ti-search"></i>
+                                        Find Someone
+                                    </button>
+                                    <button type="button"
+                                            data-action="pub-league-show-claim"
+                                            data-line-item-id="{{ item.id }}"
+                                            class="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors">
+                                        <i class="ti ti-link"></i>
+                                        Send Link
+                                    </button>
+                                </div>
+
+                                <!-- Search Panel (hidden by default) -->
+                                <div class="search-panel hidden mt-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Search by name, email, or Discord username
+                                    </label>
+                                    <div class="relative">
+                                        <input type="text"
+                                               class="user-search-input block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green pr-10"
+                                               placeholder="Start typing..."
+                                               data-line-item-id="{{ item.id }}">
+                                        <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                            <i class="ti ti-search text-gray-400"></i>
+                                        </div>
+                                    </div>
+                                    <div class="search-results mt-2 space-y-2 max-h-48 overflow-y-auto"></div>
+                                </div>
+
+                                <!-- Claim Panel (hidden by default) -->
+                                <div class="claim-panel hidden mt-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                                        Create a link to send to someone. They'll have 7 days to claim their pass.
+                                    </p>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Recipient's Name (optional)
+                                            </label>
+                                            <input type="text"
+                                                   class="claim-name block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                                   placeholder="Their name">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Recipient's Email (optional)
+                                            </label>
+                                            <input type="email"
+                                                   class="claim-email block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                                   placeholder="their@email.com">
+                                        </div>
+                                        <button type="button"
+                                                data-action="pub-league-send-claim"
+                                                data-line-item-id="{{ item.id }}"
+                                                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                                            <i class="ti ti-send"></i>
+                                            Create Claim Link
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Assigned Passes Summary -->
+                    <div id="assignedPasses" class="mt-6 {% if not line_items|selectattr('status', 'equalto', 'assigned')|list %}hidden{% endif %}">
+                        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Assigned Passes</h3>
+                        <div class="space-y-2">
+                            {% for item in line_items if item.is_assigned() %}
+                            <div class="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                                <div class="flex items-center gap-2">
+                                    <i class="ti ti-check text-green-600 dark:text-green-400"></i>
+                                    <span class="text-sm text-gray-900 dark:text-white">{{ item.division }} Pass</span>
+                                </div>
+                                <span class="text-sm text-gray-600 dark:text-gray-400">{{ item.assigned_player.name if item.assigned_player else 'Assigned' }}</span>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Claim Links Generated -->
+                    <div id="claimLinks" class="mt-6 hidden">
+                        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Claim Links Created</h3>
+                        <div class="claim-links-list space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 4: Conflict Resolution -->
+        <div class="wizard-step{% if initial_step != 4 %} hidden{% endif %}" data-step="4">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                            <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Review Your Details</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">We found some differences</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Your order details differ from your portal profile. Your <strong>portal profile is our source of truth</strong>.
+                        Review each difference and choose whether to keep your portal data or update it.
+                    </p>
+
+                    <div id="conflictsList" class="space-y-4">
+                        {% for conflict in conflicts %}
+                        <div class="conflict-item bg-amber-50 dark:bg-amber-900/20 rounded-lg p-4 border border-amber-200 dark:border-amber-800" data-field="{{ conflict.field }}">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="ti ti-alert-triangle text-amber-500 text-xl"></i>
+                                <span class="font-medium text-gray-900 dark:text-white">{{ conflict.display_name }} Mismatch</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4 items-center mb-4">
+                                <div class="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Your Portal Profile</span>
+                                    <span class="text-lg font-bold text-gray-900 dark:text-white">{{ conflict.portal_value or '-' }}</span>
+                                </div>
+                                <div class="flex justify-center">
+                                    <i class="ti ti-arrows-exchange text-2xl text-gray-400"></i>
+                                </div>
+                                <div class="text-center p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                                    <span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Your Order Says</span>
+                                    <span class="text-lg font-bold text-gray-900 dark:text-white">{{ conflict.order_value or '-' }}</span>
+                                </div>
+                            </div>
+                            <div class="flex gap-3">
+                                <button type="button"
+                                        data-action="pub-league-resolve-conflict"
+                                        data-field="{{ conflict.field }}"
+                                        data-choice="portal"
+                                        class="conflict-btn flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 dark:focus:ring-gray-700 transition-colors">
+                                    Keep {{ conflict.portal_value or 'Portal' }}
+                                </button>
+                                <button type="button"
+                                        data-action="pub-league-resolve-conflict"
+                                        data-field="{{ conflict.field }}"
+                                        data-choice="order"
+                                        data-order-value="{{ conflict.order_value }}"
+                                        class="conflict-btn flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-800 transition-colors">
+                                    Update to {{ conflict.order_value or 'Order' }}
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if not conflicts %}
+                    <div class="text-center py-6">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50 mb-4">
+                            <i class="ti ti-check text-3xl text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-400">No conflicts found. Your profile is up to date!</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Resolved Conflicts Summary -->
+                    <div id="resolvedConflicts" class="mt-6 hidden">
+                        <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="ti ti-check text-green-500 mr-1"></i>
+                            Resolutions Applied
+                        </h3>
+                        <div class="resolved-list space-y-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 5: Profile Update -->
+        <div class="wizard-step{% if initial_step != 5 %} hidden{% endif %}" data-step="5">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/30">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                            <i class="ti ti-user-edit text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Update Your Profile</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">It's been a while since your last update</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                        Please verify your information is still accurate. This helps coaches and league admins contact you.
+                    </p>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <i class="ti ti-user text-gray-400"></i> Full Name
+                            </label>
+                            <input type="text" id="profileName"
+                                   class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green"
+                                   placeholder="Your full name"
+                                   value="{{ current_user.player.name if current_user.is_authenticated and current_user.player else '' }}">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <i class="ti ti-shirt text-gray-400"></i> Jersey Size
+                                </label>
+                                <select id="profileJerseySize"
+                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                    <option value="">Select size</option>
+                                    <option value="XS" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == 'XS' %}selected{% endif %}>XS</option>
+                                    <option value="S" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == 'S' %}selected{% endif %}>S</option>
+                                    <option value="M" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == 'M' %}selected{% endif %}>M</option>
+                                    <option value="L" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == 'L' %}selected{% endif %}>L</option>
+                                    <option value="XL" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == 'XL' %}selected{% endif %}>XL</option>
+                                    <option value="2XL" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == '2XL' %}selected{% endif %}>2XL</option>
+                                    <option value="3XL" {% if current_user.is_authenticated and current_user.player and current_user.player.jersey_size == '3XL' %}selected{% endif %}>3XL</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <i class="ti ti-message-circle text-gray-400"></i> Pronouns
+                                </label>
+                                <select id="profilePronouns"
+                                        class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                    <option value="">Select pronouns</option>
+                                    <option value="he/him" {% if current_user.is_authenticated and current_user.player and current_user.player.pronouns == 'he/him' %}selected{% endif %}>He/Him</option>
+                                    <option value="she/her" {% if current_user.is_authenticated and current_user.player and current_user.player.pronouns == 'she/her' %}selected{% endif %}>She/Her</option>
+                                    <option value="they/them" {% if current_user.is_authenticated and current_user.player and current_user.player.pronouns == 'they/them' %}selected{% endif %}>They/Them</option>
+                                    <option value="other" {% if current_user.is_authenticated and current_user.player and current_user.player.pronouns == 'other' %}selected{% endif %}>Other</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <i class="ti ti-star text-gray-400"></i> Favorite Position
+                            </label>
+                            <select id="profileFavoritePosition"
+                                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">No preference</option>
+                                <option value="goalkeeper" {% if current_user.is_authenticated and current_user.player and current_user.player.favorite_position == 'goalkeeper' %}selected{% endif %}>Goalkeeper</option>
+                                <option value="defender" {% if current_user.is_authenticated and current_user.player and current_user.player.favorite_position == 'defender' %}selected{% endif %}>Defender</option>
+                                <option value="midfielder" {% if current_user.is_authenticated and current_user.player and current_user.player.favorite_position == 'midfielder' %}selected{% endif %}>Midfielder</option>
+                                <option value="forward" {% if current_user.is_authenticated and current_user.player and current_user.player.favorite_position == 'forward' %}selected{% endif %}>Forward</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 6: Download Pass -->
+        <div class="wizard-step{% if initial_step != 6 %} hidden{% endif %}" data-step="6">
+            <div class="bg-gradient-to-br from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-2xl p-6 text-white text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/20 mb-4">
+                    <i class="ti ti-confetti text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold mb-2">You're All Set!</h1>
+                <p class="text-white/80">Your Pub League pass is ready</p>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                            <i class="ti ti-wallet text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Download Your Pass</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Add to Apple or Google Wallet</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div id="passDownloads" class="space-y-4">
+                        <!-- Pass download cards will be populated by JS -->
+                        <div class="text-center py-6">
+                            <div class="animate-spin inline-flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-200 border-t-ecs-green mb-4"></div>
+                            <p class="text-gray-600 dark:text-gray-400">Generating your pass...</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                        <div class="flex items-start gap-3 text-sm text-blue-700 dark:text-blue-300">
+                            <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                            <div>
+                                <p class="font-medium mb-1">What's next?</p>
+                                <ul class="list-disc list-inside space-y-1 text-blue-600 dark:text-blue-400">
+                                    <li>Your pass is stored in your phone's wallet</li>
+                                    <li>Show it at check-in on game days</li>
+                                    <li>Your Discord roles have been updated</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Return Home Button -->
+            <div class="mt-6 text-center">
+                <a href="{{ url_for('main.index') }}"
+                   class="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                    <i class="ti ti-home"></i>
+                    Return to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Footer -->
+    <div id="wizardNav" class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3 flex items-center justify-between gap-3 z-40">
+        <button type="button" id="prevBtn"
+                class="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled>
+            <i class="ti ti-chevron-left"></i>
+            <span>Back</span>
+        </button>
+
+        <button type="button" id="nextBtn"
+                class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green/90 dark:bg-ecs-gold dark:hover:bg-ecs-gold/90 rounded-lg transition-colors">
+            <span>Continue</span>
+            <i class="ti ti-chevron-right"></i>
+        </button>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-xl max-w-sm mx-4 text-center">
+            <div class="animate-spin inline-flex items-center justify-center w-12 h-12 rounded-full border-4 border-gray-200 border-t-ecs-green mb-4"></div>
+            <p id="loadingMessage" class="text-gray-700 dark:text-gray-300 font-medium">Processing...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Add padding for fixed bottom nav -->
+<div class="h-20"></div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // State management
+    const state = {
+        currentStep: parseInt(document.getElementById('currentStep').value) || 1,
+        orderId: parseInt(document.getElementById('orderId').value),
+        wooOrderId: parseInt(document.getElementById('wooOrderId').value),
+        hasConflicts: document.getElementById('hasConflicts').value === 'true',
+        profileNeedsUpdate: document.getElementById('profileNeedsUpdate').value === 'true',
+        totalSteps: 6,
+        conflictResolutions: [],
+        assignedLineItems: [],
+        claimLinks: []
+    };
+
+    // DOM elements
+    const progressBar = document.getElementById('progressBar');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingMessage = document.getElementById('loadingMessage');
+
+    // Initialize
+    updateStepUI(state.currentStep);
+
+    // Update UI for current step
+    function updateStepUI(step) {
+        // Hide all steps
+        document.querySelectorAll('.wizard-step').forEach(el => el.classList.add('hidden'));
+
+        // Show current step
+        const currentStepEl = document.querySelector(`[data-step="${step}"]`);
+        if (currentStepEl) {
+            currentStepEl.classList.remove('hidden');
+        }
+
+        // Update progress bar
+        progressBar.style.width = `${(step / state.totalSteps) * 100}%`;
+
+        // Update step indicators
+        document.querySelectorAll('[data-step-indicator]').forEach(el => {
+            const stepNum = parseInt(el.dataset.stepIndicator);
+            const dot = el.querySelector('div');
+
+            dot.classList.remove('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold', 'bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
+
+            if (stepNum <= step) {
+                dot.classList.add('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold');
+            } else {
+                dot.classList.add('bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
+            }
+        });
+
+        // Update buttons
+        prevBtn.disabled = step <= 1 || step === 2 || step === 6;
+
+        if (step === 6) {
+            // Final step - hide nav
+            document.getElementById('wizardNav').classList.add('hidden');
+        } else if (step === 2) {
+            // Login step - hide next button (login is action)
+            nextBtn.classList.add('hidden');
+            prevBtn.classList.add('hidden');
+        } else if (step === 3) {
+            // Assignment step - show next only when all assigned
+            const unassignedCount = document.querySelectorAll('.pass-item:not(.assigned)').length;
+            nextBtn.disabled = unassignedCount > 0;
+            nextBtn.querySelector('span').textContent = unassignedCount > 0 ? `Assign ${unassignedCount} Pass${unassignedCount > 1 ? 'es' : ''}` : 'Continue';
+        } else {
+            nextBtn.classList.remove('hidden');
+            prevBtn.classList.remove('hidden');
+            nextBtn.disabled = false;
+            nextBtn.querySelector('span').textContent = step === 1 ? 'Get Started' : 'Continue';
+        }
+
+        state.currentStep = step;
+        document.getElementById('currentStep').value = step;
+    }
+
+    // Navigate to next step
+    function goToNextStep() {
+        let nextStep = state.currentStep + 1;
+
+        // Skip login step if authenticated
+        if (nextStep === 2 && document.body.dataset.authenticated === 'true') {
+            nextStep = 3;
+        }
+
+        // Skip conflicts step if no conflicts
+        if (nextStep === 4 && !state.hasConflicts) {
+            nextStep = 5;
+        }
+
+        // Skip profile step if not needed
+        if (nextStep === 5 && !state.profileNeedsUpdate) {
+            nextStep = 6;
+        }
+
+        if (nextStep <= state.totalSteps) {
+            updateStepUI(nextStep);
+
+            // Handle step-specific initialization
+            if (nextStep === 6) {
+                generatePasses();
+            }
+        }
+    }
+
+    // Navigate to previous step
+    function goToPrevStep() {
+        let prevStep = state.currentStep - 1;
+
+        // Skip login step if authenticated
+        if (prevStep === 2 && document.body.dataset.authenticated === 'true') {
+            prevStep = 1;
+        }
+
+        // Skip conflicts step if no conflicts
+        if (prevStep === 4 && !state.hasConflicts) {
+            prevStep = 3;
+        }
+
+        // Skip profile step if not needed
+        if (prevStep === 5 && !state.profileNeedsUpdate) {
+            prevStep = 4;
+            if (!state.hasConflicts) {
+                prevStep = 3;
+            }
+        }
+
+        if (prevStep >= 1) {
+            updateStepUI(prevStep);
+        }
+    }
+
+    // Navigation button handlers
+    nextBtn.addEventListener('click', async function() {
+        if (state.currentStep === 4) {
+            // Resolve conflicts before moving on
+            await submitConflictResolutions();
+        } else if (state.currentStep === 5) {
+            // Update profile before moving on
+            await submitProfileUpdate();
+        }
+        goToNextStep();
+    });
+
+    prevBtn.addEventListener('click', goToPrevStep);
+
+    // Show loading overlay
+    function showLoading(message = 'Processing...') {
+        loadingMessage.textContent = message;
+        loadingOverlay.classList.remove('hidden');
+    }
+
+    // Hide loading overlay
+    function hideLoading() {
+        loadingOverlay.classList.add('hidden');
+    }
+
+    // Link pass to self
+    async function linkPassToSelf(lineItemId) {
+        showLoading('Linking pass to your account...');
+        try {
+            const response = await fetch('/pub-league/link-order/link-self', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({
+                    order_id: state.orderId,
+                    line_item_id: lineItemId
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Update UI
+                const passItem = document.querySelector(`.pass-item[data-line-item-id="${lineItemId}"]`);
+                if (passItem) {
+                    passItem.classList.add('assigned');
+                    const status = passItem.querySelector('.pass-status');
+                    if (status) {
+                        status.textContent = 'Assigned to You';
+                        status.classList.remove('bg-amber-100', 'text-amber-800', 'dark:bg-amber-900/50', 'dark:text-amber-400');
+                        status.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-900/50', 'dark:text-green-400');
+                    }
+                    // Hide assignment options
+                    const buttons = passItem.querySelector('.grid');
+                    if (buttons) buttons.classList.add('hidden');
+                }
+                state.assignedLineItems.push(lineItemId);
+                checkAllAssigned();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Pass Linked!',
+                    text: 'The pass has been assigned to your account.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                throw new Error(data.message || 'Failed to link pass');
+            }
+        } catch (error) {
+            console.error('Error linking pass:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Failed to link pass. Please try again.'
+            });
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Search users
+    let searchTimeout;
+    async function searchUsers(query, lineItemId) {
+        if (query.length < 2) return;
+
+        try {
+            const response = await fetch(`/pub-league/link-order/search-users?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            const resultsContainer = document.querySelector(`.pass-item[data-line-item-id="${lineItemId}"] .search-results`);
+            if (!resultsContainer) return;
+
+            if (data.success && data.users.length > 0) {
+                resultsContainer.innerHTML = data.users.map(user => `
+                    <button type="button"
+                            data-action="pub-league-select-user"
+                            data-player-id="${user.player_id}"
+                            data-line-item-id="${lineItemId}"
+                            class="w-full flex items-center gap-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg text-left transition-colors">
+                        <div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                            <i class="ti ti-user text-gray-500 dark:text-gray-400"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900 dark:text-white text-sm">${user.name}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${user.discord_username || user.email || ''}</p>
+                        </div>
+                    </button>
+                `).join('');
+            } else {
+                resultsContainer.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No users found</p>';
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+        }
+    }
+
+    // Assign pass to user
+    async function assignPassToUser(lineItemId, playerId) {
+        showLoading('Assigning pass...');
+        try {
+            const response = await fetch('/pub-league/link-order/assign', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({
+                    order_id: state.orderId,
+                    line_item_id: lineItemId,
+                    player_id: playerId
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                const passItem = document.querySelector(`.pass-item[data-line-item-id="${lineItemId}"]`);
+                if (passItem) {
+                    passItem.classList.add('assigned');
+                    const status = passItem.querySelector('.pass-status');
+                    if (status) {
+                        status.textContent = 'Assigned';
+                        status.classList.remove('bg-amber-100', 'text-amber-800', 'dark:bg-amber-900/50', 'dark:text-amber-400');
+                        status.classList.add('bg-green-100', 'text-green-800', 'dark:bg-green-900/50', 'dark:text-green-400');
+                    }
+                    passItem.querySelector('.grid')?.classList.add('hidden');
+                    passItem.querySelector('.search-panel')?.classList.add('hidden');
+                }
+                state.assignedLineItems.push(lineItemId);
+                checkAllAssigned();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Pass Assigned!',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                throw new Error(data.message || 'Failed to assign pass');
+            }
+        } catch (error) {
+            console.error('Error assigning pass:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Failed to assign pass. Please try again.'
+            });
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Send claim link
+    async function sendClaimLink(lineItemId, name, email) {
+        showLoading('Creating claim link...');
+        try {
+            const response = await fetch('/pub-league/link-order/send-claim', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({
+                    order_id: state.orderId,
+                    line_item_id: lineItemId,
+                    recipient_name: name,
+                    recipient_email: email
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                const passItem = document.querySelector(`.pass-item[data-line-item-id="${lineItemId}"]`);
+                if (passItem) {
+                    passItem.classList.add('assigned');
+                    const status = passItem.querySelector('.pass-status');
+                    if (status) {
+                        status.innerHTML = '<i class="ti ti-link mr-1"></i> Claim Link Sent';
+                        status.classList.remove('bg-amber-100', 'text-amber-800', 'dark:bg-amber-900/50', 'dark:text-amber-400');
+                        status.classList.add('bg-blue-100', 'text-blue-800', 'dark:bg-blue-900/50', 'dark:text-blue-400');
+                    }
+                    passItem.querySelector('.grid')?.classList.add('hidden');
+                    passItem.querySelector('.claim-panel')?.classList.add('hidden');
+                }
+
+                // Show claim link
+                state.claimLinks.push({
+                    lineItemId,
+                    url: data.claim_url,
+                    name: name || 'Someone'
+                });
+
+                updateClaimLinksUI();
+
+                // Show the claim URL
+                await Swal.fire({
+                    icon: 'success',
+                    title: 'Claim Link Created!',
+                    html: `
+                        <p class="mb-3">Share this link with ${name || 'the recipient'}:</p>
+                        <input type="text" value="${data.claim_url}" class="w-full p-2 border rounded text-sm" readonly onclick="this.select()">
+                        <p class="mt-2 text-sm text-gray-500">Link expires in 7 days</p>
+                    `,
+                    confirmButtonText: 'Copy Link',
+                    showCancelButton: true,
+                    cancelButtonText: 'Done'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        navigator.clipboard.writeText(data.claim_url);
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Copied!',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    }
+                });
+
+                checkAllAssigned();
+            } else {
+                throw new Error(data.message || 'Failed to create claim link');
+            }
+        } catch (error) {
+            console.error('Error creating claim link:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Failed to create claim link. Please try again.'
+            });
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Update claim links UI
+    function updateClaimLinksUI() {
+        const container = document.getElementById('claimLinks');
+        const list = container.querySelector('.claim-links-list');
+
+        if (state.claimLinks.length > 0) {
+            container.classList.remove('hidden');
+            list.innerHTML = state.claimLinks.map(claim => `
+                <div class="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <div class="flex items-center gap-2">
+                        <i class="ti ti-link text-blue-600 dark:text-blue-400"></i>
+                        <span class="text-sm text-gray-900 dark:text-white">Link for ${claim.name}</span>
+                    </div>
+                    <button type="button" onclick="navigator.clipboard.writeText('${claim.url}')" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                        Copy
+                    </button>
+                </div>
+            `).join('');
+        }
+    }
+
+    // Check if all passes are assigned
+    function checkAllAssigned() {
+        const unassignedCount = document.querySelectorAll('.pass-item:not(.assigned)').length;
+        nextBtn.disabled = unassignedCount > 0;
+        nextBtn.querySelector('span').textContent = unassignedCount > 0 ? `Assign ${unassignedCount} Pass${unassignedCount > 1 ? 'es' : ''}` : 'Continue';
+    }
+
+    // Submit conflict resolutions
+    async function submitConflictResolutions() {
+        if (state.conflictResolutions.length === 0) return;
+
+        showLoading('Saving your choices...');
+        try {
+            const response = await fetch('/pub-league/link-order/resolve-conflicts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({
+                    resolutions: state.conflictResolutions
+                })
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to save resolutions');
+            }
+        } catch (error) {
+            console.error('Error resolving conflicts:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Failed to save your choices. Please try again.'
+            });
+            throw error;
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Submit profile update
+    async function submitProfileUpdate() {
+        showLoading('Updating profile...');
+        try {
+            const response = await fetch('/pub-league/link-order/update-profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({
+                    name: document.getElementById('profileName').value,
+                    jersey_size: document.getElementById('profileJerseySize').value,
+                    pronouns: document.getElementById('profilePronouns').value,
+                    favorite_position: document.getElementById('profileFavoritePosition').value
+                })
+            });
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to update profile');
+            }
+        } catch (error) {
+            console.error('Error updating profile:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Failed to update profile. Please try again.'
+            });
+            throw error;
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Generate passes for download
+    async function generatePasses() {
+        const container = document.getElementById('passDownloads');
+        container.innerHTML = '<div class="text-center py-6"><div class="animate-spin inline-flex items-center justify-center w-10 h-10 rounded-full border-4 border-gray-200 border-t-ecs-green mb-4"></div><p class="text-gray-600 dark:text-gray-400">Generating your pass...</p></div>';
+
+        try {
+            // Get assigned line items that need passes
+            const assignedItems = document.querySelectorAll('.pass-item.assigned');
+            const passes = [];
+
+            for (const item of assignedItems) {
+                const lineItemId = item.dataset.lineItemId;
+                const response = await fetch('/pub-league/link-order/generate-pass', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({ line_item_id: lineItemId })
+                });
+
+                const data = await response.json();
+                if (data.success && data.wallet_pass) {
+                    passes.push(data.wallet_pass);
+                }
+            }
+
+            // Display download cards
+            if (passes.length > 0) {
+                container.innerHTML = passes.map(pass => `
+                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 rounded-full bg-ecs-green/10 dark:bg-ecs-gold/10 flex items-center justify-center">
+                                <i class="ti ti-wallet text-2xl text-ecs-green dark:text-ecs-gold"></i>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-900 dark:text-white">Your Pub League Pass</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">Ready for download</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <a href="${pass.download_url}?platform=apple"
+                               class="flex items-center justify-center gap-2 px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-900 transition-colors">
+                                <i class="ti ti-brand-apple text-xl"></i>
+                                <span class="font-medium">Apple Wallet</span>
+                            </a>
+                            <a href="${pass.download_url}?platform=google"
+                               class="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="ti ti-brand-google text-xl"></i>
+                                <span class="font-medium">Google Wallet</span>
+                            </a>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `
+                    <div class="text-center py-6">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50 mb-4">
+                            <i class="ti ti-check text-3xl text-green-600 dark:text-green-400"></i>
+                        </div>
+                        <p class="text-gray-600 dark:text-gray-400">Your passes have been assigned. Recipients will get their own download links.</p>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error generating passes:', error);
+            container.innerHTML = `
+                <div class="text-center py-6">
+                    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/50 mb-4">
+                        <i class="ti ti-alert-circle text-3xl text-red-600 dark:text-red-400"></i>
+                    </div>
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">There was an error generating your pass.</p>
+                    <button type="button" onclick="location.reload()" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                        Try Again
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    // Event delegation for dynamic elements
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const lineItemId = target.dataset.lineItemId;
+
+        switch (action) {
+            case 'pub-league-link-self':
+                linkPassToSelf(lineItemId);
+                break;
+
+            case 'pub-league-show-search':
+                // Hide other panels
+                document.querySelectorAll('.search-panel, .claim-panel').forEach(el => el.classList.add('hidden'));
+                // Show search panel for this item
+                const searchPanel = document.querySelector(`.pass-item[data-line-item-id="${lineItemId}"] .search-panel`);
+                if (searchPanel) {
+                    searchPanel.classList.remove('hidden');
+                    searchPanel.querySelector('input')?.focus();
+                }
+                break;
+
+            case 'pub-league-show-claim':
+                // Hide other panels
+                document.querySelectorAll('.search-panel, .claim-panel').forEach(el => el.classList.add('hidden'));
+                // Show claim panel for this item
+                const claimPanel = document.querySelector(`.pass-item[data-line-item-id="${lineItemId}"] .claim-panel`);
+                if (claimPanel) claimPanel.classList.remove('hidden');
+                break;
+
+            case 'pub-league-select-user':
+                const playerId = target.dataset.playerId;
+                assignPassToUser(lineItemId, playerId);
+                break;
+
+            case 'pub-league-send-claim':
+                const passItem = target.closest('.pass-item');
+                const name = passItem.querySelector('.claim-name')?.value || '';
+                const email = passItem.querySelector('.claim-email')?.value || '';
+                sendClaimLink(lineItemId, name, email);
+                break;
+
+            case 'pub-league-resolve-conflict':
+                const field = target.dataset.field;
+                const choice = target.dataset.choice;
+                const orderValue = target.dataset.orderValue;
+
+                // Update resolution state
+                const existingIdx = state.conflictResolutions.findIndex(r => r.field === field);
+                if (existingIdx >= 0) {
+                    state.conflictResolutions.splice(existingIdx, 1);
+                }
+                state.conflictResolutions.push({
+                    field: field,
+                    use_order_value: choice === 'order',
+                    order_value: orderValue
+                });
+
+                // Update UI
+                const conflictItem = target.closest('.conflict-item');
+                conflictItem.querySelectorAll('.conflict-btn').forEach(btn => {
+                    btn.classList.remove('ring-2', 'ring-ecs-green', 'dark:ring-ecs-gold');
+                });
+                target.classList.add('ring-2', 'ring-ecs-green', 'dark:ring-ecs-gold');
+                break;
+        }
+    });
+
+    // User search input handler
+    document.addEventListener('input', function(e) {
+        if (!e.target.classList.contains('user-search-input')) return;
+
+        const query = e.target.value.trim();
+        const lineItemId = e.target.dataset.lineItemId;
+
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => searchUsers(query, lineItemId), 300);
+    });
+
+    // Set authenticated flag
+    document.body.dataset.authenticated = '{{ "true" if current_user.is_authenticated else "false" }}';
+});
+</script>
+{% endblock %}

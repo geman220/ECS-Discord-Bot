@@ -95,6 +95,7 @@ def _import_blueprints():
     from app.routes.calendar import calendar_bp as calendar_api_bp
     from app.routes.substitute_rsvp import substitute_rsvp_bp
     from app.legal_routes import legal_bp
+    from app.pub_league import pub_league_bp
 
     return {
         'auth_bp': auth_bp,
@@ -150,6 +151,7 @@ def _import_blueprints():
         'calendar_api_bp': calendar_api_bp,
         'substitute_rsvp_bp': substitute_rsvp_bp,
         'legal_bp': legal_bp,
+        'pub_league_bp': pub_league_bp,
     }
 
 
@@ -332,6 +334,9 @@ def _register_additional_blueprints(app, bp, csrf):
 
     # Legal pages (Privacy Policy, Terms of Service) - public routes
     app.register_blueprint(bp['legal_bp'])
+
+    # Pub League order linking (WooCommerce order → player activation → wallet pass)
+    app.register_blueprint(bp['pub_league_bp'])
 
 
 def _init_enterprise_systems(app):
