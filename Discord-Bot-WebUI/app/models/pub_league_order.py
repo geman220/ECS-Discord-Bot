@@ -190,7 +190,8 @@ class PubLeagueOrderLineItem(db.Model):
     assigned_player = db.relationship('Player', foreign_keys=[assigned_player_id])
     assigned_user = db.relationship('User', foreign_keys=[assigned_user_id])
     wallet_pass = db.relationship('WalletPass')
-    claim = db.relationship('PubLeagueOrderClaim', foreign_keys=[claim_id], back_populates='line_item')
+    # Note: claim relationship uses claim_id FK - separate from PubLeagueOrderClaim.line_item_id
+    claim = db.relationship('PubLeagueOrderClaim', foreign_keys=[claim_id], uselist=False)
 
     def __repr__(self):
         return f'<PubLeagueOrderLineItem {self.id} order={self.order_id} division={self.division} status={self.status}>'
