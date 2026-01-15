@@ -434,4 +434,81 @@ window.EventDelegation.register('edit-subgroup', function(element, e) {
 
 // ============================================================================
 
+// ============================================================================
+// ASSET CROPPER ACTIONS
+// ============================================================================
+
+/**
+ * Trigger File Input Action (for asset cropper)
+ * Opens file dialog for image selection
+ */
+window.EventDelegation.register('trigger-file-input', function(element, e) {
+    e.preventDefault();
+    const targetId = element.dataset.target;
+    if (targetId) {
+        const fileInput = document.getElementById(targetId);
+        if (fileInput) fileInput.click();
+    }
+});
+
+/**
+ * Load Image Action
+ * Handles file input change to load image into cropper
+ */
+window.EventDelegation.register('load-image', function(element, e) {
+    if (window.AssetCropper && typeof window.AssetCropper.loadImage === 'function') {
+        window.AssetCropper.loadImage(element);
+    }
+});
+
+/**
+ * Zoom In Action
+ */
+window.EventDelegation.register('zoom-in', function(element, e) {
+    e.preventDefault();
+    if (window.AssetCropper && typeof window.AssetCropper.zoomIn === 'function') {
+        window.AssetCropper.zoomIn();
+    }
+});
+
+/**
+ * Zoom Out Action
+ */
+window.EventDelegation.register('zoom-out', function(element, e) {
+    e.preventDefault();
+    if (window.AssetCropper && typeof window.AssetCropper.zoomOut === 'function') {
+        window.AssetCropper.zoomOut();
+    }
+});
+
+/**
+ * Reset Position Action
+ */
+window.EventDelegation.register('reset-position', function(element, e) {
+    e.preventDefault();
+    if (window.AssetCropper && typeof window.AssetCropper.resetPosition === 'function') {
+        window.AssetCropper.resetPosition();
+    }
+});
+
+/**
+ * Change Image Action
+ */
+window.EventDelegation.register('change-image', function(element, e) {
+    e.preventDefault();
+    if (window.AssetCropper && typeof window.AssetCropper.changeImage === 'function') {
+        window.AssetCropper.changeImage();
+    }
+});
+
+/**
+ * Save and Upload Action
+ */
+window.EventDelegation.register('save-and-upload', function(element, e) {
+    e.preventDefault();
+    if (window.AssetCropper && typeof window.AssetCropper.saveAndUpload === 'function') {
+        window.AssetCropper.saveAndUpload();
+    }
+});
+
 // Handlers loaded
