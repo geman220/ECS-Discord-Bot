@@ -127,14 +127,17 @@ class GooglePassConfig:
         return AuthorizedSession(credentials)
 
 
-def _get_class_id(issuer_id: str, apple_pass_type_id: str) -> str:
+def _get_class_id(issuer_id: str, pass_type_code: str) -> str:
     """
-    Generate the Google Wallet class ID from issuer ID and Apple pass type ID.
+    Generate the Google Wallet class ID.
 
-    Format: {issuer_id}.{apple_pass_type_id}
-    Example: 3388000000022958274.pass.com.ecsfc.membership
+    Uses format matching existing pass-converter created classes:
+    Format: {issuer_id}.{issuer_id}.{pass_type_code_with_dashes}
+    Example: 3388000000022958274.3388000000022958274.ecs-membership
     """
-    return f"{issuer_id}.{apple_pass_type_id}"
+    # Convert pass type code: ecs_membership -> ecs-membership
+    code_with_dashes = pass_type_code.replace('_', '-')
+    return f"{issuer_id}.{issuer_id}.{code_with_dashes}"
 
 
 def ensure_google_wallet_class_exists(
@@ -157,7 +160,7 @@ def ensure_google_wallet_class_exists(
     Returns:
         The class ID
     """
-    class_id = _get_class_id(config.issuer_id, pass_type.apple_pass_type_id)
+    class_id = _get_class_id(config.issuer_id, pass_type.code)
 
     session = config.get_authorized_session()
 
@@ -256,7 +259,7 @@ def _build_class_definition(issuer_id: str, pass_type) -> dict:
         - google_logo_url: Public URL to logo image
         - google_hero_image_url: Public URL to hero/banner image
     """
-    class_id = _get_class_id(issuer_id, pass_type.apple_pass_type_id)
+    class_id = _get_class_id(issuer_id, pass_type.code)
 
     # Get colors directly from pass_type model
     # Default to ECS blue instead of black
