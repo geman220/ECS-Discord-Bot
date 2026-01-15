@@ -83,6 +83,20 @@ def ensure_wallet_columns():
             db.session.commit()
             logger.info("Successfully added show_logo column")
 
+        # Check and add suppress_barcode column if missing
+        result = db.session.execute(text("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_name = 'wallet_pass_type' AND column_name = 'suppress_barcode'
+        """))
+        if not result.fetchone():
+            logger.info("Adding suppress_barcode column to wallet_pass_type")
+            db.session.execute(text("""
+                ALTER TABLE wallet_pass_type
+                ADD COLUMN suppress_barcode BOOLEAN DEFAULT FALSE
+            """))
+            db.session.commit()
+            logger.info("Successfully added suppress_barcode column")
+
     except Exception as e:
         logger.error(f"Error ensuring wallet columns: {e}")
         db.session.rollback()
