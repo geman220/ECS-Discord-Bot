@@ -165,13 +165,13 @@
                             </div>
                         </td>
                         <td class="px-4 py-3">
-                            {% if player.email %}
-                            <p class="text-xs"><i class="ti ti-mail mr-1"></i>{{ player.email }}</p>
+                            {% if player.user and player.user.email %}
+                            <p class="text-xs"><i class="ti ti-mail mr-1"></i>{{ player.user.email }}</p>
                             {% endif %}
                             {% if player.phone %}
                             <p class="text-xs"><i class="ti ti-phone mr-1"></i>{{ player.phone }}</p>
                             {% endif %}
-                            {% if not player.email and not player.phone %}
+                            {% if (not player.user or not player.user.email) and not player.phone %}
                             <p class="text-xs text-gray-400">No contact info</p>
                             {% endif %}
                         </td>

@@ -151,7 +151,19 @@ class SafeRedisClient:
         with self.safe_operation("hset", False) as (client, should_proceed):
             if should_proceed:
                 if mapping is not None:
-                    return bool(client.hset(key, mapping=mapping))
+                    # Use hmset-style approach for compatibility with all redis-py versions
+                    # Convert mapping to flat list of field-value pairs for hset
+                    # Modern redis-py hset accepts: hset(name, *args, **kwargs) where
+                    # args can be field, value pairs or mapping can be passed
+                    try:
+                        # Try modern redis-py approach first (redis-py >= 3.5)
+                        return bool(client.hset(key, mapping=mapping))
+                    except TypeError:
+                        # Fall back to setting each field individually
+                        result = 0
+                        for field_name, field_value in mapping.items():
+                            result += client.hset(key, field_name, field_value)
+                        return bool(result)
                 return bool(client.hset(key, field, value))
             return False
     
@@ -159,7 +171,15 @@ class SafeRedisClient:
         """Safely set multiple hash fields."""
         with self.safe_operation("hmset", False) as (client, should_proceed):
             if should_proceed:
-                return bool(client.hset(key, mapping=mapping))
+                try:
+                    # Try modern redis-py approach first (redis-py >= 3.5)
+                    return bool(client.hset(key, mapping=mapping))
+                except TypeError:
+                    # Fall back to setting each field individually
+                    result = 0
+                    for field_name, field_value in mapping.items():
+                        result += client.hset(key, field_name, field_value)
+                    return bool(result)
             return False
     
     def hgetall(self, key: str) -> Dict[str, Any]:

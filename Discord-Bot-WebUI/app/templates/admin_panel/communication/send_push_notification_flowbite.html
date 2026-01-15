@@ -101,7 +101,7 @@
                         <label class="block mb-3 text-sm font-medium text-gray-900 dark:text-white">Recipients</label>
                         <div class="space-y-3">
                             <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <input type="radio" name="recipient_type" value="all" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" checked>
+                                <input type="radio" name="target_type" value="all" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" checked>
                                 <div class="ml-3">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white">All Users</span>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Send to all registered mobile app users</p>
@@ -110,7 +110,7 @@
                             </label>
 
                             <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <input type="radio" name="recipient_type" value="team" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <input type="radio" name="target_type" value="team" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                                 <div class="ml-3">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white">Specific Team</span>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Send to players on a specific team</p>
@@ -118,7 +118,7 @@
                             </label>
 
                             <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <input type="radio" name="recipient_type" value="league" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <input type="radio" name="target_type" value="league" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                                 <div class="ml-3">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white">Specific League</span>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Send to all players in a league</p>
@@ -126,7 +126,7 @@
                             </label>
 
                             <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <input type="radio" name="recipient_type" value="role" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <input type="radio" name="target_type" value="role" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                                 <div class="ml-3">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white">By Role</span>
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Send to captains, coaches, or admins</p>
@@ -366,7 +366,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Recipient type toggling
-    const recipientRadios = document.querySelectorAll('input[name="recipient_type"]');
+    const recipientRadios = document.querySelectorAll('input[name="target_type"]');
     const teamSelect = document.getElementById('team-select-container');
     const leagueSelect = document.getElementById('league-select-container');
     const roleSelect = document.getElementById('role-select-container');
@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelector('[data-action="preview-notification"]').addEventListener('click', function() {
         const title = titleInput.value || 'Notification Title';
         const body = bodyInput.value || 'Message body';
-        const recipientType = document.querySelector('input[name="recipient_type"]:checked').value;
+        const recipientType = document.querySelector('input[name="target_type"]:checked').value;
 
         document.getElementById('modal-preview-content').innerHTML = `
             <div class="space-y-4">

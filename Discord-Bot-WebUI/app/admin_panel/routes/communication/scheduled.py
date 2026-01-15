@@ -86,14 +86,15 @@ def create_scheduled_message():
         db.session.add(scheduled_message)
 
         # Log the action
-        audit_log = AdminAuditLog(
-            admin_id=current_user.id,
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
             action='CREATE_SCHEDULED_MESSAGE',
-            target_type='ScheduledMessage',
-            target_id=scheduled_message.id,
-            details=f'Created scheduled message for {scheduled_send_time}'
+            resource_type='ScheduledMessage',
+            resource_id=str(scheduled_message.id),
+            new_value=f'Created scheduled message for {scheduled_send_time}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
         )
-        db.session.add(audit_log)
 
         flash('Scheduled message created successfully!', 'success')
         return redirect(url_for('admin_panel.scheduled_messages'))

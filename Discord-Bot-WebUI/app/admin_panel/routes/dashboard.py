@@ -621,14 +621,15 @@ def clear_performance_cache():
         admin_stats_cache.invalidate()
 
         # Log the action
-        audit_log = AdminAuditLog(
-            admin_id=current_user.id,
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
             action='CLEAR_CACHE',
-            target_type='PerformanceCache',
-            target_id='all' if not pattern else pattern,
-            details=f'Cleared admin panel cache{f" with pattern: {pattern}" if pattern else ""}'
+            resource_type='PerformanceCache',
+            resource_id='all' if not pattern else pattern,
+            new_value=f'Cleared admin panel cache{f" with pattern: {pattern}" if pattern else ""}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
         )
-        db.session.add(audit_log)
 
         flash('Cache cleared successfully!', 'success')
         return redirect(url_for('admin_panel.performance_monitoring'))

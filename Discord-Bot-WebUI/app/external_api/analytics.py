@@ -36,9 +36,16 @@ def _is_playoff_placeholder_match_api(match, viewing_team_id):
         from app.models import Match
         from flask import g
         
-        week_matches = g.db_session.query(Match).filter(
-            Match.league_id == match.league_id,
-            Match.week == match.week,
+        # Get league_id through the team relationship
+        league_id = match.home_team.league_id if match.home_team else match.away_team.league_id
+
+        # Find matches on the same date (week) for this team in the same league
+        from app.models import Team
+        week_matches = g.db_session.query(Match).join(
+            Team, (Match.home_team_id == Team.id) | (Match.away_team_id == Team.id)
+        ).filter(
+            Team.league_id == league_id,
+            Match.date == match.date,
             Match.is_playoff_game == True,
             ((Match.home_team_id == viewing_team_id) | (Match.away_team_id == viewing_team_id))
         ).all()

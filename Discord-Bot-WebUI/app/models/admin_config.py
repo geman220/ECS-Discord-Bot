@@ -107,11 +107,11 @@ class AdminConfig(db.Model):
             return default
 
     @classmethod
-    def set_setting(cls, key, value, description=None, category='general', 
-                   data_type='string', user_id=None):
+    def set_setting(cls, key, value, description=None, category='general',
+                   data_type='string', user_id=None, auto_commit=False):
         """
         Set or update a setting.
-        
+
         Args:
             key (str): The setting key
             value: The setting value
@@ -119,10 +119,13 @@ class AdminConfig(db.Model):
             category (str): Setting category
             data_type (str): Data type (string, boolean, integer, json)
             user_id (int): ID of user making the change
+            auto_commit (bool): Whether to commit immediately. Set to False when called
+                               from routes with @transactional decorator to avoid double-commit.
+                               Defaults to False since most callers use @transactional.
         """
         try:
             setting = cls.query.filter_by(key=key).first()
-            
+
             if setting:
                 setting.value = str(value) if value is not None else None
                 setting.updated_at = datetime.utcnow()
@@ -139,13 +142,15 @@ class AdminConfig(db.Model):
                     updated_by=user_id
                 )
                 db.session.add(setting)
-            
-            db.session.commit()
-            logger.info(f"Admin setting {key} updated to {value} by user {user_id}")
+
+            if auto_commit:
+                db.session.commit()
+            logger.debug(f"Admin setting {key} updated to {value} by user {user_id}")
             return setting
         except Exception as e:
             logger.error(f"Error setting admin setting {key}: {e}")
-            db.session.rollback()
+            if auto_commit:
+                db.session.rollback()
             raise
 
     @classmethod
@@ -385,11 +390,12 @@ class AdminAuditLog(db.Model):
         return f'<AdminAuditLog {self.user_id}:{self.action} on {self.resource_type}>'
 
     @classmethod
-    def log_action(cls, user_id, action, resource_type, resource_id=None, 
-                   old_value=None, new_value=None, ip_address=None, user_agent=None):
+    def log_action(cls, user_id, action, resource_type, resource_id=None,
+                   old_value=None, new_value=None, ip_address=None, user_agent=None,
+                   auto_commit=False):
         """
         Log an admin action.
-        
+
         Args:
             user_id (int): ID of user performing action
             action (str): Action performed (create, update, delete, toggle, etc.)
@@ -399,6 +405,9 @@ class AdminAuditLog(db.Model):
             new_value (str): New value (for updates)
             ip_address (str): IP address of user
             user_agent (str): User agent string
+            auto_commit (bool): Whether to commit immediately. Set to False when called
+                               from routes with @transactional decorator to avoid double-commit.
+                               Defaults to False since most callers use @transactional.
         """
         try:
             log_entry = cls(
@@ -412,11 +421,13 @@ class AdminAuditLog(db.Model):
                 user_agent=user_agent
             )
             db.session.add(log_entry)
-            db.session.commit()
-            logger.info(f"Admin action logged: {user_id}:{action} on {resource_type}")
+            if auto_commit:
+                db.session.commit()
+            logger.debug(f"Admin action logged: {user_id}:{action} on {resource_type}")
         except Exception as e:
             logger.error(f"Error logging admin action: {e}")
-            db.session.rollback()
+            if auto_commit:
+                db.session.rollback()
 
     @classmethod
     def get_recent_logs(cls, limit=100, user_id=None, resource_type=None):

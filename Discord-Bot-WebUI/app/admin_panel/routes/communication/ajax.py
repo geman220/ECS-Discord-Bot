@@ -53,27 +53,30 @@ def get_scheduled_message_details():
             if not message:
                 return jsonify({'success': False, 'message': 'Scheduled message not found'})
 
+            # Extract metadata content if available
+            metadata_content = ''
+            if message.message_metadata:
+                metadata_content = message.message_metadata.get('content', '') or ''
+
             details_html = f"""
             <div class="scheduled-message-details">
                 <div class="row">
                     <div class="col-md-6">
-                        <strong>Subject:</strong> {message.subject or 'No subject'}<br>
                         <strong>Message Type:</strong> {message.message_type or 'General'}<br>
-                        <strong>Recipients:</strong> {message.recipient_type or 'All users'}<br>
-                        <strong>Scheduled Time:</strong> {message.scheduled_time.strftime('%Y-%m-%d %H:%M') if message.scheduled_time else 'Not scheduled'}<br>
+                        <strong>Match ID:</strong> {message.match_id or 'N/A'}<br>
+                        <strong>Scheduled Time:</strong> {message.scheduled_send_time.strftime('%Y-%m-%d %H:%M') if message.scheduled_send_time else 'Not scheduled'}<br>
                     </div>
                     <div class="col-md-6">
                         <strong>Status:</strong> {message.status or 'Pending'}<br>
                         <strong>Created:</strong> {message.created_at.strftime('%Y-%m-%d %H:%M') if message.created_at else 'Unknown'}<br>
-                        <strong>Created by:</strong> {message.created_by_user.username if hasattr(message, 'created_by_user') and message.created_by_user else 'System'}<br>
-                        <strong>Priority:</strong> {getattr(message, 'priority', 'Normal')}<br>
+                        <strong>Created by:</strong> {message.creator.username if message.creator else 'System'}<br>
                     </div>
                 </div>
                 <div class="row mt-3">
                     <div class="col-12">
                         <div class="message-content p-3 bg-light rounded">
                             <strong>Message Content:</strong><br>
-                            {message.content[:500]}{'...' if len(message.content) > 500 else '' if message.content else 'No content'}
+                            {metadata_content[:500]}{'...' if len(metadata_content) > 500 else '' if not metadata_content else 'No content'}
                         </div>
                     </div>
                 </div>
@@ -279,7 +282,7 @@ def preview_template():
 def preview_template_by_id(template_id):
     """Preview specific template with sample data."""
     try:
-        from app.models.communication import MessageTemplate
+        from app.models import MessageTemplate
         template = MessageTemplate.query.get_or_404(template_id)
 
         # Use existing preview_template function logic
@@ -296,7 +299,7 @@ def preview_template_by_id(template_id):
             'season': 'Summer 2025'
         }
 
-        rendered_content = template.content
+        rendered_content = template.message_content
         for key, value in sample_data.items():
             rendered_content = rendered_content.replace(f'{{{{{key}}}}}', str(value))
             rendered_content = rendered_content.replace(f'{{{key}}}', str(value))
@@ -305,7 +308,7 @@ def preview_template_by_id(template_id):
             'success': True,
             'rendered_content': rendered_content,
             'template_name': template.name,
-            'variables_found': extract_template_variables(template.content)
+            'variables_found': extract_template_variables(template.message_content)
         })
 
     except Exception as e:

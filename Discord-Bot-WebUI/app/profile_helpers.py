@@ -191,7 +191,6 @@ def handle_profile_update(form, player, user):
             new_email = form.email.data.lower()
             logger.debug(f"Updating user.email from {user.email} to {new_email}")
             user.email = new_email
-            player.email = new_email
         else:
             # Keep existing email if no new value provided
             logger.debug(f"No email provided in form, keeping existing email: {user.email}")
@@ -208,7 +207,7 @@ def handle_profile_update(form, player, user):
         # Update array fields separately
         player.other_positions = ','.join(form.other_positions.data) if form.other_positions.data else None
         player.positions_not_to_play = ','.join(form.positions_not_to_play.data) if form.positions_not_to_play.data else None
-        
+
         # Update player notes
         player.player_notes = form.player_notes.data
 
@@ -489,7 +488,6 @@ def handle_profile_update_mobile(form, player, user):
             new_email = form.email.data.lower()
             logger.debug(f"Updating user.email from {user.email} to {new_email}")
             user.email = new_email
-            player.email = new_email
         else:
             # Keep existing email if no new value provided
             logger.debug(f"No email provided in form, keeping existing email: {user.email}")
@@ -506,10 +504,10 @@ def handle_profile_update_mobile(form, player, user):
         # Update array fields separately
         player.other_positions = ','.join(form.other_positions.data) if form.other_positions.data else None
         player.positions_not_to_play = ','.join(form.positions_not_to_play.data) if form.positions_not_to_play.data else None
-        
+
         # Update player notes
         player.player_notes = form.player_notes.data.strip() if form.player_notes.data else None
-        
+
         # Update profile last updated timestamp
         from datetime import datetime
         player.profile_last_updated = datetime.utcnow()
@@ -555,7 +553,6 @@ def handle_wizard_completion(form, player, user):
         if form.email.data:
             new_email = form.email.data.lower()
             user.email = new_email
-            player.email = new_email
 
         # Update player fields
         player.name = form.name.data.strip() if form.name.data else player.name

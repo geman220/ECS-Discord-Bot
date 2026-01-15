@@ -614,6 +614,115 @@ def docker_view_logs(container_id):
 
 
 # -----------------------------------------------------------
+# Docker Container Management - JSON Body Routes (for JS compatibility)
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/system/docker/restart', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def docker_restart_container():
+    """Restart a Docker container (accepts container_id in JSON body)."""
+    try:
+        from app.admin_helpers import manage_docker_container
+
+        data = request.get_json() or {}
+        container_id = data.get('container_id')
+
+        if not container_id:
+            return jsonify({'success': False, 'error': 'container_id is required'}), 400
+
+        success = manage_docker_container(container_id, 'restart')
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='docker_container_restart',
+            resource_type='system',
+            resource_id=container_id,
+            new_value=f'Container restart {"successful" if success else "failed"}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        if success:
+            return jsonify({'success': True, 'message': 'Container restart successful'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to restart container'}), 500
+    except Exception as e:
+        logger.error(f"Error restarting container: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/system/docker/stop', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def docker_stop_container():
+    """Stop a Docker container (accepts container_id in JSON body)."""
+    try:
+        from app.admin_helpers import manage_docker_container
+
+        data = request.get_json() or {}
+        container_id = data.get('container_id')
+
+        if not container_id:
+            return jsonify({'success': False, 'error': 'container_id is required'}), 400
+
+        success = manage_docker_container(container_id, 'stop')
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='docker_container_stop',
+            resource_type='system',
+            resource_id=container_id,
+            new_value=f'Container stop {"successful" if success else "failed"}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        if success:
+            return jsonify({'success': True, 'message': 'Container stop successful'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to stop container'}), 500
+    except Exception as e:
+        logger.error(f"Error stopping container: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/system/docker/start', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def docker_start_container():
+    """Start a Docker container (accepts container_id in JSON body)."""
+    try:
+        from app.admin_helpers import manage_docker_container
+
+        data = request.get_json() or {}
+        container_id = data.get('container_id')
+
+        if not container_id:
+            return jsonify({'success': False, 'error': 'container_id is required'}), 400
+
+        success = manage_docker_container(container_id, 'start')
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='docker_container_start',
+            resource_type='system',
+            resource_id=container_id,
+            new_value=f'Container start {"successful" if success else "failed"}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        if success:
+            return jsonify({'success': True, 'message': 'Container start successful'})
+        else:
+            return jsonify({'success': False, 'error': 'Failed to start container'}), 500
+    except Exception as e:
+        logger.error(f"Error starting container: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# -----------------------------------------------------------
 # Helper Functions
 # -----------------------------------------------------------
 
@@ -963,6 +1072,29 @@ def security_unban_ip():
     })
 
 
+# -----------------------------------------------------------
+# Security Routes - Alias routes for JavaScript compatibility
+# JS calls /security/block-ip but original routes are /system/security/ban-ip
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/security/block-ip', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+@transactional
+def security_block_ip_alias():
+    """Alias for ban-ip to match JavaScript API calls."""
+    return security_ban_ip()
+
+
+@admin_panel_bp.route('/security/unblock-ip', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+@transactional
+def security_unblock_ip_alias():
+    """Alias for unban-ip to match JavaScript API calls."""
+    return security_unban_ip()
+
+
 @admin_panel_bp.route('/system/security/clear-all-bans', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
@@ -1041,3 +1173,241 @@ def api_security_status():
     except Exception as e:
         logger.error(f"Error getting security status: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# -----------------------------------------------------------
+# Redis Cache Clear Routes
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/system/redis/clear', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def redis_clear_cache():
+    """
+    Clear Redis cache by type.
+
+    Accepts JSON with 'cache_type' field:
+    - 'all': Clear all cache keys
+    - 'session': Clear session-related keys
+    - 'draft': Clear draft-related keys
+    - 'mls': Clear MLS match-related keys
+    - 'rsvp': Clear RSVP-related keys
+    """
+    try:
+        from app.utils.safe_redis import get_safe_redis
+
+        data = request.get_json() or {}
+        cache_type = data.get('cache_type', 'all')
+
+        redis_client = get_safe_redis()
+
+        if not redis_client.is_available:
+            return jsonify({
+                'success': False,
+                'error': 'Redis is not available'
+            }), 503
+
+        # Define patterns for each cache type
+        cache_patterns = {
+            'all': ['*'],
+            'session': ['session:*', 'flask_session:*'],
+            'draft': ['draft:*'],
+            'mls': ['mls:*', 'match:*', 'live_reporting:*', 'match_scheduler:*'],
+            'rsvp': ['rsvp:*', 'rsvp_cache:*'],
+            'task': ['task:*', 'celery-task-meta-*']
+        }
+
+        patterns = cache_patterns.get(cache_type, [f'{cache_type}:*'])
+        deleted_count = 0
+
+        for pattern in patterns:
+            try:
+                keys = redis_client.keys(pattern)
+                if keys:
+                    for key in keys:
+                        redis_client.delete(key)
+                        deleted_count += 1
+            except Exception as e:
+                logger.warning(f"Error clearing pattern {pattern}: {e}")
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='redis_cache_clear',
+            resource_type='system',
+            resource_id='redis',
+            new_value=f'Cleared {deleted_count} keys (type: {cache_type})',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"Redis cache cleared by {current_user.username}: type={cache_type}, keys={deleted_count}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully cleared {deleted_count} cache keys',
+            'cache_type': cache_type,
+            'deleted_count': deleted_count
+        })
+
+    except Exception as e:
+        logger.error(f"Error clearing Redis cache: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to clear cache: {str(e)}'
+        }), 500
+
+
+@admin_panel_bp.route('/system/redis/delete-key', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def redis_delete_key():
+    """
+    Delete a specific Redis key.
+
+    Accepts JSON with 'key' field containing the exact key name to delete.
+    """
+    try:
+        from app.utils.safe_redis import get_safe_redis
+
+        data = request.get_json() or {}
+        key_name = data.get('key')
+
+        if not key_name:
+            return jsonify({
+                'success': False,
+                'error': 'Key name is required'
+            }), 400
+
+        redis_client = get_safe_redis()
+
+        if not redis_client.is_available:
+            return jsonify({
+                'success': False,
+                'error': 'Redis is not available'
+            }), 503
+
+        # Check if key exists before deletion
+        exists = redis_client.exists(key_name)
+
+        if not exists:
+            return jsonify({
+                'success': False,
+                'error': f'Key "{key_name}" does not exist'
+            }), 404
+
+        # Delete the key
+        deleted = redis_client.delete(key_name)
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='redis_key_delete',
+            resource_type='system',
+            resource_id='redis',
+            new_value=f'Deleted key: {key_name}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"Redis key deleted by {current_user.username}: {key_name}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully deleted key "{key_name}"',
+            'key': key_name,
+            'deleted': bool(deleted)
+        })
+
+    except Exception as e:
+        logger.error(f"Error deleting Redis key: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to delete key: {str(e)}'
+        }), 500
+
+
+@admin_panel_bp.route('/system/draft-cache/clear', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def draft_cache_clear():
+    """
+    Clear draft cache entries.
+
+    Accepts JSON with optional 'cache_key' field:
+    - If provided: Clear only the specified cache entry
+    - If not provided: Clear all draft cache entries
+    """
+    try:
+        from app.utils.safe_redis import get_safe_redis
+        from app.draft_cache_service import DraftCacheService
+
+        data = request.get_json() or {}
+        cache_key = data.get('cache_key')
+
+        redis_client = get_safe_redis()
+
+        if not redis_client.is_available:
+            return jsonify({
+                'success': False,
+                'error': 'Redis is not available'
+            }), 503
+
+        deleted_count = 0
+
+        if cache_key:
+            # Delete specific cache key
+            if redis_client.exists(cache_key):
+                redis_client.delete(cache_key)
+                deleted_count = 1
+                message = f'Cleared draft cache entry: {cache_key}'
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': f'Cache key "{cache_key}" does not exist'
+                }), 404
+        else:
+            # Clear all draft cache entries
+            draft_patterns = [
+                'draft:players:*',
+                'draft:analytics:*',
+                'draft:teams:*',
+                'draft:availability:*'
+            ]
+
+            for pattern in draft_patterns:
+                try:
+                    keys = redis_client.keys(pattern)
+                    for key in keys:
+                        redis_client.delete(key)
+                        deleted_count += 1
+                except Exception as e:
+                    logger.warning(f"Error clearing draft pattern {pattern}: {e}")
+
+            message = f'Cleared {deleted_count} draft cache entries'
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='draft_cache_clear',
+            resource_type='system',
+            resource_id='draft_cache',
+            new_value=message,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"Draft cache cleared by {current_user.username}: {deleted_count} entries")
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'deleted_count': deleted_count
+        })
+
+    except Exception as e:
+        logger.error(f"Error clearing draft cache: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to clear draft cache: {str(e)}'
+        }), 500

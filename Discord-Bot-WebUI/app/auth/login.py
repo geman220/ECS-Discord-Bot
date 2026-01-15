@@ -87,7 +87,8 @@ def login():
 
         if len(users) > 1:
             logger.debug(f"Multiple users found for email {email}")
-            players = Player.query.filter_by(email=email).all()
+            # Get players through the User relationship (email is on User, not Player)
+            players = [u.player for u in users if u.player]
             problematic_players = [p for p in players if p.needs_manual_review]
             if problematic_players:
                 show_warning('Multiple profiles found. Please contact an admin.')

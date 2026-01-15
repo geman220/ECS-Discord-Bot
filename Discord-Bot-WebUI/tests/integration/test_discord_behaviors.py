@@ -166,7 +166,7 @@ class TestDiscordEmbedBehaviors:
         assert match.id is not None
         assert match.home_team is not None
         assert match.home_team.name is not None
-        assert match.date is not None or match.week is not None
+        assert match.date is not None
 
     def test_rsvp_data_can_be_retrieved_for_discord_display(self, db):
         """

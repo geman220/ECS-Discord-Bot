@@ -227,7 +227,7 @@
                             <i class="ti ti-list-check"></i>
                         </a>
                         {% elif message.message_metadata and message.message_metadata.get('match_id') %}
-                        <a href="{{ url_for('admin.ecs_fc_rsvp_status', match_id=message.message_metadata.match_id) }}" class="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg" title="View ECS FC RSVPs">
+                        <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=message.message_metadata.match_id) }}" class="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg" title="View ECS FC RSVPs">
                             <i class="ti ti-list-check"></i>
                         </a>
                         {% endif %}

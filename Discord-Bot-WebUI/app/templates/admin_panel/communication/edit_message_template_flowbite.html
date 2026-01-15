@@ -8,13 +8,13 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <a href="{{ url_for('admin.message_config.list_categories') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Message Categories</a>
+        <a href="{{ url_for('admin_panel.message_templates') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Message Templates</a>
     </div>
 </li>
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <a href="{{ url_for('admin.message_config.view_category', category_id=template.category_id) }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">{{ template.category.name }}</a>
+        <a href="{{ url_for('admin_panel.message_category', category_id=template.category_id) }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">{{ template.category.name }}</a>
     </div>
 </li>
 <li>
@@ -75,7 +75,7 @@
                         <i class="ti ti-eye mr-1"></i>Preview
                     </button>
                 </div>
-                <a href="{{ url_for('admin.message_config.view_category', category_id=template.category_id) }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
+                <a href="{{ url_for('admin_panel.message_category', category_id=template.category_id) }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600">
                     <i class="ti ti-x mr-1"></i>Cancel
                 </a>
             </div>

@@ -147,15 +147,15 @@ def send_push_notification():
         db.session.commit()
 
         # Log the action
-        audit_log = AdminAuditLog(
-            admin_id=current_user.id,
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
             action='SEND_PUSH_NOTIFICATION',
-            target_type='Notification',
-            target_id='bulk',
-            details=f'Sent push notification "{title}" to {notifications_created} users'
+            resource_type='Notification',
+            resource_id='bulk',
+            new_value=f'Sent push notification "{title}" to {notifications_created} users',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
         )
-        db.session.add(audit_log)
-        db.session.commit()
 
         flash(f'Push notification "{title}" sent to {notifications_created} users!', 'success')
         return redirect(url_for('admin_panel.push_notifications'))
@@ -176,14 +176,15 @@ def duplicate_notification_legacy(notification_id):
         logger.info(f"Admin {current_user.id} attempting to duplicate notification {notification_id}")
 
         # 4. Log the action
-        audit_log = AdminAuditLog(
-            admin_id=current_user.id,
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
             action='DUPLICATE_NOTIFICATION',
-            target_type='Notification',
-            target_id=notification_id,
-            details=f'Duplicated notification {notification_id}'
+            resource_type='Notification',
+            resource_id=str(notification_id),
+            new_value=f'Duplicated notification {notification_id}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
         )
-        db.session.add(audit_log)
 
         flash('Notification duplicated successfully!', 'success')
         return redirect(url_for('admin_panel.push_notifications'))

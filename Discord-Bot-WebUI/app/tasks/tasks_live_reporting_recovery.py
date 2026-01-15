@@ -279,5 +279,8 @@ def recover_missing_tasks(self, session) -> Dict[str, Any]:
         }
 
 
-# Keep the old function name for backward compatibility
+# Keep the old function name for backward compatibility (Python code imports only).
+# NOTE: This alias does NOT create a new Celery task registration.
+# The task is registered as 'app.tasks.tasks_live_reporting_recovery.recover_missing_tasks'.
+# Any Celery beat schedules or apply_async calls must use the registered name.
 check_and_start_missing_live_reporting = recover_missing_tasks

@@ -126,10 +126,12 @@ def resend_merge_verification():
         if not old_email or not merge_data:
             return jsonify({'success': False, 'message': 'Missing required data'})
 
-        # Create new verification token
-        player = Player.query.filter_by(email=old_email).first()
-        if not player:
+        # Create new verification token - email is on User model, not Player
+        from app.models import User
+        user = User.query.filter_by(email=old_email).first()
+        if not user or not user.player:
             return jsonify({'success': False, 'message': 'Player not found'})
+        player = user.player
 
         token = create_merge_request(player.id, merge_data)
 

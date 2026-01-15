@@ -117,7 +117,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
-                    <p class="text-gray-700 dark:text-gray-300">{{ alert.existing_player.user.email if alert.existing_player.user else alert.existing_player.email or 'N/A' }}</p>
+                    <p class="text-gray-700 dark:text-gray-300">{{ alert.existing_player.user.email if alert.existing_player.user else 'N/A' }}</p>
                 </div>
                 {% if alert.existing_player.discord_id %}
                 <div>

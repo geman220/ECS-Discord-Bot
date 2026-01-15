@@ -69,8 +69,8 @@ def handle_email_change(player, new_email, old_email=None):
     """
     try:
         if not old_email:
-            old_email = player.user.email if player.user else player.email
-        
+            old_email = player.user.email if player.user else None
+
         # Store email history
         email_history = []
         if player.last_known_emails:
@@ -84,10 +84,9 @@ def handle_email_change(player, new_email, old_email=None):
         
         player.last_known_emails = json.dumps(email_history[-10:])  # Keep last 10 emails
         
-        # Update email in both User and Player models
+        # Update email on the User model (email is stored on User, not Player)
         if player.user:
             player.user.email = new_email.lower()
-        player.email = new_email.lower()
         
         # Update timestamp
         player.profile_last_updated = datetime.utcnow()

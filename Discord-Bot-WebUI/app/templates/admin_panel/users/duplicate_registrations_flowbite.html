@@ -104,7 +104,7 @@
             <div>
                 <h6 class="text-sm font-medium text-green-600 dark:text-green-400 mb-2">Existing Player</h6>
                 <p class="font-medium text-gray-900 dark:text-white">{{ alert.existing_player.name }}</p>
-                <p class="text-sm text-gray-600 dark:text-gray-300">{{ alert.existing_player.user.email if alert.existing_player.user else alert.existing_player.email }}</p>
+                <p class="text-sm text-gray-600 dark:text-gray-300">{{ alert.existing_player.user.email if alert.existing_player.user else 'No email' }}</p>
                 {% if alert.existing_player.phone %}
                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-1"><i class="ti ti-phone mr-1"></i>{{ alert.existing_player.phone }}</p>
                 {% endif %}

@@ -113,7 +113,8 @@ def update_message_template():
         template_id = request.form.get('template_id')
         name = request.form.get('name')
         description = request.form.get('description')
-        content = request.form.get('content')
+        # Support both 'message_content' (form field name) and 'content' (legacy)
+        message_content = request.form.get('message_content') or request.form.get('content')
         channel_type = request.form.get('channel_type')
         usage_context = request.form.get('usage_context')
         is_active = request.form.get('is_active') == 'on'
@@ -123,7 +124,7 @@ def update_message_template():
 
         template.name = name
         template.description = description
-        template.message_content = content
+        template.message_content = message_content
         template.channel_type = channel_type or None
         template.usage_context = usage_context or None
         template.is_active = is_active
@@ -225,13 +226,18 @@ def delete_message_template():
 def duplicate_message_template(template_id):
     """Duplicate a message template."""
     try:
-        from app.models.communication import MessageTemplate
+        from app.models import MessageTemplate
         original = MessageTemplate.query.get_or_404(template_id)
 
         duplicate = MessageTemplate(
             name=f"Copy of {original.name}",
-            content=original.content,
+            key=f"copy_{original.key}_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+            message_content=original.message_content,
+            description=original.description,
             category_id=original.category_id,
+            channel_type=original.channel_type,
+            usage_context=original.usage_context,
+            variables=original.variables,
             is_active=False,  # Start as inactive
             created_by=current_user.id,
             created_at=datetime.utcnow()

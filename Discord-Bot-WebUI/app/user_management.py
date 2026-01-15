@@ -2034,7 +2034,7 @@ def search_players():
             results.append({
                 'id': player.id,
                 'name': player.name,
-                'email': player.email,
+                'email': player.user.email if player.user else None,
                 'league_name': player.league.name if player.league else 'No League',
                 'is_active': player.is_current_player
             })

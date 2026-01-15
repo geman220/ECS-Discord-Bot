@@ -130,8 +130,7 @@ def create_role_comprehensive():
         # Create new role
         role = Role(
             name=name,
-            description=description,
-            created_at=datetime.utcnow()
+            description=description
         )
         
         db.session.add(role)

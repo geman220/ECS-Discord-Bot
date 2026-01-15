@@ -656,27 +656,38 @@ def api_process_waitlist():
 def api_sync_templates():
     """Synchronize message templates with defaults."""
     try:
-        from app.models.notification import MessageTemplate
+        from app.models import MessageTemplate, MessageCategory
 
         current_user_safe = safe_current_user
 
+        # Ensure a default category exists
+        default_category = MessageCategory.query.filter_by(name='System').first()
+        if not default_category:
+            default_category = MessageCategory(
+                name='System',
+                description='System-generated default message templates'
+            )
+            db.session.add(default_category)
+            db.session.flush()  # Get the ID
+
         # Default templates
         default_templates = [
-            {'name': 'match_reminder', 'subject': 'Match Reminder', 'content': 'Your match is coming up in {hours} hours.'},
-            {'name': 'rsvp_request', 'subject': 'RSVP Required', 'content': 'Please RSVP for your upcoming match.'},
-            {'name': 'team_announcement', 'subject': 'Team Announcement', 'content': '{message}'},
-            {'name': 'league_update', 'subject': 'League Update', 'content': '{message}'},
-            {'name': 'welcome_message', 'subject': 'Welcome to ECS Soccer', 'content': 'Welcome {name}! You have been registered.'},
+            {'key': 'match_reminder', 'name': 'Match Reminder', 'message_content': 'Your match is coming up in {hours} hours.'},
+            {'key': 'rsvp_request', 'name': 'RSVP Required', 'message_content': 'Please RSVP for your upcoming match.'},
+            {'key': 'team_announcement', 'name': 'Team Announcement', 'message_content': '{message}'},
+            {'key': 'league_update', 'name': 'League Update', 'message_content': '{message}'},
+            {'key': 'welcome_message', 'name': 'Welcome to ECS Soccer', 'message_content': 'Welcome {name}! You have been registered.'},
         ]
 
         synced_count = 0
         for template_data in default_templates:
-            template = MessageTemplate.query.filter_by(name=template_data['name']).first()
+            template = MessageTemplate.query.filter_by(key=template_data['key'], category_id=default_category.id).first()
             if not template:
                 template = MessageTemplate(
+                    category_id=default_category.id,
+                    key=template_data['key'],
                     name=template_data['name'],
-                    subject=template_data['subject'],
-                    content=template_data['content'],
+                    message_content=template_data['message_content'],
                     is_active=True
                 )
                 db.session.add(template)

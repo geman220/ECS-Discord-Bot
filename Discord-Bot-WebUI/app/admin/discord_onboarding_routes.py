@@ -30,38 +30,56 @@ discord_onboarding = Blueprint('discord_onboarding', __name__, url_prefix='/api/
 # Helper Functions
 # =======================================================================
 
-def log_discord_interaction(user_id: int, discord_id: str, interaction_type: str, 
-                           message_content: str = None, success: bool = True, 
-                           error_message: str = None, metadata: Dict = None):
-    """Log Discord interaction to database."""
+def log_discord_interaction(user_id: int, discord_id: str, interaction_type: str,
+                           message_content: str = None, success: bool = True,
+                           error_message: str = None, metadata: Dict = None,
+                           auto_commit: bool = False):
+    """Log Discord interaction to database.
+
+    Args:
+        auto_commit (bool): Whether to commit immediately. Set to False when called
+                           from routes with @transactional decorator to avoid double-commit.
+                           Defaults to False since most callers use @transactional.
+    """
     try:
         from app.models import db
-        
+
         # Use raw SQL to call the helper function we created
         db.session.execute(
             "SELECT log_discord_interaction(%s, %s, %s, %s, %s, %s, %s, %s)",
-            (user_id, discord_id, interaction_type, message_content, None, 
+            (user_id, discord_id, interaction_type, message_content, None,
              success, error_message, metadata)
         )
-        db.session.commit()
-        logger.info(f"Logged Discord interaction: {interaction_type} for user {user_id}")
+        if auto_commit:
+            db.session.commit()
+        logger.debug(f"Logged Discord interaction: {interaction_type} for user {user_id}")
     except Exception as e:
         logger.error(f"Failed to log Discord interaction: {e}")
-        db.session.rollback()
+        if auto_commit:
+            db.session.rollback()
 
 
-def update_user_league_preference(user_id: int, league: str, method: str = 'bot_interaction') -> bool:
-    """Update user's league preference using the database function."""
+def update_user_league_preference(user_id: int, league: str, method: str = 'bot_interaction',
+                                  auto_commit: bool = False) -> bool:
+    """Update user's league preference using the database function.
+
+    Args:
+        auto_commit (bool): Whether to commit immediately. Set to False when called
+                           from routes with @transactional decorator to avoid double-commit.
+                           Defaults to False since most callers use @transactional.
+    """
     try:
         result = db.session.execute(
             "SELECT update_user_league_preference(%s, %s, %s)",
             (user_id, league, method)
         ).fetchone()
-        db.session.commit()
+        if auto_commit:
+            db.session.commit()
         return result[0] if result else False
     except Exception as e:
         logger.error(f"Failed to update user league preference: {e}")
-        db.session.rollback()
+        if auto_commit:
+            db.session.rollback()
         return False
 
 

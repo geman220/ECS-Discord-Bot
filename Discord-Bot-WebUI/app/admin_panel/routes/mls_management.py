@@ -1157,3 +1157,98 @@ def match_resync(match_id):
         logger.error(f"Error resyncing match {match_id}: {e}", exc_info=True)
         session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# -----------------------------------------------------------
+# MLS Sync & Task Management Routes
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/mls/trigger-sync', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_trigger_sync():
+    """
+    Trigger MLS data synchronization.
+
+    This schedules a Celery task to fetch and update MLS match data from ESPN.
+    """
+    try:
+        # Import the task for scheduling
+        task_result = schedule_all_mls_threads_task.delay()
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='mls_trigger_sync',
+            resource_type='mls',
+            resource_id='sync',
+            new_value=f'Triggered MLS sync task: {task_result.id}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"MLS sync triggered by {current_user.username}, task_id: {task_result.id}")
+
+        return jsonify({
+            'success': True,
+            'message': 'MLS synchronization task has been triggered',
+            'task_id': task_result.id
+        })
+
+    except Exception as e:
+        logger.error(f"Error triggering MLS sync: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to trigger MLS sync: {str(e)}'
+        }), 500
+
+
+@admin_panel_bp.route('/mls/cancel-task', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_cancel_task():
+    """
+    Cancel an MLS task.
+
+    Accepts JSON with 'task_id' field to identify the Celery task to cancel.
+    """
+    try:
+        from app.core import celery
+
+        data = request.get_json() or {}
+        task_id = data.get('task_id')
+
+        if not task_id:
+            return jsonify({
+                'success': False,
+                'error': 'Task ID is required'
+            }), 400
+
+        # Attempt to revoke the task
+        celery.control.revoke(task_id, terminate=True)
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='mls_task_cancel',
+            resource_type='mls',
+            resource_id=task_id,
+            new_value=f'Cancelled task: {task_id}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"MLS task {task_id} cancelled by {current_user.username}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Task {task_id} has been cancelled',
+            'task_id': task_id
+        })
+
+    except Exception as e:
+        logger.error(f"Error cancelling MLS task: {e}")
+        return jsonify({
+            'success': False,
+            'error': f'Failed to cancel task: {str(e)}'
+        }), 500

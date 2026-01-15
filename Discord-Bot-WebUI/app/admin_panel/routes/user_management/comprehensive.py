@@ -279,6 +279,9 @@ def update_user_active():
 def edit_user_comprehensive(user_id):
     """Comprehensive user edit via modal form."""
     try:
+        # Debug log form data
+        logger.info(f"Edit user {user_id} - Form data received: {dict(request.form)}")
+
         user = User.query.options(
             joinedload(User.player),
             joinedload(User.roles)
@@ -299,19 +302,55 @@ def edit_user_comprehensive(user_id):
         secondary_team_id = request.form.get('secondary_team_id')
         tertiary_team_id = request.form.get('tertiary_team_id')
 
-        # Derive league_id from the primary team if a team is selected
+        # Read league type selections from the form
+        primary_league_type = request.form.get('primary_league_type', '').strip().lower()
+        secondary_league_type = request.form.get('secondary_league_type', '').strip().lower()
+        tertiary_league_type = request.form.get('tertiary_league_type', '').strip().lower()
+
+        # Helper to get league ID from league type name
+        def get_league_id_from_type(league_type):
+            """Get the league ID from a league type name (classic, premier, ecsfc)."""
+            if not league_type:
+                return None
+            # Map league type to league name pattern
+            type_to_name = {
+                'classic': 'Classic',
+                'premier': 'Premier',
+                'ecsfc': 'ECS FC',
+            }
+            league_name = type_to_name.get(league_type)
+            if league_name:
+                # Find the league with this name in current season
+                league = League.query.join(Season).filter(
+                    Season.is_current == True,
+                    League.name.ilike(f'%{league_name}%')
+                ).first()
+                if league:
+                    return str(league.id)
+            return None
+
+        # Determine league_id - prioritize league type selection, fallback to deriving from team
         league_id = None
-        if team_id:
+        if primary_league_type:
+            league_id = get_league_id_from_type(primary_league_type)
+        if not league_id and team_id:
             primary_team = Team.query.get(int(team_id))
             if primary_team and primary_team.league_id:
                 league_id = str(primary_team.league_id)
 
-        # Derive secondary_league_id from secondary team
+        # Determine secondary_league_id - prioritize league type selection, fallback to deriving from team
         secondary_league_id = None
-        if secondary_team_id:
+        if secondary_league_type:
+            secondary_league_id = get_league_id_from_type(secondary_league_type)
+        if not secondary_league_id and secondary_team_id:
             sec_team = Team.query.get(int(secondary_team_id))
             if sec_team and sec_team.league_id:
                 secondary_league_id = str(sec_team.league_id)
+
+        # Determine tertiary_league_id for role management
+        tertiary_league_id = None
+        if tertiary_league_type:
+            tertiary_league_id = get_league_id_from_type(tertiary_league_type)
 
         # Store old values for audit log
         old_values = {
@@ -345,12 +384,22 @@ def edit_user_comprehensive(user_id):
             # Active player status
             user.player.is_current_player = is_current_player
 
-            # Handle secondary league (clear existing and set new)
+            # Handle secondary and tertiary leagues (clear existing and set new)
             user.player.other_leagues.clear()
+            logger.info(f"User {user_id} league assignments: primary={league_id}, secondary={secondary_league_id}, tertiary={tertiary_league_id}")
             if secondary_league_id:
                 secondary_league = League.query.get(int(secondary_league_id))
-                if secondary_league and secondary_league != user.player.primary_league:
+                # Compare IDs to avoid issues with lazy-loaded relationships
+                if secondary_league and str(secondary_league.id) != str(league_id):
                     user.player.other_leagues.append(secondary_league)
+                    logger.info(f"Added secondary league {secondary_league.name} (ID: {secondary_league.id}) to player {user.player.id}")
+            if tertiary_league_id:
+                tertiary_league = League.query.get(int(tertiary_league_id))
+                # Check it's not the primary league and not already added as secondary
+                if tertiary_league and str(tertiary_league.id) != str(league_id):
+                    if tertiary_league not in user.player.other_leagues:
+                        user.player.other_leagues.append(tertiary_league)
+                        logger.info(f"Added tertiary league {tertiary_league.name} (ID: {tertiary_league.id}) to player {user.player.id}")
 
             # Get ECS FC team IDs from the three-tier form fields
             # Support both old format (ecs_fc_team_ids[]) and new format (primary/secondary/tertiary_ecsfc_teams)
@@ -451,6 +500,13 @@ def edit_user_comprehensive(user_id):
                 if secondary_role_name:
                     required_league_roles.add(secondary_role_name)
 
+            # Tertiary league role
+            if tertiary_league_id:
+                tertiary_league = League.query.get(int(tertiary_league_id))
+                tertiary_role_name = get_role_for_league(tertiary_league)
+                if tertiary_role_name:
+                    required_league_roles.add(tertiary_role_name)
+
             # Get current role names for comparison
             current_role_names = {r.name for r in user.roles}
 
@@ -466,6 +522,12 @@ def edit_user_comprehensive(user_id):
                 secondary_league = League.query.get(int(secondary_league_id))
                 if secondary_league:
                     sub_role = LEAGUE_TO_SUB_ROLE_MAP.get(secondary_league.name.lower().strip())
+                    if sub_role:
+                        required_sub_roles.add(sub_role)
+            if tertiary_league_id:
+                tertiary_league = League.query.get(int(tertiary_league_id))
+                if tertiary_league:
+                    sub_role = LEAGUE_TO_SUB_ROLE_MAP.get(tertiary_league.name.lower().strip())
                     if sub_role:
                         required_sub_roles.add(sub_role)
 

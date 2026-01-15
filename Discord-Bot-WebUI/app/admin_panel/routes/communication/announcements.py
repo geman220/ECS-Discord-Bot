@@ -83,14 +83,15 @@ def create_announcement():
             db.session.add(announcement)
 
             # Log the action
-            audit_log = AdminAuditLog(
-                admin_id=current_user.id,
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
                 action='CREATE_ANNOUNCEMENT',
-                target_type='Announcement',
-                target_id=announcement.id,
-                details=f'Created announcement: {title}'
+                resource_type='Announcement',
+                resource_id=str(announcement.id),
+                new_value=f'Created announcement: {title}',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
             )
-            db.session.add(audit_log)
 
             flash('Announcement created successfully!', 'success')
             return redirect(url_for('admin_panel.announcements'))
@@ -124,14 +125,15 @@ def edit_announcement(announcement_id):
                 return redirect(url_for('admin_panel.edit_announcement', announcement_id=announcement_id))
 
             # Log the action
-            audit_log = AdminAuditLog(
-                admin_id=current_user.id,
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
                 action='UPDATE_ANNOUNCEMENT',
-                target_type='Announcement',
-                target_id=announcement.id,
-                details=f'Updated announcement: {announcement.title}'
+                resource_type='Announcement',
+                resource_id=str(announcement.id),
+                new_value=f'Updated announcement: {announcement.title}',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
             )
-            db.session.add(audit_log)
 
             flash('Announcement updated successfully!', 'success')
             return redirect(url_for('admin_panel.announcements'))
@@ -158,14 +160,15 @@ def delete_announcement(announcement_id):
         db.session.delete(announcement)
 
         # Log the action
-        audit_log = AdminAuditLog(
-            admin_id=current_user.id,
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
             action='DELETE_ANNOUNCEMENT',
-            target_type='Announcement',
-            target_id=announcement_id,
-            details=f'Deleted announcement: {title}'
+            resource_type='Announcement',
+            resource_id=str(announcement_id),
+            old_value=f'Deleted announcement: {title}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
         )
-        db.session.add(audit_log)
 
         flash('Announcement deleted successfully!', 'success')
         return redirect(url_for('admin_panel.announcements'))
@@ -199,14 +202,15 @@ def manage_announcements():
                     processed_count += 1
 
         # Log the action
-        audit_log = AdminAuditLog(
-            admin_id=current_user.id,
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
             action=f'BULK_{action.upper()}_ANNOUNCEMENTS',
-            target_type='Announcement',
-            target_id='bulk',
-            details=f'Bulk {action} {processed_count} announcements'
+            resource_type='Announcement',
+            resource_id='bulk',
+            new_value=f'Bulk {action} {processed_count} announcements',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
         )
-        db.session.add(audit_log)
 
         flash(f'Successfully {action}d {processed_count} announcements!', 'success')
         return redirect(url_for('admin_panel.announcements'))

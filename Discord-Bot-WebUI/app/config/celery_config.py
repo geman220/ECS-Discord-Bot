@@ -328,7 +328,7 @@ class CeleryConfig:
         },
         # Live Reporting Recovery - Check for matches that should be reporting but aren't
         'check-missing-live-reporting': {
-            'task': 'app.tasks.tasks_live_reporting_recovery.check_and_start_missing_live_reporting',
+            'task': 'app.tasks.tasks_live_reporting_recovery.recover_missing_tasks',
             'schedule': crontab(minute='*/5'),  # Every 5 minutes (reduced frequency to prevent accumulation)
             'options': {
                 'queue': 'live_reporting',
