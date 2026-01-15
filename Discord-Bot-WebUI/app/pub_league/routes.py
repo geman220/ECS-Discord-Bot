@@ -594,7 +594,7 @@ def generate_pass():
                 'wallet_pass': {
                     'id': wallet_pass.id,
                     'download_token': wallet_pass.download_token,
-                    'download_url': url_for('wallet.download_pass', token=wallet_pass.download_token, _external=True)
+                    'download_url': url_for('public_wallet.download_pass_by_token', token=wallet_pass.download_token, _external=True)
                 }
             })
 
@@ -606,7 +606,7 @@ def generate_pass():
             'wallet_pass': {
                 'id': wallet_pass.id,
                 'download_token': wallet_pass.download_token,
-                'download_url': url_for('wallet.download_pass', token=wallet_pass.download_token, _external=True)
+                'download_url': url_for('public_wallet.download_pass_by_token', token=wallet_pass.download_token, _external=True)
             }
         })
 
@@ -719,7 +719,7 @@ def process_claim():
             'wallet_pass': {
                 'id': wallet_pass.id,
                 'download_token': wallet_pass.download_token,
-                'download_url': url_for('wallet.download_pass', token=wallet_pass.download_token, _external=True)
+                'download_url': url_for('public_wallet.download_pass_by_token', token=wallet_pass.download_token, _external=True)
             }
         })
 

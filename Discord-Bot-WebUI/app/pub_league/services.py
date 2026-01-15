@@ -475,9 +475,9 @@ class RoleSyncService:
         # 1. Flask role sync (database)
         RoleSyncService._sync_flask_role(user, new_role_name, opposite_role_name)
 
-        # 2. Discord role sync (via bot API)
-        if player.discord_id:
-            RoleSyncService._sync_discord_role(player.discord_id, new_role_name, opposite_role_name)
+        # 2. Mark player for Discord role sync
+        # The sync system reads Flask roles and maps them to Discord roles
+        RoleSyncService._sync_discord_role(player)
 
     @staticmethod
     def _sync_flask_role(user: User, new_role_name: str, opposite_role_name: str) -> None:
@@ -508,36 +508,33 @@ class RoleSyncService:
         session.commit()
 
     @staticmethod
-    def _sync_discord_role(discord_id: str, new_role_name: str, opposite_role_name: str) -> None:
+    def _sync_discord_role(player: Player) -> None:
         """
-        Sync Discord roles via the bot API.
+        Mark player for Discord role sync.
+
+        The Discord role sync system reads Flask roles and syncs them to Discord.
+        After updating Flask roles (in _sync_flask_role), we mark the player
+        for update so the background sync job picks it up.
 
         Args:
-            discord_id: User's Discord ID
-            new_role_name: Role to add
-            opposite_role_name: Role to remove if present
+            player: Player to mark for Discord update
         """
         try:
-            from app.tasks import assign_roles_to_player_task
+            if not player.discord_id:
+                logger.warning(f"Player {player.id} has no Discord ID, skipping Discord role sync")
+                return
 
-            # Queue task to add new role
-            assign_roles_to_player_task.delay(
-                discord_id=discord_id,
-                role_names=[new_role_name],
-                action='add'
-            )
-            logger.info(f"Queued Discord role add: {new_role_name} for {discord_id}")
+            # Mark player for Discord update - the sync system will read
+            # Flask roles (pl-classic, pl-premier) and map them to Discord roles
+            # (ECS-FC-PL-CLASSIC, ECS-FC-PL-PREMIER)
+            session = getattr(g, 'db_session', db.session)
+            player.discord_needs_update = True
+            session.commit()
 
-            # Queue task to remove opposite role
-            assign_roles_to_player_task.delay(
-                discord_id=discord_id,
-                role_names=[opposite_role_name],
-                action='remove'
-            )
-            logger.info(f"Queued Discord role remove: {opposite_role_name} for {discord_id}")
+            logger.info(f"Marked player {player.id} for Discord role sync")
 
         except Exception as e:
-            logger.error(f"Error syncing Discord roles for {discord_id}: {e}")
+            logger.error(f"Error marking player {player.id} for Discord update: {e}")
 
 
 class ProfileConflictService:
