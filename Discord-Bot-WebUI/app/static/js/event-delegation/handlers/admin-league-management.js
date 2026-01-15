@@ -536,7 +536,7 @@ window.EventDelegation.register('auto-assign-playoffs', function(element, e) {
         const originalText = element.innerHTML;
         element.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Assigning...';
 
-        fetch(`/admin/playoff/${leagueId}/auto-assign`, {
+        fetch(`/admin/playoffs/league/${leagueId}/auto-assign`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

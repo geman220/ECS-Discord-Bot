@@ -545,14 +545,21 @@ def user_details_api(user_id):
                 if is_ecs_fc_team(team.id)
             ] if user.player.teams else []
 
+            # Get league names for direct type detection
+            primary_league_name = user.player.primary_league.name if user.player.primary_league else None
+            other_league_names = [lg.name for lg in user.player.other_leagues] if user.player.other_leagues else []
+
             user_data['has_player'] = True
             user_data['player'] = {
                 'id': user.player.id,
                 'name': user.player.name,
                 'league_id': user.player.primary_league_id,
+                'primary_league_name': primary_league_name,
                 'team_id': user.player.primary_team_id,
                 'secondary_league_id': secondary_league_id,
                 'secondary_team_id': secondary_team_id,
+                'other_league_ids': other_league_ids,
+                'other_league_names': other_league_names,
                 'team_ids': all_team_ids,
                 'ecs_fc_team_ids': ecs_fc_team_ids,
                 'is_current_player': user.player.is_current_player,

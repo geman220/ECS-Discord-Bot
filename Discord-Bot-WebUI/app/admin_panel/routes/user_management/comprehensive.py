@@ -23,6 +23,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role, League
 from app.models import Player, Team, Season
+from app.models.players import PlayerTeamHistory
 from app.models.ecs_fc import is_ecs_fc_team
 from app.decorators import role_required
 from app.utils.db_utils import transactional
@@ -449,6 +450,15 @@ def edit_user_comprehensive(user_id):
 
             for team in teams_to_remove:
                 user.player.teams.remove(team)
+                # Update PlayerTeamHistory - set left_date
+                history_record = PlayerTeamHistory.query.filter_by(
+                    player_id=user.player.id,
+                    team_id=team.id,
+                    left_date=None
+                ).first()
+                if history_record:
+                    history_record.left_date = datetime.utcnow()
+                    logger.info(f"Updated team history: player {user.player.id} left team {team.id}")
                 logger.info(f"Removed player {user.player.id} from team {team.id}")
 
             # Add new teams
@@ -457,7 +467,15 @@ def edit_user_comprehensive(user_id):
                     team_to_add = Team.query.get(team_id)
                     if team_to_add and team_to_add not in user.player.teams:
                         user.player.teams.append(team_to_add)
-                        logger.info(f"Added player {user.player.id} to team {team_id}")
+                        # Create PlayerTeamHistory record
+                        team_history = PlayerTeamHistory(
+                            player_id=user.player.id,
+                            team_id=team_id,
+                            joined_date=datetime.utcnow(),
+                            is_coach=user.player.is_coach
+                        )
+                        db.session.add(team_history)
+                        logger.info(f"Added player {user.player.id} to team {team_id} (with history record)")
 
         # Update roles - including auto league-to-role mapping
         if role_ids:

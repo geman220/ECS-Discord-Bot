@@ -97,7 +97,7 @@
                         <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden">
                             <div class="p-3 border-b border-gray-200 dark:border-gray-600 flex justify-between items-center">
                                 <h3 class="font-medium text-gray-900 dark:text-white">Week {{ week }} - {{ data.date }}</h3>
-                                <form method="POST" action="{{ url_for('ecsfc.schedule.delete_week', league_type='ecsfc', season_id=season.id, week_number=week) }}">
+                                <form method="POST" action="{{ url_for('publeague.schedule.delete_ecsfc_week', season_id=season.id, week_number=week) }}">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
                                         <i class="ti ti-trash"></i>
@@ -124,7 +124,7 @@
                                                 data-league-name="{{ league.name }}">
                                             <i class="ti ti-edit"></i>
                                         </button>
-                                        <form action="{{ url_for('ecsfc.schedule.delete_match', match_id=match.match_id) }}" method="POST" class="inline">
+                                        <form action="{{ url_for('publeague.schedule.delete_ecsfc_match', match_id=match.match_id) }}" method="POST" class="inline">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                             <button type="submit" class="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
                                                 <i class="ti ti-trash"></i>

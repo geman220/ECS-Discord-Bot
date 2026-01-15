@@ -231,23 +231,32 @@ def player_profile(player_id):
     if not player:
         abort(404)
     
-    # Get current season teams for the player (filter by Pub League)
-    current_season = session.query(Season).filter_by(is_current=True, league_type='Pub League').first()
+    # Get current season teams for the player (include both Pub League and ECS FC)
+    current_seasons = session.query(Season).filter_by(is_current=True).all()
     current_season_teams = []
-    if current_season:
-        # Query teams through PlayerTeamSeason for current season only
+
+    # Get current Pub League season for other uses in the template
+    current_season = next((s for s in current_seasons if s.league_type == 'Pub League'), None)
+
+    if current_seasons:
+        # Collect all season IDs and league IDs from current seasons
+        current_season_ids = [s.id for s in current_seasons]
+        current_season_league_ids = []
+        for season in current_seasons:
+            current_season_league_ids.extend([league.id for league in season.leagues])
+
+        # Query teams through PlayerTeamSeason for all current seasons
         current_season_teams = session.query(Team).join(
             PlayerTeamSeason, Team.id == PlayerTeamSeason.team_id
         ).filter(
             PlayerTeamSeason.player_id == player.id,
-            PlayerTeamSeason.season_id == current_season.id
+            PlayerTeamSeason.season_id.in_(current_season_ids)
         ).all()
-        
-        # If no PlayerTeamSeason records found for current season, fall back to direct team relationships
+
+        # If no PlayerTeamSeason records found, fall back to direct team relationships
         if not current_season_teams:
-            # Filter teams by current season's leagues
-            current_season_leagues = [league.id for league in current_season.leagues]
-            current_season_teams = [team for team in player.teams if team.league_id in current_season_leagues]
+            # Filter teams by current seasons' leagues
+            current_season_teams = [team for team in player.teams if team.league_id in current_season_league_ids]
         
     # Check access permissions
     from app.role_impersonation import is_impersonation_active, get_effective_roles, has_effective_permission

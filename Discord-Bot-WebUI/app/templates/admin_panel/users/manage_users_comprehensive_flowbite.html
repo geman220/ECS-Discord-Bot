@@ -238,11 +238,34 @@
                 </td>
                 <td class="px-6 py-4">
                     {% if user.player %}
-                        {% if user.player.league %}
-                        <p class="text-xs text-ecs-green">{{ user.player.league.name }}</p>
+                        {# Show all leagues (primary + other) #}
+                        {% set all_leagues = [] %}
+                        {% if user.player.primary_league %}
+                            {% set _ = all_leagues.append(user.player.primary_league) %}
                         {% endif %}
-                        {% if user.player.team %}
-                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.player.team.name }}</p>
+                        {% for league in user.player.other_leagues if league not in all_leagues %}
+                            {% set _ = all_leagues.append(league) %}
+                        {% endfor %}
+                        {% if all_leagues %}
+                            {% for league in all_leagues %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green mr-1 mb-1">
+                                {{ league.name }}
+                            </span>
+                            {% endfor %}
+                        {% endif %}
+
+                        {# Show all teams #}
+                        {% if user.player.teams %}
+                            {% for team in user.player.teams %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                <i class="ti ti-users text-xs mr-1"></i>{{ team.name }}{% if team.league %} <span class="text-gray-400">({{ team.league.name }})</span>{% endif %}
+                            </p>
+                            {% endfor %}
+                        {% elif not all_leagues %}
+                            <span class="inline-flex items-center px-3 py-1 rounded-full bg-white/10 text-white/70 text-sm">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
+                                No Team
+                            </span>
                         {% endif %}
                     {% else %}
                     <span class="text-gray-400">-</span>
@@ -581,24 +604,57 @@ document.addEventListener('DOMContentLoaded', function() {
     // Modal handlers
     function openModal(modal) {
         modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('overflow-hidden');
     }
 
     function closeModal(modal) {
         modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('overflow-hidden');
+        // Also close any SweetAlert popups that might be open
+        if (typeof Swal !== 'undefined' && Swal.isVisible()) {
+            Swal.close();
+        }
+    }
+
+    // Close all modals function - for cleanup
+    function closeAllModals() {
+        document.querySelectorAll('.fixed.inset-0[aria-hidden]').forEach(modal => {
+            modal.classList.add('hidden');
+            modal.setAttribute('aria-hidden', 'true');
+        });
+        document.body.classList.remove('overflow-hidden');
+        if (typeof Swal !== 'undefined' && Swal.isVisible()) {
+            Swal.close();
+        }
     }
 
     document.querySelectorAll('[data-modal-close]').forEach(btn => {
         btn.addEventListener('click', () => closeModal(editUserModal));
     });
 
+    // Add Escape key handler to close any open modals
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            // Close the edit user modal if visible
+            if (editUserModal && !editUserModal.classList.contains('hidden')) {
+                closeModal(editUserModal);
+            }
+            // Also ensure body is interactive
+            document.body.classList.remove('overflow-hidden');
+        }
+    });
+
     // Add backdrop click handler only if modal exists
     if (editUserModal) {
         const backdrop = editUserModal.querySelector('[data-modal-backdrop]');
         if (backdrop) {
-            backdrop.addEventListener('click', () => {
-                closeModal(editUserModal);
+            backdrop.addEventListener('click', (e) => {
+                // Only close if clicking the backdrop itself, not its children
+                if (e.target === backdrop) {
+                    closeModal(editUserModal);
+                }
             });
         }
     }
@@ -772,34 +828,59 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Assign to tiers - priority: primary team's league first
-        const primaryLeagueType = player.league_id ? getLeagueTypeFromTeamId(primaryTeamId, teamInfo) : '';
+        // Get primary league type directly from league name (API now returns it)
+        // This fixes the issue where league was set but no team was assigned
+        const primaryLeagueType = player.primary_league_name ? getLeagueTypeFromName(player.primary_league_name) : '';
         let usedTiers = { primary: false, secondary: false, tertiary: false };
 
-        // Set primary tier based on primary team
-        if (primaryLeagueType === 'classic' && classicTeams.length > 0) {
-            setLeagueTier('primary', 'classic', classicTeams[0]);
+        // Set primary tier based on primary league (even if no team assigned)
+        if (primaryLeagueType === 'classic') {
+            setLeagueTier('primary', 'classic', classicTeams[0] || null);
             usedTiers.primary = true;
-        } else if (primaryLeagueType === 'premier' && premierTeams.length > 0) {
-            setLeagueTier('primary', 'premier', premierTeams[0]);
+        } else if (primaryLeagueType === 'premier') {
+            setLeagueTier('primary', 'premier', premierTeams[0] || null);
             usedTiers.primary = true;
-        } else if (primaryLeagueType === 'ecsfc' && ecsfcTeams.length > 0) {
-            setLeagueTier('primary', 'ecsfc', ecsfcTeams);
+        } else if (primaryLeagueType === 'ecsfc') {
+            setLeagueTier('primary', 'ecsfc', ecsfcTeams.length > 0 ? ecsfcTeams : []);
             usedTiers.primary = true;
         }
 
-        // Assign remaining leagues to secondary/tertiary
+        // Get other league types directly from league names (API now returns them)
+        const otherLeagueTypes = (player.other_league_names || []).map(name => getLeagueTypeFromName(name));
+
+        // Build list of remaining leagues to assign
         const remainingLeagues = [];
-        if (premierTeams.length > 0 && primaryLeagueType !== 'premier') remainingLeagues.push({ type: 'premier', teams: premierTeams });
-        if (classicTeams.length > 0 && primaryLeagueType !== 'classic') remainingLeagues.push({ type: 'classic', teams: classicTeams });
-        if (ecsfcTeams.length > 0 && primaryLeagueType !== 'ecsfc') remainingLeagues.push({ type: 'ecsfc', teams: ecsfcTeams });
+
+        // Add leagues from other_league_names that aren't the primary
+        otherLeagueTypes.forEach(leagueType => {
+            if (leagueType && leagueType !== primaryLeagueType) {
+                if (leagueType === 'classic' && !remainingLeagues.find(l => l.type === 'classic')) {
+                    remainingLeagues.push({ type: 'classic', teams: classicTeams });
+                } else if (leagueType === 'premier' && !remainingLeagues.find(l => l.type === 'premier')) {
+                    remainingLeagues.push({ type: 'premier', teams: premierTeams });
+                } else if (leagueType === 'ecsfc' && !remainingLeagues.find(l => l.type === 'ecsfc')) {
+                    remainingLeagues.push({ type: 'ecsfc', teams: ecsfcTeams });
+                }
+            }
+        });
+
+        // Also add leagues detected from team assignments that aren't already covered
+        if (premierTeams.length > 0 && primaryLeagueType !== 'premier' && !remainingLeagues.find(l => l.type === 'premier')) {
+            remainingLeagues.push({ type: 'premier', teams: premierTeams });
+        }
+        if (classicTeams.length > 0 && primaryLeagueType !== 'classic' && !remainingLeagues.find(l => l.type === 'classic')) {
+            remainingLeagues.push({ type: 'classic', teams: classicTeams });
+        }
+        if (ecsfcTeams.length > 0 && primaryLeagueType !== 'ecsfc' && !remainingLeagues.find(l => l.type === 'ecsfc')) {
+            remainingLeagues.push({ type: 'ecsfc', teams: ecsfcTeams });
+        }
 
         remainingLeagues.forEach((league, idx) => {
             const tier = idx === 0 ? 'secondary' : 'tertiary';
             if (league.type === 'ecsfc') {
                 setLeagueTier(tier, 'ecsfc', league.teams);
             } else {
-                setLeagueTier(tier, league.type, league.teams[0]);
+                setLeagueTier(tier, league.type, league.teams[0] || null);
             }
         });
     }
@@ -818,14 +899,18 @@ document.addEventListener('DOMContentLoaded', function() {
             if (leagueType === 'ecsfc' && Array.isArray(teamData)) {
                 // Set ECS FC team checkboxes
                 teamData.forEach(teamId => {
-                    const checkbox = document.querySelector(`#${tier}EcsFcTeams input[data-team-id="${teamId}"]`);
-                    if (checkbox) checkbox.checked = true;
+                    if (teamId) {
+                        const checkbox = document.querySelector(`#${tier}EcsFcTeams input[data-team-id="${teamId}"]`);
+                        if (checkbox) checkbox.checked = true;
+                    }
                 });
             } else if (teamData) {
-                // Set single team dropdown
+                // Set single team dropdown (only if we have a team)
                 const teamSelect = document.getElementById(`edit${tier.charAt(0).toUpperCase() + tier.slice(1)}Team`);
                 if (teamSelect) teamSelect.value = teamData;
             }
+            // Note: If teamData is null/empty, the league dropdown is still set but no team is selected
+            // This allows users to be in a league without a team assignment
         }
     }
 

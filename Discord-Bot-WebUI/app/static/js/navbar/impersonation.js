@@ -58,7 +58,7 @@ export async function startRoleImpersonation() {
   }
 
   try {
-    const response = await fetch('/admin-panel/user-management/impersonate', {
+    const response = await fetch('/api/role-impersonation/start', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -116,7 +116,7 @@ export async function startRoleImpersonation() {
  */
 export async function stopRoleImpersonation() {
   try {
-    const response = await fetch('/admin-panel/user-management/stop-impersonate', {
+    const response = await fetch('/api/role-impersonation/stop', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -891,3 +891,138 @@ def create_schedule_from_placeholders(form, manager, league_id=None):
         objects, response = manager.create_match(data)
         if objects:
             manager.session.commit()
+
+
+######################################################################
+# ECS FC BULK MATCH CREATION
+######################################################################
+@schedule_bp.route('/ecsfc/<int:season_id>/bulk-create/<league_name>', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'ECS FC Coach'])
+def bulk_create_ecsfc_matches(season_id, league_name):
+    """
+    Bulk create ECS FC matches for a season and league.
+
+    This route is used by the ECS FC schedule management form to create
+    multiple weeks of matches at once.
+
+    Endpoint: POST /publeague/schedules/ecsfc/<season_id>/bulk-create/<league_name>
+    """
+    session = g.db_session
+    manager = ScheduleManager(session)
+
+    season = manager.get_season(season_id)
+    if not season:
+        show_error('Season not found')
+        return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+
+    league = manager.get_league(season_id, league_name)
+    if not league:
+        show_error(f'League "{league_name}" not found')
+        return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+
+    try:
+        # Parse form data
+        total_weeks = int(request.form.get('total_weeks', 11))
+        matches_per_week = int(request.form.get('matches_per_week', 8))
+        start_time = request.form.get('start_time', '18:00')
+        fun_week = request.form.get('fun_week')
+        tst_week = request.form.get('tst_week')
+        location = request.form.get('location', 'North')
+
+        # This is a placeholder for the actual bulk creation logic
+        # The detailed input form handling would go here
+        show_info(f'Bulk creation form submitted for {league_name}. Use "Generate Input Form" button to create matches.')
+
+    except Exception as e:
+        logger.error(f"Error in bulk ECS FC match creation: {str(e)}")
+        show_error(f'Error creating matches: {str(e)}')
+
+    return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+
+
+@schedule_bp.route('/ecsfc/<int:season_id>/delete-week/<int:week_number>', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'ECS FC Coach'])
+def delete_ecsfc_week(season_id, week_number):
+    """
+    Delete an entire week of ECS FC matches.
+
+    Endpoint: POST /publeague/schedules/ecsfc/<season_id>/delete-week/<week_number>
+    """
+    session = g.db_session
+
+    try:
+        # Get all leagues for this season
+        leagues = session.query(League).filter_by(season_id=season_id).all()
+        league_ids = [l.id for l in leagues]
+
+        if not league_ids:
+            show_error('No leagues found for this season')
+            return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+
+        # Get all schedules for this week across all leagues in the season
+        schedules = session.query(Schedule).join(
+            Team, Schedule.team_id == Team.id
+        ).filter(
+            Team.league_id.in_(league_ids),
+            Schedule.week == str(week_number)
+        ).all()
+
+        deleted_count = 0
+        for schedule in schedules:
+            # Delete any matches associated with this schedule
+            matches = session.query(Match).filter_by(schedule_id=schedule.id).all()
+            for match in matches:
+                session.delete(match)
+                deleted_count += 1
+
+            session.delete(schedule)
+
+        session.commit()
+        show_success(f'Week {week_number} deleted successfully ({deleted_count} matches removed)')
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error deleting week: {str(e)}")
+        show_error(f'Error deleting week: {str(e)}')
+
+    return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+
+
+@schedule_bp.route('/ecsfc/delete-match/<int:match_id>', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin', 'ECS FC Coach'])
+def delete_ecsfc_match(match_id):
+    """
+    Delete a single ECS FC match.
+
+    Endpoint: POST /publeague/schedules/ecsfc/delete-match/<match_id>
+    """
+    session = g.db_session
+
+    try:
+        match = session.query(Match).get(match_id)
+        if not match:
+            show_error('Match not found')
+            return redirect(request.referrer or url_for('main.index'))
+
+        # Get season_id for redirect
+        season_id = None
+        if match.schedule and match.schedule.season_id:
+            season_id = match.schedule.season_id
+
+        # Delete the match
+        session.delete(match)
+        session.commit()
+        show_success('Match deleted successfully')
+
+        if season_id:
+            return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error deleting match: {str(e)}")
+        show_error(f'Error deleting match: {str(e)}')
+
+    return redirect(request.referrer or url_for('main.index'))

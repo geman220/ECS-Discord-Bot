@@ -16,7 +16,7 @@
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Role Permissions</h2>
         </div>
         <div class="p-6">
-            <form method="POST" action="{{ url_for('admin.manage_roles') }}" class="space-y-6">
+            <form method="GET" action="{{ url_for('admin_panel.roles_comprehensive') }}" class="space-y-6">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <!-- Role Selection -->
