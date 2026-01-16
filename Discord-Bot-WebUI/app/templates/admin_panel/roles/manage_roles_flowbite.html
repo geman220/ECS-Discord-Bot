@@ -330,11 +330,29 @@
                         <input type="hidden" id="assignRoleId" name="role_id">
 
                         <div class="mb-4">
-                            <label for="selectUser" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Select User</label>
-                            <select id="selectUser" name="user_id" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                                <option value="">Choose a user...</option>
-                                <!-- Users loaded via JavaScript -->
-                            </select>
+                            <label for="userSearchInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search User</label>
+                            <div class="relative">
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                                        <i class="ti ti-search"></i>
+                                    </span>
+                                    <input type="text" id="userSearchInput" autocomplete="off" placeholder="Type to search users..." class="w-full pl-10 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                                    <span id="userSearchSpinner" class="absolute inset-y-0 right-0 hidden items-center pr-3 text-gray-400">
+                                        <i class="ti ti-loader-2 animate-spin"></i>
+                                    </span>
+                                    <button type="button" id="userSearchClear" class="absolute inset-y-0 right-0 hidden items-center pr-3 text-gray-400 hover:text-gray-600">
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                </div>
+                                <input type="hidden" id="selectUser" name="user_id" required>
+                                <!-- Search results dropdown -->
+                                <div id="userSearchResults" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                    <!-- Results populated via JavaScript -->
+                                </div>
+                            </div>
+                            <p id="selectedUserDisplay" class="mt-2 text-sm text-ecs-green hidden">
+                                <i class="ti ti-check mr-1"></i>Selected: <span id="selectedUserName" class="font-medium"></span>
+                            </p>
                         </div>
 
                         <div class="flex items-start p-4 rounded-lg border bg-blue-50 dark:bg-gray-700 border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-400">
@@ -410,33 +428,149 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // User search functionality
+    const userSearchInput = document.getElementById('userSearchInput');
+    const userSearchResults = document.getElementById('userSearchResults');
+    const selectUserHidden = document.getElementById('selectUser');
+    const selectedUserDisplay = document.getElementById('selectedUserDisplay');
+    const selectedUserName = document.getElementById('selectedUserName');
+    const userSearchSpinner = document.getElementById('userSearchSpinner');
+    const userSearchClear = document.getElementById('userSearchClear');
+    let searchTimeout = null;
+    let currentRoleId = null;
+
+    function clearUserSelection() {
+        selectUserHidden.value = '';
+        userSearchInput.value = '';
+        selectedUserDisplay.classList.add('hidden');
+        userSearchClear.classList.add('hidden');
+        userSearchClear.classList.remove('flex');
+        userSearchResults.classList.add('hidden');
+    }
+
+    function selectUser(userId, username, email) {
+        selectUserHidden.value = userId;
+        userSearchInput.value = username;
+        selectedUserName.textContent = `${username} (${email})`;
+        selectedUserDisplay.classList.remove('hidden');
+        userSearchResults.classList.add('hidden');
+        userSearchClear.classList.remove('hidden');
+        userSearchClear.classList.add('flex');
+    }
+
+    function performUserSearch(query) {
+        if (!currentRoleId || query.length < 2) {
+            userSearchResults.classList.add('hidden');
+            return;
+        }
+
+        userSearchSpinner.classList.remove('hidden');
+        userSearchSpinner.classList.add('flex');
+
+        const searchUrl = `${urls.users.replace('0', currentRoleId)}?search=${encodeURIComponent(query)}`;
+        fetch(searchUrl)
+            .then(response => response.json())
+            .then(data => {
+                userSearchSpinner.classList.add('hidden');
+                userSearchSpinner.classList.remove('flex');
+                userSearchResults.innerHTML = '';
+
+                if (data.users && data.users.length > 0) {
+                    data.users.forEach(user => {
+                        const item = document.createElement('div');
+                        item.className = 'px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center justify-between';
+                        item.innerHTML = `
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white">${user.username}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">${user.email}</p>
+                            </div>
+                            ${!user.is_active ? '<span class="text-xs text-yellow-600 dark:text-yellow-400">[Inactive]</span>' : ''}
+                        `;
+                        item.addEventListener('click', () => selectUser(user.id, user.username, user.email));
+                        userSearchResults.appendChild(item);
+                    });
+                    userSearchResults.classList.remove('hidden');
+                } else {
+                    userSearchResults.innerHTML = '<div class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">No users found</div>';
+                    userSearchResults.classList.remove('hidden');
+                }
+            })
+            .catch(() => {
+                userSearchSpinner.classList.add('hidden');
+                userSearchSpinner.classList.remove('flex');
+                userSearchResults.innerHTML = '<div class="px-4 py-3 text-sm text-red-500">Error searching users</div>';
+                userSearchResults.classList.remove('hidden');
+            });
+    }
+
+    if (userSearchInput) {
+        userSearchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+
+            // Clear previous timeout
+            if (searchTimeout) clearTimeout(searchTimeout);
+
+            // Clear selection if user is typing
+            if (selectUserHidden.value) {
+                selectUserHidden.value = '';
+                selectedUserDisplay.classList.add('hidden');
+            }
+
+            // Show/hide clear button
+            if (query.length > 0) {
+                userSearchClear.classList.remove('hidden');
+                userSearchClear.classList.add('flex');
+            } else {
+                userSearchClear.classList.add('hidden');
+                userSearchClear.classList.remove('flex');
+                userSearchResults.classList.add('hidden');
+            }
+
+            // Debounced search
+            searchTimeout = setTimeout(() => performUserSearch(query), 300);
+        });
+
+        // Hide results when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!userSearchInput.contains(e.target) && !userSearchResults.contains(e.target)) {
+                userSearchResults.classList.add('hidden');
+            }
+        });
+
+        // Show results on focus if there's text
+        userSearchInput.addEventListener('focus', function() {
+            if (this.value.trim().length >= 2 && !selectUserHidden.value) {
+                performUserSearch(this.value.trim());
+            }
+        });
+    }
+
+    if (userSearchClear) {
+        userSearchClear.addEventListener('click', clearUserSelection);
+    }
+
     // Assign role action
     document.querySelectorAll('[data-action="assign-role"]').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const roleId = this.dataset.roleId;
+            currentRoleId = roleId;
             document.getElementById('assignRoleId').value = roleId;
             assignRoleForm.action = urls.assign.replace('0', roleId);
 
-            // Fetch available users
-            fetch(urls.users.replace('0', roleId))
+            // Clear previous selection
+            clearUserSelection();
+
+            // Fetch role name
+            fetch(urls.details.replace('0', roleId))
                 .then(response => response.json())
                 .then(data => {
-                    const select = document.getElementById('selectUser');
-                    select.innerHTML = '<option value="">Choose a user...</option>';
-                    if (data.users) {
-                        data.users.forEach(user => {
-                            const option = document.createElement('option');
-                            option.value = user.id;
-                            option.textContent = user.username;
-                            select.appendChild(option);
-                        });
-                    }
-                    document.getElementById('assigningRoleName').textContent = data.role_name || 'Selected Role';
-                    // Show modal
-                    const modal = document.getElementById('assignRoleModal');
-                    modal.classList.remove('hidden');
+                    document.getElementById('assigningRoleName').textContent = data.role?.name || 'Selected Role';
                 });
+
+            // Show modal
+            const modal = document.getElementById('assignRoleModal');
+            modal.classList.remove('hidden');
         });
     });
 
@@ -504,6 +638,13 @@ document.addEventListener('DOMContentLoaded', function() {
     if (assignRoleForm) {
         assignRoleForm.addEventListener('submit', function(e) {
             e.preventDefault();
+
+            // Validate user selection
+            if (!selectUserHidden.value) {
+                Swal.fire('Error', 'Please search and select a user first', 'error');
+                return;
+            }
+
             const formData = new FormData(assignRoleForm);
 
             fetch(assignRoleForm.action, {
