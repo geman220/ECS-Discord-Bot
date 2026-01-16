@@ -604,12 +604,15 @@ class SubstituteNotificationService:
         lines = message.split('\n')
         sms_parts = []
 
-        for line in lines[:6]:  # First 6 lines max
+        for line in lines[:5]:  # First 5 lines max (reserve space for opt-out)
             if line.strip():
                 sms_parts.append(line.strip())
 
         if rsvp_url:
             sms_parts.append(f"Respond: {rsvp_url}")
+
+        # Add TCPA-compliant opt-out language
+        sms_parts.append("Reply STOP to opt out.")
 
         return ' | '.join(sms_parts)[:320]  # SMS length limit
 

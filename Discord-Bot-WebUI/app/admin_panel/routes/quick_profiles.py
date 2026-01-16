@@ -561,11 +561,12 @@ def send_quick_profile_sms(profile_id):
         base_url = current_app.config.get('BASE_URL', 'https://ecsfc.com')
         register_url = f"{base_url}/claim?code={profile.claim_code}"
 
-        # SMS message (keep it short)
+        # SMS message (keep it short with opt-out)
         message = (
             f"Hi {profile.player_name}! Your ECS FC registration code is: {profile.claim_code}\n\n"
             f"Register at: {register_url}\n\n"
-            f"Code expires: {profile.expires_at.strftime('%b %d')}"
+            f"Code expires: {profile.expires_at.strftime('%b %d')}\n\n"
+            f"Reply STOP to opt out."
         )
 
         success, result = send_sms(phone, message)

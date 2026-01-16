@@ -620,27 +620,31 @@ def index():
                     show_error('An error occurred. Please try again.')
                     return redirect(url_for('main.index'))
 
-        # Get only current season teams for the player
+        # Get only current season teams for the player (both Pub League AND ECS FC)
         user_teams = []
         if player:
-            # Get current season (filter by Pub League)
-            current_season = Season.query.filter_by(is_current=True, league_type='Pub League').first()
-            if current_season:
-                # Query teams through PlayerTeamSeason for current season only
-                current_season_teams = g.db_session.query(Team).join(
-                    PlayerTeamSeason, Team.id == PlayerTeamSeason.team_id
-                ).filter(
-                    PlayerTeamSeason.player_id == player.id,
-                    PlayerTeamSeason.season_id == current_season.id
-                ).all()
-                
-                # If no PlayerTeamSeason records found for current season, fall back to direct team relationships
-                if not current_season_teams:
-                    # Filter teams by current season's leagues
-                    current_season_leagues = [league.id for league in current_season.leagues]
-                    current_season_teams = [team for team in player.teams if team.league_id in current_season_leagues]
-                
-                user_teams = current_season_teams
+            # Get ALL current seasons (both Pub League and ECS FC)
+            current_seasons = Season.query.filter_by(is_current=True).all()
+            if current_seasons:
+                for current_season in current_seasons:
+                    # Query teams through PlayerTeamSeason for current season only
+                    current_season_teams = g.db_session.query(Team).join(
+                        PlayerTeamSeason, Team.id == PlayerTeamSeason.team_id
+                    ).filter(
+                        PlayerTeamSeason.player_id == player.id,
+                        PlayerTeamSeason.season_id == current_season.id
+                    ).all()
+
+                    # If no PlayerTeamSeason records found for current season, fall back to direct team relationships
+                    if not current_season_teams:
+                        # Filter teams by current season's leagues
+                        current_season_leagues = [league.id for league in current_season.leagues]
+                        current_season_teams = [team for team in player.teams if team.league_id in current_season_leagues]
+
+                    # Add unique teams to user_teams
+                    for team in current_season_teams:
+                        if team not in user_teams:
+                            user_teams.append(team)
         today = datetime.now().date()
         two_weeks_later = today + timedelta(weeks=2)
         one_week_ago = today - timedelta(weeks=1)
@@ -699,7 +703,76 @@ def index():
             include_past_matches=True,
             order='desc'
         )
-        
+
+        # Fetch ECS FC matches for user teams
+        if user_teams:
+            from app.models.ecs_fc import EcsFcMatch
+            team_ids = [t.id for t in user_teams]
+
+            # Fetch upcoming ECS FC matches
+            ecs_fc_next_matches = (
+                session.query(EcsFcMatch)
+                .filter(
+                    EcsFcMatch.team_id.in_(team_ids),
+                    EcsFcMatch.match_date >= today,
+                    EcsFcMatch.match_date <= today + timedelta(days=30)
+                )
+                .order_by(EcsFcMatch.match_date, EcsFcMatch.match_time)
+                .limit(4)
+                .all()
+            )
+
+            # Fetch previous ECS FC matches
+            ecs_fc_prev_matches = (
+                session.query(EcsFcMatch)
+                .filter(
+                    EcsFcMatch.team_id.in_(team_ids),
+                    EcsFcMatch.match_date >= today - timedelta(days=14),
+                    EcsFcMatch.match_date < today
+                )
+                .order_by(EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc())
+                .limit(4)
+                .all()
+            )
+
+            # Add ECS FC matches to next_matches and previous_matches
+            for ecs_match in ecs_fc_next_matches:
+                date_key = ecs_match.match_date.strftime('%Y-%m-%d')
+                if date_key not in next_matches:
+                    next_matches[date_key] = []
+                next_matches[date_key].append({
+                    'match': ecs_match,
+                    'home_team_id': ecs_match.team_id,
+                    'away_team_id': None,  # ECS FC has external opponents
+                    'opponent_team_id': None,
+                    'home_team_name': ecs_match.team.name if ecs_match.team else 'Unknown',
+                    'opponent_name': ecs_match.opponent_name or 'Unknown',
+                    'away_team_name': ecs_match.opponent_name or 'Unknown',
+                    'is_ecs_fc': True,
+                    'date': ecs_match.match_date,
+                    'time': ecs_match.match_time
+                })
+
+            for ecs_match in ecs_fc_prev_matches:
+                date_key = ecs_match.match_date.strftime('%Y-%m-%d')
+                if date_key not in previous_matches:
+                    previous_matches[date_key] = []
+                previous_matches[date_key].append({
+                    'match': ecs_match,
+                    'home_team_id': ecs_match.team_id,
+                    'away_team_id': None,
+                    'opponent_team_id': None,
+                    'home_team_name': ecs_match.team.name if ecs_match.team else 'Unknown',
+                    'opponent_name': ecs_match.opponent_name or 'Unknown',
+                    'away_team_name': ecs_match.opponent_name or 'Unknown',
+                    'is_ecs_fc': True,
+                    'date': ecs_match.match_date,
+                    'time': ecs_match.match_time
+                })
+
+            logger.info(f"Found {len(ecs_fc_next_matches)} upcoming ECS FC matches for dashboard")
+            logger.info(f"Found {len(ecs_fc_prev_matches)} previous ECS FC matches for dashboard")
+
         # Basic debug info at debug level only
         logger.debug(f"Found {sum(len(matches) for matches in next_matches.values())} upcoming matches for index page")
         logger.info(f"Found {sum(len(matches) for matches in previous_matches.values())} previous matches")

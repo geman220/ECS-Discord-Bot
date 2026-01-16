@@ -807,7 +807,9 @@ def send_claim_code_sms(profile_id: int):
 
 Register at: {register_url}
 
-Code expires: {profile.expires_at.strftime('%b %d')}"""
+Code expires: {profile.expires_at.strftime('%b %d')}
+
+Reply STOP to opt out."""
 
             success, result = send_sms(phone, message)
 

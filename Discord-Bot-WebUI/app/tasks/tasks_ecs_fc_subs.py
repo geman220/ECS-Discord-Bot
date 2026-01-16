@@ -87,16 +87,22 @@ def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]
             user = player.user
             notification_methods = []
             
-            # Send SMS if enabled
-            if pool_entry.sms_for_sub_requests and user.sms_notifications and player.phone_number:
+            # Send SMS if enabled and player has verified phone with consent
+            if (pool_entry.sms_for_sub_requests and user.sms_notifications and player.phone
+                    and player.is_phone_verified and player.sms_consent_given):
                 sms_message = (
-                    f"ECS FC Sub Request: {team_name} needs a substitute on {match_date} "
+                    f"ECS FC Sub Request: {team_name} needs a sub on {match_date} "
                     f"at {match_time} at {location}.{positions_text} "
-                    f"Reply YES if available."
+                    f"Reply YES if available. Reply STOP to opt out."
                 )
-                
+
                 try:
-                    success, error = send_sms(player.phone_number, sms_message, user_id=user.id)
+                    success, error = send_sms(
+                        player.phone, sms_message,
+                        user_id=user.id,
+                        message_type='ecs_fc_sub_request',
+                        source='tasks_ecs_fc_subs'
+                    )
                     if success:
                         results['sms_sent'] += 1
                         notification_methods.append('SMS')
@@ -280,15 +286,21 @@ def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, A
         discord_enabled = pool_entry.discord_for_sub_requests if pool_entry else user.discord_notifications
         email_enabled = pool_entry.email_for_sub_requests if pool_entry else user.email_notifications
         
-        # Send SMS
-        if sms_enabled and player.phone_number:
+        # Send SMS (only if phone is verified and consent given)
+        if sms_enabled and player.phone and player.is_phone_verified and player.sms_consent_given:
             sms_message = (
-                f"You've been assigned as a substitute for {team_name} on {match_date} "
-                f"at {match_time} at {location}.{position_text}{match_notes}"
+                f"ECS FC: You're assigned as a sub for {team_name} on {match_date} "
+                f"at {match_time} at {location}.{position_text}{match_notes} "
+                f"Reply STOP to opt out."
             )
-            
+
             try:
-                success, error = send_sms(player.phone_number, sms_message, user_id=user.id)
+                success, error = send_sms(
+                    player.phone, sms_message,
+                    user_id=user.id,
+                    message_type='ecs_fc_sub_assignment',
+                    source='tasks_ecs_fc_subs'
+                )
                 results['methods_attempted'].append('SMS')
                 if success:
                     results['methods_successful'].append('SMS')
@@ -571,7 +583,8 @@ def notify_sub_pool_with_slots(self, session, request_id: int) -> Dict[str, Any]
             
             sms_message = (
                 f"ECS FC: {message_header} ({positions_text}) for {team_name} "
-                f"on {match_date} at {match_time} at {location}. Reply YES if available."
+                f"on {match_date} at {match_time} at {location}. "
+                f"Reply YES if available. Reply STOP to opt out."
             )
             
             discord_message = (
@@ -611,10 +624,16 @@ def notify_sub_pool_with_slots(self, session, request_id: int) -> Dict[str, Any]
                 user = player.user
                 notification_methods = []
                 
-                # Send SMS if enabled
-                if pool_entry.sms_for_sub_requests and user.sms_notifications and player.phone_number:
+                # Send SMS if enabled (only if phone is verified and consent given)
+                if (pool_entry.sms_for_sub_requests and user.sms_notifications and player.phone
+                        and player.is_phone_verified and player.sms_consent_given):
                     try:
-                        success, error = send_sms(player.phone_number, sms_message, user_id=user.id)
+                        success, error = send_sms(
+                            player.phone, sms_message,
+                            user_id=user.id,
+                            message_type='ecs_fc_sub_request',
+                            source='tasks_ecs_fc_subs'
+                        )
                         if success:
                             gender_results['sms'] += 1
                             notification_methods.append('SMS')

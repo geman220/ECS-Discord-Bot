@@ -104,9 +104,12 @@ def send_sms():
 
         user_id = user.id
 
+        # Add opt-out language for TCPA compliance
+        full_message = f"{message}\n\nReply STOP to opt out."
+
         # Send the SMS with audit logging parameters
         success, result = sms_send(
-            phone, message, user_id=user_id,
+            phone, full_message, user_id=user_id,
             message_type='admin_direct',
             source='admin_panel',
             sent_by_user_id=current_user.id

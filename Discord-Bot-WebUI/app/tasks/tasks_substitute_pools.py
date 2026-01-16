@@ -119,12 +119,13 @@ def notify_substitute_pool_of_request(self, session, request_id: int, league_typ
             user = player.user
             notification_methods = []
             
-            # Send SMS if enabled
-            if pool_entry.sms_for_sub_requests and user.sms_notifications and player.phone:
+            # Send SMS if enabled (only if phone is verified and consent given)
+            if (pool_entry.sms_for_sub_requests and user.sms_notifications and player.phone
+                    and player.is_phone_verified and player.sms_consent_given):
                 sms_message = (
-                    f"{league_type} Sub Request: {team_name} needs a substitute{gender_text} on {match_date} "
+                    f"{league_type} Sub Request: {team_name} needs a sub{gender_text} on {match_date} "
                     f"at {match_time} at {location}.{positions_text} "
-                    f"Reply YES if available."
+                    f"Reply YES if available. Reply STOP to opt out."
                 )
                 
                 try:
@@ -320,11 +321,12 @@ def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, A
         discord_enabled = pool_entry.discord_for_sub_requests if pool_entry else user.discord_notifications
         email_enabled = pool_entry.email_for_sub_requests if pool_entry else user.email_notifications
         
-        # Send SMS
-        if sms_enabled and player.phone:
+        # Send SMS (only if phone is verified and consent given)
+        if sms_enabled and player.phone and player.is_phone_verified and player.sms_consent_given:
             sms_message = (
-                f"You've been assigned as a substitute for {team_name} on {match_date} "
-                f"at {match_time} at {location}.{position_text}{match_notes}"
+                f"You're assigned as a sub for {team_name} on {match_date} "
+                f"at {match_time} at {location}.{position_text}{match_notes} "
+                f"Reply STOP to opt out."
             )
             
             try:

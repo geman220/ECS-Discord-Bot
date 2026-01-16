@@ -482,9 +482,9 @@ def team_details(team_id):
         if effective_roles == ['pl-classic'] or effective_roles == ['pl-ecs-fc'] or effective_roles == ['pl-premier']:
             can_manage_ecs_fc = False
         
-        # Get ECS FC matches for this team
-        if can_manage_ecs_fc:
-            ecs_fc_matches = EcsFcScheduleManager.get_team_matches(team_id, upcoming_only=False)
+        # Get ECS FC matches for this team (show to all team members, not just managers)
+        ecs_fc_matches = EcsFcScheduleManager.get_team_matches(team_id, upcoming_only=False)
+        if ecs_fc_matches:
             
             # Add ECS FC matches to the main schedule
             for ecs_match in ecs_fc_matches:
@@ -590,10 +590,28 @@ def teams_overview():
     return render_template('teams_overview_flowbite.html', title='Teams Overview', teams=teams)
 
 
-@teams_bp.route('/report_match/<int:match_id>', endpoint='report_match', methods=['GET', 'POST'])
+@teams_bp.route('/report_match/<match_id>', endpoint='report_match', methods=['GET', 'POST'])
 @login_required
 def report_match(match_id):
     session = g.db_session
+
+    # Handle ECS FC matches with ecs_ prefix
+    if isinstance(match_id, str) and match_id.startswith('ecs_'):
+        try:
+            ecs_match_id = int(match_id.replace('ecs_', ''))
+            # Redirect to ECS FC match details page
+            return redirect(url_for('ecs_fc.match_details', match_id=ecs_match_id))
+        except ValueError:
+            show_error('Invalid match ID format.')
+            return redirect(url_for('teams.teams_overview'))
+
+    # Convert match_id to integer for Pub League matches
+    try:
+        match_id = int(match_id)
+    except ValueError:
+        show_error('Invalid match ID.')
+        return redirect(url_for('teams.teams_overview'))
+
     logger.info(f"Starting report_match for Match ID: {match_id}")
     # Use efficient session manager for heavy match loading
     from app.utils.efficient_session_manager import EfficientQuery

@@ -382,7 +382,9 @@ def _send_waitlist_sms(user, message: str) -> dict:
     try:
         from app.sms_helpers import send_sms
 
-        success, result = send_sms(user.player.phone, message, user_id=user.id)
+        # Add opt-out language for TCPA compliance
+        full_message = f"{message}\n\nReply STOP to opt out."
+        success, result = send_sms(user.player.phone, full_message, user_id=user.id)
 
         if success:
             logger.info(f"SMS sent to waitlist user {user.id} at {user.player.phone}")

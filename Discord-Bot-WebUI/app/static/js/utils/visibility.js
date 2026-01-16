@@ -9,8 +9,8 @@ import { InitSystem } from '../init-system.js';
  * @version 1.0.0
  * @created 2025-12-18
  *
- * STANDARD: Use 'is-hidden' class for all visibility toggling
- * This replaces inconsistent usage of: d-none, js-hidden, hidden, etc.
+ * STANDARD: Use 'hidden' class for all visibility toggling
+ * This replaces inconsistent usage of: d-none, js-hidden, is-hidden, etc.
  *
  * Usage:
  *   Visibility.hide(element);

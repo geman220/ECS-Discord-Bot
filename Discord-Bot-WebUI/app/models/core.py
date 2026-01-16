@@ -158,6 +158,23 @@ class User(UserMixin, db.Model):
             self.encrypted_email = None
             self.email_hash = None
 
+    @property
+    def sms_opted_in(self):
+        """
+        Check if user has fully opted into SMS notifications.
+
+        Returns True only if:
+        - User has sms_notifications enabled
+        - User has an associated player
+        - Player has sms_consent_given
+        - Player has is_phone_verified
+        """
+        if not self.sms_notifications:
+            return False
+        if not self.player:
+            return False
+        return self.player.sms_consent_given and self.player.is_phone_verified
+
     def generate_totp_secret(self):
         """Generate a TOTP secret for 2FA."""
         self.totp_secret = pyotp.random_base32()

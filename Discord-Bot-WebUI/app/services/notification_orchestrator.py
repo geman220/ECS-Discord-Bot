@@ -665,17 +665,23 @@ class NotificationOrchestrator:
         try:
             from app.sms_helpers import send_sms
 
+            # TCPA-compliant opt-out suffix
+            opt_out_text = "\nReply STOP to opt out."
+
             # Build concise SMS message
             sms_message = f"{payload.title}\n{payload.message}"
 
             # Add action URL if provided (shortened format)
             if payload.action_url:
-                sms_message += f"\n\nDetails: {payload.action_url}"
+                sms_message += f"\nDetails: {payload.action_url}"
 
-            # Truncate if too long for SMS
-            max_length = 320
-            if len(sms_message) > max_length:
-                sms_message = sms_message[:max_length - 3] + "..."
+            # Truncate if too long for SMS (account for opt-out text)
+            max_content_length = 320 - len(opt_out_text)
+            if len(sms_message) > max_content_length:
+                sms_message = sms_message[:max_content_length - 3] + "..."
+
+            # Add opt-out language
+            sms_message += opt_out_text
 
             # Map notification type to SMS message type for audit logging
             message_type = payload.notification_type or 'notification'

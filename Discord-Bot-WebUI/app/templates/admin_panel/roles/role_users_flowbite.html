@@ -234,7 +234,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`/admin-panel/roles/${roleId}/users/${userId}/remove`, {
+                    fetch(`/admin-panel/roles-management/${roleId}/remove-user/${userId}`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',

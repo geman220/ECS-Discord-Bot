@@ -219,7 +219,7 @@ def update_notifications():
         if notifications.get("sms", False) and not previous_sms:
             logger.debug(f"🔵 [USER_API] Sending SMS enable confirmation to {player.phone}")
             success, sid = send_sms(
-                player.phone, "SMS notifications enabled for ECS FC. Reply END to unsubscribe.",
+                player.phone, "SMS notifications enabled for ECS FC. Reply STOP to opt out.",
                 message_type='preference_change', source='user_api'
             )
             if not success:

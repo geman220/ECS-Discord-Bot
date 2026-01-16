@@ -1533,8 +1533,8 @@ def contact_player(player_id):
                 continue
 
             try:
-                # Prepend sender info to SMS message
-                sms_message = f"[ECS] {message_text}"
+                # Prepend sender info to SMS message with opt-out
+                sms_message = f"[ECS] {message_text}\n\nReply STOP to opt out."
                 success, sms_result = send_sms(player.phone, sms_message)
                 if success:
                     results['success'].append('SMS')

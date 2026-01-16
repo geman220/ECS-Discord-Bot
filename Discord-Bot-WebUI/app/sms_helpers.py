@@ -1137,8 +1137,15 @@ def get_next_match(phone_number):
     current_date = datetime.utcnow().date()
     future_date = current_date + timedelta(days=30)  # Look ahead 30 days
     matches_by_team = []
+
+    # Import ECS FC models
+    from app.models.ecs_fc import EcsFcMatch
+
     for team in teams:
-        next_matches = (
+        match_list = []
+
+        # Query Pub League matches
+        pub_league_matches = (
             session.query(Match)
             .filter(
                 or_(Match.home_team_id == team.id, Match.away_team_id == team.id),
@@ -1149,51 +1156,82 @@ def get_next_match(phone_number):
             .limit(2)
             .all()
         )
-        
-        if next_matches:
-            match_list = []
-            for m in next_matches:
-                # Determine opponent or special week display
-                if hasattr(m, 'is_playoff_game') and m.is_playoff_game:
-                    # Playoff game - check if it's still using placeholder teams
-                    playoff_round = getattr(m, 'playoff_round', 1)
-                    if (m.home_team_id == m.away_team_id or 
-                        _is_playoff_placeholder_match_sms(m, team.id)):
-                        opponent_display = f'Playoffs Round {playoff_round} - TBD'
-                    else:
-                        # Real teams assigned - show opponent
-                        opponent = m.away_team if m.home_team_id == team.id else m.home_team
-                        opponent_display = opponent.name if opponent else 'Unknown'
-                elif m.home_team_id == m.away_team_id:
-                    # Special week - determine display name
-                    if hasattr(m, 'week_type'):
-                        week_type = m.week_type.upper()
-                        if week_type == 'FUN':
-                            opponent_display = 'Fun Week!'
-                        elif week_type == 'TST':
-                            opponent_display = 'The Soccer Tournament!'
-                        elif week_type == 'BYE':
-                            opponent_display = 'BYE Week!'
-                        elif week_type == 'BONUS':
-                            opponent_display = 'Bonus Week!'
-                        else:
-                            opponent_display = 'Special Week!'
+
+        for m in pub_league_matches:
+            # Determine opponent or special week display
+            if hasattr(m, 'is_playoff_game') and m.is_playoff_game:
+                # Playoff game - check if it's still using placeholder teams
+                playoff_round = getattr(m, 'playoff_round', 1)
+                if (m.home_team_id == m.away_team_id or
+                    _is_playoff_placeholder_match_sms(m, team.id)):
+                    opponent_display = f'Playoffs Round {playoff_round} - TBD'
+                else:
+                    # Real teams assigned - show opponent
+                    opponent = m.away_team if m.home_team_id == team.id else m.home_team
+                    opponent_display = opponent.name if opponent else 'Unknown'
+            elif m.home_team_id == m.away_team_id:
+                # Special week - determine display name
+                if hasattr(m, 'week_type'):
+                    week_type = m.week_type.upper()
+                    if week_type == 'FUN':
+                        opponent_display = 'Fun Week!'
+                    elif week_type == 'TST':
+                        opponent_display = 'The Soccer Tournament!'
+                    elif week_type == 'BYE':
+                        opponent_display = 'BYE Week!'
+                    elif week_type == 'BONUS':
+                        opponent_display = 'Bonus Week!'
                     else:
                         opponent_display = 'Special Week!'
                 else:
-                    # Regular match - determine opponent based on which side the team is on
-                    opponent = m.away_team if m.home_team_id == team.id else m.home_team
-                    opponent_display = opponent.name if opponent else 'Unknown'
-                    
-                match_info = {
-                    'id': m.id,  # Include match ID for RSVP functionality
-                    'date': m.date.strftime('%A, %B %d'),
-                    'time': m.time.strftime('%I:%M %p') if m.time else 'TBD',
-                    'opponent': opponent_display,
-                    'location': m.location or 'TBD',
-                    'match_obj': m  # Include the full match object for reference
-                }
-                match_list.append(match_info)
+                    opponent_display = 'Special Week!'
+            else:
+                # Regular match - determine opponent based on which side the team is on
+                opponent = m.away_team if m.home_team_id == team.id else m.home_team
+                opponent_display = opponent.name if opponent else 'Unknown'
+
+            match_info = {
+                'id': m.id,  # Include match ID for RSVP functionality
+                'date': m.date.strftime('%A, %B %d'),
+                'time': m.time.strftime('%I:%M %p') if m.time else 'TBD',
+                'opponent': opponent_display,
+                'location': m.location or 'TBD',
+                'match_obj': m,  # Include the full match object for reference
+                'is_ecs_fc': False  # Flag to identify Pub League matches
+            }
+            match_list.append(match_info)
+
+        # Query ECS FC matches for this team
+        ecs_fc_matches = (
+            session.query(EcsFcMatch)
+            .filter(
+                EcsFcMatch.team_id == team.id,
+                EcsFcMatch.match_date >= current_date,
+                EcsFcMatch.match_date <= future_date
+            )
+            .order_by(EcsFcMatch.match_date, EcsFcMatch.match_time)
+            .limit(2)
+            .all()
+        )
+
+        for m in ecs_fc_matches:
+            match_info = {
+                'id': m.id,  # Include match ID for RSVP functionality
+                'date': m.match_date.strftime('%A, %B %d'),
+                'time': m.match_time.strftime('%I:%M %p') if m.match_time else 'TBD',
+                'opponent': m.opponent_name or 'TBD',
+                'location': m.location or 'TBD',
+                'match_obj': m,  # Include the full match object for reference
+                'is_ecs_fc': True  # Flag to identify ECS FC matches
+            }
+            match_list.append(match_info)
+
+        # Sort combined matches by date and time, then limit to 2 per team
+        match_list.sort(key=lambda x: (x['match_obj'].match_date if hasattr(x['match_obj'], 'match_date') else x['match_obj'].date,
+                                       x['match_obj'].match_time if hasattr(x['match_obj'], 'match_time') else x['match_obj'].time or datetime.min.time()))
+        match_list = match_list[:2]
+
+        if match_list:
             matches_by_team.append({'team': team, 'matches': match_list})
     return matches_by_team
 
@@ -1320,26 +1358,36 @@ def handle_next_match_request(player):
         message_parts = []
         message_parts.append(f"ECSFC Schedule: {len(all_matches)} upcoming matches")
         
+        # Import ECS FC availability model
+        from app.models.ecs_fc import EcsFcAvailability
+
         for i, (team, match) in enumerate(all_matches, 1):
             match_id = match.get('id')
-            
+            is_ecs_fc = match.get('is_ecs_fc', False)
+
             # Censor team names to avoid filtering
             team_name = censor_profanity(team.name)
             opponent_name = censor_profanity(match['opponent'])
-            
+
             # Add the match details
             message_parts.append(
                 f"Match #{i}: {match['date']} at {match['time']}\n"
                 f"{team_name} vs {opponent_name}\n"
                 f"Location: {match['location']}"
             )
-            
-            # Check RSVP status
-            avail = g.db_session.query(Availability).filter_by(
-                player_id=player.id, 
-                match_id=match_id
-            ).first()
-            
+
+            # Check RSVP status - use appropriate availability table
+            if is_ecs_fc:
+                avail = g.db_session.query(EcsFcAvailability).filter_by(
+                    player_id=player.id,
+                    ecs_fc_match_id=match_id
+                ).first()
+            else:
+                avail = g.db_session.query(Availability).filter_by(
+                    player_id=player.id,
+                    match_id=match_id
+                ).first()
+
             if avail:
                 message_parts.append(f"Your RSVP: {avail.response.upper()}")
                 message_parts.append(f"Reply 'YES {i}', 'NO {i}', or 'MAYBE {i}' to change.")
@@ -1349,9 +1397,9 @@ def handle_next_match_request(player):
             # Add a separator between matches
             if i < len(all_matches):
                 message_parts.append("-")
-                
-        # Add a help reminder at the end
-        message_parts.append("Text INFO for more commands.")
+
+        # Add footer with help and opt-out per TCPA
+        message_parts.append("Reply STOP to opt out.")
         
         # Join with newlines
         message = "\n".join(message_parts)
@@ -1444,10 +1492,9 @@ def send_help_message(phone_number, user_id=None):
         "ECS FC SMS Commands:\n"
         "- 'yes' / 'no' / 'maybe': RSVP for your next match\n"
         "- 'yes 2' / 'no 3': RSVP for a specific match number\n"
-        "- 'schedule': View upcoming matches with numbers\n"
-        "- 'info' or 'commands': This help message\n"
-        "- 'STOP': Unsubscribe from all messages\n"
-        "- 'START': Re-subscribe to messages"
+        "- 'schedule': View upcoming matches\n"
+        "- 'info': This help message\n\n"
+        "Reply STOP to unsubscribe. Msg&data rates may apply."
     )
     send_sms(phone_number, help_message, user_id, message_type='help', source='sms_helpers')
     return True
@@ -1513,21 +1560,21 @@ def check_sms_config():
 def get_upcoming_match_for_player(player, within_days=7):
     """
     Retrieve the next upcoming match for a player within the specified number of days.
-    
+
     Args:
         player (Player): The player object.
         within_days (int): Number of days to look ahead.
-        
+
     Returns:
-        tuple: (Match object or None, the player's team for this match or None)
+        tuple: (Match object or None, the player's team for this match or None, is_ecs_fc bool)
     """
     session = g.db_session
     current_date = datetime.utcnow().date()
     future_date = current_date + timedelta(days=within_days)
-    
+
     # Debugging: log player information
     logger.info(f"Getting upcoming matches for player ID: {player.id}, phone: {player.phone}")
-    
+
     # Collect all teams the player belongs to
     teams = []
     if player.primary_team:
@@ -1535,14 +1582,15 @@ def get_upcoming_match_for_player(player, within_days=7):
     for team in player.teams:
         if team not in teams:
             teams.append(team)
-    
+
     if not teams:
-        return None, None
-    
+        return None, None, False
+
     # Find the next match for any of these teams
     team_ids = [team.id for team in teams]
-    
-    next_match = (
+
+    # Query Pub League matches
+    next_pub_league_match = (
         session.query(Match)
         .filter(
             or_(
@@ -1555,128 +1603,220 @@ def get_upcoming_match_for_player(player, within_days=7):
         .order_by(Match.date, Match.time)
         .first()
     )
-    
+
+    # Query ECS FC matches
+    from app.models.ecs_fc import EcsFcMatch
+    next_ecs_fc_match = (
+        session.query(EcsFcMatch)
+        .filter(
+            EcsFcMatch.team_id.in_(team_ids),
+            EcsFcMatch.match_date >= current_date,
+            EcsFcMatch.match_date <= future_date
+        )
+        .order_by(EcsFcMatch.match_date, EcsFcMatch.match_time)
+        .first()
+    )
+
+    # Determine which match is sooner
+    next_match = None
+    is_ecs_fc = False
+
+    if next_pub_league_match and next_ecs_fc_match:
+        # Compare dates and times to find the soonest match
+        pub_league_datetime = datetime.combine(next_pub_league_match.date, next_pub_league_match.time or datetime.min.time())
+        ecs_fc_datetime = datetime.combine(next_ecs_fc_match.match_date, next_ecs_fc_match.match_time or datetime.min.time())
+
+        if ecs_fc_datetime < pub_league_datetime:
+            next_match = next_ecs_fc_match
+            is_ecs_fc = True
+        else:
+            next_match = next_pub_league_match
+            is_ecs_fc = False
+    elif next_ecs_fc_match:
+        next_match = next_ecs_fc_match
+        is_ecs_fc = True
+    elif next_pub_league_match:
+        next_match = next_pub_league_match
+        is_ecs_fc = False
+
     if not next_match:
-        return None, None
-    
+        return None, None, False
+
     # Determine which team the player is on for this match
     player_team = None
-    for team in teams:
-        if team.id == next_match.home_team_id or team.id == next_match.away_team_id:
-            player_team = team
-            break
-    
-    return next_match, player_team
+    if is_ecs_fc:
+        for team in teams:
+            if team.id == next_match.team_id:
+                player_team = team
+                break
+    else:
+        for team in teams:
+            if team.id == next_match.home_team_id or team.id == next_match.away_team_id:
+                player_team = team
+                break
+
+    return next_match, player_team, is_ecs_fc
 
 
-def handle_rsvp(player, response_text, match_id=None):
+def handle_rsvp(player, response_text, match_id=None, is_ecs_fc=None):
     """
     Process an RSVP response from a player.
-    
+
     Args:
         player (Player): The player who sent the RSVP.
         response_text (str): The RSVP response text ('yes', 'no', 'maybe').
         match_id (int, optional): Specific match ID to RSVP for. If None, uses the next upcoming match.
-        
+        is_ecs_fc (bool, optional): Whether this is an ECS FC match. If None and match_id is None, auto-detects.
+
     Returns:
         tuple: (success (bool), message to send back to the player)
     """
     session = g.db_session
-    
+
+    # Import ECS FC models
+    from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
+
     # Map common response variations to standardized values
     response_map = {
         'yes': ['yes', 'y', 'in', 'available', 'can', 'i can', 'i can play', 'playing', 'i am in'],
         'no': ['no', 'n', 'out', 'unavailable', "can't", 'cannot', 'i cannot', 'i cannot play', 'not playing', 'i am out'],
         'maybe': ['maybe', 'm', 'possibly', 'not sure', 'uncertain', 'perhaps', 'might', 'might be', 'might be able']
     }
-    
+
     # Normalize the response text
     normalized_response = None
     response_text_lower = response_text.strip().lower()
-    
+
     for status, variations in response_map.items():
         if response_text_lower in variations:
             normalized_response = status
             break
-    
+
     if not normalized_response:
         return False, "I couldn't understand your RSVP response. Please reply with YES, NO, or MAYBE."
-    
+
     # Get the match to RSVP for
     match = None
     if match_id:
-        match = session.query(Match).get(match_id)
+        if is_ecs_fc:
+            match = session.query(EcsFcMatch).get(match_id)
+        else:
+            match = session.query(Match).get(match_id)
         if not match:
-            logger.warning(f"Match ID {match_id} not found when player {player.id} tried to RSVP")
+            logger.warning(f"Match ID {match_id} (is_ecs_fc={is_ecs_fc}) not found when player {player.id} tried to RSVP")
             return False, f"Match #{match_id} not found. Reply SCHEDULE to see your upcoming matches."
     else:
-        match, player_team = get_upcoming_match_for_player(player)
-    
+        match, player_team, is_ecs_fc = get_upcoming_match_for_player(player)
+
     if not match:
         return False, "No upcoming matches found to RSVP for. Reply SCHEDULE to see your upcoming matches."
-    
-    # Check if player already has an availability for this match
-    availability = (
-        session.query(Availability)
-        .filter(
-            Availability.player_id == player.id,
-            Availability.match_id == match.id
-        )
-        .first()
-    )
-    
-    # Create or update availability
-    is_update = availability is not None
-    if not availability:
-        availability = Availability(
-            player_id=player.id,
-            match_id=match.id,
-            response=normalized_response,
-            responded_at=datetime.utcnow()
-        )
-        session.add(availability)
-    else:
-        availability.response = normalized_response
-        availability.responded_at = datetime.utcnow()
-    
-    # Format match details for confirmation message
-    match_date = match.date.strftime("%A, %B %d")
-    match_time = match.time.strftime("%I:%M %p") if match.time else "TBD"
-    
-    home_team = session.query(Team).get(match.home_team_id)
-    away_team = session.query(Team).get(match.away_team_id)
-    
-    home_name = home_team.name if home_team else "Unknown"
-    away_name = away_team.name if away_team else "Unknown"
-    
-    action = "updated" if is_update else "recorded"
-    
-    # Find if this is part of multiple matches on the same day
-    match_day = match.date
-    other_matches_same_day = (
-        session.query(Match)
-        .filter(
-            Match.date == match_day,
-            Match.id != match.id,
-            or_(
-                Match.home_team_id.in_([t.id for t in player.teams]), 
-                Match.away_team_id.in_([t.id for t in player.teams])
+
+    # Handle differently based on match type
+    if is_ecs_fc:
+        # ECS FC match - use EcsFcAvailability
+        availability = (
+            session.query(EcsFcAvailability)
+            .filter(
+                EcsFcAvailability.player_id == player.id,
+                EcsFcAvailability.ecs_fc_match_id == match.id
             )
+            .first()
         )
-        .count()
-    )
-    
-    confirmation_message = (
-        f"Thanks! Your response ({normalized_response.upper()}) has been {action} for:\n"
-        f"{match_date} at {match_time}\n"
-        f"{home_name} vs {away_name}\n"
-        f"Location: {match.location or 'TBD'}"
-    )
-    
-    # Add a reminder if there are other matches that day
-    if other_matches_same_day > 0:
-        confirmation_message += f"\n\nNOTE: You have {other_matches_same_day} other match(es) on {match_date}. Reply SCHEDULE to see and RSVP for all your matches."
-    
+
+        # Create or update availability
+        is_update = availability is not None
+        if not availability:
+            # Get player's discord_id for ECS FC availability
+            discord_id = player.discord_id if player.discord_id else str(player.id)
+            availability = EcsFcAvailability(
+                player_id=player.id,
+                ecs_fc_match_id=match.id,
+                discord_id=discord_id,
+                response=normalized_response,
+                responded_at=datetime.utcnow()
+            )
+            session.add(availability)
+        else:
+            availability.response = normalized_response
+            availability.responded_at = datetime.utcnow()
+
+        # Format ECS FC match details for confirmation message
+        match_date = match.match_date.strftime("%A, %B %d")
+        match_time = match.match_time.strftime("%I:%M %p") if match.match_time else "TBD"
+        team_name = match.team.name if match.team else "Unknown"
+        opponent_name = match.opponent_name or "Unknown"
+
+        action = "updated" if is_update else "recorded"
+
+        confirmation_message = (
+            f"Thanks! Your response ({normalized_response.upper()}) has been {action} for:\n"
+            f"{match_date} at {match_time}\n"
+            f"{team_name} vs {opponent_name}\n"
+            f"Location: {match.location or 'TBD'}"
+        )
+    else:
+        # Pub League match - use standard Availability
+        availability = (
+            session.query(Availability)
+            .filter(
+                Availability.player_id == player.id,
+                Availability.match_id == match.id
+            )
+            .first()
+        )
+
+        # Create or update availability
+        is_update = availability is not None
+        if not availability:
+            availability = Availability(
+                player_id=player.id,
+                match_id=match.id,
+                response=normalized_response,
+                responded_at=datetime.utcnow()
+            )
+            session.add(availability)
+        else:
+            availability.response = normalized_response
+            availability.responded_at = datetime.utcnow()
+
+        # Format match details for confirmation message
+        match_date = match.date.strftime("%A, %B %d")
+        match_time = match.time.strftime("%I:%M %p") if match.time else "TBD"
+
+        home_team = session.query(Team).get(match.home_team_id)
+        away_team = session.query(Team).get(match.away_team_id)
+
+        home_name = home_team.name if home_team else "Unknown"
+        away_name = away_team.name if away_team else "Unknown"
+
+        action = "updated" if is_update else "recorded"
+
+        # Find if this is part of multiple matches on the same day
+        match_day = match.date
+        other_matches_same_day = (
+            session.query(Match)
+            .filter(
+                Match.date == match_day,
+                Match.id != match.id,
+                or_(
+                    Match.home_team_id.in_([t.id for t in player.teams]),
+                    Match.away_team_id.in_([t.id for t in player.teams])
+                )
+            )
+            .count()
+        )
+
+        confirmation_message = (
+            f"Thanks! Your response ({normalized_response.upper()}) has been {action} for:\n"
+            f"{match_date} at {match_time}\n"
+            f"{home_name} vs {away_name}\n"
+            f"Location: {match.location or 'TBD'}"
+        )
+
+        # Add a reminder if there are other matches that day
+        if other_matches_same_day > 0:
+            confirmation_message += f"\n\nNOTE: You have {other_matches_same_day} other match(es) on {match_date}. Reply SCHEDULE to see and RSVP for all your matches."
+
     # Send RSVP confirmation
     success, _ = send_sms(
         player.phone, confirmation_message,
@@ -1760,20 +1900,20 @@ def handle_incoming_text_command(phone_number, message_text):
         next_matches_by_team = get_next_match(player.phone)
         
         if not next_matches_by_team:
-            send_sms(phone_number, "You don't have any upcoming matches to RSVP for.", user_id)
+            send_sms(phone_number, "You don't have any upcoming matches to RSVP for. Reply STOP to opt out.", user_id)
             return jsonify({'status': 'error', 'message': 'No matches found'})
-        
+
         # Flatten the matches list to find the nth match
         all_matches = []
         for entry in next_matches_by_team:
             for match in entry['matches']:
                 all_matches.append((entry['team'], match))
-        
+
         # Check if match number is valid
         if match_number < 1 or match_number > len(all_matches):
             send_sms(
-                phone_number, 
-                f"Invalid match number. You have {len(all_matches)} upcoming matches. Reply SCHEDULE to see them.",
+                phone_number,
+                f"Invalid match number. You have {len(all_matches)} upcoming matches. Reply SCHEDULE to see them. Reply STOP to opt out.",
                 user_id
             )
             return jsonify({'status': 'error', 'message': 'Invalid match number'})
@@ -1781,9 +1921,10 @@ def handle_incoming_text_command(phone_number, message_text):
         # Get the specific match
         team, match = all_matches[match_number - 1]
         match_id = match['id']
-        
+        is_ecs_fc = match.get('is_ecs_fc', False)
+
         # Handle the RSVP for this specific match
-        success, message = handle_rsvp(player, response_type, match_id)
+        success, message = handle_rsvp(player, response_type, match_id, is_ecs_fc)
         return jsonify({'status': 'success' if success else 'error', 'message': 'RSVP processed'})
     
     # Check for substitute responses (YES/NO)
@@ -1809,12 +1950,12 @@ def handle_incoming_text_command(phone_number, message_text):
             if result.get('success'):
                 is_available = result.get('is_available')
                 if is_available:
-                    send_sms(phone_number, 
-                        "I've marked you as available. Please wait for confirmation before heading to the pitch.",
+                    send_sms(phone_number,
+                        "I've marked you as available. Please wait for confirmation before heading to the pitch. Reply STOP to opt out.",
                         user_id)
                 else:
-                    send_sms(phone_number, 
-                        "Thanks for letting us know you're not available.",
+                    send_sms(phone_number,
+                        "Thanks for letting us know you're not available. Reply STOP to opt out.",
                         user_id)
                 return jsonify({'status': 'success', 'message': 'Substitute response recorded'})
         
@@ -1841,12 +1982,12 @@ def handle_incoming_text_command(phone_number, message_text):
             if result.get('success'):
                 is_available = cmd in ['yes', 'y', 'available', '1']
                 if is_available:
-                    send_sms(phone_number, 
-                        "I've marked you as available. Please wait for confirmation before heading to the pitch.",
+                    send_sms(phone_number,
+                        "I've marked you as available. Please wait for confirmation before heading to the pitch. Reply STOP to opt out.",
                         user_id)
                 else:
-                    send_sms(phone_number, 
-                        "Thanks for letting us know you're not available.",
+                    send_sms(phone_number,
+                        "Thanks for letting us know you're not available. Reply STOP to opt out.",
                         user_id)
                 return jsonify({'status': 'success', 'message': 'ECS FC sub response recorded'})
     
@@ -1888,15 +2029,16 @@ def handle_incoming_text_command(phone_number, message_text):
                     
                     if match_num < 1 or match_num > len(all_matches):
                         send_sms(
-                            phone_number, 
-                            f"Invalid match number. You have {len(all_matches)} upcoming matches. Reply SCHEDULE to see them.",
+                            phone_number,
+                            f"Invalid match number. You have {len(all_matches)} upcoming matches. Reply SCHEDULE to see them. Reply STOP to opt out.",
                             user_id
                         )
                         return jsonify({'status': 'error', 'message': 'Invalid match number'})
-                    
+
                     team, match = all_matches[match_num - 1]
                     match_id = match['id']
-                    success, message = handle_rsvp(player, response, match_id)
+                    is_ecs_fc = match.get('is_ecs_fc', False)
+                    success, message = handle_rsvp(player, response, match_id, is_ecs_fc)
                     return jsonify({'status': 'success' if success else 'error', 'message': 'RSVP processed'})
                 except (ValueError, IndexError):
                     # Not a valid match number, treat as normal RSVP
@@ -1906,13 +2048,13 @@ def handle_incoming_text_command(phone_number, message_text):
                 success, message = handle_rsvp(player, parts[1])
                 return jsonify({'status': 'success' if success else 'error', 'message': 'RSVP processed'})
         else:
-            send_sms(phone_number, "To RSVP, reply with YES, NO, or MAYBE.", user_id)
+            send_sms(phone_number, "To RSVP, reply with YES, NO, or MAYBE. Reply STOP to opt out.", user_id)
             return jsonify({'status': 'error', 'message': 'Invalid RSVP format'})
     else:
         # Unrecognized command fallback.
         send_sms(
-            phone_number, 
-            "Sorry, I didn't recognize that command. Reply INFO for command options, or YES/NO/MAYBE to RSVP for your next match.", 
+            phone_number,
+            "Sorry, I didn't recognize that command. Reply INFO for options, or YES/NO/MAYBE to RSVP. Reply STOP to opt out.",
             user_id
         )
         return jsonify({'status': 'success', 'message': 'Unrecognized command'})

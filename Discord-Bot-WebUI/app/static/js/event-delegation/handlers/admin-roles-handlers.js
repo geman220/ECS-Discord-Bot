@@ -56,7 +56,7 @@ window.EventDelegation.register('create-role', function(element, e) {
     }
 
     // Set the create action URL - we need to construct this from the page
-    const createUrl = roleForm.dataset.createUrl || '/admin-panel/users/roles/create';
+    const createUrl = roleForm.dataset.createUrl || '/admin-panel/roles-management/create';
     roleForm.action = createUrl;
 
     if (roleModal) {
@@ -99,7 +99,7 @@ window.EventDelegation.register('edit-role', function(element, e) {
     });
 
     // Get the API URL from data attribute or construct it
-    const apiUrl = element.dataset.apiUrl || `/admin-panel/users/roles/${roleId}/details`;
+    const apiUrl = element.dataset.apiUrl || `/admin-panel/roles-management/${roleId}`;
 
     fetch(apiUrl)
         .then(response => response.json())
@@ -121,7 +121,7 @@ window.EventDelegation.register('edit-role', function(element, e) {
                 }
 
                 // Set edit action URL
-                const editUrl = roleForm.dataset.editUrl || `/admin-panel/users/roles/${roleId}/edit`;
+                const editUrl = roleForm.dataset.editUrl || `/admin-panel/roles-management/${roleId}/edit`;
                 roleForm.action = editUrl.replace('0', roleId);
 
                 window.Swal.close();
@@ -163,7 +163,7 @@ window.EventDelegation.register('view-role-details', function(element, e) {
     }
 
     // Get the API URL from data attribute or construct it
-    const apiUrl = element.dataset.apiUrl || `/admin-panel/users/roles/${roleId}/details`;
+    const apiUrl = element.dataset.apiUrl || `/admin-panel/roles-management/${roleId}`;
 
     fetch(apiUrl)
         .then(response => response.json())
@@ -245,7 +245,7 @@ window.EventDelegation.register('view-role-users', function(element, e) {
     }
 
     // Navigate to role users page
-    const usersUrl = element.dataset.usersUrl || `/admin-panel/users/roles/${roleId}/users`;
+    const usersUrl = element.dataset.usersUrl || `/admin-panel/roles-management/${roleId}/users`;
     window.location.href = usersUrl;
 });
 
@@ -273,7 +273,7 @@ window.EventDelegation.register('assign-role', function(element, e) {
     document.getElementById('assigningRoleName').textContent = 'Loading...';
 
     // Set form action
-    const assignUrl = assignRoleForm.dataset.assignUrl || `/admin-panel/users/roles/${roleId}/assign`;
+    const assignUrl = assignRoleForm.dataset.assignUrl || `/admin-panel/roles-management/${roleId}/assign-user`;
     assignRoleForm.action = assignUrl.replace('0', roleId);
 
     // Clear and show loading in user select
@@ -283,8 +283,8 @@ window.EventDelegation.register('assign-role', function(element, e) {
     }
 
     // Get the API URLs from data attributes or construct them
-    const roleApiUrl = element.dataset.roleApiUrl || `/admin-panel/users/roles/${roleId}/details`;
-    const usersApiUrl = element.dataset.usersApiUrl || `/admin-panel/users/roles/${roleId}/available-users`;
+    const roleApiUrl = element.dataset.roleApiUrl || `/admin-panel/roles-management/${roleId}`;
+    const usersApiUrl = element.dataset.usersApiUrl || `/admin-panel/roles-management/${roleId}/available-users`;
 
     Promise.all([
         fetch(roleApiUrl).then(r => r.json()),
@@ -355,7 +355,7 @@ window.EventDelegation.register('delete-role', function(element, e) {
         confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
-            const deleteUrl = element.dataset.deleteUrl || `/admin-panel/users/roles/${roleId}/delete`;
+            const deleteUrl = element.dataset.deleteUrl || `/admin-panel/roles-management/${roleId}/delete`;
             const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
 
             fetch(deleteUrl, {

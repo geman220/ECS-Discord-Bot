@@ -209,7 +209,9 @@
                                     {{ match.time.strftime('%I:%M %p') }}
                                 </span>
                                 <div class="flex-1 min-w-0">
-                                    {% if not match.is_ecs_fc %}
+                                    {% if match.is_ecs_fc %}
+                                    <a href="{{ url_for('match_pages.view_match', match_id='ecs_' ~ match.ecs_fc_match_id) }}" class="hover:text-ecs-green">
+                                    {% else %}
                                     <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}" class="hover:text-ecs-green">
                                     {% endif %}
                                         {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF', 'PRACTICE'] %}
@@ -219,9 +221,7 @@
                                         <span class="text-gray-400 mx-1">vs</span>
                                         <span class="font-medium text-gray-900 dark:text-white">{{ display_away }}</span>
                                         {% endif %}
-                                    {% if not match.is_ecs_fc %}
                                     </a>
-                                    {% endif %}
                                     <div class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
                                         <i class="ti ti-map-pin"></i>
                                         {{ match.location }}{% if match.field_name %} - {{ match.field_name }}{% endif %}

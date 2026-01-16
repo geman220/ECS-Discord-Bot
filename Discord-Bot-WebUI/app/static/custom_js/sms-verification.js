@@ -10,32 +10,28 @@ let _initialized = false;
 
 // Create global functions directly (backward compatibility)
 export function toggleSmsConsent(show) {
-    // console.log("Toggle SMS consent:", show);
     const smsOptInSection = document.getElementById('smsOptInSection');
+    if (!smsOptInSection) return;
+
     if (show) {
         smsOptInSection.classList.remove('hidden');
-        smsOptInSection.classList.add('block');
     } else {
-        smsOptInSection.classList.remove('block');
         smsOptInSection.classList.add('hidden');
-    }
-
-    // If SMS is disabled, also hide verification
-    if (!show) {
+        // If SMS is disabled, also hide verification
         const smsVerificationSection = document.getElementById('smsVerificationSection');
-        smsVerificationSection.classList.remove('block');
-        smsVerificationSection.classList.add('hidden');
+        if (smsVerificationSection) {
+            smsVerificationSection.classList.add('hidden');
+        }
     }
 }
 
 export function toggleSmsVerification(show) {
-    // console.log("Toggle SMS verification:", show);
     const smsVerificationSection = document.getElementById('smsVerificationSection');
+    if (!smsVerificationSection) return;
+
     if (show) {
         smsVerificationSection.classList.remove('hidden');
-        smsVerificationSection.classList.add('block');
     } else {
-        smsVerificationSection.classList.remove('block');
         smsVerificationSection.classList.add('hidden');
     }
 }
@@ -94,7 +90,6 @@ export function sendVerificationCode() {
 
         if (data.success) {
             verificationCodeInput.classList.remove('hidden');
-            verificationCodeInput.classList.add('block');
             window.Swal.fire({
                 icon: 'success',
                 title: 'Code Sent!',
@@ -165,13 +160,12 @@ export function verifyCode() {
             // Mark as verified in hidden input
             verifiedFlagInput.value = 'true';
 
-            // Show success message
-            verificationCodeInput.innerHTML = '<div class="alert alert-success"><i class="ti ti-check-circle me-2"></i>Phone number verified successfully!</div>';
+            // Show success message using Flowbite alert
+            verificationCodeInput.innerHTML = '<div class="flex items-center p-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-green-900/50 dark:text-green-400" role="alert"><i class="ti ti-check-circle me-2 text-lg"></i><span>Phone number verified successfully!</span></div>';
 
             // Update send button to show verified state
             sendButton.disabled = true;
-            sendButton.classList.remove('text-white', 'bg-ecs-green', 'hover:bg-ecs-green-dark', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
-            sendButton.classList.add('text-white', 'bg-green-600', 'hover:bg-green-700', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
+            sendButton.className = 'text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 cursor-not-allowed';
             sendButton.innerHTML = '<i class="ti ti-check me-1"></i> Verified';
 
             // Hide warning alert if present
@@ -246,8 +240,6 @@ window.adminSetVerificationCode = function() {
                     if (data.success) {
                         // Show the verification code input
                         verificationCodeInput.classList.remove('hidden');
-                        verificationCodeInput.classList.add('block');
-                        // console.log("Admin generated verification code:", data.code);
                         if (typeof window.Swal !== 'undefined') {
                             window.Swal.fire({
                                 icon: 'success',

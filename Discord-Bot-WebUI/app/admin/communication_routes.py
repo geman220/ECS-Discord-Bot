@@ -103,9 +103,10 @@ def send_custom_sms():
     # holding the database transaction open during the external call
     session.commit()
     
-    # Send the SMS
+    # Send the SMS with opt-out language for TCPA compliance
     from app.sms_helpers import send_sms
-    success, result = send_sms(phone, message, user_id=user_id)
+    full_message = f"{message}\n\nReply STOP to opt out."
+    success, result = send_sms(phone, full_message, user_id=user_id)
     
     if success:
         # Log the SMS

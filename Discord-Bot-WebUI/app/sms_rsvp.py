@@ -289,7 +289,7 @@ def dev_test_send_rsvp_requests():
             session.add(new_token)
 
             rsvp_link = f"https://ecsfc.com/rsvp/{token}"
-            message = f"Please RSVP for your upcoming matches: {rsvp_link}"
+            message = f"Please RSVP for your upcoming matches: {rsvp_link}\n\nReply STOP to opt out."
             success, _ = send_sms(player.phone, message)
 
             results.append({

@@ -86,8 +86,8 @@ let _initialized = false;
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        smsConsentStep.classList.add('is-hidden');
-                        smsVerificationStep.classList.remove('is-hidden');
+                        smsConsentStep.classList.add('hidden');
+                        smsVerificationStep.classList.remove('hidden');
                         document.getElementById('sentPhoneNumber').textContent = phoneNumber;
                     } else {
                         window.Swal.fire({
@@ -119,8 +119,8 @@ let _initialized = false;
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        smsVerificationStep.classList.add('is-hidden');
-                        smsConfirmationStep.classList.remove('is-hidden');
+                        smsVerificationStep.classList.add('hidden');
+                        smsConfirmationStep.classList.remove('hidden');
                     } else {
                         window.Swal.fire({
                             icon: 'error',
@@ -131,7 +131,7 @@ let _initialized = false;
                 });
 
             setTimeout(function () {
-                if (resendCodeBtn) resendCodeBtn.classList.remove('is-hidden');
+                if (resendCodeBtn) resendCodeBtn.classList.remove('hidden');
             }, 10000);
             return;
         }
@@ -157,6 +157,12 @@ let _initialized = false;
                         text: data.message,
                     });
                 });
+            return;
+        }
+
+        // SMS success refresh button
+        if (e.target.closest('#smsSuccessRefreshBtn')) {
+            window.location.reload();
             return;
         }
 
