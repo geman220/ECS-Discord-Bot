@@ -262,6 +262,12 @@ def waitlist_discord_register():
     session['waitlist_registration'] = True
     session['discord_registration_mode'] = True
 
+    # Capture claim_code from URL if present (for quick profile linking)
+    claim_code = request.args.get('claim_code', '').strip().upper()
+    if claim_code:
+        session['pending_claim_code'] = claim_code
+        logger.debug(f"Stored claim_code in session for waitlist registration")
+
     # Debug session storage (sanitized - no sensitive values)
     logger.debug(f"OAuth state set in session for waitlist registration")
     logger.debug(f"Session keys: {get_safe_session_keys(session)}")
@@ -333,12 +339,16 @@ def waitlist_register_with_discord():
                     'confidence': match['confidence']
                 })
 
+        # Check for claim_code in session (from email/SMS link or URL param)
+        pending_claim_code = session.get('pending_claim_code', '')
+
         # Use the new carousel template
         return render_template('waitlist_register_discord_carousel_flowbite.html',
                               title='Complete Waitlist Registration',
                               discord_email=discord_email,
                               discord_username=discord_username,
-                              potential_duplicates=potential_duplicates)
+                              potential_duplicates=potential_duplicates,
+                              claim_code=pending_claim_code)
 
     try:
         # Check if user already exists
@@ -520,6 +530,12 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
         preferred_league = None
     available_for_subbing = request.form.get('available_for_subbing') == 'true'
 
+    # Get claim code from form (may override session value)
+    claim_code = request.form.get('claim_code', '').strip().upper()
+    # Fall back to session if not in form
+    if not claim_code:
+        claim_code = session.get('pending_claim_code', '').strip().upper()
+
     name = request.form.get('name', discord_username).strip()
     phone = request.form.get('phone', '')
 
@@ -643,6 +659,24 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
         except Exception as e:
             logger.error(f"Error saving profile picture for waitlist user {player.id}: {str(e)}")
 
+    # Process quick profile claim code if provided
+    if claim_code:
+        try:
+            from app.models import QuickProfile
+            quick_profile = QuickProfile.find_by_code(claim_code)
+            if quick_profile and quick_profile.is_valid():
+                # Claim the profile - this merges data into the player
+                quick_profile.claim(player)
+                logger.info(f"Player {player.id} claimed quick profile {quick_profile.id} with code {claim_code}")
+                # Clear the claim code from session
+                session.pop('pending_claim_code', None)
+            else:
+                # Log invalid code but don't fail registration
+                logger.warning(f"Invalid or expired claim code '{claim_code}' during waitlist registration for player {player.id}")
+        except Exception as claim_error:
+            # Don't fail registration if claim code processing fails
+            logger.error(f"Error processing claim code '{claim_code}': {str(claim_error)}")
+
 
 def _clear_waitlist_session():
     """Clear waitlist-related session data."""
@@ -651,6 +685,7 @@ def _clear_waitlist_session():
     session.pop('pending_discord_username', None)
     session.pop('waitlist_registration', None)
     session.pop('registration_mode', None)
+    session.pop('pending_claim_code', None)
 
 
 @auth.route('/waitlist_confirmation')

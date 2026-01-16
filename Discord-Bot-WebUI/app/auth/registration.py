@@ -80,10 +80,13 @@ def register_with_discord():
         return redirect(url_for('auth.login'))
 
     if request.method == 'GET':
+        # Check for claim_code in session (from email/SMS link or URL param)
+        pending_claim_code = session.get('pending_claim_code', '')
         return render_template('register_discord_flowbite.html',
                               title='Complete Registration',
                               discord_email=discord_email,
-                              discord_username=discord_username)
+                              discord_username=discord_username,
+                              claim_code=pending_claim_code)
 
     try:
         # Discord server integration using synchronous client
@@ -178,6 +181,23 @@ def register_with_discord():
         db_session.add(player)
         db_session.flush()
 
+        # Check for and process quick profile claim code
+        claim_code = request.form.get('claim_code', '').strip().upper()
+        if claim_code:
+            try:
+                from app.models import QuickProfile
+                quick_profile = QuickProfile.find_by_code(claim_code)
+                if quick_profile and quick_profile.is_valid():
+                    # Claim the profile - this merges data into the player
+                    quick_profile.claim(player)
+                    logger.info(f"Player {player.id} claimed quick profile {quick_profile.id} with code {claim_code}")
+                else:
+                    # Log invalid code but don't fail registration
+                    logger.warning(f"Invalid or expired claim code '{claim_code}' during registration for player {player.id}")
+            except Exception as claim_error:
+                # Don't fail registration if claim code processing fails
+                logger.error(f"Error processing claim code '{claim_code}': {str(claim_error)}")
+
         # Log in the user
         login_user(new_user)
 
@@ -185,6 +205,7 @@ def register_with_discord():
         session.pop('pending_discord_email', None)
         session.pop('pending_discord_id', None)
         session.pop('pending_discord_username', None)
+        session.pop('pending_claim_code', None)
 
         # Ensure onboarding flags are properly set to trigger the onboarding modal
         new_user.has_completed_onboarding = False

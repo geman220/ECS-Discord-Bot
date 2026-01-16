@@ -156,6 +156,10 @@ from .pub_league_order import (
     PubLeagueOrderStatus, PubLeagueLineItemStatus, PubLeagueClaimStatus
 )
 
+from .quick_profile import (
+    QuickProfile, QuickProfileStatus
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -264,5 +268,8 @@ __all__ = [
 
     # Pub League order models
     'PubLeagueOrder', 'PubLeagueOrderLineItem', 'PubLeagueOrderClaim',
-    'PubLeagueOrderStatus', 'PubLeagueLineItemStatus', 'PubLeagueClaimStatus'
+    'PubLeagueOrderStatus', 'PubLeagueLineItemStatus', 'PubLeagueClaimStatus',
+
+    # Quick profile models (for tryout players)
+    'QuickProfile', 'QuickProfileStatus'
 ]

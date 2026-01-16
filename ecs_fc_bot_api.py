@@ -25,6 +25,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/ecs_fc", tags=["ECS FC"])
 
 # Pydantic models for request/response validation
+class PlayerRSVP(BaseModel):
+    player_name: str
+    player_id: int
+
 class RSVPMessageRequest(BaseModel):
     match_id: int
     team_id: int
@@ -37,7 +41,7 @@ class RSVPMessageRequest(BaseModel):
     rsvp_deadline: Optional[str] = None  # ISO format
     notes: Optional[str] = None
     field_name: Optional[str] = None
-    response_counts: Dict[str, int] = Field(default_factory=lambda: {"yes": 0, "no": 0, "maybe": 0, "no_response": 0})
+    rsvp_details: Dict[str, List[Dict[str, Any]]] = Field(default_factory=lambda: {"yes": [], "no": [], "maybe": []})
 
 class RSVPMessageResponse(BaseModel):
     success: bool
@@ -98,29 +102,29 @@ async def get_team_channel_id(team_id: int) -> Optional[str]:
         logger.error(f"Error getting team channel ID for team {team_id}: {str(e)}")
         return None
 
-async def fetch_ecs_fc_rsvp_data(match_id: int) -> Dict[str, int]:
-    """Fetch current RSVP data for an ECS FC match."""
+async def fetch_ecs_fc_rsvp_data(match_id: int) -> Dict[str, List[Dict[str, Any]]]:
+    """Fetch current RSVP data with player names for an ECS FC match."""
     try:
-        api_url = f"http://webui:5000/api/ecs-fc/matches/{match_id}/rsvp-summary"
-        
+        api_url = f"http://webui:5000/api/ecs-fc/matches/{match_id}/rsvp-details"
+
         async with aiohttp.ClientSession() as session:
             async with session.get(api_url) as response:
                 if response.status == 200:
                     data = await response.json()
-                    return data.get('data', {}).get('response_counts', {"yes": 0, "no": 0, "maybe": 0, "no_response": 0})
+                    return data.get('data', {}).get('rsvp_details', {"yes": [], "no": [], "maybe": []})
                 else:
                     logger.warning(f"Failed to fetch RSVP data for match {match_id}: {response.status}")
-                    return {"yes": 0, "no": 0, "maybe": 0, "no_response": 0}
+                    return {"yes": [], "no": [], "maybe": []}
     except Exception as e:
         logger.error(f"Error fetching RSVP data for match {match_id}: {str(e)}")
-        return {"yes": 0, "no": 0, "maybe": 0, "no_response": 0}
+        return {"yes": [], "no": [], "maybe": []}
 
-def create_ecs_fc_embed(request: RSVPMessageRequest, response_counts: Dict[str, int]) -> discord.Embed:
-    """Create a Discord embed for ECS FC RSVP messages."""
+def create_ecs_fc_embed(request: RSVPMessageRequest, rsvp_details: Dict[str, List[Dict[str, Any]]]) -> discord.Embed:
+    """Create a Discord embed for ECS FC RSVP messages with player names."""
     embed = discord.Embed()
     embed.title = f"⚽ {request.team_name} vs {request.opponent_name}"
     embed.color = discord.Color.blue()
-    
+
     # Parse match date and time
     try:
         match_datetime = datetime.strptime(f"{request.match_date} {request.match_time}", "%Y-%m-%d %H:%M")
@@ -129,33 +133,51 @@ def create_ecs_fc_embed(request: RSVPMessageRequest, response_counts: Dict[str, 
     except ValueError:
         formatted_date = request.match_date
         formatted_time = request.match_time
-    
+
     # Add match details
     embed.add_field(name="📅 Date", value=formatted_date, inline=True)
     embed.add_field(name="🕐 Time", value=formatted_time, inline=True)
     embed.add_field(name="📍 Location", value=request.location, inline=True)
-    
+
     # Add match type
     match_type = "🏠 Home Match" if request.is_home_match else "🛫 Away Match"
     embed.add_field(name="Match Type", value=match_type, inline=True)
-    
+
     # Add field name if provided
     if request.field_name:
         embed.add_field(name="🥅 Field", value=request.field_name, inline=True)
-    
+
     # Add empty field for formatting
     embed.add_field(name="\u200b", value="\u200b", inline=True)
-    
-    # Add current responses
+
+    # Helper function to format player names
+    def format_player_list(players: List[Dict[str, Any]]) -> str:
+        if not players:
+            return "None"
+        names = [p.get('player_name', 'Unknown') for p in players]
+        return ", ".join(names)
+
+    # Add RSVP responses with player names (matching Pub League format)
+    yes_players = rsvp_details.get('yes', [])
+    no_players = rsvp_details.get('no', [])
+    maybe_players = rsvp_details.get('maybe', [])
+
     embed.add_field(
-        name="📊 Current Responses",
-        value=f"✅ Yes: {response_counts['yes']}\n"
-              f"❌ No: {response_counts['no']}\n"
-              f"❓ Maybe: {response_counts['maybe']}\n"
-              f"⏳ No Response: {response_counts['no_response']}",
+        name=f"👍 Yes ({len(yes_players)})",
+        value=format_player_list(yes_players),
         inline=False
     )
-    
+    embed.add_field(
+        name=f"👎 No ({len(no_players)})",
+        value=format_player_list(no_players),
+        inline=False
+    )
+    embed.add_field(
+        name=f"🤷 Maybe ({len(maybe_players)})",
+        value=format_player_list(maybe_players),
+        inline=False
+    )
+
     # Add RSVP deadline if provided
     if request.rsvp_deadline:
         try:
@@ -164,14 +186,14 @@ def create_ecs_fc_embed(request: RSVPMessageRequest, response_counts: Dict[str, 
             embed.add_field(name="⏰ RSVP Deadline", value=deadline_str, inline=False)
         except ValueError:
             embed.add_field(name="⏰ RSVP Deadline", value=request.rsvp_deadline, inline=False)
-    
+
     # Add notes if provided
     if request.notes:
         embed.add_field(name="📝 Notes", value=request.notes, inline=False)
-    
+
     # Add footer with instructions
     embed.set_footer(text=f"React with ✅ for Yes, ❌ for No, or ❓ for Maybe\nMatch ID: {request.match_id} | React to RSVP!")
-    
+
     return embed
 
 @router.post("/post_rsvp_message", response_model=RSVPMessageResponse)
@@ -197,8 +219,8 @@ async def post_rsvp_message(request: RSVPMessageRequest, bot: commands.Bot = Dep
             logger.error(f"Discord channel not found for ID: {channel_id}")
             raise HTTPException(status_code=404, detail=f"Discord channel not found for ID: {channel_id}")
         
-        # Create the embed with current response counts
-        embed = create_ecs_fc_embed(request, request.response_counts)
+        # Create the embed with current RSVP details (player names)
+        embed = create_ecs_fc_embed(request, request.rsvp_details)
         
         # Send the message
         message_content = f"⚽ **{request.team_name}** - Are you available for the match against **{request.opponent_name}**? React to RSVP!"
@@ -250,10 +272,10 @@ async def store_rsvp_message_id(match_id: int, message_id: str, channel_id: str)
 @router.post("/update_rsvp_embed/{match_id}", response_model=UpdateEmbedResponse)
 async def update_rsvp_embed(match_id: int, bot: commands.Bot = Depends(get_bot)):
     """
-    Update an existing ECS FC RSVP message with current response counts.
-    
+    Update an existing ECS FC RSVP message with current player names.
+
     This endpoint finds the original RSVP message and updates the embed
-    with the latest response counts from the database.
+    with the latest RSVP player names from the database.
     """
     logger.info(f"Received request to update ECS FC RSVP embed for match_id={match_id}")
     
@@ -279,20 +301,20 @@ async def update_rsvp_embed(match_id: int, bot: commands.Bot = Depends(get_bot))
             logger.error(f"Discord message not found for ID: {message_id}")
             raise HTTPException(status_code=404, detail=f"Discord message not found")
         
-        # Get current RSVP data
-        response_counts = await fetch_ecs_fc_rsvp_data(match_id)
-        
+        # Get current RSVP data with player names
+        rsvp_details = await fetch_ecs_fc_rsvp_data(match_id)
+
         # Get match details for the embed
         match_details = await get_ecs_fc_match_details(match_id)
         if not match_details:
             logger.error(f"Match details not found for match {match_id}")
             raise HTTPException(status_code=404, detail=f"Match details not found")
-        
+
         # Create the request object for the embed
-        request = RSVPMessageRequest(**match_details, response_counts=response_counts)
-        
-        # Create updated embed
-        updated_embed = create_ecs_fc_embed(request, response_counts)
+        request = RSVPMessageRequest(**match_details, rsvp_details=rsvp_details)
+
+        # Create updated embed with player names
+        updated_embed = create_ecs_fc_embed(request, rsvp_details)
         
         # Update the message
         await message.edit(embed=updated_embed)

@@ -1,0 +1,123 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block main_content %}
+<div class="min-h-screen flex items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div class="w-full max-w-md">
+        <!-- ECS Logo -->
+        <div class="text-center mb-6">
+            <img src="{{ url_for('static', filename='img/ecs_logo.png') }}"
+                 alt="ECS Logo" class="w-20 h-20 mx-auto">
+        </div>
+
+        <!-- Error Card -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <!-- Top accent bar (color based on error type) -->
+            {% if error_type == 'expired' %}
+            <div class="h-1 bg-gradient-to-r from-yellow-500 to-orange-500"></div>
+            {% elif error_type in ['already_claimed', 'already_linked'] %}
+            <div class="h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+            {% else %}
+            <div class="h-1 bg-gradient-to-r from-red-500 to-pink-500"></div>
+            {% endif %}
+
+            <div class="p-8">
+                <!-- Icon -->
+                <div class="w-16 h-16 mx-auto rounded-full flex items-center justify-center mb-6
+                    {% if error_type == 'expired' %}
+                    bg-yellow-100 dark:bg-yellow-900/50
+                    {% elif error_type in ['already_claimed', 'already_linked'] %}
+                    bg-blue-100 dark:bg-blue-900/50
+                    {% else %}
+                    bg-red-100 dark:bg-red-900/50
+                    {% endif %}">
+                    {% if error_type == 'expired' %}
+                    <i class="ti ti-clock-off text-3xl text-yellow-600 dark:text-yellow-400"></i>
+                    {% elif error_type == 'already_claimed' %}
+                    <i class="ti ti-user-check text-3xl text-blue-600 dark:text-blue-400"></i>
+                    {% elif error_type == 'already_linked' %}
+                    <i class="ti ti-link text-3xl text-blue-600 dark:text-blue-400"></i>
+                    {% elif error_type == 'not_found' %}
+                    <i class="ti ti-file-unknown text-3xl text-red-600 dark:text-red-400"></i>
+                    {% else %}
+                    <i class="ti ti-alert-circle text-3xl text-red-600 dark:text-red-400"></i>
+                    {% endif %}
+                </div>
+
+                <!-- Title -->
+                <h2 class="text-2xl font-bold text-gray-900 dark:text-white text-center mb-4">{{ title }}</h2>
+
+                <!-- Message -->
+                <div class="space-y-4 text-gray-600 dark:text-gray-300 text-center">
+                    <p>{{ message }}</p>
+
+                    {% if player_name %}
+                    <p class="text-sm">
+                        Profile name: <span class="font-semibold text-gray-900 dark:text-white">{{ player_name }}</span>
+                    </p>
+                    {% endif %}
+
+                    {% if expired_at %}
+                    <p class="text-sm">
+                        Expired on: <span class="font-semibold">{{ expired_at.strftime('%B %d, %Y') }}</span>
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Help text based on error type -->
+                <div class="mt-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    {% if error_type == 'expired' %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ti ti-info-circle mr-1"></i>
+                        Claim codes expire after 30 days. Please contact a coach or admin to get a new code.
+                    </p>
+                    {% elif error_type == 'already_claimed' %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ti ti-info-circle mr-1"></i>
+                        If you already registered with this code, you can <a href="{{ url_for('auth.discord_login') }}" class="text-ecs-green hover:underline">log in here</a>. Otherwise, please contact a coach or admin.
+                    </p>
+                    {% elif error_type == 'already_linked' %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ti ti-info-circle mr-1"></i>
+                        This profile was already linked to an existing account. If this is your account, you can <a href="{{ url_for('auth.discord_login') }}" class="text-ecs-green hover:underline">log in here</a>.
+                    </p>
+                    {% elif error_type == 'not_found' %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ti ti-info-circle mr-1"></i>
+                        Please double-check the code was entered correctly. If the problem persists, contact a coach or admin.
+                    </p>
+                    {% else %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        <i class="ti ti-info-circle mr-1"></i>
+                        If you have a valid code, please make sure you entered it correctly. Otherwise, contact a coach or admin for assistance.
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Action buttons -->
+                <div class="mt-6 space-y-3">
+                    {% if error_type not in ['already_claimed', 'already_linked'] %}
+                    <a href="{{ url_for('auth.discord_register') }}"
+                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                        <i class="ti ti-brand-discord"></i>
+                        Register Without Code
+                    </a>
+                    {% endif %}
+
+                    <a href="{{ url_for('auth.login') }}"
+                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                        <i class="ti ti-arrow-left"></i>
+                        Back to Login
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact info -->
+        <div class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            <p>Need help? Contact us on <a href="https://discord.com/invite/weareecs" target="_blank" class="text-ecs-green hover:underline">Discord</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

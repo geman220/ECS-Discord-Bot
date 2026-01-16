@@ -36,6 +36,33 @@
                 </div>
             </div>
 
+            <!-- Registration Code (Optional) -->
+            <div class="bg-ecs-green/10 dark:bg-ecs-green/20 border border-ecs-green/30 rounded-lg p-4 mb-6">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0 w-10 h-10 bg-ecs-green/20 rounded-full flex items-center justify-center">
+                        <i class="ti ti-ticket text-ecs-green text-xl"></i>
+                    </div>
+                    <div class="flex-1">
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Were you given a code?</h6>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                            If a coach or admin gave you a 6-character code, enter it below to link your profile information.
+                        </p>
+                        <div class="flex gap-2">
+                            <input type="text" name="claim_code" id="claim_code"
+                                   maxlength="6" pattern="[A-Za-z0-9]{6}"
+                                   placeholder="e.g., A7X9K2"
+                                   value="{{ claim_code or '' }}"
+                                   class="flex-1 max-w-[180px] px-3 py-2 rounded-lg border-2 border-ecs-green/50 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+                            <button type="button" id="validate-code-btn"
+                                    class="px-4 py-2 rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors font-medium">
+                                <i class="ti ti-check"></i> Verify
+                            </button>
+                        </div>
+                        <div id="code-validation-result" class="mt-2 text-sm hidden"></div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Waiver Section -->
             <div class="mb-6">
                 <div class="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-t-lg border border-amber-200 dark:border-amber-800">
@@ -86,8 +113,10 @@
             </div>
 
             <!-- Form -->
-            <form method="post" action="{{ url_for('auth.register_with_discord') }}">
+            <form method="post" action="{{ url_for('auth.register_with_discord') }}" id="registration-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <!-- Hidden field to carry claim_code (synced from visible input above) -->
+                <input type="hidden" name="claim_code" id="claim_code_hidden" value="{{ claim_code or '' }}">
 
                 <!-- Terms Agreement -->
                 <div class="mb-6" id="terms-checkbox-wrapper">
@@ -152,6 +181,92 @@ document.addEventListener('DOMContentLoaded', function() {
     termsCheckbox.addEventListener('change', function() {
         submitBtn.disabled = !this.checked;
     });
+
+    // Claim code validation
+    const claimCodeInput = document.getElementById('claim_code');
+    const validateBtn = document.getElementById('validate-code-btn');
+    const validationResult = document.getElementById('code-validation-result');
+
+    if (validateBtn && claimCodeInput) {
+        // Auto-uppercase input
+        claimCodeInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        });
+
+        validateBtn.addEventListener('click', async function() {
+            const code = claimCodeInput.value.trim();
+
+            if (!code) {
+                showValidationResult('Please enter a code', 'warning');
+                return;
+            }
+
+            if (code.length !== 6) {
+                showValidationResult('Code must be 6 characters', 'warning');
+                return;
+            }
+
+            validateBtn.disabled = true;
+            validateBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i>';
+
+            try {
+                const response = await fetch('/api/v1/quick-profiles/validate-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ claim_code: code })
+                });
+
+                const data = await response.json();
+
+                if (data.valid) {
+                    showValidationResult(
+                        `<i class="ti ti-check mr-1"></i>Code valid! Profile: <strong>${data.player_name}</strong>`,
+                        'success'
+                    );
+                } else {
+                    showValidationResult(
+                        `<i class="ti ti-x mr-1"></i>${data.message || 'Invalid code'}`,
+                        'error'
+                    );
+                }
+            } catch (error) {
+                showValidationResult('Could not validate code. You can still register.', 'warning');
+            } finally {
+                validateBtn.disabled = false;
+                validateBtn.innerHTML = '<i class="ti ti-check"></i> Verify';
+            }
+        });
+    }
+
+    function showValidationResult(message, type) {
+        validationResult.classList.remove('hidden', 'text-green-600', 'text-red-600', 'text-amber-600',
+            'dark:text-green-400', 'dark:text-red-400', 'dark:text-amber-400');
+
+        if (type === 'success') {
+            validationResult.classList.add('text-green-600', 'dark:text-green-400');
+        } else if (type === 'error') {
+            validationResult.classList.add('text-red-600', 'dark:text-red-400');
+        } else {
+            validationResult.classList.add('text-amber-600', 'dark:text-amber-400');
+        }
+
+        validationResult.innerHTML = message;
+    }
+
+    // Sync visible claim_code input to hidden form field
+    const claimCodeHidden = document.getElementById('claim_code_hidden');
+    if (claimCodeInput && claimCodeHidden) {
+        claimCodeInput.addEventListener('input', function() {
+            claimCodeHidden.value = this.value;
+        });
+        // Initial sync in case pre-filled
+        claimCodeHidden.value = claimCodeInput.value;
+    }
+
+    // Auto-validate if code is pre-filled (from email/SMS link)
+    if (claimCodeInput && claimCodeInput.value.length === 6) {
+        validateBtn.click();
+    }
 });
 </script>
 {% endblock %}

@@ -117,6 +117,12 @@ def discord_register():
     session['oauth_state'] = state_value
     session['discord_registration_mode'] = True
 
+    # Capture claim_code from URL if present (for quick profile linking)
+    claim_code = request.args.get('claim_code', '').strip().upper()
+    if claim_code:
+        session['pending_claim_code'] = claim_code
+        logger.debug(f"Stored claim_code in session for registration")
+
     # Debug session storage (sanitized - no sensitive values)
     logger.debug(f"OAuth state set in session")
     logger.debug(f"Session keys: {get_safe_session_keys(session)}")
@@ -503,6 +509,81 @@ def discord_callback():
         logger.error(f"Discord auth error: {str(e)}", exc_info=True)
         show_error('Authentication failed.')
         return redirect(url_for('auth.login'))
+
+
+@auth.route('/claim')
+def claim_quick_profile():
+    """
+    Entry point for QR code scans containing quick profile claim codes.
+
+    Mobile app generates QR codes encoding: https://portal.ecsfc.com/claim?code=XXXXXX
+    This route validates the code and redirects to Discord OAuth registration.
+
+    Flow:
+    1. Player scans QR code or clicks link
+    2. This route validates the code is valid and pending
+    3. If valid: stores code in session, redirects to Discord OAuth
+    4. If invalid: shows error page with appropriate message
+    """
+    from app.models import QuickProfile, QuickProfileStatus
+
+    code = request.args.get('code', '').strip().upper()
+
+    if not code:
+        return render_template('claim_code_error_flowbite.html',
+                               title='Invalid Link',
+                               error_type='missing',
+                               message='No claim code was provided.')
+
+    # Validate code format (6 alphanumeric characters)
+    if len(code) != 6 or not code.isalnum():
+        return render_template('claim_code_error_flowbite.html',
+                               title='Invalid Code',
+                               error_type='invalid_format',
+                               message='The claim code format is invalid. Codes are 6 characters.')
+
+    # Find the quick profile
+    quick_profile = QuickProfile.find_by_code(code)
+
+    if not quick_profile:
+        return render_template('claim_code_error_flowbite.html',
+                               title='Code Not Found',
+                               error_type='not_found',
+                               message='This claim code was not found in our system.')
+
+    # Check if already claimed
+    if quick_profile.status == QuickProfileStatus.CLAIMED.value:
+        return render_template('claim_code_error_flowbite.html',
+                               title='Code Already Used',
+                               error_type='already_claimed',
+                               message='This code has already been used to create an account.',
+                               player_name=quick_profile.player_name)
+
+    # Check if manually linked
+    if quick_profile.status == QuickProfileStatus.LINKED.value:
+        return render_template('claim_code_error_flowbite.html',
+                               title='Code Already Linked',
+                               error_type='already_linked',
+                               message='This code has already been linked to an existing account.',
+                               player_name=quick_profile.player_name)
+
+    # Check if expired
+    if quick_profile.status == QuickProfileStatus.EXPIRED.value or not quick_profile.is_valid():
+        return render_template('claim_code_error_flowbite.html',
+                               title='Code Expired',
+                               error_type='expired',
+                               message='This claim code has expired.',
+                               player_name=quick_profile.player_name,
+                               expired_at=quick_profile.expires_at)
+
+    # Code is valid! Store it in session and redirect to Discord registration
+    session['pending_claim_code'] = code
+    session.modified = True
+
+    logger.info(f"Valid claim code {code} accessed via /claim route, redirecting to Discord registration")
+
+    # Redirect to Discord OAuth registration with claim_code preserved in session
+    return redirect(url_for('auth.discord_register'))
 
 
 @auth.route('/verify_purchase', methods=['GET'])

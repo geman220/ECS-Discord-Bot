@@ -498,9 +498,33 @@ def get_match_rsvp_summary(match_id: int):
             'match_id': match_id,
             'response_counts': response_counts
         })
-        
+
     except Exception as e:
         logger.error(f"🔵 [ECS_FC_API] Error getting RSVP summary for match {match_id}: {str(e)}", exc_info=True)
+        return create_api_response(False, f"Internal server error: {str(e)}", status_code=500)
+
+
+@ecs_fc_api.route('/matches/<int:match_id>/rsvp-details', methods=['GET'])
+def get_match_rsvp_details(match_id: int):
+    """Get RSVP details with player names for a specific match - used by Discord bot."""
+    try:
+        logger.info(f"🔵 [ECS_FC_API] Getting RSVP details for match {match_id}")
+
+        match = EcsFcScheduleManager.get_match_by_id(match_id)
+        if not match:
+            logger.warning(f"🔵 [ECS_FC_API] Match {match_id} not found")
+            return create_api_response(False, "Match not found", status_code=404)
+
+        rsvp_details = match.get_rsvp_details()
+        logger.info(f"🔵 [ECS_FC_API] Retrieved RSVP details for match {match_id}: yes={len(rsvp_details['yes'])}, no={len(rsvp_details['no'])}, maybe={len(rsvp_details['maybe'])}")
+
+        return create_api_response(True, "RSVP details retrieved", {
+            'match_id': match_id,
+            'rsvp_details': rsvp_details
+        })
+
+    except Exception as e:
+        logger.error(f"🔵 [ECS_FC_API] Error getting RSVP details for match {match_id}: {str(e)}", exc_info=True)
         return create_api_response(False, f"Internal server error: {str(e)}", status_code=500)
 
 

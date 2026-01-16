@@ -1,0 +1,1166 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
+
+{% block admin_title %}Quick Profiles{% endblock %}
+{% block panel_description %}Manage tryout player profiles and claim codes{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Quick Profiles</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Stats Cards -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <!-- Pending -->
+    <div class="rounded-lg p-5 bg-yellow-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Pending</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.pending }}</h3>
+            </div>
+            <i class="ti ti-clock text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <!-- Claimed -->
+    <div class="rounded-lg p-5 bg-green-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Claimed</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.claimed }}</h3>
+            </div>
+            <i class="ti ti-user-check text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <!-- Linked -->
+    <div class="rounded-lg p-5 bg-blue-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Linked</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.linked }}</h3>
+            </div>
+            <i class="ti ti-link text-4xl text-white/50"></i>
+        </div>
+    </div>
+
+    <!-- Expired -->
+    <div class="rounded-lg p-5 bg-red-500 text-white">
+        <div class="flex justify-between items-start">
+            <div>
+                <p class="text-sm font-medium text-white/80">Expired</p>
+                <h3 class="text-2xl font-bold mt-1">{{ stats.expired }}</h3>
+            </div>
+            <i class="ti ti-clock-x text-4xl text-white/50"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Actions Bar -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+    <div class="flex flex-wrap gap-2">
+        <!-- Status Filter -->
+        <select id="status-filter"
+                class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+            <option value="" {% if not status_filter %}selected{% endif %}>All Statuses</option>
+            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+            <option value="claimed" {% if status_filter == 'claimed' %}selected{% endif %}>Claimed</option>
+            <option value="linked" {% if status_filter == 'linked' %}selected{% endif %}>Linked</option>
+            <option value="expired" {% if status_filter == 'expired' %}selected{% endif %}>Expired</option>
+        </select>
+
+        <!-- Search -->
+        <div class="relative">
+            <input type="text" id="search-input" placeholder="Search by name..."
+                   value="{{ search }}"
+                   class="pl-10 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        </div>
+    </div>
+
+    <!-- Create Button -->
+    <button type="button" id="create-profile-btn"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+        <i class="ti ti-plus"></i>
+        <span>Create Quick Profile</span>
+    </button>
+</div>
+
+<!-- Profiles Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+    {% if profiles %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-sm">
+                <tr>
+                    <th class="px-4 py-3 font-medium">Photo</th>
+                    <th class="px-4 py-3 font-medium">Name</th>
+                    <th class="px-4 py-3 font-medium">Claim Code</th>
+                    <th class="px-4 py-3 font-medium">Status</th>
+                    <th class="px-4 py-3 font-medium">Expires</th>
+                    <th class="px-4 py-3 font-medium">Created</th>
+                    <th class="px-4 py-3 font-medium text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for profile in profiles %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-4 py-3">
+                        {% if profile.profile_picture_url %}
+                        <img src="{{ profile.profile_picture_url }}" alt="{{ profile.player_name }}"
+                             class="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600">
+                        {% else %}
+                        <div class="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center">
+                            <i class="ti ti-user text-gray-400 dark:text-gray-500"></i>
+                        </div>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <div class="font-medium text-gray-900 dark:text-white">{{ profile.player_name }}</div>
+                        {% if profile.notes %}
+                        <div class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{{ profile.notes }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3">
+                        <code class="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-lg font-mono font-bold tracking-wider text-gray-900 dark:text-white">
+                            {{ profile.claim_code }}
+                        </code>
+                        <button type="button" onclick="copyCode('{{ profile.claim_code }}')" title="Copy code"
+                                class="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                            <i class="ti ti-copy"></i>
+                        </button>
+                    </td>
+                    <td class="px-4 py-3">
+                        {% if profile.status == 'pending' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">
+                            <i class="ti ti-clock mr-1"></i>Pending
+                        </span>
+                        {% elif profile.status == 'claimed' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">
+                            <i class="ti ti-check mr-1"></i>Claimed
+                        </span>
+                        {% elif profile.status == 'linked' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                            <i class="ti ti-link mr-1"></i>Linked
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
+                            <i class="ti ti-clock-x mr-1"></i>Expired
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                        {{ profile.expires_at.strftime('%b %d, %Y') }}
+                    </td>
+                    <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
+                        {{ profile.created_at.strftime('%b %d, %Y') }}
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                        <div class="flex items-center justify-end gap-2">
+                            {% if profile.status == 'pending' %}
+                            <button type="button" onclick="openLinkModal({{ profile.id }}, '{{ profile.player_name }}')"
+                                    class="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                                    title="Link to player">
+                                <i class="ti ti-link"></i>
+                            </button>
+                            <button type="button" onclick="deleteProfile({{ profile.id }}, '{{ profile.player_name }}')"
+                                    class="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                                    title="Delete profile">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                            {% else %}
+                            <button type="button" onclick="viewProfile({{ profile.id }})"
+                                    class="p-2 text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                                    title="View details">
+                                <i class="ti ti-eye"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-8 text-center">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-user-plus text-3xl text-gray-400"></i>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">No Quick Profiles</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">Create a quick profile for tryout players</p>
+        <button type="button" id="create-profile-btn-empty"
+                class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+            <i class="ti ti-plus"></i>
+            <span>Create Quick Profile</span>
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Create Profile Modal -->
+<div id="create-modal" tabindex="-1" aria-hidden="true"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
+    <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Create Quick Profile</h3>
+            <button type="button" onclick="closeCreateModal()"
+                    class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                <i class="ti ti-x text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-4 space-y-4">
+            <!-- Duplicate Warning (hidden by default) -->
+            <div id="duplicate-warning" class="hidden p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+                <div class="flex items-start gap-3">
+                    <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400 text-xl mt-0.5"></i>
+                    <div class="flex-1">
+                        <h4 class="font-medium text-amber-800 dark:text-amber-200">Similar profiles found</h4>
+                        <p class="text-sm text-amber-700 dark:text-amber-300 mb-2">Please verify this is a different person:</p>
+                        <div id="duplicate-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Player Name -->
+            <div>
+                <label for="player-name" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">
+                    Player Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="player-name" name="player_name" required maxlength="100"
+                       placeholder="Enter player's full name"
+                       class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+            </div>
+
+            <!-- Photo Upload -->
+            <div>
+                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-1">
+                    Photo <span class="text-red-500">*</span>
+                </label>
+                <div id="photo-upload-area"
+                     class="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-ecs-green transition-colors cursor-pointer">
+                    <input type="file" id="photo-input" accept="image/*" class="hidden">
+                    <div id="photo-placeholder">
+                        <i class="ti ti-camera text-4xl text-gray-400 mb-2"></i>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Click or drag to upload photo</p>
+                    </div>
+                    <div id="photo-preview" class="hidden">
+                        <img id="preview-image" src="" alt="Preview" class="max-h-40 mx-auto rounded-lg">
+                        <button type="button" onclick="clearPhoto()" class="mt-2 text-sm text-red-600 hover:text-red-700">
+                            <i class="ti ti-x mr-1"></i>Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div>
+                <label for="notes" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Notes</label>
+                <textarea id="notes" name="notes" rows="2" maxlength="500"
+                          placeholder="Optional notes about the player (e.g., position, skill level)"
+                          class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green"></textarea>
+            </div>
+
+            <!-- Optional Fields Row -->
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label for="jersey-number" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Jersey #</label>
+                    <input type="number" id="jersey-number" name="jersey_number" min="1" max="99"
+                           placeholder="1-99"
+                           class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+                </div>
+                <div>
+                    <label for="jersey-size" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Size</label>
+                    <select id="jersey-size" name="jersey_size"
+                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+                        <option value="">-</option>
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                        <option value="XL">XL</option>
+                        <option value="XXL">XXL</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="pronouns" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Pronouns</label>
+                    <select id="pronouns" name="pronouns"
+                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+                        <option value="">-</option>
+                        <option value="he/him">he/him</option>
+                        <option value="she/her">she/her</option>
+                        <option value="they/them">they/them</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Contact Info (for sending code) -->
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    <i class="ti ti-send mr-1"></i>Optionally send the code to the player:
+                </p>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="player-email" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Email</label>
+                        <input type="email" id="player-email" name="email"
+                               placeholder="player@example.com"
+                               class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+                    </div>
+                    <div>
+                        <label for="player-phone" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Phone (SMS)</label>
+                        <input type="tel" id="player-phone" name="phone_number"
+                               placeholder="(555) 123-4567"
+                               class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" onclick="closeCreateModal()"
+                    class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button type="button" id="create-submit-btn" onclick="submitCreateProfile()"
+                    class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors disabled:opacity-50">
+                <i class="ti ti-plus mr-1"></i>Create Profile
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Link Profile Modal -->
+<div id="link-modal" tabindex="-1" aria-hidden="true"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
+    <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Link to Existing Player</h3>
+            <button type="button" onclick="closeLinkModal()"
+                    class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                <i class="ti ti-x text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-4 space-y-4">
+            <input type="hidden" id="link-profile-id">
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Linking profile: <strong id="link-profile-name" class="text-gray-900 dark:text-white"></strong>
+            </p>
+
+            <!-- Player Search -->
+            <div>
+                <label for="player-search" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">
+                    Search Players
+                </label>
+                <input type="text" id="player-search" placeholder="Type to search..."
+                       class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+            </div>
+
+            <!-- Search Results -->
+            <div id="player-search-results" class="max-h-48 overflow-y-auto space-y-2"></div>
+
+            <!-- Selected Player -->
+            <div id="selected-player-container" class="hidden p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+                <div class="flex items-center gap-3">
+                    <img id="selected-player-photo" src="" alt="" class="w-10 h-10 rounded-full object-cover">
+                    <div class="flex-1">
+                        <div id="selected-player-name" class="font-medium text-gray-900 dark:text-white"></div>
+                        <div id="selected-player-teams" class="text-xs text-gray-500 dark:text-gray-400"></div>
+                    </div>
+                    <button type="button" onclick="clearSelectedPlayer()" class="text-gray-400 hover:text-gray-600">
+                        <i class="ti ti-x"></i>
+                    </button>
+                </div>
+                <input type="hidden" id="selected-player-id">
+            </div>
+
+            <!-- Overwrite Photo Option -->
+            <div id="overwrite-photo-option" class="hidden">
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="overwrite-photo" class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Overwrite player's existing photo</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" onclick="closeLinkModal()"
+                    class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                Cancel
+            </button>
+            <button type="button" id="link-submit-btn" onclick="submitLinkProfile()" disabled
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+                <i class="ti ti-link mr-1"></i>Link Profile
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Success Modal (shows claim code) -->
+<div id="success-modal" tabindex="-1" aria-hidden="true"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
+    <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center p-6">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50 mb-4">
+            <i class="ti ti-check text-3xl text-green-600 dark:text-green-400"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Profile Created!</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">Give this code to the player:</p>
+
+        <input type="hidden" id="success-profile-id">
+
+        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4">
+            <code id="success-claim-code" class="text-3xl font-mono font-bold tracking-widest text-gray-900 dark:text-white"></code>
+        </div>
+
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            They can enter this code when registering at<br>
+            <strong class="text-gray-900 dark:text-white">ecsfc.com</strong> via Discord
+        </p>
+
+        <!-- Send Options -->
+        <div id="success-send-options" class="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
+            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Send code to player:</p>
+            <div class="flex flex-col gap-2">
+                <div id="success-email-row" class="hidden flex items-center gap-2">
+                    <span id="success-email-display" class="flex-1 text-sm text-gray-600 dark:text-gray-400 truncate"></span>
+                    <button type="button" onclick="sendEmailFromSuccess()"
+                            class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors">
+                        <i class="ti ti-mail mr-1"></i>Send Email
+                    </button>
+                </div>
+                <div id="success-phone-row" class="hidden flex items-center gap-2">
+                    <span id="success-phone-display" class="flex-1 text-sm text-gray-600 dark:text-gray-400"></span>
+                    <button type="button" onclick="sendSmsFromSuccess()"
+                            class="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors">
+                        <i class="ti ti-message mr-1"></i>Send SMS
+                    </button>
+                </div>
+                <p id="success-no-contact" class="text-sm text-gray-400 italic hidden">No contact info provided</p>
+            </div>
+        </div>
+
+        <div class="flex justify-center gap-3">
+            <button type="button" onclick="copySuccessCode()"
+                    class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                <i class="ti ti-copy mr-1"></i>Copy Code
+            </button>
+            <button type="button" onclick="closeSuccessModal()"
+                    class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+                Done
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- View Details Modal -->
+<div id="details-modal" tabindex="-1" aria-hidden="true"
+     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
+    <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Quick Profile Details</h3>
+            <button type="button" onclick="closeDetailsModal()"
+                    class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
+                <i class="ti ti-x text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="p-4 space-y-4">
+            <!-- Photo and Basic Info -->
+            <div class="flex items-start gap-4">
+                <img id="details-photo" src="" alt="" class="w-20 h-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600">
+                <div class="flex-1">
+                    <h4 id="details-name" class="text-xl font-bold text-gray-900 dark:text-white"></h4>
+                    <div id="details-status" class="mt-1"></div>
+                </div>
+            </div>
+
+            <!-- Claim Code (always visible for reference) -->
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Claim Code</label>
+                <div class="flex items-center gap-3">
+                    <code id="details-code" class="text-2xl font-mono font-bold tracking-widest text-gray-900 dark:text-white"></code>
+                    <button type="button" onclick="copyDetailsCode()" class="p-2 text-gray-400 hover:text-ecs-green transition-colors">
+                        <i class="ti ti-copy text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Additional Details -->
+            <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400">Created</label>
+                    <span id="details-created" class="text-gray-900 dark:text-white"></span>
+                </div>
+                <div>
+                    <label class="block text-gray-500 dark:text-gray-400">Expires</label>
+                    <span id="details-expires" class="text-gray-900 dark:text-white"></span>
+                </div>
+                <div id="details-jersey-container" class="hidden">
+                    <label class="block text-gray-500 dark:text-gray-400">Jersey</label>
+                    <span id="details-jersey" class="text-gray-900 dark:text-white"></span>
+                </div>
+                <div id="details-pronouns-container" class="hidden">
+                    <label class="block text-gray-500 dark:text-gray-400">Pronouns</label>
+                    <span id="details-pronouns" class="text-gray-900 dark:text-white"></span>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div id="details-notes-container" class="hidden">
+                <label class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Notes</label>
+                <p id="details-notes" class="text-gray-900 dark:text-white text-sm bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3"></p>
+            </div>
+
+            <!-- Send Code Section (only for pending profiles) -->
+            <div id="details-send-container" class="hidden border-t border-gray-200 dark:border-gray-700 pt-4">
+                <input type="hidden" id="details-profile-id">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    <i class="ti ti-send mr-1"></i>Send Code to Player
+                </label>
+                <div class="space-y-3">
+                    <!-- Email row -->
+                    <div class="flex items-center gap-2">
+                        <input type="email" id="details-email-input" placeholder="Email address"
+                               class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <button type="button" onclick="sendEmailFromDetails()"
+                                class="px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap">
+                            <i class="ti ti-mail mr-1"></i>Email
+                        </button>
+                    </div>
+                    <!-- Phone row -->
+                    <div class="flex items-center gap-2">
+                        <input type="tel" id="details-phone-input" placeholder="Phone number"
+                               class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+                        <button type="button" onclick="sendSmsFromDetails()"
+                                class="px-3 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors whitespace-nowrap">
+                            <i class="ti ti-message mr-1"></i>SMS
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linked Player (if claimed/linked) -->
+            <div id="details-linked-container" class="hidden">
+                <label class="block text-sm text-gray-500 dark:text-gray-400 mb-2">Linked To Player</label>
+                <div class="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+                    <img id="details-linked-photo" src="" alt="" class="w-10 h-10 rounded-full object-cover">
+                    <div>
+                        <div id="details-linked-name" class="font-medium text-gray-900 dark:text-white"></div>
+                        <div id="details-linked-date" class="text-xs text-gray-500 dark:text-gray-400"></div>
+                    </div>
+                    <a id="details-linked-link" href="#" class="ml-auto text-ecs-green hover:underline text-sm">
+                        View Player <i class="ti ti-external-link"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+            <button type="button" onclick="closeDetailsModal()"
+                    class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// State
+let photoBase64 = null;
+let selectedPlayerId = null;
+let searchTimeout = null;
+
+// Filter/Search handlers
+document.getElementById('status-filter').addEventListener('change', function() {
+    applyFilters();
+});
+
+document.getElementById('search-input').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(applyFilters, 300);
+});
+
+function applyFilters() {
+    const status = document.getElementById('status-filter').value;
+    const search = document.getElementById('search-input').value;
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (search) params.set('search', search);
+    window.location.href = '{{ url_for("admin_panel.quick_profiles_management") }}?' + params.toString();
+}
+
+// Copy code to clipboard
+function copyCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+        showToast('Code copied!', 'success');
+    });
+}
+
+// Create Modal
+document.getElementById('create-profile-btn').addEventListener('click', openCreateModal);
+document.getElementById('create-profile-btn-empty')?.addEventListener('click', openCreateModal);
+
+function openCreateModal() {
+    document.getElementById('create-modal').classList.remove('hidden');
+    document.getElementById('player-name').value = '';
+    document.getElementById('notes').value = '';
+    document.getElementById('jersey-number').value = '';
+    document.getElementById('jersey-size').value = '';
+    document.getElementById('pronouns').value = '';
+    document.getElementById('player-email').value = '';
+    document.getElementById('player-phone').value = '';
+    clearPhoto();
+    hideDuplicateWarning();
+}
+
+function closeCreateModal() {
+    document.getElementById('create-modal').classList.add('hidden');
+}
+
+// Photo upload
+const photoUploadArea = document.getElementById('photo-upload-area');
+const photoInput = document.getElementById('photo-input');
+
+photoUploadArea.addEventListener('click', () => photoInput.click());
+photoUploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    photoUploadArea.classList.add('border-ecs-green');
+});
+photoUploadArea.addEventListener('dragleave', () => {
+    photoUploadArea.classList.remove('border-ecs-green');
+});
+photoUploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    photoUploadArea.classList.remove('border-ecs-green');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        handlePhotoFile(file);
+    }
+});
+
+photoInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) handlePhotoFile(file);
+});
+
+function handlePhotoFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        photoBase64 = e.target.result;
+        document.getElementById('preview-image').src = photoBase64;
+        document.getElementById('photo-placeholder').classList.add('hidden');
+        document.getElementById('photo-preview').classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+}
+
+function clearPhoto() {
+    photoBase64 = null;
+    photoInput.value = '';
+    document.getElementById('photo-placeholder').classList.remove('hidden');
+    document.getElementById('photo-preview').classList.add('hidden');
+}
+
+// Duplicate check on name blur
+document.getElementById('player-name').addEventListener('blur', async function() {
+    const name = this.value.trim();
+    if (name.length < 2) return;
+
+    try {
+        const response = await fetch('{{ url_for("admin_panel.check_quick_profile_duplicates") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ player_name: name })
+        });
+
+        const data = await response.json();
+        if (data.success && data.has_duplicates) {
+            showDuplicateWarning(data.duplicates);
+        } else {
+            hideDuplicateWarning();
+        }
+    } catch (error) {
+        console.error('Error checking duplicates:', error);
+    }
+});
+
+function showDuplicateWarning(duplicates) {
+    const container = document.getElementById('duplicate-warning');
+    const list = document.getElementById('duplicate-list');
+    list.innerHTML = duplicates.map(d => `
+        <div class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded">
+            ${d.profile_picture_url ?
+                `<img src="${d.profile_picture_url}" class="w-8 h-8 rounded-full object-cover">` :
+                `<div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center"><i class="ti ti-user text-gray-400"></i></div>`
+            }
+            <div class="flex-1 min-w-0">
+                <div class="font-medium text-gray-900 dark:text-white text-sm truncate">${d.name}</div>
+                <div class="text-xs text-gray-500">${d.type === 'player' ? 'Existing Player' : 'Quick Profile'} - ${Math.round(d.similarity * 100)}% match</div>
+            </div>
+        </div>
+    `).join('');
+    container.classList.remove('hidden');
+}
+
+function hideDuplicateWarning() {
+    document.getElementById('duplicate-warning').classList.add('hidden');
+}
+
+// Submit create profile
+async function submitCreateProfile() {
+    const name = document.getElementById('player-name').value.trim();
+    const notes = document.getElementById('notes').value.trim();
+    const jerseyNumber = document.getElementById('jersey-number').value;
+    const jerseySize = document.getElementById('jersey-size').value;
+    const pronouns = document.getElementById('pronouns').value;
+    const email = document.getElementById('player-email').value.trim();
+    const phone = document.getElementById('player-phone').value.trim();
+
+    if (!name) {
+        showToast('Player name is required', 'error');
+        return;
+    }
+    if (!photoBase64) {
+        showToast('Photo is required', 'error');
+        return;
+    }
+
+    const submitBtn = document.getElementById('create-submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i>Creating...';
+
+    try {
+        const response = await fetch('{{ url_for("admin_panel.create_quick_profile") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                player_name: name,
+                photo_base64: photoBase64,
+                notes: notes || null,
+                jersey_number: jerseyNumber ? parseInt(jerseyNumber) : null,
+                jersey_size: jerseySize || null,
+                pronouns: pronouns || null,
+                email: email || null,
+                phone_number: phone || null
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            closeCreateModal();
+            document.getElementById('success-claim-code').textContent = data.claim_code;
+            document.getElementById('success-profile-id').value = data.id;
+
+            // Show/hide send options based on provided contact info
+            const emailRow = document.getElementById('success-email-row');
+            const phoneRow = document.getElementById('success-phone-row');
+            const noContact = document.getElementById('success-no-contact');
+
+            if (email) {
+                document.getElementById('success-email-display').textContent = email;
+                emailRow.classList.remove('hidden');
+            } else {
+                emailRow.classList.add('hidden');
+            }
+
+            if (phone) {
+                document.getElementById('success-phone-display').textContent = phone;
+                phoneRow.classList.remove('hidden');
+            } else {
+                phoneRow.classList.add('hidden');
+            }
+
+            if (!email && !phone) {
+                noContact.classList.remove('hidden');
+            } else {
+                noContact.classList.add('hidden');
+            }
+
+            document.getElementById('success-modal').classList.remove('hidden');
+        } else {
+            showToast(data.error || 'Failed to create profile', 'error');
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="ti ti-plus mr-1"></i>Create Profile';
+    }
+}
+
+// Success modal
+function copySuccessCode() {
+    const code = document.getElementById('success-claim-code').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        showToast('Code copied!', 'success');
+    });
+}
+
+function closeSuccessModal() {
+    document.getElementById('success-modal').classList.add('hidden');
+    window.location.reload();
+}
+
+// Link modal
+function openLinkModal(profileId, profileName) {
+    document.getElementById('link-profile-id').value = profileId;
+    document.getElementById('link-profile-name').textContent = profileName;
+    document.getElementById('player-search').value = '';
+    document.getElementById('player-search-results').innerHTML = '';
+    clearSelectedPlayer();
+    document.getElementById('link-modal').classList.remove('hidden');
+}
+
+function closeLinkModal() {
+    document.getElementById('link-modal').classList.add('hidden');
+}
+
+// Player search for linking
+document.getElementById('player-search').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const query = this.value.trim();
+    if (query.length < 2) {
+        document.getElementById('player-search-results').innerHTML = '';
+        return;
+    }
+
+    searchTimeout = setTimeout(async () => {
+        try {
+            const response = await fetch(`{{ url_for("admin_panel.search_players_for_quick_profile") }}?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                const resultsDiv = document.getElementById('player-search-results');
+                if (data.players.length === 0) {
+                    resultsDiv.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No players found</p>';
+                } else {
+                    resultsDiv.innerHTML = data.players.map(p => `
+                        <button type="button" onclick="selectPlayer(${p.id}, '${p.name.replace(/'/g, "\\'")}', '${p.profile_picture_url || ''}', '${(p.teams || []).join(", ")}')"
+                                class="w-full flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors text-left">
+                            ${p.profile_picture_url ?
+                                `<img src="${p.profile_picture_url}" class="w-8 h-8 rounded-full object-cover">` :
+                                `<div class="w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center"><i class="ti ti-user text-gray-400"></i></div>`
+                            }
+                            <div>
+                                <div class="font-medium text-gray-900 dark:text-white text-sm">${p.name}</div>
+                                ${p.teams && p.teams.length > 0 ? `<div class="text-xs text-gray-500">${p.teams.join(', ')}</div>` : ''}
+                            </div>
+                        </button>
+                    `).join('');
+                }
+            }
+        } catch (error) {
+            console.error('Error searching players:', error);
+        }
+    }, 300);
+});
+
+function selectPlayer(id, name, photoUrl, teams) {
+    selectedPlayerId = id;
+    document.getElementById('selected-player-id').value = id;
+    document.getElementById('selected-player-name').textContent = name;
+    document.getElementById('selected-player-teams').textContent = teams;
+
+    const photoEl = document.getElementById('selected-player-photo');
+    if (photoUrl) {
+        photoEl.src = photoUrl;
+        photoEl.classList.remove('hidden');
+        document.getElementById('overwrite-photo-option').classList.remove('hidden');
+    } else {
+        photoEl.classList.add('hidden');
+        document.getElementById('overwrite-photo-option').classList.add('hidden');
+    }
+
+    document.getElementById('selected-player-container').classList.remove('hidden');
+    document.getElementById('player-search-results').innerHTML = '';
+    document.getElementById('link-submit-btn').disabled = false;
+}
+
+function clearSelectedPlayer() {
+    selectedPlayerId = null;
+    document.getElementById('selected-player-container').classList.add('hidden');
+    document.getElementById('overwrite-photo-option').classList.add('hidden');
+    document.getElementById('link-submit-btn').disabled = true;
+}
+
+async function submitLinkProfile() {
+    const profileId = document.getElementById('link-profile-id').value;
+    const playerId = selectedPlayerId;
+    const overwritePhoto = document.getElementById('overwrite-photo').checked;
+
+    if (!playerId) {
+        showToast('Please select a player', 'error');
+        return;
+    }
+
+    const submitBtn = document.getElementById('link-submit-btn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i>Linking...';
+
+    try {
+        const response = await fetch(`/admin-panel/quick-profiles/${profileId}/link`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({
+                player_id: playerId,
+                overwrite_photo: overwritePhoto
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Profile linked successfully!', 'success');
+            closeLinkModal();
+            window.location.reload();
+        } else {
+            showToast(data.error || 'Failed to link profile', 'error');
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="ti ti-link mr-1"></i>Link Profile';
+    }
+}
+
+// Delete profile
+async function deleteProfile(profileId, profileName) {
+    if (!confirm(`Are you sure you want to delete the profile for "${profileName}"?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/admin-panel/quick-profiles/${profileId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Profile deleted', 'success');
+            window.location.reload();
+        } else {
+            showToast(data.error || 'Failed to delete profile', 'error');
+        }
+    } catch (error) {
+        showToast('An error occurred', 'error');
+    }
+}
+
+// View profile details
+async function viewProfile(profileId) {
+    try {
+        const response = await fetch(`/admin-panel/quick-profiles/${profileId}`);
+        const data = await response.json();
+
+        if (data.success) {
+            const p = data.profile;
+
+            // Set basic info
+            document.getElementById('details-photo').src = p.profile_picture_url || '/static/img/default_avatar.png';
+            document.getElementById('details-name').textContent = p.player_name;
+            document.getElementById('details-code').textContent = p.claim_code;
+
+            // Status badge
+            const statusEl = document.getElementById('details-status');
+            if (p.status === 'pending') {
+                statusEl.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300"><i class="ti ti-clock mr-1"></i>Pending</span>';
+            } else if (p.status === 'claimed') {
+                statusEl.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"><i class="ti ti-check mr-1"></i>Claimed</span>';
+            } else if (p.status === 'linked') {
+                statusEl.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300"><i class="ti ti-link mr-1"></i>Linked</span>';
+            } else {
+                statusEl.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"><i class="ti ti-clock-x mr-1"></i>Expired</span>';
+            }
+
+            // Dates
+            document.getElementById('details-created').textContent = new Date(p.created_at).toLocaleDateString();
+            document.getElementById('details-expires').textContent = new Date(p.expires_at).toLocaleDateString();
+
+            // Jersey info
+            if (p.jersey_number || p.jersey_size) {
+                document.getElementById('details-jersey-container').classList.remove('hidden');
+                let jersey = '';
+                if (p.jersey_number) jersey += '#' + p.jersey_number;
+                if (p.jersey_size) jersey += (jersey ? ' / ' : '') + p.jersey_size;
+                document.getElementById('details-jersey').textContent = jersey;
+            } else {
+                document.getElementById('details-jersey-container').classList.add('hidden');
+            }
+
+            // Pronouns
+            if (p.pronouns) {
+                document.getElementById('details-pronouns-container').classList.remove('hidden');
+                document.getElementById('details-pronouns').textContent = p.pronouns;
+            } else {
+                document.getElementById('details-pronouns-container').classList.add('hidden');
+            }
+
+            // Notes
+            if (p.notes) {
+                document.getElementById('details-notes-container').classList.remove('hidden');
+                document.getElementById('details-notes').textContent = p.notes;
+            } else {
+                document.getElementById('details-notes-container').classList.add('hidden');
+            }
+
+            // Linked player info
+            if (p.linked_player) {
+                document.getElementById('details-linked-container').classList.remove('hidden');
+                document.getElementById('details-linked-photo').src = p.linked_player.profile_picture_url || '/static/img/default_avatar.png';
+                document.getElementById('details-linked-name').textContent = p.linked_player.name;
+                const linkedDate = p.claimed_at || p.linked_at;
+                document.getElementById('details-linked-date').textContent = linkedDate ? 'Linked ' + new Date(linkedDate).toLocaleDateString() : '';
+                document.getElementById('details-linked-link').href = `/players/${p.linked_player.id}`;
+            } else {
+                document.getElementById('details-linked-container').classList.add('hidden');
+            }
+
+            // Send section (only for pending profiles)
+            if (p.status === 'pending') {
+                document.getElementById('details-send-container').classList.remove('hidden');
+                document.getElementById('details-profile-id').value = p.id;
+                document.getElementById('details-email-input').value = p.email || '';
+                document.getElementById('details-phone-input').value = p.phone_number || '';
+            } else {
+                document.getElementById('details-send-container').classList.add('hidden');
+            }
+
+            // Show modal
+            document.getElementById('details-modal').classList.remove('hidden');
+        }
+    } catch (error) {
+        showToast('Could not load profile details', 'error');
+    }
+}
+
+function closeDetailsModal() {
+    document.getElementById('details-modal').classList.add('hidden');
+}
+
+function copyDetailsCode() {
+    const code = document.getElementById('details-code').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        showToast('Code copied!', 'success');
+    });
+}
+
+// Send email/SMS from success modal
+async function sendEmailFromSuccess() {
+    const profileId = document.getElementById('success-profile-id').value;
+    await sendEmail(profileId);
+}
+
+async function sendSmsFromSuccess() {
+    const profileId = document.getElementById('success-profile-id').value;
+    await sendSms(profileId);
+}
+
+// Send email/SMS from details modal
+async function sendEmailFromDetails() {
+    const profileId = document.getElementById('details-profile-id').value;
+    const email = document.getElementById('details-email-input').value.trim();
+    await sendEmail(profileId, email);
+}
+
+async function sendSmsFromDetails() {
+    const profileId = document.getElementById('details-profile-id').value;
+    const phone = document.getElementById('details-phone-input').value.trim();
+    await sendSms(profileId, phone);
+}
+
+// Generic send email function
+async function sendEmail(profileId, email = null) {
+    try {
+        const body = email ? { email } : {};
+        const response = await fetch(`/admin-panel/quick-profiles/${profileId}/send-email`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.error || 'Failed to send email', 'error');
+        }
+    } catch (error) {
+        showToast('Error sending email', 'error');
+    }
+}
+
+// Generic send SMS function
+async function sendSms(profileId, phone = null) {
+    try {
+        const body = phone ? { phone_number: phone } : {};
+        const response = await fetch(`/admin-panel/quick-profiles/${profileId}/send-sms`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            showToast(data.message, 'success');
+        } else {
+            showToast(data.error || 'Failed to send SMS', 'error');
+        }
+    } catch (error) {
+        showToast('Error sending SMS', 'error');
+    }
+}
+
+// Toast notification
+function showToast(message, type = 'info') {
+    // Simple toast implementation - could use a library
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 ${
+        type === 'success' ? 'bg-green-500 text-white' :
+        type === 'error' ? 'bg-red-500 text-white' :
+        'bg-gray-800 text-white'
+    }`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
+</script>
+{% endblock %}

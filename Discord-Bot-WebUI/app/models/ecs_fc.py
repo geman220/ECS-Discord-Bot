@@ -125,6 +125,17 @@ class EcsFcMatch(db.Model):
             'total': yes_count + no_count + maybe_count + no_response_count
         }
 
+    def get_rsvp_details(self):
+        """Get RSVP details with player names grouped by response."""
+        rsvp_data = {'yes': [], 'no': [], 'maybe': []}
+        for availability in self.availabilities:
+            if availability.response in rsvp_data and availability.player:
+                rsvp_data[availability.response].append({
+                    'player_name': availability.player.name,
+                    'player_id': availability.player_id
+                })
+        return rsvp_data
+
     def to_dict(self):
         return {
             'id': self.id,

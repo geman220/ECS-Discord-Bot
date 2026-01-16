@@ -122,6 +122,96 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
         raise
 
 
+def save_quick_profile_picture(cropped_image_data, quick_profile_id, player_name):
+    """
+    Save the profile picture for a quick profile (tryout player) with enhanced security.
+
+    Similar to save_cropped_profile_picture but for quick profiles which don't
+    require an existing player. Also auto-resizes images larger than 800x800.
+
+    Args:
+        cropped_image_data (str): The base64 encoded image data.
+        quick_profile_id (int): The ID of the quick profile.
+        player_name (str): The name of the player (for filename).
+
+    Returns:
+        str: The file path to the saved profile picture.
+
+    Raises:
+        ValueError: If image validation fails.
+        Exception: Propagates any error encountered during the process.
+    """
+    try:
+        # Validate base64 header
+        if not cropped_image_data.startswith('data:image/'):
+            raise ValueError("Invalid image data format - missing data:image/ header")
+
+        # Extract header and validate image type
+        header, encoded = cropped_image_data.split(",", 1)
+        mime_type = header.split(':')[1].split(';')[0]
+
+        # Whitelist allowed image types
+        allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+        if mime_type not in allowed_types:
+            raise ValueError(f"Unsupported image type: {mime_type}. Allowed: {', '.join(allowed_types)}")
+
+        # Decode and validate image data
+        image_data = base64.b64decode(encoded)
+
+        # Check file size (5MB limit for profile pictures)
+        max_size = 5 * 1024 * 1024  # 5MB
+        if len(image_data) > max_size:
+            raise ValueError(f"Image too large: {len(image_data)} bytes. Maximum: {max_size} bytes")
+
+        # Open and validate image using PIL
+        image = Image.open(BytesIO(image_data))
+
+        # Verify image is actually an image (not a malicious file)
+        image.verify()
+
+        # Re-open for processing (verify() closes the image)
+        image = Image.open(BytesIO(image_data)).convert("RGBA")
+
+        # Validate image dimensions (reasonable limits)
+        max_dimension = 2048  # 2048x2048 max
+        if image.width > max_dimension or image.height > max_dimension:
+            raise ValueError(f"Image dimensions too large: {image.width}x{image.height}. Maximum: {max_dimension}x{max_dimension}")
+
+        # Auto-resize if larger than 800x800 for quick profiles
+        target_size = 800
+        if image.width > target_size or image.height > target_size:
+            # Calculate new dimensions maintaining aspect ratio
+            ratio = min(target_size / image.width, target_size / image.height)
+            new_width = int(image.width * ratio)
+            new_height = int(image.height * ratio)
+            image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            logger.info(f"Quick profile {quick_profile_id}: Image resized to {new_width}x{new_height}")
+
+        # Generate secure filename
+        safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', player_name)
+        filename = secure_filename(f"quick_profile_{quick_profile_id}_{safe_name}.png")
+        upload_folder = os.path.join(current_app.root_path, 'static/img/uploads/quick_profiles')
+        os.makedirs(upload_folder, mode=0o755, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
+
+        # Always save as PNG to strip potentially malicious metadata
+        image.save(file_path, format='PNG', optimize=True)
+
+        # Set secure file permissions
+        os.chmod(file_path, 0o644)
+
+        profile_path = f"/static/img/uploads/quick_profiles/{filename}"
+        logger.info(f"Quick profile picture saved: {filename}")
+        return profile_path
+
+    except ValueError as e:
+        logger.warning(f"Image validation failed for quick profile {quick_profile_id}: {str(e)}")
+        raise
+    except Exception as e:
+        logger.error(f"Error saving quick profile picture {quick_profile_id}: {str(e)}", exc_info=True)
+        raise
+
+
 def generate_random_password(length=16):
     """
     Generates a secure random password.
