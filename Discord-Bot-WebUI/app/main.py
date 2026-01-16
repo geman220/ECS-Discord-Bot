@@ -17,7 +17,7 @@ import logging
 import asyncio
 import aiohttp
 from collections import defaultdict
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta
 
 from flask import (
     Blueprint, render_template, redirect, url_for, abort, request,
@@ -738,7 +738,9 @@ def index():
             # Add ECS FC matches to next_matches and previous_matches
             for ecs_match in ecs_fc_next_matches:
                 # Use date object as key (not string) to match fetch_upcoming_matches format
-                date_key = ecs_match.match_date if isinstance(ecs_match.match_date, date) else ecs_match.match_date.date()
+                # Convert to date if it's a datetime, otherwise use as-is
+                match_date_val = ecs_match.match_date
+                date_key = match_date_val.date() if hasattr(match_date_val, 'hour') else match_date_val
                 if date_key not in next_matches:
                     next_matches[date_key] = []
                 next_matches[date_key].append({
@@ -756,7 +758,8 @@ def index():
 
             for ecs_match in ecs_fc_prev_matches:
                 # Use date object as key (not string) to match fetch_upcoming_matches format
-                date_key = ecs_match.match_date if isinstance(ecs_match.match_date, date) else ecs_match.match_date.date()
+                match_date_val = ecs_match.match_date
+                date_key = match_date_val.date() if hasattr(match_date_val, 'hour') else match_date_val
                 if date_key not in previous_matches:
                     previous_matches[date_key] = []
                 previous_matches[date_key].append({
