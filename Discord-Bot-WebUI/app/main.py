@@ -455,14 +455,22 @@ def _build_match_dict(match):
         'home_team_id': match.home_team_id,
         'away_team_id': match.away_team_id,  # Fixed: renamed to away_team_id for template consistency
         'home_players': [{'id': p.id, 'name': p.name} for p in match.home_team.players],
-        'opponent_players': [{'id': p.id, 'name': p.name} for p in match.away_team.players]
+        'opponent_players': [{'id': p.id, 'name': p.name} for p in match.away_team.players],
+        # Normalized fields for template compatibility (both Pub League and ECS FC)
+        'match_id': match.id,
+        'time': match.time,
+        'location': match.location,
+        'week_type': getattr(match, 'week_type', None),
+        'reported': getattr(match, 'reported', False),
+        'is_ecs_fc': False,
+        'date': match.date
     }
-    
+
     # Add opponent_team_id as well for backwards compatibility
     match_dict['opponent_team_id'] = match.away_team_id
-    
+
     logger.debug(f"Built match dict for match {match.id}: home_team_id={match_dict['home_team_id']}, away_team_id={match_dict['away_team_id']}")
-    
+
     return match_dict
 
 
@@ -752,8 +760,13 @@ def index():
                     'opponent_name': ecs_match.opponent_name or 'Unknown',
                     'away_team_name': ecs_match.opponent_name or 'Unknown',
                     'is_ecs_fc': True,
+                    # Normalized fields for template compatibility
+                    'match_id': ecs_match.id,
                     'date': ecs_match.match_date,
-                    'time': ecs_match.match_time
+                    'time': ecs_match.match_time,
+                    'location': ecs_match.location,
+                    'week_type': None,  # ECS FC doesn't have week types
+                    'reported': ecs_match.status == 'completed'
                 })
 
             for ecs_match in ecs_fc_prev_matches:
@@ -771,8 +784,13 @@ def index():
                     'opponent_name': ecs_match.opponent_name or 'Unknown',
                     'away_team_name': ecs_match.opponent_name or 'Unknown',
                     'is_ecs_fc': True,
+                    # Normalized fields for template compatibility
+                    'match_id': ecs_match.id,
                     'date': ecs_match.match_date,
-                    'time': ecs_match.match_time
+                    'time': ecs_match.match_time,
+                    'location': ecs_match.location,
+                    'week_type': None,  # ECS FC doesn't have week types
+                    'reported': ecs_match.status == 'completed'
                 })
 
             logger.info(f"Found {len(ecs_fc_next_matches)} upcoming ECS FC matches for dashboard")

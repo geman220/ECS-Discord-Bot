@@ -139,13 +139,13 @@
                                     </div>
                                     <div>
                                         <h6 class="font-medium text-gray-900 dark:text-white">
-                                            {% if match.week_type in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
+                                            {% if match_data['week_type'] in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
                                             <span class="px-2 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400 mr-2">
-                                                {% if match.week_type == 'FUN' %}Fun Week
-                                                {% elif match.week_type == 'TST' %}TST Week
-                                                {% elif match.week_type == 'BYE' %}Bye Week
-                                                {% elif match.week_type == 'BONUS' %}Bonus Week
-                                                {% elif match.week_type == 'PLAYOFF' %}Playoff Week
+                                                {% if match_data['week_type'] == 'FUN' %}Fun Week
+                                                {% elif match_data['week_type'] == 'TST' %}TST Week
+                                                {% elif match_data['week_type'] == 'BYE' %}Bye Week
+                                                {% elif match_data['week_type'] == 'BONUS' %}Bonus Week
+                                                {% elif match_data['week_type'] == 'PLAYOFF' %}Playoff Week
                                                 {% endif %}
                                             </span>
                                             {% else %}
@@ -157,29 +157,29 @@
                                             {% endif %}
                                         </h6>
                                         <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            <span class="flex items-center gap-1"><i class="ti ti-clock"></i>{{ match.time.strftime('%I:%M %p') }}</span>
-                                            <span class="flex items-center gap-1"><i class="ti ti-map-pin"></i>{{ match.location }}</span>
+                                            <span class="flex items-center gap-1"><i class="ti ti-clock"></i>{{ match_data['time'].strftime('%I:%M %p') }}</span>
+                                            <span class="flex items-center gap-1"><i class="ti ti-map-pin"></i>{{ match_data['location'] }}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-2">
                                     <!-- RSVP Controls -->
-                                    <div class="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600" data-rsvp-controls data-match-id="{{ match.id }}">
+                                    <div class="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600" data-rsvp-controls data-match-id="{{ match_data['match_id'] }}" {% if match_data.get('is_ecs_fc') %}data-is-ecs-fc="true"{% endif %}>
                                         <label class="rsvp-option cursor-pointer">
-                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match.id }}" value="yes">
+                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match_data['match_id'] }}" value="yes">
                                             <span class="px-3 py-2 flex items-center justify-center hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors" title="I can play">
                                                 <i class="ti ti-check text-green-600 dark:text-green-400"></i>
                                             </span>
                                         </label>
                                         <label class="rsvp-option cursor-pointer border-l border-r border-gray-200 dark:border-gray-600">
-                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match.id }}" value="maybe">
+                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match_data['match_id'] }}" value="maybe">
                                             <span class="px-3 py-2 flex items-center justify-center hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors" title="Maybe">
                                                 <i class="ti ti-question-mark text-amber-600 dark:text-amber-400"></i>
                                             </span>
                                         </label>
                                         <label class="rsvp-option cursor-pointer">
-                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match.id }}" value="no">
+                                            <input type="radio" class="rsvp-input sr-only" name="response-{{ match_data['match_id'] }}" value="no">
                                             <span class="px-3 py-2 flex items-center justify-center hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors" title="Can't play">
                                                 <i class="ti ti-x text-red-600 dark:text-red-400"></i>
                                             </span>
@@ -187,18 +187,33 @@
                                     </div>
 
                                     {% if has_permission('view_match_page') %}
-                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+                                    {% if match_data.get('is_ecs_fc') %}
+                                    <a href="{{ url_for('ecs_fc.match_details', match_id=match_data['match_id']) }}"
+                                       class="px-3 py-2 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 transition-colors">
+                                        Details
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('match_pages.view_match', match_id=match_data['match_id']) }}"
                                        class="px-3 py-2 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 transition-colors">
                                         Details
                                     </a>
                                     {% endif %}
+                                    {% endif %}
 
                                     {% if has_permission('report_match') %}
+                                    {% if match_data.get('is_ecs_fc') %}
                                     <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors edit-match-btn"
-                                            data-match-id="{{ match.id }}" data-reported="{{ match.reported | lower }}">
-                                        <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %}"></i>
-                                        <span class="hidden sm:inline ml-1">{% if match.reported %}Edit{% else %}Report{% endif %}</span>
+                                            data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true">
+                                        <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}"></i>
+                                        <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
                                     </button>
+                                    {% else %}
+                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors edit-match-btn"
+                                            data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}">
+                                        <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}"></i>
+                                        <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
+                                    </button>
+                                    {% endif %}
                                     {% endif %}
                                 </div>
                             </div>
@@ -281,25 +296,40 @@
                                             {% endif %}
                                         </h6>
                                         <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                            <span>{{ date.strftime('%a, %b %d') }} · {{ match.time.strftime('%I:%M %p') }} · {{ match.location }}</span>
+                                            <span>{{ date.strftime('%a, %b %d') }} · {{ match_data['time'].strftime('%I:%M %p') }} · {{ match_data['location'] }}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-2">
                                     {% if has_permission('view_match_page') %}
-                                    <a href="{{ url_for('match_pages.view_match', match_id=match.id) }}"
+                                    {% if match_data.get('is_ecs_fc') %}
+                                    <a href="{{ url_for('ecs_fc.match_details', match_id=match_data['match_id']) }}"
+                                       class="px-3 py-2 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 transition-colors">
+                                        Details
+                                    </a>
+                                    {% else %}
+                                    <a href="{{ url_for('match_pages.view_match', match_id=match_data['match_id']) }}"
                                        class="px-3 py-2 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green/90 transition-colors">
                                         Details
                                     </a>
                                     {% endif %}
+                                    {% endif %}
 
                                     {% if has_permission('report_match') %}
+                                    {% if match_data.get('is_ecs_fc') %}
                                     <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors edit-match-btn"
-                                            data-match-id="{{ match.id }}" data-reported="{{ match.reported | lower }}">
-                                        <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %}"></i>
-                                        <span class="hidden sm:inline ml-1">{% if match.reported %}Edit{% else %}Report{% endif %}</span>
+                                            data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true">
+                                        <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}"></i>
+                                        <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
                                     </button>
+                                    {% else %}
+                                    <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors edit-match-btn"
+                                            data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}">
+                                        <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}"></i>
+                                        <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
+                                    </button>
+                                    {% endif %}
                                     {% endif %}
                                 </div>
                             </div>

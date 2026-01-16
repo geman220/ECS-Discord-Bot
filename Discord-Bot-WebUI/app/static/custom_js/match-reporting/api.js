@@ -25,6 +25,29 @@ function getSwalOptions(options) {
 }
 
 /**
+ * Check if match ID is for an ECS FC match
+ * @param {string|number} matchId - Match ID
+ * @returns {boolean} True if ECS FC match
+ */
+function isEcsFcMatch(matchId) {
+    return typeof matchId === 'string' && matchId.startsWith('ecs_');
+}
+
+/**
+ * Get the API endpoint URL for a match
+ * @param {string|number} matchId - Match ID
+ * @returns {string} API endpoint URL
+ */
+function getMatchApiUrl(matchId) {
+    if (isEcsFcMatch(matchId)) {
+        // ECS FC matches use /ecs-fc/report/<id> endpoint
+        const actualId = matchId.replace('ecs_', '');
+        return `/ecs-fc/report/${actualId}`;
+    }
+    return `/teams/report_match/${matchId}`;
+}
+
+/**
  * Fetch match data from the server
  * @param {string|number} matchId - Match ID
  * @returns {Promise<Object>} Match data
@@ -34,7 +57,8 @@ export async function fetchMatchData(matchId) {
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
-        const response = await fetch(`/teams/report_match/${matchId}`, {
+        const url = getMatchApiUrl(matchId);
+        const response = await fetch(url, {
             method: 'GET',
             headers: {
                 'Accept': 'application/json',
@@ -89,7 +113,8 @@ export async function submitMatchReport(matchId, changes) {
     }
 
     try {
-        const response = await fetch(`/teams/report_match/${matchId}`, {
+        const url = getMatchApiUrl(matchId);
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
