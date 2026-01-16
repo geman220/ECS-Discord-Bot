@@ -7,11 +7,11 @@
     <!-- Breadcrumb -->
     <nav class="mb-4 text-sm">
         <ol class="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
-            <li><a href="#" class="hover:text-ecs-green">ECS FC</a></li>
+            <li><a href="{{ url_for('main.index') }}" class="hover:text-ecs-green">Home</a></li>
             <li><i class="ti ti-chevron-right text-xs"></i></li>
-            <li><a href="#" class="hover:text-ecs-green">Matches</a></li>
+            <li><a href="{{ url_for('teams.team_details', team_id=match.team_id) }}" class="hover:text-ecs-green">{{ match.team.name }}</a></li>
             <li><i class="ti ti-chevron-right text-xs"></i></li>
-            <li class="text-gray-900 dark:text-white font-medium">{{ match.team.name }} vs {{ match.opponent_name }}</li>
+            <li class="text-gray-900 dark:text-white font-medium">vs {{ match.opponent_name }}</li>
         </ol>
     </nav>
 
@@ -183,16 +183,16 @@
                     <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                         <td class="px-4 py-3">
                             <div class="flex items-center gap-3">
-                                {% if player.profile_picture %}
-                                <img src="{{ player.profile_picture }}" alt="{{ player.player_name }}"
+                                {% if player.profile_picture_url %}
+                                <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}"
                                      class="w-8 h-8 rounded-full object-cover">
                                 {% else %}
                                 <div class="w-8 h-8 bg-ecs-green/10 rounded-full flex items-center justify-center">
-                                    <span class="text-sm font-medium text-ecs-green">{{ player.player_name[0] }}</span>
+                                    <span class="text-sm font-medium text-ecs-green">{{ player.name[0] }}</span>
                                 </div>
                                 {% endif %}
                                 <div>
-                                    <p class="font-medium text-gray-900 dark:text-white">{{ player.player_name }}</p>
+                                    <p class="font-medium text-gray-900 dark:text-white">{{ player.name }}</p>
                                     {% if player.discord_id %}
                                     <p class="text-xs text-gray-500 dark:text-gray-400">Discord User</p>
                                     {% endif %}
@@ -209,18 +209,14 @@
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 text-gray-500 dark:text-gray-400">
-                            {% if availability and availability.response_time %}
-                            {{ availability.response_time.strftime('%m/%d %I:%M %p') }}
+                            {% if availability and availability.responded_at %}
+                            {{ availability.responded_at.strftime('%m/%d %I:%M %p') }}
                             {% else %}
                             -
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 text-gray-500 dark:text-gray-400">
-                            {% if availability and availability.notes %}
-                            {{ availability.notes }}
-                            {% else %}
                             -
-                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -241,7 +237,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.js-edit-match').forEach(btn => {
         btn.addEventListener('click', function() {
             const matchId = this.dataset.matchId;
-            window.location.href = `/admin/ecs-fc/match/${matchId}/edit`;
+            window.location.href = `/admin-panel/ecs-fc/match/${matchId}/edit`;
         });
     });
 
@@ -264,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (result.isConfirmed) {
                 try {
-                    const response = await fetch(`/admin/ecs-fc/match/${matchId}/send-reminder`, {
+                    const response = await fetch(`/admin-panel/ecs-fc/rsvp/${matchId}/send-reminder`, {
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': '{{ csrf_token() }}'
