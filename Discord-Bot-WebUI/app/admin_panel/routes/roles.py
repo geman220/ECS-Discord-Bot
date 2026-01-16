@@ -18,7 +18,7 @@ from sqlalchemy import func
 from .. import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
-from app.models import User, Role, user_roles
+from app.models import User, Role, user_roles, Player
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.tasks.tasks_discord import assign_roles_to_player_task
@@ -387,17 +387,17 @@ def get_available_users_for_role(role_id):
             user_roles.c.role_id == role_id
         ).subquery()
 
-        query = User.query.filter(
+        query = User.query.outerjoin(Player, User.id == Player.user_id).filter(
             ~User.id.in_(users_with_role_ids)
         )
 
-        # Apply search filter
+        # Apply search filter - search by Player name (email/phone are encrypted)
         if search:
             search_term = f'%{search}%'
             query = query.filter(
                 db.or_(
                     User.username.ilike(search_term),
-                    User.email.ilike(search_term)
+                    Player.name.ilike(search_term)
                 )
             )
 
@@ -411,6 +411,7 @@ def get_available_users_for_role(role_id):
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
+                    'player_name': user.player.name if user.player else None,
                     'is_active': user.is_active
                 }
                 for user in users
@@ -430,15 +431,17 @@ def get_all_users_for_roles():
     try:
         search = request.args.get('search', '').strip()
 
-        query = User.query.options(joinedload(User.roles))
+        query = User.query.options(joinedload(User.roles), joinedload(User.player)).outerjoin(
+            Player, User.id == Player.user_id
+        )
 
-        # Apply search filter
+        # Apply search filter - search by Player name (email/phone are encrypted)
         if search:
             search_term = f'%{search}%'
             query = query.filter(
                 db.or_(
                     User.username.ilike(search_term),
-                    User.email.ilike(search_term)
+                    Player.name.ilike(search_term)
                 )
             )
 
@@ -452,6 +455,7 @@ def get_all_users_for_roles():
                     'id': user.id,
                     'username': user.username,
                     'email': user.email,
+                    'player_name': user.player.name if user.player else None,
                     'is_active': user.is_active,
                     'roles': [r.name for r in user.roles]
                 }

@@ -283,14 +283,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     data.users.forEach(user => {
                         const item = document.createElement('div');
                         item.className = 'px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 flex items-center justify-between';
+                        const displayName = user.player_name || user.username;
+                        const subText = user.player_name ? user.username : (user.email || 'No email');
                         item.innerHTML = `
                             <div>
-                                <p class="font-medium text-gray-900 dark:text-white">${user.username}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400">${user.email}</p>
+                                <p class="font-medium text-gray-900 dark:text-white">${displayName}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">${subText}</p>
                             </div>
                             ${!user.is_active ? '<span class="text-xs text-yellow-600 dark:text-yellow-400">[Inactive]</span>' : ''}
                         `;
-                        item.addEventListener('click', () => selectUser(user.id, user.username, user.email));
+                        item.addEventListener('click', () => selectUser(user.id, displayName, subText));
                         userSearchResults.appendChild(item);
                     });
                     userSearchResults.classList.remove('hidden');
