@@ -76,6 +76,7 @@ def _import_blueprints():
     from app.auto_schedule_routes import auto_schedule_bp
     from app.role_impersonation import role_impersonation_bp
     from app.ecs_fc_api import ecs_fc_api
+    from app.ecs_fc_routes import ecs_fc_routes
     from app.admin.substitute_pool_routes import substitute_pool_bp
     from app.admin.redis_routes import redis_bp
     from app.batch_api import batch_bp
@@ -127,6 +128,7 @@ def _import_blueprints():
         'auto_schedule_bp': auto_schedule_bp,
         'role_impersonation_bp': role_impersonation_bp,
         'ecs_fc_api': ecs_fc_api,
+        'ecs_fc_routes': ecs_fc_routes,
         'substitute_pool_bp': substitute_pool_bp,
         'redis_bp': redis_bp,
         'batch_bp': batch_bp,
@@ -206,6 +208,7 @@ def _register_api_blueprints(app, bp, csrf):
     app.register_blueprint(bp['auto_schedule_bp'], url_prefix='/auto-schedule')
     app.register_blueprint(bp['role_impersonation_bp'])
     app.register_blueprint(bp['ecs_fc_api'])
+    app.register_blueprint(bp['ecs_fc_routes'])  # ECS FC web routes (match details, report)
     app.register_blueprint(bp['substitute_pool_bp'])
     app.register_blueprint(bp['redis_bp'])
     app.register_blueprint(bp['store_bp'])
