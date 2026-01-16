@@ -87,62 +87,162 @@ SMS_RATE_LIMIT_WINDOW = 3600       # Within a 1-hour window (in seconds)
 SMS_SYSTEM_RATE_LIMIT = 100        # Max 100 SMS for the entire system
 SMS_SYSTEM_WINDOW = 3600           # Within a 1-hour window (in seconds)
 
-# Keep a simple in-memory cache of SMS sends
-# Format: {user_id: [timestamp1, timestamp2, ...]}
+# Redis keys for rate limiting (persists across app restarts)
+SMS_USER_RATE_KEY = "sms:rate:user:{user_id}"
+SMS_SYSTEM_RATE_KEY = "sms:rate:system"
+
+# Redis keys for verification code brute-force protection
+SMS_VERIFY_ATTEMPTS_KEY = "sms:verify:attempts:{user_id}"
+SMS_VERIFY_LOCKOUT_KEY = "sms:verify:lockout:{user_id}"
+SMS_MAX_VERIFY_ATTEMPTS = 5  # Max attempts before lockout
+SMS_VERIFY_LOCKOUT_SECONDS = 3600  # 1 hour lockout
+
+# Redis keys for inbound SMS rate limiting (prevents spam attacks on our Twilio number)
+SMS_INBOUND_RATE_KEY = "sms:inbound:rate:{phone_hash}"
+SMS_INBOUND_RATE_LIMIT = 10  # Max 10 inbound SMS per phone per window
+SMS_INBOUND_RATE_WINDOW = 300  # 5 minute window
+
+# Redis keys for verification code REQUEST rate limiting (prevents outbound SMS cost attacks)
+SMS_CODE_REQUEST_KEY = "sms:code:request:{user_id}"
+SMS_CODE_REQUEST_LIMIT = 3  # Max 3 code requests per window
+SMS_CODE_REQUEST_WINDOW = 900  # 15 minute window (allows retry but prevents abuse)
+
+# Fallback in-memory cache (used only when Redis is unavailable)
+# This provides degraded service rather than complete failure
 sms_user_cache = {}
-# System-wide SMS counter
 sms_system_counter = []
+
+
+def _get_redis_client():
+    """Get Redis client for rate limiting, with graceful fallback."""
+    try:
+        from app.utils.redis_manager import get_redis_connection
+        redis_client = get_redis_connection()
+        # Quick check if Redis is available
+        redis_client.ping()
+        return redis_client
+    except Exception as e:
+        logger.warning(f"Redis unavailable for SMS rate limiting, using in-memory fallback: {e}")
+        return None
+
 
 class SMSRateLimitExceeded(Exception):
     """Exception raised when SMS rate limit is exceeded."""
     pass
 
+
 def check_sms_rate_limit(user_id):
     """
     Check if a user has exceeded their SMS rate limit.
-    
+
+    Uses Redis for persistent rate limiting (survives app restarts).
+    Falls back to in-memory if Redis is unavailable.
+
     Args:
         user_id: The ID of the user sending the SMS.
-        
+
     Returns:
         dict: Rate limit information including limit, remaining, and reset time.
-        
+
     Raises:
         SMSRateLimitExceeded: If the rate limit has been exceeded.
     """
+    redis_client = _get_redis_client()
+
+    if redis_client:
+        return _check_rate_limit_redis(user_id, redis_client)
+    else:
+        return _check_rate_limit_memory(user_id)
+
+
+def _check_rate_limit_redis(user_id, redis_client):
+    """Check rate limit using Redis sorted sets."""
     current_time = time.time()
     cutoff_time = current_time - SMS_RATE_LIMIT_WINDOW
-    
+
+    try:
+        # Check system-wide rate limit using sorted set (timestamp as score)
+        # Remove expired entries
+        redis_client.zremrangebyscore(SMS_SYSTEM_RATE_KEY, '-inf', cutoff_time)
+        system_count = redis_client.zcard(SMS_SYSTEM_RATE_KEY)
+
+        if system_count >= SMS_SYSTEM_RATE_LIMIT:
+            # Get the oldest timestamp to calculate reset time
+            oldest = redis_client.zrange(SMS_SYSTEM_RATE_KEY, 0, 0, withscores=True)
+            oldest_time = oldest[0][1] if oldest else current_time
+            reset_time = oldest_time + SMS_RATE_LIMIT_WINDOW
+            time_until_reset = max(0, reset_time - current_time)
+
+            raise SMSRateLimitExceeded(
+                f"System-wide SMS rate limit exceeded. Try again in {int(time_until_reset / 60)} minutes."
+            )
+
+        # Check user-specific rate limit
+        user_key = SMS_USER_RATE_KEY.format(user_id=user_id)
+        redis_client.zremrangebyscore(user_key, '-inf', cutoff_time)
+        user_count = redis_client.zcard(user_key)
+
+        if user_count >= SMS_RATE_LIMIT_PER_USER:
+            oldest = redis_client.zrange(user_key, 0, 0, withscores=True)
+            oldest_time = oldest[0][1] if oldest else current_time
+            reset_time = oldest_time + SMS_RATE_LIMIT_WINDOW
+            time_until_reset = max(0, reset_time - current_time)
+
+            raise SMSRateLimitExceeded(
+                f"You've sent too many SMS messages. Try again in {int(time_until_reset / 60)} minutes."
+            )
+
+        return {
+            'limit': SMS_RATE_LIMIT_PER_USER,
+            'remaining': SMS_RATE_LIMIT_PER_USER - user_count,
+            'reset': current_time + SMS_RATE_LIMIT_WINDOW,
+            'system_limit': SMS_SYSTEM_RATE_LIMIT,
+            'system_remaining': SMS_SYSTEM_RATE_LIMIT - system_count,
+            'storage': 'redis'
+        }
+
+    except SMSRateLimitExceeded:
+        raise
+    except Exception as e:
+        logger.error(f"Redis rate limit check failed, falling back to memory: {e}")
+        return _check_rate_limit_memory(user_id)
+
+
+def _check_rate_limit_memory(user_id):
+    """Fallback in-memory rate limit check (non-persistent)."""
+    current_time = time.time()
+    cutoff_time = current_time - SMS_RATE_LIMIT_WINDOW
+
     # Clean up expired system-wide timestamps
     global sms_system_counter
     sms_system_counter = [t for t in sms_system_counter if t > cutoff_time]
-    
+
     # Check system-wide rate limit
     if len(sms_system_counter) >= SMS_SYSTEM_RATE_LIMIT:
         oldest_timestamp = min(sms_system_counter) if sms_system_counter else current_time
         reset_time = oldest_timestamp + SMS_RATE_LIMIT_WINDOW
         time_until_reset = max(0, reset_time - current_time)
-        
+
         raise SMSRateLimitExceeded(
             f"System-wide SMS rate limit exceeded. Try again in {int(time_until_reset / 60)} minutes."
         )
-    
+
     # Initialize or clean up user's timestamps
     if user_id not in sms_user_cache:
         sms_user_cache[user_id] = []
     else:
         sms_user_cache[user_id] = [t for t in sms_user_cache[user_id] if t > cutoff_time]
-    
+
     # Check user's rate limit
     if len(sms_user_cache[user_id]) >= SMS_RATE_LIMIT_PER_USER:
         oldest_timestamp = min(sms_user_cache[user_id])
         reset_time = oldest_timestamp + SMS_RATE_LIMIT_WINDOW
         time_until_reset = max(0, reset_time - current_time)
-        
+
         raise SMSRateLimitExceeded(
             f"You've sent too many SMS messages. Try again in {int(time_until_reset / 60)} minutes."
         )
-    
+
     # Return rate limit information
     return {
         'limit': SMS_RATE_LIMIT_PER_USER,
@@ -150,25 +250,372 @@ def check_sms_rate_limit(user_id):
         'reset': cutoff_time + SMS_RATE_LIMIT_WINDOW,
         'system_limit': SMS_SYSTEM_RATE_LIMIT,
         'system_remaining': SMS_SYSTEM_RATE_LIMIT - len(sms_system_counter),
+        'storage': 'memory'
     }
+
 
 def track_sms_send(user_id):
     """
     Record that an SMS was sent to a user.
-    
+
+    Uses Redis for persistent tracking (survives app restarts).
+    Falls back to in-memory if Redis is unavailable.
+
     Args:
         user_id: The ID of the user who received the SMS.
     """
+    redis_client = _get_redis_client()
+
+    if redis_client:
+        _track_sms_send_redis(user_id, redis_client)
+    else:
+        _track_sms_send_memory(user_id)
+
+
+def _track_sms_send_redis(user_id, redis_client):
+    """Track SMS send in Redis sorted sets."""
     current_time = time.time()
-    
+
+    try:
+        # Use a unique member (timestamp with microseconds) to allow multiple sends at same second
+        unique_id = f"{current_time}:{user_id}:{time.time_ns()}"
+
+        # Add to system-wide counter with expiry
+        redis_client.zadd(SMS_SYSTEM_RATE_KEY, {unique_id: current_time})
+        redis_client.expire(SMS_SYSTEM_RATE_KEY, SMS_RATE_LIMIT_WINDOW + 60)  # Extra buffer
+
+        # Add to user-specific counter with expiry
+        user_key = SMS_USER_RATE_KEY.format(user_id=user_id)
+        redis_client.zadd(user_key, {unique_id: current_time})
+        redis_client.expire(user_key, SMS_RATE_LIMIT_WINDOW + 60)  # Extra buffer
+
+        logger.debug(f"SMS send tracked in Redis for user {user_id}")
+
+    except Exception as e:
+        logger.error(f"Failed to track SMS in Redis, falling back to memory: {e}")
+        _track_sms_send_memory(user_id)
+
+
+def _track_sms_send_memory(user_id):
+    """Fallback in-memory SMS tracking."""
+    current_time = time.time()
+
     # Add to user's record
     if user_id not in sms_user_cache:
         sms_user_cache[user_id] = []
     sms_user_cache[user_id].append(current_time)
-    
+
     # Add to system-wide counter
     global sms_system_counter
     sms_system_counter.append(current_time)
+
+
+# -------------------------------------------------------------------------
+# Verification Code Brute-Force Protection
+# -------------------------------------------------------------------------
+
+class SMSVerificationLocked(Exception):
+    """Exception raised when verification is locked due to too many failed attempts."""
+    pass
+
+
+def check_verification_attempts(user_id):
+    """
+    Check if user is locked out from verification attempts.
+
+    Args:
+        user_id: The user ID attempting verification.
+
+    Returns:
+        dict: Information about attempts remaining and lockout status.
+
+    Raises:
+        SMSVerificationLocked: If the user is currently locked out.
+    """
+    redis_client = _get_redis_client()
+
+    if redis_client:
+        try:
+            lockout_key = SMS_VERIFY_LOCKOUT_KEY.format(user_id=user_id)
+            attempts_key = SMS_VERIFY_ATTEMPTS_KEY.format(user_id=user_id)
+
+            # Check if user is locked out
+            lockout_ttl = redis_client.ttl(lockout_key)
+            if lockout_ttl and lockout_ttl > 0:
+                minutes_remaining = int(lockout_ttl / 60) + 1
+                raise SMSVerificationLocked(
+                    f"Too many failed attempts. Try again in {minutes_remaining} minutes."
+                )
+
+            # Get current attempt count
+            attempts = redis_client.get(attempts_key)
+            attempts_count = int(attempts) if attempts else 0
+
+            return {
+                'attempts': attempts_count,
+                'max_attempts': SMS_MAX_VERIFY_ATTEMPTS,
+                'remaining': SMS_MAX_VERIFY_ATTEMPTS - attempts_count,
+                'locked': False
+            }
+
+        except SMSVerificationLocked:
+            raise
+        except Exception as e:
+            logger.error(f"Error checking verification attempts in Redis: {e}")
+            # Allow through on error to prevent blocking legitimate users
+            return {'attempts': 0, 'max_attempts': SMS_MAX_VERIFY_ATTEMPTS, 'remaining': SMS_MAX_VERIFY_ATTEMPTS, 'locked': False}
+
+    # If Redis unavailable, allow through (degraded security is better than no service)
+    logger.warning("Redis unavailable for verification attempt tracking")
+    return {'attempts': 0, 'max_attempts': SMS_MAX_VERIFY_ATTEMPTS, 'remaining': SMS_MAX_VERIFY_ATTEMPTS, 'locked': False}
+
+
+def record_verification_attempt(user_id, success):
+    """
+    Record a verification attempt (success or failure).
+
+    Args:
+        user_id: The user ID attempting verification.
+        success: True if verification succeeded, False if it failed.
+    """
+    redis_client = _get_redis_client()
+
+    if redis_client:
+        try:
+            attempts_key = SMS_VERIFY_ATTEMPTS_KEY.format(user_id=user_id)
+            lockout_key = SMS_VERIFY_LOCKOUT_KEY.format(user_id=user_id)
+
+            if success:
+                # Clear attempts on successful verification
+                redis_client.delete(attempts_key)
+                redis_client.delete(lockout_key)
+                logger.info(f"Verification attempt succeeded for user {user_id}, attempts cleared")
+            else:
+                # Increment failed attempts
+                attempts = redis_client.incr(attempts_key)
+                # Set expiry on attempts key (resets after 1 hour of no attempts)
+                redis_client.expire(attempts_key, SMS_VERIFY_LOCKOUT_SECONDS)
+
+                logger.warning(f"Failed verification attempt {attempts}/{SMS_MAX_VERIFY_ATTEMPTS} for user {user_id}")
+
+                # Lock out user if max attempts exceeded
+                if attempts >= SMS_MAX_VERIFY_ATTEMPTS:
+                    redis_client.setex(lockout_key, SMS_VERIFY_LOCKOUT_SECONDS, "1")
+                    redis_client.delete(attempts_key)  # Reset attempts counter
+                    logger.warning(f"User {user_id} locked out for {SMS_VERIFY_LOCKOUT_SECONDS}s due to too many failed verification attempts")
+
+        except Exception as e:
+            logger.error(f"Error recording verification attempt in Redis: {e}")
+
+    else:
+        # No Redis - just log
+        if success:
+            logger.info(f"Verification succeeded for user {user_id} (no Redis for tracking)")
+        else:
+            logger.warning(f"Failed verification for user {user_id} (no Redis for tracking)")
+
+
+def reset_verification_attempts(user_id):
+    """
+    Reset verification attempts for a user (e.g., when sending a new code).
+
+    Args:
+        user_id: The user ID to reset attempts for.
+    """
+    redis_client = _get_redis_client()
+
+    if redis_client:
+        try:
+            attempts_key = SMS_VERIFY_ATTEMPTS_KEY.format(user_id=user_id)
+            redis_client.delete(attempts_key)
+            logger.debug(f"Verification attempts reset for user {user_id}")
+        except Exception as e:
+            logger.error(f"Error resetting verification attempts in Redis: {e}")
+
+
+# -------------------------------------------------------------------------
+# Inbound SMS Rate Limiting (Cost Protection)
+# -------------------------------------------------------------------------
+
+class SMSInboundRateLimitExceeded(Exception):
+    """Exception raised when inbound SMS rate limit is exceeded."""
+    pass
+
+
+def check_inbound_sms_rate_limit(phone_number):
+    """
+    Check if an inbound phone number has exceeded their rate limit.
+
+    This prevents attackers from spamming your Twilio number to rack up inbound
+    SMS charges (and trigger outbound response charges).
+
+    Args:
+        phone_number: The phone number sending the inbound SMS.
+
+    Returns:
+        dict: Rate limit information.
+
+    Raises:
+        SMSInboundRateLimitExceeded: If rate limit exceeded.
+    """
+    import hashlib
+
+    redis_client = _get_redis_client()
+
+    # Hash phone number for privacy in Redis keys
+    phone_hash = hashlib.sha256(phone_number.encode()).hexdigest()[:16]
+
+    if redis_client:
+        try:
+            current_time = time.time()
+            cutoff_time = current_time - SMS_INBOUND_RATE_WINDOW
+
+            rate_key = SMS_INBOUND_RATE_KEY.format(phone_hash=phone_hash)
+
+            # Remove expired entries
+            redis_client.zremrangebyscore(rate_key, '-inf', cutoff_time)
+
+            # Check current count
+            count = redis_client.zcard(rate_key)
+
+            if count >= SMS_INBOUND_RATE_LIMIT:
+                logger.warning(f"Inbound SMS rate limit exceeded for phone hash {phone_hash}: {count} in {SMS_INBOUND_RATE_WINDOW}s")
+                raise SMSInboundRateLimitExceeded(
+                    f"Too many messages received from this number. Rate limited."
+                )
+
+            return {
+                'limit': SMS_INBOUND_RATE_LIMIT,
+                'remaining': SMS_INBOUND_RATE_LIMIT - count,
+                'window_seconds': SMS_INBOUND_RATE_WINDOW
+            }
+
+        except SMSInboundRateLimitExceeded:
+            raise
+        except Exception as e:
+            logger.error(f"Error checking inbound rate limit: {e}")
+            # Allow through on error
+            return {'limit': SMS_INBOUND_RATE_LIMIT, 'remaining': SMS_INBOUND_RATE_LIMIT, 'window_seconds': SMS_INBOUND_RATE_WINDOW}
+
+    # No Redis - allow through (degraded security)
+    return {'limit': SMS_INBOUND_RATE_LIMIT, 'remaining': SMS_INBOUND_RATE_LIMIT, 'window_seconds': SMS_INBOUND_RATE_WINDOW}
+
+
+def track_inbound_sms(phone_number):
+    """
+    Record that an inbound SMS was received from a phone number.
+
+    Args:
+        phone_number: The phone number that sent the inbound SMS.
+    """
+    import hashlib
+
+    redis_client = _get_redis_client()
+
+    if redis_client:
+        try:
+            phone_hash = hashlib.sha256(phone_number.encode()).hexdigest()[:16]
+            current_time = time.time()
+
+            rate_key = SMS_INBOUND_RATE_KEY.format(phone_hash=phone_hash)
+            unique_id = f"{current_time}:{time.time_ns()}"
+
+            redis_client.zadd(rate_key, {unique_id: current_time})
+            redis_client.expire(rate_key, SMS_INBOUND_RATE_WINDOW + 60)
+
+        except Exception as e:
+            logger.error(f"Error tracking inbound SMS: {e}")
+
+
+# -------------------------------------------------------------------------
+# Verification Code Request Rate Limiting (Outbound Cost Protection)
+# -------------------------------------------------------------------------
+
+class SMSCodeRequestLimitExceeded(Exception):
+    """Exception raised when verification code request limit is exceeded."""
+    pass
+
+
+def check_code_request_rate_limit(user_id):
+    """
+    Check if a user has exceeded their verification code request limit.
+
+    Prevents attackers from spamming "send code" to rack up outbound SMS charges.
+
+    Args:
+        user_id: The user ID requesting a verification code.
+
+    Returns:
+        dict: Rate limit information.
+
+    Raises:
+        SMSCodeRequestLimitExceeded: If rate limit exceeded.
+    """
+    redis_client = _get_redis_client()
+
+    if redis_client:
+        try:
+            current_time = time.time()
+            cutoff_time = current_time - SMS_CODE_REQUEST_WINDOW
+
+            rate_key = SMS_CODE_REQUEST_KEY.format(user_id=user_id)
+
+            # Remove expired entries
+            redis_client.zremrangebyscore(rate_key, '-inf', cutoff_time)
+
+            # Check current count
+            count = redis_client.zcard(rate_key)
+
+            if count >= SMS_CODE_REQUEST_LIMIT:
+                # Calculate time until reset
+                oldest = redis_client.zrange(rate_key, 0, 0, withscores=True)
+                oldest_time = oldest[0][1] if oldest else current_time
+                reset_time = oldest_time + SMS_CODE_REQUEST_WINDOW
+                minutes_remaining = int((reset_time - current_time) / 60) + 1
+
+                logger.warning(f"Verification code request limit exceeded for user {user_id}: {count} in {SMS_CODE_REQUEST_WINDOW}s")
+                raise SMSCodeRequestLimitExceeded(
+                    f"Too many verification code requests. Please wait {minutes_remaining} minutes before trying again."
+                )
+
+            return {
+                'limit': SMS_CODE_REQUEST_LIMIT,
+                'remaining': SMS_CODE_REQUEST_LIMIT - count,
+                'window_seconds': SMS_CODE_REQUEST_WINDOW
+            }
+
+        except SMSCodeRequestLimitExceeded:
+            raise
+        except Exception as e:
+            logger.error(f"Error checking code request rate limit: {e}")
+            return {'limit': SMS_CODE_REQUEST_LIMIT, 'remaining': SMS_CODE_REQUEST_LIMIT, 'window_seconds': SMS_CODE_REQUEST_WINDOW}
+
+    # No Redis - allow through
+    return {'limit': SMS_CODE_REQUEST_LIMIT, 'remaining': SMS_CODE_REQUEST_LIMIT, 'window_seconds': SMS_CODE_REQUEST_WINDOW}
+
+
+def track_code_request(user_id):
+    """
+    Record that a verification code was requested by a user.
+
+    Args:
+        user_id: The user ID that requested the code.
+    """
+    redis_client = _get_redis_client()
+
+    if redis_client:
+        try:
+            current_time = time.time()
+
+            rate_key = SMS_CODE_REQUEST_KEY.format(user_id=user_id)
+            unique_id = f"{current_time}:{time.time_ns()}"
+
+            redis_client.zadd(rate_key, {unique_id: current_time})
+            redis_client.expire(rate_key, SMS_CODE_REQUEST_WINDOW + 60)
+
+        except Exception as e:
+            logger.error(f"Error tracking code request: {e}")
+
 
 import logging
 import random
@@ -203,12 +650,12 @@ def send_welcome_message(phone_number):
         "- 'info': See all available commands\n\n"
         "Message & data rates may apply. Reply STOP to cancel."
     )
-    return send_sms(phone_number, welcome_message)
+    return send_sms(phone_number, welcome_message, message_type='welcome', source='sms_helpers')
 
 
-def send_sms(phone_number, message, user_id=None, status_callback=None):
+def send_sms(phone_number, message, user_id=None, status_callback=None, message_type='general', source=None, sent_by_user_id=None):
     """
-    Send an SMS using Twilio with rate limiting and content filtering.
+    Send an SMS using Twilio with rate limiting, content filtering, and audit logging.
 
     Args:
         phone_number (str): The recipient's phone number.
@@ -216,12 +663,15 @@ def send_sms(phone_number, message, user_id=None, status_callback=None):
         user_id (int, optional): The user ID for rate limiting. If None, no rate limiting is applied
                                 (for system messages only).
         status_callback (str, optional): URL for Twilio to send status updates to.
+        message_type (str, optional): Type of message for logging (verification, reminder, etc.).
+        source (str, optional): Where the SMS originated (orchestrator, admin_panel, etc.).
+        sent_by_user_id (int, optional): ID of admin who initiated the send (for direct messages).
 
     Returns:
         tuple: (success (bool), message SID or error string).
     """
     import os
-    
+
     # Always censor profanity to ensure SMS deliverability
     # This prevents carrier filtering for profane content
     clean_message = censor_profanity(message)
@@ -303,11 +753,27 @@ def send_sms(phone_number, message, user_id=None, status_callback=None):
         # Track the SMS send if rate limiting is enabled for this message
         if user_id is not None:
             track_sms_send(user_id)
-            
+
         # Log successful send (phone number masked for privacy)
         logger.info(f"SMS sent successfully to {mask_phone(phone_number)} with ID {msg.sid}")
         logger.debug(f"SMS details: Length={len(prefixed_message)} chars")
-        
+
+        # Audit log the SMS send
+        try:
+            from app.models import SMSLog
+            SMSLog.log_sms(
+                user_id=user_id,
+                phone_number=phone_number,
+                message_type=message_type,
+                message_length=len(prefixed_message),
+                twilio_sid=msg.sid,
+                sent_by_user_id=sent_by_user_id,
+                source=source or 'sms_helpers'
+            )
+        except Exception as log_error:
+            # Don't fail the SMS send if logging fails
+            logger.warning(f"Failed to create SMS audit log: {log_error}")
+
         return True, msg.sid
     except Exception as e:
         current_app.logger.error(f"Failed to send SMS: {e}")
@@ -416,18 +882,22 @@ def send_confirmation_sms(user):
         )
         
         logger.info(f"Sending verification SMS to {mask_phone(player.phone)} for user {user.id}")
-        success, msg_info = send_sms(player.phone, message, user_id=user.id)
+        success, msg_info = send_sms(
+            player.phone, message, user_id=user.id,
+            message_type='verification', source='sms_helpers'
+        )
         
         if success:
             logger.info(f"SMS verification code sent successfully to user {user.id}, message ID: {msg_info}")
         else:
             logger.error(f"Failed to send SMS verification code to user {user.id}: {msg_info}")
-        
-        # Store the code in request session as a backup
-        from flask import session as flask_session
-        flask_session['sms_confirmation_code'] = confirmation_code
-        logger.info(f"Saved confirmation code to Flask session as backup")
-        
+
+        # NOTE: Previously stored confirmation code in session as backup.
+        # This was removed for security reasons:
+        # 1. Dual storage could lead to inconsistent state
+        # 2. Session-based storage could enable session fixation attacks
+        # 3. The authoritative code should only be in user.sms_confirmation_code
+
         return success, msg_info
     except Exception as e:
         logger.error(f"Error generating/sending SMS confirmation for user {user.id}: {e}", exc_info=True)
@@ -576,7 +1046,11 @@ def handle_opt_out(player):
     logger.info(f'Player {player.user_id} unsubscribed from SMS notifications')
     
     # Send final confirmation SMS - no rate limiting for this as it's a system message
-    send_sms(player.phone, "You have been unsubscribed from ECS FC messages. Reply START to re-subscribe at any time.")
+    send_sms(
+        player.phone,
+        "You have been unsubscribed from ECS FC messages. Reply START to re-subscribe at any time.",
+        message_type='opt_out', source='sms_helpers'
+    )
     return True
 
 
@@ -604,8 +1078,9 @@ def handle_re_subscribe(player):
     
     # Send re-subscription confirmation - no rate limiting for this system action
     success, _ = send_sms(
-        player.phone, 
-        "You are now subscribed to ECS FC notifications. Text SCHEDULE to see upcoming matches or HELP for all commands. Reply STOP to unsubscribe."
+        player.phone,
+        "You are now subscribed to ECS FC notifications. Text SCHEDULE to see upcoming matches or HELP for all commands. Reply STOP to unsubscribe.",
+        message_type='resubscribe', source='sms_helpers'
     )
     if success:
         logger.info(f'Re-subscribe confirmation SMS sent to {player.user_id}')
@@ -637,11 +1112,15 @@ def get_next_match(phone_number):
         normalized_phone = phone_number
     
     logger.info(f"Looking up player with phone number: {normalized_phone}")
-    
+
     session = g.db_session
-    player = session.query(Player).filter_by(phone=normalized_phone).first()
+
+    # Phone numbers are encrypted in DB - must search by phone_hash
+    from app.utils.pii_encryption import create_hash
+    phone_hash = create_hash(normalized_phone)
+    player = session.query(Player).filter_by(phone_hash=phone_hash).first()
     if not player:
-        logger.warning(f"No player found with phone number: {normalized_phone}")
+        logger.warning(f"No player found with phone hash for: {normalized_phone}")
         return []
 
     # Collect teams from primary and many-to-many relationships.
@@ -884,7 +1363,7 @@ def handle_next_match_request(player):
     logger.info(f"Complete message: {message}")
     
     # Send in a single message now that we've censored profanity
-    result, message_id = send_sms(player.phone, message, user_id)
+    result, message_id = send_sms(player.phone, message, user_id, message_type='schedule', source='sms_helpers')
     if result:
         logger.info(f"Successfully sent schedule SMS with ID {message_id}")
         return True
@@ -936,7 +1415,7 @@ def send_schedule_in_chunks(phone_number, full_message, user_id=None):
     success = True
     for i, chunk in enumerate(chunks):
         logger.info(f"Sending chunk {i+1}/{len(chunks)}, length: {len(chunk)}")
-        result, msg_id = send_sms(phone_number, chunk, user_id)
+        result, msg_id = send_sms(phone_number, chunk, user_id, message_type='schedule', source='sms_helpers')
         if not result:
             logger.error(f"Failed to send chunk {i+1}: {msg_id}")
             success = False
@@ -970,7 +1449,7 @@ def send_help_message(phone_number, user_id=None):
         "- 'STOP': Unsubscribe from all messages\n"
         "- 'START': Re-subscribe to messages"
     )
-    send_sms(phone_number, help_message, user_id)
+    send_sms(phone_number, help_message, user_id, message_type='help', source='sms_helpers')
     return True
 
 
@@ -1198,9 +1677,13 @@ def handle_rsvp(player, response_text, match_id=None):
     if other_matches_same_day > 0:
         confirmation_message += f"\n\nNOTE: You have {other_matches_same_day} other match(es) on {match_date}. Reply SCHEDULE to see and RSVP for all your matches."
     
-    # Send RSVP confirmation 
-    success, _ = send_sms(player.phone, confirmation_message, user_id=player.user_id if player.user else None)
-    
+    # Send RSVP confirmation
+    success, _ = send_sms(
+        player.phone, confirmation_message,
+        user_id=player.user_id if player.user else None,
+        message_type='rsvp_confirmation', source='sms_helpers'
+    )
+
     return success, confirmation_message
 
 
@@ -1252,12 +1735,15 @@ def handle_incoming_text_command(phone_number, message_text):
         normalized_phone = phone_number
     
     logger.info(f"Incoming SMS from number: {phone_number}, normalized to: {normalized_phone}")
-    
-    player = session.query(Player).filter_by(phone=normalized_phone).first()
+
+    # Phone numbers are encrypted in DB - must search by phone_hash
+    from app.utils.pii_encryption import create_hash
+    phone_hash = create_hash(normalized_phone)
+    player = session.query(Player).filter_by(phone_hash=phone_hash).first()
     if not player:
         # Unknown phone number: notify the sender.
-        logger.warning(f"No player found with phone number: {normalized_phone}")
-        send_sms(phone_number, "We couldn't match your phone number to a user.")
+        logger.warning(f"No player found with phone hash for: {normalized_phone}")
+        send_sms(phone_number, "We couldn't match your phone number to a user.", message_type='error', source='sms_helpers')
         return jsonify({'status': 'error', 'message': 'Unknown user phone'})
 
     # Get user_id for rate limiting

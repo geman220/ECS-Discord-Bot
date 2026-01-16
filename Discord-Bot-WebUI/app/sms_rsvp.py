@@ -167,7 +167,10 @@ def generate_rsvp_link(phone_number):
     """
     session = g.db_session
     try:
-        player = session.query(Player).filter_by(phone=phone_number).first()
+        # Phone numbers are encrypted - must search by phone_hash
+        from app.utils.pii_encryption import create_hash
+        phone_hash = create_hash(phone_number)
+        player = session.query(Player).filter_by(phone_hash=phone_hash).first()
         if not player:
             return jsonify({'error': 'Player not found'}), 404
 

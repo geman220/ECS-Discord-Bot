@@ -42,5 +42,6 @@ def register_communication_routes():
         direct_messaging,
         messaging_settings,
         league_settings,  # League-specific settings for Discord bot
+        sms_analytics,  # SMS cost tracking & analytics dashboard
         ajax,
     )

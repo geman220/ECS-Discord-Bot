@@ -7,7 +7,7 @@ Initialize Flask-JWT-Extended with custom error handlers.
 """
 
 import logging
-from flask import jsonify
+from flask import jsonify, current_app
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,24 @@ def init_jwt(app):
     from flask_jwt_extended import JWTManager
 
     jwt = JWTManager(app)
+
+    # Configure blocklist for token revocation (logout support)
+    app.config['JWT_BLOCKLIST_ENABLED'] = True
+    app.config['JWT_BLOCKLIST_TOKEN_CHECKS'] = ['access', 'refresh']
+
+    @jwt.token_in_blocklist_loader
+    def check_if_token_in_blocklist(jwt_header, jwt_payload):
+        """Check if a token has been revoked."""
+        jti = jwt_payload.get('jti')
+        if not jti:
+            return False
+        try:
+            redis_client = current_app.redis
+            if redis_client:
+                return redis_client.exists(f"jwt_blocklist:{jti}") > 0
+        except Exception as e:
+            logger.error(f"Error checking token blocklist: {e}")
+        return False
 
     # Configure JWT error handlers to return proper JSON responses instead of 422
     @jwt.expired_token_loader
@@ -72,3 +90,24 @@ def init_jwt(app):
         }), 401
 
     return jwt
+
+
+def add_token_to_blocklist(jti: str, expires_in_seconds: int):
+    """
+    Add a token JTI to the blocklist.
+
+    Args:
+        jti: The unique identifier (JTI) of the token to blocklist
+        expires_in_seconds: TTL for the blocklist entry (should match token expiry)
+
+    Returns:
+        True if successfully added, False otherwise
+    """
+    try:
+        redis_client = current_app.redis
+        if redis_client:
+            redis_client.setex(f"jwt_blocklist:{jti}", expires_in_seconds, 'revoked')
+            return True
+    except Exception as e:
+        logger.error(f"Error adding token to blocklist: {e}")
+    return False

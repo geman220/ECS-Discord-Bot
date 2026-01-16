@@ -237,6 +237,61 @@ def fix_duplicate_user_roles():
 
 @click.command()
 @with_appcontext
+def regenerate_phone_hashes():
+    """
+    Regenerate phone_hash for all players with encrypted phones but missing hashes.
+
+    Phone numbers are stored encrypted (encrypted_phone) with a searchable hash (phone_hash).
+    If the hash is missing, SMS lookups will fail. This command regenerates missing hashes.
+    """
+    from app.core import db
+    from app.models import Player
+    from app.utils.pii_encryption import decrypt_value, create_hash
+
+    click.echo("Checking for players with encrypted phones but missing phone_hash...")
+
+    # Find players with encrypted_phone but no phone_hash
+    players = Player.query.filter(
+        Player.encrypted_phone.isnot(None),
+        Player.encrypted_phone != '',
+        (Player.phone_hash.is_(None) | (Player.phone_hash == ''))
+    ).all()
+
+    if not players:
+        click.echo("All players with encrypted phones already have phone_hash values.")
+        return
+
+    click.echo(f"Found {len(players)} players needing phone_hash regeneration...")
+
+    updated = 0
+    errors = 0
+
+    for player in players:
+        try:
+            # Decrypt the phone number
+            decrypted_phone = decrypt_value(player.encrypted_phone)
+            if decrypted_phone:
+                # Generate and save the hash
+                player.phone_hash = create_hash(decrypted_phone)
+                updated += 1
+                click.echo(f"  Updated phone_hash for player {player.id} ({player.name})")
+            else:
+                click.echo(f"  Warning: Could not decrypt phone for player {player.id} ({player.name})")
+                errors += 1
+        except Exception as e:
+            click.echo(f"  Error processing player {player.id} ({player.name}): {e}")
+            errors += 1
+
+    if updated > 0:
+        db.session.commit()
+        click.echo(f"Successfully regenerated phone_hash for {updated} players.")
+
+    if errors > 0:
+        click.echo(f"Encountered {errors} errors.")
+
+
+@click.command()
+@with_appcontext
 def add_user_roles_constraint():
     """
     Add unique constraint to user_roles table to prevent duplicate role assignments.

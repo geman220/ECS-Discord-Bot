@@ -128,7 +128,10 @@ def notify_substitute_pool_of_request(self, session, request_id: int, league_typ
                 )
                 
                 try:
-                    success, error = send_sms(player.phone, sms_message, user_id=user.id)
+                    success, error = send_sms(
+                        player.phone, sms_message, user_id=user.id,
+                        message_type='sub_request', source='celery_task'
+                    )
                     if success:
                         results['sms_sent'] += 1
                         notification_methods.append('SMS')
@@ -325,7 +328,10 @@ def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, A
             )
             
             try:
-                success, error = send_sms(player.phone, sms_message, user_id=user.id)
+                success, error = send_sms(
+                    player.phone, sms_message, user_id=user.id,
+                    message_type='sub_assignment', source='celery_task'
+                )
                 results['methods_attempted'].append('SMS')
                 if success:
                     results['methods_successful'].append('SMS')

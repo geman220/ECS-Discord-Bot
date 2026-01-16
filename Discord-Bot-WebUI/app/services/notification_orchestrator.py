@@ -270,8 +270,12 @@ class NotificationOrchestrator:
 
             # Get phone number from player profile
             phone = None
+            is_phone_verified = False
+            sms_consent_given = False
             if player:
                 phone = player.phone
+                is_phone_verified = getattr(player, 'is_phone_verified', False)
+                sms_consent_given = getattr(player, 'sms_consent_given', False)
                 # Handle encrypted phone if needed
                 if not phone and hasattr(player, 'encrypted_phone') and player.encrypted_phone:
                     try:
@@ -294,6 +298,10 @@ class NotificationOrchestrator:
                 'email': user.email,
                 'phone': phone,
                 'discord_id': discord_id,
+
+                # SMS verification status (CRITICAL for legal compliance)
+                'is_phone_verified': is_phone_verified,
+                'sms_consent_given': sms_consent_given,
 
                 # Type-specific preferences
                 'match_reminders': getattr(user, 'match_reminder_notifications', True),
@@ -393,13 +401,19 @@ class NotificationOrchestrator:
         """Determine if SMS notification should be sent based on preferences"""
         # Force override
         if payload.force_sms is True:
+            # Even with force, we MUST verify phone is verified for legal compliance
+            if not preferences.get('is_phone_verified', False):
+                logger.warning(
+                    "SMS force_sms=True but phone not verified - skipping for legal compliance"
+                )
+                return False
             return True
         if payload.force_sms is False:
             return False
 
         # Skip preferences for critical notifications
-        if payload.skip_preferences:
-            return True
+        # NOTE: Even for critical notifications, we still require phone verification
+        # for TCPA legal compliance
 
         # Check global SMS preference
         if not preferences.get('sms_enabled', False):
@@ -407,6 +421,20 @@ class NotificationOrchestrator:
 
         # Check if user has phone
         if not preferences.get('phone'):
+            return False
+
+        # CRITICAL: Check if phone is verified (double opt-in legal requirement)
+        if not preferences.get('is_phone_verified', False):
+            logger.debug(
+                "SMS skipped: phone not verified (is_phone_verified=False)"
+            )
+            return False
+
+        # CRITICAL: Check if SMS consent was given
+        if not preferences.get('sms_consent_given', False):
+            logger.debug(
+                "SMS skipped: consent not given (sms_consent_given=False)"
+            )
             return False
 
         # Check type-specific preferences
@@ -649,7 +677,14 @@ class NotificationOrchestrator:
             if len(sms_message) > max_length:
                 sms_message = sms_message[:max_length - 3] + "..."
 
-            success, result = send_sms(phone, sms_message, user_id=user_id)
+            # Map notification type to SMS message type for audit logging
+            message_type = payload.notification_type or 'notification'
+
+            success, result = send_sms(
+                phone, sms_message, user_id=user_id,
+                message_type=message_type,
+                source='orchestrator'
+            )
             if success:
                 logger.debug(f"SMS sent to phone ending in ...{phone[-4:] if len(phone) >= 4 else phone}")
                 return True

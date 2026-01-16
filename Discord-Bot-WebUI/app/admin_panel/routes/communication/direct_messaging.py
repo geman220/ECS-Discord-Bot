@@ -88,10 +88,29 @@ def send_sms():
             flash('SMS notifications are disabled for this user.', 'error')
             return redirect(url_for('admin_panel.direct_messaging'))
 
+        # CRITICAL: Check if phone is verified (legal compliance requirement)
+        if not player.is_phone_verified:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'Phone not verified - cannot send SMS (legal compliance)'}), 403
+            flash('Phone not verified - cannot send SMS for legal compliance reasons.', 'error')
+            return redirect(url_for('admin_panel.direct_messaging'))
+
+        # Check SMS consent was given
+        if not player.sms_consent_given:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return jsonify({'success': False, 'message': 'User has not given SMS consent'}), 403
+            flash('User has not given SMS consent.', 'error')
+            return redirect(url_for('admin_panel.direct_messaging'))
+
         user_id = user.id
 
-        # Send the SMS
-        success, result = sms_send(phone, message, user_id=user_id)
+        # Send the SMS with audit logging parameters
+        success, result = sms_send(
+            phone, message, user_id=user_id,
+            message_type='admin_direct',
+            source='admin_panel',
+            sent_by_user_id=current_user.id
+        )
 
         # Log the action
         AdminAuditLog.log_action(
@@ -308,7 +327,16 @@ def player_search():
                 'has_phone': bool(player.phone),
                 'has_discord': bool(player.discord_id),
                 'sms_enabled': user.sms_notifications if user else False,
-                'discord_enabled': user.discord_notifications if user else False
+                'discord_enabled': user.discord_notifications if user else False,
+                # SMS verification status for UI feedback
+                'is_phone_verified': player.is_phone_verified if player else False,
+                'sms_consent_given': player.sms_consent_given if player else False,
+                'sms_eligible': bool(
+                    player.phone and
+                    player.is_phone_verified and
+                    player.sms_consent_given and
+                    (user.sms_notifications if user else False)
+                )
             })
 
         return jsonify({'players': results})

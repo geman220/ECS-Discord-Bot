@@ -238,6 +238,9 @@ class Player(db.Model):
     profile_last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_known_emails = db.Column(db.Text, nullable=True)
     merge_history = db.Column(db.Text, nullable=True)
+    # DEPRECATED: Use is_phone_verified instead. This field is unused and will be
+    # removed in a future migration. See is_phone_verified (line 172) for the
+    # authoritative phone verification status field.
     verified_phone = db.Column(db.Boolean, default=False)
 
     @property 

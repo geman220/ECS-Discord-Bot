@@ -173,3 +173,167 @@ class DeviceToken(db.Model):
 
     def __repr__(self):
         return f'<DeviceToken {self.id} - {self.device_type} for User {self.user_id}>'
+
+
+class SMSLog(db.Model):
+    """
+    Model for SMS audit logging.
+
+    Tracks all SMS messages sent through the system for:
+    - Cost tracking and billing reconciliation
+    - Delivery status monitoring
+    - Compliance auditing (TCPA)
+    - Debugging delivery issues
+    """
+    __tablename__ = 'sms_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    # Recipient information
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    phone_number_hash = db.Column(db.String(64), nullable=True, index=True)  # Hashed for privacy
+
+    # Message details
+    message_type = db.Column(db.String(50), nullable=False, default='general')
+    # Types: verification, reminder, rsvp_confirmation, announcement, system, admin_direct
+    message_length = db.Column(db.Integer, nullable=True)
+    segment_count = db.Column(db.Integer, nullable=True)  # SMS segments (affects cost)
+
+    # Twilio response
+    twilio_sid = db.Column(db.String(40), nullable=True, unique=True, index=True)
+    twilio_status = db.Column(db.String(20), nullable=True)
+    # Status: queued, sending, sent, delivered, failed, undelivered
+
+    # Cost tracking
+    cost_estimate = db.Column(db.Numeric(8, 4), nullable=True)  # USD per segment
+    actual_cost = db.Column(db.Numeric(8, 4), nullable=True)  # From Twilio webhook
+
+    # Delivery tracking
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    delivered_at = db.Column(db.DateTime, nullable=True)
+    failed_at = db.Column(db.DateTime, nullable=True)
+    error_code = db.Column(db.String(10), nullable=True)
+    error_message = db.Column(db.String(255), nullable=True)
+
+    # Admin/sender context
+    sent_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    source = db.Column(db.String(50), nullable=True)  # orchestrator, admin_panel, webhook, task
+
+    # Relationships
+    user = db.relationship('User', foreign_keys=[user_id], backref='sms_logs_received')
+    sent_by = db.relationship('User', foreign_keys=[sent_by_user_id], backref='sms_logs_sent')
+
+    def __repr__(self):
+        return f'<SMSLog {self.id} - {self.message_type} to user {self.user_id} status={self.twilio_status}>'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'message_type': self.message_type,
+            'twilio_sid': self.twilio_sid,
+            'twilio_status': self.twilio_status,
+            'cost_estimate': float(self.cost_estimate) if self.cost_estimate else None,
+            'actual_cost': float(self.actual_cost) if self.actual_cost else None,
+            'sent_at': self.sent_at.isoformat() if self.sent_at else None,
+            'delivered_at': self.delivered_at.isoformat() if self.delivered_at else None,
+            'error_code': self.error_code,
+            'error_message': self.error_message,
+            'source': self.source
+        }
+
+    @classmethod
+    def log_sms(cls, user_id=None, phone_number=None, message_type='general',
+                message_length=None, twilio_sid=None, sent_by_user_id=None, source=None):
+        """
+        Create an SMS log entry.
+
+        Args:
+            user_id: ID of the recipient user (if known)
+            phone_number: Phone number (will be hashed for privacy)
+            message_type: Type of message (verification, reminder, etc.)
+            message_length: Length of the message in characters
+            twilio_sid: Twilio message SID
+            sent_by_user_id: ID of the admin who sent (for direct messages)
+            source: Where the SMS originated (orchestrator, admin_panel, etc.)
+
+        Returns:
+            SMSLog: The created log entry
+        """
+        try:
+            # Hash phone number for privacy
+            phone_hash = None
+            if phone_number:
+                import hashlib
+                phone_hash = hashlib.sha256(phone_number.encode()).hexdigest()
+
+            # Calculate segment count (SMS is 160 chars, or 70 for unicode)
+            segment_count = None
+            if message_length:
+                segment_count = (message_length // 160) + (1 if message_length % 160 else 0)
+
+            # Estimate cost (Twilio standard rate ~$0.0079 per segment)
+            cost_estimate = None
+            if segment_count:
+                cost_estimate = segment_count * 0.0079
+
+            log_entry = cls(
+                user_id=user_id,
+                phone_number_hash=phone_hash,
+                message_type=message_type,
+                message_length=message_length,
+                segment_count=segment_count,
+                twilio_sid=twilio_sid,
+                twilio_status='queued',
+                cost_estimate=cost_estimate,
+                sent_by_user_id=sent_by_user_id,
+                source=source
+            )
+
+            db.session.add(log_entry)
+            db.session.commit()
+
+            return log_entry
+
+        except Exception as e:
+            logger.error(f"Failed to create SMS log entry: {e}")
+            db.session.rollback()
+            return None
+
+    @classmethod
+    def update_delivery_status(cls, twilio_sid, status, error_code=None, error_message=None, actual_cost=None):
+        """
+        Update SMS delivery status from Twilio webhook.
+
+        Args:
+            twilio_sid: The Twilio message SID
+            status: New status (delivered, failed, undelivered)
+            error_code: Twilio error code if failed
+            error_message: Error description if failed
+            actual_cost: Actual cost from Twilio
+        """
+        try:
+            log_entry = cls.query.filter_by(twilio_sid=twilio_sid).first()
+            if not log_entry:
+                logger.warning(f"SMS log not found for Twilio SID: {twilio_sid}")
+                return None
+
+            log_entry.twilio_status = status
+
+            if status == 'delivered':
+                log_entry.delivered_at = datetime.utcnow()
+            elif status in ('failed', 'undelivered'):
+                log_entry.failed_at = datetime.utcnow()
+                log_entry.error_code = error_code
+                log_entry.error_message = error_message
+
+            if actual_cost is not None:
+                log_entry.actual_cost = actual_cost
+
+            db.session.commit()
+            return log_entry
+
+        except Exception as e:
+            logger.error(f"Failed to update SMS log status: {e}")
+            db.session.rollback()
+            return None

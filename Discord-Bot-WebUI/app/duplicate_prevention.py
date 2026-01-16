@@ -140,8 +140,11 @@ def find_potential_duplicates(user_data, league_id=None):
         query = query.filter_by(league_id=league_id)
     
     # 1. Check for exact phone match (high confidence)
+    # Phone numbers are encrypted - must search by phone_hash
     if phone and len(phone) >= 10:
-        phone_matches = query.join(User).filter_by(phone=phone).all()
+        from app.utils.pii_encryption import create_hash
+        phone_hash = create_hash(phone)
+        phone_matches = query.filter_by(phone_hash=phone_hash).all()
         for player in phone_matches:
             if player.user.email.lower() != email:  # Different email but same phone
                 potential_duplicates.append((player, 'phone', 0.9))
@@ -205,8 +208,11 @@ def check_phone_duplicate_registration(phone_number, exclude_player_id=None):
     standardized_phone = standardize_phone(phone_number)
     if not standardized_phone or len(standardized_phone) < 10:
         return []
-    
-    query = Player.query.options(joinedload(Player.user)).filter_by(phone=standardized_phone)
+
+    # Phone numbers are encrypted - must search by phone_hash
+    from app.utils.pii_encryption import create_hash
+    phone_hash = create_hash(standardized_phone)
+    query = Player.query.options(joinedload(Player.user)).filter_by(phone_hash=phone_hash)
     
     if exclude_player_id:
         query = query.filter(Player.id != exclude_player_id)

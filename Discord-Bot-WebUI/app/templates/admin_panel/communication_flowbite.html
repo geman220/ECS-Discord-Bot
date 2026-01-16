@@ -150,8 +150,39 @@
     </div>
 </div>
 
-<!-- Push Notifications & Communication Settings -->
+<!-- SMS Analytics & Push Notifications -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- SMS Analytics -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                <i class="ti ti-message-dollar text-cyan-500 mr-2"></i>SMS Analytics
+            </h5>
+        </div>
+        <div class="p-5">
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Monitor SMS costs, delivery rates, and usage patterns</p>
+            <nav class="space-y-2">
+                <a href="{{ url_for('admin_panel.sms_analytics_dashboard') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-chart-bar text-gray-500 dark:text-gray-400 mr-3"></i>
+                        <div>
+                            <span class="text-sm font-medium text-gray-900 dark:text-white">Cost Dashboard</span>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">View SMS costs and delivery metrics</p>
+                        </div>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+                <a href="{{ url_for('admin_panel.direct_messaging') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    <div class="flex items-center">
+                        <i class="ti ti-send text-gray-500 dark:text-gray-400 mr-3"></i>
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">Send SMS</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400"></i>
+                </a>
+            </nav>
+        </div>
+    </div>
+
     <!-- Push Notifications -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">

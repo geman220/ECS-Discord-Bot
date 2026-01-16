@@ -20,7 +20,11 @@ from app.core.session_manager import managed_session
 from app.sms_helpers import (
     send_sms,
     verify_sms_confirmation,
-    send_confirmation_sms
+    send_confirmation_sms,
+    check_verification_attempts,
+    record_verification_attempt,
+    reset_verification_attempts,
+    SMSVerificationLocked
 )
 
 logger = logging.getLogger(__name__)
@@ -214,12 +218,18 @@ def update_notifications():
         # Notify the user via SMS about changes in SMS notification status.
         if notifications.get("sms", False) and not previous_sms:
             logger.debug(f"🔵 [USER_API] Sending SMS enable confirmation to {player.phone}")
-            success, sid = send_sms(player.phone, "SMS notifications enabled for ECS FC. Reply END to unsubscribe.")
+            success, sid = send_sms(
+                player.phone, "SMS notifications enabled for ECS FC. Reply END to unsubscribe.",
+                message_type='preference_change', source='user_api'
+            )
             if not success:
                 logger.error(f"🔴 [USER_API] Failed to send SMS confirmation for user {user.id}: {sid}")
         elif not notifications.get("sms", False) and previous_sms:
             logger.debug(f"🔵 [USER_API] Sending SMS disable confirmation to {player.phone}")
-            success, sid = send_sms(player.phone, "SMS notifications disabled for ECS FC. Reply START to re-subscribe.")
+            success, sid = send_sms(
+                player.phone, "SMS notifications disabled for ECS FC. Reply START to re-subscribe.",
+                message_type='preference_change', source='user_api'
+            )
             if not success:
                 logger.error(f"🔴 [USER_API] Failed to send SMS disable confirmation for user {user.id}: {sid}")
 
@@ -313,13 +323,26 @@ def sms_confirm():
             logger.error(f"🔴 [USER_API] Associated user not found for SMS confirmation - player: {player.name}")
             return jsonify({"error": "Associated user not found"}), 404
 
+        # Check for brute-force lockout BEFORE attempting verification
+        try:
+            check_verification_attempts(user.id)
+        except SMSVerificationLocked as e:
+            logger.warning(f"🔴 [USER_API] User {user.id} locked from SMS verification: {e}")
+            return jsonify({"error": str(e)}), 429
+
         logger.debug(f"🔵 [USER_API] Verifying SMS confirmation code for {player.name}")
         if verify_sms_confirmation(user, code):
+            # Record successful attempt (clears attempt counter)
+            record_verification_attempt(user.id, success=True)
+
             player.is_phone_verified = True
             session_db.commit()
             logger.info(f"🟢 [USER_API] SMS confirmation successful for {player.name} - phone verified and notifications enabled")
             return jsonify({"message": "SMS enrollment confirmed and notifications enabled."}), 200
         else:
+            # Record failed attempt
+            record_verification_attempt(user.id, success=False)
+
             logger.warning(f"🟡 [USER_API] Invalid SMS confirmation code for {player.name}")
             return jsonify({"error": "Invalid confirmation code."}), 400
 

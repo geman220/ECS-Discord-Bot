@@ -14,7 +14,7 @@ import logging
 from urllib.parse import quote
 
 from flask import jsonify, request, session, current_app
-from flask_jwt_extended import jwt_required, create_access_token, get_jwt_identity
+from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity, get_jwt
 from sqlalchemy.orm import joinedload
 
 from app.mobile_api import mobile_api_v2
@@ -153,11 +153,13 @@ def discord_callback():
             if not user:
                 return jsonify({"msg": "Failed to process Discord user"}), 500
 
-            # Create JWT access token for the user
+            # Create JWT access and refresh tokens for the user
             access_token = create_access_token(identity=str(user.id))
+            refresh_token = create_refresh_token(identity=str(user.id))
 
             return jsonify({
                 "access_token": access_token,
+                "refresh_token": refresh_token,
                 "user_id": user.id,
                 "username": user.username,
                 "discord_id": discord_user['id']
@@ -199,7 +201,8 @@ def login():
             return jsonify({"msg": "2FA required", "user_id": user.id}), 200
 
         access_token = create_access_token(identity=str(user.id))
-        return jsonify(access_token=access_token), 200
+        refresh_token = create_refresh_token(identity=str(user.id))
+        return jsonify(access_token=access_token, refresh_token=refresh_token), 200
 
 
 @mobile_api_v2.route('/verify_2fa', methods=['POST'])
@@ -227,7 +230,77 @@ def verify_2fa():
             return jsonify({"msg": "Invalid 2FA token"}), 401
 
         access_token = create_access_token(identity=str(user.id))
-        return jsonify(access_token=access_token), 200
+        refresh_token = create_refresh_token(identity=str(user.id))
+        return jsonify(access_token=access_token, refresh_token=refresh_token), 200
+
+
+@mobile_api_v2.route('/refresh_token', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh_token():
+    """
+    Refresh an access token using a valid refresh token.
+
+    Header:
+        Authorization: Bearer <refresh_token>
+
+    Returns:
+        JSON with new access token on success
+    """
+    from app.init.jwt import add_token_to_blocklist
+
+    current_user_id = get_jwt_identity()
+
+    with managed_session() as session_db:
+        user = session_db.query(User).filter_by(id=int(current_user_id)).first()
+
+        if not user:
+            logger.warning(f"Token refresh attempted for non-existent user: {current_user_id}")
+            return jsonify({"msg": "User not found"}), 404
+
+        if not user.is_approved:
+            logger.warning(f"Token refresh attempted for unapproved user: {current_user_id}")
+            return jsonify({"msg": "Account not approved"}), 403
+
+        # Create new access token
+        new_access_token = create_access_token(identity=str(user.id))
+        logger.info(f"Access token refreshed for user: {user.username}")
+
+        return jsonify({"access_token": new_access_token}), 200
+
+
+@mobile_api_v2.route('/logout', methods=['POST'])
+@jwt_required(verify_type=False)
+def logout():
+    """
+    Revoke the current token (access or refresh).
+
+    Header:
+        Authorization: Bearer <access_token|refresh_token>
+
+    Returns:
+        JSON with success message
+    """
+    from app.init.jwt import add_token_to_blocklist
+
+    jwt_data = get_jwt()
+    jti = jwt_data.get('jti')
+    token_type = jwt_data.get('type', 'access')
+
+    # Calculate TTL based on token expiry
+    exp = jwt_data.get('exp')
+    if exp:
+        import time
+        ttl = max(0, int(exp - time.time()))
+    else:
+        # Default to 30 days if no expiry (shouldn't happen)
+        ttl = 30 * 24 * 60 * 60
+
+    if add_token_to_blocklist(jti, ttl):
+        logger.info(f"Token revoked: type={token_type}, jti={jti}")
+        return jsonify({"msg": "Token revoked successfully"}), 200
+    else:
+        logger.error(f"Failed to revoke token: jti={jti}")
+        return jsonify({"msg": "Token revocation failed"}), 500
 
 
 @mobile_api_v2.route('/user_profile', methods=['GET'])

@@ -124,11 +124,13 @@ class Config:
     # JWT Configuration
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY')
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=1)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)  # Match session lifetime
     
     # External Service Keys
     TWILIO_SID = os.getenv('TWILIO_SID')
     TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
     TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
+    TWILIO_STATUS_CALLBACK = os.getenv('TWILIO_STATUS_CALLBACK', 'https://portal.ecsfc.com/account/webhook/sms-status')
     GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
     TEXTMAGIC_USERNAME = os.getenv('TEXTMAGIC_USERNAME')
     TEXTMAGIC_API_KEY = os.getenv('TEXTMAGIC_API_KEY')

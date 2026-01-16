@@ -19,7 +19,13 @@ from app import csrf
 from app.core import db
 from app.forms import NotificationSettingsForm, PasswordChangeForm, Enable2FAForm, Disable2FAForm
 from app.models import Player, User, Notification
-from app.sms_helpers import send_confirmation_sms, verify_sms_confirmation, user_is_blocked_in_textmagic, handle_incoming_text_command
+from app.sms_helpers import (
+    send_confirmation_sms, verify_sms_confirmation, user_is_blocked_in_textmagic,
+    handle_incoming_text_command, check_verification_attempts, record_verification_attempt,
+    reset_verification_attempts, SMSVerificationLocked,
+    check_inbound_sms_rate_limit, track_inbound_sms, SMSInboundRateLimitExceeded,
+    check_code_request_rate_limit, track_code_request, SMSCodeRequestLimitExceeded
+)
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from app.utils.user_helpers import safe_current_user
@@ -258,28 +264,49 @@ def initiate_sms_opt_in():
 
     Validates the phone number and consent, creates or updates the player's record, checks
     for blocked numbers, and sends a confirmation SMS.
+
+    Security features:
+    - Code request rate limiting (prevents cost attacks from spamming "send code")
+    - US phone number validation (prevents international SMS pumping)
     """
     session = g.db_session
     user = session.query(User).get(current_user.id)
 
     phone_number = request.json.get('phone_number')
     consent_given = request.json.get('consent_given')
-    
+
     if not phone_number or not consent_given:
         return jsonify(success=False, message="Phone number and consent are required."), 400
-    
+
+    # =========================================================================
+    # SECURITY: Rate limit verification code requests (prevents cost attacks)
+    # =========================================================================
+    try:
+        check_code_request_rate_limit(user.id)
+    except SMSCodeRequestLimitExceeded as e:
+        logger.warning(f"User {user.id} exceeded verification code request limit")
+        return jsonify(success=False, message=str(e)), 429  # 429 Too Many Requests
+
     # Validate and normalize the phone number
     phone_number = phone_number.strip()
     # Remove any non-digit characters
     phone_number = ''.join(filter(str.isdigit, phone_number))
-    
+
+    # =========================================================================
+    # SECURITY: US phone number validation (prevents SMS pumping to intl numbers)
+    # =========================================================================
     # Check if this is a valid US number (10 digits)
     if len(phone_number) != 10:
         return jsonify(success=False, message="Please enter a valid 10-digit US phone number."), 400
 
+    # Additional check: Ensure it starts with a valid US area code (2-9)
+    # First digit of US area codes cannot be 0 or 1
+    if phone_number[0] in ('0', '1'):
+        return jsonify(success=False, message="Please enter a valid US phone number."), 400
+
     # Create or update the player record with the normalized phone number
     player = create_or_update_player(session, user.id, phone_number)
-    
+
     try:
         # Check if the user's phone is blocked
         if user_is_blocked_in_textmagic(phone_number):
@@ -287,11 +314,17 @@ def initiate_sms_opt_in():
     except Exception as e:
         logger.error(f"Error checking if phone is blocked: {e}")
         # Continue even if the blocked check fails
-    
+
+    # Reset verification attempts when sending a new code
+    reset_verification_attempts(user.id)
+
+    # Track this code request for rate limiting
+    track_code_request(user.id)
+
     # Enable SMS notifications and send confirmation code
     user.sms_notifications = True
     success, message = send_confirmation_sms(user)
-    
+
     if success:
         return jsonify(success=True, message="Verification code sent. Please check your phone.")
     else:
@@ -310,6 +343,7 @@ def confirm_sms_opt_in():
     Confirm SMS opt-in.
 
     Validates the SMS confirmation code and updates the user's SMS notification settings.
+    Includes brute-force protection to prevent code guessing attacks.
     """
     session = g.db_session
     user = session.query(User).get(current_user.id)
@@ -317,14 +351,44 @@ def confirm_sms_opt_in():
     confirmation_code = request.json.get('confirmation_code')
     if not confirmation_code:
         return jsonify(success=False, message="Verification code is required."), 400
-    
+
+    # Check for brute-force lockout BEFORE attempting verification
+    try:
+        attempt_info = check_verification_attempts(user.id)
+    except SMSVerificationLocked as e:
+        logger.warning(f"User {user.id} blocked from SMS verification due to lockout: {e}")
+        return jsonify(success=False, message=str(e)), 429  # 429 Too Many Requests
+
     if verify_sms_confirmation(user, confirmation_code):
+        # Record successful attempt (clears attempt counter)
+        record_verification_attempt(user.id, success=True)
+
         user.sms_notifications = True
         if user.player:
             user.player.is_phone_verified = True
         show_success('SMS notifications enabled successfully.')
         return jsonify(success=True, message="SMS notifications enabled successfully.")
     else:
+        # Record failed attempt
+        record_verification_attempt(user.id, success=False)
+
+        # Get updated attempt info for user feedback
+        try:
+            updated_info = check_verification_attempts(user.id)
+            remaining = updated_info.get('remaining', 0)
+            if remaining > 0:
+                return jsonify(
+                    success=False,
+                    message=f"Invalid verification code. {remaining} attempts remaining."
+                ), 400
+            else:
+                return jsonify(
+                    success=False,
+                    message="Invalid verification code. Account locked due to too many attempts."
+                ), 429
+        except SMSVerificationLocked as e:
+            return jsonify(success=False, message=str(e)), 429
+
         return jsonify(success=False, message="Invalid verification code."), 400
 
 
@@ -507,20 +571,132 @@ def incoming_sms_webhook():
     Retrieves the sender's phone number and message body, and passes the command
     to a helper function for processing. Maintains the original phone number format
     to ensure consistent handling throughout the application.
+
+    Security features:
+    - Twilio request signature validation (prevents spoofed requests)
+    - Inbound rate limiting (prevents cost attacks from SMS spam)
     """
+    import os
+
     session = g.db_session
     sender_number = request.form.get('From', '').strip()
     message_text = request.form.get('Body', '').strip()
 
-    # Log FULL request data for debugging SMS issues
+    # =========================================================================
+    # SECURITY: Validate request is actually from Twilio
+    # =========================================================================
+    twilio_auth_token = os.environ.get('TWILIO_AUTH_TOKEN') or current_app.config.get('TWILIO_AUTH_TOKEN')
+
+    if twilio_auth_token:
+        try:
+            from twilio.request_validator import RequestValidator
+
+            validator = RequestValidator(twilio_auth_token)
+
+            # Get the full URL that Twilio called
+            # Use X-Forwarded headers if behind a proxy
+            if request.headers.get('X-Forwarded-Proto'):
+                scheme = request.headers.get('X-Forwarded-Proto')
+                host = request.headers.get('X-Forwarded-Host') or request.host
+                url = f"{scheme}://{host}{request.path}"
+            else:
+                url = request.url
+
+            # Get Twilio's signature from headers
+            twilio_signature = request.headers.get('X-Twilio-Signature', '')
+
+            # Validate the request
+            if not validator.validate(url, request.form, twilio_signature):
+                logger.warning(f"Invalid Twilio signature on incoming SMS from {sender_number}")
+                # Return 403 Forbidden for invalid signatures
+                return jsonify({'status': 'error', 'message': 'Invalid request signature'}), 403
+
+        except ImportError:
+            logger.warning("Twilio library not available for request validation")
+        except Exception as e:
+            logger.error(f"Error validating Twilio signature: {e}")
+            # Continue processing - don't block legitimate requests due to validation errors
+
+    # =========================================================================
+    # SECURITY: Rate limit inbound SMS to prevent cost attacks
+    # =========================================================================
+    try:
+        check_inbound_sms_rate_limit(sender_number)
+        track_inbound_sms(sender_number)
+    except SMSInboundRateLimitExceeded:
+        logger.warning(f"Inbound SMS rate limit exceeded for {sender_number}, ignoring message")
+        # Return 200 to Twilio (don't retry) but don't process the message
+        # Also don't send a response SMS (that would cost money and reward the attacker)
+        return '', 200
+
+    # Log request data for debugging
     logger.info(f"Incoming SMS webhook received from: {sender_number}, message: {message_text}")
-    logger.info(f"Full SMS request data: {request.form}")
-    
+    logger.debug(f"Full SMS request data: {request.form}")
+
     # Make sure command works regardless of case
     if message_text.lower() == 'schedule':
         logger.info(f"Processing 'schedule' command for {sender_number}")
-    
+
     return handle_incoming_text_command(sender_number, message_text)
+
+
+@csrf.exempt
+@account_bp.route('/webhook/sms-status', methods=['POST'])
+def sms_status_webhook():
+    """
+    Webhook endpoint for Twilio SMS delivery status updates.
+
+    Twilio sends status updates to this endpoint when SMS status changes:
+    - queued: Message is queued for sending
+    - sending: Message is being sent
+    - sent: Message was sent to carrier
+    - delivered: Carrier confirmed delivery
+    - failed: Message failed to send
+    - undelivered: Carrier could not deliver
+
+    This webhook updates the SMSLog table for cost tracking and delivery monitoring.
+    """
+    try:
+        from app.models import SMSLog
+
+        # Extract Twilio webhook data
+        message_sid = request.form.get('MessageSid', '').strip()
+        message_status = request.form.get('MessageStatus', '').strip()
+        error_code = request.form.get('ErrorCode')
+        error_message = request.form.get('ErrorMessage')
+
+        # Price is sent as a string like "0.0075" in USD
+        price = request.form.get('Price')
+        actual_cost = float(price) if price else None
+
+        if not message_sid:
+            logger.warning("SMS status webhook received without MessageSid")
+            return jsonify({'status': 'error', 'message': 'Missing MessageSid'}), 400
+
+        logger.info(f"SMS status update: SID={message_sid}, status={message_status}")
+
+        # Update the SMS log entry
+        log_entry = SMSLog.update_delivery_status(
+            twilio_sid=message_sid,
+            status=message_status,
+            error_code=error_code,
+            error_message=error_message,
+            actual_cost=actual_cost
+        )
+
+        if log_entry:
+            logger.debug(f"SMS log updated for SID {message_sid}: status={message_status}")
+        else:
+            # Log entry not found - might be from before logging was implemented
+            logger.debug(f"SMS log not found for SID {message_sid} (may be old message)")
+
+        # Twilio expects a 200 response
+        return '', 200
+
+    except Exception as e:
+        logger.error(f"Error processing SMS status webhook: {e}")
+        # Return 200 anyway to prevent Twilio from retrying
+        return '', 200
 
 
 @account_bp.route('/show_2fa_qr', methods=['GET'])
