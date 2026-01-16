@@ -118,15 +118,10 @@ def user_approvals():
                     or_(Role.name.ilike('%ecs%fc%'), Role.name.ilike('%ecsfc%'))
                 )
 
-        # Apply search filter
+        # Apply search filter (email is encrypted, search by username only)
         if search_query:
             search_term = f'%{search_query}%'
-            query = query.filter(
-                or_(
-                    User.username.ilike(search_term),
-                    User.email.ilike(search_term)
-                )
-            )
+            query = query.filter(User.username.ilike(search_term))
 
         # Order by creation date
         pending_users = query.order_by(User.created_at.desc()).all()

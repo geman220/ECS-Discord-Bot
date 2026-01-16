@@ -462,12 +462,9 @@ def notification_groups_search_users():
         if len(query) < 2:
             return jsonify({'success': True, 'users': []})
 
+        # Search by username only (email is encrypted, User has no name column - that's on Player)
         users = User.query.filter(
-            db.or_(
-                User.username.ilike(f'%{query}%'),
-                User.email.ilike(f'%{query}%'),
-                User.name.ilike(f'%{query}%')
-            )
+            User.username.ilike(f'%{query}%')
         ).order_by(User.username).limit(limit).all()
 
         return jsonify({
@@ -505,18 +502,14 @@ def notification_groups_search_members(group_id):
             return jsonify({'success': True, 'users': []})
 
         # Get existing member IDs
-        existing_member_ids = db.session.query(NotificationGroupMember.user_id).filter(
+        existing_member_ids = db.select(NotificationGroupMember.user_id).where(
             NotificationGroupMember.group_id == group_id
-        ).subquery()
+        )
 
-        # Search users not already in the group
+        # Search users not already in the group (email is encrypted, User has no name column)
         users = User.query.filter(
-            db.or_(
-                User.username.ilike(f'%{query}%'),
-                User.email.ilike(f'%{query}%'),
-                User.name.ilike(f'%{query}%')
-            ),
-            ~User.id.in_(existing_member_ids)
+            User.username.ilike(f'%{query}%'),
+            User.id.not_in(existing_member_ids)
         ).order_by(User.username).limit(limit).all()
 
         return jsonify({

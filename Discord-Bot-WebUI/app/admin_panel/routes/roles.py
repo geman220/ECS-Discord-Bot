@@ -382,13 +382,13 @@ def get_available_users_for_role(role_id):
         role = Role.query.get_or_404(role_id)
         search = request.args.get('search', '').strip()
 
-        # Get users who don't have this role
-        users_with_role_ids = db.session.query(user_roles.c.user_id).filter(
+        # Get users who don't have this role (use select() for proper IN clause)
+        users_with_role_subq = db.select(user_roles.c.user_id).where(
             user_roles.c.role_id == role_id
-        ).subquery()
+        )
 
         query = User.query.outerjoin(Player, User.id == Player.user_id).filter(
-            ~User.id.in_(users_with_role_ids)
+            User.id.not_in(users_with_role_subq)
         )
 
         # Apply search filter - search by Player name (email/phone are encrypted)

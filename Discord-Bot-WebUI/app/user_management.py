@@ -2021,12 +2021,9 @@ def search_players():
         
         session = g.db_session
         
-        # Search players by name or email
+        # Search players by name (email is encrypted)
         players = session.query(Player).join(User).filter(
-            or_(
-                Player.name.ilike(f'%{query}%'),
-                User.email.ilike(f'%{query}%')
-            )
+            Player.name.ilike(f'%{query}%')
         ).limit(10).all()
         
         results = []
@@ -2090,28 +2087,14 @@ def search_players_post():
         
         session = g.db_session
         
-        # Search in players and their associated users
-        # Search by name (case insensitive, partial match)
+        # Search in players by name only (email and phone are encrypted)
         name_results = session.query(Player).join(User).filter(
             Player.name.ilike(f'%{search_term}%')
         ).all()
-        
-        # Search by email (case insensitive, partial match)
-        email_results = session.query(Player).join(User).filter(
-            User.email.ilike(f'%{search_term}%')
-        ).all()
-        
-        # Search by phone (remove formatting and search)
-        phone_clean = ''.join(c for c in search_term if c.isdigit())
-        phone_results = []
-        if phone_clean:
-            phone_results = session.query(Player).filter(
-                Player.phone.ilike(f'%{phone_clean}%')
-            ).join(User).all()
-        
+
         # Combine and deduplicate results
         all_results = {}
-        for player in name_results + email_results + phone_results:
+        for player in name_results:
             if player.id not in all_results:
                 # Determine league name - check both direct league relationship and user league
                 league_name = 'N/A'

@@ -512,13 +512,12 @@ def substitute_pool_player_search():
         if league_type and league_type not in LEAGUE_TYPES:
             return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
-        # Build base query
+        # Build base query (email is encrypted, search by Player.name and User.username only)
         base_query = Player.query.options(
             joinedload(Player.user).joinedload(User.roles)
         ).join(User).filter(
             or_(
                 Player.name.ilike(f'%{query_str}%'),
-                User.email.ilike(f'%{query_str}%'),
                 User.username.ilike(f'%{query_str}%')
             )
         )
