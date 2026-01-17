@@ -191,6 +191,7 @@ import '../custom_js/cropper.js';
 import '../custom_js/draft-enhanced.js';
 import '../custom_js/draft-predictions.js';
 import '../custom_js/ecs-fc-schedule.js';
+import '../custom_js/ecs-fc-lineup.js';
 import '../custom_js/ecs-fc-bulk-admin.js';
 import '../custom_js/handle_2fa.js';
 import '../custom_js/home.js';

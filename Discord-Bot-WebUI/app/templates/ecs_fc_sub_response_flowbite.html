@@ -1,0 +1,234 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Sub Request Response | ECS FC{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center px-4 py-8">
+    <div class="max-w-md w-full">
+        <!-- Logo Header -->
+        <div class="text-center mb-6">
+            <img src="{{ url_for('static', filename='img/ecs-logo.png') }}" alt="ECS Logo" class="h-16 mx-auto mb-4">
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white">ECS FC Sub Request</h1>
+        </div>
+
+        {% if error %}
+        <!-- Error State -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="ti ti-alert-triangle text-3xl text-red-600 dark:text-red-400"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">{{ error }}</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">
+                    This link may have expired or already been used.
+                </p>
+                <a href="/" class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+                    <i class="ti ti-home"></i> Go to Homepage
+                </a>
+            </div>
+        </div>
+
+        {% elif already_responded %}
+        <!-- Already Responded State -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+            <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 px-6 py-4">
+                <h2 class="text-lg font-semibold text-white">Response Already Submitted</h2>
+            </div>
+            <div class="p-6 text-center">
+                {% if previous_response %}
+                <div class="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="ti ti-check text-3xl text-green-600 dark:text-green-400"></i>
+                </div>
+                <p class="text-lg text-gray-900 dark:text-white mb-2">You indicated you're <strong>available</strong>!</p>
+                <p class="text-gray-600 dark:text-gray-400 mb-2">
+                    The coach has been notified of your availability.
+                </p>
+
+                <!-- Important notice box -->
+                <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mt-4 text-left">
+                    <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-2 flex items-center gap-2">
+                        <i class="ti ti-alert-triangle"></i> Important - Please Read
+                    </h4>
+                    <ul class="text-sm text-yellow-700 dark:text-yellow-200 space-y-1 list-disc list-inside">
+                        <li><strong>Do not show up</strong> unless you receive a confirmation message</li>
+                        <li>You'll be notified via email/text if you're selected</li>
+                        <li>Multiple subs may have responded - the coach will choose</li>
+                        <li>If you don't hear back, the spot has been filled</li>
+                    </ul>
+                </div>
+                {% else %}
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="ti ti-check text-3xl text-gray-600 dark:text-gray-400"></i>
+                </div>
+                <p class="text-lg text-gray-900 dark:text-white mb-2">You indicated you're <strong>unavailable</strong>.</p>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">
+                    Thank you for letting us know!
+                </p>
+                {% endif %}
+
+                {% if response and response.request and response.request.match %}
+                <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4 text-left">
+                    <h3 class="font-medium text-gray-900 dark:text-white mb-2">Match Details</h3>
+                    <div class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+                        <p><i class="ti ti-users mr-2"></i>{{ response.request.match.team.name }} vs {{ response.request.match.opponent_name }}</p>
+                        <p><i class="ti ti-calendar mr-2"></i>{{ response.request.match.match_date.strftime('%A, %B %d, %Y') if response.request.match.match_date else 'TBD' }}</p>
+                        <p><i class="ti ti-clock mr-2"></i>{{ response.request.match.match_time.strftime('%I:%M %p') if response.request.match.match_time else 'TBD' }}</p>
+                        <p><i class="ti ti-map-pin mr-2"></i>{{ response.request.match.location or 'TBD' }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% elif token_valid %}
+        <!-- Valid Token - Response Form -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 px-6 py-4">
+                <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <i class="ti ti-hand-stop"></i> Sub Request
+                </h2>
+                <p class="text-green-100 text-sm mt-1">{{ team.name }} needs you!</p>
+            </div>
+
+            <!-- Player Greeting -->
+            <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                <p class="text-gray-700 dark:text-gray-300">
+                    Hi <strong>{{ player.name }}</strong>, you've been invited to sub for an upcoming match!
+                </p>
+            </div>
+
+            <!-- Match Details -->
+            <div class="p-6">
+                <h3 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">Match Details</h3>
+                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-ecs-green/10 rounded-lg flex items-center justify-center">
+                            <i class="ti ti-vs text-ecs-green"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Match</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ team.name }} vs {{ match.opponent_name }}</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                            <i class="ti ti-calendar text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Date</p>
+                            <p class="font-medium text-gray-900 dark:text-white">
+                                {{ match.match_date.strftime('%A, %B %d, %Y') if match.match_date else 'TBD' }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                            <i class="ti ti-clock text-purple-600 dark:text-purple-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Time</p>
+                            <p class="font-medium text-gray-900 dark:text-white">
+                                {{ match.match_time.strftime('%I:%M %p') if match.match_time else 'TBD' }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                            <i class="ti ti-map-pin text-red-600 dark:text-red-400"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Location</p>
+                            <p class="font-medium text-gray-900 dark:text-white">{{ match.location or 'TBD' }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                {% if coach_note %}
+                <!-- Coach's Note -->
+                <div class="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <h4 class="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-1 flex items-center gap-2">
+                        <i class="ti ti-message-circle"></i> Message from Coach
+                    </h4>
+                    <p class="text-sm text-yellow-700 dark:text-yellow-200">{{ coach_note }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Response Form -->
+                <form method="POST" action="{{ url_for('ecs_fc.submit_sub_response', token=token) }}" class="mt-6">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <label class="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        Add a note (optional):
+                    </label>
+                    <textarea name="notes" rows="2"
+                              class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm mb-4"
+                              placeholder="e.g., I can only play second half..."></textarea>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <button type="submit" name="response" value="accept"
+                                class="flex items-center justify-center gap-2 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium">
+                            <i class="ti ti-check"></i> I'm Available
+                        </button>
+                        <button type="submit" name="response" value="decline"
+                                class="flex items-center justify-center gap-2 py-3 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors font-medium">
+                            <i class="ti ti-x"></i> Can't Make It
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% else %}
+        <!-- Generic Invalid State -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="ti ti-link-off text-3xl text-gray-400"></i>
+                </div>
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-2">Invalid Link</h2>
+                <p class="text-gray-600 dark:text-gray-400 mb-6">
+                    This link is not valid. Please check your notification for the correct link.
+                </p>
+                <a href="/" class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+                    <i class="ti ti-home"></i> Go to Homepage
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="text-center mt-6">
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                ECS Soccer League &middot; <a href="https://weareecs.com" class="text-ecs-green hover:underline">weareecs.com</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// Flash messages as toasts
+document.addEventListener('DOMContentLoaded', function() {
+    {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    Swal.fire({
+        icon: '{{ "success" if category == "success" else "error" if category == "error" else "info" }}',
+        title: '{{ message }}',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+        color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
+    });
+    {% endfor %}
+    {% endwith %}
+});
+</script>
+{% endblock %}

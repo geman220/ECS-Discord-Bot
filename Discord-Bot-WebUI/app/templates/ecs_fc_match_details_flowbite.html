@@ -43,6 +43,14 @@
                     <i class="ti ti-{% if match.status == 'COMPLETED' %}edit{% else %}report{% endif %}"></i>
                     {% if match.status == 'COMPLETED' %}Edit Match Report{% else %}Report Results{% endif %}
                 </button>
+                <button type="button" data-action="request-subs" data-match-id="{{ match.id }}"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                    <i class="ti ti-hand-stop"></i> Request Subs
+                </button>
+                <a href="{{ url_for('ecs_fc.lineup_picker', match_id=match.id) }}"
+                   class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm">
+                    <i class="ti ti-layout-grid"></i> Lineup Picker
+                </a>
                 <button type="button" class="js-send-reminder inline-flex items-center gap-2 px-4 py-2 border border-yellow-500 text-yellow-600 dark:text-yellow-400 rounded-lg hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors text-sm"
                         data-match-id="{{ match.id }}">
                     <i class="ti ti-bell"></i> Send Reminder
@@ -224,7 +232,201 @@
             </table>
         </div>
     </div>
+
+    {% if can_manage %}
+    <!-- Sub Responses Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden mt-6">
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+            <button type="button" data-action="toggle-sub-responses" class="w-full flex items-center justify-between">
+                <h2 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-hand-stop text-blue-600"></i>
+                    Sub Responses
+                    <span id="subResponsesCount" class="text-sm font-normal text-gray-500"></span>
+                </h2>
+                <i class="ti ti-chevron-down text-gray-500 transition-transform" id="subResponsesChevron"></i>
+            </button>
+        </div>
+        <div id="subResponsesContent" class="hidden">
+            <div class="p-4">
+                <!-- Assigned Subs -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                        <i class="ti ti-check-circle text-green-600"></i> Assigned Subs
+                    </h3>
+                    <div id="assignedSubsList" class="space-y-2">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 italic">No subs assigned yet</p>
+                    </div>
+                </div>
+
+                <!-- Accepted (Available to Assign) -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                        <i class="ti ti-thumb-up text-green-600"></i> Accepted - Available to Assign
+                    </h3>
+                    <div id="acceptedSubsList" class="space-y-2">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 italic">No responses yet</p>
+                    </div>
+                </div>
+
+                <!-- Declined -->
+                <div class="mb-6">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                        <i class="ti ti-thumb-down text-red-600"></i> Declined
+                    </h3>
+                    <div id="declinedSubsList" class="space-y-2">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 italic">No declines</p>
+                    </div>
+                </div>
+
+                <!-- Pending -->
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                        <i class="ti ti-clock text-yellow-600"></i> Pending Response
+                    </h3>
+                    <div id="pendingSubsList" class="space-y-2">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 italic">No pending requests</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 </div>
+
+{% if can_manage %}
+<!-- Sub Request Modal -->
+<div id="subRequestModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <!-- Background overlay -->
+        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" data-action="close-sub-request-modal"></div>
+
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+
+        <!-- Modal panel -->
+        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-hand-stop text-blue-600"></i>
+                        Request Subs
+                    </h3>
+                    <button type="button" data-action="close-sub-request-modal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        <i class="ti ti-x text-xl"></i>
+                    </button>
+                </div>
+
+                <form id="subRequestForm">
+                    <!-- Recipients Selection -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipients</label>
+                        <div class="space-y-2">
+                            <label class="flex items-center">
+                                <input type="radio" name="recipient_type" value="all" checked class="text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">All ECS FC Subs <span id="allSubsCount" class="text-gray-500"></span></span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="radio" name="recipient_type" value="gender" class="text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">By Gender</span>
+                            </label>
+                            <div id="genderOptions" class="hidden ml-6 space-y-1">
+                                <label class="flex items-center">
+                                    <input type="radio" name="gender" value="male" class="text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Male <span id="maleCount" class="text-gray-500"></span></span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="gender" value="female" class="text-blue-600 focus:ring-blue-500">
+                                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">Female <span id="femaleCount" class="text-gray-500"></span></span>
+                                </label>
+                            </div>
+                            <label class="flex items-center">
+                                <input type="radio" name="recipient_type" value="position" class="text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">By Position</span>
+                            </label>
+                            <div id="positionOptions" class="hidden ml-6 grid grid-cols-2 gap-2">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="positions" value="GK" class="text-blue-600 focus:ring-blue-500 rounded">
+                                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">GK <span id="gkCount" class="text-gray-500"></span></span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="positions" value="DEF" class="text-blue-600 focus:ring-blue-500 rounded">
+                                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">DEF <span id="defCount" class="text-gray-500"></span></span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="positions" value="MID" class="text-blue-600 focus:ring-blue-500 rounded">
+                                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">MID <span id="midCount" class="text-gray-500"></span></span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="positions" value="FWD" class="text-blue-600 focus:ring-blue-500 rounded">
+                                    <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">FWD <span id="fwdCount" class="text-gray-500"></span></span>
+                                </label>
+                            </div>
+                            <label class="flex items-center">
+                                <input type="radio" name="recipient_type" value="specific" class="text-blue-600 focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Specific People</span>
+                            </label>
+                            <div id="specificOptions" class="hidden ml-6">
+                                <div class="relative mb-2">
+                                    <input type="text" id="playerSearchInput" placeholder="Search players..."
+                                           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                                </div>
+                                <div id="playerSelectList" class="max-h-40 overflow-y-auto space-y-1 border border-gray-200 dark:border-gray-600 rounded-lg p-2">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notification Channels -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Notification Channels</label>
+                        <div class="flex flex-wrap gap-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" name="channels" value="email" checked class="text-blue-600 focus:ring-blue-500 rounded">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-mail mr-1"></i>Email</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="channels" value="discord" checked class="text-blue-600 focus:ring-blue-500 rounded">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-brand-discord mr-1"></i>Discord</span>
+                            </label>
+                            <label class="flex items-center">
+                                <input type="checkbox" name="channels" value="sms" class="text-blue-600 focus:ring-blue-500 rounded">
+                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-message mr-1"></i>SMS</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Message -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message to Subs</label>
+                        <textarea name="message" rows="3"
+                                  class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm"
+                                  placeholder="e.g., Need a keeper for this Sunday's match..."></textarea>
+                    </div>
+
+                    <!-- Preview Count -->
+                    <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                        <p class="text-sm text-blue-700 dark:text-blue-300">
+                            <i class="ti ti-info-circle mr-1"></i>
+                            This will notify <span id="previewCount" class="font-bold">0</span> subs
+                        </p>
+                    </div>
+                </form>
+            </div>
+
+            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                <button type="button" data-action="send-sub-request" data-match-id="{{ match.id }}"
+                        class="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+                    <i class="ti ti-send"></i> Send Request
+                </button>
+                <button type="button" data-action="close-sub-request-modal"
+                        class="mt-2 sm:mt-0 w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-sm">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}
@@ -232,6 +434,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = () => document.documentElement.classList.contains('dark');
+    const matchId = {{ match.id }};
+    let subPoolData = null;
+    let selectedPlayerIds = [];
 
     // Edit match button
     document.querySelectorAll('.js-edit-match').forEach(btn => {
@@ -292,6 +497,381 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+    // Event delegation for all actions
+    document.addEventListener('click', async function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.dataset.action;
+
+        switch(action) {
+            case 'request-subs':
+                openSubRequestModal();
+                break;
+            case 'close-sub-request-modal':
+                closeSubRequestModal();
+                break;
+            case 'send-sub-request':
+                sendSubRequest(target.dataset.matchId);
+                break;
+            case 'toggle-sub-responses':
+                toggleSubResponses();
+                break;
+            case 'assign-sub':
+                assignSub(target.dataset.playerId, target.dataset.requestId);
+                break;
+            case 'unassign-sub':
+                unassignSub(target.dataset.playerId);
+                break;
+        }
+    });
+
+    // Sub Request Modal
+    async function openSubRequestModal() {
+        const modal = document.getElementById('subRequestModal');
+        modal.classList.remove('hidden');
+
+        // Load sub pool data
+        try {
+            const response = await fetch(`/ecs-fc/matches/${matchId}/sub-pool-info`);
+            const data = await response.json();
+            if (data.success) {
+                subPoolData = data;
+                updateSubPoolCounts(data);
+                populatePlayerList(data.players);
+                updatePreviewCount();
+            }
+        } catch (error) {
+            console.error('Failed to load sub pool info:', error);
+        }
+    }
+
+    function closeSubRequestModal() {
+        document.getElementById('subRequestModal').classList.add('hidden');
+    }
+
+    function updateSubPoolCounts(data) {
+        document.getElementById('allSubsCount').textContent = `(${data.total_count})`;
+        document.getElementById('maleCount').textContent = `(${data.gender_counts.male})`;
+        document.getElementById('femaleCount').textContent = `(${data.gender_counts.female})`;
+        document.getElementById('gkCount').textContent = `(${data.position_counts.GK})`;
+        document.getElementById('defCount').textContent = `(${data.position_counts.DEF})`;
+        document.getElementById('midCount').textContent = `(${data.position_counts.MID})`;
+        document.getElementById('fwdCount').textContent = `(${data.position_counts.FWD})`;
+    }
+
+    function populatePlayerList(players) {
+        const list = document.getElementById('playerSelectList');
+        list.innerHTML = players.map(p => `
+            <label class="flex items-center p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
+                <input type="checkbox" class="player-checkbox text-blue-600 focus:ring-blue-500 rounded" value="${p.id}">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">${p.name}</span>
+            </label>
+        `).join('');
+
+        // Add change listeners
+        list.querySelectorAll('.player-checkbox').forEach(cb => {
+            cb.addEventListener('change', updateSelectedPlayers);
+        });
+    }
+
+    function updateSelectedPlayers() {
+        selectedPlayerIds = Array.from(document.querySelectorAll('.player-checkbox:checked'))
+            .map(cb => parseInt(cb.value));
+        updatePreviewCount();
+    }
+
+    // Recipient type selection
+    document.querySelectorAll('input[name="recipient_type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            document.getElementById('genderOptions').classList.toggle('hidden', this.value !== 'gender');
+            document.getElementById('positionOptions').classList.toggle('hidden', this.value !== 'position');
+            document.getElementById('specificOptions').classList.toggle('hidden', this.value !== 'specific');
+            updatePreviewCount();
+        });
+    });
+
+    // Position and gender selection
+    document.querySelectorAll('input[name="positions"], input[name="gender"]').forEach(input => {
+        input.addEventListener('change', updatePreviewCount);
+    });
+
+    function updatePreviewCount() {
+        if (!subPoolData) return;
+
+        const recipientType = document.querySelector('input[name="recipient_type"]:checked').value;
+        let count = 0;
+
+        if (recipientType === 'all') {
+            count = subPoolData.total_count;
+        } else if (recipientType === 'gender') {
+            const gender = document.querySelector('input[name="gender"]:checked')?.value;
+            if (gender) {
+                count = subPoolData.gender_counts[gender] || 0;
+            }
+        } else if (recipientType === 'position') {
+            const positions = Array.from(document.querySelectorAll('input[name="positions"]:checked'))
+                .map(cb => cb.value);
+            if (positions.length > 0) {
+                count = subPoolData.players.filter(p =>
+                    p.positions.some(pos => positions.includes(pos))
+                ).length;
+            }
+        } else if (recipientType === 'specific') {
+            count = selectedPlayerIds.length;
+        }
+
+        document.getElementById('previewCount').textContent = count;
+    }
+
+    // Player search
+    document.getElementById('playerSearchInput')?.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        document.querySelectorAll('#playerSelectList label').forEach(label => {
+            const name = label.textContent.toLowerCase();
+            label.style.display = name.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    async function sendSubRequest(matchId) {
+        const form = document.getElementById('subRequestForm');
+        const recipientType = form.querySelector('input[name="recipient_type"]:checked').value;
+        const channels = Array.from(form.querySelectorAll('input[name="channels"]:checked')).map(cb => cb.value);
+        const message = form.querySelector('textarea[name="message"]').value;
+
+        const payload = {
+            recipient_type: recipientType,
+            channels: channels,
+            message: message
+        };
+
+        if (recipientType === 'gender') {
+            payload.gender = form.querySelector('input[name="gender"]:checked')?.value;
+        } else if (recipientType === 'position') {
+            payload.positions = Array.from(form.querySelectorAll('input[name="positions"]:checked')).map(cb => cb.value);
+        } else if (recipientType === 'specific') {
+            payload.player_ids = selectedPlayerIds;
+        }
+
+        try {
+            const response = await fetch(`/ecs-fc/matches/${matchId}/sub-request`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                closeSubRequestModal();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Request Sent!',
+                    text: data.message,
+                    background: isDark() ? '#1f2937' : '#ffffff',
+                    color: isDark() ? '#f3f4f6' : '#111827',
+                    confirmButtonColor: '#1a472a'
+                });
+                loadSubResponses();
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message,
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#1a472a'
+            });
+        }
+    }
+
+    // Sub Responses Section
+    function toggleSubResponses() {
+        const content = document.getElementById('subResponsesContent');
+        const chevron = document.getElementById('subResponsesChevron');
+        content.classList.toggle('hidden');
+        chevron.classList.toggle('rotate-180');
+
+        if (!content.classList.contains('hidden')) {
+            loadSubResponses();
+        }
+    }
+
+    async function loadSubResponses() {
+        try {
+            const response = await fetch(`/ecs-fc/matches/${matchId}/sub-responses`);
+            const data = await response.json();
+
+            if (data.success) {
+                renderSubResponses(data);
+            }
+        } catch (error) {
+            console.error('Failed to load sub responses:', error);
+        }
+    }
+
+    function renderSubResponses(data) {
+        const total = data.accepted.length + data.declined.length + data.pending.length + data.assigned.length;
+        document.getElementById('subResponsesCount').textContent = total > 0 ? `(${total} contacted)` : '';
+
+        // Assigned
+        renderSubList('assignedSubsList', data.assigned, 'assigned');
+        // Accepted
+        renderSubList('acceptedSubsList', data.accepted, 'accepted');
+        // Declined
+        renderSubList('declinedSubsList', data.declined, 'declined');
+        // Pending
+        renderSubList('pendingSubsList', data.pending, 'pending');
+    }
+
+    function renderSubList(containerId, players, type) {
+        const container = document.getElementById(containerId);
+
+        if (players.length === 0) {
+            container.innerHTML = `<p class="text-sm text-gray-500 dark:text-gray-400 italic">
+                ${type === 'assigned' ? 'No subs assigned yet' :
+                  type === 'accepted' ? 'No responses yet' :
+                  type === 'declined' ? 'No declines' :
+                  'No pending requests'}
+            </p>`;
+            return;
+        }
+
+        container.innerHTML = players.map(p => `
+            <div class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <div class="flex items-center gap-3">
+                    <img src="${p.profile_picture_url || '/static/img/default_player.png'}"
+                         alt="${p.name}" class="w-10 h-10 rounded-full object-cover">
+                    <div>
+                        <p class="font-medium text-gray-900 dark:text-white">${p.name}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            ${p.positions.length > 0 ? p.positions.join(', ') : 'No position set'}
+                            ${p.responded_at ? ' • ' + new Date(p.responded_at).toLocaleDateString() : ''}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    ${type === 'accepted' ? `
+                        <button data-action="assign-sub" data-player-id="${p.id}" data-request-id="${p.request_id}"
+                                class="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">
+                            Assign
+                        </button>
+                    ` : ''}
+                    ${type === 'assigned' ? `
+                        <button data-action="unassign-sub" data-player-id="${p.id}"
+                                class="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700">
+                            Remove
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function assignSub(playerId, requestId) {
+        try {
+            const response = await fetch(`/ecs-fc/matches/${matchId}/assign-sub`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    player_id: parseInt(playerId),
+                    request_id: parseInt(requestId)
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Assigned!',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: isDark() ? '#1f2937' : '#ffffff',
+                    color: isDark() ? '#f3f4f6' : '#111827'
+                });
+                loadSubResponses();
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message,
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#1a472a'
+            });
+        }
+    }
+
+    async function unassignSub(playerId) {
+        const result = await Swal.fire({
+            title: 'Remove Sub?',
+            text: 'Are you sure you want to remove this sub from the match?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, remove',
+            background: isDark() ? '#1f2937' : '#ffffff',
+            color: isDark() ? '#f3f4f6' : '#111827'
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const response = await fetch(`/ecs-fc/matches/${matchId}/unassign-sub/${playerId}`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Removed',
+                    text: data.message,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    background: isDark() ? '#1f2937' : '#ffffff',
+                    color: isDark() ? '#f3f4f6' : '#111827'
+                });
+                loadSubResponses();
+            } else {
+                throw new Error(data.message);
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message,
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#1a472a'
+            });
+        }
+    }
+
+    // Initial load of sub responses
+    {% if can_manage %}
+    loadSubResponses();
+    {% endif %}
 });
 </script>
 {% endblock %}

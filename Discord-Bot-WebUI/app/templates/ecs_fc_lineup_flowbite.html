@@ -1,0 +1,261 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Lineup Picker - {{ team.name }} | ECS FC{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-100 dark:bg-gray-900">
+    <!-- Header -->
+    <div class="bg-white dark:bg-gray-800 shadow">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <a href="{{ url_for('ecs_fc.match_details', match_id=match.id) }}"
+                       class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="ti ti-arrow-left text-xl"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-xl font-bold text-gray-900 dark:text-white">{{ team.name }} Lineup</h1>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            vs {{ match.opponent_name }} &middot;
+                            {{ match.match_date.strftime('%b %d, %Y') if match.match_date else 'TBD' }}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span id="saveStatus" class="text-sm text-gray-500 dark:text-gray-400"></span>
+                    <span id="lineupVersion" class="text-xs text-gray-400 dark:text-gray-500">v{{ lineup.version }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Pitch View -->
+            <div class="lg:col-span-2">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                    <div class="bg-gradient-to-b from-[#2d5a2d] via-[#3a7a3a] to-[#2d5a2d] rounded-xl relative aspect-[3/4] max-h-[450px] md:max-h-[600px] overflow-hidden" id="pitchContainer">
+                        <!-- Pitch Markings -->
+                        <div class="absolute inset-0 pointer-events-none">
+                            <svg viewBox="0 0 100 133" preserveAspectRatio="none" class="w-full h-full">
+                                <!-- Outer boundary -->
+                                <rect x="2" y="2" width="96" height="129" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                                <!-- Center circle -->
+                                <circle cx="50" cy="66.5" r="12" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                                <!-- Center line -->
+                                <line x1="2" y1="66.5" x2="98" y2="66.5" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                                <!-- Center spot -->
+                                <circle cx="50" cy="66.5" r="1" fill="rgba(255,255,255,0.3)"/>
+                                <!-- Top penalty area -->
+                                <rect x="20" y="2" width="60" height="22" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                                <!-- Top goal area -->
+                                <rect x="32" y="2" width="36" height="8" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                                <!-- Bottom penalty area -->
+                                <rect x="20" y="109" width="60" height="22" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                                <!-- Bottom goal area -->
+                                <rect x="32" y="123" width="36" height="8" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>
+                            </svg>
+                        </div>
+
+                        <!-- Position Zones -->
+                        <!-- Goalkeeper -->
+                        <div class="absolute flex flex-col items-center gap-1 transition-all duration-200 top-[85%] left-1/2 -translate-x-1/2 js-position-drop-zone" data-position="gk">
+                            <span class="text-[10px] md:text-[10px] text-[8px] font-semibold text-white/70 uppercase tracking-wider">GK</span>
+                            <div class="min-w-[48px] md:min-w-[60px] min-h-[48px] md:min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200" id="position-gk"></div>
+                        </div>
+
+                        <!-- Defenders -->
+                        <div class="absolute flex flex-col items-center gap-1 transition-all duration-200 top-[70%] left-[15%] js-position-drop-zone" data-position="lb">
+                            <span class="text-[10px] md:text-[10px] text-[8px] font-semibold text-white/70 uppercase tracking-wider">LB</span>
+                            <div class="min-w-[48px] md:min-w-[60px] min-h-[48px] md:min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200" id="position-lb"></div>
+                        </div>
+                        <div class="absolute flex flex-col items-center gap-1 transition-all duration-200 top-[70%] left-1/2 -translate-x-1/2 js-position-drop-zone" data-position="cb">
+                            <span class="text-[10px] md:text-[10px] text-[8px] font-semibold text-white/70 uppercase tracking-wider">CB</span>
+                            <div class="min-w-[48px] md:min-w-[60px] min-h-[48px] md:min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200" id="position-cb"></div>
+                        </div>
+                        <div class="absolute flex flex-col items-center gap-1 transition-all duration-200 top-[70%] right-[15%] js-position-drop-zone" data-position="rb">
+                            <span class="text-[10px] md:text-[10px] text-[8px] font-semibold text-white/70 uppercase tracking-wider">RB</span>
+                            <div class="min-w-[48px] md:min-w-[60px] min-h-[48px] md:min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200" id="position-rb"></div>
+                        </div>
+
+                        <!-- Midfielders -->
+                        <div class="absolute flex flex-col items-center gap-1 transition-all duration-200 top-[50%] left-1/2 -translate-x-1/2 js-position-drop-zone" data-position="cdm">
+                            <span class="text-[10px] md:text-[10px] text-[8px] font-semibold text-white/70 uppercase tracking-wider">CDM</span>
+                            <div class="min-w-[48px] md:min-w-[60px] min-h-[48px] md:min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200" id="position-cdm"></div>
+                        </div>
+                        <div class="absolute flex flex-col items-center gap-1 transition-all duration-200 top-[40%] left-1/2 -translate-x-1/2 js-position-drop-zone" data-position="cm">
+                            <span class="text-[10px] md:text-[10px] text-[8px] font-semibold text-white/70 uppercase tracking-wider">CM</span>
+                            <div class="min-w-[48px] md:min-w-[60px] min-h-[48px] md:min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200" id="position-cm"></div>
+                        </div>
+                        <div class="absolute flex flex-col items-center gap-1 transition-all duration-200 top-[30%] left-1/2 -translate-x-1/2 js-position-drop-zone" data-position="cam">
+                            <span class="text-[10px] md:text-[10px] text-[8px] font-semibold text-white/70 uppercase tracking-wider">CAM</span>
+                            <div class="min-w-[48px] md:min-w-[60px] min-h-[48px] md:min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200" id="position-cam"></div>
+                        </div>
+
+                        <!-- Forwards -->
+                        <div class="absolute flex flex-col items-center gap-1 transition-all duration-200 top-[20%] left-[15%] js-position-drop-zone" data-position="lw">
+                            <span class="text-[10px] md:text-[10px] text-[8px] font-semibold text-white/70 uppercase tracking-wider">LW</span>
+                            <div class="min-w-[48px] md:min-w-[60px] min-h-[48px] md:min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200" id="position-lw"></div>
+                        </div>
+                        <div class="absolute flex flex-col items-center gap-1 transition-all duration-200 top-[20%] right-[15%] js-position-drop-zone" data-position="rw">
+                            <span class="text-[10px] md:text-[10px] text-[8px] font-semibold text-white/70 uppercase tracking-wider">RW</span>
+                            <div class="min-w-[48px] md:min-w-[60px] min-h-[48px] md:min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200" id="position-rw"></div>
+                        </div>
+                        <div class="absolute flex flex-col items-center gap-1 transition-all duration-200 top-[10%] left-1/2 -translate-x-1/2 js-position-drop-zone" data-position="st">
+                            <span class="text-[10px] md:text-[10px] text-[8px] font-semibold text-white/70 uppercase tracking-wider">ST</span>
+                            <div class="min-w-[48px] md:min-w-[60px] min-h-[48px] md:min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200" id="position-st"></div>
+                        </div>
+                    </div>
+
+                    <!-- Bench Section -->
+                    <div class="mt-4">
+                        <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                            <i class="ti ti-armchair"></i> Bench
+                        </h3>
+                        <div class="js-position-drop-zone" data-position="bench">
+                            <div class="min-w-[60px] min-h-[60px] border-2 border-dashed border-white/30 rounded-lg flex flex-wrap justify-center items-center gap-1 p-1 transition-all duration-200 bg-gray-100 dark:bg-gray-700 !border-gray-300 dark:!border-gray-600 min-h-[80px]" id="position-bench">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stats Summary -->
+                    <div class="mt-4 grid grid-cols-5 gap-2 text-center text-sm">
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">GK</span>
+                            <p id="gk-count" class="font-bold text-gray-900 dark:text-white">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">DEF</span>
+                            <p id="def-count" class="font-bold text-gray-900 dark:text-white">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">MID</span>
+                            <p id="mid-count" class="font-bold text-gray-900 dark:text-white">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">FWD</span>
+                            <p id="fwd-count" class="font-bold text-gray-900 dark:text-white">0</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-2">
+                            <span class="text-xs text-gray-500 dark:text-gray-400">BENCH</span>
+                            <p id="bench-count" class="font-bold text-gray-900 dark:text-white">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes Section -->
+                <div class="mt-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4">
+                    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                        <i class="ti ti-notes"></i> Lineup Notes
+                    </h3>
+                    <textarea id="lineupNotes" rows="3"
+                              class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm"
+                              placeholder="Add notes about this lineup...">{{ lineup.notes or '' }}</textarea>
+                    <div class="mt-2 text-right">
+                        <button id="saveNotesBtn" type="button"
+                                class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors text-sm">
+                            Save Notes
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Roster Panel -->
+            <div class="lg:col-span-1">
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden sticky top-4">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                        <h2 class="font-semibold text-gray-900 dark:text-white flex items-center justify-between">
+                            <span>Available Players</span>
+                            <span id="availablePlayerCount" class="text-sm font-normal text-gray-500">{{ roster|length }}</span>
+                        </h2>
+
+                        <!-- Search -->
+                        <div class="mt-3">
+                            <input type="text" id="playerSearch" placeholder="Search players..."
+                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                        </div>
+
+                        <!-- RSVP Filter -->
+                        <div class="mt-3">
+                            <select id="rsvpFilter"
+                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm">
+                                <option value="">All RSVP Status</option>
+                                <option value="yes">Available (Yes)</option>
+                                <option value="maybe">Maybe</option>
+                                <option value="no">Not Available</option>
+                                <option value="unavailable">No Response</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Player List -->
+                    <div class="max-h-[500px] overflow-y-auto">
+                        {% for player in roster %}
+                        <div class="js-draggable-player flex items-center gap-3 p-3 border-b border-gray-100 dark:border-gray-700 transition-all duration-200 cursor-grab hover:bg-black/5 dark:hover:bg-white/5"
+                             draggable="true"
+                             data-player-id="{{ player.player_id }}"
+                             data-player-name="{{ player.name|lower }}"
+                             data-rsvp="{{ player.rsvp_status }}">
+                            <div class="relative flex-shrink-0">
+                                <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}"
+                                     class="w-10 h-10 rounded-full object-cover"
+                                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                                <div class="w-10 h-10 rounded-full hidden items-center justify-center font-bold text-sm text-gray-700 bg-gray-200">
+                                    {{ player.name.split()[0][0] }}{{ player.name.split()[-1][0] if player.name.split()|length > 1 else '' }}
+                                </div>
+                                <span class="w-2.5 h-2.5 rounded-full absolute -bottom-0.5 -right-0.5 border-2 border-white dark:border-gray-800 {% if player.rsvp_color == 'green' %}bg-green-500{% elif player.rsvp_color == 'yellow' %}bg-yellow-500{% elif player.rsvp_color == 'red' %}bg-red-500{% else %}bg-gray-400{% endif %}"></span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                    {{ player.name }}
+                                    {% if player.is_sub %}
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">SUB</span>
+                                    {% endif %}
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ player.favorite_position or 'No position' }}
+                                    {% if player.stats.goals > 0 or player.stats.assists > 0 %}
+                                    <span class="text-gray-400 mx-1">&middot;</span>
+                                    {% if player.stats.goals > 0 %}<span class="text-green-600">{{ player.stats.goals }}G</span>{% endif %}
+                                    {% if player.stats.assists > 0 %}<span class="text-blue-600">{{ player.stats.assists }}A</span>{% endif %}
+                                    {% endif %}
+                                </p>
+                            </div>
+                            <i class="ti ti-grip-vertical text-gray-400 flex-shrink-0"></i>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- RSVP Legend -->
+                    <div class="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">RSVP Status</p>
+                        <div class="flex flex-wrap gap-3 text-xs">
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500"></span> Yes</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500"></span> Maybe</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-red-500"></span> No</span>
+                            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-gray-400"></span> No Response</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+// Config for lineup system - module auto-initializes when this config is present
+window.EcsFcLineupConfig = {
+    matchId: {{ match.id }},
+    teamId: {{ team.id }},
+    teamName: "{{ team.name }}",
+    opponentName: "{{ match.opponent_name }}",
+    isCoach: {{ 'true' if is_coach else 'false' }},
+    initialLineup: {{ lineup|tojson }},
+    roster: {{ roster|tojson }},
+    csrfToken: "{{ csrf_token() }}"
+};
+</script>
+{% endblock %}

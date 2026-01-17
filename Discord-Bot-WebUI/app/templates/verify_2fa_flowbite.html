@@ -70,35 +70,6 @@
         </p>
     </div>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Dark mode detection
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            document.documentElement.classList.add('dark');
-        }
-
-        // Auto-focus and validation
-        const tokenInput = document.getElementById('token');
-        const errorMessage = document.getElementById('errorMessage');
-
-        tokenInput?.addEventListener('input', function(e) {
-            // Only allow numbers
-            this.value = this.value.replace(/[^0-9]/g, '');
-
-            // Hide error when user types
-            errorMessage?.classList.add('hidden');
-        });
-
-        // Form validation
-        document.getElementById('twoFactorForm')?.addEventListener('submit', function(e) {
-            const token = tokenInput.value;
-            if (!/^[0-9]{6}$/.test(token)) {
-                e.preventDefault();
-                errorMessage?.classList.remove('hidden');
-                tokenInput.focus();
-            }
-        });
-    });
-    </script>
+    <script type="module" src="{{ url_for('static', filename='custom_js/verify-2fa.js') }}"></script>
 </body>
 </html>

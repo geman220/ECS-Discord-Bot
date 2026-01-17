@@ -14,6 +14,12 @@ let _initialized = false;
     if (_initialized) return;
     _initialized = true;
 
+    // Initialize tab switching
+    initTabSwitching();
+
+    // Initialize theme selection
+    initThemeSelection();
+
     // Delegated submit handler for all settings forms
     document.addEventListener('submit', function(e) {
         const form = e.target;
@@ -205,6 +211,89 @@ let _initialized = false;
             });
             return;
         }
+    });
+  }
+
+  /**
+   * Initialize tab switching functionality with localStorage persistence
+   */
+  function initTabSwitching() {
+    // Delegated click handler for settings tabs
+    document.addEventListener('click', function(e) {
+        if (!e.target || typeof e.target.closest !== 'function') return;
+        const tab = e.target.closest('.settings-tab');
+        if (!tab) return;
+
+        const targetId = tab.dataset.tab;
+        if (!targetId) return;
+
+        // Update tab styles
+        document.querySelectorAll('.settings-tab').forEach(t => {
+            t.classList.remove('border-ecs-green', 'text-ecs-green');
+            t.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+        });
+        tab.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+        tab.classList.add('border-ecs-green', 'text-ecs-green');
+
+        // Show/hide panes
+        document.querySelectorAll('.settings-pane').forEach(pane => {
+            pane.classList.add('hidden');
+        });
+        const targetPane = document.getElementById(targetId);
+        if (targetPane) {
+            targetPane.classList.remove('hidden');
+        }
+
+        // Save to localStorage
+        localStorage.setItem('settingsActiveTab', targetId);
+    });
+
+    // Restore saved tab on page load
+    const savedTab = localStorage.getItem('settingsActiveTab');
+    if (savedTab) {
+        const tabBtn = document.querySelector(`.settings-tab[data-tab="${savedTab}"]`);
+        if (tabBtn) tabBtn.click();
+    }
+  }
+
+  /**
+   * Initialize theme selection with localStorage persistence
+   */
+  function initThemeSelection() {
+    // Set initial state based on stored theme
+    const currentTheme = localStorage.getItem('color-theme') || 'system';
+    document.querySelectorAll('.theme-option').forEach(option => {
+        const input = option.querySelector('input');
+        if (input && input.value === currentTheme) {
+            input.checked = true;
+            option.classList.add('border-ecs-green');
+        }
+    });
+
+    // Delegated change handler for theme options
+    document.addEventListener('change', function(e) {
+        if (!e.target || typeof e.target.closest !== 'function') return;
+        const themeOption = e.target.closest('.theme-option');
+        if (!themeOption) return;
+
+        const input = themeOption.querySelector('input');
+        if (!input || input.name !== 'theme') return;
+
+        const theme = input.value;
+        localStorage.setItem('color-theme', theme);
+
+        // Apply theme
+        if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+
+        // Update border styles on all theme options
+        document.querySelectorAll('.theme-option').forEach(opt => {
+            opt.classList.remove('border-ecs-green');
+        });
+        themeOption.classList.add('border-ecs-green');
     });
   }
 
