@@ -60,15 +60,16 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3">
+                                <!-- Show what contact methods the user has enabled (read-only) -->
                                 <div class="flex flex-wrap gap-1">
-                                    {% if entry.sms_for_sub_requests %}
-                                    <span class="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded">SMS</span>
+                                    {% if entry.player.is_phone_verified and entry.player.sms_consent_given %}
+                                    <span class="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded" title="SMS verified & consented">SMS</span>
                                     {% endif %}
-                                    {% if entry.discord_for_sub_requests %}
-                                    <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded">Discord</span>
+                                    {% if entry.player.discord_id %}
+                                    <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded" title="Discord connected">Discord</span>
                                     {% endif %}
-                                    {% if entry.email_for_sub_requests %}
-                                    <span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded">Email</span>
+                                    {% if entry.player.user and entry.player.user.email %}
+                                    <span class="px-1.5 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded" title="Email available">Email</span>
                                     {% endif %}
                                 </div>
                             </td>
@@ -80,16 +81,11 @@
                                 <p class="text-xs text-gray-500 dark:text-gray-400">{{ entry.joined_pool_at.strftime('%m/%d/%Y') }}</p>
                             </td>
                             <td class="px-4 py-3">
-                                <div class="flex items-center gap-1">
-                                    <button type="button" class="edit-preferences-btn px-2 py-1 text-xs font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 rounded-lg transition-colors"
-                                            data-entry-id="{{ entry.id }}">
-                                        Edit
-                                    </button>
-                                    <button type="button" class="remove-from-pool-btn px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
-                                            data-entry-id="{{ entry.id }}">
-                                        Remove
-                                    </button>
-                                </div>
+                                <button type="button" class="remove-from-pool-btn px-2 py-1 text-xs font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors"
+                                        data-entry-id="{{ entry.id }}"
+                                        data-player-name="{{ entry.player.name }}">
+                                    Remove
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -170,55 +166,6 @@
     </div>
 </div>
 
-<!-- Edit Preferences Modal -->
-<div id="editPreferencesModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Substitute Preferences</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="editPreferencesModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="editPreferencesForm">
-                <input type="hidden" id="editEntryId">
-                <div class="p-4 space-y-4">
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Preferred Positions</label>
-                        <input type="text" id="preferredPositions" placeholder="e.g., Forward, Midfield"
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Matches per Week</label>
-                        <input type="number" id="maxMatchesPerWeek" min="1" max="7" placeholder="Optional"
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Preferences</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center">
-                                <input type="checkbox" id="smsNotifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="discordNotifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="emailNotifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="editPreferencesModal">Cancel</button>
-                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Save Changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 
 {% endblock %}
 
@@ -228,60 +175,16 @@
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-    let currentPoolId = null;
-
-    // Edit preferences buttons
-    document.querySelectorAll('.edit-preferences-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            currentPoolId = this.dataset.entryId;
-            document.getElementById('editEntryId').value = currentPoolId;
-            const modal = FlowbiteInstances.getInstance('Modal', 'editPreferencesModal');
-            if (modal) modal.show();
-        });
-    });
-
-    // Edit preferences form submit
-    document.getElementById('editPreferencesForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-
-        const formData = new FormData();
-        formData.append('preferred_positions', document.getElementById('preferredPositions').value);
-        formData.append('max_matches_per_week', document.getElementById('maxMatchesPerWeek').value);
-        formData.append('sms_notifications', document.getElementById('smsNotifications').checked);
-        formData.append('discord_notifications', document.getElementById('discordNotifications').checked);
-        formData.append('email_notifications', document.getElementById('emailNotifications').checked);
-
-        fetch(`/admin/ecs-fc/sub-pool/${currentPoolId}/update`, {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': csrfToken }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const modal = FlowbiteInstances.getInstance('Modal', 'editPreferencesModal');
-                if (modal) modal.hide();
-                location.reload();
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: data.message || 'Failed to update preferences',
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                });
-            }
-        });
-    });
 
     // Remove from pool buttons
     document.querySelectorAll('.remove-from-pool-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const entryId = this.dataset.entryId;
+            const playerName = this.dataset.playerName;
 
             Swal.fire({
                 title: 'Remove from Pool?',
-                text: 'Are you sure you want to remove this player from the substitute pool?',
+                text: `Remove ${playerName} from the substitute pool?`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, remove',
@@ -290,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`/admin/ecs-fc/sub-pool/${entryId}/remove`, {
+                    fetch(`/ecs-fc/sub-pool/${entryId}/remove`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -328,7 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const formData = new FormData();
                     formData.append('player_id', playerId);
 
-                    fetch('/admin/ecs-fc/sub-pool/add', {
+                    fetch('/ecs-fc/sub-pool/add', {
                         method: 'POST',
                         body: formData,
                         headers: { 'X-CSRFToken': csrfToken }

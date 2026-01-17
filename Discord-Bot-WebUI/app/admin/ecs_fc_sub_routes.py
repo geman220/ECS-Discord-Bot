@@ -296,9 +296,9 @@ def assign_substitute(request_id):
 def manage_sub_pool():
     """View and manage the ECS FC substitute pool."""
     try:
-        # Get all players in the sub pool
+        # Get all players in the sub pool (load user for email display)
         sub_pool_entries = g.db_session.query(EcsFcSubPool).options(
-            joinedload(EcsFcSubPool.player)
+            joinedload(EcsFcSubPool.player).joinedload(Player.user)
         ).filter_by(is_active=True).all()
         
         # Get players with ECS FC Sub role but not in pool
@@ -332,15 +332,12 @@ def manage_sub_pool():
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
 @transactional
 def add_to_sub_pool():
-    """Add a player to the ECS FC substitute pool."""
+    """Add a player to the ECS FC substitute pool. Just adds to pool, nothing else."""
     player_id = request.form.get('player_id', type=int)
     if not player_id:
         return jsonify({'success': False, 'message': 'No player specified'}), 400
 
-    # Get the player for Discord sync
-    player = g.db_session.query(Player).options(
-        joinedload(Player.user).joinedload(User.roles)
-    ).get(player_id)
+    player = g.db_session.query(Player).get(player_id)
     if not player:
         return jsonify({'success': False, 'message': 'Player not found'}), 404
 
@@ -350,9 +347,8 @@ def add_to_sub_pool():
         if existing.is_active:
             return jsonify({'success': False, 'message': 'Player already in pool'}), 400
         else:
-            # Reactivate
+            # Reactivate existing entry
             existing.is_active = True
-            existing.last_active_at = datetime.utcnow()
             g.db_session.add(existing)
     else:
         # Build preferred positions from player profile
@@ -363,31 +359,12 @@ def add_to_sub_pool():
             positions.append(player.other_positions)
         preferred_positions = ', '.join(positions) if positions else ''
 
-        # Create new entry - notification preferences default to True
-        # User can manage their own notification preferences via profile settings
+        # Create new entry
         pool_entry = EcsFcSubPool(
             player_id=player_id,
-            preferred_positions=preferred_positions,
-            sms_for_sub_requests=True,
-            discord_for_sub_requests=True,
-            email_for_sub_requests=True
+            preferred_positions=preferred_positions
         )
         g.db_session.add(pool_entry)
-
-    # Add ECS FC Sub role if not already assigned
-    if player.user:
-        ecs_fc_sub_role = g.db_session.query(Role).filter_by(name='ECS FC Sub').first()
-        if ecs_fc_sub_role and ecs_fc_sub_role not in player.user.roles:
-            player.user.roles.append(ecs_fc_sub_role)
-            logger.info(f"Assigned 'ECS FC Sub' Flask role to player {player.name}")
-
-    # Trigger Discord role sync
-    from app.tasks.tasks_discord import assign_roles_to_player_task
-    try:
-        assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
-        logger.info(f"Queued Discord role sync for player {player_id} after adding to ECS FC sub pool")
-    except Exception as e:
-        logger.error(f"Failed to queue Discord role sync: {e}")
 
     return jsonify({'success': True, 'message': 'Player added to substitute pool'})
 
@@ -418,41 +395,13 @@ def update_sub_pool_entry(pool_id):
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
 @transactional
 def remove_from_sub_pool(pool_id):
-    """Remove a player from the substitute pool."""
-    pool_entry = g.db_session.query(EcsFcSubPool).options(
-        joinedload(EcsFcSubPool.player).joinedload(Player.user).joinedload(User.roles)
-    ).get(pool_id)
+    """Remove a player from the substitute pool. Does not affect anything else."""
+    pool_entry = g.db_session.query(EcsFcSubPool).get(pool_id)
     if not pool_entry:
         return jsonify({'success': False, 'message': 'Entry not found'}), 404
 
-    player_id = pool_entry.player_id
-    player = pool_entry.player
-
+    # Just mark as inactive - nothing else
     pool_entry.is_active = False
-    pool_entry.last_active_at = datetime.utcnow()
-
     g.db_session.add(pool_entry)
-
-    # Remove ECS FC Sub role if player has no other active ECS FC sub pool entries
-    if player and player.user:
-        other_active_pools = g.db_session.query(EcsFcSubPool).filter(
-            EcsFcSubPool.player_id == player_id,
-            EcsFcSubPool.is_active == True,
-            EcsFcSubPool.id != pool_id
-        ).count()
-
-        if other_active_pools == 0:
-            ecs_fc_sub_role = g.db_session.query(Role).filter_by(name='ECS FC Sub').first()
-            if ecs_fc_sub_role and ecs_fc_sub_role in player.user.roles:
-                player.user.roles.remove(ecs_fc_sub_role)
-                logger.info(f"Removed 'ECS FC Sub' Flask role from player {player.name}")
-
-    # Trigger Discord role sync
-    from app.tasks.tasks_discord import assign_roles_to_player_task
-    try:
-        assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
-        logger.info(f"Queued Discord role sync for player {player_id} after removing from ECS FC sub pool")
-    except Exception as e:
-        logger.error(f"Failed to queue Discord role sync: {e}")
 
     return jsonify({'success': True, 'message': 'Player removed from pool'})
