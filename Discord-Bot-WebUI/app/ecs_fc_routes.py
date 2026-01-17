@@ -684,10 +684,10 @@ Click here to respond: {rsvp_url}"""
         if phone and is_verified and has_consent:
             try:
                 from app.sms_helpers import send_sms
-                sms_msg = f"ECS FC sub request: {match.team.name} vs {match.opponent_name}, {match_date}. "
-                sms_msg += f"Respond here: {rsvp_url} "
-                sms_msg += f"Wait for confirmation before showing up. "
-                sms_msg += f"Txt STOP to opt out."
+                first_name = player.name.split()[0] if player.name else "Hi"
+                sms_msg = f"{first_name}, sub needed: {match.team.name} vs {match.opponent_name}, {match_date} {match_time}. "
+                sms_msg += f"{rsvp_url} "
+                sms_msg += f"STOP to opt out"
                 success, _ = send_sms(phone, sms_msg[:320])
                 if success:
                     sent = True
@@ -1178,10 +1178,10 @@ def _send_assignment_confirmation(player, match, assignment, channels_str):
         if phone and is_verified and has_consent:
             try:
                 from app.sms_helpers import send_sms
-                sms_msg = f"CONFIRMED! You're subbing for {match.team.name} vs {match.opponent_name}. "
-                sms_msg += f"{match_date} at {match_time}. "
-                sms_msg += f"Location: {match.location or 'TBD'}. "
-                sms_msg += f"Arrive 15 min early. -ECS FC"
+                first_name = player.name.split()[0] if player.name else "Hey"
+                sms_msg = f"{first_name}, confirmed! {match.team.name} vs {match.opponent_name}, "
+                sms_msg += f"{match_date} {match_time}. "
+                sms_msg += f"{match.location or 'TBD'}. Arrive 15min early."
                 success, _ = send_sms(phone, sms_msg[:320])
                 if success:
                     logger.debug(f"Confirmation SMS sent to player {player.id}")
