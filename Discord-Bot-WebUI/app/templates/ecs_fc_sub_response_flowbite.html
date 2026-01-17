@@ -2,7 +2,7 @@
 
 {% block title %}Sub Request Response | ECS FC{% endblock %}
 
-{% block content %}
+{% block main_content %}
 <div class="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center px-4 py-8">
     <div class="max-w-md w-full">
         <!-- Logo Header -->
@@ -208,9 +208,9 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock main_content %}
 
-{% block custom_js %}
+{% block scripts %}
 {{ super() }}
 <script>
 // Flash messages as toasts

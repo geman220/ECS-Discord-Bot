@@ -576,7 +576,7 @@ def create_sub_request(match_id: int):
 
         # Create response records and send notifications
         notifications_sent = 0
-        base_url = os.getenv('BASE_URL', 'https://weareecs.com')
+        base_url = os.getenv('BASE_URL', 'https://portal.ecsfc.com')
 
         for player, pool_entry in eligible_players:
             # Create response record
@@ -716,8 +716,8 @@ Click here to respond: {rsvp_url}"""
                 discord_msg += f"⚠️ *Multiple subs may respond. You'll receive a confirmation if selected - do not show up without confirmation.*"
 
                 response = requests.post(
-                    f"{bot_api_url}/api/send_dm",
-                    json={'user_id': player.discord_id, 'message': discord_msg},
+                    f"{bot_api_url}/send_discord_dm",
+                    json={'discord_id': player.discord_id, 'message': discord_msg},
                     timeout=10
                 )
                 logger.info(f"Discord DM response for {player.discord_id}: status={response.status_code}")
@@ -793,10 +793,11 @@ def _build_sub_request_email(player, match, custom_message, rsvp_url):
 # ============================================================================
 
 @ecs_fc_routes.route('/sub-response/<token>')
+@login_required
 def sub_response_page(token: str):
     """
     Display the sub response page for the given token.
-    No login required - token provides authentication.
+    Login required to verify the user matches the token recipient.
     """
     session = g.db_session
 
@@ -810,6 +811,13 @@ def sub_response_page(token: str):
         if not response:
             return render_template('ecs_fc_sub_response_flowbite.html',
                                  error='Invalid or expired token',
+                                 token_valid=False)
+
+        # Verify the logged-in user matches the token recipient
+        user_player = current_user.player
+        if not user_player or user_player.id != response.player_id:
+            return render_template('ecs_fc_sub_response_flowbite.html',
+                                 error='This link was sent to a different user. Please sign in with the correct account.',
                                  token_valid=False)
 
         # Check if token is valid
@@ -843,9 +851,11 @@ def sub_response_page(token: str):
 
 
 @ecs_fc_routes.route('/sub-response/<token>', methods=['POST'])
+@login_required
 def submit_sub_response(token: str):
     """
     Submit a sub response (accept or decline).
+    Login required to verify the user matches the token recipient.
     """
     session = g.db_session
 
@@ -857,6 +867,12 @@ def submit_sub_response(token: str):
 
         if not response:
             flash('Invalid or expired token', 'error')
+            return redirect(url_for('ecs_fc.sub_response_page', token=token))
+
+        # Verify the logged-in user matches the token recipient
+        user_player = current_user.player
+        if not user_player or user_player.id != response.player_id:
+            flash('This link was sent to a different user', 'error')
             return redirect(url_for('ecs_fc.sub_response_page', token=token))
 
         if not response.is_token_valid():
