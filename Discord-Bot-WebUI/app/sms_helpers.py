@@ -961,14 +961,20 @@ def verify_sms_confirmation(user, code):
             logger.warning(f"SMS code mismatch for user {user.id}")
             return False
         
-        # Code matches
+        # Code matches - update user and player records
         user.sms_notifications = True
         user.sms_confirmation_code = None
         user.sms_opt_in_timestamp = datetime.utcnow()
         session.add(user)
-        session.commit()
-        
+
+        # Mark phone as verified on the player record
         player = session.query(Player).filter_by(user_id=user.id).first()
+        if player:
+            player.is_phone_verified = True
+            session.add(player)
+
+        session.commit()
+
         if player and player.phone:
             logger.info(f"Sending welcome message to {mask_phone(player.phone)} for user {user.id}")
             success, _ = send_welcome_message(player.phone)

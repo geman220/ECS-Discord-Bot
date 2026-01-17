@@ -42,10 +42,17 @@
                         {% for entry in sub_pool_entries %}
                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td class="px-4 py-3">
-                                <p class="font-medium text-gray-900 dark:text-white">{{ entry.player.name }}</p>
-                                {% if entry.player.phone_number %}
-                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ entry.player.phone_number }}</p>
-                                {% endif %}
+                                <div class="flex items-center gap-3">
+                                    <img src="{{ entry.player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+                                         alt="{{ entry.player.name }}"
+                                         class="w-10 h-10 rounded-full object-cover">
+                                    <div>
+                                        <p class="font-medium text-gray-900 dark:text-white">{{ entry.player.name }}</p>
+                                        {% if entry.player.phone %}
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ entry.player.phone }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-4 py-3">
                                 <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">
@@ -110,7 +117,7 @@
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
                             <th scope="col" class="px-4 py-3">Player</th>
-                            <th scope="col" class="px-4 py-3">Team</th>
+                            <th scope="col" class="px-4 py-3">Position</th>
                             <th scope="col" class="px-4 py-3">Phone</th>
                             <th scope="col" class="px-4 py-3">Actions</th>
                         </tr>
@@ -119,26 +126,32 @@
                         {% for player in eligible_players %}
                         <tr class="bg-white dark:bg-gray-800 border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                             <td class="px-4 py-3">
-                                <p class="font-medium text-gray-900 dark:text-white">{{ player.name }}</p>
-                                {% if player.user and player.user.email %}
-                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ player.user.email }}</p>
-                                {% endif %}
+                                <div class="flex items-center gap-3">
+                                    <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
+                                         alt="{{ player.name }}"
+                                         class="w-10 h-10 rounded-full object-cover">
+                                    <div>
+                                        <p class="font-medium text-gray-900 dark:text-white">{{ player.name }}</p>
+                                        {% if player.user and player.user.email %}
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ player.user.email }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
                             </td>
                             <td class="px-4 py-3">
-                                {% if player.teams %}
-                                    {% for team in player.teams %}
-                                    <span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded-full">{{ team.name }}</span>
-                                    {% endfor %}
+                                {% if player.favorite_position %}
+                                <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded-full">{{ player.favorite_position }}</span>
                                 {% else %}
-                                <span class="text-gray-400">No team</span>
+                                <span class="text-gray-400">Not set</span>
                                 {% endif %}
                             </td>
                             <td class="px-4 py-3">
-                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ player.phone_number or 'Not provided' }}</span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">{{ player.phone or 'Not provided' }}</span>
                             </td>
                             <td class="px-4 py-3">
                                 <button type="button" class="add-to-pool-btn inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-                                        data-player-id="{{ player.id }}">
+                                        data-player-id="{{ player.id }}"
+                                        data-player-name="{{ player.name }}">
                                     Add to Pool
                                 </button>
                             </td>
@@ -207,51 +220,6 @@
     </div>
 </div>
 
-<!-- Add to Pool Modal -->
-<div id="addToPoolModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add Player to Substitute Pool</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="addToPoolModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="addToPoolForm">
-                <input type="hidden" id="newPlayerId">
-                <div class="p-4 space-y-4">
-                    <p class="text-gray-700 dark:text-gray-300">Configure initial preferences for this substitute:</p>
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Preferred Positions</label>
-                        <input type="text" id="newPreferredPositions" placeholder="e.g., Forward, Midfield"
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Preferences</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center">
-                                <input type="checkbox" id="newSmsNotifications" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="newDiscordNotifications" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="newEmailNotifications" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="addToPoolModal">Cancel</button>
-                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">Add to Pool</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
@@ -261,7 +229,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
     let currentPoolId = null;
-    let currentPlayerId = null;
 
     // Edit preferences buttons
     document.querySelectorAll('.edit-preferences-btn').forEach(btn => {
@@ -341,47 +308,53 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Add to pool buttons
+    // Add to pool buttons - simple confirmation
     document.querySelectorAll('.add-to-pool-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            currentPlayerId = this.dataset.playerId;
-            document.getElementById('newPlayerId').value = currentPlayerId;
-            const modal = FlowbiteInstances.getInstance('Modal', 'addToPoolModal');
-            if (modal) modal.show();
-        });
-    });
+            const playerId = this.dataset.playerId;
+            const playerName = this.dataset.playerName;
 
-    // Add to pool form submit
-    document.getElementById('addToPoolForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+            Swal.fire({
+                title: 'Add to Sub Pool?',
+                text: `Add ${playerName} to the ECS FC substitute pool? Their position preferences will be pulled from their profile.`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, add to pool',
+                confirmButtonColor: '#16a34a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const formData = new FormData();
+                    formData.append('player_id', playerId);
 
-        const formData = new FormData();
-        formData.append('player_id', currentPlayerId);
-        formData.append('preferred_positions', document.getElementById('newPreferredPositions').value);
-        formData.append('sms_notifications', document.getElementById('newSmsNotifications').checked);
-        formData.append('discord_notifications', document.getElementById('newDiscordNotifications').checked);
-        formData.append('email_notifications', document.getElementById('newEmailNotifications').checked);
-
-        fetch('/admin/ecs-fc/sub-pool/add', {
-            method: 'POST',
-            body: formData,
-            headers: { 'X-CSRFToken': csrfToken }
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const modal = FlowbiteInstances.getInstance('Modal', 'addToPoolModal');
-                if (modal) modal.hide();
-                location.reload();
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: data.message || 'Failed to add player',
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                });
-            }
+                    fetch('/admin/ecs-fc/sub-pool/add', {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Added!',
+                                text: `${playerName} has been added to the sub pool.`,
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.message || 'Failed to add player',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    });
+                }
+            });
         });
     });
 });

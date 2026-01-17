@@ -355,13 +355,22 @@ def add_to_sub_pool():
             existing.last_active_at = datetime.utcnow()
             g.db_session.add(existing)
     else:
-        # Create new entry
+        # Build preferred positions from player profile
+        positions = []
+        if player.favorite_position:
+            positions.append(player.favorite_position)
+        if player.other_positions:
+            positions.append(player.other_positions)
+        preferred_positions = ', '.join(positions) if positions else ''
+
+        # Create new entry - notification preferences default to True
+        # User can manage their own notification preferences via profile settings
         pool_entry = EcsFcSubPool(
             player_id=player_id,
-            preferred_positions=request.form.get('preferred_positions', ''),
-            sms_for_sub_requests=request.form.get('sms_notifications', 'true') == 'true',
-            discord_for_sub_requests=request.form.get('discord_notifications', 'true') == 'true',
-            email_for_sub_requests=request.form.get('email_notifications', 'true') == 'true'
+            preferred_positions=preferred_positions,
+            sms_for_sub_requests=True,
+            discord_for_sub_requests=True,
+            email_for_sub_requests=True
         )
         g.db_session.add(pool_entry)
 
