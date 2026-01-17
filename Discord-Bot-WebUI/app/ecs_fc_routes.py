@@ -652,8 +652,9 @@ Match Details:
 
 Click here to respond: {rsvp_url}"""
 
-    # Email
-    if 'email' in channels and pool_entry.email_for_sub_requests:
+    # Email - send if coach selected email AND player has email
+    if 'email' in channels:
+        logger.info(f"Attempting email for player {player.id}: user={player.user is not None}, email={player.user.email if player.user else 'no user'}")
         if player.user and player.user.email:
             try:
                 from app.email import send_email
@@ -663,14 +664,19 @@ Click here to respond: {rsvp_url}"""
                     f"Sub Request: {match.team.name} vs {match.opponent_name}",
                     html_body
                 )
+                logger.info(f"Email send result for {player.user.email}: {result}")
                 if result:
                     sent = True
-                    logger.debug(f"Email sent to {player.user.email}")
+                    logger.info(f"Email sent successfully to {player.user.email}")
+                else:
+                    logger.warning(f"Email send returned False/None for {player.user.email}")
             except Exception as e:
-                logger.error(f"Failed to send email to {player.user.email}: {e}")
+                logger.error(f"Failed to send email to {player.user.email}: {e}", exc_info=True)
+        else:
+            logger.warning(f"Skipping email for player {player.id}: no user or no email")
 
-    # SMS - only send if player has verified phone AND consent
-    if 'sms' in channels and pool_entry.sms_for_sub_requests:
+    # SMS - ONLY send if player has EXPLICITLY opted in (verified phone AND consent)
+    if 'sms' in channels:
         phone = getattr(player, 'phone', None)
         is_verified = getattr(player, 'is_phone_verified', False)
         has_consent = getattr(player, 'sms_consent_given', False)
@@ -688,11 +694,12 @@ Click here to respond: {rsvp_url}"""
                     logger.debug(f"SMS sent to player {player.id}")
             except Exception as e:
                 logger.error(f"Failed to send SMS: {e}")
-        elif phone and not (is_verified and has_consent):
-            logger.debug(f"Skipping SMS for player {player.id}: verified={is_verified}, consent={has_consent}")
+        else:
+            logger.debug(f"Skipping SMS for player {player.id}: phone={bool(phone)}, verified={is_verified}, consent={has_consent}")
 
-    # Discord DM
-    if 'discord' in channels and pool_entry.discord_for_sub_requests:
+    # Discord DM - send if coach selected discord AND player has discord connected
+    if 'discord' in channels:
+        logger.info(f"Attempting Discord DM for player {player.id}: discord_id={player.discord_id}")
         if player.discord_id:
             try:
                 import requests
@@ -713,12 +720,18 @@ Click here to respond: {rsvp_url}"""
                     json={'user_id': player.discord_id, 'message': discord_msg},
                     timeout=10
                 )
+                logger.info(f"Discord DM response for {player.discord_id}: status={response.status_code}")
                 if response.status_code == 200:
                     sent = True
-                    logger.debug(f"Discord DM sent to {player.discord_id}")
+                    logger.info(f"Discord DM sent successfully to {player.discord_id}")
+                else:
+                    logger.warning(f"Discord DM failed for {player.discord_id}: {response.text}")
             except Exception as e:
-                logger.error(f"Failed to send Discord DM: {e}")
+                logger.error(f"Failed to send Discord DM: {e}", exc_info=True)
+        else:
+            logger.warning(f"Skipping Discord for player {player.id}: no discord_id")
 
+    logger.info(f"Notification result for player {player.id}: sent={sent}")
     return sent
 
 
