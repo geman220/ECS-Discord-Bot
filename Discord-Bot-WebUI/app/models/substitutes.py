@@ -44,7 +44,7 @@ class EcsFcSubRequest(db.Model):
     team = db.relationship('Team', backref='ecs_fc_sub_requests')
     requester = db.relationship('User', foreign_keys=[requested_by], backref='ecs_fc_sub_requests')
     responses = db.relationship('EcsFcSubResponse', back_populates='request', cascade='all, delete-orphan')
-    assignment = db.relationship('EcsFcSubAssignment', back_populates='request', uselist=False, cascade='all, delete-orphan')
+    assignments = db.relationship('EcsFcSubAssignment', back_populates='request', cascade='all, delete-orphan')
 
 
 class EcsFcSubResponse(db.Model):
@@ -109,7 +109,7 @@ class EcsFcSubAssignment(db.Model):
     assigned_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
 
     # Relationships
-    request = db.relationship('EcsFcSubRequest', back_populates='assignment')
+    request = db.relationship('EcsFcSubRequest', back_populates='assignments')
     player = db.relationship('Player', backref='ecs_fc_sub_assignments')
     assigner = db.relationship('User', foreign_keys=[assigned_by], backref='ecs_fc_sub_assignments')
 

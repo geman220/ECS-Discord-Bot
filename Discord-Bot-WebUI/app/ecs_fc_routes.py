@@ -814,7 +814,7 @@ def sub_response_page(token: str):
                                  token_valid=False)
 
         # Verify the logged-in user matches the token recipient
-        user_player = current_user.player
+        user_player = session.query(Player).filter_by(user_id=current_user.id).first()
         if not user_player or user_player.id != response.player_id:
             return render_template('ecs_fc_sub_response_flowbite.html',
                                  error='This link was sent to a different user. Please sign in with the correct account.',
@@ -870,7 +870,7 @@ def submit_sub_response(token: str):
             return redirect(url_for('ecs_fc.sub_response_page', token=token))
 
         # Verify the logged-in user matches the token recipient
-        user_player = current_user.player
+        user_player = session.query(Player).filter_by(user_id=current_user.id).first()
         if not user_player or user_player.id != response.player_id:
             flash('This link was sent to a different user', 'error')
             return redirect(url_for('ecs_fc.sub_response_page', token=token))
@@ -972,12 +972,19 @@ def get_sub_responses(match_id: int):
                     player_data['notification_sent_at'] = resp.notification_sent_at.isoformat() if resp.notification_sent_at else None
                     pending.append(player_data)
 
+        # Calculate totals across all requests
+        total_needed = sum(r.substitutes_needed or 1 for r in requests)
+        total_assigned = len(assigned)
+
         return jsonify({
             'success': True,
             'accepted': accepted,
             'declined': declined,
             'pending': pending,
-            'assigned': assigned
+            'assigned': assigned,
+            'substitutes_needed': total_needed,
+            'substitutes_assigned': total_assigned,
+            'all_slots_filled': total_assigned >= total_needed
         })
 
     except Exception as e:

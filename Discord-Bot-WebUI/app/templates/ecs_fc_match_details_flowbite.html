@@ -316,9 +316,19 @@
                 </div>
 
                 <form id="subRequestForm">
+                    <!-- Number of Subs Needed -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">How many subs do you need?</label>
+                        <div class="flex items-center gap-3">
+                            <input type="number" name="substitutes_needed" id="substitutesNeeded" min="1" max="10" value="1"
+                                   class="w-20 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm text-center">
+                            <span class="text-sm text-gray-500 dark:text-gray-400">sub(s)</span>
+                        </div>
+                    </div>
+
                     <!-- Recipients Selection -->
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Recipients</label>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Who to contact</label>
                         <div class="space-y-2">
                             <label class="flex items-center">
                                 <input type="radio" name="recipient_type" value="all" checked class="text-blue-600 focus:ring-blue-500">
@@ -639,11 +649,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const recipientType = form.querySelector('input[name="recipient_type"]:checked').value;
         const channels = Array.from(form.querySelectorAll('input[name="channels"]:checked')).map(cb => cb.value);
         const message = form.querySelector('textarea[name="message"]').value;
+        const subsNeeded = parseInt(form.querySelector('input[name="substitutes_needed"]')?.value) || 1;
 
         const payload = {
             recipient_type: recipientType,
             channels: channels,
-            message: message
+            message: message,
+            subs_needed: subsNeeded
         };
 
         if (recipientType === 'gender') {
@@ -719,19 +731,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function renderSubResponses(data) {
         const total = data.accepted.length + data.declined.length + data.pending.length + data.assigned.length;
-        document.getElementById('subResponsesCount').textContent = total > 0 ? `(${total} contacted)` : '';
+        const needed = data.substitutes_needed || 0;
+        const assigned = data.substitutes_assigned || 0;
+        const allFilled = data.all_slots_filled || false;
+
+        // Show progress in header
+        let countText = '';
+        if (needed > 0) {
+            countText = `(${assigned}/${needed} assigned`;
+            if (total > 0) countText += `, ${total} contacted`;
+            countText += ')';
+            if (allFilled) {
+                countText = `<span class="text-green-600 dark:text-green-400">${countText} ✓</span>`;
+            }
+        } else if (total > 0) {
+            countText = `(${total} contacted)`;
+        }
+        document.getElementById('subResponsesCount').innerHTML = countText;
 
         // Assigned
-        renderSubList('assignedSubsList', data.assigned, 'assigned');
+        renderSubList('assignedSubsList', data.assigned, 'assigned', allFilled);
         // Accepted
-        renderSubList('acceptedSubsList', data.accepted, 'accepted');
+        renderSubList('acceptedSubsList', data.accepted, 'accepted', allFilled);
         // Declined
-        renderSubList('declinedSubsList', data.declined, 'declined');
+        renderSubList('declinedSubsList', data.declined, 'declined', allFilled);
         // Pending
-        renderSubList('pendingSubsList', data.pending, 'pending');
+        renderSubList('pendingSubsList', data.pending, 'pending', allFilled);
     }
 
-    function renderSubList(containerId, players, type) {
+    function renderSubList(containerId, players, type, allFilled = false) {
         const container = document.getElementById(containerId);
 
         if (players.length === 0) {
@@ -760,8 +788,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="flex items-center gap-2">
                     ${type === 'accepted' ? `
                         <button data-action="assign-sub" data-player-id="${p.id}" data-request-id="${p.request_id}"
-                                class="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">
-                            Assign
+                                class="px-3 py-1 text-sm rounded-lg ${allFilled
+                                    ? 'bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                                    : 'bg-green-600 text-white hover:bg-green-700'}"
+                                ${allFilled ? 'disabled title="All sub slots are filled"' : ''}>
+                            ${allFilled ? 'Full' : 'Assign'}
                         </button>
                     ` : ''}
                     ${type === 'assigned' ? `
