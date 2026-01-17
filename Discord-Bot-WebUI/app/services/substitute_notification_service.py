@@ -639,9 +639,9 @@ class SubstituteNotificationService:
         import requests
 
         try:
-            url = f"{self.bot_api_url}/api/send_dm"
+            url = f"{self.bot_api_url}/send_discord_dm"
             payload = {
-                'user_id': discord_id,
+                'discord_id': discord_id,
                 'message': message
             }
 

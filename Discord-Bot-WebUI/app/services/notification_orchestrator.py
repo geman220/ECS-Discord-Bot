@@ -707,7 +707,7 @@ class NotificationOrchestrator:
         try:
             import requests
 
-            url = f"{self.bot_api_url}/api/send_dm"
+            url = f"{self.bot_api_url}/send_discord_dm"
 
             # Build Discord message (supports markdown)
             discord_message = f"**{payload.title}**\n\n{payload.message}"
@@ -716,7 +716,7 @@ class NotificationOrchestrator:
                 discord_message += f"\n\n🔗 [View Details]({payload.action_url})"
 
             send_payload = {
-                'user_id': discord_id,
+                'discord_id': discord_id,
                 'message': discord_message
             }
 

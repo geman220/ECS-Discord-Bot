@@ -1205,8 +1205,8 @@ def _send_assignment_confirmation(player, match, assignment, channels_str):
             discord_msg += f"\n**Please arrive 15 minutes before kickoff.** Thanks for stepping up!"
 
             requests.post(
-                f"{bot_api_url}/api/send_dm",
-                json={'user_id': player.discord_id, 'message': discord_msg},
+                f"{bot_api_url}/send_discord_dm",
+                json={'discord_id': player.discord_id, 'message': discord_msg},
                 timeout=10
             )
         except Exception as e:
