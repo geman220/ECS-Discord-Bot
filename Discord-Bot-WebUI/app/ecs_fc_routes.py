@@ -601,7 +601,9 @@ def create_sub_request(match_id: int):
                 match=match,
                 custom_message=custom_message,
                 channels=channels,
-                rsvp_url=rsvp_url
+                rsvp_url=rsvp_url,
+                rsvp_token=response.rsvp_token,
+                request_id=sub_request.id
             )
 
             if send_result:
@@ -628,10 +630,20 @@ def create_sub_request(match_id: int):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
-def _send_sub_request_notification(player, pool_entry, match, custom_message, channels, rsvp_url):
+def _send_sub_request_notification(player, pool_entry, match, custom_message, channels, rsvp_url, rsvp_token=None, request_id=None):
     """
     Send sub request notification via enabled channels.
     Returns True if at least one channel succeeded.
+
+    Args:
+        player: Player model instance
+        pool_entry: EcsFcSubPool entry
+        match: EcsFcMatch instance
+        custom_message: Custom message from coach
+        channels: List of channels to use
+        rsvp_url: Web URL for response
+        rsvp_token: RSVP token for deep linking (optional)
+        request_id: EcsFcSubRequest ID for mobile API (optional)
     """
     sent = False
 
@@ -730,6 +742,54 @@ Click here to respond: {rsvp_url}"""
                 logger.error(f"Failed to send Discord DM: {e}", exc_info=True)
         else:
             logger.warning(f"Skipping Discord for player {player.id}: no discord_id")
+
+    # Push notification - send if coach selected push AND player has push enabled
+    if 'push' in channels:
+        if player.user and hasattr(player.user, 'push_notifications') and player.user.push_notifications:
+            if hasattr(player.user, 'fcm_tokens') and player.user.fcm_tokens:
+                try:
+                    from app.services.notification_orchestrator import (
+                        orchestrator, NotificationType, NotificationPayload
+                    )
+
+                    # Build deep link for mobile app
+                    deep_link = f"ecs-fc-scheme://sub-response/{rsvp_token}" if rsvp_token else None
+
+                    push_data = {
+                        'type': 'sub_request',
+                        'token': rsvp_token,
+                        'league_type': 'ecs_fc',
+                        'deep_link': deep_link,
+                        'web_url': rsvp_url,
+                        'match_id': str(match.id)
+                    }
+                    # Add request_id for mobile API access
+                    if request_id:
+                        push_data['request_id'] = str(request_id)
+
+                    payload = NotificationPayload(
+                        notification_type=NotificationType.SUB_REQUEST,
+                        title=f"Sub Request: {match.team.name}",
+                        message=f"{match.team.name} vs {match.opponent_name} - {match_date}",
+                        user_ids=[player.user.id],
+                        data=push_data,
+                        force_push=True,
+                        force_in_app=False,
+                        force_email=False,
+                        force_sms=False,
+                        force_discord=False
+                    )
+
+                    result = orchestrator.send(payload)
+                    if result.get('push', {}).get('success'):
+                        sent = True
+                        logger.info(f"Push notification sent to user {player.user.id}")
+                except Exception as e:
+                    logger.error(f"Failed to send push notification: {e}", exc_info=True)
+            else:
+                logger.debug(f"Skipping push for player {player.id}: no FCM tokens")
+        else:
+            logger.debug(f"Skipping push for player {player.id}: push not enabled")
 
     logger.info(f"Notification result for player {player.id}: sent={sent}")
     return sent

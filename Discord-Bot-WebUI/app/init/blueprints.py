@@ -97,6 +97,7 @@ def _import_blueprints():
     from app.routes.substitute_rsvp import substitute_rsvp_bp
     from app.legal_routes import legal_bp
     from app.pub_league import pub_league_bp
+    from app.routes.app_links import app_links_bp
 
     return {
         'auth_bp': auth_bp,
@@ -154,6 +155,7 @@ def _import_blueprints():
         'substitute_rsvp_bp': substitute_rsvp_bp,
         'legal_bp': legal_bp,
         'pub_league_bp': pub_league_bp,
+        'app_links_bp': app_links_bp,
     }
 
 
@@ -340,6 +342,9 @@ def _register_additional_blueprints(app, bp, csrf):
 
     # Pub League order linking (WooCommerce order → player activation → wallet pass)
     app.register_blueprint(bp['pub_league_bp'])
+
+    # App Links (iOS Universal Links and Android App Links configuration)
+    app.register_blueprint(bp['app_links_bp'])
 
 
 def _init_enterprise_systems(app):

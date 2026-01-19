@@ -262,71 +262,14 @@ def request_sub():
         return redirect(request.referrer or url_for('main.index'))
     
     # Check if this is an ECS FC match (format: "ecs_123")
+    # ECS FC coaches should use the dedicated ECS FC sub request system at /ecs-fc/matches/<id>
+    # which uses the correct EcsFcSubRequest model and allows direct coach-to-sub contact
     if match_id_raw.startswith('ecs_'):
-        # Handle ECS FC substitute request
         try:
             ecs_match_id = int(match_id_raw[4:])  # Remove "ecs_" prefix
-            
-            # Import ECS FC models and unified substitute models
-            from app.models_ecs import EcsFcMatch
-            from app.models_substitute_pools import SubstituteRequest
-            from app.tasks.tasks_substitute_pools import notify_substitute_pool_of_request
-            
-            # Get the ECS FC match
-            ecs_match = session.query(EcsFcMatch).get(ecs_match_id)
-            if not ecs_match:
-                show_error('ECS FC match not found.')
-                return redirect(request.referrer or url_for('main.index'))
-            
-            # Check if user is coach or admin for this team
-            user_player = safe_current_user.player
-            if not user_player:
-                show_error('You must be linked to a player to request substitutes.')
-                return redirect(url_for('admin.rsvp_status', match_id=match_id_raw))
-            
-            # Check permissions
-            is_coach = any(team.id == ecs_match.team_id and coach_status 
-                          for team, coach_status in user_player.current_teams)
-            is_admin = any(role.name in ['Global Admin', 'Pub League Admin', 'ECS FC Admin'] 
-                          for role in safe_current_user.roles)
-            
-            if not is_coach and not is_admin:
-                show_error("You don't have permission to request substitutes for this team.")
-                return redirect(url_for('admin.rsvp_status', match_id=match_id_raw))
-            
-            # Check if there's already an open request
-            existing_request = session.query(SubstituteRequest).filter_by(
-                match_id=ecs_match.id,
-                league_type='ECS FC',
-                status='OPEN'
-            ).first()
-            
-            if existing_request:
-                show_info('There is already an open substitute request for this match.')
-                return redirect(url_for('admin.rsvp_status', match_id=match_id_raw))
-            
-            # Create the unified substitute request for ECS FC
-            sub_request = SubstituteRequest(
-                match_id=ecs_match.id,
-                league_type='ECS FC',
-                team_id=ecs_match.team_id,
-                requested_by=safe_current_user.id,
-                positions_needed=positions_needed,
-                gender_preference=gender_preference if gender_preference else None,
-                notes=notes,
-                status='OPEN'
-            )
-            
-            session.add(sub_request)
-            session.commit()
-            
-            # Send notifications to all active subs in the pool asynchronously
-            notify_substitute_pool_of_request.delay(sub_request.id, 'ECS FC')
-            
-            gender_msg = f" (targeting {gender_preference} players)" if gender_preference else ""
-            show_success(f'ECS FC substitute request created{gender_msg}. Notifications are being sent to available substitutes.')
-            return redirect(url_for('admin.rsvp_status', match_id=match_id_raw))
-            
+            show_info('ECS FC sub requests should be made from the ECS FC Match Details page, '
+                     'where you can directly contact subs and manage responses.')
+            return redirect(url_for('ecs_fc.match_details', match_id=ecs_match_id))
         except (ValueError, TypeError):
             show_error('Invalid ECS FC match ID format.')
             return redirect(request.referrer or url_for('main.index'))

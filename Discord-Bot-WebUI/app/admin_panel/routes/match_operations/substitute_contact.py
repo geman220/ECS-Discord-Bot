@@ -31,15 +31,20 @@ logger = logging.getLogger(__name__)
 @role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def notify_substitute_pool():
     """
-    Contact all available substitutes in a pool for a specific request.
+    Contact substitutes in a pool for a specific request.
+    Supports filtering by recipient_type, gender, positions, or specific players.
 
     Expected JSON payload:
     {
         "request_id": int,
-        "league_type": str,  # "Premier", "Classic", "ECS FC"
+        "league_type": str,  # "Premier", "Classic"
         "custom_message": str,
         "channels": ["EMAIL", "SMS", "DISCORD"],  # optional, defaults to all
-        "gender_filter": str  # optional
+        "recipient_type": str,  # "all", "gender", "position", "specific"
+        "gender_filter": str,  # optional, for gender filtering
+        "position_filters": [],  # optional, list of positions
+        "player_ids": [],  # optional, specific player IDs
+        "subs_needed": int  # optional, how many subs are needed
     }
     """
     try:
@@ -52,7 +57,11 @@ def notify_substitute_pool():
         league_type = data.get('league_type')
         custom_message = data.get('custom_message', '')
         channels = data.get('channels')
+        recipient_type = data.get('recipient_type', 'all')
         gender_filter = data.get('gender_filter')
+        position_filters = data.get('position_filters', [])
+        player_ids = data.get('player_ids', [])
+        subs_needed = data.get('subs_needed', 1)
 
         if not request_id or not league_type:
             return jsonify({
@@ -63,13 +72,16 @@ def notify_substitute_pool():
         # Get notification service
         notification_service = get_notification_service()
 
-        # Send notifications
+        # Send notifications with filtering
         result = notification_service.notify_pool(
             request_id=request_id,
             league_type=league_type,
             custom_message=custom_message,
             channels=channels,
-            gender_filter=gender_filter
+            gender_filter=gender_filter if recipient_type == 'gender' else None,
+            position_filters=position_filters if recipient_type == 'position' else None,
+            player_ids=player_ids if recipient_type == 'specific' else None,
+            subs_needed=subs_needed
         )
 
         # Log the action

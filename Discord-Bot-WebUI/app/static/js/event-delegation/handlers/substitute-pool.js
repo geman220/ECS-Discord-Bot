@@ -413,12 +413,15 @@ window.EventDelegation.register('show-contact-subs', function(element, e) {
         return;
     }
 
+    // Reset sub pool data
+    subPoolData = { subs: [], total: 0 };
+    selectedPlayerIds = [];
+
     // Set hidden form values
     const contactRequestId = document.getElementById('contactRequestId');
     const contactLeagueType = document.getElementById('contactLeagueType');
     const contactMessage = document.getElementById('contactMessage');
     const contactMatchDetails = document.getElementById('contactMatchDetails');
-    const availableSubsList = document.getElementById('availableSubsList');
 
     if (contactRequestId) contactRequestId.value = requestId;
     if (contactLeagueType) contactLeagueType.value = leagueType;
@@ -426,19 +429,22 @@ window.EventDelegation.register('show-contact-subs', function(element, e) {
     if (contactMatchDetails) {
         contactMatchDetails.innerHTML = '<div class="flex justify-center items-center gap-2"><div class="w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin" data-spinner></div> Loading...</div>';
     }
-    if (availableSubsList) {
-        availableSubsList.innerHTML = '<div class="flex justify-center py-2"><div class="w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin" data-spinner></div></div>';
-    }
+
+    // Reset filter UI
+    document.querySelectorAll('input[name="recipient_type"]').forEach(r => r.checked = r.value === 'all');
+    document.getElementById('genderFilterSection')?.classList.add('hidden');
+    document.getElementById('positionFilterSection')?.classList.add('hidden');
+    document.getElementById('specificPlayersSection')?.classList.add('hidden');
+    document.querySelectorAll('input[name="gender"]').forEach(r => r.checked = false);
+    document.querySelectorAll('input[name="positions"]').forEach(cb => cb.checked = false);
+    const previewCount = document.getElementById('contactPreviewCount');
+    if (previewCount) previewCount.textContent = '0';
 
     // Show the modal
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('contactSubsModal');
-    } else {
-        const modalEl = document.getElementById('contactSubsModal');
-        if (modalEl && typeof window.Modal !== 'undefined') {
-            const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
-            modal.show();
-        }
+    const modalEl = document.getElementById('contactSubsModal');
+    if (modalEl) {
+        modalEl.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
     }
 
     // Load message template
@@ -450,65 +456,50 @@ window.EventDelegation.register('show-contact-subs', function(element, e) {
                 if (contactMessage) contactMessage.value = data.template;
                 if (contactMatchDetails) {
                     contactMatchDetails.innerHTML = `
-                        <strong><i class="ti ti-vs me-1"></i>${escapeHtml(data.match_details.home_team)} vs ${escapeHtml(data.match_details.away_team)}</strong><br>
-                        <small class="text-muted">
-                            <i class="ti ti-calendar me-1"></i>${escapeHtml(data.match_details.date || 'TBD')} |
-                            <i class="ti ti-clock me-1"></i>${escapeHtml(data.match_details.time || 'TBD')} |
-                            <i class="ti ti-map-pin me-1"></i>${escapeHtml(data.match_details.location || 'TBD')}
-                        </small>
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-ecs-green/10 rounded-lg flex items-center justify-center">
+                                <i class="ti ti-vs text-ecs-green"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900 dark:text-white">${escapeHtml(data.match_details.home_team)} vs ${escapeHtml(data.match_details.away_team)}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    <i class="ti ti-calendar mr-1"></i>${escapeHtml(data.match_details.date || 'TBD')}
+                                    <i class="ti ti-clock ml-2 mr-1"></i>${escapeHtml(data.match_details.time || 'TBD')}
+                                    <i class="ti ti-map-pin ml-2 mr-1"></i>${escapeHtml(data.match_details.location || 'TBD')}
+                                </p>
+                            </div>
+                        </div>
                     `;
                 }
             }
         })
         .catch(err => {
             if (contactMatchDetails) {
-                contactMatchDetails.innerHTML = '<span class="text-danger">Error loading match details</span>';
+                contactMatchDetails.innerHTML = '<span class="text-red-500">Error loading match details</span>';
             }
         });
 
-    // Load available subs
+    // Load available subs for filtering
     const availableSubsUrl = window.SUB_MANAGEMENT_CONFIG?.availableSubsUrl || '/admin-panel/substitute-contact/available-subs';
     fetch(`${availableSubsUrl}?league_type=${encodeURIComponent(leagueType)}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const countEl = document.getElementById('availableSubsCount');
-                if (countEl) countEl.textContent = data.total;
+                // Store for filtering
+                subPoolData = {
+                    subs: data.subs || [],
+                    total: data.total || 0
+                };
 
-                if (data.total === 0) {
-                    if (availableSubsList) {
-                        availableSubsList.innerHTML = '<div class="text-muted text-center py-2">No active subs in this pool</div>';
-                    }
-                } else {
-                    let html = '<div class="divide-y divide-gray-200 dark:divide-gray-700">';
-                    data.subs.forEach(sub => {
-                        const channels = [];
-                        if (sub.channels.email) channels.push('<i class="ti ti-mail text-green-500"></i>');
-                        if (sub.channels.sms) channels.push('<i class="ti ti-device-mobile text-green-500"></i>');
-                        if (sub.channels.discord) channels.push('<i class="ti ti-brand-discord text-green-500"></i>');
+                // Update preview count
+                if (previewCount) previewCount.textContent = data.total;
 
-                        html += `
-                            <div class="flex justify-between items-center py-2 px-3">
-                                <div>
-                                    <strong class="text-gray-900 dark:text-white">${escapeHtml(sub.name)}</strong>
-                                    ${sub.pronouns ? '<small class="text-gray-500 dark:text-gray-400 ml-1">(' + escapeHtml(sub.pronouns) + ')</small>' : ''}
-                                    ${sub.preferred_positions ? '<br><small class="text-gray-500 dark:text-gray-400">' + escapeHtml(sub.preferred_positions) + '</small>' : ''}
-                                </div>
-                                <div class="flex gap-1">
-                                    ${channels.join(' ')}
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    if (availableSubsList) availableSubsList.innerHTML = html;
-                }
+                // Populate player select list for specific selection
+                populatePlayerSelectList(data.subs);
             }
         })
         .catch(err => {
-            if (availableSubsList) {
-                availableSubsList.innerHTML = '<span class="text-danger">Error loading subs</span>';
-            }
+            console.error('[show-contact-subs] Error loading subs:', err);
         });
 }, { preventDefault: true });
 
@@ -729,6 +720,287 @@ function loadSubAvailability(requestId) {
                 availabilityList.innerHTML = '<div class="text-danger text-center">Network error</div>';
             }
         });
+}
+
+// ============================================================================
+// CONTACT SUBS MODAL HANDLERS (with filtering support)
+// ============================================================================
+
+// Store for sub pool data
+let subPoolData = { subs: [], total: 0 };
+let selectedPlayerIds = [];
+
+/**
+ * Close Contact Modal
+ */
+window.EventDelegation.register('close-contact-modal', function(element, e) {
+    e.preventDefault();
+    const modal = document.getElementById('contactSubsModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+}, { preventDefault: true });
+
+/**
+ * Close Availability Modal
+ */
+window.EventDelegation.register('close-availability-modal', function(element, e) {
+    e.preventDefault();
+    const modal = document.getElementById('availabilityModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
+    }
+}, { preventDefault: true });
+
+/**
+ * Send Sub Request with Filtering
+ * Full-featured sub request with recipient filtering
+ */
+window.EventDelegation.register('send-sub-request', function(element, e) {
+    e.preventDefault();
+
+    const requestId = document.getElementById('contactRequestId')?.value;
+    const leagueType = document.getElementById('contactLeagueType')?.value;
+    const message = document.getElementById('contactMessage')?.value || '';
+    const subsNeeded = parseInt(document.getElementById('contactSubsNeeded')?.value) || 1;
+
+    // Get recipient type
+    const recipientType = document.querySelector('input[name="recipient_type"]:checked')?.value || 'all';
+
+    // Get selected channels
+    const channels = [];
+    if (document.getElementById('channelEmail')?.checked) channels.push('EMAIL');
+    if (document.getElementById('channelSMS')?.checked) channels.push('SMS');
+    if (document.getElementById('channelDiscord')?.checked) channels.push('DISCORD');
+
+    if (channels.length === 0) {
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', 'Please select at least one notification channel.', 'error');
+        }
+        return;
+    }
+
+    // Build payload with filtering
+    const payload = {
+        request_id: parseInt(requestId),
+        league_type: leagueType,
+        custom_message: message,
+        channels: channels,
+        recipient_type: recipientType,
+        subs_needed: subsNeeded
+    };
+
+    // Add filter-specific data
+    if (recipientType === 'gender') {
+        const gender = document.querySelector('input[name="gender"]:checked')?.value;
+        if (gender) payload.gender_filter = gender;
+    } else if (recipientType === 'position') {
+        const positions = Array.from(document.querySelectorAll('input[name="positions"]:checked')).map(cb => cb.value);
+        if (positions.length > 0) payload.position_filters = positions;
+    } else if (recipientType === 'specific') {
+        if (selectedPlayerIds.length > 0) payload.player_ids = selectedPlayerIds;
+    }
+
+    const previewCount = document.getElementById('contactPreviewCount')?.textContent || '0';
+
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Send Sub Request?',
+            text: `This will contact ${previewCount} subs via ${channels.join(', ')}.`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Send',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#1a472a'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                sendSubRequestNotifications(payload);
+            }
+        });
+    }
+}, { preventDefault: true });
+
+/**
+ * Helper to send sub request notifications
+ */
+function sendSubRequestNotifications(payload) {
+    if (typeof window.Swal !== 'undefined') {
+        window.Swal.fire({
+            title: 'Sending...',
+            text: 'Please wait while we contact the subs.',
+            allowOutsideClick: false,
+            didOpen: () => window.Swal.showLoading()
+        });
+    }
+
+    const notifyUrl = window.SUB_MANAGEMENT_CONFIG?.notifyPoolUrl || '/admin-panel/substitute-contact/notify-pool';
+    fetch(notifyUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
+                    icon: 'success',
+                    title: 'Request Sent!',
+                    text: `Successfully contacted ${data.notifications_sent} subs.`,
+                    confirmButtonColor: '#1a472a'
+                }).then(() => {
+                    // Close modal and refresh page
+                    const modal = document.getElementById('contactSubsModal');
+                    if (modal) modal.classList.add('hidden');
+                    document.body.classList.remove('overflow-hidden');
+                    location.reload();
+                });
+            }
+        } else {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', data.errors?.join(', ') || data.error || 'Failed to send notifications.', 'error');
+            }
+        }
+    })
+    .catch(err => {
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire('Error', 'Network error. Please try again.', 'error');
+        }
+    });
+}
+
+/**
+ * Initialize Contact Modal UI
+ * Sets up event listeners for filtering controls
+ */
+function initContactModalUI() {
+    // Recipient type radio buttons
+    document.querySelectorAll('input[name="recipient_type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const value = this.value;
+
+            // Hide all filter sections
+            document.getElementById('genderFilterSection')?.classList.add('hidden');
+            document.getElementById('positionFilterSection')?.classList.add('hidden');
+            document.getElementById('specificPlayersSection')?.classList.add('hidden');
+
+            // Show relevant section
+            if (value === 'gender') {
+                document.getElementById('genderFilterSection')?.classList.remove('hidden');
+            } else if (value === 'position') {
+                document.getElementById('positionFilterSection')?.classList.remove('hidden');
+            } else if (value === 'specific') {
+                document.getElementById('specificPlayersSection')?.classList.remove('hidden');
+            }
+
+            updateContactPreviewCount();
+        });
+    });
+
+    // Gender radio buttons
+    document.querySelectorAll('input[name="gender"]').forEach(radio => {
+        radio.addEventListener('change', updateContactPreviewCount);
+    });
+
+    // Position checkboxes
+    document.querySelectorAll('input[name="positions"]').forEach(checkbox => {
+        checkbox.addEventListener('change', updateContactPreviewCount);
+    });
+
+    // Player search
+    const searchInput = document.getElementById('playerSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('#playerSelectList label').forEach(label => {
+                const name = label.textContent.toLowerCase();
+                label.style.display = name.includes(searchTerm) ? '' : 'none';
+            });
+        });
+    }
+}
+
+/**
+ * Update preview count based on current filters
+ */
+function updateContactPreviewCount() {
+    const recipientType = document.querySelector('input[name="recipient_type"]:checked')?.value || 'all';
+    let count = 0;
+
+    if (recipientType === 'all') {
+        count = subPoolData.total || 0;
+    } else if (recipientType === 'gender') {
+        const gender = document.querySelector('input[name="gender"]:checked')?.value;
+        if (gender && subPoolData.subs) {
+            count = subPoolData.subs.filter(s => {
+                const pronouns = (s.pronouns || '').toLowerCase();
+                if (gender === 'male') return pronouns.includes('he');
+                if (gender === 'female') return pronouns.includes('she');
+                return false;
+            }).length;
+        }
+    } else if (recipientType === 'position') {
+        const positions = Array.from(document.querySelectorAll('input[name="positions"]:checked')).map(cb => cb.value.toUpperCase());
+        if (positions.length > 0 && subPoolData.subs) {
+            count = subPoolData.subs.filter(s => {
+                if (!s.preferred_positions) return false;
+                const playerPositions = s.preferred_positions.toUpperCase().split(',').map(p => p.trim());
+                return positions.some(p => playerPositions.includes(p));
+            }).length;
+        }
+    } else if (recipientType === 'specific') {
+        count = selectedPlayerIds.length;
+    }
+
+    const previewEl = document.getElementById('contactPreviewCount');
+    if (previewEl) previewEl.textContent = count;
+}
+
+/**
+ * Populate player select list for specific selection
+ */
+function populatePlayerSelectList(subs) {
+    const container = document.getElementById('playerSelectList');
+    if (!container) return;
+
+    if (!subs || subs.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 italic">No subs available</p>';
+        return;
+    }
+
+    selectedPlayerIds = [];
+
+    container.innerHTML = subs.map(s => `
+        <label class="flex items-center p-2 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer">
+            <input type="checkbox" value="${s.player_id}" class="player-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">${escapeHtml(s.name)}</span>
+            <span class="ml-auto text-xs text-gray-400">${s.preferred_positions || ''}</span>
+        </label>
+    `).join('');
+
+    // Add change listeners
+    container.querySelectorAll('.player-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const playerId = parseInt(this.value);
+            if (this.checked) {
+                if (!selectedPlayerIds.includes(playerId)) {
+                    selectedPlayerIds.push(playerId);
+                }
+            } else {
+                selectedPlayerIds = selectedPlayerIds.filter(id => id !== playerId);
+            }
+            updateContactPreviewCount();
+        });
+    });
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initContactModalUI);
+} else {
+    initContactModalUI();
 }
 
 // ============================================================================

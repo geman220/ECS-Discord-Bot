@@ -100,11 +100,22 @@
                     Assign Sub
                 </button>
                 {% endif %}
-                {% if has_role('Pub League Coach') or has_role('Global Admin') or has_role('Pub League Admin') or has_role('ECS FC Coach') %}
+                {% if is_ecs_fc_match %}
+                {# ECS FC coaches use dedicated sub request system on match details page #}
+                {% if has_role('ECS FC Coach') or has_role('Global Admin') or has_role('ECS FC Admin') %}
+                <a href="{{ url_for('ecs_fc.match_details', match_id=ecs_match.id) }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 dark:focus:ring-yellow-800">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
+                    Request Subs
+                </a>
+                {% endif %}
+                {% else %}
+                {# Pub League coaches request through admin - show modal #}
+                {% if has_role('Pub League Coach') or has_role('Global Admin') or has_role('Pub League Admin') %}
                 <button type="button" data-modal-target="requestSubModal" data-modal-toggle="requestSubModal" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-500 rounded-lg hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 dark:focus:ring-yellow-800">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
                     Request Sub
                 </button>
+                {% endif %}
                 {% endif %}
             </div>
         </div>

@@ -27,13 +27,17 @@ logger = logging.getLogger(__name__)
 class SubstituteNotificationService:
     """
     Unified notification service for substitute management.
-    Handles email, SMS, and Discord notifications with channel tracking.
+    Handles email, SMS, Discord, and push notifications with channel tracking.
     """
 
     # Channel constants
     CHANNEL_EMAIL = 'EMAIL'
     CHANNEL_SMS = 'SMS'
     CHANNEL_DISCORD = 'DISCORD'
+    CHANNEL_PUSH = 'PUSH'
+
+    # Deep link scheme
+    DEEP_LINK_SCHEME = 'ecs-fc-scheme'
 
     def __init__(self):
         self.bot_api_url = os.getenv('BOT_API_URL', 'http://discord-bot:5001')
@@ -51,12 +55,13 @@ class SubstituteNotificationService:
             pool_entry: SubstitutePool entry (optional, for pool-specific preferences)
 
         Returns:
-            Dict with channel availability: {'EMAIL': bool, 'SMS': bool, 'DISCORD': bool}
+            Dict with channel availability: {'EMAIL': bool, 'SMS': bool, 'DISCORD': bool, 'PUSH': bool}
         """
         channels = {
             self.CHANNEL_EMAIL: False,
             self.CHANNEL_SMS: False,
-            self.CHANNEL_DISCORD: False
+            self.CHANNEL_DISCORD: False,
+            self.CHANNEL_PUSH: False
         }
 
         # Check email availability
@@ -83,6 +88,14 @@ class SubstituteNotificationService:
             elif player.user and player.user.discord_notifications:
                 channels[self.CHANNEL_DISCORD] = True
 
+        # Check push notification availability
+        if player.user:
+            # Check if user has push notifications enabled and has registered devices
+            if hasattr(player.user, 'push_notifications') and player.user.push_notifications:
+                # Check for FCM tokens
+                if hasattr(player.user, 'fcm_tokens') and player.user.fcm_tokens:
+                    channels[self.CHANNEL_PUSH] = True
+
         return channels
 
     def notify_pool(
@@ -91,17 +104,23 @@ class SubstituteNotificationService:
         league_type: str,
         custom_message: str,
         channels: Optional[List[str]] = None,
-        gender_filter: Optional[str] = None
+        gender_filter: Optional[str] = None,
+        position_filters: Optional[List[str]] = None,
+        player_ids: Optional[List[int]] = None,
+        subs_needed: int = 1
     ) -> Dict[str, Any]:
         """
-        Contact all available substitutes in a pool for a specific request.
+        Contact substitutes in a pool for a specific request with filtering.
 
         Args:
             request_id: SubstituteRequest ID
-            league_type: League type ('Premier', 'Classic', 'ECS FC')
+            league_type: League type ('Premier', 'Classic')
             custom_message: Custom message from admin/coach
             channels: List of channels to use (defaults to all enabled)
-            gender_filter: Optional gender filter
+            gender_filter: Optional gender filter ('male', 'female')
+            position_filters: Optional position filter (['GK', 'DEF', 'MID', 'FWD'])
+            player_ids: Optional specific player IDs to contact
+            subs_needed: How many subs are needed (for tracking)
 
         Returns:
             Dict with notification results
@@ -116,7 +135,8 @@ class SubstituteNotificationService:
             'total_subs': 0,
             'notifications_sent': 0,
             'errors': [],
-            'responses_created': []
+            'responses_created': [],
+            'subs_needed': subs_needed
         }
 
         try:
@@ -126,8 +146,28 @@ class SubstituteNotificationService:
                 results['errors'].append(f'SubstituteRequest {request_id} not found')
                 return results
 
+            # Update subs_needed on the request if provided
+            if subs_needed and subs_needed > 0:
+                sub_request.substitutes_needed = subs_needed
+
             # Get active substitutes for this league type
             active_subs = get_active_substitutes(league_type, db.session, gender_filter)
+
+            # Apply position filter
+            if position_filters:
+                position_filters_upper = [p.upper() for p in position_filters]
+                filtered_subs = []
+                for pool_entry in active_subs:
+                    if pool_entry.preferred_positions:
+                        player_positions = [p.strip().upper() for p in pool_entry.preferred_positions.split(',')]
+                        if any(p in position_filters_upper for p in player_positions):
+                            filtered_subs.append(pool_entry)
+                active_subs = filtered_subs
+
+            # Apply specific player filter
+            if player_ids:
+                active_subs = [pe for pe in active_subs if pe.player_id in player_ids]
+
             results['total_subs'] = len(active_subs)
 
             if not active_subs:
@@ -178,8 +218,8 @@ class SubstituteNotificationService:
                     db.session.add(response)
                     db.session.flush()  # Get the ID
 
-                    # Build RSVP URL
-                    rsvp_url = self._build_rsvp_url(response.rsvp_token)
+                    # Build RSVP URL (Pub League uses /sub-rsvp path)
+                    rsvp_url = self._build_rsvp_url(response.rsvp_token, 'pub_league')
 
                     # Send notifications
                     send_results = self._send_notifications(
@@ -187,7 +227,11 @@ class SubstituteNotificationService:
                         channels=available_channels,
                         subject=f"Sub Request: {match_details['teams']}",
                         message=self._build_message(custom_message, match_details, rsvp_url),
-                        rsvp_url=rsvp_url
+                        rsvp_url=rsvp_url,
+                        rsvp_token=response.rsvp_token,
+                        league_type='pub_league',
+                        request_id=request_id,
+                        match_id=match.id if match else None
                     )
 
                     if send_results['sent_count'] > 0:
@@ -301,8 +345,8 @@ class SubstituteNotificationService:
             db.session.add(response)
             db.session.flush()
 
-            # Build RSVP URL
-            rsvp_url = self._build_rsvp_url(response.rsvp_token)
+            # Build RSVP URL (Pub League uses /sub-rsvp path)
+            rsvp_url = self._build_rsvp_url(response.rsvp_token, 'pub_league')
 
             # Send notifications
             send_results = self._send_notifications(
@@ -310,7 +354,11 @@ class SubstituteNotificationService:
                 channels=available_channels,
                 subject=f"Sub Request: {match_details['teams']}",
                 message=self._build_message(custom_message, match_details, rsvp_url),
-                rsvp_url=rsvp_url
+                rsvp_url=rsvp_url,
+                rsvp_token=response.rsvp_token,
+                league_type='pub_league',
+                request_id=request_id,
+                match_id=match.id if match else None
             )
 
             results['channels_used'] = send_results['channels_sent']
@@ -498,13 +546,41 @@ class SubstituteNotificationService:
 
         return "\n".join(message_parts)
 
-    def _build_rsvp_url(self, token: str) -> str:
-        """Build the RSVP URL for a token."""
+    def _build_rsvp_url(self, token: str, league_type: str = 'pub_league') -> str:
+        """
+        Build the RSVP URL for a token.
+
+        Args:
+            token: RSVP token
+            league_type: 'pub_league' or 'ecs_fc' for different URL patterns
+
+        Returns:
+            Full RSVP URL
+        """
         try:
             base_url = os.getenv('BASE_URL', 'https://ecsdev.cvillehome.space')
+            if league_type == 'ecs_fc':
+                return f"{base_url}/ecs-fc/sub-response/{token}"
             return f"{base_url}/sub-rsvp/{token}"
         except Exception:
+            if league_type == 'ecs_fc':
+                return f"/ecs-fc/sub-response/{token}"
             return f"/sub-rsvp/{token}"
+
+    def _build_deep_link(self, token: str, league_type: str = 'pub_league') -> str:
+        """
+        Build a deep link URL for mobile app.
+
+        Args:
+            token: RSVP token
+            league_type: 'pub_league' or 'ecs_fc' for different deep link paths
+
+        Returns:
+            Deep link URL (custom scheme)
+        """
+        if league_type == 'ecs_fc':
+            return f"{self.DEEP_LINK_SCHEME}://sub-response/{token}"
+        return f"{self.DEEP_LINK_SCHEME}://sub-rsvp/{token}"
 
     def _send_notifications(
         self,
@@ -512,10 +588,25 @@ class SubstituteNotificationService:
         channels: Dict[str, bool],
         subject: str,
         message: str,
-        rsvp_url: Optional[str]
+        rsvp_url: Optional[str],
+        rsvp_token: Optional[str] = None,
+        league_type: str = 'pub_league',
+        request_id: Optional[int] = None,
+        match_id: Optional[int] = None
     ) -> Dict[str, Any]:
         """
         Send notifications via specified channels.
+
+        Args:
+            player: Player model instance
+            channels: Dict of channel availability
+            subject: Notification subject/title
+            message: Full message text
+            rsvp_url: Web URL for RSVP
+            rsvp_token: RSVP token for deep linking
+            league_type: 'pub_league' or 'ecs_fc'
+            request_id: SubstituteRequest ID for mobile API
+            match_id: Match ID for mobile API
 
         Returns:
             Dict with 'sent_count' and 'channels_sent' list
@@ -567,7 +658,82 @@ class SubstituteNotificationService:
                 logger.error(f"Failed to send Discord DM: {e}")
                 results['errors'].append(f"Discord: {str(e)}")
 
+        # Send push notification
+        if channels.get(self.CHANNEL_PUSH) and player.user:
+            try:
+                deep_link = self._build_deep_link(rsvp_token, league_type) if rsvp_token else None
+                push_data = {
+                    'type': 'sub_request',
+                    'token': rsvp_token,
+                    'league_type': league_type,
+                    'deep_link': deep_link,
+                    'web_url': rsvp_url
+                }
+                # Add request_id and match_id for mobile API access
+                if request_id:
+                    push_data['request_id'] = str(request_id)
+                if match_id:
+                    push_data['match_id'] = str(match_id)
+
+                push_result = self._send_push_notification(
+                    user=player.user,
+                    title=subject,
+                    body=message.split('\n')[0][:100],  # First line, truncated
+                    data=push_data
+                )
+                if push_result:
+                    results['sent_count'] += 1
+                    results['channels_sent'].append(self.CHANNEL_PUSH)
+                    logger.info(f"Sent push notification to user {player.user.id}")
+            except Exception as e:
+                logger.error(f"Failed to send push notification: {e}")
+                results['errors'].append(f"Push: {str(e)}")
+
         return results
+
+    def _send_push_notification(
+        self,
+        user,
+        title: str,
+        body: str,
+        data: Optional[Dict[str, Any]] = None
+    ) -> bool:
+        """
+        Send a push notification to a user via FCM.
+
+        Args:
+            user: User model instance
+            title: Notification title
+            body: Notification body
+            data: Additional data payload (for deep linking)
+
+        Returns:
+            True if at least one device received the notification
+        """
+        try:
+            from app.services.notification_orchestrator import (
+                orchestrator, NotificationType, NotificationPayload
+            )
+
+            payload = NotificationPayload(
+                notification_type=NotificationType.SUB_REQUEST,
+                title=title,
+                message=body,
+                user_ids=[user.id],
+                data=data,
+                force_push=True,
+                force_in_app=False,
+                force_email=False,
+                force_sms=False,
+                force_discord=False
+            )
+
+            result = orchestrator.send(payload)
+            return result.get('push', {}).get('success', False)
+
+        except Exception as e:
+            logger.error(f"Push notification error: {e}")
+            return False
 
     def _format_email_html(self, message: str, rsvp_url: Optional[str]) -> str:
         """Format message as HTML for email."""
