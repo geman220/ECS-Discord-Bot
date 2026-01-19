@@ -63,6 +63,8 @@ instance/
 app/static/img/uploads/
 app/static/img/uploads/**
 app/static/uploads/
+data/
+data/**
 logs/
 *.log
 *.db
