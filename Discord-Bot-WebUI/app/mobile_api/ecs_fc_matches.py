@@ -1186,12 +1186,14 @@ def get_ecs_fc_substitute_requests():
     Query Parameters:
         status: Filter by status (OPEN, FILLED, CANCELLED)
         team_id: Filter by team
+        match_id: Filter by match (returns request for specific match)
     """
     from app.models.substitutes import EcsFcSubRequest
 
     current_user_id = int(get_jwt_identity())
     status_filter = request.args.get('status')
     team_id = request.args.get('team_id', type=int)
+    match_id = request.args.get('match_id', type=int)
 
     with managed_session() as session:
         user = session.query(User).get(current_user_id)
@@ -1205,6 +1207,9 @@ def get_ecs_fc_substitute_requests():
 
         if status_filter:
             query = query.filter(EcsFcSubRequest.status == status_filter)
+
+        if match_id:
+            query = query.filter(EcsFcSubRequest.match_id == match_id)
 
         if team_id:
             query = query.filter(EcsFcSubRequest.team_id == team_id)

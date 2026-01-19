@@ -547,7 +547,9 @@ def get_all_substitute_requests():
     Get all substitute requests (admin only).
 
     Query Parameters:
-        status: Filter by status
+        status: Filter by status (OPEN, FILLED, CANCELLED)
+        match_id: Filter by match
+        team_id: Filter by team
         limit: Maximum number of requests (default: 50)
         page: Page number (default: 1)
 
@@ -555,6 +557,8 @@ def get_all_substitute_requests():
         JSON with list of all substitute requests
     """
     status_filter = request.args.get('status')
+    match_id = request.args.get('match_id', type=int)
+    team_id = request.args.get('team_id', type=int)
     limit = min(request.args.get('limit', 50, type=int), 100)
     page = request.args.get('page', 1, type=int)
 
@@ -568,6 +572,12 @@ def get_all_substitute_requests():
 
         if status_filter:
             query = query.filter(SubstituteRequest.status == status_filter.upper())
+
+        if match_id:
+            query = query.filter(SubstituteRequest.match_id == match_id)
+
+        if team_id:
+            query = query.filter(SubstituteRequest.team_id == team_id)
 
         total = query.count()
 
