@@ -27,13 +27,13 @@ const SponsorsManager = {
     showToast(message, type = 'info') {
         if (typeof PassStudio !== 'undefined' && PassStudio.showToast) {
             PassStudio.showToast(message, type);
-        } else if (typeof Swal !== 'undefined') {
-            Swal.fire({ toast: true, position: 'top-end', icon: type, title: message, showConfirmButton: false, timer: 3000 });
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({ toast: true, position: 'top-end', icon: type, title: message, showConfirmButton: false, timer: 3000 });
         }
     },
 
     addSponsor() {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Add Sponsor',
             html: `
                 <div class="text-left">
@@ -122,7 +122,7 @@ const SponsorsManager = {
             },
             preConfirm: () => {
                 const name = document.getElementById('sponsor-name').value.trim();
-                if (!name) { Swal.showValidationMessage('Name is required'); return false; }
+                if (!name) { window.Swal.showValidationMessage('Name is required'); return false; }
                 const data = {
                     name,
                     display_name: document.getElementById('sponsor-display').value.trim() || name,
@@ -135,7 +135,7 @@ const SponsorsManager = {
                 if (document.getElementById('sponsor-create-loc').checked) {
                     const lat = parseFloat(document.getElementById('sponsor-lat').value);
                     const lng = parseFloat(document.getElementById('sponsor-lng').value);
-                    if (isNaN(lat) || isNaN(lng)) { Swal.showValidationMessage('Latitude and longitude are required'); return false; }
+                    if (isNaN(lat) || isNaN(lng)) { window.Swal.showValidationMessage('Latitude and longitude are required'); return false; }
                     data.create_location = true;
                     data.latitude = lat;
                     data.longitude = lng;
@@ -153,7 +153,7 @@ const SponsorsManager = {
     editSponsor(sponsorId) {
         const sponsor = this.sponsorsData.find(s => s.id === parseInt(sponsorId));
         if (!sponsor) { this.showToast('Sponsor not found', 'error'); return; }
-        Swal.fire({
+        window.Swal.fire({
             title: 'Edit Sponsor',
             html: `
                 <div class="text-left">
@@ -206,7 +206,7 @@ const SponsorsManager = {
             customClass: { popup: 'dark:bg-gray-800', title: 'dark:text-white', htmlContainer: 'dark:text-gray-300' },
             preConfirm: () => {
                 const name = document.getElementById('edit-sponsor-name').value.trim();
-                if (!name) { Swal.showValidationMessage('Name is required'); return false; }
+                if (!name) { window.Swal.showValidationMessage('Name is required'); return false; }
                 return {
                     name,
                     display_name: document.getElementById('edit-sponsor-display').value.trim() || name,
@@ -236,7 +236,7 @@ const SponsorsManager = {
     },
 
     async deleteSponsor(sponsorId, name) {
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Delete Sponsor?',
             text: `Are you sure you want to delete "${name}"?`,
             icon: 'warning',

@@ -496,7 +496,7 @@ const FieldsManager = {
         this.sortableInstances = [];
 
         // Check if Sortable is available
-        if (typeof Sortable === 'undefined') {
+        if (typeof window.Sortable === 'undefined') {
             console.warn('SortableJS not loaded, drag-and-drop disabled');
             return;
         }
@@ -505,7 +505,7 @@ const FieldsManager = {
             const containerId = loc === 'back' ? 'back-fields-container' : `${loc}-fields-container`;
             const container = document.getElementById(containerId);
             if (container) {
-                const sortable = new Sortable(container, {
+                const sortable = new window.Sortable(container, {
                     group: loc === 'back' ? 'back-fields' : 'front-fields',
                     animation: 150,
                     handle: '.drag-handle',
@@ -840,7 +840,7 @@ const FieldsManager = {
      * Delete a field
      */
     async deleteField(fieldKey, isBack) {
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Delete Field?',
             text: `Are you sure you want to delete "${fieldKey}"?`,
             icon: 'warning',
@@ -869,7 +869,7 @@ const FieldsManager = {
      * Reset fields to last saved state
      */
     resetFields() {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Reset Changes?',
             text: 'This will discard all unsaved changes.',
             icon: 'question',
@@ -928,7 +928,7 @@ const FieldsManager = {
      */
     async initializeDefaults() {
         try {
-            const result = await Swal.fire({
+            const result = await window.Swal.fire({
                 title: 'Load Default Fields?',
                 text: 'This will create standard fields (Member Name, Year, etc.) for your pass. You can customize them afterward.',
                 icon: 'question',
@@ -969,8 +969,8 @@ const FieldsManager = {
     showToast(message, type = 'info') {
         if (typeof PassStudio !== 'undefined' && PassStudio.showToast) {
             PassStudio.showToast(message, type);
-        } else if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: type,

@@ -561,7 +561,7 @@ class EcsFcLineupSystem {
         // Use app's toast system if available
         if (typeof window.Swal !== 'undefined') {
             const isDark = document.documentElement.classList.contains('dark');
-            Swal.fire({
+            window.Swal.fire({
                 icon: type === 'error' ? 'error' : type === 'success' ? 'success' : 'info',
                 title: message,
                 toast: true,

@@ -44,8 +44,8 @@ const LocationsManager = {
     showToast(message, type = 'info') {
         if (typeof PassStudio !== 'undefined' && PassStudio.showToast) {
             PassStudio.showToast(message, type);
-        } else if (typeof Swal !== 'undefined') {
-            Swal.fire({
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
                 toast: true,
                 position: 'top-end',
                 icon: type,
@@ -60,7 +60,7 @@ const LocationsManager = {
      * Open add location modal
      */
     addLocation() {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Add Location',
             html: `
                 <div class="text-left">
@@ -120,7 +120,7 @@ const LocationsManager = {
                 const lng = parseFloat(document.getElementById('loc-lng').value);
 
                 if (!name || isNaN(lat) || isNaN(lng)) {
-                    Swal.showValidationMessage('Name, latitude, and longitude are required');
+                    window.Swal.showValidationMessage('Name, latitude, and longitude are required');
                     return false;
                 }
 
@@ -152,7 +152,7 @@ const LocationsManager = {
             return;
         }
 
-        Swal.fire({
+        window.Swal.fire({
             title: 'Edit Location',
             html: `
                 <div class="text-left">
@@ -212,7 +212,7 @@ const LocationsManager = {
                 const lng = parseFloat(document.getElementById('edit-loc-lng').value);
 
                 if (!name || isNaN(lat) || isNaN(lng)) {
-                    Swal.showValidationMessage('Name, latitude, and longitude are required');
+                    window.Swal.showValidationMessage('Name, latitude, and longitude are required');
                     return false;
                 }
 
@@ -265,7 +265,7 @@ const LocationsManager = {
      * Delete a location
      */
     async deleteLocation(locationId, name) {
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Delete Location?',
             text: `Are you sure you want to delete "${name}"?`,
             icon: 'warning',

@@ -23,13 +23,13 @@ const SubgroupsManager = {
     showToast(message, type = 'info') {
         if (typeof PassStudio !== 'undefined' && PassStudio.showToast) {
             PassStudio.showToast(message, type);
-        } else if (typeof Swal !== 'undefined') {
-            Swal.fire({ toast: true, position: 'top-end', icon: type, title: message, showConfirmButton: false, timer: 3000 });
+        } else if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({ toast: true, position: 'top-end', icon: type, title: message, showConfirmButton: false, timer: 3000 });
         }
     },
 
     addSubgroup() {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Add Subgroup',
             html: `
                 <div class="text-left">
@@ -53,7 +53,7 @@ const SubgroupsManager = {
             customClass: { popup: 'dark:bg-gray-800', title: 'dark:text-white', htmlContainer: 'dark:text-gray-300' },
             preConfirm: () => {
                 const name = document.getElementById('sg-name').value.trim();
-                if (!name) { Swal.showValidationMessage('Name is required'); return false; }
+                if (!name) { window.Swal.showValidationMessage('Name is required'); return false; }
                 return {
                     name,
                     code: document.getElementById('sg-code').value.trim() || name.toLowerCase().replace(/\s+/g, '_'),
@@ -66,7 +66,7 @@ const SubgroupsManager = {
     },
 
     editSubgroup(id, name, code, description) {
-        Swal.fire({
+        window.Swal.fire({
             title: 'Edit Subgroup',
             html: `
                 <div class="text-left">
@@ -90,7 +90,7 @@ const SubgroupsManager = {
             customClass: { popup: 'dark:bg-gray-800', title: 'dark:text-white', htmlContainer: 'dark:text-gray-300' },
             preConfirm: () => {
                 const name = document.getElementById('edit-sg-name').value.trim();
-                if (!name) { Swal.showValidationMessage('Name is required'); return false; }
+                if (!name) { window.Swal.showValidationMessage('Name is required'); return false; }
                 return { name, description: document.getElementById('edit-sg-desc').value.trim() };
             }
         }).then(async (result) => {
@@ -99,7 +99,7 @@ const SubgroupsManager = {
     },
 
     async deleteSubgroup(id, name) {
-        const result = await Swal.fire({
+        const result = await window.Swal.fire({
             title: 'Delete Subgroup?',
             text: `Are you sure you want to delete "${name}"? This won't affect existing passes.`,
             icon: 'warning',
