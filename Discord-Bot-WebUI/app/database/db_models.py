@@ -111,7 +111,12 @@ class MatchEvent(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     reported_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     additional_data = db.Column(FlexibleJSON())  # For flexible storage of event-specific details
-    
+
+    # Offline resilience fields
+    idempotency_key = db.Column(db.String(64), nullable=True, index=True)
+    client_timestamp = db.Column(db.DateTime, nullable=True)
+    sync_status = db.Column(db.String(20), default='synced')  # synced, pending, conflict
+
     team = db.relationship('Team', backref=db.backref('match_events', lazy='dynamic'))
     player = db.relationship('Player', backref=db.backref('match_events', lazy='dynamic'))
     reporter = db.relationship('User', backref=db.backref('reported_events', lazy='dynamic'))

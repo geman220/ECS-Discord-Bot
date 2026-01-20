@@ -20,6 +20,12 @@ from app.core.session_manager import managed_session
 from app.models import User, Player, Team, Match, player_teams
 from app.models.stats import PlayerEvent, PlayerEventType
 from app.teams_helpers import update_player_stats
+from app.services.event_deduplication import (
+    check_duplicate_player_event,
+    find_near_duplicate_player_events,
+    create_player_event_idempotent,
+    parse_client_timestamp
+)
 
 logger = logging.getLogger(__name__)
 
@@ -170,11 +176,13 @@ def get_match_reporting_info(match_id: int):
         for event in match.events:
             events.append({
                 "id": event.id,
+                "idempotency_key": event.idempotency_key,
                 "event_type": event.event_type.value,
                 "player_id": event.player_id,
                 "player_name": event.player.name if event.player else None,
                 "team_id": event.team_id,
-                "minute": event.minute
+                "minute": event.minute,
+                "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None
             })
 
         return jsonify({
@@ -225,11 +233,13 @@ def get_match_events(match_id: int):
         for event in match.events:
             events.append({
                 "id": event.id,
+                "idempotency_key": event.idempotency_key,
                 "event_type": event.event_type.value,
                 "player_id": event.player_id,
                 "player_name": event.player.name if event.player else None,
                 "team_id": event.team_id,
-                "minute": event.minute
+                "minute": event.minute,
+                "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None
             })
 
         return jsonify({
@@ -244,7 +254,7 @@ def get_match_events(match_id: int):
 @jwt_required()
 def add_match_event(match_id: int):
     """
-    Add a match event (goal, card, etc.).
+    Add a match event (goal, card, etc.) with offline resilience support.
 
     Args:
         match_id: Match ID
@@ -254,9 +264,12 @@ def add_match_event(match_id: int):
         player_id: ID of player (required except for own_goal)
         team_id: ID of team (required for own_goal)
         minute: Match minute when event occurred (optional)
+        idempotency_key: Client-generated unique key for deduplication (optional)
+        client_timestamp: ISO timestamp from client device (optional)
+        force: Set to true to bypass near-duplicate detection (optional)
 
     Returns:
-        JSON with created event
+        JSON with created event and status (created, duplicate, or near_duplicate)
     """
     current_user_id = int(get_jwt_identity())
 
@@ -268,6 +281,9 @@ def add_match_event(match_id: int):
     player_id = data.get('player_id')
     team_id = data.get('team_id')
     minute = data.get('minute')
+    idempotency_key = data.get('idempotency_key')
+    client_timestamp_str = data.get('client_timestamp')
+    force = data.get('force', False)
 
     # Validate event type
     if not event_type or event_type not in VALID_EVENT_TYPES:
@@ -313,11 +329,50 @@ def add_match_event(match_id: int):
             if team_id not in [match.home_team_id, match.away_team_id]:
                 return jsonify({"msg": "Team is not in this match"}), 400
 
+        # Parse client timestamp
+        client_timestamp = parse_client_timestamp(client_timestamp_str)
+
+        # Check for exact duplicate by idempotency_key
+        if idempotency_key:
+            existing = check_duplicate_player_event(session, match_id, idempotency_key)
+            if existing:
+                logger.info(f"Duplicate event detected via REST: idempotency_key={idempotency_key}")
+                # Return 200 for idempotent success (not an error)
+                return jsonify({
+                    "status": "duplicate",
+                    "success": True,
+                    "event": existing.to_dict(include_player=True) if existing.player else existing.to_dict(),
+                    "message": "Event already exists with this idempotency key"
+                }), 200
+
+        # Check for near-duplicates unless force=True
+        if not force:
+            near_dupes = find_near_duplicate_player_events(
+                session=session,
+                match_id=match_id,
+                player_id=player_id,
+                event_type=event_type,
+                minute=str(minute) if minute else None,
+                exclude_idempotency_key=idempotency_key
+            )
+
+            if near_dupes:
+                logger.info(f"Near-duplicate events found via REST: {len(near_dupes)} matches")
+                return jsonify({
+                    "status": "near_duplicate",
+                    "success": False,
+                    "near_duplicates": [e.to_dict() for e in near_dupes],
+                    "message": "Similar events found - set force=true to confirm creation",
+                    "idempotency_key": idempotency_key
+                }), 409  # Conflict status
+
         # Create the event
         event = PlayerEvent(
             match_id=match_id,
             event_type=PlayerEventType(event_type),
-            minute=str(minute) if minute else None
+            minute=str(minute) if minute else None,
+            idempotency_key=idempotency_key,
+            client_timestamp=client_timestamp
         )
 
         if event_type == 'own_goal':
@@ -345,14 +400,17 @@ def add_match_event(match_id: int):
             event_player_name = event_player.name if event_player else None
 
         return jsonify({
+            "status": "created",
             "success": True,
             "event": {
                 "id": event.id,
+                "idempotency_key": event.idempotency_key,
                 "event_type": event.event_type.value,
                 "player_id": event.player_id,
                 "player_name": event_player_name,
                 "team_id": event.team_id,
-                "minute": event.minute
+                "minute": event.minute,
+                "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None
             }
         }), 201
 
@@ -599,19 +657,37 @@ def report_match(match_id: int):
         if notes:
             match.notes = notes
 
-        # Add events if provided
+        # Add events if provided (with idempotency support)
         events_data = data.get('events', [])
-        created_events = []
+        events_result = []
 
         for event_data in events_data:
             event_type = event_data.get('event_type')
             if not event_type or event_type not in VALID_EVENT_TYPES:
                 continue  # Skip invalid events
 
+            idempotency_key = event_data.get('idempotency_key')
+            client_timestamp_str = event_data.get('client_timestamp')
+            client_timestamp = parse_client_timestamp(client_timestamp_str)
+
+            # Check for exact duplicate by idempotency_key
+            if idempotency_key:
+                existing = check_duplicate_player_event(session, match_id, idempotency_key)
+                if existing:
+                    logger.info(f"Duplicate event in report_match: idempotency_key={idempotency_key}")
+                    events_result.append({
+                        "idempotency_key": idempotency_key,
+                        "id": existing.id,
+                        "status": "duplicate"
+                    })
+                    continue
+
             event = PlayerEvent(
                 match_id=match_id,
                 event_type=PlayerEventType(event_type),
-                minute=str(event_data.get('minute')) if event_data.get('minute') else None
+                minute=str(event_data.get('minute')) if event_data.get('minute') else None,
+                idempotency_key=idempotency_key,
+                client_timestamp=client_timestamp
             )
 
             if event_type == 'own_goal':
@@ -620,6 +696,7 @@ def report_match(match_id: int):
                 event.player_id = event_data.get('player_id')
 
             session.add(event)
+            session.flush()  # Get the ID
 
             # Update player season/career stats (except for own goals)
             if event_type != 'own_goal' and event.player_id:
@@ -629,16 +706,23 @@ def report_match(match_id: int):
                 except Exception as e:
                     logger.error(f"Failed to update player stats in report_match: {e}")
 
-            created_events.append({
+            events_result.append({
+                "idempotency_key": idempotency_key,
+                "id": event.id,
                 "event_type": event_type,
                 "player_id": event.player_id,
                 "team_id": event.team_id,
-                "minute": event.minute
+                "minute": event.minute,
+                "status": "created"
             })
 
         session.commit()
 
         logger.info(f"Match {match_id} reported by user {current_user_id}: {home_score}-{away_score}")
+
+        # Count created vs duplicate events
+        created_count = sum(1 for e in events_result if e.get('status') == 'created')
+        duplicate_count = sum(1 for e in events_result if e.get('status') == 'duplicate')
 
         return jsonify({
             "success": True,
@@ -659,7 +743,9 @@ def report_match(match_id: int):
                 "reported": match.reported,
                 "notes": match.notes
             },
-            "events_created": len(created_events)
+            "events_created": created_count,
+            "events_duplicate": duplicate_count,
+            "events": events_result
         }), 200
 
 
@@ -742,3 +828,160 @@ def update_match_score(match_id: int):
                 "away_team_score": match.away_team_score
             }
         }), 200
+
+
+@mobile_api_v2.route('/matches/<int:match_id>/events/resolve', methods=['POST'])
+@jwt_required()
+def resolve_event_conflict(match_id: int):
+    """
+    Resolve near-duplicate event conflicts.
+
+    This endpoint is used when the client receives a near_duplicate response
+    and wants to either:
+    1. Force create the new event (confirming it's not a duplicate)
+    2. Accept an existing event as the correct one
+
+    Args:
+        match_id: Match ID
+
+    Expected JSON:
+        action: 'create' to force create, 'accept' to accept existing
+        event_data: Event data for 'create' action
+        idempotency_key: Client-generated unique key
+        client_timestamp: ISO timestamp from client device
+        accepted_event_id: ID of existing event to accept (for 'accept' action)
+
+    Returns:
+        JSON with resolved event
+    """
+    current_user_id = int(get_jwt_identity())
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    action = data.get('action')
+    if action not in ['create', 'accept']:
+        return jsonify({"msg": "action must be 'create' or 'accept'"}), 400
+
+    with managed_session() as session:
+        # Get user and optional player profile
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
+        player = session.query(Player).filter_by(user_id=current_user_id).first()
+
+        # Get match
+        match = session.query(Match).get(match_id)
+        if not match:
+            return jsonify({"msg": "Match not found"}), 404
+
+        # Check authorization
+        if not can_report_match(session, user, player, match):
+            return jsonify({"msg": "You are not authorized to resolve conflicts for this match"}), 403
+
+        if action == 'accept':
+            # Accept an existing event as the correct one
+            accepted_event_id = data.get('accepted_event_id')
+            if not accepted_event_id:
+                return jsonify({"msg": "accepted_event_id is required for 'accept' action"}), 400
+
+            existing = session.query(PlayerEvent).filter_by(
+                id=accepted_event_id,
+                match_id=match_id
+            ).first()
+
+            if not existing:
+                return jsonify({"msg": "Event not found"}), 404
+
+            return jsonify({
+                "status": "accepted",
+                "success": True,
+                "event": existing.to_dict(),
+                "message": "Existing event accepted"
+            }), 200
+
+        elif action == 'create':
+            # Force create a new event
+            event_data = data.get('event_data') or data.get('event')
+            if not event_data:
+                return jsonify({"msg": "event_data is required for 'create' action"}), 400
+
+            event_type = event_data.get('event_type')
+            if not event_type or event_type not in VALID_EVENT_TYPES:
+                return jsonify({"msg": f"Invalid event type. Must be one of: {', '.join(VALID_EVENT_TYPES)}"}), 400
+
+            player_id = event_data.get('player_id')
+            team_id = event_data.get('team_id')
+            minute = event_data.get('minute')
+            idempotency_key = data.get('idempotency_key')
+            client_timestamp_str = data.get('client_timestamp')
+            client_timestamp = parse_client_timestamp(client_timestamp_str)
+
+            # Validate required fields
+            if event_type == 'own_goal':
+                if not team_id:
+                    return jsonify({"msg": "team_id is required for own_goal events"}), 400
+            else:
+                if not player_id:
+                    return jsonify({"msg": "player_id is required for this event type"}), 400
+
+            # Check for exact duplicate (still maintain idempotency)
+            if idempotency_key:
+                existing = check_duplicate_player_event(session, match_id, idempotency_key)
+                if existing:
+                    return jsonify({
+                        "status": "duplicate",
+                        "success": True,
+                        "event": existing.to_dict(),
+                        "message": "Event already exists with this idempotency key"
+                    }), 200
+
+            # Create the event (skip near-duplicate check)
+            event = PlayerEvent(
+                match_id=match_id,
+                event_type=PlayerEventType(event_type),
+                minute=str(minute) if minute else None,
+                idempotency_key=idempotency_key,
+                client_timestamp=client_timestamp
+            )
+
+            if event_type == 'own_goal':
+                event.team_id = team_id
+            else:
+                event.player_id = player_id
+
+            session.add(event)
+
+            # Update player stats
+            if event_type != 'own_goal' and player_id:
+                try:
+                    update_player_stats(session, player_id, event_type, match, increment=True)
+                    logger.info(f"Updated stats for player {player_id}: +1 {event_type} (conflict resolved)")
+                except Exception as e:
+                    logger.error(f"Failed to update player stats in resolve_conflict: {e}")
+
+            session.commit()
+
+            # Get player name for response
+            event_player_name = None
+            if event.player_id:
+                event_player = session.query(Player).get(event.player_id)
+                event_player_name = event_player.name if event_player else None
+
+            return jsonify({
+                "status": "created",
+                "success": True,
+                "event": {
+                    "id": event.id,
+                    "idempotency_key": event.idempotency_key,
+                    "event_type": event.event_type.value,
+                    "player_id": event.player_id,
+                    "player_name": event_player_name,
+                    "team_id": event.team_id,
+                    "minute": event.minute,
+                    "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None
+                },
+                "message": "Event created (conflict resolved)"
+            }), 201

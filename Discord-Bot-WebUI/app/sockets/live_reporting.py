@@ -30,6 +30,13 @@ from app.database.db_models import (
 )
 from app.models import Match, Team, Player, User, PlayerEventType
 from app.teams_helpers import update_player_stats
+from app.services.event_deduplication import (
+    check_duplicate_match_event,
+    find_near_duplicate_match_events,
+    serialize_match_event,
+    create_match_event_idempotent,
+    parse_client_timestamp
+)
 
 logger = logging.getLogger(__name__)
 
@@ -761,13 +768,17 @@ def on_timer_update(data):
 @socketio.on('add_event', namespace='/live')
 def on_add_event(data):
     """
-    Add a new match event (goal, card, etc.).
-    
-    Stores the event in the database and broadcasts it
-    to all connected reporters.
-    
+    Add a new match event (goal, card, etc.) with offline resilience support.
+
+    Stores the event in the database and broadcasts it to all connected reporters.
+    Supports idempotency for offline sync scenarios.
+
     Args:
-        data: Dictionary containing match_id and event details.
+        data: Dictionary containing:
+            - match_id: Match ID
+            - event: Event data (event_type, team_id, player_id, minute, period, additional_data)
+            - idempotency_key: Optional client-generated unique key for deduplication
+            - client_timestamp: Optional timestamp from client device
     """
     with socket_session(db.engine) as session:
         # Get authenticated user
@@ -776,22 +787,60 @@ def on_add_event(data):
             emit('error', {'message': 'Authentication required'})
             disconnect()
             return
-            
+
         match_id = data.get('match_id')
         event_data = data.get('event')
+        idempotency_key = data.get('idempotency_key')
+        client_timestamp_str = data.get('client_timestamp')
         user_id = user.id
-        
+
         if not match_id or not event_data:
             emit('error', {'message': 'Match ID and event data are required'})
             return
-        
+
         try:
             # Validate event data
             required_fields = ['event_type', 'team_id']
             if not all(field in event_data for field in required_fields):
                 emit('error', {'message': f'Event must include: {", ".join(required_fields)}'})
                 return
-            
+
+            # Parse client timestamp if provided
+            client_timestamp = parse_client_timestamp(client_timestamp_str)
+
+            # Check for exact duplicate by idempotency_key
+            if idempotency_key:
+                existing = check_duplicate_match_event(session, match_id, idempotency_key)
+                if existing:
+                    logger.info(f"Duplicate event detected via WebSocket: idempotency_key={idempotency_key}")
+                    emit('event_ack', {
+                        'status': 'duplicate',
+                        'idempotency_key': idempotency_key,
+                        'event_id': existing.id,
+                        'event': serialize_match_event(existing)
+                    })
+                    return
+
+            # Check for near-duplicates (same player, event_type, ±1 minute)
+            near_dupes = find_near_duplicate_match_events(
+                session=session,
+                match_id=match_id,
+                player_id=event_data.get('player_id'),
+                event_type=event_data.get('event_type'),
+                minute=event_data.get('minute'),
+                exclude_idempotency_key=idempotency_key
+            )
+
+            if near_dupes:
+                logger.info(f"Near-duplicate events found via WebSocket: {len(near_dupes)} matches")
+                emit('event_ack', {
+                    'status': 'near_duplicate',
+                    'idempotency_key': idempotency_key,
+                    'near_duplicates': [serialize_match_event(e) for e in near_dupes],
+                    'message': 'Similar events found - use force_add_event to confirm creation'
+                })
+                return
+
             # Create new match event
             event = MatchEvent(
                 match_id=match_id,
@@ -802,18 +851,21 @@ def on_add_event(data):
                 period=event_data.get('period'),
                 timestamp=datetime.utcnow(),
                 reported_by=user_id,
-                additional_data=event_data.get('additional_data')
+                additional_data=event_data.get('additional_data'),
+                idempotency_key=idempotency_key,
+                client_timestamp=client_timestamp,
+                sync_status='synced'
             )
-            
+
             session.add(event)
             session.flush()  # Get the ID without committing
-            
+
             # If it's a goal, update the score
             if event.event_type == 'GOAL':
                 update_score_from_event(session, match_id, event)
-                
+
             session.commit()
-            
+
             # Prepare event data for broadcast
             event_dict = {
                 'id': event.id,
@@ -823,30 +875,172 @@ def on_add_event(data):
                 'minute': event.minute,
                 'period': event.period,
                 'timestamp': event.timestamp.isoformat(),
-                'reported_by': event.reported_by
+                'reported_by': event.reported_by,
+                'idempotency_key': event.idempotency_key,
+                'client_timestamp': event.client_timestamp.isoformat() if event.client_timestamp else None,
+                'sync_status': event.sync_status
             }
-            
+
             # Add team and player names if available
             team = session.query(Team).get(event.team_id) if event.team_id else None
             player = session.query(Player).get(event.player_id) if event.player_id else None
-            
+
             if team:
                 event_dict['team_name'] = team.name
-            
+
             if player:
                 event_dict['player_name'] = player.name
-            
+
+            # Send acknowledgment to the sender
+            emit('event_ack', {
+                'status': 'created',
+                'idempotency_key': idempotency_key,
+                'event_id': event.id,
+                'event': event_dict
+            })
+
+            # Broadcast to all in the room (including sender for consistency)
+            emit('event_added', {
+                'event': event_dict,
+                'reported_by': user_id,
+                'reported_by_name': user.username,
+                'idempotency_key': idempotency_key
+            }, room=f"match_{match_id}")
+
+            logger.info(f"Event added for match {match_id}: {event.event_type} by user {user_id}, idempotency_key={idempotency_key}")
+
+        except Exception as e:
+            logger.error(f"Error adding event: {str(e)}", exc_info=True)
+            emit('error', {'message': f'Error adding event: {str(e)}'})
+
+
+@socketio.on('force_add_event', namespace='/live')
+def on_force_add_event(data):
+    """
+    Force add a match event, bypassing near-duplicate detection.
+
+    Used when client confirms that an event is not a duplicate after
+    receiving a near_duplicate warning from add_event.
+
+    Args:
+        data: Dictionary containing:
+            - match_id: Match ID
+            - event: Event data (event_type, team_id, player_id, minute, period, additional_data)
+            - idempotency_key: Client-generated unique key for deduplication
+            - client_timestamp: Optional timestamp from client device
+    """
+    with socket_session(db.engine) as session:
+        # Get authenticated user
+        user = get_socket_current_user(session)
+        if not user:
+            emit('error', {'message': 'Authentication required'})
+            disconnect()
+            return
+
+        match_id = data.get('match_id')
+        event_data = data.get('event')
+        idempotency_key = data.get('idempotency_key')
+        client_timestamp_str = data.get('client_timestamp')
+        user_id = user.id
+
+        if not match_id or not event_data:
+            emit('error', {'message': 'Match ID and event data are required'})
+            return
+
+        try:
+            # Validate event data
+            required_fields = ['event_type', 'team_id']
+            if not all(field in event_data for field in required_fields):
+                emit('error', {'message': f'Event must include: {", ".join(required_fields)}'})
+                return
+
+            # Parse client timestamp if provided
+            client_timestamp = parse_client_timestamp(client_timestamp_str)
+
+            # Still check for exact duplicate by idempotency_key (to maintain idempotency)
+            if idempotency_key:
+                existing = check_duplicate_match_event(session, match_id, idempotency_key)
+                if existing:
+                    logger.info(f"Duplicate event detected in force_add: idempotency_key={idempotency_key}")
+                    emit('event_ack', {
+                        'status': 'duplicate',
+                        'idempotency_key': idempotency_key,
+                        'event_id': existing.id,
+                        'event': serialize_match_event(existing)
+                    })
+                    return
+
+            # Create new match event (skip near-duplicate check)
+            event = MatchEvent(
+                match_id=match_id,
+                event_type=event_data['event_type'],
+                team_id=event_data['team_id'],
+                player_id=event_data.get('player_id'),
+                minute=event_data.get('minute'),
+                period=event_data.get('period'),
+                timestamp=datetime.utcnow(),
+                reported_by=user_id,
+                additional_data=event_data.get('additional_data'),
+                idempotency_key=idempotency_key,
+                client_timestamp=client_timestamp,
+                sync_status='synced'
+            )
+
+            session.add(event)
+            session.flush()
+
+            # If it's a goal, update the score
+            if event.event_type == 'GOAL':
+                update_score_from_event(session, match_id, event)
+
+            session.commit()
+
+            # Prepare event data for broadcast
+            event_dict = {
+                'id': event.id,
+                'event_type': event.event_type,
+                'team_id': event.team_id,
+                'player_id': event.player_id,
+                'minute': event.minute,
+                'period': event.period,
+                'timestamp': event.timestamp.isoformat(),
+                'reported_by': event.reported_by,
+                'idempotency_key': event.idempotency_key,
+                'client_timestamp': event.client_timestamp.isoformat() if event.client_timestamp else None,
+                'sync_status': event.sync_status
+            }
+
+            # Add team and player names if available
+            team = session.query(Team).get(event.team_id) if event.team_id else None
+            player = session.query(Player).get(event.player_id) if event.player_id else None
+
+            if team:
+                event_dict['team_name'] = team.name
+
+            if player:
+                event_dict['player_name'] = player.name
+
+            # Send acknowledgment to the sender
+            emit('event_ack', {
+                'status': 'created',
+                'idempotency_key': idempotency_key,
+                'event_id': event.id,
+                'event': event_dict,
+                'forced': True
+            })
+
             # Broadcast to all in the room
             emit('event_added', {
                 'event': event_dict,
                 'reported_by': user_id,
-                'reported_by_name': user.username
+                'reported_by_name': user.username,
+                'idempotency_key': idempotency_key
             }, room=f"match_{match_id}")
-            
-            logger.info(f"Event added for match {match_id}: {event.event_type} by user {user_id}")
-            
+
+            logger.info(f"Event force-added for match {match_id}: {event.event_type} by user {user_id}, idempotency_key={idempotency_key}")
+
         except Exception as e:
-            logger.error(f"Error adding event: {str(e)}", exc_info=True)
+            logger.error(f"Error force-adding event: {str(e)}", exc_info=True)
             emit('error', {'message': f'Error adding event: {str(e)}'})
 
 
@@ -1133,19 +1327,22 @@ def get_match_state(session, match_id):
             'minute': event.minute,
             'period': event.period,
             'timestamp': event.timestamp.isoformat(),
-            'reported_by': event.reported_by
+            'reported_by': event.reported_by,
+            'idempotency_key': event.idempotency_key,
+            'client_timestamp': event.client_timestamp.isoformat() if event.client_timestamp else None,
+            'sync_status': event.sync_status
         }
-        
+
         # Add team and player names if available
         team = session.query(Team).get(event.team_id) if event.team_id else None
         player = session.query(Player).get(event.player_id) if event.player_id else None
-        
+
         if team:
             event_dict['team_name'] = team.name
-        
+
         if player:
             event_dict['player_name'] = player.name
-            
+
         events.append(event_dict)
     
     # Calculate Flutter-compatible timer fields
@@ -1315,11 +1512,18 @@ def create_player_events_from_match_events(session, match_id):
             }
             
             if event.event_type in event_type_map:
+                # Generate a derived idempotency key for PlayerEvent from MatchEvent
+                derived_idempotency_key = None
+                if event.idempotency_key:
+                    derived_idempotency_key = f"pe_{event.idempotency_key}"
+
                 player_event = PlayerEvent(
                     player_id=event.player_id,
                     match_id=match_id,
                     minute=str(event.minute) if event.minute else None,
-                    event_type=event_type_map[event.event_type]
+                    event_type=event_type_map[event.event_type],
+                    idempotency_key=derived_idempotency_key,
+                    client_timestamp=event.client_timestamp
                 )
                 session.add(player_event)
 
@@ -1332,11 +1536,15 @@ def create_player_events_from_match_events(session, match_id):
                 # If this is a goal, also look for an assist
                 if event.event_type == 'GOAL' and event.additional_data and 'assist_player_id' in event.additional_data:
                     assist_player_id = event.additional_data['assist_player_id']
+                    # Generate derived idempotency key for assist
+                    assist_idempotency_key = f"assist_{event.idempotency_key}" if event.idempotency_key else None
                     assist_event = PlayerEvent(
                         player_id=assist_player_id,
                         match_id=match_id,
                         minute=str(event.minute) if event.minute else None,
-                        event_type=PlayerEventType.ASSIST
+                        event_type=PlayerEventType.ASSIST,
+                        idempotency_key=assist_idempotency_key,
+                        client_timestamp=event.client_timestamp
                     )
                     session.add(assist_event)
 

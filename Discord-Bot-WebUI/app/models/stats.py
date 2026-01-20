@@ -342,6 +342,10 @@ class PlayerEvent(db.Model):
     minute = db.Column(db.String, nullable=True)
     event_type = db.Column(Enum(PlayerEventType), nullable=False)
 
+    # Offline resilience fields
+    idempotency_key = db.Column(db.String(64), nullable=True, index=True)
+    client_timestamp = db.Column(db.DateTime, nullable=True)
+
     player = db.relationship('Player', back_populates='events', passive_deletes=True)
     match = db.relationship('Match', back_populates='events')
     team = db.relationship('Team', backref='own_goal_events')
@@ -349,10 +353,12 @@ class PlayerEvent(db.Model):
     def to_dict(self, include_player=False):
         data = {
             'id': self.id,
+            'idempotency_key': self.idempotency_key,
             'player_id': self.player_id,
             'match_id': self.match_id,
             'minute': self.minute,
             'event_type': self.event_type.name if self.event_type else None,
+            'client_timestamp': self.client_timestamp.isoformat() if self.client_timestamp else None,
         }
         if include_player:
             data['player'] = self.player.to_dict(public=True)
