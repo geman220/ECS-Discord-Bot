@@ -346,9 +346,13 @@ class PlayerEvent(db.Model):
     idempotency_key = db.Column(db.String(64), nullable=True, index=True)
     client_timestamp = db.Column(db.DateTime, nullable=True)
 
+    # Reporter tracking for deduplication and attribution
+    reported_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+
     player = db.relationship('Player', back_populates='events', passive_deletes=True)
     match = db.relationship('Match', back_populates='events')
     team = db.relationship('Team', backref='own_goal_events')
+    reporter = db.relationship('User', backref='reported_player_events')
 
     def to_dict(self, include_player=False):
         data = {
@@ -356,9 +360,12 @@ class PlayerEvent(db.Model):
             'idempotency_key': self.idempotency_key,
             'player_id': self.player_id,
             'match_id': self.match_id,
+            'team_id': self.team_id,
             'minute': self.minute,
             'event_type': self.event_type.name if self.event_type else None,
             'client_timestamp': self.client_timestamp.isoformat() if self.client_timestamp else None,
+            'reported_by': self.reported_by,
+            'reported_by_name': self.reporter.username if self.reporter else None,
         }
         if include_player:
             data['player'] = self.player.to_dict(public=True)

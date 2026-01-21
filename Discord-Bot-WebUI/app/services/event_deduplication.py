@@ -21,8 +21,12 @@ from sqlalchemy import and_, or_
 
 from app.database.db_models import MatchEvent
 from app.models.stats import PlayerEvent
+from app.models import User
 
 logger = logging.getLogger(__name__)
+
+# Near-duplicate detection window in minutes (±3 handles clock drift between devices)
+NEAR_DUPLICATE_MINUTE_WINDOW = 3
 
 
 @dataclass
@@ -95,7 +99,7 @@ def find_near_duplicate_match_events(
     exclude_idempotency_key: Optional[str] = None
 ) -> List[MatchEvent]:
     """
-    Find near-duplicate MatchEvents (same player, event_type, minute ±1).
+    Find near-duplicate MatchEvents (same player, event_type, minute ±NEAR_DUPLICATE_MINUTE_WINDOW).
 
     This helps detect potential duplicates when idempotency_key is not provided
     or when client clock skew might cause issues.
@@ -120,15 +124,11 @@ def find_near_duplicate_match_events(
     if player_id is not None:
         query = query.filter(MatchEvent.player_id == player_id)
 
-    # Filter by minute range (±1) if provided
+    # Filter by minute range (±NEAR_DUPLICATE_MINUTE_WINDOW) if provided
     if minute is not None:
-        query = query.filter(
-            or_(
-                MatchEvent.minute == minute,
-                MatchEvent.minute == minute - 1,
-                MatchEvent.minute == minute + 1
-            )
-        )
+        minute_conditions = [MatchEvent.minute == minute + offset
+                           for offset in range(-NEAR_DUPLICATE_MINUTE_WINDOW, NEAR_DUPLICATE_MINUTE_WINDOW + 1)]
+        query = query.filter(or_(*minute_conditions))
 
     # Exclude specific idempotency_key if provided
     if exclude_idempotency_key:
@@ -151,7 +151,7 @@ def find_near_duplicate_player_events(
     exclude_idempotency_key: Optional[str] = None
 ) -> List[PlayerEvent]:
     """
-    Find near-duplicate PlayerEvents (same player, event_type, minute ±1).
+    Find near-duplicate PlayerEvents (same player, event_type, minute ±NEAR_DUPLICATE_MINUTE_WINDOW).
 
     Args:
         session: Database session
@@ -182,17 +182,13 @@ def find_near_duplicate_player_events(
     if player_id is not None:
         query = query.filter(PlayerEvent.player_id == player_id)
 
-    # Filter by minute range (±1) if provided
+    # Filter by minute range (±NEAR_DUPLICATE_MINUTE_WINDOW) if provided
     if minute is not None:
         try:
             minute_int = int(minute)
-            query = query.filter(
-                or_(
-                    PlayerEvent.minute == str(minute_int),
-                    PlayerEvent.minute == str(minute_int - 1),
-                    PlayerEvent.minute == str(minute_int + 1)
-                )
-            )
+            minute_conditions = [PlayerEvent.minute == str(minute_int + offset)
+                               for offset in range(-NEAR_DUPLICATE_MINUTE_WINDOW, NEAR_DUPLICATE_MINUTE_WINDOW + 1)]
+            query = query.filter(or_(*minute_conditions))
         except (ValueError, TypeError):
             # If minute is not a valid integer, just match exact
             query = query.filter(PlayerEvent.minute == minute)
@@ -232,6 +228,43 @@ def serialize_match_event(event: MatchEvent) -> dict:
         'client_timestamp': event.client_timestamp.isoformat() if event.client_timestamp else None,
         'sync_status': event.sync_status
     }
+
+
+def serialize_match_event_with_reporter(session: Session, event: MatchEvent) -> dict:
+    """
+    Serialize a MatchEvent with reporter name included for iOS/watchOS compatibility.
+
+    Args:
+        session: Database session
+        event: MatchEvent to serialize
+
+    Returns:
+        Dictionary representation with reported_by_name field
+    """
+    data = serialize_match_event(event)
+    if event.reported_by:
+        reporter = session.query(User).get(event.reported_by)
+        data['reported_by_name'] = reporter.username if reporter else None
+    else:
+        data['reported_by_name'] = None
+    return data
+
+
+def get_reporter_name(session: Session, user_id: Optional[int]) -> Optional[str]:
+    """
+    Get the username for a given user ID.
+
+    Args:
+        session: Database session
+        user_id: User ID to look up
+
+    Returns:
+        Username string or None if not found
+    """
+    if not user_id:
+        return None
+    reporter = session.query(User).get(user_id)
+    return reporter.username if reporter else None
 
 
 def create_match_event_idempotent(

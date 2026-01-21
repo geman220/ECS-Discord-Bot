@@ -28,12 +28,14 @@ from app.utils.user_helpers import safe_current_user
 from app.database.db_models import (
     ActiveMatchReporter, LiveMatch, MatchEvent, PlayerShift
 )
-from app.models import Match, Team, Player, User, PlayerEventType
+from app.models import Match, Team, Player, User, PlayerEventType, PlayerEvent
 from app.teams_helpers import update_player_stats
 from app.services.event_deduplication import (
     check_duplicate_match_event,
     find_near_duplicate_match_events,
     serialize_match_event,
+    serialize_match_event_with_reporter,
+    get_reporter_name,
     create_match_event_idempotent,
     parse_client_timestamp
 )
@@ -813,11 +815,15 @@ def on_add_event(data):
                 existing = check_duplicate_match_event(session, match_id, idempotency_key)
                 if existing:
                     logger.info(f"Duplicate event detected via WebSocket: idempotency_key={idempotency_key}")
+                    original_reporter = get_reporter_name(session, existing.reported_by)
                     emit('event_ack', {
                         'status': 'duplicate',
+                        'is_duplicate': True,  # iOS compatibility
                         'idempotency_key': idempotency_key,
                         'event_id': existing.id,
-                        'event': serialize_match_event(existing)
+                        'original_event_id': existing.id,  # iOS compatibility alias
+                        'original_reporter': original_reporter,  # iOS compatibility
+                        'event': serialize_match_event_with_reporter(session, existing)
                     })
                     return
 
@@ -833,10 +839,13 @@ def on_add_event(data):
 
             if near_dupes:
                 logger.info(f"Near-duplicate events found via WebSocket: {len(near_dupes)} matches")
+                # Include reporter info for each near-duplicate for iOS compatibility
+                near_dupes_with_reporter = [serialize_match_event_with_reporter(session, e) for e in near_dupes]
                 emit('event_ack', {
                     'status': 'near_duplicate',
+                    'is_duplicate': False,  # iOS compatibility - not an exact duplicate
                     'idempotency_key': idempotency_key,
-                    'near_duplicates': [serialize_match_event(e) for e in near_dupes],
+                    'near_duplicates': near_dupes_with_reporter,
                     'message': 'Similar events found - use force_add_event to confirm creation'
                 })
                 return
@@ -962,11 +971,15 @@ def on_force_add_event(data):
                 existing = check_duplicate_match_event(session, match_id, idempotency_key)
                 if existing:
                     logger.info(f"Duplicate event detected in force_add: idempotency_key={idempotency_key}")
+                    original_reporter = get_reporter_name(session, existing.reported_by)
                     emit('event_ack', {
                         'status': 'duplicate',
+                        'is_duplicate': True,  # iOS compatibility
                         'idempotency_key': idempotency_key,
                         'event_id': existing.id,
-                        'event': serialize_match_event(existing)
+                        'original_event_id': existing.id,  # iOS compatibility alias
+                        'original_reporter': original_reporter,  # iOS compatibility
+                        'event': serialize_match_event_with_reporter(session, existing)
                     })
                     return
 
@@ -1523,7 +1536,8 @@ def create_player_events_from_match_events(session, match_id):
                     minute=str(event.minute) if event.minute else None,
                     event_type=event_type_map[event.event_type],
                     idempotency_key=derived_idempotency_key,
-                    client_timestamp=event.client_timestamp
+                    client_timestamp=event.client_timestamp,
+                    reported_by=event.reported_by  # Copy reporter from MatchEvent
                 )
                 session.add(player_event)
 
@@ -1544,7 +1558,8 @@ def create_player_events_from_match_events(session, match_id):
                         minute=str(event.minute) if event.minute else None,
                         event_type=PlayerEventType.ASSIST,
                         idempotency_key=assist_idempotency_key,
-                        client_timestamp=event.client_timestamp
+                        client_timestamp=event.client_timestamp,
+                        reported_by=event.reported_by  # Copy reporter from MatchEvent
                     )
                     session.add(assist_event)
 

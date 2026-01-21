@@ -24,7 +24,8 @@ from app.services.event_deduplication import (
     check_duplicate_player_event,
     find_near_duplicate_player_events,
     create_player_event_idempotent,
-    parse_client_timestamp
+    parse_client_timestamp,
+    get_reporter_name
 )
 
 logger = logging.getLogger(__name__)
@@ -337,11 +338,16 @@ def add_match_event(match_id: int):
             existing = check_duplicate_player_event(session, match_id, idempotency_key)
             if existing:
                 logger.info(f"Duplicate event detected via REST: idempotency_key={idempotency_key}")
+                # Get reporter name for iOS compatibility
+                original_reporter = get_reporter_name(session, existing.reported_by) if existing.reported_by else None
                 # Return 200 for idempotent success (not an error)
                 return jsonify({
                     "status": "duplicate",
+                    "is_duplicate": True,  # iOS compatibility
                     "success": True,
                     "event": existing.to_dict(include_player=True) if existing.player else existing.to_dict(),
+                    "original_event_id": existing.id,  # iOS compatibility alias
+                    "original_reporter": original_reporter,  # iOS compatibility
                     "message": "Event already exists with this idempotency key"
                 }), 200
 
@@ -360,6 +366,7 @@ def add_match_event(match_id: int):
                 logger.info(f"Near-duplicate events found via REST: {len(near_dupes)} matches")
                 return jsonify({
                     "status": "near_duplicate",
+                    "is_duplicate": False,  # iOS compatibility - not an exact duplicate
                     "success": False,
                     "near_duplicates": [e.to_dict() for e in near_dupes],
                     "message": "Similar events found - set force=true to confirm creation",
@@ -372,7 +379,8 @@ def add_match_event(match_id: int):
             event_type=PlayerEventType(event_type),
             minute=str(minute) if minute else None,
             idempotency_key=idempotency_key,
-            client_timestamp=client_timestamp
+            client_timestamp=client_timestamp,
+            reported_by=current_user_id  # Track who reported this event
         )
 
         if event_type == 'own_goal':
@@ -687,7 +695,8 @@ def report_match(match_id: int):
                 event_type=PlayerEventType(event_type),
                 minute=str(event_data.get('minute')) if event_data.get('minute') else None,
                 idempotency_key=idempotency_key,
-                client_timestamp=client_timestamp
+                client_timestamp=client_timestamp,
+                reported_by=current_user_id  # Track who reported this event
             )
 
             if event_type == 'own_goal':
@@ -931,10 +940,14 @@ def resolve_event_conflict(match_id: int):
             if idempotency_key:
                 existing = check_duplicate_player_event(session, match_id, idempotency_key)
                 if existing:
+                    original_reporter = get_reporter_name(session, existing.reported_by) if existing.reported_by else None
                     return jsonify({
                         "status": "duplicate",
+                        "is_duplicate": True,  # iOS compatibility
                         "success": True,
                         "event": existing.to_dict(),
+                        "original_event_id": existing.id,  # iOS compatibility alias
+                        "original_reporter": original_reporter,  # iOS compatibility
                         "message": "Event already exists with this idempotency key"
                     }), 200
 
@@ -944,7 +957,8 @@ def resolve_event_conflict(match_id: int):
                 event_type=PlayerEventType(event_type),
                 minute=str(minute) if minute else None,
                 idempotency_key=idempotency_key,
-                client_timestamp=client_timestamp
+                client_timestamp=client_timestamp,
+                reported_by=current_user_id  # Track who reported this event
             )
 
             if event_type == 'own_goal':
