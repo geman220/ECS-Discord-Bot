@@ -108,7 +108,8 @@ def orders_list():
             user_roles=user_roles,
             PubLeagueOrderStatus=PubLeagueOrderStatus,
             premier_product_slug=premier_product_slug,
-            classic_product_slug=classic_product_slug
+            classic_product_slug=classic_product_slug,
+            now=datetime.utcnow()
         )
 
     except Exception as e:
@@ -119,7 +120,8 @@ def orders_list():
             orders=None,
             stats={},
             error=str(e),
-            user_roles=[]
+            user_roles=[],
+            now=datetime.utcnow()
         )
 
 

@@ -249,7 +249,6 @@
                             </td>
                             <td class="px-4 py-3">
                                 {% if order.expires_at %}
-                                    {% set now = import('datetime').datetime.utcnow() %}
                                     {% if order.expires_at < now %}
                                     <span class="text-xs text-red-600 dark:text-red-400">Expired</span>
                                     {% else %}
