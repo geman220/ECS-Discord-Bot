@@ -604,19 +604,40 @@ def mobile_profile_update(player_id):
             logger.exception(f"Error updating profile for player {player_id}: {str(e)}")
             show_error('Error updating profile.')
             return redirect(url_for('players.mobile_profile_update', player_id=player_id))
-    
+
     # Initialize form data on GET
     if request.method == 'GET':
         form.email.data = user.email
-        form.other_positions.data = (
-            player.other_positions.strip('{}').split(',')
-            if player.other_positions else []
-        )
-        form.positions_not_to_play.data = (
-            player.positions_not_to_play.strip('{}').split(',')
-            if player.positions_not_to_play else []
-        )
-    
+
+        # Helper to normalize position values to match form choices
+        def normalize_position(pos):
+            if not pos:
+                return pos
+            return pos.strip().lower().replace(' ', '_')
+
+        # Normalize favorite_position
+        if player.favorite_position:
+            form.favorite_position.data = normalize_position(player.favorite_position)
+
+        # Parse and normalize multi-select position fields
+        if player.other_positions:
+            raw_positions = player.other_positions.strip('{}').split(',')
+            form.other_positions.data = [
+                normalize_position(pos)
+                for pos in raw_positions if pos.strip()
+            ]
+        else:
+            form.other_positions.data = []
+
+        if player.positions_not_to_play:
+            raw_positions = player.positions_not_to_play.strip('{}').split(',')
+            form.positions_not_to_play.data = [
+                normalize_position(pos)
+                for pos in raw_positions if pos.strip()
+            ]
+        else:
+            form.positions_not_to_play.data = []
+
     # Check if profile is expired
     profile_expired = False
     if player.profile_last_updated:
@@ -680,19 +701,40 @@ def desktop_profile_update(player_id):
             logger.exception(f"Error updating profile for player {player_id}: {str(e)}")
             show_error('Error updating profile.')
             return redirect(url_for('players.desktop_profile_update', player_id=player_id))
-    
+
     # Initialize form data on GET
     if request.method == 'GET':
         form.email.data = user.email
-        form.other_positions.data = (
-            player.other_positions.strip('{}').split(',')
-            if player.other_positions else []
-        )
-        form.positions_not_to_play.data = (
-            player.positions_not_to_play.strip('{}').split(',')
-            if player.positions_not_to_play else []
-        )
-    
+
+        # Helper to normalize position values to match form choices
+        def normalize_position(pos):
+            if not pos:
+                return pos
+            return pos.strip().lower().replace(' ', '_')
+
+        # Normalize favorite_position
+        if player.favorite_position:
+            form.favorite_position.data = normalize_position(player.favorite_position)
+
+        # Parse and normalize multi-select position fields
+        if player.other_positions:
+            raw_positions = player.other_positions.strip('{}').split(',')
+            form.other_positions.data = [
+                normalize_position(pos)
+                for pos in raw_positions if pos.strip()
+            ]
+        else:
+            form.other_positions.data = []
+
+        if player.positions_not_to_play:
+            raw_positions = player.positions_not_to_play.strip('{}').split(',')
+            form.positions_not_to_play.data = [
+                normalize_position(pos)
+                for pos in raw_positions if pos.strip()
+            ]
+        else:
+            form.positions_not_to_play.data = []
+
     # Check if profile is expired
     profile_expired = False
     if player.profile_last_updated:
@@ -780,14 +822,35 @@ def profile_wizard():
     # Initialize form data on GET
     if request.method == 'GET':
         form.email.data = user.email
-        form.other_positions.data = (
-            player.other_positions.strip('{}').split(',')
-            if player.other_positions else []
-        )
-        form.positions_not_to_play.data = (
-            player.positions_not_to_play.strip('{}').split(',')
-            if player.positions_not_to_play else []
-        )
+
+        # Helper to normalize position values to match form choices
+        def normalize_position(pos):
+            if not pos:
+                return pos
+            return pos.strip().lower().replace(' ', '_')
+
+        # Normalize favorite_position
+        if player.favorite_position:
+            form.favorite_position.data = normalize_position(player.favorite_position)
+
+        # Parse and normalize multi-select position fields
+        if player.other_positions:
+            raw_positions = player.other_positions.strip('{}').split(',')
+            form.other_positions.data = [
+                normalize_position(pos)
+                for pos in raw_positions if pos.strip()
+            ]
+        else:
+            form.other_positions.data = []
+
+        if player.positions_not_to_play:
+            raw_positions = player.positions_not_to_play.strip('{}').split(',')
+            form.positions_not_to_play.data = [
+                normalize_position(pos)
+                for pos in raw_positions if pos.strip()
+            ]
+        else:
+            form.positions_not_to_play.data = []
 
     # Check if profile is expired (5 months)
     profile_expired = False
@@ -865,8 +928,13 @@ def verify_profile_redirect(player_id):
 @login_required
 def wizard_profile(player_id):
     """
-    5-step profile verification wizard.
+    6-step profile verification wizard.
     Mobile-first step-by-step verification process.
+
+    Steps: Welcome → Photo → Contact → Playing → Notes → Confirm
+
+    Pre-populates all fields with the player's current data so they
+    can review and update as needed.
     """
     session = g.db_session
     player = session.query(Player).get(player_id)
@@ -891,14 +959,35 @@ def wizard_profile(player_id):
 
     # Initialize form data
     form.email.data = user.email
-    form.other_positions.data = (
-        player.other_positions.strip('{}').split(',')
-        if player.other_positions else []
-    )
-    form.positions_not_to_play.data = (
-        player.positions_not_to_play.strip('{}').split(',')
-        if player.positions_not_to_play else []
-    )
+
+    # Helper to normalize position values to match form choices (lowercase with underscores)
+    def normalize_position(pos):
+        if not pos:
+            return pos
+        return pos.strip().lower().replace(' ', '_')
+
+    # Normalize favorite_position to match form choice values
+    if player.favorite_position:
+        form.favorite_position.data = normalize_position(player.favorite_position)
+
+    # Parse and normalize multi-select position fields
+    if player.other_positions:
+        raw_positions = player.other_positions.strip('{}').split(',')
+        form.other_positions.data = [
+            normalize_position(pos)
+            for pos in raw_positions if pos.strip()
+        ]
+    else:
+        form.other_positions.data = []
+
+    if player.positions_not_to_play:
+        raw_positions = player.positions_not_to_play.strip('{}').split(',')
+        form.positions_not_to_play.data = [
+            normalize_position(pos)
+            for pos in raw_positions if pos.strip()
+        ]
+    else:
+        form.positions_not_to_play.data = []
 
     # Check if profile is expired (5 months)
     profile_expired = False
@@ -959,6 +1048,25 @@ def wizard_profile_update(player_id):
         positions_not_to_play = request.form.getlist('positions_not_to_play')
         if positions_not_to_play:
             player.positions_not_to_play = "{" + ",".join(positions_not_to_play) + "}"
+
+        # Handle profile picture upload
+        cropped_image_data = request.form.get('cropped_image_data')
+        if cropped_image_data and cropped_image_data.startswith('data:image/'):
+            try:
+                image_url = save_cropped_profile_picture(cropped_image_data, player_id)
+                player.profile_picture_url = image_url
+                player.updated_at = datetime.utcnow()
+
+                # Trigger image optimization asynchronously
+                try:
+                    from app.image_cache_service import handle_player_image_update
+                    handle_player_image_update(player_id)
+                    logger.info(f"Queued image optimization for player {player_id}")
+                except Exception as e:
+                    logger.warning(f"Failed to queue image optimization: {e}")
+            except Exception as e:
+                logger.error(f"Failed to save profile picture for player {player_id}: {e}")
+                # Don't fail the entire update if image save fails
 
         # Update email on user if provided and different
         new_email = request.form.get('email')

@@ -8,44 +8,50 @@
     <div class="sticky top-0 z-40 bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 px-4 py-3">
         <!-- Progress Bar -->
         <div class="relative h-1 bg-gray-200 dark:bg-gray-700 rounded-full mb-4 overflow-hidden">
-            <div id="progressBar" class="absolute left-0 top-0 h-full bg-ecs-green dark:bg-ecs-gold transition-all duration-300 rounded-full" style="width: 20%"></div>
+            <div id="progressBar" class="absolute left-0 top-0 h-full bg-ecs-green dark:bg-ecs-gold transition-all duration-300 rounded-full" style="width: 16.67%"></div>
         </div>
         <!-- Step Indicators -->
         <div class="flex justify-between">
             <div class="flex flex-col items-center flex-1" data-step-indicator="1">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-ecs-green text-white dark:bg-ecs-gold text-sm font-medium mb-1 transition-colors">
-                    <i class="ti ti-home text-sm"></i>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-ecs-green text-white dark:bg-ecs-gold text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-home text-xs sm:text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Welcome</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Welcome</span>
             </div>
             <div class="flex flex-col items-center flex-1" data-step-indicator="2">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
-                    <i class="ti ti-user text-sm"></i>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-camera text-xs sm:text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Contact</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Photo</span>
             </div>
             <div class="flex flex-col items-center flex-1" data-step-indicator="3">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
-                    <i class="ti ti-ball-football text-sm"></i>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-user text-xs sm:text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Playing</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Contact</span>
             </div>
             <div class="flex flex-col items-center flex-1" data-step-indicator="4">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
-                    <i class="ti ti-notes text-sm"></i>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-ball-football text-xs sm:text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Notes</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Playing</span>
             </div>
             <div class="flex flex-col items-center flex-1" data-step-indicator="5">
-                <div class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
-                    <i class="ti ti-check text-sm"></i>
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-notes text-xs sm:text-sm"></i>
                 </div>
-                <span class="text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Confirm</span>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Notes</span>
+            </div>
+            <div class="flex flex-col items-center flex-1" data-step-indicator="6">
+                <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm font-medium mb-1 transition-colors">
+                    <i class="ti ti-check text-xs sm:text-sm"></i>
+                </div>
+                <span class="text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 hidden sm:block">Confirm</span>
             </div>
         </div>
     </div>
 
-    <form method="POST" action="{{ url_for('players.wizard_profile_update', player_id=player.id) }}" id="wizardForm" class="px-4 py-6">
+    <form method="POST" action="{{ url_for('players.wizard_profile_update', player_id=player.id) }}" id="wizardForm" class="px-4 py-6" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
         <input type="hidden" name="current_step" id="currentStep" value="1">
 
@@ -88,6 +94,10 @@
                 <div class="space-y-2 text-left">
                     <div class="flex items-center gap-3 text-sm">
                         <i class="ti ti-circle-check text-ecs-gold"></i>
+                        <span>Update your profile picture</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm">
+                        <i class="ti ti-circle-check text-ecs-gold"></i>
                         <span>Verify your contact info</span>
                     </div>
                     <div class="flex items-center gap-3 text-sm">
@@ -106,8 +116,91 @@
             </div>
         </div>
 
-        <!-- Step 2: Contact Information -->
+        <!-- Step 2: Profile Picture -->
         <div class="wizard-step hidden" data-step="2">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                            <i class="ti ti-camera text-purple-600 dark:text-purple-400"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-semibold text-gray-900 dark:text-white">Profile Picture</h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Help teammates recognize you</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div class="flex flex-col items-center">
+                        <!-- Current Profile Picture Preview -->
+                        <div id="wizardProfilePreview" class="flex flex-col items-center mb-4">
+                            <div class="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 mb-2">
+                                {% if player.profile_picture_url %}
+                                <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() if player.updated_at else '0' }}"
+                                     alt="Current Profile Picture"
+                                     class="w-full h-full object-cover"
+                                     id="wizardCurrentProfilePic">
+                                {% else %}
+                                <div class="w-full h-full flex items-center justify-center" id="wizardCurrentProfilePic">
+                                    <i class="ti ti-user text-4xl text-gray-400"></i>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 text-center mb-4">
+                                {% if player.profile_picture_url %}
+                                Your current profile picture
+                                {% else %}
+                                No profile picture yet
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <!-- Cropper Interface (hidden initially) -->
+                        <div id="wizardCropperInterface" class="hidden w-full flex flex-col items-center mb-4">
+                            <div class="relative w-full max-w-[280px] aspect-square rounded-xl overflow-hidden border-2 border-ecs-green dark:border-ecs-gold bg-gray-100 dark:bg-gray-700">
+                                <img id="wizardCropperImage" src="" alt="Image to crop" class="max-w-full">
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                                <i class="ti ti-info-circle mr-1"></i>Drag to move, pinch to zoom
+                            </p>
+                        </div>
+
+                        <!-- Hidden file input -->
+                        <input type="file" id="wizardImageInput" name="profile_picture" accept="image/*" class="hidden">
+                        <input type="hidden" name="cropped_image_data" id="wizardCroppedImageData">
+
+                        <!-- Upload/Crop Controls -->
+                        <div id="wizardUploadControls" class="w-full space-y-3">
+                            <button type="button" id="wizardSelectImageBtn"
+                                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                                <i class="ti ti-upload"></i>
+                                {% if player.profile_picture_url %}Change Photo{% else %}Upload Photo{% endif %}
+                            </button>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 text-center">PNG, JPG, or WEBP (max 5MB)</p>
+                        </div>
+
+                        <div id="wizardCropControls" class="hidden w-full space-y-3">
+                            <button type="button" id="wizardSaveImageBtn"
+                                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                                <i class="ti ti-check"></i>Save Photo
+                            </button>
+                            <button type="button" id="wizardCancelCropBtn"
+                                    class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                <i class="ti ti-x"></i>Cancel
+                            </button>
+                        </div>
+
+                        <!-- Skip option -->
+                        <p class="mt-4 text-xs text-gray-500 dark:text-gray-400 text-center">
+                            <i class="ti ti-info-circle mr-1"></i>You can skip this step and add a photo later
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 3: Contact Information -->
+        <div class="wizard-step hidden" data-step="3">
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex items-center gap-3">
@@ -160,8 +253,8 @@
             </div>
         </div>
 
-        <!-- Step 3: Playing Preferences -->
-        <div class="wizard-step hidden" data-step="3">
+        <!-- Step 4: Playing Preferences -->
+        <div class="wizard-step hidden" data-step="4">
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex items-center gap-3">
@@ -231,8 +324,8 @@
             </div>
         </div>
 
-        <!-- Step 4: Notes & Availability -->
-        <div class="wizard-step hidden" data-step="4">
+        <!-- Step 5: Notes & Availability -->
+        <div class="wizard-step hidden" data-step="5">
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-4 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                     <div class="flex items-center gap-3">
@@ -277,8 +370,8 @@
             </div>
         </div>
 
-        <!-- Step 5: Review & Confirm -->
-        <div class="wizard-step hidden" data-step="5">
+        <!-- Step 6: Review & Confirm -->
+        <div class="wizard-step hidden" data-step="6">
             <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div class="px-4 py-4 border-b border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30">
                     <div class="flex items-center gap-3">
@@ -292,6 +385,27 @@
                     </div>
                 </div>
                 <div class="p-4 space-y-4">
+                    <!-- Profile Picture Summary -->
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
+                            <div class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                <i class="ti ti-camera"></i>
+                                <span>Profile Picture</span>
+                            </div>
+                            <button type="button" data-goto-step="2" class="text-ecs-green dark:text-ecs-gold hover:underline text-sm">
+                                <i class="ti ti-pencil"></i> Edit
+                            </button>
+                        </div>
+                        <div class="p-4 flex items-center justify-center">
+                            <div class="w-20 h-20 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
+                                <img id="reviewProfilePicture"
+                                     src="{{ player.profile_picture_url if player.profile_picture_url else url_for('static', filename='img/default_player.png') }}?v={{ player.updated_at.timestamp() if player.updated_at else '0' }}"
+                                     alt="Profile Picture"
+                                     class="w-full h-full object-cover">
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Contact Summary -->
                     <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                         <div class="flex items-center justify-between px-4 py-2 bg-gray-50 dark:bg-gray-700/50">
@@ -299,7 +413,7 @@
                                 <i class="ti ti-address-book"></i>
                                 <span>Contact Information</span>
                             </div>
-                            <button type="button" data-goto-step="2" class="text-ecs-green dark:text-ecs-gold hover:underline text-sm">
+                            <button type="button" data-goto-step="3" class="text-ecs-green dark:text-ecs-gold hover:underline text-sm">
                                 <i class="ti ti-pencil"></i> Edit
                             </button>
                         </div>
@@ -330,7 +444,7 @@
                                 <i class="ti ti-ball-football"></i>
                                 <span>Playing Preferences</span>
                             </div>
-                            <button type="button" data-goto-step="3" class="text-ecs-green dark:text-ecs-gold hover:underline text-sm">
+                            <button type="button" data-goto-step="4" class="text-ecs-green dark:text-ecs-gold hover:underline text-sm">
                                 <i class="ti ti-pencil"></i> Edit
                             </button>
                         </div>
@@ -353,7 +467,7 @@
                                 <i class="ti ti-calendar"></i>
                                 <span>Availability & Notes</span>
                             </div>
-                            <button type="button" data-goto-step="4" class="text-ecs-green dark:text-ecs-gold hover:underline text-sm">
+                            <button type="button" data-goto-step="5" class="text-ecs-green dark:text-ecs-gold hover:underline text-sm">
                                 <i class="ti ti-pencil"></i> Edit
                             </button>
                         </div>
@@ -430,7 +544,7 @@
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const totalSteps = 5;
+    const totalSteps = 6;
     let currentStep = 1;
     const form = document.getElementById('wizardForm');
     const progressBar = document.getElementById('progressBar');
@@ -440,6 +554,193 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentStepInput = document.getElementById('currentStep');
     const saveIndicator = document.getElementById('saveIndicator');
     const swipeHint = document.getElementById('swipeHint');
+
+    // ========================================================================
+    // CROPPER SETUP
+    // ========================================================================
+    let wizardCropper = null;
+    const imageInput = document.getElementById('wizardImageInput');
+    const selectImageBtn = document.getElementById('wizardSelectImageBtn');
+    const saveImageBtn = document.getElementById('wizardSaveImageBtn');
+    const cancelCropBtn = document.getElementById('wizardCancelCropBtn');
+    const cropperImage = document.getElementById('wizardCropperImage');
+    const croppedDataInput = document.getElementById('wizardCroppedImageData');
+
+    // UI elements
+    const profilePreview = document.getElementById('wizardProfilePreview');
+    const cropperInterface = document.getElementById('wizardCropperInterface');
+    const uploadControls = document.getElementById('wizardUploadControls');
+    const cropControls = document.getElementById('wizardCropControls');
+
+    // Trigger file input
+    if (selectImageBtn && imageInput) {
+        selectImageBtn.addEventListener('click', () => imageInput.click());
+    }
+
+    // Handle file selection
+    if (imageInput) {
+        imageInput.addEventListener('change', function(e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            const file = files[0];
+
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid File',
+                        text: 'Please select an image file (PNG, JPG, or WEBP).',
+                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+                        color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
+                    });
+                }
+                return;
+            }
+
+            // Validate file size (5MB max)
+            if (file.size > 5 * 1024 * 1024) {
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Too Large',
+                        text: 'Please select an image smaller than 5MB.',
+                        background: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+                        color: document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
+                    });
+                }
+                return;
+            }
+
+            const imageUrl = URL.createObjectURL(file);
+            cropperImage.src = imageUrl;
+
+            // Destroy existing cropper
+            if (wizardCropper) {
+                wizardCropper.destroy();
+                wizardCropper = null;
+            }
+
+            // Wait for image to load
+            cropperImage.onload = function() {
+                if (typeof Cropper === 'undefined') {
+                    console.error('Cropper.js not loaded');
+                    return;
+                }
+
+                // Initialize cropper
+                wizardCropper = new Cropper(cropperImage, {
+                    viewMode: 1,
+                    aspectRatio: 1,
+                    dragMode: 'move',
+                    autoCropArea: 0.9,
+                    restore: false,
+                    guides: true,
+                    center: true,
+                    highlight: false,
+                    background: false,
+                    responsive: true,
+                    movable: true,
+                    zoomable: true,
+                    zoomOnTouch: true,
+                    zoomOnWheel: true,
+                    rotatable: false,
+                    scalable: false,
+                    cropBoxMovable: false,
+                    cropBoxResizable: false,
+                    toggleDragModeOnDblclick: false,
+                    checkOrientation: false,
+                });
+
+                // Show cropper interface
+                profilePreview.classList.add('hidden');
+                uploadControls.classList.add('hidden');
+                cropperInterface.classList.remove('hidden');
+                cropControls.classList.remove('hidden');
+
+                URL.revokeObjectURL(imageUrl);
+            };
+        });
+    }
+
+    // Save cropped image
+    if (saveImageBtn) {
+        saveImageBtn.addEventListener('click', function() {
+            if (!wizardCropper) return;
+
+            const canvas = wizardCropper.getCroppedCanvas({
+                width: 400,
+                height: 400,
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high',
+            });
+
+            if (!canvas) {
+                console.error('Failed to get cropped canvas');
+                return;
+            }
+
+            const croppedData = canvas.toDataURL('image/jpeg', 0.9);
+            croppedDataInput.value = croppedData;
+
+            // Update preview image
+            const currentPic = document.getElementById('wizardCurrentProfilePic');
+            if (currentPic) {
+                if (currentPic.tagName === 'IMG') {
+                    currentPic.src = croppedData;
+                } else {
+                    // Replace placeholder div with img
+                    const newImg = document.createElement('img');
+                    newImg.src = croppedData;
+                    newImg.alt = 'Profile Picture';
+                    newImg.className = 'w-full h-full object-cover';
+                    newImg.id = 'wizardCurrentProfilePic';
+                    currentPic.parentNode.replaceChild(newImg, currentPic);
+                }
+            }
+
+            // Update review section image
+            const reviewPic = document.getElementById('reviewProfilePicture');
+            if (reviewPic) {
+                reviewPic.src = croppedData;
+            }
+
+            // Reset UI
+            wizardCropper.destroy();
+            wizardCropper = null;
+            profilePreview.classList.remove('hidden');
+            uploadControls.classList.remove('hidden');
+            cropperInterface.classList.add('hidden');
+            cropControls.classList.add('hidden');
+
+            // Update button text
+            selectImageBtn.innerHTML = '<i class="ti ti-upload"></i>Change Photo';
+
+            // Show success indicator
+            saveIndicator.classList.remove('opacity-0');
+            setTimeout(() => saveIndicator.classList.add('opacity-0'), 2000);
+        });
+    }
+
+    // Cancel crop
+    if (cancelCropBtn) {
+        cancelCropBtn.addEventListener('click', function() {
+            if (wizardCropper) {
+                wizardCropper.destroy();
+                wizardCropper = null;
+            }
+            imageInput.value = '';
+            profilePreview.classList.remove('hidden');
+            uploadControls.classList.remove('hidden');
+            cropperInterface.classList.add('hidden');
+            cropControls.classList.add('hidden');
+        });
+    }
+
+    // ========================================================================
+    // WIZARD NAVIGATION
+    // ========================================================================
 
     // Show swipe hint briefly on mobile
     if (window.innerWidth < 768) {
@@ -465,10 +766,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('[data-step-indicator]').forEach(el => {
             const stepNum = parseInt(el.dataset.stepIndicator);
             const dot = el.querySelector('div');
-            if (stepNum < step) {
-                dot.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
-                dot.classList.add('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold');
-            } else if (stepNum === step) {
+            if (stepNum <= step) {
                 dot.classList.remove('bg-gray-200', 'dark:bg-gray-700', 'text-gray-500', 'dark:text-gray-400');
                 dot.classList.add('bg-ecs-green', 'text-white', 'dark:bg-ecs-gold');
             } else {
@@ -494,6 +792,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         currentStepInput.value = step;
         currentStep = step;
+
+        // Scroll to top of step
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function updateReviewSection() {
@@ -545,7 +846,6 @@ document.addEventListener('DOMContentLoaded', function() {
         input.addEventListener('change', () => {
             clearTimeout(saveTimeout);
             saveTimeout = setTimeout(() => {
-                // Show save indicator
                 saveIndicator.classList.remove('opacity-0');
                 setTimeout(() => {
                     saveIndicator.classList.add('opacity-0');
@@ -554,15 +854,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Touch swipe support
+    // Touch swipe support (disabled on cropper step to prevent conflicts)
     let touchStartX = 0;
     let touchEndX = 0;
 
     document.addEventListener('touchstart', e => {
+        // Don't track swipe on cropper step when cropper is active
+        if (currentStep === 2 && wizardCropper) return;
         touchStartX = e.changedTouches[0].screenX;
     }, { passive: true });
 
     document.addEventListener('touchend', e => {
+        if (currentStep === 2 && wizardCropper) return;
         touchEndX = e.changedTouches[0].screenX;
         handleSwipe();
     }, { passive: true });
@@ -573,10 +876,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (Math.abs(diff) > swipeThreshold) {
             if (diff > 0 && currentStep < totalSteps) {
-                // Swipe left - next
                 updateStep(currentStep + 1);
             } else if (diff < 0 && currentStep > 1) {
-                // Swipe right - prev
                 updateStep(currentStep - 1);
             }
         }

@@ -11,15 +11,6 @@
             <p class="text-white/80">Please complete your profile information below to help us get to know you better.</p>
         </div>
 
-        <!-- Welcome Alert -->
-        <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-xl border border-blue-200 dark:border-blue-800">
-            <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
-            <div>
-                <h6 class="font-semibold">Welcome to ECS FC!</h6>
-                <p class="text-sm">Please complete your profile information below to help us get to know you better.</p>
-            </div>
-        </div>
-
         {% if needs_discord_join %}
         <!-- Discord Join Prompt -->
         <div class="bg-[#5865F2]/10 dark:bg-[#5865F2]/20 border border-[#5865F2]/30 rounded-xl p-6 mb-6 text-center">
@@ -93,30 +84,39 @@
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label class="relative cursor-pointer">
-                            <input type="radio" name="preferred_league" value="pub_league_classic" required
-                                   class="peer sr-only">
-                            <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-colors">
+                        <label class="relative cursor-pointer group">
+                            <input type="radio" name="preferred_league" value="pub_league_classic" required class="peer sr-only">
+                            <!-- Checkmark indicator (must be sibling of input for peer-checked to work) -->
+                            <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+                                <i class="ti ti-check text-sm"></i>
+                            </div>
+                            <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
                                 <div class="text-2xl mb-2">&#x1F3C6;</div>
                                 <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Pub League Classic</h6>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Our beginner-friendly classic division - it's all about having fun and improving your game.</p>
                             </div>
                         </label>
 
-                        <label class="relative cursor-pointer">
-                            <input type="radio" name="preferred_league" value="pub_league_premier" required
-                                   class="peer sr-only">
-                            <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-colors">
+                        <label class="relative cursor-pointer group">
+                            <input type="radio" name="preferred_league" value="pub_league_premier" required class="peer sr-only">
+                            <!-- Checkmark indicator (must be sibling of input for peer-checked to work) -->
+                            <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+                                <i class="ti ti-check text-sm"></i>
+                            </div>
+                            <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
                                 <div class="text-2xl mb-2">&#x1F31F;</div>
                                 <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Pub League Premier</h6>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Our Premier Division for low to intermediate recreational players. Bring your C game!</p>
                             </div>
                         </label>
 
-                        <label class="relative cursor-pointer">
-                            <input type="radio" name="preferred_league" value="ecs_fc" required
-                                   class="peer sr-only">
-                            <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-colors">
+                        <label class="relative cursor-pointer group">
+                            <input type="radio" name="preferred_league" value="ecs_fc" required class="peer sr-only">
+                            <!-- Checkmark indicator (must be sibling of input for peer-checked to work) -->
+                            <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+                                <i class="ti ti-check text-sm"></i>
+                            </div>
+                            <div class="p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
                                 <div class="text-2xl mb-2">&#x26BD;</div>
                                 <h6 class="font-semibold text-gray-900 dark:text-white mb-1">ECS FC</h6>
                                 <p class="text-xs text-gray-500 dark:text-gray-400">Our club team for dedicated players who want to represent ECS in organized competition.</p>
@@ -139,11 +139,13 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Other Positions You Enjoy</label>
-                        {{ onboarding_form.other_positions(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green h-24", multiple="multiple") }}
+                        {{ onboarding_form.other_positions(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", multiple="multiple", size="4") }}
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Positions to Avoid</label>
-                        {{ onboarding_form.positions_not_to_play(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green h-24", multiple="multiple") }}
+                        {{ onboarding_form.positions_not_to_play(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", multiple="multiple", size="4") }}
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Willingness to Play Goal</label>
@@ -185,25 +187,70 @@
                     <h5 class="font-semibold text-gray-900 dark:text-white">Profile Picture</h5>
                 </div>
                 <div class="p-4">
-                    <div class="flex flex-col md:flex-row gap-4 items-start">
-                        <div class="flex-1">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Upload Profile Picture</label>
-                            {{ onboarding_form.profile_picture(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", id="image") }}
-                            <input type="hidden" name="cropped_image_data" id="cropped_image_data">
-                        </div>
+                    <div class="flex flex-col md:flex-row gap-6 items-center">
+                        <!-- Left: Preview / Cropper Area -->
                         <div class="flex-shrink-0">
-                            <div id="currentProfilePicture" class="w-24 h-24 rounded-full overflow-hidden border-2 border-gray-200 dark:border-gray-600">
-                                <img src="{{ player.profile_picture_url if player and player.profile_picture_url else url_for('static', filename='img/default_player.png') }}"
-                                     alt="Profile Picture" class="w-full h-full object-cover">
+                            <!-- Profile Picture Preview (shown initially and after crop) -->
+                            <div id="profilePicturePreview" class="flex flex-col items-center">
+                                <div class="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
+                                    <img src="{{ player.profile_picture_url if player and player.profile_picture_url else url_for('static', filename='img/default_player.png') }}"
+                                         alt="Profile Picture"
+                                         class="w-full h-full object-cover"
+                                         id="currentProfilePicture">
+                                </div>
+                            </div>
+
+                            <!-- Cropper Interface (hidden initially) -->
+                            <div id="cropperInterface" class="hidden flex flex-col items-center w-full">
+                                <div class="relative w-full max-w-[288px] aspect-square rounded-xl overflow-hidden border-2 border-ecs-green dark:border-ecs-gold bg-gray-100 dark:bg-gray-700">
+                                    <img id="onboardingCropperImage" src="" alt="Image to crop" class="max-w-full">
+                                </div>
+                                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                                    <i class="ti ti-info-circle mr-1"></i>Drag to move, scroll to zoom
+                                </p>
                             </div>
                         </div>
-                    </div>
-                    <div id="cropperContainer" class="hidden mt-4">
-                        <img id="imagecan" src="" alt="Preview" class="max-w-full rounded-lg">
-                        <button type="button" id="cropAndSaveButton"
-                                class="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
-                            <i class="ti ti-crop"></i>Crop and Save
-                        </button>
+
+                        <!-- Right: Instructions / Controls -->
+                        <div class="flex-1">
+                            <!-- Upload Instructions (shown initially) -->
+                            <div id="uploadInstructions">
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                    Upload a clear photo of yourself. A good profile picture helps teammates and coaches recognize you.
+                                </p>
+                                <div class="space-y-3">
+                                    {{ onboarding_form.profile_picture(class="hidden", id="image", accept="image/*") }}
+                                    <input type="hidden" name="cropped_image_data" id="cropped_image_data">
+
+                                    <button type="button"
+                                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors"
+                                            data-action="trigger-file-input"
+                                            data-target="image">
+                                        <i class="ti ti-upload"></i>Select Image
+                                    </button>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 text-center">PNG, JPG, or WEBP (max 5MB)</p>
+                                </div>
+                            </div>
+
+                            <!-- Cropper Controls (hidden initially) -->
+                            <div id="cropperControls" class="hidden">
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                    Adjust your photo below. Drag to reposition and scroll to zoom.
+                                </p>
+                                <div class="space-y-3">
+                                    <button type="button"
+                                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors"
+                                            data-action="crop-save-profile-image">
+                                        <i class="ti ti-check"></i>Save Photo
+                                    </button>
+                                    <button type="button"
+                                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                                            data-action="reset-image-selection">
+                                        <i class="ti ti-photo"></i>Choose Different
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -239,7 +286,7 @@
                             <span class="text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer">
-                            {{ onboarding_form.sms_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="smsNotifications") }}
+                            {{ onboarding_form.sms_notifications(class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green", id="smsNotifications", **{"data-on-change": "onboarding-sms-toggle"}) }}
                             <span class="text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
                         </label>
                         <label class="flex items-center gap-3 cursor-pointer">
@@ -257,7 +304,8 @@
                     <div id="smsOptInSection" class="hidden p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
                         <label class="flex items-start gap-3 cursor-pointer mb-4">
                             <input type="checkbox" id="smsConsent" name="sms_consent"
-                                   class="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                   class="mt-0.5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green"
+                                   data-on-change="onboarding-sms-consent">
                             <span class="text-sm text-gray-600 dark:text-gray-300">
                                 I consent to receive text messages from ECS FC about team updates, schedule changes, and important announcements.
                                 Standard message and data rates may apply. You can opt out at any time.
@@ -307,50 +355,11 @@
 
 {% block custom_js %}
 {{ super() }}
-<script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // SMS notification toggle
-    const smsToggle = document.getElementById('smsNotifications');
-    const smsOptIn = document.getElementById('smsOptInSection');
-    const smsConsent = document.getElementById('smsConsent');
-    const smsVerification = document.getElementById('smsVerificationSection');
-
-    if (smsToggle && smsOptIn) {
-        smsToggle.addEventListener('change', function() {
-            smsOptIn.classList.toggle('hidden', !this.checked);
-        });
-    }
-
-    if (smsConsent && smsVerification) {
-        smsConsent.addEventListener('change', function() {
-            smsVerification.classList.toggle('hidden', !this.checked);
-        });
-    }
-});
-</script>
+<script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}" type="module"></script>
 {% if needs_discord_join %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const isDark = document.documentElement.classList.contains('dark');
-    setTimeout(function() {
-        Swal.fire({
-            title: 'Join our Discord Server',
-            html: '<p>To fully participate in ECS FC, you need to join our Discord server!</p><ul class="text-left text-sm mt-2"><li>Match announcements</li><li>Team discussions</li><li>Important notifications</li></ul>',
-            icon: 'info',
-            showCancelButton: true,
-            confirmButtonText: 'Join Discord',
-            cancelButtonText: 'Later',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827',
-            confirmButtonColor: '#5865F2'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                window.open('{{ discord_invite_link }}', '_blank');
-            }
-        });
-    }, 500);
-});
+window.ECS_DISCORD_INVITE_LINK = '{{ discord_invite_link }}';
+window.ECS_SHOW_DISCORD_PROMPT = true;
 </script>
 {% endif %}
 {% endblock %}

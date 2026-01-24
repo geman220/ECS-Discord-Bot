@@ -183,21 +183,10 @@ def create_player_profile(onboarding_form):
     """
     session = g.db_session
     try:
-        def handle_profile_picture():
-            if not onboarding_form.profile_picture.data:
-                return None
-            filename = secure_filename(onboarding_form.profile_picture.data.filename)
-            upload_folder = 'static/uploads'
-            if not os.path.exists(upload_folder):
-                os.makedirs(upload_folder)
-            upload_path = os.path.join(upload_folder, filename)
-            onboarding_form.profile_picture.data.save(upload_path)
-            return url_for('static', filename='uploads/' + filename)
-
         other_positions = request.form.getlist('other_positions')
         positions_not_to_play = request.form.getlist('positions_not_to_play')
-        profile_picture_url = handle_profile_picture()
 
+        # Create player without profile picture first (we need the ID for cropped images)
         player = Player(
             user_id=safe_current_user.id,
             name=onboarding_form.name.data,
@@ -205,7 +194,7 @@ def create_player_profile(onboarding_form):
             phone=onboarding_form.phone.data,
             jersey_size=onboarding_form.jersey_size.data,
             jersey_number=onboarding_form.jersey_number.data,
-            profile_picture_url=profile_picture_url,
+            profile_picture_url=None,
             pronouns=onboarding_form.pronouns.data,
             expected_weeks_available=onboarding_form.expected_weeks_available.data,
             unavailable_dates=onboarding_form.unavailable_dates.data,
@@ -226,6 +215,27 @@ def create_player_profile(onboarding_form):
         )
 
         session.add(player)
+        session.flush()  # Get the player ID
+
+        # Handle cropped profile picture (from cropper.js)
+        cropped_image_data = request.form.get('cropped_image_data')
+        if cropped_image_data and cropped_image_data.startswith('data:image/'):
+            try:
+                from app.players_helpers import save_cropped_profile_picture
+                image_url = save_cropped_profile_picture(cropped_image_data, player.id)
+                player.profile_picture_url = image_url
+                player.updated_at = datetime.utcnow()
+
+                # Trigger image optimization
+                try:
+                    from app.image_cache_service import handle_player_image_update
+                    handle_player_image_update(player.id)
+                except Exception as e:
+                    logger.warning(f"Failed to queue image optimization: {e}")
+            except Exception as e:
+                logger.error(f"Failed to save cropped profile picture: {e}")
+                # Continue without profile picture rather than failing onboarding
+
         session.add(safe_current_user)
         logger.info(f"Created player profile for user {safe_current_user.id}")
         return player
@@ -291,22 +301,25 @@ def handle_profile_update(player, onboarding_form):
         safe_current_user.profile_visibility = onboarding_form.profile_visibility.data
         safe_current_user.email = onboarding_form.email.data
 
-        if onboarding_form.profile_picture.data:
-            filename = secure_filename(onboarding_form.profile_picture.data.filename)
-            upload_folder = 'static/uploads'
-            if not os.path.exists(upload_folder):
-                os.makedirs(upload_folder)
-            upload_path = os.path.join(upload_folder, filename)
-            onboarding_form.profile_picture.data.save(upload_path)
-            player.profile_picture_url = url_for('static', filename='uploads/' + filename)
-            
-            # Trigger image optimization for new upload
+        # Handle cropped profile picture (from cropper.js)
+        cropped_image_data = request.form.get('cropped_image_data')
+        if cropped_image_data and cropped_image_data.startswith('data:image/'):
             try:
-                from app.image_cache_service import handle_player_image_update
-                handle_player_image_update(player.id)
-                logger.info(f"Queued image optimization for player {player.id} during onboarding")
+                from app.players_helpers import save_cropped_profile_picture
+                image_url = save_cropped_profile_picture(cropped_image_data, player.id)
+                player.profile_picture_url = image_url
+                player.updated_at = datetime.utcnow()
+
+                # Trigger image optimization
+                try:
+                    from app.image_cache_service import handle_player_image_update
+                    handle_player_image_update(player.id)
+                    logger.info(f"Queued image optimization for player {player.id} during onboarding")
+                except Exception as e:
+                    logger.warning(f"Failed to queue image optimization during onboarding: {e}")
             except Exception as e:
-                logger.warning(f"Failed to queue image optimization during onboarding: {e}")
+                logger.error(f"Failed to save cropped profile picture: {e}")
+                # Continue without updating profile picture rather than failing
 
         session.add(player)
         session.add(safe_current_user)

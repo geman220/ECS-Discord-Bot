@@ -260,6 +260,118 @@ window.EventDelegation.register('verify-code', function(element, e) {
 // ============================================================================
 
 /**
+ * Initialize Cropper on File Input Change
+ * Listens for the file input change event and initializes Cropper.js
+ */
+function initOnboardingCropperListener() {
+    const fileInput = document.getElementById('image');
+    if (!fileInput) return;
+
+    // Skip if already initialized
+    if (fileInput._cropperListenerAttached) return;
+    fileInput._cropperListenerAttached = true;
+
+    fileInput.addEventListener('change', function(e) {
+        const files = e.target.files;
+        if (!files || files.length === 0) return;
+
+        const file = files[0];
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            if (window.Swal) {
+                window.Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid File',
+                    text: 'Please select an image file (PNG, JPG, or WEBP).'
+                });
+            }
+            return;
+        }
+
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+            if (window.Swal) {
+                window.Swal.fire({
+                    icon: 'error',
+                    title: 'File Too Large',
+                    text: 'Please select an image smaller than 5MB.'
+                });
+            }
+            return;
+        }
+
+        const imageUrl = URL.createObjectURL(file);
+        const cropperImage = document.getElementById('onboardingCropperImage');
+
+        if (!cropperImage) {
+            console.error('[cropper] Could not find #onboardingCropperImage element');
+            return;
+        }
+
+        cropperImage.src = imageUrl;
+
+        // Destroy existing cropper instance
+        if (window.onboardingCropper) {
+            window.onboardingCropper.destroy();
+            window.onboardingCropper = null;
+        }
+
+        // Wait for image to load before initializing cropper
+        cropperImage.onload = function() {
+            // Check if Cropper.js is available
+            if (typeof window.Cropper === 'undefined') {
+                console.error('[cropper] Cropper.js library not loaded');
+                return;
+            }
+
+            // Initialize Cropper.js
+            window.onboardingCropper = new window.Cropper(cropperImage, {
+                viewMode: 1,
+                aspectRatio: 1,
+                dragMode: 'move',
+                autoCropArea: 0.9,
+                restore: false,
+                guides: true,
+                center: true,
+                highlight: false,
+                background: false,
+                responsive: true,
+                movable: true,
+                zoomable: true,
+                rotatable: false,
+                scalable: false,
+                cropBoxMovable: false,
+                cropBoxResizable: false,
+                toggleDragModeOnDblclick: false,
+                checkOrientation: false,
+            });
+
+            // Switch UI to cropper mode
+            const profilePreview = document.getElementById('profilePicturePreview');
+            const uploadInstructions = document.getElementById('uploadInstructions');
+            const cropperInterface = document.getElementById('cropperInterface');
+            const cropperControls = document.getElementById('cropperControls');
+
+            if (profilePreview) profilePreview.classList.add('hidden');
+            if (uploadInstructions) uploadInstructions.classList.add('hidden');
+            if (cropperInterface) cropperInterface.classList.remove('hidden');
+            if (cropperControls) cropperControls.classList.remove('hidden');
+
+            // Revoke object URL after cropper is initialized
+            URL.revokeObjectURL(imageUrl);
+        };
+    });
+}
+
+// Initialize cropper listener on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initOnboardingCropperListener);
+} else {
+    initOnboardingCropperListener();
+}
+
+/**
  * Trigger File Input
  * Programmatically clicks a hidden file input when a button is clicked
  * Usage: <button data-action="trigger-file-input" data-target="image">
@@ -489,6 +601,80 @@ window.EventDelegation.register('crop-save-profile-image', async function(elemen
         }
     }
 });
+
+// ============================================================================
+// SMS NOTIFICATION TOGGLE (via data-on-change)
+// ============================================================================
+
+/**
+ * Toggle SMS Opt-in Section
+ */
+window.EventDelegation.register('onboarding-sms-toggle', function(element, e) {
+    const smsOptInSection = document.getElementById('smsOptInSection');
+    if (!smsOptInSection) return;
+
+    if (element.checked) {
+        smsOptInSection.classList.remove('hidden');
+    } else {
+        smsOptInSection.classList.add('hidden');
+        const smsConsent = document.getElementById('smsConsent');
+        const smsVerification = document.getElementById('smsVerificationSection');
+        if (smsConsent) smsConsent.checked = false;
+        if (smsVerification) smsVerification.classList.add('hidden');
+    }
+});
+
+/**
+ * Toggle SMS Consent Verification
+ */
+window.EventDelegation.register('onboarding-sms-consent', function(element, e) {
+    const smsVerification = document.getElementById('smsVerificationSection');
+    if (!smsVerification) return;
+
+    smsVerification.classList.toggle('hidden', !element.checked);
+});
+
+// ============================================================================
+// DISCORD PROMPT (on page load)
+// ============================================================================
+
+function showDiscordJoinPrompt() {
+    if (!window.ECS_SHOW_DISCORD_PROMPT || !window.Swal) return;
+
+    const isDark = document.documentElement.classList.contains('dark');
+
+    setTimeout(() => {
+        window.Swal.fire({
+            title: 'Join our Discord Server',
+            html: `
+                <p class="mb-3">To fully participate in ECS FC, you need to join our Discord server!</p>
+                <ul class="text-left text-sm space-y-1">
+                    <li class="flex items-center gap-1"><i class="ti ti-check text-green-500"></i> Match announcements</li>
+                    <li class="flex items-center gap-1"><i class="ti ti-check text-green-500"></i> Team discussions</li>
+                    <li class="flex items-center gap-1"><i class="ti ti-check text-green-500"></i> Important notifications</li>
+                </ul>
+            `,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: '<i class="ti ti-brand-discord mr-1"></i> Join Discord',
+            cancelButtonText: 'Later',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827',
+            confirmButtonColor: '#5865F2'
+        }).then((result) => {
+            if (result.isConfirmed && window.ECS_DISCORD_INVITE_LINK) {
+                window.open(window.ECS_DISCORD_INVITE_LINK, '_blank');
+            }
+        });
+    }, 500);
+}
+
+// Initialize on DOM ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', showDiscordJoinPrompt);
+} else {
+    showDiscordJoinPrompt();
+}
 
 // ============================================================================
 
