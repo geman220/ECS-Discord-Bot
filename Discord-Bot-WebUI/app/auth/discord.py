@@ -69,6 +69,12 @@ def discord_login():
     session['oauth_state'] = state_value
     session['discord_registration_mode'] = False
 
+    # Capture 'next' URL for post-login redirect (e.g., from @login_required)
+    next_url = request.args.get('next')
+    if next_url and is_safe_url(next_url):
+        session['next'] = next_url
+        logger.debug(f"Stored next URL in session for post-login redirect: {next_url}")
+
     # Debug session storage (sanitized - no sensitive values)
     logger.debug(f"OAuth state set in session")
     logger.debug(f"Session keys: {get_safe_session_keys(session)}")
@@ -122,6 +128,12 @@ def discord_register():
     if claim_code:
         session['pending_claim_code'] = claim_code
         logger.debug(f"Stored claim_code in session for registration")
+
+    # Capture 'next' URL for post-login redirect (e.g., from @login_required)
+    next_url = request.args.get('next')
+    if next_url and is_safe_url(next_url):
+        session['next'] = next_url
+        logger.debug(f"Stored next URL in session for post-registration redirect: {next_url}")
 
     # Debug session storage (sanitized - no sensitive values)
     logger.debug(f"OAuth state set in session")
