@@ -20,6 +20,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from app.core import db
+from app.utils.user_helpers import safe_current_user
 from app.models import (
     Player, Season, User,
     PubLeagueOrder, PubLeagueOrderLineItem, PubLeagueOrderClaim,
@@ -119,9 +120,9 @@ def link_order():
     # Check for profile conflicts if logged in
     conflicts = []
     profile_needs_update = False
-    if current_user.is_authenticated and hasattr(current_user, 'player') and current_user.player:
-        conflicts = ProfileConflictService.detect_conflicts(current_user.player, order_data or {})
-        profile_needs_update = not PlayerActivationService.check_profile_freshness(current_user.player)
+    if current_user.is_authenticated and safe_current_user.player:
+        conflicts = ProfileConflictService.detect_conflicts(safe_current_user.player, order_data or {})
+        profile_needs_update = not PlayerActivationService.check_profile_freshness(safe_current_user.player)
 
     return render_template(
         'pub_league/link_order_flowbite.html',
@@ -231,7 +232,7 @@ def link_self():
             return jsonify({'success': False, 'message': 'This pass has already been assigned'}), 400
 
         # Get current user's player
-        player = current_user.player
+        player = safe_current_user.player
         if not player:
             return jsonify({'success': False, 'message': 'No player profile found'}), 400
 
@@ -248,7 +249,7 @@ def link_self():
 
         # Set primary user if not set
         if not order.primary_user_id:
-            order.primary_user_id = current_user.id
+            order.primary_user_id = safe_current_user.id
             session.commit()
 
         return jsonify({
@@ -408,7 +409,7 @@ def send_claim():
         email_sent = False
         if recipient_email:
             from .email_helpers import send_claim_link_email
-            sender_name = current_user.player.name if current_user.player else current_user.username
+            sender_name = safe_current_user.player.name if safe_current_user.player else safe_current_user.username
             email_sent = send_claim_link_email(
                 recipient_email=recipient_email,
                 recipient_name=recipient_name,
@@ -457,7 +458,7 @@ def resolve_conflicts():
         return jsonify({'success': True, 'message': 'No resolutions to apply'})
 
     try:
-        player = current_user.player
+        player = safe_current_user.player
         if not player:
             return jsonify({'success': False, 'message': 'No player profile found'}), 400
 
@@ -495,7 +496,7 @@ def activate_player():
     try:
         session = get_db_session()
 
-        player = current_user.player
+        player = safe_current_user.player
         if not player:
             return jsonify({'success': False, 'message': 'No player profile found'}), 400
 
@@ -555,7 +556,7 @@ def update_profile():
     data = request.get_json() or {}
 
     try:
-        player = current_user.player
+        player = safe_current_user.player
         if not player:
             return jsonify({'success': False, 'message': 'No player profile found'}), 400
 
@@ -718,7 +719,7 @@ def process_claim():
         return jsonify({'success': False, 'message': 'Missing claim token'}), 400
 
     try:
-        player = current_user.player
+        player = safe_current_user.player
         if not player:
             return jsonify({'success': False, 'message': 'No player profile found. Please complete your profile first.'}), 400
 
