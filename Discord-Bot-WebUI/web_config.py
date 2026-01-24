@@ -134,6 +134,10 @@ class Config:
     GOOGLE_APPLICATION_CREDENTIALS = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
     TEXTMAGIC_USERNAME = os.getenv('TEXTMAGIC_USERNAME')
     TEXTMAGIC_API_KEY = os.getenv('TEXTMAGIC_API_KEY')
+
+    # Wallet Pass / WooCommerce Integration
+    WALLET_WEBHOOK_SECRET = os.getenv('WALLET_WEBHOOK_SECRET')
+    WOOCOMMERCE_SITE_URL = os.getenv('WOOCOMMERCE_SITE_URL')
     
     # External API Configuration for third-party integrations (ChatGPT, etc.)
     EXTERNAL_API_KEYS = os.getenv('EXTERNAL_API_KEYS', '').split(',') if os.getenv('EXTERNAL_API_KEYS') else []

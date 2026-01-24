@@ -759,27 +759,51 @@ def mobile_profile_success(player_id):
     """
     Success confirmation page for mobile profile updates.
     Shows a clear confirmation that players can show to registration staff.
+    Also displays purchase links for Pub League divisions.
     """
+    import os
+    from app.models.admin_config import AdminConfig
+
     session = g.db_session
     player = session.query(Player).get(player_id)
     if not player:
         abort(404)
-    
+
     # Check if user can view this success page
     is_own_profile = (safe_current_user.id == player.user_id)
     if not is_own_profile:
         show_error('You can only view your own profile confirmation.')
         return redirect(url_for('players.player_profile', player_id=player_id))
-    
+
     action_type = request.args.get('action', 'updated')  # 'updated' or 'verified'
-    
+
+    # Get WooCommerce site URL and product slugs for purchase links
+    woocommerce_site_url = AdminConfig.get_setting('woocommerce_site_url', '')
+    if not woocommerce_site_url:
+        woocommerce_site_url = os.getenv('WOOCOMMERCE_SITE_URL', '')
+
+    premier_product_slug = AdminConfig.get_setting('pub_league_premier_product_slug', '')
+    classic_product_slug = AdminConfig.get_setting('pub_league_classic_product_slug', '')
+
+    # Build full product URLs
+    premier_product_url = None
+    classic_product_url = None
+    if woocommerce_site_url:
+        base_url = woocommerce_site_url.rstrip('/')
+        if premier_product_slug:
+            premier_product_url = f"{base_url}/product/{premier_product_slug.strip('/')}/"
+        if classic_product_slug:
+            classic_product_url = f"{base_url}/product/{classic_product_slug.strip('/')}/"
+
     session.commit()
-    
+
     return render_template(
         'player_profile_mobile_success_flowbite.html',
         title='Profile Complete!',
         player=player,
-        action_type=action_type
+        action_type=action_type,
+        premier_product_url=premier_product_url,
+        classic_product_url=classic_product_url
     )
 
 

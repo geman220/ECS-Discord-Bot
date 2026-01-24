@@ -81,7 +81,17 @@ class PubLeagueOrderService:
             hashlib.sha256
         ).hexdigest()
 
-        return hmac.compare_digest(token, expected_token)
+        is_valid = hmac.compare_digest(token, expected_token)
+
+        if not is_valid:
+            logger.warning(
+                f"Token verification failed for order {order_id}. "
+                f"Received token: {token[:16]}... "
+                f"Expected token: {expected_token[:16]}... "
+                f"Secret configured: {bool(secret)} (length: {len(secret)})"
+            )
+
+        return is_valid
 
     @staticmethod
     def fetch_order_from_woocommerce(order_id: int) -> Optional[dict]:
