@@ -428,8 +428,8 @@ class PlayerActivationService:
 
         session.commit()
 
-        # 4. Sync roles (only if user is approved)
-        if user.is_approved:
+        # 4. Sync roles (only if user exists and is approved)
+        if user and hasattr(user, 'is_approved') and user.is_approved:
             RoleSyncService.sync_league_role(user, player, division)
 
         logger.info(f"Activated player {player.id} for {division} division")
