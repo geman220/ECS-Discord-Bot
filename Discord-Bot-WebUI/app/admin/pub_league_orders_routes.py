@@ -44,8 +44,8 @@ def orders_list():
         per_page = 25
 
         # Base query with eager loading
+        # Note: line_items uses lazy='dynamic' so we can't use joinedload on it
         query = db.session.query(PubLeagueOrder).options(
-            joinedload(PubLeagueOrder.line_items),
             joinedload(PubLeagueOrder.primary_user)
         )
 
@@ -131,12 +131,18 @@ def orders_list():
 def order_detail(order_id):
     """Display detailed view of a specific Pub League order."""
     try:
+        # Note: line_items uses lazy='dynamic' so we query it separately
         order = db.session.query(PubLeagueOrder).options(
-            joinedload(PubLeagueOrder.line_items).joinedload(PubLeagueOrderLineItem.assigned_player),
-            joinedload(PubLeagueOrder.line_items).joinedload(PubLeagueOrderLineItem.assigned_user),
-            joinedload(PubLeagueOrder.line_items).joinedload(PubLeagueOrderLineItem.wallet_pass),
             joinedload(PubLeagueOrder.primary_user)
         ).filter_by(id=order_id).first_or_404()
+
+        # Eager load line items with their relationships
+        # Since line_items is dynamic, we need to query them separately
+        line_items = order.line_items.options(
+            joinedload(PubLeagueOrderLineItem.assigned_player),
+            joinedload(PubLeagueOrderLineItem.assigned_user),
+            joinedload(PubLeagueOrderLineItem.wallet_pass)
+        ).all()
 
         # Get all claims for this order
         claims = db.session.query(PubLeagueOrderClaim).options(
@@ -153,6 +159,7 @@ def order_detail(order_id):
             'admin/pub_league_order_detail_flowbite.html',
             title=f'Order #{order.woo_order_id}',
             order=order,
+            line_items=line_items,
             claims=claims,
             user_roles=user_roles,
             PubLeagueOrderStatus=PubLeagueOrderStatus,
