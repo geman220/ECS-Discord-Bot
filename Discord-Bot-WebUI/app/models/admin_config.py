@@ -345,6 +345,28 @@ class AdminConfig(db.Model):
                 'description': 'Enable maintenance mode (blocks non-admin access)',
                 'category': 'system',
                 'data_type': 'boolean'
+            },
+            # Pub League WooCommerce Settings
+            {
+                'key': 'woocommerce_shop_url',
+                'value': 'https://weareecs.com',
+                'description': 'Base URL for WooCommerce shop',
+                'category': 'pub_league',
+                'data_type': 'string'
+            },
+            {
+                'key': 'pub_league_premier_product_slug',
+                'value': '',
+                'description': 'WooCommerce product slug for Premier Division (e.g., "2026-spring-ecs-pub-league-premier-division"). Leave empty to use auto-generated pattern.',
+                'category': 'pub_league',
+                'data_type': 'string'
+            },
+            {
+                'key': 'pub_league_classic_product_slug',
+                'value': '',
+                'description': 'WooCommerce product slug for Classic Division (e.g., "2026-spring-ecs-pub-league-classic-division"). Leave empty to use auto-generated pattern.',
+                'category': 'pub_league',
+                'data_type': 'string'
             }
         ]
 

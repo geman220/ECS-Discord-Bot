@@ -79,6 +79,11 @@ def link_order():
         if existing_order:
             order = existing_order
             order_data = existing_order.woo_order_data
+            # Transition from NOT_STARTED to PENDING if this is first link click
+            if order.status == PubLeagueOrderStatus.NOT_STARTED.value:
+                order.mark_link_clicked()
+                db.session.commit()
+                logger.info(f"Order {order_id} transitioned from NOT_STARTED to PENDING")
         else:
             # Verify token
             if not PubLeagueOrderService.verify_order_token(order_id, token):
@@ -157,6 +162,10 @@ def verify_order():
         # Check for existing order
         existing_order = PubLeagueOrder.find_by_woo_order_id(order_id)
         if existing_order:
+            # Transition from NOT_STARTED to PENDING if this is first link click
+            if existing_order.status == PubLeagueOrderStatus.NOT_STARTED.value:
+                existing_order.mark_link_clicked()
+                db.session.commit()
             return jsonify({
                 'success': True,
                 'order': existing_order.to_dict(),

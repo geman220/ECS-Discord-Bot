@@ -1,0 +1,390 @@
+{% extends "base_flowbite.html" %}
+
+{% block title %}Pub League Orders{% endblock %}
+
+{% block main_content %}
+<div class="p-4 space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1">
+                <a href="{{ url_for('admin_panel.league_management_dashboard') }}" class="hover:text-blue-600 dark:hover:text-blue-400">League Management</a>
+                <span>/</span>
+                <span>Pub League Orders</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                Pub League Orders
+            </h1>
+            <p class="text-gray-500 dark:text-gray-400">View and manage WooCommerce orders for Pub League pass linking</p>
+        </div>
+        <div class="flex gap-2 flex-wrap">
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-collapse-toggle="productUrlSettings">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Product URLs
+            </button>
+        </div>
+    </div>
+
+    <!-- Product URL Settings (Collapsible) -->
+    <div id="productUrlSettings" class="hidden bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h5 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <svg class="w-5 h-5 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                WooCommerce Product URLs
+            </h5>
+            <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-collapse-toggle="productUrlSettings">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Configure the WooCommerce product URLs for each season. These are linked in the order completion wizard.</p>
+
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+            <p class="text-sm text-blue-800 dark:text-blue-300">
+                <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <strong>Tip:</strong> Leave blank to auto-generate from season name. "Spring 2026" becomes <code class="bg-blue-100 dark:bg-blue-800 px-1 rounded">/product/2026-spring-ecs-pub-league-premier-division/</code>
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Premier Division Product Slug</label>
+                <div class="flex">
+                    <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 rounded-l-lg">/product/</span>
+                    <input type="text" id="premierProductSlug" value="{{ premier_product_slug or '' }}" class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="2026-spring-ecs-pub-league-premier-division">
+                    <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-lg">/</span>
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Classic Division Product Slug</label>
+                <div class="flex">
+                    <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 rounded-l-lg">/product/</span>
+                    <input type="text" id="classicProductSlug" value="{{ classic_product_slug or '' }}" class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="2026-spring-ecs-pub-league-classic-division">
+                    <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-lg">/</span>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" id="saveProductUrlsBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Save Product URLs
+        </button>
+        <span id="productUrlsStatus" class="ml-3 text-sm"></span>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Total</p>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ stats.total or 0 }}</h3>
+                </div>
+                <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Not Started</p>
+                    <h3 class="text-xl font-bold text-gray-500 dark:text-gray-400">{{ stats.not_started or 0 }}</h3>
+                </div>
+                <div class="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Pending</p>
+                    <h3 class="text-xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.pending or 0 }}</h3>
+                </div>
+                <div class="w-8 h-8 rounded-lg bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Partial</p>
+                    <h3 class="text-xl font-bold text-orange-600 dark:text-orange-400">{{ stats.partial or 0 }}</h3>
+                </div>
+                <div class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Linked</p>
+                    <h3 class="text-xl font-bold text-green-600 dark:text-green-400">{{ stats.fully_linked or 0 }}</h3>
+                </div>
+                <div class="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                </div>
+            </div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Cancelled</p>
+                    <h3 class="text-xl font-bold text-red-600 dark:text-red-400">{{ stats.cancelled or 0 }}</h3>
+                </div>
+                <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <svg class="w-4 h-4 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+        <div class="p-6">
+            <!-- Filters -->
+            <div class="flex flex-col md:flex-row gap-4 mb-6">
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search</label>
+                    <form method="get" class="flex gap-2">
+                        <input type="hidden" name="status" value="{{ status_filter }}">
+                        <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by name, email, or order ID..." class="flex-1 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                        <button type="submit" class="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        </button>
+                    </form>
+                </div>
+                <div class="w-full md:w-48">
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Status Filter</label>
+                    <select id="statusFilter" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                        <option value="all" {{ 'selected' if status_filter == 'all' else '' }}>All Statuses</option>
+                        <option value="not_started" {{ 'selected' if status_filter == 'not_started' else '' }}>Not Started</option>
+                        <option value="pending" {{ 'selected' if status_filter == 'pending' else '' }}>Pending</option>
+                        <option value="partially_linked" {{ 'selected' if status_filter == 'partially_linked' else '' }}>Partial</option>
+                        <option value="fully_linked" {{ 'selected' if status_filter == 'fully_linked' else '' }}>Fully Linked</option>
+                        <option value="cancelled" {{ 'selected' if status_filter == 'cancelled' else '' }}>Cancelled</option>
+                    </select>
+                </div>
+                {% if search or (status_filter and status_filter != 'all') %}
+                <div class="flex items-end">
+                    <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="inline-flex items-center px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Clear
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Orders Table -->
+            {% if orders and orders.items %}
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">WooCommerce ID</th>
+                            <th class="px-4 py-3">Customer</th>
+                            <th class="px-4 py-3">Status</th>
+                            <th class="px-4 py-3">Passes</th>
+                            <th class="px-4 py-3">Season</th>
+                            <th class="px-4 py-3">Created</th>
+                            <th class="px-4 py-3">Expires</th>
+                            <th class="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders.items %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer" onclick="window.location.href='{{ url_for('pub_league_orders_admin.order_detail', order_id=order.id) }}'">
+                            <td class="px-4 py-3">
+                                <span class="font-mono font-medium text-gray-900 dark:text-white">#{{ order.woo_order_id }}</span>
+                            </td>
+                            <td class="px-4 py-3">
+                                <div>
+                                    <span class="font-medium text-gray-900 dark:text-white">{{ order.customer_name or 'Unknown' }}</span>
+                                    {% if order.customer_email %}
+                                    <br><span class="text-xs text-gray-500 dark:text-gray-400">{{ order.customer_email }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if order.status == 'not_started' %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded inline-flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Not Started
+                                </span>
+                                {% elif order.status == 'pending' %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded inline-flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Pending
+                                </span>
+                                {% elif order.status == 'partially_linked' %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 rounded inline-flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>Partial
+                                </span>
+                                {% elif order.status == 'fully_linked' %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded inline-flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Linked
+                                </span>
+                                {% elif order.status == 'cancelled' %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300 rounded inline-flex items-center">
+                                    <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Cancelled
+                                </span>
+                                {% else %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ order.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="font-medium {{ 'text-green-600 dark:text-green-400' if order.linked_passes == order.total_passes else 'text-gray-900 dark:text-white' }}">
+                                    {{ order.linked_passes }}/{{ order.total_passes }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if order.season_name %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">{{ order.season_name }}</span>
+                                {% else %}
+                                <span class="text-gray-400 dark:text-gray-500">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3">
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ order.created_at.strftime('%b %d, %Y') if order.created_at else '-' }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3">
+                                {% if order.expires_at %}
+                                    {% set now = import('datetime').datetime.utcnow() %}
+                                    {% if order.expires_at < now %}
+                                    <span class="text-xs text-red-600 dark:text-red-400">Expired</span>
+                                    {% else %}
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ order.expires_at.strftime('%b %d, %Y') }}</span>
+                                    {% endif %}
+                                {% else %}
+                                <span class="text-gray-400 dark:text-gray-500">-</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right" onclick="event.stopPropagation()">
+                                <a href="{{ url_for('pub_league_orders_admin.order_detail', order_id=order.id) }}" class="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors inline-flex" title="View Details">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if orders.pages > 1 %}
+            <nav class="flex items-center justify-center gap-1 mt-6">
+                {% if orders.has_prev %}
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.prev_num, status=status_filter, search=search) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </a>
+                {% endif %}
+
+                {% for page_num in orders.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        {% if page_num == orders.page %}
+                        <span class="px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg">{{ page_num }}</span>
+                        {% else %}
+                        <a href="{{ url_for('pub_league_orders_admin.orders_list', page=page_num, status=status_filter, search=search) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">{{ page_num }}</a>
+                        {% endif %}
+                    {% else %}
+                    <span class="px-3 py-2 text-sm text-gray-400 dark:text-gray-500">...</span>
+                    {% endif %}
+                {% endfor %}
+
+                {% if orders.has_next %}
+                <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.next_num, status=status_filter, search=search) }}" class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                </a>
+                {% endif %}
+            </nav>
+            {% endif %}
+
+            {% else %}
+            <!-- Empty State -->
+            <div class="text-center py-12">
+                <svg class="w-16 h-16 mx-auto text-gray-400 dark:text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <h5 class="text-xl font-semibold text-gray-500 dark:text-gray-400 mb-2">No Orders Found</h5>
+                <p class="text-gray-400 dark:text-gray-500 mb-4">
+                    {% if search or (status_filter and status_filter != 'all') %}
+                    No orders match your current filters. Try adjusting your search criteria.
+                    {% else %}
+                    No Pub League orders have been created yet. Orders are automatically created when customers purchase Pub League passes on WooCommerce.
+                    {% endif %}
+                </p>
+                {% if search or (status_filter and status_filter != 'all') %}
+                <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Clear Filters
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    // Status filter change
+    const statusFilter = document.getElementById('statusFilter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', function() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('status', this.value);
+            url.searchParams.delete('page');
+            window.location.href = url.toString();
+        });
+    }
+
+    // Product URL settings toggle
+    document.querySelectorAll('[data-collapse-toggle="productUrlSettings"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const settings = document.getElementById('productUrlSettings');
+            if (settings) {
+                settings.classList.toggle('hidden');
+            }
+        });
+    });
+
+    // Save product URLs
+    const saveBtn = document.getElementById('saveProductUrlsBtn');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', function() {
+            const premierSlug = document.getElementById('premierProductSlug')?.value.trim() || '';
+            const classicSlug = document.getElementById('classicProductSlug')?.value.trim() || '';
+            const statusSpan = document.getElementById('productUrlsStatus');
+
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Saving...';
+
+            fetch('/admin/wallet/config/wizard/save-product-urls', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ premier_product_slug: premierSlug, classic_product_slug: classicSlug })
+            })
+            .then(res => res.json())
+            .then(data => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Save Product URLs';
+                if (data.success) {
+                    statusSpan.innerHTML = '<span class="text-green-600 dark:text-green-400">Saved!</span>';
+                    setTimeout(() => { statusSpan.innerHTML = ''; }, 3000);
+                } else {
+                    statusSpan.innerHTML = '<span class="text-red-600 dark:text-red-400">Error: ' + (data.error || 'Failed to save') + '</span>';
+                }
+            })
+            .catch(err => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Save Product URLs';
+                statusSpan.innerHTML = '<span class="text-red-600 dark:text-red-400">Network error</span>';
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -269,6 +269,10 @@ def _register_admin_blueprints(app, bp, csrf):
     from app.admin.duplicate_management_routes import duplicate_management
     app.register_blueprint(duplicate_management)
 
+    # Pub League Orders admin
+    from app.admin.pub_league_orders_routes import pub_league_orders_admin_bp
+    app.register_blueprint(pub_league_orders_admin_bp)
+
     # AI Prompt Management
     from app.routes.ai_prompts import ai_prompts_bp
     app.register_blueprint(ai_prompts_bp)

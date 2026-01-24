@@ -21,7 +21,8 @@ from app.core import db
 
 class PubLeagueOrderStatus(Enum):
     """Status of a Pub League order"""
-    PENDING = 'pending'
+    NOT_STARTED = 'not_started'  # Order created from webhook, link not clicked yet
+    PENDING = 'pending'  # Link clicked, no passes assigned yet
     PARTIALLY_LINKED = 'partially_linked'
     FULLY_LINKED = 'fully_linked'
     CANCELLED = 'cancelled'
@@ -116,12 +117,20 @@ class PubLeagueOrder(db.Model):
 
     def update_status(self):
         """Update status based on linked passes count."""
+        # Don't change NOT_STARTED status here - that's handled when link is clicked
+        if self.status == PubLeagueOrderStatus.NOT_STARTED.value:
+            return
         if self.linked_passes == 0:
             self.status = PubLeagueOrderStatus.PENDING.value
         elif self.linked_passes < self.total_passes:
             self.status = PubLeagueOrderStatus.PARTIALLY_LINKED.value
         else:
             self.status = PubLeagueOrderStatus.FULLY_LINKED.value
+
+    def mark_link_clicked(self):
+        """Transition from NOT_STARTED to PENDING when link is clicked."""
+        if self.status == PubLeagueOrderStatus.NOT_STARTED.value:
+            self.status = PubLeagueOrderStatus.PENDING.value
 
     def get_unassigned_line_items(self):
         """Get all line items that haven't been assigned yet."""

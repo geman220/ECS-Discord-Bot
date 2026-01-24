@@ -221,6 +221,61 @@ def handle_order_completed():
 
         logger.info(f"Processing order {order_id} for {customer_name}, {len(products)} items")
 
+        # Check for Pub League products and create PubLeagueOrder if found
+        try:
+            from app.pub_league.services import PubLeagueOrderService
+            from app.models import PubLeagueOrder, PubLeagueOrderLineItem, PubLeagueOrderStatus
+
+            # Check if this is a Pub League order and hasn't been created yet
+            existing_pl_order = PubLeagueOrder.find_by_woo_order_id(order_id)
+            if not existing_pl_order:
+                pub_league_items = PubLeagueOrderService.extract_pub_league_items(data)
+                if pub_league_items:
+                    logger.info(f"Detected {len(pub_league_items)} Pub League passes in order {order_id}")
+
+                    # Extract season name from first item
+                    from app.order_helpers import extract_season_name
+                    from app.models import Season
+                    season_name = extract_season_name(pub_league_items[0]['product_name']) if pub_league_items else None
+                    season = None
+                    if season_name:
+                        season = Season.query.filter_by(name=season_name).first()
+
+                    # Create PubLeagueOrder with NOT_STARTED status
+                    from datetime import datetime, timedelta
+                    pl_order = PubLeagueOrder(
+                        woo_order_id=order_id,
+                        verification_token=PubLeagueOrder.generate_verification_token(),
+                        customer_email=customer_email,
+                        customer_name=customer_name,
+                        season_name=season_name,
+                        season_id=season.id if season else None,
+                        status=PubLeagueOrderStatus.NOT_STARTED.value,
+                        total_passes=len(pub_league_items),
+                        woo_order_data=data,
+                        expires_at=datetime.utcnow() + timedelta(days=30)
+                    )
+                    db.session.add(pl_order)
+                    db.session.flush()
+
+                    # Create line items
+                    for item_data in pub_league_items:
+                        line_item = PubLeagueOrderLineItem(
+                            order_id=pl_order.id,
+                            woo_line_item_id=item_data['woo_line_item_id'],
+                            product_name=item_data['product_name'],
+                            division=item_data['division'],
+                            jersey_size=item_data['jersey_size'],
+                        )
+                        db.session.add(line_item)
+
+                    db.session.commit()
+                    logger.info(f"Created PubLeagueOrder {pl_order.id} with {len(pub_league_items)} line items for WooCommerce order {order_id}")
+
+        except Exception as e:
+            logger.error(f"Error creating PubLeagueOrder for order {order_id}: {e}", exc_info=True)
+            # Don't fail the webhook - continue with normal processing
+
         # Process the order
         created_passes = pass_service.process_woo_order(
             order_id=order_id,

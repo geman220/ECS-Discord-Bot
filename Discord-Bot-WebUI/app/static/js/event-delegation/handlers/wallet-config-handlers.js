@@ -824,6 +824,44 @@ window.EventDelegation.register('save-woocommerce-url', (element, event) => {
 });
 
 /**
+ * Save Pub League Product URLs
+ */
+window.EventDelegation.register('save-product-urls', (element, event) => {
+    event.preventDefault();
+    const premierSlug = document.getElementById('premierProductSlug');
+    const classicSlug = document.getElementById('classicProductSlug');
+    const statusDiv = document.getElementById('productUrlsStatus');
+
+    if (statusDiv) statusDiv.innerHTML = '<span class="text-blue-600 dark:text-blue-400 flex items-center"><span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-1"></span>Saving...</span>';
+
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+    fetch('/admin/wallet/config/wizard/save-product-urls', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({
+            premier_product_slug: premierSlug ? premierSlug.value.trim() : '',
+            classic_product_slug: classicSlug ? classicSlug.value.trim() : ''
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-green-600 dark:text-green-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>Product URLs saved successfully!</span>';
+        } else {
+            if (statusDiv) statusDiv.innerHTML = '<span class="text-red-600 dark:text-red-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>' + escapeHtml(data.error || 'Failed to save') + '</span>';
+        }
+    })
+    .catch(error => {
+        if (statusDiv) statusDiv.innerHTML = '<span class="text-red-600 dark:text-red-400 flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>Error: ' + escapeHtml(error.message) + '</span>';
+    });
+});
+
+/**
  * Validate plugin connection
  */
 window.EventDelegation.register('validate-plugin-connection', (element, event) => {

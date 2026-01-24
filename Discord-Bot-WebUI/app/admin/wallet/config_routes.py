@@ -251,11 +251,17 @@ def setup_wizard(step='certificates'):
             if not woocommerce_site_url:
                 woocommerce_site_url = os.getenv('WOOCOMMERCE_SITE_URL', '')
 
+            # Get product URL slugs
+            premier_product_slug = AdminConfig.get_setting('pub_league_premier_product_slug', '')
+            classic_product_slug = AdminConfig.get_setting('pub_league_classic_product_slug', '')
+
             step_data = {
                 'webhook_configured': bool(webhook_secret),
                 'webhook_secret': webhook_secret if webhook_secret else None,
                 'woocommerce_site_url': woocommerce_site_url if woocommerce_site_url else None,
-                'last_webhook_time': None  # Could track this in DB if needed
+                'last_webhook_time': None,  # Could track this in DB if needed
+                'premier_product_slug': premier_product_slug if premier_product_slug else None,
+                'classic_product_slug': classic_product_slug if classic_product_slug else None,
             }
 
         return render_template(
@@ -312,6 +318,53 @@ def save_woocommerce_url():
 
     except Exception as e:
         logger.error(f"Error saving WooCommerce URL: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@wallet_config_bp.route('/wizard/save-product-urls', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def save_product_urls():
+    """Save Pub League product URL slugs to database"""
+    try:
+        from flask_login import current_user
+        from app.models.admin_config import AdminConfig
+
+        data = request.get_json()
+        premier_slug = data.get('premier_product_slug', '').strip()
+        classic_slug = data.get('classic_product_slug', '').strip()
+
+        # Save Premier division product slug
+        AdminConfig.set_setting(
+            key='pub_league_premier_product_slug',
+            value=premier_slug,
+            description='WooCommerce product slug for Premier Division',
+            category='pub_league',
+            data_type='string',
+            user_id=current_user.id if current_user else None
+        )
+
+        # Save Classic division product slug
+        AdminConfig.set_setting(
+            key='pub_league_classic_product_slug',
+            value=classic_slug,
+            description='WooCommerce product slug for Classic Division',
+            category='pub_league',
+            data_type='string',
+            user_id=current_user.id if current_user else None
+        )
+
+        logger.info(f"Product URLs saved: premier={premier_slug}, classic={classic_slug}")
+        return jsonify({
+            'success': True,
+            'message': 'Product URLs saved successfully',
+            'premier_slug': premier_slug,
+            'classic_slug': classic_slug
+        })
+
+    except Exception as e:
+        logger.error(f"Error saving product URLs: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

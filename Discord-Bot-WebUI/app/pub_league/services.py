@@ -679,6 +679,85 @@ class ProfileConflictService:
             )
 
 
+class ProductUrlService:
+    """
+    Service for generating WooCommerce product URLs for Pub League passes.
+
+    URLs are constructed either from admin-configured slugs or auto-generated
+    from the current season name.
+    """
+
+    @staticmethod
+    def get_product_url(division: str, season_name: str = None) -> str:
+        """
+        Get the WooCommerce product URL for a division.
+
+        Args:
+            division: 'Classic' or 'Premier'
+            season_name: Optional season name (e.g., 'Spring 2026'). If not provided,
+                        will try to get current active season.
+
+        Returns:
+            Full product URL or None if not configured
+        """
+        from app.models import AdminConfig, Season
+
+        # Get base shop URL
+        shop_url = AdminConfig.get_setting('woocommerce_shop_url', 'https://weareecs.com')
+        shop_url = shop_url.rstrip('/')
+
+        # Try admin-configured slug first
+        if division.lower() == 'premier':
+            slug = AdminConfig.get_setting('pub_league_premier_product_slug', '')
+        else:
+            slug = AdminConfig.get_setting('pub_league_classic_product_slug', '')
+
+        if slug:
+            return f"{shop_url}/product/{slug}/"
+
+        # Auto-generate slug from season name
+        if not season_name:
+            # Try to get current active season
+            try:
+                session = getattr(g, 'db_session', db.session)
+                current_season = session.query(Season).filter_by(
+                    is_current=True
+                ).first()
+                if current_season:
+                    season_name = current_season.name
+            except Exception:
+                pass
+
+        if season_name:
+            # Convert "Spring 2026" or "2026 Spring" to "2026-spring"
+            parts = season_name.split()
+            if len(parts) == 2:
+                if parts[0].isdigit():
+                    year, season = parts[0], parts[1].lower()
+                else:
+                    season, year = parts[0].lower(), parts[1]
+                slug = f"{year}-{season}-ecs-pub-league-{division.lower()}-division"
+                return f"{shop_url}/product/{slug}/"
+
+        return None
+
+    @staticmethod
+    def get_all_product_urls(season_name: str = None) -> dict:
+        """
+        Get product URLs for both divisions.
+
+        Args:
+            season_name: Optional season name
+
+        Returns:
+            Dict with 'premier' and 'classic' URLs
+        """
+        return {
+            'premier': ProductUrlService.get_product_url('Premier', season_name),
+            'classic': ProductUrlService.get_product_url('Classic', season_name),
+        }
+
+
 class UserSearchService:
     """
     Service for searching users to assign passes to.
