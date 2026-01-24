@@ -195,11 +195,12 @@ def auth_check():
         return {'error': str(e)}, 500
 
 
-@auth.route('/logout', methods=['POST'])
+@auth.route('/logout', methods=['GET', 'POST'])
 @login_required
 def logout():
     """
     Log the user out and redirect to the login page.
+    Accepts both GET and POST for better UX (links, bookmarks, etc.)
     """
     logout_user()
     return redirect(url_for('auth.login'))
