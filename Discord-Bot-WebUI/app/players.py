@@ -895,17 +895,25 @@ def profile_wizard():
 
 
 @players_bp.route('/verify', endpoint='verify_my_profile', methods=['GET'])
-@login_required
 def verify_my_profile():
     """
     General verification endpoint for QR codes.
     Automatically finds the logged-in user's player profile and redirects to wizard.
 
     Usage: Print QR code pointing to /players/verify
-    - If not logged in: Flask-Login redirects to login, then back here
+    - If not logged in: Redirects to Discord login with return URL
     - If logged in: Finds player profile and redirects to wizard
     - If no player profile: Shows error with instructions
     """
+    from flask_login import current_user
+
+    # Handle unauthenticated users - redirect to Discord login directly
+    # This avoids session issues with Flask-Login's next parameter
+    if not current_user.is_authenticated:
+        # Store the return URL in session and redirect to Discord login
+        verify_url = url_for('players.verify_my_profile', _external=True)
+        return redirect(url_for('auth.discord_login', next=verify_url))
+
     session = g.db_session
 
     # Find player associated with current user

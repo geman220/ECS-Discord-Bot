@@ -355,9 +355,12 @@ def discord_callback():
                     # Fall through to normal redirect if auto-add fails
                     return redirect(url_for('auth.waitlist_register'))
 
-            # Redirect to wherever they were going (with URL safety check)
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page and is_safe_url(next_page) else redirect(url_for('main.index'))
+            # Redirect to wherever they were going (stored in session by discord_login)
+            next_page = session.pop('next', None)
+            if next_page and is_safe_url(next_page):
+                logger.info(f"Redirecting user {user.id} to stored next page: {next_page}")
+                return redirect(next_page)
+            return redirect(url_for('main.index'))
 
         # Get registration mode from session (default to False if not set)
         is_registration = session.get('discord_registration_mode', False)
