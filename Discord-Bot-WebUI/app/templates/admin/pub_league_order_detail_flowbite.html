@@ -24,6 +24,9 @@
             <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors" id="refreshOrderBtn">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>Refresh from WooCommerce
             </button>
+            <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition-colors" id="deleteOrderBtn">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>Delete Order
+            </button>
             <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>Back to Orders
             </a>
@@ -203,15 +206,25 @@
                                     {% endif %}
                                 </td>
                                 <td class="px-4 py-3 text-right">
-                                    {% if item.status == 'unassigned' %}
-                                    <button type="button" class="text-sm text-blue-600 dark:text-blue-400 hover:underline manual-link-btn" data-line-item-id="{{ item.id }}">
-                                        Assign
-                                    </button>
-                                    {% elif item.wallet_pass_id %}
-                                    <a href="{{ url_for('wallet_admin.pass_detail', pass_id=item.wallet_pass_id) }}" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                                        View Pass
-                                    </a>
-                                    {% endif %}
+                                    <div class="flex justify-end gap-2">
+                                        <button type="button" class="text-xs text-gray-600 dark:text-gray-400 hover:underline edit-line-item-btn" data-line-item-id="{{ item.id }}" data-division="{{ item.division or '' }}" data-jersey-size="{{ item.jersey_size or '' }}" title="Edit">
+                                            Edit
+                                        </button>
+                                        {% if item.status == 'unassigned' %}
+                                        <button type="button" class="text-xs text-blue-600 dark:text-blue-400 hover:underline manual-link-btn" data-line-item-id="{{ item.id }}">
+                                            Assign
+                                        </button>
+                                        {% else %}
+                                        <button type="button" class="text-xs text-orange-600 dark:text-orange-400 hover:underline unassign-btn" data-line-item-id="{{ item.id }}" data-player-name="{{ item.assigned_player.name if item.assigned_player else '' }}">
+                                            Unassign
+                                        </button>
+                                        {% if item.wallet_pass_id %}
+                                        <a href="{{ url_for('wallet_admin.pass_detail', pass_id=item.wallet_pass_id) }}" class="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                                            View Pass
+                                        </a>
+                                        {% endif %}
+                                        {% endif %}
+                                    </div>
                                 </td>
                             </tr>
                             {% else %}
@@ -412,6 +425,50 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Line Item Modal -->
+<div id="editLineItemModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Line Item</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="editLineItemModal">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-4 md:p-5 space-y-4">
+                <input type="hidden" id="editLineItemId">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Division</label>
+                    <select id="editDivision" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <option value="">None</option>
+                        <option value="Classic">Classic</option>
+                        <option value="Premier">Premier</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Jersey Size</label>
+                    <select id="editJerseySize" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <option value="">None</option>
+                        <option value="XS">XS</option>
+                        <option value="SM">SM</option>
+                        <option value="MD">MD</option>
+                        <option value="LG">LG</option>
+                        <option value="XL">XL</option>
+                        <option value="XXL">XXL</option>
+                        <option value="XXXL">XXXL</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" id="confirmEditLineItem">
+                    Save Changes
+                </button>
+                <button type="button" data-modal-hide="editLineItemModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -422,6 +479,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
     const orderId = {{ order.id }};
     let selectedPlayerId = null;
+
+    // Delete Order
+    document.getElementById('deleteOrderBtn')?.addEventListener('click', function() {
+        Swal.fire({
+            title: 'Delete Order?',
+            html: 'This will permanently delete this order and all its line items and claims.<br><br><strong class="text-red-600">This cannot be undone.</strong>',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            confirmButtonText: 'Delete Order',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch('/admin/pub-league-orders/api/delete-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ order_id: orderId })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({ icon: 'success', title: 'Deleted', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => {
+                            window.location.href = '/admin/pub-league-orders';
+                        });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                    }
+                });
+            }
+        });
+    });
 
     // Refresh from WooCommerce
     document.getElementById('refreshOrderBtn')?.addEventListener('click', function() {
@@ -523,6 +612,91 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             });
+        });
+    });
+
+    // Unassign pass
+    document.querySelectorAll('.unassign-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const lineItemId = this.dataset.lineItemId;
+            const playerName = this.dataset.playerName;
+            Swal.fire({
+                title: 'Unassign Pass?',
+                text: `This will unassign the pass from ${playerName} and make it available again.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#f97316',
+                confirmButtonText: 'Unassign',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/admin/pub-league-orders/api/unassign-pass', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                        body: JSON.stringify({ line_item_id: lineItemId })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({ icon: 'success', title: 'Unassigned', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                        } else {
+                            Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    // Edit line item modal
+    const editModal = document.getElementById('editLineItemModal');
+    document.querySelectorAll('.edit-line-item-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.getElementById('editLineItemId').value = this.dataset.lineItemId;
+            document.getElementById('editDivision').value = this.dataset.division || '';
+            document.getElementById('editJerseySize').value = this.dataset.jerseySize || '';
+            editModal.classList.remove('hidden');
+            editModal.classList.add('flex');
+        });
+    });
+
+    document.querySelectorAll('[data-modal-hide="editLineItemModal"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            editModal.classList.add('hidden');
+            editModal.classList.remove('flex');
+        });
+    });
+
+    document.getElementById('confirmEditLineItem')?.addEventListener('click', function() {
+        const lineItemId = document.getElementById('editLineItemId').value;
+        const division = document.getElementById('editDivision').value;
+        const jerseySize = document.getElementById('editJerseySize').value;
+        const btn = this;
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        fetch('/admin/pub-league-orders/api/update-line-item', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ line_item_id: lineItemId, division: division, jersey_size: jerseySize })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                editModal.classList.add('hidden');
+                editModal.classList.remove('flex');
+                Swal.fire({ icon: 'success', title: 'Updated', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                btn.disabled = false;
+                btn.textContent = 'Save Changes';
+            }
+        })
+        .catch(err => {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Network error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            btn.disabled = false;
+            btn.textContent = 'Save Changes';
         });
     });
 

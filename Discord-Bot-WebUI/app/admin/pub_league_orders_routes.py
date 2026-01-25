@@ -421,6 +421,151 @@ def api_refresh_order():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/delete-order', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_delete_order():
+    """Delete an entire Pub League order and all its line items and claims."""
+    data = request.get_json() or {}
+    order_id = data.get('order_id')
+
+    if not order_id:
+        return jsonify({'success': False, 'error': 'Missing order_id'}), 400
+
+    try:
+        order = db.session.query(PubLeagueOrder).filter_by(id=order_id).first()
+
+        if not order:
+            return jsonify({'success': False, 'error': 'Order not found'}), 404
+
+        woo_order_id = order.woo_order_id
+
+        # Delete all claims for this order
+        db.session.query(PubLeagueOrderClaim).filter_by(order_id=order_id).delete()
+
+        # Delete all line items for this order
+        db.session.query(PubLeagueOrderLineItem).filter_by(order_id=order_id).delete()
+
+        # Delete the order itself
+        db.session.delete(order)
+        db.session.commit()
+
+        logger.info(f"Admin {current_user.id} deleted pub league order {order_id} (WooCommerce #{woo_order_id})")
+
+        return jsonify({
+            'success': True,
+            'message': f'Order #{woo_order_id} deleted successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error deleting order: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/unassign-pass', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_unassign_pass():
+    """Unassign a pass from a player (make it available again)."""
+    data = request.get_json() or {}
+    line_item_id = data.get('line_item_id')
+
+    if not line_item_id:
+        return jsonify({'success': False, 'error': 'Missing line_item_id'}), 400
+
+    try:
+        line_item = db.session.query(PubLeagueOrderLineItem).options(
+            joinedload(PubLeagueOrderLineItem.order),
+            joinedload(PubLeagueOrderLineItem.assigned_player)
+        ).filter_by(id=line_item_id).first()
+
+        if not line_item:
+            return jsonify({'success': False, 'error': 'Line item not found'}), 404
+
+        if line_item.status == PubLeagueLineItemStatus.UNASSIGNED.value:
+            return jsonify({'success': False, 'error': 'Pass is already unassigned'}), 400
+
+        old_player_name = line_item.assigned_player.name if line_item.assigned_player else 'Unknown'
+
+        # Clear assignment
+        line_item.assigned_player_id = None
+        line_item.assigned_user_id = None
+        line_item.assigned_at = None
+        line_item.status = PubLeagueLineItemStatus.UNASSIGNED.value
+
+        # Update order linked count
+        order = line_item.order
+        if order:
+            order.linked_passes = max(0, order.linked_passes - 1)
+            order.update_status()
+
+        db.session.commit()
+
+        logger.info(f"Admin {current_user.id} unassigned line item {line_item_id} (was assigned to {old_player_name})")
+
+        return jsonify({
+            'success': True,
+            'message': f'Pass unassigned from {old_player_name}'
+        })
+
+    except Exception as e:
+        logger.error(f"Error unassigning pass: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/update-line-item', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_update_line_item():
+    """Update a line item's division or jersey size."""
+    data = request.get_json() or {}
+    line_item_id = data.get('line_item_id')
+    division = data.get('division')
+    jersey_size = data.get('jersey_size')
+
+    if not line_item_id:
+        return jsonify({'success': False, 'error': 'Missing line_item_id'}), 400
+
+    try:
+        line_item = db.session.query(PubLeagueOrderLineItem).filter_by(id=line_item_id).first()
+
+        if not line_item:
+            return jsonify({'success': False, 'error': 'Line item not found'}), 404
+
+        changes = []
+
+        if division is not None and division != line_item.division:
+            if division not in ['Classic', 'Premier', '']:
+                return jsonify({'success': False, 'error': 'Invalid division'}), 400
+            old_division = line_item.division
+            line_item.division = division if division else None
+            changes.append(f"division: {old_division} → {division or 'None'}")
+
+        if jersey_size is not None and jersey_size != line_item.jersey_size:
+            old_size = line_item.jersey_size
+            line_item.jersey_size = jersey_size if jersey_size else None
+            changes.append(f"size: {old_size} → {jersey_size or 'None'}")
+
+        if not changes:
+            return jsonify({'success': True, 'message': 'No changes made'})
+
+        db.session.commit()
+
+        logger.info(f"Admin {current_user.id} updated line item {line_item_id}: {', '.join(changes)}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Updated: {", ".join(changes)}'
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating line item: {e}", exc_info=True)
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 def _mask_email(email: str) -> str:
     """Mask an email for display (e.g., j***@example.com)."""
     if not email or '@' not in email:
