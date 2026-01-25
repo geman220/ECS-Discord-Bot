@@ -28,10 +28,10 @@ from app.utils.user_helpers import safe_current_user
 
 logger = logging.getLogger(__name__)
 
-pub_league_orders_admin_bp = Blueprint('pub_league_orders_admin', __name__)
+pub_league_orders_admin_bp = Blueprint('pub_league_orders_admin', __name__, url_prefix='/admin-panel')
 
 
-@pub_league_orders_admin_bp.route('/admin/pub-league-orders')
+@pub_league_orders_admin_bp.route('/pub-league-orders')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def orders_list():
@@ -125,7 +125,7 @@ def orders_list():
         )
 
 
-@pub_league_orders_admin_bp.route('/admin/pub-league-orders/<int:order_id>')
+@pub_league_orders_admin_bp.route('/pub-league-orders/<int:order_id>')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def order_detail(order_id):
@@ -174,7 +174,7 @@ def order_detail(order_id):
         return redirect(url_for('pub_league_orders_admin.orders_list'))
 
 
-@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/search-players')
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/search-players')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_search_players():
@@ -214,7 +214,7 @@ def api_search_players():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/manual-link', methods=['POST'])
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/manual-link', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_manual_link():
@@ -274,7 +274,7 @@ def api_manual_link():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/resend-claim', methods=['POST'])
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/resend-claim', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_resend_claim():
@@ -327,7 +327,7 @@ def api_resend_claim():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/cancel-claim', methods=['POST'])
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/cancel-claim', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_cancel_claim():
@@ -367,7 +367,7 @@ def api_cancel_claim():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/refresh-order', methods=['POST'])
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/refresh-order', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_refresh_order():
@@ -421,7 +421,7 @@ def api_refresh_order():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/delete-order', methods=['POST'])
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/delete-order', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_delete_order():
@@ -463,7 +463,7 @@ def api_delete_order():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/unassign-pass', methods=['POST'])
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/unassign-pass', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_unassign_pass():
@@ -515,7 +515,7 @@ def api_unassign_pass():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@pub_league_orders_admin_bp.route('/admin/pub-league-orders/api/update-line-item', methods=['POST'])
+@pub_league_orders_admin_bp.route('/pub-league-orders/api/update-line-item', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def api_update_line_item():

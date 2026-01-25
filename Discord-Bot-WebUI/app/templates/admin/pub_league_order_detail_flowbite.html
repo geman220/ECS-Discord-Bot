@@ -493,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
             color: isDark ? '#f3f4f6' : '#111827'
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch('/admin/pub-league-orders/api/delete-order', {
+                fetch('/admin-panel/pub-league-orders/api/delete-order', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                     body: JSON.stringify({ order_id: orderId })
@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
                     if (data.success) {
                         Swal.fire({ icon: 'success', title: 'Deleted', text: data.message, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => {
-                            window.location.href = '/admin/pub-league-orders';
+                            window.location.href = '/admin-panel/pub-league-orders';
                         });
                     } else {
                         Swal.fire({ icon: 'error', title: 'Error', text: data.error, background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
@@ -518,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.disabled = true;
         btn.innerHTML = '<svg class="w-4 h-4 mr-2 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Refreshing...';
 
-        fetch('/admin/pub-league-orders/api/refresh-order', {
+        fetch('/admin-panel/pub-league-orders/api/refresh-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             body: JSON.stringify({ order_id: orderId })
@@ -564,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch('/admin/pub-league-orders/api/resend-claim', {
+                    fetch('/admin-panel/pub-league-orders/api/resend-claim', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                         body: JSON.stringify({ claim_id: claimId })
@@ -597,7 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch('/admin/pub-league-orders/api/cancel-claim', {
+                    fetch('/admin-panel/pub-league-orders/api/cancel-claim', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                         body: JSON.stringify({ claim_id: claimId })
@@ -631,7 +631,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch('/admin/pub-league-orders/api/unassign-pass', {
+                    fetch('/admin-panel/pub-league-orders/api/unassign-pass', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                         body: JSON.stringify({ line_item_id: lineItemId })
@@ -676,7 +676,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.disabled = true;
         btn.textContent = 'Saving...';
 
-        fetch('/admin/pub-league-orders/api/update-line-item', {
+        fetch('/admin-panel/pub-league-orders/api/update-line-item', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             body: JSON.stringify({ line_item_id: lineItemId, division: division, jersey_size: jerseySize })
@@ -737,7 +737,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         searchTimeout = setTimeout(() => {
-            fetch(`/admin/pub-league-orders/api/search-players?q=${encodeURIComponent(query)}`)
+            fetch(`/admin-panel/pub-league-orders/api/search-players?q=${encodeURIComponent(query)}`)
             .then(res => res.json())
             .then(data => {
                 if (data.success && data.players.length > 0) {
@@ -782,7 +782,7 @@ document.addEventListener('DOMContentLoaded', function() {
         confirmBtn.disabled = true;
         confirmBtn.textContent = 'Assigning...';
 
-        fetch('/admin/pub-league-orders/api/manual-link', {
+        fetch('/admin-panel/pub-league-orders/api/manual-link', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             body: JSON.stringify({ line_item_id: lineItemId, player_id: selectedPlayerId })
