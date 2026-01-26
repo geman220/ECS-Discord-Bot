@@ -19,7 +19,7 @@ from sqlalchemy.orm import joinedload, selectinload
 
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
-from app.models import User, Player, Team
+from app.models import User, Player, Team, League
 from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
 
 logger = logging.getLogger(__name__)
@@ -984,7 +984,10 @@ def update_ecs_fc_match_score(match_id: int):
 @jwt_required()
 def get_coach_ecs_fc_teams():
     """
-    Get all ECS FC teams where the user is a coach.
+    Get all ECS FC teams where the user is a coach or admin.
+
+    For admins (Global Admin, Pub League Admin): Returns ALL ECS FC teams
+    For coaches: Returns only teams where they are a coach
 
     Returns list of teams with basic info.
     """
@@ -994,6 +997,38 @@ def get_coach_ecs_fc_teams():
     current_user_id = int(get_jwt_identity())
 
     with managed_session() as session:
+        # Check if user is an admin
+        user = session.query(User).options(
+            joinedload(User.roles)
+        ).filter(User.id == current_user_id).first()
+
+        is_admin = False
+        if user and user.roles:
+            admin_roles = ['Global Admin', 'Pub League Admin', 'Admin']
+            is_admin = any(role.name in admin_roles for role in user.roles)
+
+        # If admin, return ALL ECS FC teams
+        if is_admin:
+            ecs_fc_teams = session.query(Team).options(
+                joinedload(Team.league)
+            ).join(Team.league).filter(
+                League.name.contains('ECS FC')
+            ).all()
+
+            teams_data = [{
+                "id": team.id,
+                "name": team.name,
+                "league_id": team.league_id,
+                "league_name": team.league.name if team.league else None,
+            } for team in ecs_fc_teams]
+
+            return jsonify({
+                "teams": teams_data,
+                "count": len(teams_data),
+                "is_admin": True
+            }), 200
+
+        # For non-admins, get teams where user is coach
         player = session.query(Player).options(
             selectinload(Player.teams).joinedload(Team.league)
         ).filter_by(user_id=current_user_id).first()
@@ -1025,7 +1060,8 @@ def get_coach_ecs_fc_teams():
 
         return jsonify({
             "teams": coach_teams,
-            "count": len(coach_teams)
+            "count": len(coach_teams),
+            "is_admin": False
         }), 200
 
 
