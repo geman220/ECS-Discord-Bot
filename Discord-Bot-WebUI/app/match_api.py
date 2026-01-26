@@ -53,11 +53,14 @@ def limit_remote_addr():
     """
     allowed_hosts = [
         # Server and development hosts
-        '127.0.0.1:5000', 
-        'localhost:5000', 
+        '127.0.0.1:5000',
+        'localhost:5000',
         'webui:5000',
         '192.168.1.112:5000',
-        
+
+        # Production
+        'portal.ecsfc.com',
+
         # Mobile development
         '10.0.2.2:5000',      # Android emulator default
         '192.168.1.0/24',     # Local network (allows any IP in this range)

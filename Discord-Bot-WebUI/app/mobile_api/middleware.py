@@ -51,6 +51,7 @@ def register_api_middleware(blueprint: Blueprint):
             'webui:5000',
             '192.168.1.112:5000',
             '10.0.2.2:5000',  # Android emulator default
+            'portal.ecsfc.com',  # Production domain
         ]
 
         # Check if host is in the allowed development hosts list
