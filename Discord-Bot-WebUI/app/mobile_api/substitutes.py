@@ -973,6 +973,99 @@ def respond_to_request(request_id: int):
         }), 201
 
 
+@mobile_api_v2.route('/substitutes/my-targeted-requests', methods=['GET'])
+@jwt_required()
+def get_my_targeted_requests():
+    """
+    Get substitute requests where the current user was specifically contacted.
+
+    Returns requests where a SubstituteResponse exists for the user with
+    notification_sent_at populated (indicating they were directly contacted).
+
+    Query Parameters:
+        status: Filter by request status (OPEN, FILLED, CANCELLED)
+        pending_only: If 'true', only show requests user hasn't responded to yet
+
+    Returns:
+        JSON with list of targeted requests
+    """
+    current_user_id = int(get_jwt_identity())
+    status_filter = request.args.get('status')
+    pending_only = request.args.get('pending_only', 'false').lower() == 'true'
+
+    with managed_session() as session:
+        player = get_player_from_user(session, current_user_id)
+        if not player:
+            return jsonify({"msg": "Player profile not found"}), 404
+
+        # Find responses where user was specifically contacted (notification_sent_at is set)
+        query = session.query(SubstituteResponse).options(
+            joinedload(SubstituteResponse.request).joinedload(SubstituteRequest.match).joinedload(Match.home_team),
+            joinedload(SubstituteResponse.request).joinedload(SubstituteRequest.match).joinedload(Match.away_team),
+            joinedload(SubstituteResponse.request).joinedload(SubstituteRequest.team)
+        ).filter(
+            SubstituteResponse.player_id == player.id,
+            SubstituteResponse.notification_sent_at.isnot(None)  # Was specifically contacted
+        )
+
+        # Filter by pending (not yet responded)
+        if pending_only:
+            query = query.filter(SubstituteResponse.responded_at.is_(None))
+
+        query = query.order_by(SubstituteResponse.notification_sent_at.desc())
+        targeted_responses = query.all()
+
+        # Filter by request status if specified
+        requests_data = []
+        for resp in targeted_responses:
+            if not resp.request:
+                continue
+
+            if status_filter and resp.request.status != status_filter.upper():
+                continue
+
+            match_data = None
+            if resp.request.match:
+                match = resp.request.match
+                match_data = {
+                    "id": match.id,
+                    "date": match.date.isoformat() if match.date else None,
+                    "time": match.time.isoformat() if match.time else None,
+                    "location": match.location,
+                    "home_team": match.home_team.name if match.home_team else None,
+                    "away_team": match.away_team.name if match.away_team else None
+                }
+
+            requests_data.append({
+                "request_id": resp.request.id,
+                "response_id": resp.id,
+                "match": match_data,
+                "team": {
+                    "id": resp.request.team.id,
+                    "name": resp.request.team.name
+                } if resp.request.team else None,
+                "positions_needed": resp.request.positions_needed,
+                "substitutes_needed": resp.request.substitutes_needed,
+                "notes": resp.request.notes,
+                "request_status": resp.request.status,
+                "contacted_at": resp.notification_sent_at.isoformat() if resp.notification_sent_at else None,
+                "notification_methods": resp.notification_methods,
+                "has_responded": resp.responded_at is not None,
+                "my_response": {
+                    "is_available": resp.is_available,
+                    "response_text": resp.response_text,
+                    "responded_at": resp.responded_at.isoformat() if resp.responded_at else None
+                } if resp.responded_at else None,
+                "created_at": resp.request.created_at.isoformat() if resp.request.created_at else None
+            })
+
+        return jsonify({
+            "requests": requests_data,
+            "count": len(requests_data),
+            "pending_count": sum(1 for r in requests_data if not r['has_responded'])
+        }), 200
+
+
 @mobile_api_v2.route('/substitutes/my-responses', methods=['GET'])
 @jwt_required()
 def get_my_responses():
