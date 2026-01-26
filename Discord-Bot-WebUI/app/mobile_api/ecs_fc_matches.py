@@ -296,19 +296,30 @@ def get_ecs_fc_match_availability(match_id: int):
         # Build RSVP summary
         rsvp_summary = match.get_rsvp_summary()
 
-        # Build availability map from responses
-        availability_map = {a.player_id: a for a in match.availability if a.player_id}
+        # Build availability maps from responses
+        # Map by player_id for players with linked accounts
+        availability_by_player_id = {a.player_id: a for a in match.availability if a.player_id}
+        # Map by discord_id for players who RSVPed via Discord without player_id link
+        availability_by_discord_id = {a.discord_id: a for a in match.availability if a.discord_id}
 
         # Get base URL for profile pictures
         base_url = request.host_url.rstrip('/')
 
         # Build player list (only for coaches/admins)
         players_data = []
+        included_player_ids = set()
+
         if can_see_details and match.team:
             team_players = [p for p in match.team.players if p.is_current_player]
 
+            # Build discord_id to player map for team players
+            discord_to_player = {p.discord_id: p for p in team_players if p.discord_id}
+
             for team_player in team_players:
-                av = availability_map.get(team_player.id)
+                # Check availability by player_id first, then by discord_id
+                av = availability_by_player_id.get(team_player.id)
+                if not av and team_player.discord_id:
+                    av = availability_by_discord_id.get(team_player.discord_id)
 
                 profile_picture_url = None
                 if team_player.profile_picture_url:
@@ -329,6 +340,50 @@ def get_ecs_fc_match_availability(match_id: int):
                     "responded_at": av.responded_at.isoformat() if av and av.responded_at else None,
                     "profile_picture_url": profile_picture_url
                 })
+                included_player_ids.add(team_player.id)
+                if team_player.discord_id:
+                    included_player_ids.add(team_player.discord_id)
+
+            # Also include players who RSVPed but aren't on team roster (e.g., subs)
+            for av in match.availability:
+                # Skip if already included via team roster
+                if av.player_id and av.player_id in included_player_ids:
+                    continue
+                if av.discord_id and av.discord_id in included_player_ids:
+                    continue
+
+                # Try to find player by discord_id
+                rsvp_player = None
+                if av.player_id:
+                    rsvp_player = session.query(Player).get(av.player_id)
+                elif av.discord_id:
+                    rsvp_player = session.query(Player).filter_by(discord_id=av.discord_id).first()
+
+                if rsvp_player:
+                    profile_picture_url = None
+                    if rsvp_player.profile_picture_url:
+                        profile_picture_url = (
+                            rsvp_player.profile_picture_url
+                            if rsvp_player.profile_picture_url.startswith('http')
+                            else f"{base_url}{rsvp_player.profile_picture_url}"
+                        )
+                    else:
+                        profile_picture_url = f"{base_url}/static/img/default_player.png"
+
+                    players_data.append({
+                        "id": rsvp_player.id,
+                        "name": rsvp_player.name,
+                        "jersey_number": rsvp_player.jersey_number,
+                        "position": rsvp_player.favorite_position,
+                        "response": av.response,
+                        "responded_at": av.responded_at.isoformat() if av.responded_at else None,
+                        "profile_picture_url": profile_picture_url,
+                        "is_guest": True  # Flag to indicate not on team roster
+                    })
+                    if rsvp_player.id:
+                        included_player_ids.add(rsvp_player.id)
+                    if rsvp_player.discord_id:
+                        included_player_ids.add(rsvp_player.discord_id)
 
             # Sort: yes first, then maybe, then no_response, then no
             response_order = {'yes': 0, 'maybe': 1, None: 2, 'no_response': 2, 'no': 3}
@@ -358,9 +413,11 @@ def get_ecs_fc_match_availability(match_id: int):
             response_data["players"] = players_data
             response_data["total_players"] = len(players_data)
 
-        # Add user's own availability
+        # Add user's own availability (check by player_id first, then discord_id)
         if player:
-            user_availability = availability_map.get(player.id)
+            user_availability = availability_by_player_id.get(player.id)
+            if not user_availability and player.discord_id:
+                user_availability = availability_by_discord_id.get(player.discord_id)
             response_data["my_availability"] = user_availability.response if user_availability else None
 
         return jsonify(response_data), 200
@@ -1064,24 +1121,63 @@ def get_coach_ecs_fc_match_rsvp_details(team_id: int, match_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Build availability map
-        availability_map = {a.player_id: a for a in match.availabilities if a.player_id}
+        # Build availability maps (by player_id and discord_id)
+        availability_by_player_id = {a.player_id: a for a in match.availabilities if a.player_id}
+        availability_by_discord_id = {a.discord_id: a for a in match.availabilities if a.discord_id}
 
         # Get all team players with their responses
         players_data = []
-        for player in match.team.players:
-            if not player.is_current_player:
+        included_player_ids = set()
+
+        for team_player in match.team.players:
+            if not team_player.is_current_player:
                 continue
 
-            av = availability_map.get(player.id)
+            # Check availability by player_id first, then by discord_id
+            av = availability_by_player_id.get(team_player.id)
+            if not av and team_player.discord_id:
+                av = availability_by_discord_id.get(team_player.discord_id)
+
             players_data.append({
-                "id": player.id,
-                "name": player.name,
-                "jersey_number": player.jersey_number,
-                "position": player.favorite_position,
+                "id": team_player.id,
+                "name": team_player.name,
+                "jersey_number": team_player.jersey_number,
+                "position": team_player.favorite_position,
                 "response": av.response if av else None,
                 "responded_at": av.responded_at.isoformat() if av and av.responded_at else None,
             })
+            included_player_ids.add(team_player.id)
+            if team_player.discord_id:
+                included_player_ids.add(team_player.discord_id)
+
+        # Include players who RSVPed but aren't on team roster (e.g., subs)
+        for av in match.availabilities:
+            if av.player_id and av.player_id in included_player_ids:
+                continue
+            if av.discord_id and av.discord_id in included_player_ids:
+                continue
+
+            # Try to find player by discord_id
+            rsvp_player = None
+            if av.player_id:
+                rsvp_player = session.query(Player).get(av.player_id)
+            elif av.discord_id:
+                rsvp_player = session.query(Player).filter_by(discord_id=av.discord_id).first()
+
+            if rsvp_player:
+                players_data.append({
+                    "id": rsvp_player.id,
+                    "name": rsvp_player.name,
+                    "jersey_number": rsvp_player.jersey_number,
+                    "position": rsvp_player.favorite_position,
+                    "response": av.response,
+                    "responded_at": av.responded_at.isoformat() if av.responded_at else None,
+                    "is_guest": True
+                })
+                if rsvp_player.id:
+                    included_player_ids.add(rsvp_player.id)
+                if rsvp_player.discord_id:
+                    included_player_ids.add(rsvp_player.discord_id)
 
         # Sort by response (yes first, then maybe, then no_response, then no)
         response_order = {'yes': 0, 'maybe': 1, None: 2, 'no_response': 2, 'no': 3}
