@@ -44,10 +44,11 @@ def orders_list():
         per_page = 25
 
         # Subquery for divisions - aggregates distinct divisions per order
+        # Use string_agg for PostgreSQL (group_concat is MySQL)
         division_subq = (
             db.session.query(
                 PubLeagueOrderLineItem.order_id,
-                func.group_concat(distinct(PubLeagueOrderLineItem.division)).label('divisions')
+                func.string_agg(distinct(PubLeagueOrderLineItem.division), ',').label('divisions')
             )
             .group_by(PubLeagueOrderLineItem.order_id)
             .subquery()
