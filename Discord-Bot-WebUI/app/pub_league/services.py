@@ -494,8 +494,8 @@ class RoleSyncService:
         """
         Sync Flask roles in the database.
 
-        Note: We re-query the user to ensure it's in the current session,
-        avoiding cross-session issues when called from different contexts.
+        Note: We re-query user and roles from db.session to ensure all objects
+        are in the same session, avoiding cross-session issues.
 
         Args:
             user: User to update
@@ -504,20 +504,21 @@ class RoleSyncService:
         """
         from sqlalchemy.orm import joinedload
 
-        session = getattr(g, 'db_session', db.session)
+        # Save user_id before any session operations to avoid detached instance issues
+        user_id = user.id
 
-        # Re-query user with roles to ensure proper session binding
-        user = session.query(User).options(
+        # Re-query user with roles from db.session to ensure proper session binding
+        user = db.session.query(User).options(
             joinedload(User.roles)
-        ).filter_by(id=user.id).first()
+        ).filter_by(id=user_id).first()
 
         if not user:
-            logger.warning(f"User not found when syncing Flask role")
+            logger.warning(f"User {user_id} not found when syncing Flask role")
             return
 
-        # Get role objects from this session
-        new_role = session.query(Role).filter_by(name=new_role_name).first()
-        opposite_role = session.query(Role).filter_by(name=opposite_role_name).first()
+        # Get role objects from the same db.session
+        new_role = db.session.query(Role).filter_by(name=new_role_name).first()
+        opposite_role = db.session.query(Role).filter_by(name=opposite_role_name).first()
 
         # Add new role if not already present
         if new_role and new_role not in user.roles:
@@ -529,7 +530,7 @@ class RoleSyncService:
             user.roles.remove(opposite_role)
             logger.info(f"Removed Flask role {opposite_role_name} from user {user.id}")
 
-        session.commit()
+        db.session.commit()
 
     @staticmethod
     def _sync_discord_role(player: Player) -> None:
