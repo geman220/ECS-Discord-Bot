@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="{{ 'dark' if session.get('theme', 'light') == 'dark' else '' }}">
+<html lang="en" class="{{ 'dark' if session.get('theme', 'light') == 'dark' else '' }}" {{ 'data-style="dark"' if session.get('theme', 'light') == 'dark' else '' | safe }}>
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -24,8 +24,10 @@
             const theme = localStorage.getItem('theme') || '{{ session.get('theme', 'light') }}';
             if (theme === 'dark') {
                 document.documentElement.classList.add('dark');
+                document.documentElement.setAttribute('data-style', 'dark');
             } else {
                 document.documentElement.classList.remove('dark');
+                document.documentElement.removeAttribute('data-style');
             }
         })();
     </script>
@@ -284,6 +286,13 @@
                 document.documentElement.classList.toggle('dark');
                 const isDark = document.documentElement.classList.contains('dark');
                 localStorage.setItem('theme', isDark ? 'dark' : 'light');
+
+                // Sync data-style attribute for legacy CSS compatibility
+                if (isDark) {
+                    document.documentElement.setAttribute('data-style', 'dark');
+                } else {
+                    document.documentElement.removeAttribute('data-style');
+                }
 
                 // Sync with server
                 fetch('/api/set-theme', {
