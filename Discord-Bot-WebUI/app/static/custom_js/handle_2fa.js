@@ -9,11 +9,17 @@ let _initialized = false;
 
 function initHandle2fa() {
     if (_initialized) return;
-    _initialized = true;
 
+    // Page-specific guard: Only initialize on pages with 2FA elements
     const enable2FABtn = document.getElementById('enable2FABtn');
     const verify2FAForm = document.getElementById('verify2FAForm');
     const disable2FAForm = document.getElementById('disable2FAForm');
+
+    if (!enable2FABtn && !verify2FAForm && !disable2FAForm) {
+        return; // Not the 2FA settings page, don't initialize
+    }
+
+    _initialized = true;
 
     if (enable2FABtn) {
         enable2FABtn.addEventListener('click', function () {
@@ -29,7 +35,12 @@ function initHandle2fa() {
                         modal.setAttribute('data-secret', data.secret);
                     }
                     // Use window.ModalManager for safe modal handling
-                    window.ModalManager.show('enable2FAModal');
+                    if (modal && typeof window.ModalManager !== 'undefined') {
+                        window.ModalManager.show('enable2FAModal');
+                    } else if (modal && typeof window.Modal !== 'undefined') {
+                        const flowbiteModal = modal._flowbiteModal || (modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true }));
+                        flowbiteModal.show();
+                    }
                 });
         });
     }

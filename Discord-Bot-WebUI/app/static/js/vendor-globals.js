@@ -43,6 +43,35 @@ window.Flowbite = {
 };
 
 // ============================================================================
+// 2a. MODAL MANAGER STUB - Captures early calls before full module loads
+// This stub queues show()/hide() calls made before modal-manager.js initializes.
+// Once the real ModalManager loads, it replays the queued calls.
+// This eliminates the need for scattered "typeof window.ModalManager" guards.
+// ============================================================================
+if (!window.ModalManager) {
+  window.ModalManager = {
+    _isStub: true,
+    _pendingCalls: [],
+    show(modalId, options) {
+      this._pendingCalls.push({ method: 'show', args: [modalId, options] });
+      return false; // Return false to indicate queued, not shown
+    },
+    hide(modalId) {
+      this._pendingCalls.push({ method: 'hide', args: [modalId] });
+      return false;
+    },
+    toggle(modalId) {
+      this._pendingCalls.push({ method: 'toggle', args: [modalId] });
+      return false;
+    },
+    // No-op stubs for other methods that might be called early
+    init() {},
+    getInstance() { return null; },
+    isOpen() { return false; }
+  };
+}
+
+// ============================================================================
 // 2b. JQUERY MODAL COMPATIBILITY SHIM
 // Wraps Flowbite Modal API for legacy $(element).modal() calls
 // ============================================================================

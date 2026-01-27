@@ -93,7 +93,9 @@ class AdminSeasonsManager {
         if (performRollover) performRollover.checked = false;
         if (rolloverPreview) rolloverPreview.classList.add('hidden');
 
-        window.ModalManager.show('setCurrentModal');
+        if (document.getElementById('setCurrentModal') && typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('setCurrentModal');
+        }
     }
 
     /**
@@ -254,7 +256,9 @@ class AdminSeasonsManager {
                 console.error('[AdminSeasonsManager] Error loading season details:', error);
             });
 
-        window.ModalManager.show('editSeasonModal');
+        if (document.getElementById('editSeasonModal') && typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('editSeasonModal');
+        }
     }
 
     /**
@@ -418,6 +422,17 @@ function getManager() {
  */
 function initAdminSeasonsManagement() {
     if (_initialized) return;
+
+    // Page-specific guard: Only initialize on seasons management pages
+    const isSeasonsPage = document.getElementById('leagueTypeFilter') ||
+                           document.getElementById('currentOnlyFilter') ||
+                           document.getElementById('setCurrentModal') ||
+                           document.getElementById('editSeasonModal');
+
+    if (!isSeasonsPage) {
+        return; // Not the seasons management page, don't initialize
+    }
+
     _initialized = true;
 
     const manager = getManager();

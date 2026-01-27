@@ -184,7 +184,10 @@ class DraftHistoryManager {
         document.getElementById('editDraftPosition').value = position;
         document.getElementById('editNotes').value = notes || '';
 
-        window.ModalManager.show('editDraftPickModal');
+        const modalEl = document.getElementById('editDraftPickModal');
+        if (modalEl && typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('editDraftPickModal');
+        }
     }
 
     // Handle edit form submission

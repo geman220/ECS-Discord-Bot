@@ -67,7 +67,8 @@ window.EventDelegation.register('set-current-season', function(element, e) {
         if (performRollover) performRollover.checked = false;
         if (rolloverPreview) rolloverPreview.classList.add('hidden');
 
-        if (typeof window.ModalManager !== 'undefined') {
+        // Only show modal if element exists on page
+        if (document.getElementById('setCurrentModal') && typeof window.ModalManager !== 'undefined') {
             window.ModalManager.show('setCurrentModal');
         }
     }
@@ -326,7 +327,8 @@ window.EventDelegation.register('edit-team', function(element, e) {
         if (editTeamId) editTeamId.value = teamId;
         if (editTeamName) editTeamName.value = teamName || '';
 
-        if (typeof window.ModalManager !== 'undefined') {
+        // Only show modal if element exists on page
+        if (document.getElementById('editTeamModal') && typeof window.ModalManager !== 'undefined') {
             window.ModalManager.show('editTeamModal');
         }
     }

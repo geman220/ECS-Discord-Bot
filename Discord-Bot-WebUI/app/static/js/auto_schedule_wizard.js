@@ -128,7 +128,9 @@ function startSeasonWizard() {
     const modal = document.getElementById('seasonWizardModal');
     if (modal) {
         modal.classList.add('wizard-modal--visible');
-        window.ModalManager.show('seasonWizardModal');
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('seasonWizardModal');
+        }
     }
 
     // Set default start date to next Sunday

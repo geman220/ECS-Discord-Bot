@@ -84,7 +84,10 @@ const AssetCropper = {
         }
 
         // Open modal
-        window.ModalManager.show('assetCropperModal');
+        const modalEl = document.getElementById('assetCropperModal');
+        if (modalEl && typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('assetCropperModal');
+        }
     },
 
     /**

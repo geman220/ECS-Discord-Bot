@@ -181,7 +181,9 @@ class AdminTeamsManager {
         if (editTeamId) editTeamId.value = teamId;
         if (editTeamName) editTeamName.value = teamName;
 
-        window.ModalManager.show('editTeamModal');
+        if (document.getElementById('editTeamModal') && typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('editTeamModal');
+        }
     }
 
     /**
@@ -349,6 +351,16 @@ function getManager() {
  */
 function initAdminTeamsManagement() {
     if (_initialized) return;
+
+    // Page-specific guard: Only initialize on teams management pages
+    const isTeamsPage = document.getElementById('seasonFilter') ||
+                         document.getElementById('editTeamModal') ||
+                         document.querySelector('.js-create-team');
+
+    if (!isTeamsPage) {
+        return; // Not the teams management page, don't initialize
+    }
+
     _initialized = true;
 
     const manager = getManager();

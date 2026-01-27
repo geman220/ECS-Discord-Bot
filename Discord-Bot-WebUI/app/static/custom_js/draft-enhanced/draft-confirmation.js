@@ -51,6 +51,13 @@ export function confirmDraftPlayer(playerId, playerName, isMultiTeam = false, ex
  * @param {string} existingTeams
  */
 export function showDraftTeamSelection(playerId, playerName, existingTeams = '') {
+    // Check if modal exists on this page
+    const modalElement = document.getElementById('draftConfirmModal');
+    if (!modalElement) {
+        console.warn('[draft-confirmation] draftConfirmModal not found on this page');
+        return;
+    }
+
     // Populate the message
     let message = `Select a team for <strong>${playerName}</strong>:`;
     if (existingTeams) {
@@ -105,5 +112,10 @@ export function showDraftTeamSelection(playerId, playerName, existingTeams = '')
     };
 
     // Show the modal
-    window.ModalManager.show('draftConfirmModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('draftConfirmModal');
+    } else if (typeof window.Modal !== 'undefined') {
+        const flowbiteModal = modalElement._flowbiteModal || (modalElement._flowbiteModal = new window.Modal(modalElement, { backdrop: 'dynamic', closable: true }));
+        flowbiteModal.show();
+    }
 }

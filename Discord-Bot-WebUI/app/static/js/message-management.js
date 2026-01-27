@@ -41,6 +41,8 @@ window.InitSystem.register('message-management', initMessageManagement, {
 
 // Preview message template
 function previewTemplate(templateId) {
+    const modalEl = document.getElementById('previewModal');
+    if (!modalEl || typeof window.ModalManager === 'undefined') return;
     window.ModalManager.show('previewModal');
 
     // Set loading state
@@ -127,6 +129,8 @@ function previewMessage() {
         return;
     }
 
+    const previewModalEl = document.getElementById('previewModal');
+    if (!previewModalEl || typeof window.ModalManager === 'undefined') return;
     window.ModalManager.show('previewModal');
 
     // Create a preview with sample data

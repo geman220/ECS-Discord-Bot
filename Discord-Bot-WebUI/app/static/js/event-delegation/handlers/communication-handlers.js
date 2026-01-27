@@ -36,7 +36,7 @@ window.EventDelegation.register('preview-announcement', function(element, e) {
     // Escape HTML to prevent XSS, then convert newlines to <br>
     if (previewMessage) previewMessage.innerHTML = escapeHtml(message).replace(/\n/g, '<br>');
 
-    if (previewModal) {
+    if (previewModal && typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('announcementPreviewModal');
     }
 });
@@ -94,7 +94,10 @@ window.EventDelegation.register('schedule-announcement', function(element, e) {
         window.scheduleAnnouncement();
     } else {
         // Show schedule modal
-        window.ModalManager.show('scheduleAnnouncementModal');
+        const modalEl = document.getElementById('scheduleAnnouncementModal');
+        if (modalEl && typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('scheduleAnnouncementModal');
+        }
     }
 });
 
@@ -430,7 +433,10 @@ window.EventDelegation.register('create-category', function(element, e) {
     if (typeof window.createCategory === 'function') {
         window.createCategory();
     } else {
-        window.ModalManager.show('categoryModal');
+        const modalEl = document.getElementById('categoryModal');
+        if (modalEl && typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('categoryModal');
+        }
     }
 });
 
@@ -458,7 +464,10 @@ window.EventDelegation.register('edit-comm-category', function(element, e) {
         if (descInput) descInput.value = categoryDescription;
         if (idInput) idInput.value = categoryId;
 
-        window.ModalManager.show('categoryModal');
+        const modalEl = document.getElementById('categoryModal');
+        if (modalEl && typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('categoryModal');
+        }
     }
 });
 

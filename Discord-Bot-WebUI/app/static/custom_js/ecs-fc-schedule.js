@@ -343,7 +343,9 @@ export function showCreateMatchModal(selectedDate = null) {
     }
 
     // Show modal
-    window.ModalManager.show(modal.id);
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show(modal.id);
+    }
 }
 
 /**
@@ -425,7 +427,10 @@ export function ecsFcEditMatch(matchId) {
     }
 
     // Show modal
-    window.ModalManager.show('createMatchModal');
+    const createModal = document.getElementById('createMatchModal');
+    if (createModal && typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('createMatchModal');
+    }
 }
 
 /**
@@ -529,7 +534,9 @@ export function showImportMatchesModal() {
     const modal = document.getElementById('importMatchesModal');
     if (!modal) return;
 
-    window.ModalManager.show(modal.id);
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show(modal.id);
+    }
 }
 
 /**

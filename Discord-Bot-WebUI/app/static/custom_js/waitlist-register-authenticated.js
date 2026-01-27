@@ -45,7 +45,10 @@ export function initWaitlistRegisterAuthenticated() {
 
 // Show profile verification modal
 export function showProfileModal() {
-    window.ModalManager.show('profileModal');
+    const modal = document.getElementById('profileModal');
+    if (modal && typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('profileModal');
+    }
 }
 
 // Toggle edit mode

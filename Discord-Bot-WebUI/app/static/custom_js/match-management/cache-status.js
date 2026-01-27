@@ -100,7 +100,9 @@ export function showCacheStatus() {
                 document.body.insertAdjacentHTML('beforeend', modalHtml);
 
                 // Show modal
-                window.ModalManager.show('cacheStatusModal');
+                if (typeof window.ModalManager !== 'undefined') {
+                    window.ModalManager.show('cacheStatusModal');
+                }
 
                 // Clean up when modal is hidden (using MutationObserver for Flowbite)
                 const modalEl = document.getElementById('cacheStatusModal');

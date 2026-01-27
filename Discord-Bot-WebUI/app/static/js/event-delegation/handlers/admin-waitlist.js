@@ -49,14 +49,18 @@ function showNotification(title, message, type = 'info') {
  * Show modal using window.ModalManager or Flowbite
  */
 function showModal(modalId) {
+    // Guard: Check if modal element exists on this page
+    const modalEl = document.getElementById(modalId);
+    if (!modalEl) {
+        console.warn(`[admin-waitlist] Modal ${modalId} not found on this page`);
+        return;
+    }
+
     if (typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show(modalId);
     } else if (typeof window.Modal !== 'undefined') {
-        const modalEl = document.getElementById(modalId);
-        if (modalEl) {
-            const modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
-            modal.show();
-        }
+        const modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
+        modal.show();
     }
 }
 

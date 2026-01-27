@@ -267,7 +267,7 @@ See you there!
 
     // Show modal
     const modalElement = document.getElementById('discordDMModal');
-    if (modalElement) {
+    if (modalElement && typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('discordDMModal');
     }
 });

@@ -233,6 +233,10 @@ export async function showStackTrace(pid) {
 
         if (data.success) {
             const modal = document.getElementById('stackTraceModal');
+            if (!modal) {
+                console.warn('[db-monitoring] stackTraceModal not found on this page');
+                return;
+            }
             modal.querySelector('.stack-trace-content').textContent = data.details?.stack_trace || 'No stack trace captured';
             if (typeof window.ModalManager !== 'undefined') {
                 window.ModalManager.show('stackTraceModal');
@@ -251,6 +255,10 @@ export async function showStackTrace(pid) {
 export function showQuery(pid, query) {
     try {
         const modal = document.getElementById('queryModal');
+        if (!modal) {
+            console.warn('[db-monitoring] queryModal not found on this page');
+            return;
+        }
         const content = modal.querySelector('.query-content');
         content.textContent = query || 'No query available';
         if (typeof window.ModalManager !== 'undefined') {

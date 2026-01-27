@@ -313,6 +313,13 @@ async function performRemovePlayer(playerId, league) {
 export function openPlayerDetailsModal(playerId) {
     const detailsLoading = document.getElementById('detailsLoading');
     const detailsData = document.getElementById('detailsData');
+    const modalElement = document.getElementById('playerDetailsModal');
+
+    // Guard: Check if modal elements exist
+    if (!modalElement || !detailsLoading || !detailsData) {
+        console.warn('[substitute-pool] Player details modal not available on this page');
+        return;
+    }
 
     // Show loading, hide data using CSS classes
     detailsLoading.classList.remove('hidden');
@@ -509,6 +516,15 @@ export function generatePaginationControls(league, section, currentPage, totalPa
 // Initialize function
 function initSubstitutePoolManagement() {
     if (_initialized) return;
+
+    // Page-specific guard: Only initialize on substitute pools page
+    const isSubstitutePoolsPage = document.getElementById('playerDetailsModal') &&
+                                   document.getElementById('playerSearch');
+
+    if (!isSubstitutePoolsPage) {
+        return; // Not the substitute pools page, don't initialize
+    }
+
     _initialized = true;
 
     initializeSearch();

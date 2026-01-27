@@ -15,6 +15,13 @@ import { confirmDraftPlayer } from './draft-confirmation.js';
  * @param {string} playerId
  */
 export function openPlayerModal(playerId) {
+    // Check if modal exists on this page
+    const modalElement = document.getElementById('playerProfileModal');
+    if (!modalElement) {
+        console.warn('[draft-enhanced] playerProfileModal not found on this page');
+        return;
+    }
+
     // Show loading state
     const profileLoading = document.getElementById('profileLoading');
     profileLoading.classList.add('block');
@@ -23,7 +30,12 @@ export function openPlayerModal(playerId) {
     document.getElementById('draftFromModal').classList.remove('is-visible');
 
     // Open modal
-    window.ModalManager.show('playerProfileModal');
+    if (typeof window.ModalManager !== 'undefined') {
+        window.ModalManager.show('playerProfileModal');
+    } else if (typeof window.Modal !== 'undefined') {
+        const flowbiteModal = modalElement._flowbiteModal || (modalElement._flowbiteModal = new window.Modal(modalElement, { backdrop: 'dynamic', closable: true }));
+        flowbiteModal.show();
+    }
 
     // Fetch player data
     fetch(`/players/api/player_profile/${playerId}`)

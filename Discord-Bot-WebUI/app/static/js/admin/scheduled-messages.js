@@ -74,7 +74,7 @@ function previewMessage() {
 
     // Show modal
     const modalEl = document.getElementById('messagePreviewModal');
-    if (modalEl) {
+    if (modalEl && typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('messagePreviewModal');
     }
 }
@@ -102,7 +102,7 @@ function viewScheduledMessage(messageId, messageTitle) {
 
     // Show modal
     const modalEl = document.getElementById('messageDetailsModal');
-    if (modalEl) {
+    if (modalEl && typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('messageDetailsModal');
     }
 

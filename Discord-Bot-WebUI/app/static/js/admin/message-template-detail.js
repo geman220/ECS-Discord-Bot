@@ -46,7 +46,7 @@ function viewTemplate(id, name, content) {
 
     // Show modal
     const modalEl = document.getElementById('viewTemplateModal');
-    if (modalEl) {
+    if (modalEl && typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('viewTemplateModal');
     }
 }
@@ -85,7 +85,7 @@ function editTemplate(id, name, description, content, channelType, usageContext,
 
     // Show edit modal
     const modalEl = document.getElementById('editTemplateModal');
-    if (modalEl) {
+    if (modalEl && typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('editTemplateModal');
     }
 }

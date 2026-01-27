@@ -436,7 +436,7 @@ class DraftSystemV2 {
         }
 
         const modal = document.getElementById('playerProfileModal');
-        if (modal) {
+        if (modal && typeof window.ModalManager !== 'undefined') {
             window.ModalManager.show('playerProfileModal');
             emitGetPlayerDetails(playerId);
         }

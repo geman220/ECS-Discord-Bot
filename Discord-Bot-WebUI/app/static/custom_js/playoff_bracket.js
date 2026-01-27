@@ -424,8 +424,11 @@ export class PlayoffBracket {
         const modalId = `reportMatchModal-${matchId}`;
         const existingModal = document.getElementById(modalId);
 
-        if (existingModal) {
+        if (existingModal && typeof window.ModalManager !== 'undefined') {
             window.ModalManager.show(existingModal.id);
+        } else if (existingModal) {
+            // Fallback if ModalManager not available
+            console.warn('ModalManager not available for match report modal');
         } else {
             // If modal doesn't exist, redirect to a page where it does or show a message
             console.warn('Match report modal not found on page. You may need to load it first.');

@@ -120,6 +120,19 @@ export class ModalManager {
                     return;
                 }
 
+                // Skip elements that don't look like proper modal structures
+                // Flowbite modals should have 'fixed' positioning and contain a modal dialog
+                const isProperModal = modalEl.classList.contains('fixed') ||
+                                       modalEl.classList.contains('modal') ||
+                                       modalEl.hasAttribute('data-modal') ||
+                                       modalEl.hasAttribute('aria-hidden') ||
+                                       modalEl.querySelector('[role="dialog"]');
+
+                if (!isProperModal) {
+                    this.log(`Skipping non-modal element: ${modalEl.id}`);
+                    return;
+                }
+
                 try {
                     // Check if modal already has a Flowbite instance stored
                     let instance = modalEl._flowbiteModal;
@@ -136,10 +149,11 @@ export class ModalManager {
                     this.modalInstances.set(modalEl.id, instance);
                     this.log(`Cached modal: ${modalEl.id}`);
                 } catch (error) {
-                    console.error(`[window.ModalManager] Failed to initialize modal ${modalEl.id}:`, error);
+                    // Silently skip elements that fail to initialize as modals
+                    this.log(`Skipped element ${modalEl.id}: not a valid modal structure`);
                 }
             } else {
-                console.warn('[window.ModalManager] Found modal without ID. Modals should have unique IDs:', modalEl);
+                this.log('Found modal-like element without ID, skipping');
             }
         });
     }
@@ -232,7 +246,19 @@ export class ModalManager {
             const modalElement = document.getElementById(modalId);
 
             if (!modalElement) {
-                console.error(`[window.ModalManager] Modal element not found: ${modalId}`);
+                // Silently return false for missing modals - this is common on multi-page apps
+                this.log(`Modal element not found: ${modalId}`);
+                return false;
+            }
+
+            // Verify this looks like a proper modal structure before initializing
+            const isProperModal = modalElement.classList.contains('fixed') ||
+                                   modalElement.classList.contains('modal') ||
+                                   modalElement.hasAttribute('data-modal') ||
+                                   modalElement.hasAttribute('aria-hidden');
+
+            if (!isProperModal) {
+                this.log(`Element ${modalId} doesn't appear to be a modal structure`);
                 return false;
             }
 
@@ -251,7 +277,7 @@ export class ModalManager {
                 this.modalInstances.set(modalId, modal);
                 this.log(`Created and cached new modal: ${modalId}`);
             } catch (error) {
-                console.error(`[window.ModalManager] Failed to initialize modal ${modalId}:`, error);
+                this.log(`Failed to initialize modal ${modalId}: ${error.message}`);
                 return false;
             }
         }
@@ -261,7 +287,7 @@ export class ModalManager {
             modal.show();
             return true;
         } catch (error) {
-            console.error(`[window.ModalManager] Failed to show modal ${modalId}:`, error);
+            this.log(`Failed to show modal ${modalId}: ${error.message}`);
             return false;
         }
     }
@@ -520,7 +546,27 @@ function registerModalManagerEventHandlers() {
 }
 
 // Backward compatibility - keep window.ModalManager for legacy code
-window.ModalManager = ModalManager;
+// Check if a stub was set up (for early calls before this module loads)
+if (window.ModalManager && window.ModalManager._isStub && window.ModalManager._pendingCalls) {
+    // Replay any queued calls
+    const pendingCalls = window.ModalManager._pendingCalls;
+    window.ModalManager = ModalManager;
+
+    // Process queued show() calls after a microtask to ensure init completes
+    queueMicrotask(() => {
+        pendingCalls.forEach(({ method, args }) => {
+            if (typeof ModalManager[method] === 'function') {
+                ModalManager[method](...args);
+            }
+        });
+        if (pendingCalls.length > 0) {
+            ModalManager.log(`Replayed ${pendingCalls.length} queued modal calls`);
+        }
+    });
+} else {
+    window.ModalManager = ModalManager;
+}
+
 window.safeGetModal = safeGetModal;
 window.safeShowModal = safeShowModal;
 

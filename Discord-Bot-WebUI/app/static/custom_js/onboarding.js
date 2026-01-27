@@ -31,9 +31,16 @@ let _initialized = false;
 
 export function initOnboarding() {
     if (_initialized) return;
-    _initialized = true;
+
     // Core elements
     const modalElement = document.getElementById('onboardingSlideModal');
+
+    // Page-specific guard: Only initialize on pages with onboarding modal
+    if (!modalElement) {
+        return; // Not the onboarding page, don't initialize
+    }
+
+    _initialized = true;
 
     const carouselElement = document.getElementById('modalCarouselControls');
     const nextOrSaveButton = document.getElementById('nextOrSaveButton');

@@ -47,7 +47,7 @@ function editCategory(id, name, description) {
 
     // Show edit modal
     const modalEl = document.getElementById('editCategoryModal');
-    if (modalEl) {
+    if (modalEl && typeof window.ModalManager !== 'undefined') {
         window.ModalManager.show('editCategoryModal');
     }
 }

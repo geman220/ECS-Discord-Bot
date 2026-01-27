@@ -74,14 +74,18 @@ class AdminISpyManager {
      * Show create season modal
      */
     createNewSeason() {
-        window.ModalManager.show('createSeasonModal');
+        if (document.getElementById('createSeasonModal') && typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('createSeasonModal');
+        }
     }
 
     /**
      * Show create category modal
      */
     createNewCategory() {
-        window.ModalManager.show('createCategoryModal');
+        if (document.getElementById('createCategoryModal') && typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('createCategoryModal');
+        }
     }
 
     /**
@@ -113,7 +117,9 @@ class AdminISpyManager {
         .then(data => {
             if (data.success) {
                 window.Swal.fire('Success', data.message, 'success');
-                window.ModalManager.hide('createSeasonModal');
+                if (typeof window.ModalManager !== 'undefined') {
+                    window.ModalManager.hide('createSeasonModal');
+                }
                 location.reload();
             } else {
                 window.Swal.fire('Error', data.message, 'error');
@@ -154,7 +160,9 @@ class AdminISpyManager {
         .then(data => {
             if (data.success) {
                 window.Swal.fire('Success', data.message, 'success');
-                window.ModalManager.hide('createCategoryModal');
+                if (typeof window.ModalManager !== 'undefined') {
+                    window.ModalManager.hide('createCategoryModal');
+                }
                 location.reload();
             } else {
                 window.Swal.fire('Error', data.message, 'error');
@@ -228,6 +236,16 @@ function getManager() {
  */
 function initAdminIspyManagement() {
     if (_initialized) return;
+
+    // Page-specific guard: Only initialize on I-Spy admin pages
+    const isISpyPage = document.querySelector('.js-create-season') ||
+                        document.querySelector('.js-create-category') ||
+                        document.querySelector('.js-show-stats');
+
+    if (!isISpyPage) {
+        return; // Not the I-Spy admin page, don't initialize
+    }
+
     _initialized = true;
 
     const manager = getManager();

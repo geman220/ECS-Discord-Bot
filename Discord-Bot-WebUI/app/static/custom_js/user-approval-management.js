@@ -18,6 +18,17 @@ let playerDetailsModal = null;
 // Initialize function
 export function initUserApprovalManagement() {
     if (_initialized) return;
+
+    // Page-specific guard: Only initialize on user approvals page
+    // Check for page-specific elements that only exist on this page
+    const isUserApprovalsPage = document.getElementById('approvalModal') ||
+                                 document.getElementById('approvalForm') ||
+                                 document.querySelector('[data-role="approval-table"]');
+
+    if (!isUserApprovalsPage) {
+        return; // Not the user approvals page, don't initialize
+    }
+
     _initialized = true;
 
     initializeModals();
@@ -74,9 +85,22 @@ export function initializeFormSubmitListeners() {
  * @param {number} userId - The user ID to approve
  */
 export function showApprovalModal(userId) {
-    if (!approvalModal) {
-        showErrorAlert('Modal not initialized');
+    // Check if we're on the right page - silently return if not
+    if (!document.getElementById('approvalModal')) {
+        console.warn('[user-approval] approvalModal not found on this page');
         return;
+    }
+
+    if (!approvalModal) {
+        // Try to initialize the modal now
+        const modalElement = document.getElementById('approvalModal');
+        if (modalElement && window.ModalManager) {
+            approvalModal = window.ModalManager.getInstance('approvalModal');
+        }
+        if (!approvalModal) {
+            showErrorAlert('Modal not initialized');
+            return;
+        }
     }
 
     currentUserId = userId;
@@ -99,9 +123,22 @@ export function showApprovalModal(userId) {
  * @param {number} userId - The user ID to deny
  */
 export function showDenialModal(userId) {
-    if (!denialModal) {
-        showErrorAlert('Modal not initialized');
+    // Check if we're on the right page - silently return if not
+    if (!document.getElementById('denialModal')) {
+        console.warn('[user-approval] denialModal not found on this page');
         return;
+    }
+
+    if (!denialModal) {
+        // Try to initialize the modal now
+        const modalElement = document.getElementById('denialModal');
+        if (modalElement && window.ModalManager) {
+            denialModal = window.ModalManager.getInstance('denialModal');
+        }
+        if (!denialModal) {
+            showErrorAlert('Modal not initialized');
+            return;
+        }
     }
 
     currentUserId = userId;
@@ -430,9 +467,22 @@ export function showInfoAlert(message) {
  * @param {number} userId - The user ID to show details for
  */
 export function showPlayerDetails(userId) {
-    if (!playerDetailsModal) {
-        showErrorAlert('Details modal not initialized');
+    // Check if we're on the right page - silently return if not
+    if (!document.getElementById('playerDetailsModal')) {
+        console.warn('[user-approval] playerDetailsModal not found on this page');
         return;
+    }
+
+    if (!playerDetailsModal) {
+        // Try to initialize the modal now
+        const modalElement = document.getElementById('playerDetailsModal');
+        if (modalElement && window.ModalManager) {
+            playerDetailsModal = window.ModalManager.getInstance('playerDetailsModal');
+        }
+        if (!playerDetailsModal) {
+            showErrorAlert('Details modal not initialized');
+            return;
+        }
     }
 
     // Show loading state
