@@ -395,6 +395,21 @@
             </div>
             <div class="p-4 md:p-5 space-y-4">
                 <input type="hidden" id="manualLinkLineItemId">
+                <!-- Suggestion Banner -->
+                <div id="suggestionBanner" class="hidden">
+                    <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-sm text-yellow-800 dark:text-yellow-300 flex items-center gap-1">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Suggested match for "<span id="suggestionCustomerName" class="font-medium"></span>":
+                            </p>
+                            <button type="button" id="dismissSuggestion" class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                        <div id="suggestionList" class="space-y-1"></div>
+                    </div>
+                </div>
                 <div>
                     <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Player</label>
                     <input type="text" id="playerSearchInput" placeholder="Type to search by name..." class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
@@ -706,6 +721,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmBtn = document.getElementById('confirmManualLink');
     let searchTimeout;
 
+    // Function to select a player (reused for both search and suggestions)
+    function selectPlayer(playerId, playerName, playerInfo) {
+        selectedPlayerId = playerId;
+        document.getElementById('selectedPlayerName').textContent = playerName;
+        document.getElementById('selectedPlayerInfo').textContent = playerInfo ? '@' + playerInfo : '';
+        selectedPlayerDiv.classList.remove('hidden');
+        searchResults.classList.add('hidden');
+        document.getElementById('suggestionBanner')?.classList.add('hidden');
+        searchInput.value = '';
+        confirmBtn.disabled = false;
+    }
+
     document.querySelectorAll('.manual-link-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             document.getElementById('manualLinkLineItemId').value = this.dataset.lineItemId;
@@ -716,7 +743,51 @@ document.addEventListener('DOMContentLoaded', function() {
             confirmBtn.disabled = true;
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+
+            // Auto-suggest based on customer name
+            const customerName = '{{ order.customer_name | e }}';
+            const suggestionBanner = document.getElementById('suggestionBanner');
+            const suggestionList = document.getElementById('suggestionList');
+            const suggestionCustomerName = document.getElementById('suggestionCustomerName');
+
+            if (customerName && customerName.trim().length >= 2 && suggestionBanner) {
+                suggestionBanner.classList.remove('hidden');
+                suggestionCustomerName.textContent = customerName;
+                suggestionList.innerHTML = '<span class="text-sm text-gray-500 dark:text-gray-400">Loading...</span>';
+
+                fetch(`/admin-panel/pub-league-orders/api/search-players?suggest_for=${encodeURIComponent(customerName)}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.is_suggestion && data.players.length > 0) {
+                        suggestionList.innerHTML = data.players.map(p => `
+                            <button type="button" class="w-full text-left p-2 hover:bg-yellow-100 dark:hover:bg-yellow-800/50 rounded suggested-player"
+                                    data-player-id="${p.player_id}" data-player-name="${p.name}" data-player-info="${p.discord_username || ''}">
+                                <span class="font-medium text-gray-900 dark:text-white">${p.name}</span>
+                                ${p.discord_username ? '<span class="text-xs text-gray-500 dark:text-gray-400 ml-2">@' + p.discord_username + '</span>' : ''}
+                                ${p.is_current_player ? '<span class="px-1 py-0.5 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded ml-2">Active</span>' : ''}
+                            </button>
+                        `).join('');
+
+                        // Attach click handlers to suggested players
+                        document.querySelectorAll('.suggested-player').forEach(sp => {
+                            sp.addEventListener('click', function() {
+                                selectPlayer(this.dataset.playerId, this.dataset.playerName, this.dataset.playerInfo);
+                            });
+                        });
+                    } else {
+                        suggestionBanner.classList.add('hidden');
+                    }
+                })
+                .catch(() => suggestionBanner.classList.add('hidden'));
+            } else if (suggestionBanner) {
+                suggestionBanner.classList.add('hidden');
+            }
         });
+    });
+
+    // Dismiss suggestion handler
+    document.getElementById('dismissSuggestion')?.addEventListener('click', function() {
+        document.getElementById('suggestionBanner').classList.add('hidden');
     });
 
     document.querySelectorAll('[data-modal-hide="manualLinkModal"]').forEach(btn => {
@@ -751,13 +822,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Add click handlers
                     document.querySelectorAll('.player-result').forEach(r => {
                         r.addEventListener('click', function() {
-                            selectedPlayerId = this.dataset.playerId;
-                            document.getElementById('selectedPlayerName').textContent = this.dataset.playerName;
-                            document.getElementById('selectedPlayerInfo').textContent = this.dataset.playerInfo ? '@' + this.dataset.playerInfo : '';
-                            selectedPlayerDiv.classList.remove('hidden');
-                            searchResults.classList.add('hidden');
-                            searchInput.value = '';
-                            confirmBtn.disabled = false;
+                            selectPlayer(this.dataset.playerId, this.dataset.playerName, this.dataset.playerInfo);
                         });
                     });
                 } else {

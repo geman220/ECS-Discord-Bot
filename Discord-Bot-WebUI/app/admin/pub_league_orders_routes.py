@@ -14,7 +14,7 @@ from datetime import datetime
 
 from flask import Blueprint, render_template, request, jsonify, url_for
 from flask_login import login_required, current_user
-from sqlalchemy import desc, or_
+from sqlalchemy import desc, or_, func, distinct
 from sqlalchemy.orm import joinedload
 
 from app.core import db
@@ -43,10 +43,26 @@ def orders_list():
         page = request.args.get('page', 1, type=int)
         per_page = 25
 
-        # Base query with eager loading
+        # Subquery for divisions - aggregates distinct divisions per order
+        division_subq = (
+            db.session.query(
+                PubLeagueOrderLineItem.order_id,
+                func.group_concat(distinct(PubLeagueOrderLineItem.division)).label('divisions')
+            )
+            .group_by(PubLeagueOrderLineItem.order_id)
+            .subquery()
+        )
+
+        # Base query with eager loading and division subquery
         # Note: line_items uses lazy='dynamic' so we can't use joinedload on it
-        query = db.session.query(PubLeagueOrder).options(
+        query = db.session.query(
+            PubLeagueOrder,
+            division_subq.c.divisions
+        ).options(
             joinedload(PubLeagueOrder.primary_user)
+        ).outerjoin(
+            division_subq,
+            PubLeagueOrder.id == division_subq.c.order_id
         )
 
         # Apply status filter
@@ -67,8 +83,36 @@ def orders_list():
         # Order by created_at descending
         query = query.order_by(desc(PubLeagueOrder.created_at))
 
-        # Paginate
-        orders = query.paginate(page=page, per_page=per_page, error_out=False)
+        # Paginate - need to handle the tuple results
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
+        # Convert tuples to objects with divisions attribute
+        class OrderWithDivisions:
+            def __init__(self, order, divisions):
+                self._order = order
+                self.divisions = divisions
+
+            def __getattr__(self, name):
+                return getattr(self._order, name)
+
+        orders_with_divisions = [OrderWithDivisions(order, divisions) for order, divisions in pagination.items]
+
+        # Create a custom pagination-like object
+        class PaginationWrapper:
+            def __init__(self, items, pagination):
+                self.items = items
+                self.page = pagination.page
+                self.pages = pagination.pages
+                self.has_prev = pagination.has_prev
+                self.has_next = pagination.has_next
+                self.prev_num = pagination.prev_num
+                self.next_num = pagination.next_num
+                self.total = pagination.total
+
+            def iter_pages(self, **kwargs):
+                return pagination.iter_pages(**kwargs)
+
+        orders = PaginationWrapper(orders_with_divisions, pagination)
 
         # Calculate statistics
         stats = {
@@ -180,7 +224,56 @@ def order_detail(order_id):
 def api_search_players():
     """Search for players to manually assign passes to."""
     query = request.args.get('q', '').strip()
+    suggest_for = request.args.get('suggest_for', '').strip()
 
+    def _format_player(player):
+        """Format a player for JSON response."""
+        user = player.user
+        return {
+            'player_id': player.id,
+            'user_id': user.id if user else None,
+            'name': player.name,
+            'discord_username': player.discord_username,
+            'email_hint': _mask_email(user.email) if user and hasattr(user, 'email') and user.email else None,
+            'is_current_player': player.is_current_player,
+        }
+
+    # Suggestion mode: search by customer name parts
+    if suggest_for and len(query) < 2:
+        try:
+            name_parts = suggest_for.split()
+            conditions = []
+            for part in name_parts:
+                if len(part) >= 2:
+                    conditions.append(Player.name.ilike(f'%{part}%'))
+
+            if conditions:
+                players = db.session.query(Player).options(
+                    joinedload(Player.user)
+                ).filter(or_(*conditions)).limit(10).all()
+
+                # Score by name part matches
+                results = []
+                for player in players:
+                    player_lower = player.name.lower()
+                    match_count = sum(1 for part in name_parts if part.lower() in player_lower)
+                    results.append((player, match_count))
+                results.sort(key=lambda x: x[1], reverse=True)
+
+                return jsonify({
+                    'success': True,
+                    'players': [_format_player(p) for p, _ in results[:5]],
+                    'is_suggestion': True,
+                    'suggested_for': suggest_for
+                })
+
+            return jsonify({'success': True, 'players': [], 'is_suggestion': True})
+
+        except Exception as e:
+            logger.error(f"Error in suggestion search: {e}", exc_info=True)
+            return jsonify({'success': False, 'error': str(e)}), 500
+
+    # Normal search mode
     if len(query) < 2:
         return jsonify({'success': True, 'players': []})
 
@@ -195,17 +288,7 @@ def api_search_players():
             )
         ).limit(10).all()
 
-        results = []
-        for player in players:
-            user = player.user
-            results.append({
-                'player_id': player.id,
-                'user_id': user.id if user else None,
-                'name': player.name,
-                'discord_username': player.discord_username,
-                'email_hint': _mask_email(user.email) if user and hasattr(user, 'email') and user.email else None,
-                'is_current_player': player.is_current_player,
-            })
+        results = [_format_player(player) for player in players]
 
         return jsonify({'success': True, 'players': results})
 

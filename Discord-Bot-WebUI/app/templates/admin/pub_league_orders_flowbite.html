@@ -179,6 +179,7 @@
                         <th class="px-4 py-3">WooCommerce ID</th>
                         <th class="px-4 py-3">Customer</th>
                         <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Division</th>
                         <th class="px-4 py-3">Passes</th>
                         <th class="px-4 py-3">Season</th>
                         <th class="px-4 py-3">Created</th>
@@ -223,6 +224,19 @@
                             </span>
                             {% else %}
                             <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ order.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if order.divisions %}
+                                {% if 'Premier' in order.divisions and 'Classic' in order.divisions %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Mixed</span>
+                                {% elif 'Premier' in order.divisions %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded">Premier</span>
+                                {% elif 'Classic' in order.divisions %}
+                                <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Classic</span>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-gray-400 dark:text-gray-500">-</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">

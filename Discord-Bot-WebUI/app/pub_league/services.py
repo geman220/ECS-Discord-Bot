@@ -494,14 +494,28 @@ class RoleSyncService:
         """
         Sync Flask roles in the database.
 
+        Note: We re-query the user to ensure it's in the current session,
+        avoiding cross-session issues when called from different contexts.
+
         Args:
             user: User to update
             new_role_name: Role to add (e.g., 'pl-classic')
             opposite_role_name: Role to remove if present (e.g., 'pl-premier')
         """
+        from sqlalchemy.orm import joinedload
+
         session = getattr(g, 'db_session', db.session)
 
-        # Get role objects
+        # Re-query user with roles to ensure proper session binding
+        user = session.query(User).options(
+            joinedload(User.roles)
+        ).filter_by(id=user.id).first()
+
+        if not user:
+            logger.warning(f"User not found when syncing Flask role")
+            return
+
+        # Get role objects from this session
         new_role = session.query(Role).filter_by(name=new_role_name).first()
         opposite_role = session.query(Role).filter_by(name=opposite_role_name).first()
 

@@ -36,6 +36,15 @@ class AdminLeagueHistoryManager {
         const searchInput = document.getElementById('playerSearchInput');
         if (!searchInput) return;
 
+        // Check if we're on the league history page by looking for page-specific elements
+        const isLeagueHistoryPage = document.getElementById('selectedPlayerId') &&
+                                     document.getElementById('lookupBtn') &&
+                                     document.getElementById('playerHistoryResult');
+
+        if (!isLeagueHistoryPage) {
+            return; // Not the league history page, don't attach handlers
+        }
+
         searchInput.addEventListener('input', (e) => {
             const query = e.target.value.trim();
 
