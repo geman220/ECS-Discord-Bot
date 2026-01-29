@@ -157,28 +157,28 @@ export class ECSFCScheduleManager {
         let formHTML = `
             <form method="POST" action="/ecsfc/bulk_create_matches/${window.seasonId || ''}/${leagueName}" data-component="detailed-bulk-form">
                 <input type="hidden" name="csrf_token" value="${this.csrfToken}">
-                <div class="row g-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         `;
 
         for (let week = 1; week <= totalWeeks; week++) {
             let weekDetails = week == funWeek ? 'Fun Week' : week == tstWeek ? 'TST Week' : `Week ${week}`;
 
             formHTML += `
-                <div class="col-lg-4 col-md-6 col-sm-12">
-                    <div class="c-week-form-card card">
-                        <div class="card-header c-week-form-card__header">
-                            <h6 class="c-week-form-card__title">${weekDetails}</h6>
+                <div>
+                    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
+                        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700 rounded-t-lg">
+                            <h6 class="font-semibold text-gray-900 dark:text-white">${weekDetails}</h6>
                         </div>
-                        <div class="card-body">
+                        <div class="p-4">
             `;
 
             if (week == funWeek || week == tstWeek) {
-                formHTML += `<p class="c-week-form-card__special">No matches scheduled this week.</p>`;
+                formHTML += `<p class="text-sm text-gray-500 dark:text-gray-400 italic">No matches scheduled this week.</p>`;
             } else {
                 formHTML += `
-                    <div class="c-form-group">
-                        <label class="c-form-group__label">Date</label>
-                        <input type="date" class="c-form-group__input" name="date_week${week}" required data-form-control>
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date</label>
+                        <input type="date" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" name="date_week${week}" required data-form-control>
                     </div>
                 `;
 
@@ -196,9 +196,9 @@ export class ECSFCScheduleManager {
 
         formHTML += `
                 </div>
-                <div class="mt-3">
-                    <button type="submit" class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5" data-action="save-matches">
-                        <i class="ti ti-check me-1"></i>
+                <div class="mt-4">
+                    <button type="submit" class="text-white bg-ecs-green hover:bg-ecs-green-dark focus:ring-4 focus:ring-ecs-green/50 font-medium rounded-lg text-sm px-5 py-2.5" data-action="save-matches">
+                        <i class="ti ti-check mr-1"></i>
                         Save Matches
                     </button>
                 </div>
@@ -214,30 +214,30 @@ export class ECSFCScheduleManager {
         ).join('');
 
         return `
-            <div class="c-match-input" data-component="match-input">
-                <div class="row g-2 align-items-center mb-2">
-                    <div class="col-6 col-md-3">
-                        <select class="c-match-input__select" name="teamA_week${week}_match${match}" required data-form-select>
+            <div class="mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg" data-component="match-input">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <div>
+                        <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:text-white" name="teamA_week${week}_match${match}" required data-form-select>
                             <option value="">Team A</option>
                             ${teamsOptions}
                         </select>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <select class="c-match-input__select" name="teamB_week${week}_match${match}" required data-form-select>
+                    <div>
+                        <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:text-white" name="teamB_week${week}_match${match}" required data-form-select>
                             <option value="">Team B</option>
                             ${teamsOptions}
                         </select>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div>
                         <input type="time"
-                               class="c-match-input__time"
+                               class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:text-white"
                                name="time_week${week}_match${match}"
                                value="${startTimeStr}"
                                required
                                data-form-control>
                     </div>
-                    <div class="col-6 col-md-3">
-                        <select class="c-match-input__location" name="location_week${week}_match${match}" required data-form-select>
+                    <div>
+                        <select class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-600 dark:border-gray-500 dark:text-white" name="location_week${week}_match${match}" required data-form-select>
                             <option value="North" ${location === 'North' ? 'selected' : ''}>North</option>
                             <option value="South" ${location === 'South' ? 'selected' : ''}>South</option>
                         </select>

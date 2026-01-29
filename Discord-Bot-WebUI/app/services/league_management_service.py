@@ -14,6 +14,7 @@ Implements patterns similar to RSVPService for reliability.
 """
 
 import logging
+import re
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional, Tuple, Dict, Any, List
@@ -22,6 +23,60 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import func, or_, and_
 
 logger = logging.getLogger(__name__)
+
+# Discord naming constraints
+DISCORD_CHANNEL_NAME_MAX_LENGTH = 100
+DISCORD_ROLE_NAME_MAX_LENGTH = 100
+# Characters not allowed in Discord channel names (channels are more restrictive than roles)
+DISCORD_CHANNEL_INVALID_CHARS = re.compile(r'[^\w\s\-]', re.UNICODE)
+
+
+def validate_team_name_for_discord(team_name: str) -> Tuple[bool, List[str]]:
+    """
+    Validate a team name against Discord naming constraints.
+
+    Discord has specific limits:
+    - Channel names: max 100 chars, limited characters (alphanumeric, spaces, hyphens)
+    - Role names: max 100 chars, more permissive characters
+
+    Args:
+        team_name: The team name to validate.
+
+    Returns:
+        Tuple of (is_valid, list_of_errors).
+    """
+    errors = []
+
+    if not team_name or not team_name.strip():
+        errors.append('Team name cannot be empty')
+        return False, errors
+
+    team_name = team_name.strip()
+
+    # Check length - account for role prefix (e.g., "ECS-FC-PL-TEAMNAME-Player")
+    # Prefix "ECS-FC-PL-" = 10 chars, suffix "-Player" = 7 chars = 17 chars overhead
+    # Prefix "ECS-FC-PL-" = 10 chars, suffix "-Coach" = 6 chars = 16 chars overhead
+    max_team_name_length = DISCORD_ROLE_NAME_MAX_LENGTH - 17  # 83 chars
+
+    if len(team_name) > max_team_name_length:
+        errors.append(f'Team name too long ({len(team_name)} chars). Maximum is {max_team_name_length} characters to fit Discord role naming.')
+
+    if len(team_name) < 2:
+        errors.append('Team name must be at least 2 characters')
+
+    # Check for characters that will cause issues in Discord channel names
+    normalized_name = team_name.upper().replace(' ', '-')
+    invalid_chars = DISCORD_CHANNEL_INVALID_CHARS.findall(normalized_name)
+    if invalid_chars:
+        unique_invalid = list(set(invalid_chars))
+        errors.append(f'Team name contains invalid characters for Discord: {", ".join(unique_invalid)}')
+
+    # Check for reserved names that could conflict with special weeks
+    reserved_names = ['FUN WEEK', 'BYE', 'TST', 'BONUS', 'PLAYOFF']
+    if team_name.upper() in reserved_names:
+        errors.append(f'"{team_name}" is a reserved name and cannot be used for a team')
+
+    return len(errors) == 0, errors
 
 
 class LeagueManagementServiceError(Exception):
@@ -270,6 +325,7 @@ class LeagueManagementService:
             league_type = wizard_data.get('league_type')
             season_name = wizard_data.get('season_name')
             set_as_current = wizard_data.get('set_as_current', False)
+            perform_rollover = wizard_data.get('perform_rollover', False)
 
             # Validate
             if not league_type or not season_name:
@@ -284,7 +340,9 @@ class LeagueManagementService:
             if existing:
                 return False, f'A season named "{season_name}" already exists for {league_type}', None
 
-            # Handle rollover if setting as current
+            # IMPORTANT: Find old current season BEFORE modifying any records
+            # This fixes gap #3 - rollover was failing because we queried after setting is_current=False
+            old_current = None
             if set_as_current:
                 old_current = Season.query.filter_by(
                     is_current=True,
@@ -292,8 +350,7 @@ class LeagueManagementService:
                 ).first()
 
                 if old_current:
-                    old_current.is_current = False
-                    logger.info(f"Marking old season {old_current.name} as not current")
+                    logger.info(f"Found current season to replace: {old_current.name} (ID: {old_current.id})")
 
             # Create season
             season = Season(
@@ -303,6 +360,11 @@ class LeagueManagementService:
             )
             self.session.add(season)
             self.session.flush()  # Get season ID
+
+            # Now mark old season as not current (after we've captured the reference)
+            if old_current:
+                old_current.is_current = False
+                logger.info(f"Marked old season {old_current.name} as not current")
 
             # Create leagues based on type
             leagues = []
@@ -328,16 +390,12 @@ class LeagueManagementService:
             if wizard_data.get('schedule_config'):
                 self._create_schedule_config(wizard_data, leagues)
 
-            # Handle rollover if needed
-            if set_as_current and wizard_data.get('perform_rollover'):
-                old_current = Season.query.filter(
-                    Season.league_type == league_type,
-                    Season.id != season.id,
-                    Season.is_current == False  # Was just set to False above
-                ).order_by(Season.id.desc()).first()
-
-                if old_current:
-                    self._perform_rollover_internal(old_current, season)
+            # Handle rollover if needed - now using the old_current we captured earlier
+            if set_as_current and perform_rollover and old_current:
+                logger.info(f"Performing rollover from {old_current.name} to {season.name}")
+                rollover_success = self._perform_rollover_internal(old_current, season)
+                if not rollover_success:
+                    logger.warning(f"Rollover completed with warnings")
 
             # Log success
             AdminAuditLog.log_action(
@@ -349,6 +407,14 @@ class LeagueManagementService:
                 ip_address=None,
                 user_agent=None
             )
+
+            # Flush to ensure all data is written before queuing Discord tasks
+            self.session.flush()
+
+            # Queue Discord creation tasks (will be executed after commit)
+            discord_tasks_pending = len(getattr(self, '_pending_discord_teams', []))
+            if discord_tasks_pending > 0:
+                logger.info(f"{discord_tasks_pending} Discord creation tasks pending for post-commit queuing")
 
             logger.info(f"Season created successfully: {season.name} (ID: {season.id})")
             return True, f'Season "{season_name}" created with {teams_created} teams', season
@@ -433,14 +499,56 @@ class LeagueManagementService:
         pass
 
     def _queue_discord_team_creation(self, team: Any) -> None:
-        """Queue Discord resource creation for a team."""
+        """
+        Queue Discord resource creation for a team.
+
+        Note: This stores the team ID for post-commit queuing since the
+        Celery task needs the team to exist in the database first.
+        """
+        try:
+            # Store team IDs for post-commit Discord creation
+            if not hasattr(self, '_pending_discord_teams'):
+                self._pending_discord_teams = []
+            self._pending_discord_teams.append(team.id)
+            logger.info(f"Discord creation pending for team: {team.name} (ID: {team.id})")
+        except Exception as e:
+            logger.warning(f"Could not queue Discord team creation: {e}")
+
+    def queue_pending_discord_tasks(self) -> int:
+        """
+        Queue all pending Discord creation tasks after commit.
+
+        This should be called after the transaction commits to ensure
+        teams exist in the database before Celery workers access them.
+
+        Returns:
+            Number of tasks queued.
+        """
+        queued_count = 0
+        pending_teams = getattr(self, '_pending_discord_teams', [])
+
+        if not pending_teams:
+            return 0
+
         try:
             from app.tasks.tasks_discord import create_team_discord_resources_task
-            # Will be queued after commit
-            # For now, just log the intent
-            logger.info(f"Discord creation will be queued for team: {team.name}")
+
+            for team_id in pending_teams:
+                try:
+                    create_team_discord_resources_task.delay(team_id=team_id)
+                    queued_count += 1
+                    logger.info(f"Queued Discord creation task for team ID: {team_id}")
+                except Exception as e:
+                    logger.error(f"Failed to queue Discord task for team {team_id}: {e}")
+
+            # Clear pending list
+            self._pending_discord_teams = []
+            logger.info(f"Queued {queued_count} Discord creation tasks")
+
         except ImportError:
-            logger.warning("Discord tasks not available")
+            logger.warning("Discord tasks module not available - Discord resources will not be created")
+
+        return queued_count
 
     def get_rollover_preview(
         self,
@@ -582,6 +690,11 @@ class LeagueManagementService:
         from app.models.admin_config import AdminAuditLog
 
         try:
+            # Validate team name for Discord compatibility
+            is_valid, validation_errors = validate_team_name_for_discord(name)
+            if not is_valid:
+                return False, f'Invalid team name: {"; ".join(validation_errors)}', None
+
             league = League.query.get(league_id)
             if not league:
                 return False, 'League not found', None

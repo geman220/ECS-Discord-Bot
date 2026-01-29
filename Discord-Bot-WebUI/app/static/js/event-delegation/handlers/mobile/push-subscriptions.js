@@ -58,7 +58,7 @@ export function initPushSubscriptionsHandlers(ED) {
                     <div class="mb-3">
                         <strong>Token ID:</strong> ${tokenId}<br>
                         <strong>Platform:</strong> iOS<br>
-                        <strong>Status:</strong> <span class="badge bg-success" data-badge>Active</span><br>
+                        <strong>Status:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>Active</span><br>
                         <strong>Created:</strong> ${new Date().toISOString().split('T')[0]}
                     </div>
                     <div class="mb-3">
@@ -101,9 +101,9 @@ export function initPushSubscriptionsHandlers(ED) {
                         <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Maximum 160 characters</p>
                     </div>
                     <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="testHighPriority">
-                            <label class="form-check-label" for="testHighPriority">
+                        <div class="flex items-center">
+                            <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="testHighPriority">
+                            <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="testHighPriority">
                                 High Priority Notification
                             </label>
                         </div>

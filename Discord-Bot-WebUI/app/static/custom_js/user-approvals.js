@@ -62,13 +62,13 @@ export function viewUserDetails(userId, userName) {
             if (data.success && contentEl) {
                 contentEl.innerHTML = data.html;
             } else if (contentEl) {
-                contentEl.innerHTML = '<div class="alert alert-danger" data-alert>Error loading user details</div>';
+                contentEl.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert" data-alert>Error loading user details</div>';
             }
         })
         .catch(error => {
             console.error('[UserApprovals] Error loading user details:', error);
             if (contentEl) {
-                contentEl.innerHTML = '<div class="alert alert-danger" data-alert>Error loading user details</div>';
+                contentEl.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert" data-alert>Error loading user details</div>';
             }
         });
 }

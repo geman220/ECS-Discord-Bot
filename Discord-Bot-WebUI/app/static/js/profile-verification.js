@@ -75,11 +75,11 @@ const ProfileVerification = {
 
       // Create checkbox container
       const checkboxContainer = document.createElement('div');
-      checkboxContainer.className = 'form-check form-switch flex align-items-center ms-auto';
+      checkboxContainer.className = 'flex items-center ms-auto';
 
       // Create checkbox input
       const checkbox = document.createElement('input');
-      checkbox.className = 'form-check-input section-reviewed';
+      checkbox.className = 'w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600 section-reviewed';
       checkbox.type = 'checkbox';
       checkbox.id = `section-reviewed-${index}`;
       checkbox.setAttribute('data-section', sectionName.toLowerCase().replace(/\s+/g, '-'));
@@ -88,7 +88,7 @@ const ProfileVerification = {
 
       // Create label
       const label = document.createElement('label');
-      label.className = 'form-check-label ms-2 verification-label';
+      label.className = 'ms-2 text-sm font-medium text-gray-900 dark:text-gray-300 verification-label';
       label.setAttribute('for', `section-reviewed-${index}`);
       label.textContent = 'Reviewed';
 
@@ -98,7 +98,7 @@ const ProfileVerification = {
 
       // Make card header flex if not already
       if (!cardHeader.classList.contains('flex')) {
-        cardHeader.classList.add('flex', 'justify-content-between', 'align-items-center');
+        cardHeader.classList.add('flex', 'justify-between', 'items-center');
       }
 
       cardHeader.appendChild(checkboxContainer);
@@ -320,7 +320,7 @@ const ProfileVerification = {
   createProgressIndicator: function() {
     const container = document.createElement('div');
     container.id = 'verification-progress';
-    container.className = 'alert alert-info sticky-top mb-4 verification-progress-container';
+    container.className = 'p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 sticky top-0 mb-4 verification-progress-container';
     container.setAttribute('data-progress-indicator', 'verification');
     container.setAttribute('data-status', 'info');
 

@@ -123,16 +123,16 @@ function openNavigationSettings() {
 function showNavigationSettingsModal(settings) {
     const html = `
       <div class="text-start">
-        <p class="text-info mb-3"><i class="ti ti-info-circle me-1"></i>Control which navigation items are visible to non-admin users. Admins can always see all navigation items.</p>
+        <p class="text-blue-600 dark:text-blue-400 mb-3"><i class="ti ti-info-circle me-1"></i>Control which navigation items are visible to non-admin users. Admins can always see all navigation items.</p>
 
-        <div class="row">
-          <div class="col-md-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
             ${createToggle('teamsNav', 'Teams Navigation', 'Team rosters and management for pl-premier, pl-classic roles', settings.teams_navigation_enabled)}
             ${createToggle('storeNav', 'Store Navigation', 'League store for coaches and admins', settings.store_navigation_enabled)}
             ${createToggle('matchesNav', 'Matches Navigation', 'Match schedules and results', settings.matches_navigation_enabled)}
             ${createToggle('leaguesNav', 'Leagues Navigation', 'League standings and information', settings.leagues_navigation_enabled)}
           </div>
-          <div class="col-md-6">
+          <div>
             ${createToggle('draftsNav', 'Drafts Navigation', 'Draft system for coaches', settings.drafts_navigation_enabled)}
             ${createToggle('playersNav', 'Players Navigation', 'Player profiles and statistics', settings.players_navigation_enabled)}
             ${createToggle('messagingNav', 'Messaging Navigation', 'Communication tools', settings.messaging_navigation_enabled)}
@@ -230,26 +230,26 @@ function showRegistrationSettingsModal(settings, roles) {
 
     const html = `
       <div class="text-start">
-        <p class="text-info mb-3"><i class="ti ti-info-circle me-1"></i>Configure registration settings based on your actual onboarding flow. Discord OAuth is the primary login method.</p>
+        <p class="text-blue-600 dark:text-blue-400 mb-3"><i class="ti ti-info-circle me-1"></i>Configure registration settings based on your actual onboarding flow. Discord OAuth is the primary login method.</p>
 
-        <div class="row">
-          <div class="col-md-6">
-            <h6 class="text-primary mb-3">Registration Control</h6>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h6 class="text-ecs-green dark:text-ecs-green mb-3 font-semibold">Registration Control</h6>
             ${createToggle('registrationEnabled', 'Allow New Registration', 'Enable/disable new user registration', settings.registration_enabled)}
             ${createToggle('waitlistEnabled', 'Enable Waitlist', 'Allow waitlist registration when full', settings.waitlist_registration_enabled)}
             ${createToggle('adminApproval', 'Admin Approval Required', 'All new users need admin approval', settings.admin_approval_required)}
             ${createToggle('discordOnly', 'Discord Only Login', 'Only Discord OAuth allowed (FIXED)', true, true)}
 
             <div class="mb-3">
-              <label class="form-label">Default User Role</label>
-              <select class="form-select" id="defaultRole">
+              <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Default User Role</label>
+              <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="defaultRole">
                 ${roleOptions}
               </select>
-              <small class="text-muted">Role assigned to new registered users</small>
+              <small class="text-gray-500 dark:text-gray-400">Role assigned to new registered users</small>
             </div>
           </div>
-          <div class="col-md-6">
-            <h6 class="text-primary mb-3">Registration Fields</h6>
+          <div>
+            <h6 class="text-ecs-green dark:text-ecs-green mb-3 font-semibold">Registration Fields</h6>
             ${createToggle('requireRealName', 'Require Real Name', '', settings.require_real_name)}
             ${createToggle('requireEmail', 'Require Email', '', settings.require_email)}
             ${createToggle('requirePhone', 'Require Phone Number', '', settings.require_phone)}
@@ -260,7 +260,7 @@ function showRegistrationSettingsModal(settings, roles) {
             ${createToggle('requireReferee', 'Require Referee Willingness', '', settings.require_referee_willingness)}
           </div>
         </div>
-        <div class="alert alert-info mt-3">
+        <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 mt-3" role="alert">
           <small><i class="ti ti-info-circle me-1"></i>These settings reflect your real onboarding form fields. Discord OAuth is your primary authentication method.</small>
         </div>
       </div>
@@ -348,61 +348,55 @@ function openTaskMonitor() {
 }
 
 function showTaskMonitorModal(data) {
+    function getTaskStatusBadge(status) {
+        if (status === 'active') {
+            return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+        }
+        return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+    }
+
     let tasksHtml = '';
     if (data.tasks && data.tasks.length > 0) {
         data.tasks.forEach(task => {
-            const statusClass = task.status === 'active' ? 'success' : 'secondary';
             tasksHtml += `
-          <tr>
-            <td>${task.name}</td>
-            <td><span class="badge bg-${statusClass}">${task.status}</span></td>
-            <td>${task.started || '-'}</td>
-            <td>${task.worker || '-'}</td>
-            <td class="text-truncate">${task.args || '-'}</td>
+          <tr class="border-b dark:border-gray-700">
+            <td class="py-2 px-3">${task.name}</td>
+            <td class="py-2 px-3"><span class="px-2 py-0.5 text-xs font-medium rounded ${getTaskStatusBadge(task.status)}">${task.status}</span></td>
+            <td class="py-2 px-3">${task.started || '-'}</td>
+            <td class="py-2 px-3">${task.worker || '-'}</td>
+            <td class="py-2 px-3 truncate max-w-xs">${task.args || '-'}</td>
           </tr>
         `;
         });
     } else {
-        tasksHtml = '<tr><td colspan="5" class="text-center text-muted">No active tasks found</td></tr>';
+        tasksHtml = '<tr><td colspan="5" class="text-center text-gray-500 dark:text-gray-400 py-4">No active tasks found</td></tr>';
     }
 
     const html = `
       <div class="text-start">
-        <div class="row mb-3">
-          <div class="col-md-4">
-            <div class="card bg-success text-white">
-              <div class="card-body text-center">
-                <h4>${data.active_count || 0}</h4>
-                <small>Active Tasks</small>
-              </div>
-            </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div class="bg-green-600 text-white rounded-lg p-4 text-center">
+            <h4 class="text-2xl font-bold">${data.active_count || 0}</h4>
+            <small>Active Tasks</small>
           </div>
-          <div class="col-md-4">
-            <div class="card bg-warning text-white">
-              <div class="card-body text-center">
-                <h4>${data.scheduled_count || 0}</h4>
-                <small>Scheduled Tasks</small>
-              </div>
-            </div>
+          <div class="bg-yellow-500 text-white rounded-lg p-4 text-center">
+            <h4 class="text-2xl font-bold">${data.scheduled_count || 0}</h4>
+            <small>Scheduled Tasks</small>
           </div>
-          <div class="col-md-4">
-            <div class="card bg-info text-white">
-              <div class="card-body text-center">
-                <h4>${data.worker_count || 0}</h4>
-                <small>Workers</small>
-              </div>
-            </div>
+          <div class="bg-blue-500 text-white rounded-lg p-4 text-center">
+            <h4 class="text-2xl font-bold">${data.worker_count || 0}</h4>
+            <small>Workers</small>
           </div>
         </div>
-        <div class="table-responsive">
-          <table class="table table-sm">
-            <thead>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
               <tr>
-                <th>Task Name</th>
-                <th>Status</th>
-                <th>Started</th>
-                <th>Worker</th>
-                <th>Arguments</th>
+                <th class="py-2 px-3">Task Name</th>
+                <th class="py-2 px-3">Status</th>
+                <th class="py-2 px-3">Started</th>
+                <th class="py-2 px-3">Worker</th>
+                <th class="py-2 px-3">Arguments</th>
               </tr>
             </thead>
             <tbody>
@@ -410,8 +404,8 @@ function showTaskMonitorModal(data) {
             </tbody>
           </table>
         </div>
-        ${data.message ? `<div class="alert alert-info"><small>${data.message}</small></div>` : ''}
-        <p class="text-muted mt-3"><small>Task monitoring shows real-time background processes and scheduled jobs.</small></p>
+        ${data.message ? `<div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 mt-3" role="alert"><small>${data.message}</small></div>` : ''}
+        <p class="text-gray-500 dark:text-gray-400 mt-3"><small>Task monitoring shows real-time background processes and scheduled jobs.</small></p>
       </div>
     `;
 
@@ -450,43 +444,28 @@ function openDatabaseMonitor() {
 }
 
 function showDatabaseMonitorModal(data) {
+    const redisStatusClass = data.services.redis.status === 'online' ? 'bg-green-600' : 'bg-red-600';
     const html = `
       <div class="text-start">
-        <div class="row mb-3">
-          <div class="col-md-3">
-            <div class="card bg-info text-white">
-              <div class="card-body text-center">
-                <h4>${data.system.cpu_percent}%</h4>
-                <small>CPU Usage</small>
-              </div>
-            </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div class="bg-blue-500 text-white rounded-lg p-4 text-center">
+            <h4 class="text-2xl font-bold">${data.system.cpu_percent}%</h4>
+            <small>CPU Usage</small>
           </div>
-          <div class="col-md-3">
-            <div class="card bg-success text-white">
-              <div class="card-body text-center">
-                <h4>${data.system.memory_percent}%</h4>
-                <small>Memory Usage</small>
-              </div>
-            </div>
+          <div class="bg-green-600 text-white rounded-lg p-4 text-center">
+            <h4 class="text-2xl font-bold">${data.system.memory_percent}%</h4>
+            <small>Memory Usage</small>
           </div>
-          <div class="col-md-3">
-            <div class="card bg-primary text-white">
-              <div class="card-body text-center">
-                <h4>${data.services.database.response_time_ms}ms</h4>
-                <small>DB Response Time</small>
-              </div>
-            </div>
+          <div class="bg-ecs-green text-white rounded-lg p-4 text-center">
+            <h4 class="text-2xl font-bold">${data.services.database.response_time_ms}ms</h4>
+            <small>DB Response Time</small>
           </div>
-          <div class="col-md-3">
-            <div class="card bg-${data.services.redis.status === 'online' ? 'success' : 'danger'} text-white">
-              <div class="card-body text-center">
-                <h4>${data.services.redis.response_time_ms}ms</h4>
-                <small>Redis Response</small>
-              </div>
-            </div>
+          <div class="${redisStatusClass} text-white rounded-lg p-4 text-center">
+            <h4 class="text-2xl font-bold">${data.services.redis.response_time_ms}ms</h4>
+            <small>Redis Response</small>
           </div>
         </div>
-        <p class="text-muted mt-3"><small>Real-time system monitoring data updated at ${new Date(data.timestamp).toLocaleString()}.</small></p>
+        <p class="text-gray-500 dark:text-gray-400 mt-3"><small>Real-time system monitoring data updated at ${new Date(data.timestamp).toLocaleString()}.</small></p>
       </div>
     `;
 
@@ -508,23 +487,23 @@ function openMatchReports() {
             title: 'Match Reports',
             html: `
             <div class="text-start">
-              <p class="text-info mb-3"><i class="ti ti-info-circle me-1"></i>Access match reports and statistics.</p>
+              <p class="text-blue-600 dark:text-blue-400 mb-3"><i class="ti ti-info-circle me-1"></i>Access match reports and statistics.</p>
               <div class="mb-3">
-                <strong>Available Reports:</strong>
-                <ul class="mt-2">
+                <strong class="text-gray-900 dark:text-white">Available Reports:</strong>
+                <ul class="mt-2 text-gray-700 dark:text-gray-300 list-disc list-inside">
                   <li>Match results are available on the Matches page</li>
                   <li>Team statistics are on individual Team pages</li>
                   <li>Season standings on the Leagues page</li>
                 </ul>
               </div>
-              <div class="d-flex gap-2 flex-wrap">
-                <a href="/matches" class="btn btn-outline-primary btn-sm">
+              <div class="flex gap-2 flex-wrap">
+                <a href="/matches" class="px-3 py-2 text-sm font-medium text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors">
                   <i class="ti ti-calendar me-1"></i>Matches
                 </a>
-                <a href="/teams" class="btn btn-outline-info btn-sm">
+                <a href="/teams" class="px-3 py-2 text-sm font-medium text-blue-600 border border-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors dark:text-blue-400 dark:border-blue-400">
                   <i class="ti ti-users me-1"></i>Teams
                 </a>
-                <a href="/leagues" class="btn btn-outline-success btn-sm">
+                <a href="/leagues" class="px-3 py-2 text-sm font-medium text-green-600 border border-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-colors dark:text-green-400 dark:border-green-400">
                   <i class="ti ti-trophy me-1"></i>Leagues
                 </a>
               </div>
@@ -548,13 +527,14 @@ function generateReport() {
 function createToggle(id, label, description, checked, disabled = false) {
     return `
       <div class="mb-3">
-        <div class="form-check form-switch">
-          <input class="form-check-input" type="checkbox" id="${id}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
-          <label class="form-check-label" for="${id}">
-            <strong>${label}</strong>
-            ${description ? `<br><small class="text-muted">${description}</small>` : ''}
-          </label>
-        </div>
+        <label class="relative inline-flex items-start cursor-pointer">
+          <input type="checkbox" id="${id}" class="sr-only peer" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green ${disabled ? 'opacity-50 cursor-not-allowed' : ''}"></div>
+          <span class="ml-3 text-sm">
+            <strong class="font-medium text-gray-900 dark:text-white">${label}</strong>
+            ${description ? `<br><small class="text-gray-500 dark:text-gray-400">${description}</small>` : ''}
+          </span>
+        </label>
       </div>
     `;
 }

@@ -25,7 +25,7 @@ window.EventDelegation.register('approve-all-pending', function(element, e) {
 
     window.Swal.fire({
         title: 'Approve All Pending Users?',
-        html: '<p>This will approve all users currently pending approval.</p><p class="text-warning small"><i class="ti ti-alert-triangle me-1"></i>This action cannot be undone.</p>',
+        html: '<p>This will approve all users currently pending approval.</p><p class="text-yellow-500 dark:text-yellow-400 small"><i class="ti ti-alert-triangle me-1"></i>This action cannot be undone.</p>',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
@@ -81,7 +81,7 @@ window.EventDelegation.register('process-waitlist', function(element, e) {
 
     window.Swal.fire({
         title: 'Process Entire Waitlist?',
-        html: '<p>This will move all eligible users from the waitlist to pending approval.</p><p class="text-info small"><i class="ti ti-info-circle me-1"></i>Users will need to be approved afterwards.</p>',
+        html: '<p>This will move all eligible users from the waitlist to pending approval.</p><p class="text-blue-500 dark:text-blue-400 small"><i class="ti ti-info-circle me-1"></i>Users will need to be approved afterwards.</p>',
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#17a2b8',
@@ -139,16 +139,16 @@ window.EventDelegation.register('send-bulk-notifications', function(element, e) 
         title: 'Send Bulk Notifications',
         html: `
             <div class="mb-3">
-                <label class="form-label">Notification Title</label>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title</label>
                 <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="notificationTitle" placeholder="Enter notification title" data-form-control>
             </div>
             <div class="mb-3">
-                <label class="form-label">Message</label>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
                 <textarea class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="notificationMessage" rows="3" placeholder="Enter notification message" data-form-control></textarea>
             </div>
             <div class="mb-3">
-                <label class="form-label">Target Audience</label>
-                <select class="form-select" id="notificationTarget" data-form-select>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Target Audience</label>
+                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="notificationTarget" data-form-select>
                     <option value="all">All Users</option>
                     <option value="coaches">Coaches Only</option>
                     <option value="admins">Administrators Only</option>

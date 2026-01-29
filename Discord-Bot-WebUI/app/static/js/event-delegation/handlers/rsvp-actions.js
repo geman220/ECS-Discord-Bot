@@ -483,12 +483,12 @@ function updateSubstituteSlots() {
     // Create slots for each substitute needed
     for (let i = 1; i <= count; i++) {
         const slotHtml = `
-            <div class="row mb-2 substitute-slot" data-slot="${i}">
-                <div class="col-1">
-                    <span class="badge bg-primary" data-badge>${i}</span>
+            <div class="grid grid-cols-12 gap-2 mb-2 substitute-slot" data-slot="${i}">
+                <div class="col-span-1">
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300" data-badge>${i}</span>
                 </div>
-                <div class="col-6">
-                    <select class="form-select form-select-sm" name="slot_${i}_position" data-form-select>
+                <div class="col-span-6">
+                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" name="slot_${i}_position" data-form-select>
                         <option value="">Any Position</option>
                         <option value="Goalkeeper">Goalkeeper</option>
                         <option value="Center Back">Center Back</option>
@@ -505,8 +505,8 @@ function updateSubstituteSlots() {
                         <option value="Striker">Striker</option>
                     </select>
                 </div>
-                <div class="col-5">
-                    <select class="form-select form-select-sm" name="slot_${i}_gender" data-form-select>
+                <div class="col-span-5">
+                    <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white" name="slot_${i}_gender" data-form-select>
                         <option value="">Any Gender</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>

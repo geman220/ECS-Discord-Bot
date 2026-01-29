@@ -309,8 +309,8 @@ function updateCalendarPreview() {
     let html = `
         <div class="mb-3 p-3 bg-light rounded">
             <h6 class="mb-1"><i class="fas fa-calendar-alt me-2"></i>Season Calendar Preview</h6>
-            <small class="text-muted">${unifiedWeeks.length} weeks total</small><br>
-            <small class="text-info"><i class="fas fa-hand-pointer me-1"></i>Drag any week to swap positions</small>
+            <small class="text-gray-500 dark:text-gray-400">${unifiedWeeks.length} weeks total</small><br>
+            <small class="text-blue-500 dark:text-blue-400"><i class="fas fa-hand-pointer me-1"></i>Drag any week to swap positions</small>
         </div>
         <div class="calendar-grid">
     `;
@@ -495,24 +495,22 @@ function generateSeasonSummary() {
     if (!summaryElement) return;
 
     let summary = `
-        <div class="alert alert-info">
-            <h5><i class="fas fa-info-circle me-2"></i>Season Creation Summary</h5>
+        <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 mb-4" role="alert">
+            <h5 class="font-semibold text-lg mb-1"><i class="fas fa-info-circle me-2"></i>Season Creation Summary</h5>
             <p class="mb-0">Review configuration before creating season.</p>
         </div>
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card border-secondary">
-                    <div class="card-header bg-secondary text-white">
-                        <h6 class="mb-0"><i class="fas fa-calendar me-2"></i>Season Details</h6>
-                    </div>
-                    <div class="card-body">
-                        <ul class="list-unstyled mb-0">
-                            <li><strong>Name:</strong> ${config.name}</li>
-                            <li><strong>Type:</strong> ${config.type}</li>
-                            <li><strong>Start Date:</strong> ${config.startDate}</li>
-                            <li><strong>Set as Current:</strong> ${config.current ? 'Yes' : 'No'}</li>
-                        </ul>
-                    </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm">
+                <div class="bg-gray-500 text-white px-4 py-3 rounded-t-lg">
+                    <h6 class="mb-0 font-semibold"><i class="fas fa-calendar me-2"></i>Season Details</h6>
+                </div>
+                <div class="p-4">
+                    <ul class="list-none mb-0 space-y-1">
+                        <li><strong>Name:</strong> ${config.name}</li>
+                        <li><strong>Type:</strong> ${config.type}</li>
+                        <li><strong>Start Date:</strong> ${config.startDate}</li>
+                        <li><strong>Set as Current:</strong> ${config.current ? 'Yes' : 'No'}</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -523,25 +521,21 @@ function generateSeasonSummary() {
         const classicWeeks = calendarState.weeks.filter(w => w.division === 'classic');
 
         summary += `
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card border-primary">
-                        <div class="card-header bg-primary text-white">
-                            <h6 class="mb-0"><i class="fas fa-trophy me-2"></i>Premier Division</h6>
-                        </div>
-                        <div class="card-body">
-                            <p><strong>Total Weeks:</strong> ${premierWeeks.length}</p>
-                        </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="bg-white dark:bg-gray-800 border border-ecs-green dark:border-ecs-green rounded-lg shadow-sm">
+                    <div class="bg-ecs-green text-white px-4 py-3 rounded-t-lg">
+                        <h6 class="mb-0 font-semibold"><i class="fas fa-trophy me-2"></i>Premier Division</h6>
+                    </div>
+                    <div class="p-4">
+                        <p><strong>Total Weeks:</strong> ${premierWeeks.length}</p>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="card border-success">
-                        <div class="card-header bg-success text-white">
-                            <h6 class="mb-0"><i class="fas fa-users me-2"></i>Classic Division</h6>
-                        </div>
-                        <div class="card-body">
-                            <p><strong>Total Weeks:</strong> ${classicWeeks.length}</p>
-                        </div>
+                <div class="bg-white dark:bg-gray-800 border border-green-500 dark:border-green-500 rounded-lg shadow-sm">
+                    <div class="bg-green-500 text-white px-4 py-3 rounded-t-lg">
+                        <h6 class="mb-0 font-semibold"><i class="fas fa-users me-2"></i>Classic Division</h6>
+                    </div>
+                    <div class="p-4">
+                        <p><strong>Total Weeks:</strong> ${classicWeeks.length}</p>
                     </div>
                 </div>
             </div>
@@ -549,8 +543,8 @@ function generateSeasonSummary() {
     }
 
     summary += `
-        <div class="alert alert-success">
-            <h6><i class="fas fa-check-circle me-2"></i>Ready to Create Season</h6>
+        <div class="p-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400" role="alert">
+            <h6 class="font-semibold mb-1"><i class="fas fa-check-circle me-2"></i>Ready to Create Season</h6>
             <p class="mb-0">This will create your ${config.type} season.</p>
         </div>
     `;

@@ -196,8 +196,8 @@ def handle_profile_update(form, player, user):
             logger.debug(f"No email provided in form, keeping existing email: {user.email}")
 
         # Update player fields
-        player.name = form.name.data.strip()
-        player.phone = form.phone.data.strip()
+        player.name = form.name.data.strip() if form.name.data else player.name
+        player.phone = form.phone.data.strip() if form.phone.data else player.phone
         player.jersey_size = form.jersey_size.data
         player.pronouns = form.pronouns.data
         player.expected_weeks_available = form.expected_weeks_available.data
@@ -493,8 +493,8 @@ def handle_profile_update_mobile(form, player, user):
             logger.debug(f"No email provided in form, keeping existing email: {user.email}")
 
         # Update player fields
-        player.name = form.name.data.strip()
-        player.phone = form.phone.data.strip()
+        player.name = form.name.data.strip() if form.name.data else player.name
+        player.phone = form.phone.data.strip() if form.phone.data else player.phone
         player.jersey_size = form.jersey_size.data
         player.pronouns = form.pronouns.data
         player.expected_weeks_available = form.expected_weeks_available.data

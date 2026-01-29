@@ -150,29 +150,29 @@ export class ScheduleManager {
         });
 
         const row = document.createElement('div');
-        row.className = 'row g-2 mb-2';
+        row.className = 'grid grid-cols-2 md:grid-cols-4 gap-2 mb-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg';
 
         row.innerHTML = `
-          <div class="col-md-3">
-            <input type="time" name="times[]" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" required>
+          <div>
+            <input type="time" name="times[]" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white" required>
           </div>
-          <div class="col-md-3">
-            <select name="fields[]" class="form-select" required>
+          <div>
+            <select name="fields[]" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white" required>
               <option value="North">North</option>
               <option value="South">South</option>
             </select>
           </div>
-          <div class="col-md-3">
-            <select name="team_a[]" class="form-select" required>
+          <div>
+            <select name="team_a[]" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white" required>
               ${optionsHtml}
             </select>
           </div>
-          <div class="col-md-3">
+          <div>
             <div class="flex gap-2">
-              <select name="team_b[]" class="form-select" required>
+              <select name="team_b[]" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white flex-1" required>
                 ${optionsHtml}
               </select>
-              <button type="button" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5" data-action="remove-match-row" aria-label="Delete"><i class="ti ti-trash"></i></button>
+              <button type="button" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm p-2.5" data-action="remove-match-row" aria-label="Delete"><i class="ti ti-trash"></i></button>
             </div>
           </div>
         `;

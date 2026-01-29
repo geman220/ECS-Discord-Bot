@@ -204,6 +204,12 @@ function viewCommands() {
     const commands = CONFIG.commands;
     let commandsHtml = '';
 
+    function getPermissionBadge(level) {
+        if (level === 'Public') return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
+        if (level.includes('Admin')) return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+        return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+    }
+
     // Group commands by category
     const categories = {};
     commands.forEach(cmd => {
@@ -217,27 +223,25 @@ function viewCommands() {
     Object.keys(categories).forEach(category => {
         commandsHtml += `
         <div class="mb-4">
-          <h6 class="mb-2 text-primary">${category} Commands</h6>
-          <div class="table-responsive">
-            <table class="table table-sm table-hover">
-              <thead class="table-light">
+          <h6 class="mb-2 text-ecs-green dark:text-ecs-green font-semibold">${category} Commands</h6>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+              <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                  <th>Command</th>
-                  <th>Description</th>
-                  <th>Permission</th>
+                  <th class="py-2 px-3">Command</th>
+                  <th class="py-2 px-3">Description</th>
+                  <th class="py-2 px-3">Permission</th>
                 </tr>
               </thead>
               <tbody>
       `;
 
         categories[category].forEach(cmd => {
-            const permissionColor = cmd.permission_level === 'Public' ? 'success' :
-                               cmd.permission_level.includes('Admin') ? 'danger' : 'warning';
             commandsHtml += `
-          <tr>
-            <td><code>/${cmd.name}</code></td>
-            <td>${cmd.description}</td>
-            <td><span class="badge bg-${permissionColor}">${cmd.permission_level}</span></td>
+          <tr class="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+            <td class="py-2 px-3"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">/${cmd.name}</code></td>
+            <td class="py-2 px-3">${cmd.description}</td>
+            <td class="py-2 px-3"><span class="px-2 py-0.5 text-xs font-medium rounded ${getPermissionBadge(cmd.permission_level)}">${cmd.permission_level}</span></td>
           </tr>
         `;
         });
@@ -273,32 +277,32 @@ function commandPermissions() {
         html: `
             <div class="text-start">
                 <div class="mb-3">
-                    <label for="permCommand" class="form-label">Select Command</label>
-                    <select id="permCommand" class="form-select">
+                    <label for="permCommand" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Command</label>
+                    <select id="permCommand" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         ${commandOptions}
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Allowed Roles</label>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="roleAdmin" checked>
-                        <label class="form-check-label" for="roleAdmin">Global Admin</label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Allowed Roles</label>
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="roleAdmin" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="roleAdmin" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Global Admin</label>
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="roleMod" checked>
-                        <label class="form-check-label" for="roleMod">Moderator</label>
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="roleMod" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="roleMod" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Moderator</label>
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="roleCoach">
-                        <label class="form-check-label" for="roleCoach">Coach</label>
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="roleCoach" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="roleCoach" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Coach</label>
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="roleUser">
-                        <label class="form-check-label" for="roleUser">Regular User</label>
+                    <div class="flex items-center mb-2">
+                        <input type="checkbox" id="roleUser" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="roleUser" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Regular User</label>
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label for="permCooldown" class="form-label">Cooldown (seconds)</label>
+                    <label for="permCooldown" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Cooldown (seconds)</label>
                     <input type="number" id="permCooldown" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="5" min="0">
                 </div>
             </div>
@@ -343,33 +347,25 @@ function commandUsage() {
     window.Swal.fire({
         title: 'Command Usage Statistics',
         html: `
-        <div class="command-usage-stats" class="text-start">
-          <div class="row mb-3">
-            <div class="col-md-6">
-              <div class="card bg-primary text-white">
-                <div class="card-body text-center">
-                  <h4>${usage.commands_today || 0}</h4>
-                  <small>Commands Today</small>
-                </div>
-              </div>
+        <div class="command-usage-stats text-start">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div class="bg-ecs-green text-white rounded-lg p-4 text-center">
+              <h4 class="text-2xl font-bold">${usage.commands_today || 0}</h4>
+              <small>Commands Today</small>
             </div>
-            <div class="col-md-6">
-              <div class="card bg-info text-white">
-                <div class="card-body text-center">
-                  <h4>${usage.commands_this_week || 0}</h4>
-                  <small>Commands This Week</small>
-                </div>
-              </div>
+            <div class="bg-blue-500 text-white rounded-lg p-4 text-center">
+              <h4 class="text-2xl font-bold">${usage.commands_this_week || 0}</h4>
+              <small>Commands This Week</small>
             </div>
           </div>
-          <div class="row">
-            <div class="col-md-6">
-              <h6>Most Used Command</h6>
-              <p><code>/${usage.most_used_command || 'N/A'}</code></p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h6 class="font-semibold text-gray-900 dark:text-white">Most Used Command</h6>
+              <p class="text-gray-700 dark:text-gray-300"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">/${usage.most_used_command || 'N/A'}</code></p>
             </div>
-            <div class="col-md-6">
-              <h6>Average Response Time</h6>
-              <p>${usage.avg_response_time || 'N/A'}</p>
+            <div>
+              <h6 class="font-semibold text-gray-900 dark:text-white">Average Response Time</h6>
+              <p class="text-gray-700 dark:text-gray-300">${usage.avg_response_time || 'N/A'}</p>
             </div>
           </div>
         </div>
@@ -384,33 +380,33 @@ function customCommands() {
         title: 'Custom Commands',
         html: `
             <div class="text-start">
-                <p class="text-muted mb-3">Create custom bot commands that respond with text or execute actions.</p>
+                <p class="text-gray-500 dark:text-gray-400 mb-3">Create custom bot commands that respond with text or execute actions.</p>
                 <div class="mb-3">
-                    <label for="cmdName" class="form-label">Command Name</label>
+                    <label for="cmdName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Command Name</label>
                     <div class="flex">
                         <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:text-gray-400 dark:border-gray-600">/</span>
                         <input type="text" id="cmdName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-none rounded-r-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="mycommand" pattern="[a-z0-9_-]+" title="Lowercase letters, numbers, underscores, and hyphens only">
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label for="cmdDescription" class="form-label">Description</label>
+                    <label for="cmdDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
                     <input type="text" id="cmdDescription" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="What does this command do?">
                 </div>
                 <div class="mb-3">
-                    <label for="cmdType" class="form-label">Response Type</label>
-                    <select id="cmdType" class="form-select">
+                    <label for="cmdType" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Response Type</label>
+                    <select id="cmdType" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                         <option value="text">Text Response</option>
                         <option value="embed">Rich Embed</option>
                         <option value="action">Custom Action</option>
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label for="cmdResponse" class="form-label">Response Content</label>
+                    <label for="cmdResponse" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Response Content</label>
                     <textarea id="cmdResponse" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" rows="3" placeholder="Enter the response message..."></textarea>
                 </div>
-                <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="cmdEnabled" checked>
-                    <label class="form-check-label" for="cmdEnabled">Enabled</label>
+                <div class="flex items-center mb-3">
+                    <input type="checkbox" id="cmdEnabled" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="cmdEnabled" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Enabled</label>
                 </div>
             </div>
         `,
@@ -456,15 +452,15 @@ function customCommands() {
                     const commands = data.commands || [];
                     const commandList = commands.length > 0
                         ? commands.map(cmd => `
-                            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                            <div class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 py-2">
                                 <div>
-                                    <strong>/${cmd.name}</strong>
-                                    <small class="text-muted d-block">${cmd.description || 'No description'}</small>
+                                    <strong class="text-gray-900 dark:text-white">/${cmd.name}</strong>
+                                    <small class="text-gray-500 dark:text-gray-400 block">${cmd.description || 'No description'}</small>
                                 </div>
-                                <span class="badge ${cmd.enabled ? 'bg-success' : 'bg-secondary'}">${cmd.enabled ? 'Active' : 'Disabled'}</span>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded ${cmd.enabled ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'}">${cmd.enabled ? 'Active' : 'Disabled'}</span>
                             </div>
                         `).join('')
-                        : '<p class="text-muted">No custom commands have been created yet.</p>';
+                        : '<p class="text-gray-500 dark:text-gray-400">No custom commands have been created yet.</p>';
 
                     window.Swal.fire({
                         title: 'Custom Commands List',
@@ -476,7 +472,7 @@ function customCommands() {
                 .catch(() => {
                     window.Swal.fire({
                         title: 'Custom Commands List',
-                        html: '<p class="text-muted">Unable to fetch commands. Bot API may be unavailable.</p>',
+                        html: '<p class="text-gray-500 dark:text-gray-400">Unable to fetch commands. Bot API may be unavailable.</p>',
                         confirmButtonText: 'Close'
                     });
                 });
@@ -535,36 +531,36 @@ function manageGuild(element, e) {
                         <div id="tabContent">
                             <div class="" id="guildSettings" role="tabpanel" aria-labelledby="settings-tab">
                                 <div class="mb-3">
-                                    <label for="guildPrefix" class="form-label">Bot Prefix</label>
+                                    <label for="guildPrefix" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Bot Prefix</label>
                                     <input type="text" id="guildPrefix" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${settings.prefix || '!'}" maxlength="5">
                                 </div>
                                 <div class="mb-3">
-                                    <label for="guildLanguage" class="form-label">Language</label>
-                                    <select id="guildLanguage" class="form-select">
+                                    <label for="guildLanguage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Language</label>
+                                    <select id="guildLanguage" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                         <option value="en" ${settings.language === 'en' ? 'selected' : ''}>English</option>
                                         <option value="es" ${settings.language === 'es' ? 'selected' : ''}>Spanish</option>
                                     </select>
                                 </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="guildWelcome" ${settings.welcome_messages ? 'checked' : ''}>
-                                    <label class="form-check-label" for="guildWelcome">Send welcome messages</label>
+                                <div class="flex items-center mb-2">
+                                    <input type="checkbox" id="guildWelcome" ${settings.welcome_messages ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                    <label for="guildWelcome" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Send welcome messages</label>
                                 </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="guildModLog" ${settings.mod_logging ? 'checked' : ''}>
-                                    <label class="form-check-label" for="guildModLog">Enable moderation logging</label>
+                                <div class="flex items-center mb-2">
+                                    <input type="checkbox" id="guildModLog" ${settings.mod_logging ? 'checked' : ''} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                                    <label for="guildModLog" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Enable moderation logging</label>
                                 </div>
                             </div>
                             <div class="hidden" id="guildChannels" role="tabpanel" aria-labelledby="channels-tab">
                                 <div class="mb-3">
-                                    <label for="announceChannel" class="form-label">Announcements Channel</label>
-                                    <select id="announceChannel" class="form-select">
+                                    <label for="announceChannel" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Announcements Channel</label>
+                                    <select id="announceChannel" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                         <option value="">Select channel...</option>
                                         ${channelOptions}
                                     </select>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="logChannel" class="form-label">Log Channel</label>
-                                    <select id="logChannel" class="form-select">
+                                    <label for="logChannel" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Log Channel</label>
+                                    <select id="logChannel" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                         <option value="">Select channel...</option>
                                         ${channelOptions}
                                     </select>
@@ -572,15 +568,15 @@ function manageGuild(element, e) {
                             </div>
                             <div class="hidden" id="guildRoles" role="tabpanel" aria-labelledby="roles-tab">
                                 <div class="mb-3">
-                                    <label for="adminRole" class="form-label">Admin Role</label>
-                                    <select id="adminRole" class="form-select">
+                                    <label for="adminRole" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Admin Role</label>
+                                    <select id="adminRole" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                         <option value="">Select role...</option>
                                         ${roleOptions}
                                     </select>
                                 </div>
                                 <div class="mb-3">
-                                    <label for="modRole" class="form-label">Moderator Role</label>
-                                    <select id="modRole" class="form-select">
+                                    <label for="modRole" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Moderator Role</label>
+                                    <select id="modRole" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                         <option value="">Select role...</option>
                                         ${roleOptions}
                                     </select>
@@ -650,31 +646,19 @@ function guildStats(element, e) {
     window.Swal.fire({
         title: `${guild.name || 'Guild'} Statistics`,
         html: `
-        <div class="guild-stats-container" class="text-start">
-          <div class="row mb-3">
-            <div class="col-md-4">
-              <div class="card bg-primary text-white">
-                <div class="card-body text-center">
-                  <h4>${guild.member_count || 0}</h4>
-                  <small>Total Members</small>
-                </div>
-              </div>
+        <div class="guild-stats-container text-start">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-ecs-green text-white rounded-lg p-4 text-center">
+              <h4 class="text-2xl font-bold">${guild.member_count || 0}</h4>
+              <small>Total Members</small>
             </div>
-            <div class="col-md-4">
-              <div class="card bg-success text-white">
-                <div class="card-body text-center">
-                  <h4>${guild.channel_count || 0}</h4>
-                  <small>Channels</small>
-                </div>
-              </div>
+            <div class="bg-green-600 text-white rounded-lg p-4 text-center">
+              <h4 class="text-2xl font-bold">${guild.channel_count || 0}</h4>
+              <small>Channels</small>
             </div>
-            <div class="col-md-4">
-              <div class="card bg-info text-white">
-                <div class="card-body text-center">
-                  <h4>${guild.role_count || 0}</h4>
-                  <small>Roles</small>
-                </div>
-              </div>
+            <div class="bg-blue-500 text-white rounded-lg p-4 text-center">
+              <h4 class="text-2xl font-bold">${guild.role_count || 0}</h4>
+              <small>Roles</small>
             </div>
           </div>
         </div>
@@ -688,15 +672,15 @@ function addGuild() {
     window.Swal.fire({
         title: 'Add Bot to Server',
         html: `
-        <div class="add-guild-container">
-          <p>To add the ECS FC Discord bot to another server, you need administrator permissions on that server.</p>
-          <div class="alert alert-info">
+        <div class="add-guild-container text-start">
+          <p class="text-gray-700 dark:text-gray-300">To add the ECS FC Discord bot to another server, you need administrator permissions on that server.</p>
+          <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 my-3" role="alert">
             <i class="ti ti-info-circle me-2"></i>
             Click the button below to authorize the bot for a new server.
           </div>
           <div class="mt-4">
-            <h6>Required Permissions:</h6>
-            <ul class="small" class="text-start">
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Required Permissions:</h6>
+            <ul class="text-sm text-gray-700 dark:text-gray-300 list-disc list-inside">
               <li>Manage Roles</li>
               <li>Send Messages</li>
               <li>Read Message History</li>

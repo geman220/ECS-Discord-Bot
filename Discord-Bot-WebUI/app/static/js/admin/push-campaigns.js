@@ -114,7 +114,7 @@ async function scheduleCampaign(campaignId, campaignName) {
         title: 'Schedule Campaign',
         html: `
             <div class="text-start">
-                <label class="form-label">Schedule Time</label>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Schedule Time</label>
                 <input type="datetime-local" id="scheduleTime" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
             </div>
         `,

@@ -83,34 +83,35 @@ function viewEndpointDetails(endpointPath) {
             if (data.success) {
                 const endpoint = data.endpoint;
                 const usage = data.usage_stats;
+                const statusBadge = endpoint.status === 'active'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
                 let detailsHtml = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Endpoint Information</h6>
-                            <p><strong>Path:</strong> <code>${endpoint.path}</code></p>
-                            <p><strong>Blueprint:</strong> ${endpoint.blueprint}</p>
-                            <p><strong>Methods:</strong> ${endpoint.methods.join(', ')}</p>
-                            <p><strong>Authentication:</strong> ${endpoint.authentication}</p>
-                            <p><strong>Status:</strong> <span class="badge bg-${endpoint.status === 'active' ? 'success' : 'warning'}" data-badge>${endpoint.status}</span></p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Endpoint Information</h6>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Path:</strong> <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">${endpoint.path}</code></p>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Blueprint:</strong> ${endpoint.blueprint}</p>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Methods:</strong> ${endpoint.methods.join(', ')}</p>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Authentication:</strong> ${endpoint.authentication}</p>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Status:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded ${statusBadge}" data-badge>${endpoint.status}</span></p>
                         </div>
-                        <div class="col-md-6">
-                            <h6>Usage Statistics</h6>
-                            <p><strong>Total Requests:</strong> ${usage.total_requests.toLocaleString()}</p>
-                            <p><strong>Success Rate:</strong> ${usage.success_rate.toFixed(1)}%</p>
-                            <p><strong>Avg Response Time:</strong> ${usage.avg_response_time.toFixed(3)}s</p>
-                            <p><strong>24h Requests:</strong> ${usage.last_24h_requests}</p>
-                            <p><strong>Peak Hour:</strong> ${usage.peak_hour}</p>
+                        <div>
+                            <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Usage Statistics</h6>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Total Requests:</strong> ${usage.total_requests.toLocaleString()}</p>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Success Rate:</strong> ${usage.success_rate.toFixed(1)}%</p>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Avg Response Time:</strong> ${usage.avg_response_time.toFixed(3)}s</p>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>24h Requests:</strong> ${usage.last_24h_requests}</p>
+                            <p class="text-gray-700 dark:text-gray-300"><strong>Peak Hour:</strong> ${usage.peak_hour}</p>
                         </div>
                     </div>
                 `;
 
                 if (endpoint.description) {
                     detailsHtml += `
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6>Description</h6>
-                                <p class="bg-light p-3 rounded">${endpoint.description}</p>
-                            </div>
+                        <div class="mt-3">
+                            <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Description</h6>
+                            <p class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 p-3 rounded">${endpoint.description}</p>
                         </div>
                     `;
                 }
@@ -144,12 +145,12 @@ function testEndpoint() {
         html: `
             <div class="text-start">
                 <div class="mb-3">
-                    <label class="form-label">Endpoint Path</label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Endpoint Path</label>
                     <input type="text" id="test-endpoint" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="/api/example" data-form-control>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Method</label>
-                    <select id="test-method" class="form-select" data-form-select>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Method</label>
+                    <select id="test-method" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" data-form-select>
                         <option value="GET">GET</option>
                         <option value="POST">POST</option>
                         <option value="PUT">PUT</option>
@@ -157,7 +158,7 @@ function testEndpoint() {
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Parameters (JSON)</label>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Parameters (JSON)</label>
                     <textarea id="test-params" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" rows="3" placeholder='{"key": "value"}' data-form-control></textarea>
                 </div>
             </div>
@@ -237,10 +238,10 @@ function testSpecificEndpointWithData(data) {
         if (result.success) {
             let resultHtml = `
                 <div class="text-start">
-                    <p><strong>Status:</strong> <span class="badge bg-success" data-badge>${result.status_code}</span></p>
-                    <p><strong>Response Time:</strong> ${result.response_time}s</p>
-                    <p><strong>Response:</strong></p>
-                    <pre class="bg-light p-3 rounded"><code>${JSON.stringify(result.response_data, null, 2)}</code></pre>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Status:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>${result.status_code}</span></p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Response Time:</strong> ${result.response_time}s</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong>Response:</strong></p>
+                    <pre class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-3 rounded text-sm overflow-x-auto"><code>${JSON.stringify(result.response_data, null, 2)}</code></pre>
                 </div>
             `;
 

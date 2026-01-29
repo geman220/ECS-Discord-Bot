@@ -49,8 +49,8 @@ export function initMobileAnalyticsHandlers(ED) {
             html: `
                 <div class="text-start">
                     <div class="mb-3">
-                        <label class="form-label">Date Range</label>
-                        <select class="form-select" id="exportDateRange" data-form-select>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date Range</label>
+                        <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="exportDateRange" data-form-select>
                             <option value="7d">Last 7 days</option>
                             <option value="30d">Last 30 days</option>
                             <option value="90d">Last 90 days</option>
@@ -58,8 +58,8 @@ export function initMobileAnalyticsHandlers(ED) {
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Format</label>
-                        <select class="form-select" id="exportFormat" data-form-select>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Format</label>
+                        <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="exportFormat" data-form-select>
                             <option value="csv">CSV</option>
                             <option value="json">JSON</option>
                             <option value="pdf">PDF Report</option>

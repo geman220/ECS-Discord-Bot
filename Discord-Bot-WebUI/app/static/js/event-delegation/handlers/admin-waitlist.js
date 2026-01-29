@@ -132,62 +132,69 @@ function buildPlayerDetailsHTML(user) {
         escapeHtml(user.preferred_league) || 'Not specified';
 
     const safeStatus = escapeHtml(user.approval_status);
+    const statusBadgeClass = safeStatus === 'approved' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                             safeStatus === 'denied' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' :
+                             'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
 
     return `
-        <div class="row">
-            <div class="col-md-6">
-                <h6>Basic Information</h6>
-                <p><strong>Username:</strong> ${escapeHtml(user.username)}</p>
-                <p><strong>Email:</strong> ${escapeHtml(user.email)}</p>
-                <p><strong>Joined:</strong> ${escapeHtml(user.created_at) || 'Unknown'}</p>
-                <p><strong>Status:</strong> <span class="badge status-${safeStatus}" data-badge>${safeStatus}</span></p>
-                <p><strong>Preferred League:</strong> ${preferredLeagueDisplay}</p>
-                <p><strong>Roles:</strong> ${user.roles.map(role => `<span class="badge bg-label-secondary me-1" data-badge>${escapeHtml(role)}</span>`).join('')}</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Basic Information</h6>
+                <div class="space-y-2">
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Username:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.username)}</span></p>
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Email:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.email)}</span></p>
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Joined:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.created_at) || 'Unknown'}</span></p>
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Status:</span> <span class="px-2 py-0.5 text-xs font-medium ${statusBadgeClass} rounded ml-1">${safeStatus}</span></p>
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Preferred League:</span> <span class="text-gray-900 dark:text-white">${preferredLeagueDisplay}</span></p>
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Roles:</span> ${user.roles.map(role => `<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded ml-1">${escapeHtml(role)}</span>`).join('')}</p>
+                </div>
             </div>
-            <div class="col-md-6">
-                <h6>Player Details</h6>
-                ${user.player.name ? `<p><strong>Name:</strong> ${escapeHtml(user.player.name)}</p>` : ''}
-                ${user.player.phone ? `<p><strong>Phone:</strong> ${escapeHtml(user.player.phone)}</p>` : ''}
-                ${user.player.pronouns ? `<p><strong>Pronouns:</strong> ${escapeHtml(user.player.pronouns)}</p>` : ''}
-                ${user.player.discord_id ? `<p><strong>Discord:</strong> <span class="text-primary">Linked</span></p>` : '<p><strong>Discord:</strong> <span class="text-muted">Not linked</span></p>'}
-                ${user.player.jersey_size ? `<p><strong>Jersey Size:</strong> ${escapeHtml(user.player.jersey_size)}</p>` : ''}
-                ${user.player.jersey_number ? `<p><strong>Jersey Number:</strong> ${escapeHtml(user.player.jersey_number)}</p>` : ''}
+            <div>
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Player Details</h6>
+                <div class="space-y-2">
+                    ${user.player.name ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Name:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.name)}</span></p>` : ''}
+                    ${user.player.phone ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Phone:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.phone)}</span></p>` : ''}
+                    ${user.player.pronouns ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Pronouns:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.pronouns)}</span></p>` : ''}
+                    ${user.player.discord_id ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Discord:</span> <span class="text-ecs-green">Linked</span></p>` : '<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Discord:</span> <span class="text-gray-500 dark:text-gray-400">Not linked</span></p>'}
+                    ${user.player.jersey_size ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Jersey Size:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.jersey_size)}</span></p>` : ''}
+                    ${user.player.jersey_number ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Jersey Number:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.jersey_number)}</span></p>` : ''}
+                </div>
             </div>
         </div>
 
-        <div class="row mt-3">
-            <div class="col-md-6">
-                <h6>Playing Information</h6>
-                ${user.player.favorite_position ? `<p><strong>Favorite Position:</strong> ${escapeHtml(user.player.favorite_position)}</p>` : ''}
-                ${user.player.other_positions ? `<p><strong>Other Positions:</strong> ${escapeHtml(user.player.other_positions)}</p>` : ''}
-                ${user.player.positions_not_to_play ? `<p><strong>Positions NOT to Play:</strong> ${escapeHtml(user.player.positions_not_to_play)}</p>` : ''}
-                ${user.player.frequency_play_goal ? `<p><strong>Frequency Play Goal:</strong> ${escapeHtml(user.player.frequency_play_goal)}</p>` : ''}
-                ${user.player.expected_weeks_available ? `<p><strong>Expected Weeks Available:</strong> ${escapeHtml(user.player.expected_weeks_available)}</p>` : ''}
-                ${user.player.willing_to_referee ? `<p><strong>Willing to Referee:</strong> ${escapeHtml(user.player.willing_to_referee)}</p>` : ''}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div>
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Playing Information</h6>
+                <div class="space-y-2">
+                    ${user.player.favorite_position ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Favorite Position:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.favorite_position)}</span></p>` : ''}
+                    ${user.player.other_positions ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Other Positions:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.other_positions)}</span></p>` : ''}
+                    ${user.player.positions_not_to_play ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Positions NOT to Play:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.positions_not_to_play)}</span></p>` : ''}
+                    ${user.player.frequency_play_goal ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Frequency Play Goal:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.frequency_play_goal)}</span></p>` : ''}
+                    ${user.player.expected_weeks_available ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Expected Weeks Available:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.expected_weeks_available)}</span></p>` : ''}
+                    ${user.player.willing_to_referee ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Willing to Referee:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.willing_to_referee)}</span></p>` : ''}
+                </div>
             </div>
-            <div class="col-md-6">
-                <h6>Substitute Information</h6>
-                <p><strong>Interested in Subbing:</strong> ${user.player.interested_in_sub ? '<span class="badge bg-label-success" data-badge>Yes</span>' : '<span class="badge bg-label-secondary" data-badge>No</span>'}</p>
-                <p><strong>Available for Subbing:</strong> ${user.player.is_sub ? '<span class="badge bg-label-success" data-badge>Yes</span>' : '<span class="badge bg-label-secondary" data-badge>No</span>'}</p>
-                ${user.player.unavailable_dates ? `<p><strong>Unavailable Dates:</strong> ${escapeHtml(user.player.unavailable_dates)}</p>` : ''}
+            <div>
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Substitute Information</h6>
+                <div class="space-y-2">
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Interested in Subbing:</span> ${user.player.interested_in_sub ? '<span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded ml-1">Yes</span>' : '<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded ml-1">No</span>'}</p>
+                    <p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Available for Subbing:</span> ${user.player.is_sub ? '<span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded ml-1">Yes</span>' : '<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded ml-1">No</span>'}</p>
+                    ${user.player.unavailable_dates ? `<p class="text-sm"><span class="font-medium text-gray-700 dark:text-gray-300">Unavailable Dates:</span> <span class="text-gray-900 dark:text-white">${escapeHtml(user.player.unavailable_dates)}</span></p>` : ''}
+                </div>
             </div>
         </div>
 
         ${user.player.additional_info ? `
-            <div class="row mt-3">
-                <div class="col-12">
-                    <h6>Additional Information</h6>
-                    <p>${escapeHtml(user.player.additional_info)}</p>
-                </div>
+            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Additional Information</h6>
+                <p class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(user.player.additional_info)}</p>
             </div>
         ` : ''}
 
         ${user.player.player_notes ? `
-            <div class="row mt-3">
-                <div class="col-12">
-                    <h6>Player Notes</h6>
-                    <p>${escapeHtml(user.player.player_notes)}</p>
-                </div>
+            <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Player Notes</h6>
+                <p class="text-sm text-gray-700 dark:text-gray-300">${escapeHtml(user.player.player_notes)}</p>
             </div>
         ` : ''}
     `;

@@ -157,7 +157,7 @@ const MobileGestures = {
         let refreshIndicator = container.querySelector('.pull-refresh-indicator');
         if (!refreshIndicator) {
           refreshIndicator = document.createElement('div');
-          refreshIndicator.className = 'pull-refresh-indicator position-absolute left-50 translate-middle-x d-flex align-items-center justify-content-center text-white opacity-0 z-index-1000';
+          refreshIndicator.className = 'pull-refresh-indicator position-absolute left-50 translate-middle-x flex items-center justify-center text-white opacity-0 z-index-1000';
           refreshIndicator.innerHTML = '<i class="ti ti-refresh"></i>';
           // Note: top, width, height, background, borderRadius, transition use specific values, kept as inline styles
           refreshIndicator.style.top = '-50px';
@@ -324,7 +324,7 @@ const MobileGestures = {
         let actionsContainer = row.querySelector('.swipe-actions');
         if (!actionsContainer) {
           actionsContainer = document.createElement('div');
-          actionsContainer.className = 'swipe-actions position-absolute right-0 top-0 bottom-0 d-flex align-items-center gap-2 translate-x-100 transition-transform';
+          actionsContainer.className = 'swipe-actions position-absolute right-0 top-0 bottom-0 flex items-center gap-2 translate-x-100 transition-transform';
           // Note: padding, background use specific values, kept as inline styles
           actionsContainer.style.padding = '0 16px';
           actionsContainer.style.background = 'var(--bs-danger)';

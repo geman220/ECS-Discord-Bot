@@ -29,20 +29,20 @@ export function createSeason() {
         html: `
   <div class="text-start">
     <div class="mb-3">
-      <label class="form-label">Season Name <span class="text-danger">*</span></label>
+      <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Season Name <span class="text-red-500">*</span></label>
       <input type="text" id="seasonName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Spring 2025" data-form-control>
     </div>
     <div class="mb-3">
-      <label class="form-label">Start Date</label>
+      <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Start Date</label>
       <input type="date" id="seasonStartDate" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" data-form-control>
     </div>
     <div class="mb-3">
-      <label class="form-label">End Date</label>
+      <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">End Date</label>
       <input type="date" id="seasonEndDate" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" data-form-control>
     </div>
-    <div class="form-check">
-      <input type="checkbox" id="seasonIsCurrent" class="form-check-input">
-      <label class="form-check-label" for="seasonIsCurrent">Set as current season</label>
+    <div class="flex items-center">
+      <input type="checkbox" id="seasonIsCurrent" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+      <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="seasonIsCurrent">Set as current season</label>
     </div>
   </div>
 `,
@@ -156,20 +156,20 @@ export function showEditSeasonModal(seasonId, season) {
         html: `
   <div class="text-start">
     <div class="mb-3">
-      <label class="form-label">Season Name <span class="text-danger">*</span></label>
+      <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Season Name <span class="text-red-500">*</span></label>
       <input type="text" id="editSeasonName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${season.name}" data-form-control>
     </div>
     <div class="mb-3">
-      <label class="form-label">Start Date</label>
+      <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Start Date</label>
       <input type="date" id="editSeasonStartDate" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${season.start_date}" data-form-control>
     </div>
     <div class="mb-3">
-      <label class="form-label">End Date</label>
+      <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">End Date</label>
       <input type="date" id="editSeasonEndDate" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${season.end_date}" data-form-control>
     </div>
-    <div class="form-check">
-      <input type="checkbox" id="editSeasonIsCurrent" class="form-check-input" ${season.is_current ? 'checked' : ''}>
-      <label class="form-check-label" for="editSeasonIsCurrent">Set as current season</label>
+    <div class="flex items-center">
+      <input type="checkbox" id="editSeasonIsCurrent" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" ${season.is_current ? 'checked' : ''}>
+      <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="editSeasonIsCurrent">Set as current season</label>
     </div>
   </div>
 `,

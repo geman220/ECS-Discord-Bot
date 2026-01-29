@@ -126,20 +126,18 @@ let _initialized = false;
         if (!resultsDiv) return;
 
         if (data.error) {
-          resultsDiv.innerHTML = `<div class="alert alert-danger">Error: ${data.error}</div>`;
+          resultsDiv.innerHTML = `<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">Error: ${data.error}</div>`;
         } else {
-          let html = '<div class="row">';
+          let html = '<div class="grid grid-cols-1 md:grid-cols-3 gap-2">';
           for (const [testName, result] of Object.entries(data.tests)) {
-            const badgeClass = result.status === 'success' ? 'bg-success' : 'bg-danger';
+            const badgeClass = result.status === 'success'
+              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
             html += `
-              <div class="col-md-4 mb-2">
-                <div class="card">
-                  <div class="card-body">
-                    <h6>${testName.replace('_', ' ').toUpperCase()}</h6>
-                    <span class="badge ${badgeClass}">${result.status}</span>
-                    <p class="mt-2 mb-0"><small>${result.message}</small></p>
-                  </div>
-                </div>
+              <div class="p-4 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700">
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">${testName.replace('_', ' ').toUpperCase()}</h6>
+                <span class="px-2 py-0.5 text-xs font-medium rounded ${badgeClass}">${result.status}</span>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">${result.message}</p>
               </div>
             `;
           }
@@ -150,7 +148,7 @@ let _initialized = false;
       .catch(error => {
         const resultsDiv = document.getElementById('test-results');
         if (resultsDiv) {
-          resultsDiv.innerHTML = `<div class="alert alert-danger">Error running tests: ${error}</div>`;
+          resultsDiv.innerHTML = `<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">Error running tests: ${error}</div>`;
         }
       })
       .finally(() => {

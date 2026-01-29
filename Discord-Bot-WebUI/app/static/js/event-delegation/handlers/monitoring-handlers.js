@@ -76,8 +76,8 @@ window.EventDelegation.register('emergency-mode', (element, event) => {
     window.Swal.fire({
         title: 'Emergency Mode',
         html: `
-            <p>Emergency controls allow you to quickly disable system features.</p>
-            <p class="text-muted">For immediate system issues, contact the system administrator or restart the Docker containers.</p>
+            <p class="text-gray-700 dark:text-gray-300">Emergency controls allow you to quickly disable system features.</p>
+            <p class="text-gray-500 dark:text-gray-400">For immediate system issues, contact the system administrator or restart the Docker containers.</p>
         `,
         icon: 'warning',
         confirmButtonText: 'View System Status',
@@ -157,18 +157,18 @@ window.EventDelegation.register('view-alert', (element, event) => {
         html: `
             <div class="text-start">
                 <div class="mb-3">
-                    <strong>Alert ID:</strong> ${alertId}<br>
-                    <strong>Component:</strong> System Monitor<br>
-                    <strong>Severity:</strong> <span class="badge bg-danger" data-badge>CRITICAL</span><br>
-                    <strong>Status:</strong> Active
+                    <strong class="text-gray-900 dark:text-white">Alert ID:</strong> <span class="text-gray-700 dark:text-gray-300">${alertId}</span><br>
+                    <strong class="text-gray-900 dark:text-white">Component:</strong> <span class="text-gray-700 dark:text-gray-300">System Monitor</span><br>
+                    <strong class="text-gray-900 dark:text-white">Severity:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" data-badge>CRITICAL</span><br>
+                    <strong class="text-gray-900 dark:text-white">Status:</strong> <span class="text-gray-700 dark:text-gray-300">Active</span>
                 </div>
                 <div class="mb-3">
-                    <strong>Description:</strong><br>
-                    CPU usage has exceeded 85% for the past 5 minutes. This may indicate high system load or a runaway process.
+                    <strong class="text-gray-900 dark:text-white">Description:</strong><br>
+                    <span class="text-gray-700 dark:text-gray-300">CPU usage has exceeded 85% for the past 5 minutes. This may indicate high system load or a runaway process.</span>
                 </div>
                 <div class="mb-3">
-                    <strong>Suggested Actions:</strong><br>
-                    <small>
+                    <strong class="text-gray-900 dark:text-white">Suggested Actions:</strong><br>
+                    <small class="text-gray-600 dark:text-gray-400">
                     1. Check running processes with 'top' or 'htop'<br>
                     2. Identify high CPU processes<br>
                     3. Consider scaling resources if sustained high usage
@@ -483,12 +483,12 @@ window.EventDelegation.register('view-task-details', (element, event) => {
             if (data.success && modalContent) {
                 modalContent.innerHTML = data.html;
             } else if (modalContent) {
-                modalContent.innerHTML = '<div class="alert alert-danger" data-alert>Error loading task details</div>';
+                modalContent.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert" data-alert>Error loading task details</div>';
             }
         })
         .catch(error => {
             if (modalContent) {
-                modalContent.innerHTML = '<div class="alert alert-danger" data-alert>Error loading task details</div>';
+                modalContent.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert" data-alert>Error loading task details</div>';
             }
         });
 });
@@ -518,14 +518,14 @@ window.EventDelegation.register('view-task-logs', (element, event) => {
         .then(response => response.json())
         .then(data => {
             if (data.success && modalContent) {
-                modalContent.innerHTML = `<pre class="bg-dark text-light p-3 rounded">${data.logs}</pre>`;
+                modalContent.innerHTML = `<pre class="bg-gray-900 text-gray-100 p-3 rounded text-sm overflow-x-auto">${data.logs}</pre>`;
             } else if (modalContent) {
-                modalContent.innerHTML = '<div class="alert alert-danger" data-alert>Error loading task logs</div>';
+                modalContent.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert" data-alert>Error loading task logs</div>';
             }
         })
         .catch(error => {
             if (modalContent) {
-                modalContent.innerHTML = '<div class="alert alert-danger" data-alert>Error loading task logs</div>';
+                modalContent.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert" data-alert>Error loading task logs</div>';
             }
         });
 });
@@ -666,18 +666,18 @@ window.EventDelegation.register('view-log-details', (element, event) => {
         html: `
             <div class="text-start">
                 <div class="mb-3">
-                    <strong>Log ID:</strong> ${logId}<br>
-                    <strong>Timestamp:</strong> ${new Date().toISOString()}<br>
-                    <strong>Level:</strong> <span class="badge bg-danger" data-badge>ERROR</span><br>
-                    <strong>Component:</strong> app.admin_panel
+                    <strong class="text-gray-900 dark:text-white">Log ID:</strong> <span class="text-gray-700 dark:text-gray-300">${logId}</span><br>
+                    <strong class="text-gray-900 dark:text-white">Timestamp:</strong> <span class="text-gray-700 dark:text-gray-300">${new Date().toISOString()}</span><br>
+                    <strong class="text-gray-900 dark:text-white">Level:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" data-badge>ERROR</span><br>
+                    <strong class="text-gray-900 dark:text-white">Component:</strong> <span class="text-gray-700 dark:text-gray-300">app.admin_panel</span>
                 </div>
                 <div class="mb-3">
-                    <strong>Message:</strong><br>
-                    <pre class="bg-light p-2 rounded">Sample error message with details about what went wrong in the system.</pre>
+                    <strong class="text-gray-900 dark:text-white">Message:</strong><br>
+                    <pre class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 p-2 rounded text-sm">Sample error message with details about what went wrong in the system.</pre>
                 </div>
                 <div class="mb-3">
-                    <strong>Stack Trace:</strong><br>
-                    <pre class="bg-dark text-light p-2 rounded scroll-container-sm">
+                    <strong class="text-gray-900 dark:text-white">Stack Trace:</strong><br>
+                    <pre class="bg-gray-900 text-gray-100 p-2 rounded text-sm max-h-48 overflow-y-auto">
 Traceback (most recent call last):
   File "app.py", line 123, in handle_request
     result = process_data(data)

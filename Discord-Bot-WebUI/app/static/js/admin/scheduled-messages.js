@@ -114,12 +114,12 @@ function viewScheduledMessage(messageId, messageTitle) {
             if (data.success && contentEl) {
                 contentEl.innerHTML = data.html;
             } else if (contentEl) {
-                contentEl.innerHTML = '<div class="alert alert-danger">Error loading message details</div>';
+                contentEl.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">Error loading message details</div>';
             }
         })
         .catch(() => {
             if (contentEl) {
-                contentEl.innerHTML = '<div class="alert alert-danger">Error loading message details</div>';
+                contentEl.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">Error loading message details</div>';
             }
         });
 }
@@ -148,8 +148,8 @@ function editScheduledMessage(messageId) {
                     html: `
                         <div class="text-start">
                             <div class="mb-3">
-                                <label class="form-label">Message Type</label>
-                                <select id="editMessageType" class="form-select">
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message Type</label>
+                                <select id="editMessageType" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                     <option value="standard" ${message.message_type === 'standard' ? 'selected' : ''}>Standard</option>
                                     <option value="announcement" ${message.message_type === 'announcement' ? 'selected' : ''}>Announcement</option>
                                     <option value="reminder" ${message.message_type === 'reminder' ? 'selected' : ''}>Reminder</option>
@@ -158,13 +158,13 @@ function editScheduledMessage(messageId) {
                                 </select>
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Scheduled Time <span class="text-danger">*</span></label>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Scheduled Time <span class="text-red-500">*</span></label>
                                 <input type="datetime-local" id="editScheduledTime" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${scheduledTime}">
                             </div>
                             <div class="mb-3">
-                                <label class="form-label">Match ID</label>
+                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Match ID</label>
                                 <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${message.match_id || 'N/A'}" disabled>
-                                <small class="text-muted">Match ID cannot be changed</small>
+                                <small class="text-gray-500 dark:text-gray-400">Match ID cannot be changed</small>
                             </div>
                         </div>
                     `,

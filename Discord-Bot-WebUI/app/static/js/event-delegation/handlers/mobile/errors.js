@@ -21,8 +21,8 @@ export function initErrorHandlers(ED) {
             html: `
                 <div class="text-start">
                     <div class="mb-3">
-                        <label class="form-label">Date Range</label>
-                        <select class="form-select" id="exportDays" data-form-select>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date Range</label>
+                        <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="exportDays" data-form-select>
                             <option value="7">Last 7 days</option>
                             <option value="30">Last 30 days</option>
                             <option value="90">Last 90 days</option>
@@ -30,8 +30,8 @@ export function initErrorHandlers(ED) {
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Format</label>
-                        <select class="form-select" id="exportFormat" data-form-select>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Format</label>
+                        <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="exportFormat" data-form-select>
                             <option value="csv">CSV</option>
                             <option value="json">JSON</option>
                         </select>
@@ -67,7 +67,7 @@ export function initErrorHandlers(ED) {
             title: 'Execute Cleanup?',
             html: `
                 <p>This will permanently delete old error data based on retention settings.</p>
-                <p class="text-danger"><strong>This action cannot be undone!</strong></p>
+                <p class="text-red-500"><strong>This action cannot be undone!</strong></p>
             `,
             icon: 'warning',
             showCancelButton: true,
@@ -157,7 +157,7 @@ export function initErrorHandlers(ED) {
                         </div>
                         <div class="mb-3">
                             <strong>Severity:</strong><br>
-                            <span class="badge bg-${data.severity === 'critical' ? 'danger' : data.severity === 'error' ? 'warning' : 'info'}" data-badge>${data.severity}</span>
+                            <span class="px-2 py-0.5 text-xs font-medium rounded ${data.severity === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : data.severity === 'error' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'}" data-badge>${data.severity}</span>
                         </div>
                         <div class="mb-3">
                             <strong>Message:</strong><br>

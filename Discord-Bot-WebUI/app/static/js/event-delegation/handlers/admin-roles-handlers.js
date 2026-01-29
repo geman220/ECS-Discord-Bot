@@ -171,38 +171,44 @@ window.EventDelegation.register('view-role-details', function(element, e) {
             if (data.success) {
                 const role = data.role;
                 let content = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Role Information</h6>
-                            <table class="c-table c-table--compact" data-table data-mobile-table data-table-type="roles">
-                                <tr><td><strong>Name:</strong></td><td>${escapeHtml(role.name)}</td></tr>
-                                <tr><td><strong>Description:</strong></td><td>${escapeHtml(role.description) || 'No description'}</td></tr>
-                                <tr><td><strong>Users:</strong></td><td>${escapeHtml(String(role.user_count))}</td></tr>
-                                <tr><td><strong>Created:</strong></td><td>${role.created_at ? new Date(role.created_at).toLocaleDateString() : '-'}</td></tr>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Role Information</h6>
+                            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400" data-table data-mobile-table data-table-type="roles">
+                                <tr class="border-b dark:border-gray-700"><td class="py-1"><strong class="text-gray-900 dark:text-white">Name:</strong></td><td class="py-1">${escapeHtml(role.name)}</td></tr>
+                                <tr class="border-b dark:border-gray-700"><td class="py-1"><strong class="text-gray-900 dark:text-white">Description:</strong></td><td class="py-1">${escapeHtml(role.description) || 'No description'}</td></tr>
+                                <tr class="border-b dark:border-gray-700"><td class="py-1"><strong class="text-gray-900 dark:text-white">Users:</strong></td><td class="py-1">${escapeHtml(String(role.user_count))}</td></tr>
+                                <tr><td class="py-1"><strong class="text-gray-900 dark:text-white">Created:</strong></td><td class="py-1">${role.created_at ? new Date(role.created_at).toLocaleDateString() : '-'}</td></tr>
                             </table>
                         </div>
-                        <div class="col-md-6">
-                            <h6>Users with this Role</h6>
-                            <div class="u-overflow-y-auto u-max-h-200">
+                        <div>
+                            <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Users with this Role</h6>
+                            <div class="overflow-y-auto max-h-48">
                 `;
 
                 if (role.users && role.users.length > 0) {
                     role.users.forEach(user => {
+                        const approvedBadge = user.is_approved
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                            : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300';
+                        const activeBadge = user.is_active
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
                         content += `
-                            <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div class="flex justify-between items-center mb-2">
                                 <div>
-                                    <strong>${escapeHtml(user.username)}</strong>
-                                    <br><small class="text-muted">${escapeHtml(user.email)}</small>
+                                    <strong class="text-gray-900 dark:text-white">${escapeHtml(user.username)}</strong>
+                                    <br><small class="text-gray-500 dark:text-gray-400">${escapeHtml(user.email)}</small>
                                 </div>
-                                <div>
-                                    <span class="badge bg-label-${user.is_approved ? 'success' : 'warning'}" data-badge>${user.is_approved ? 'Approved' : 'Pending'}</span>
-                                    <span class="badge bg-label-${user.is_active ? 'success' : 'danger'}" data-badge>${user.is_active ? 'Active' : 'Inactive'}</span>
+                                <div class="flex gap-1">
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded ${approvedBadge}" data-badge>${user.is_approved ? 'Approved' : 'Pending'}</span>
+                                    <span class="px-2 py-0.5 text-xs font-medium rounded ${activeBadge}" data-badge>${user.is_active ? 'Active' : 'Inactive'}</span>
                                 </div>
                             </div>
                         `;
                     });
                 } else {
-                    content += '<p class="text-muted">No users have this role</p>';
+                    content += '<p class="text-gray-500 dark:text-gray-400">No users have this role</p>';
                 }
 
                 content += `
@@ -222,7 +228,8 @@ window.EventDelegation.register('view-role-details', function(element, e) {
             if (detailsContent) {
                 // Use textContent to prevent XSS from error messages
                 const alertDiv = document.createElement('div');
-                alertDiv.className = 'alert alert-danger';
+                alertDiv.className = 'p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400';
+                alertDiv.setAttribute('role', 'alert');
                 alertDiv.setAttribute('data-alert', '');
                 alertDiv.textContent = `Error: ${error.message}`;
                 detailsContent.innerHTML = '';
@@ -305,7 +312,7 @@ window.EventDelegation.register('assign-role', function(element, e) {
                     option.textContent = `${user.username} (${user.email})`;
                     if (!user.is_active) {
                         option.textContent += ' [Inactive]';
-                        option.classList.add('text-muted');
+                        option.classList.add('text-gray-500', 'dark:text-gray-400');
                     }
                     userSelect.appendChild(option);
                 });

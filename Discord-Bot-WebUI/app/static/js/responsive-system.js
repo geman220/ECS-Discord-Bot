@@ -497,7 +497,7 @@ const ResponsiveSystem = {
             // Add scroll hint indicator
             const scrollHint = document.createElement('div');
             scrollHint.className = 'table-scroll-hint';
-            scrollHint.innerHTML = '<small class="text-muted"><i class="ti ti-arrows-horizontal me-1"></i>swipe to see more</small>';
+            scrollHint.innerHTML = '<small class="text-gray-500 dark:text-gray-400"><i class="ti ti-arrows-horizontal me-1"></i>swipe to see more</small>';
             table.parentNode.insertBefore(scrollHint, table.nextSibling);
           }
         }
@@ -549,7 +549,7 @@ const ResponsiveSystem = {
           if (!container.nextElementSibling || !container.nextElementSibling.classList.contains('tabs-scroll-hint')) {
             const scrollHint = document.createElement('div');
             scrollHint.className = 'tabs-scroll-hint';
-            scrollHint.innerHTML = '<small class="text-muted"><i class="ti ti-arrows-horizontal me-1"></i>swipe</small>';
+            scrollHint.innerHTML = '<small class="text-gray-500 dark:text-gray-400"><i class="ti ti-arrows-horizontal me-1"></i>swipe</small>';
 
             container.parentNode.insertBefore(scrollHint, container.nextSibling);
           }

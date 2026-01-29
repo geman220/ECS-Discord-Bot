@@ -68,13 +68,13 @@ function testCache() {
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                result.innerHTML = '<div class="alert alert-success"><i class="fas fa-check"></i> ' + data.message + '</div>';
+                result.innerHTML = '<div class="p-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400" role="alert"><i class="ti ti-check mr-1"></i> ' + data.message + '</div>';
             } else {
-                result.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times"></i> ' + data.message + '</div>';
+                result.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert"><i class="ti ti-x mr-1"></i> ' + data.message + '</div>';
             }
         })
         .catch(error => {
-            result.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times"></i> Cache test failed: ' + error + '</div>';
+            result.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert"><i class="ti ti-x mr-1"></i> Cache test failed: ' + error + '</div>';
         })
         .finally(() => {
             button.innerHTML = '<i class="fas fa-vial"></i> Test Cache Connection';

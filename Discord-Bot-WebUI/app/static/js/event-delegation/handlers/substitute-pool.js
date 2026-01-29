@@ -710,14 +710,14 @@ function loadSubAvailability(requestId) {
             } else {
                 const availabilityList = document.getElementById('availabilityList');
                 if (availabilityList) {
-                    availabilityList.innerHTML = '<div class="text-danger text-center">Error loading availability</div>';
+                    availabilityList.innerHTML = '<div class="text-red-500 dark:text-red-400 text-center">Error loading availability</div>';
                 }
             }
         })
         .catch(err => {
             const availabilityList = document.getElementById('availabilityList');
             if (availabilityList) {
-                availabilityList.innerHTML = '<div class="text-danger text-center">Network error</div>';
+                availabilityList.innerHTML = '<div class="text-red-500 dark:text-red-400 text-center">Network error</div>';
             }
         });
 }

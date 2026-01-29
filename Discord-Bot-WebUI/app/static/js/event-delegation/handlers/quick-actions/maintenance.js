@@ -25,7 +25,7 @@ window.EventDelegation.register('toggle-maintenance-mode', function(element, e) 
 
     window.Swal.fire({
         title: 'Toggle Maintenance Mode?',
-        html: '<p>This will enable or disable system maintenance mode.</p><p class="text-warning small"><i class="ti ti-alert-triangle me-1"></i>When enabled, non-admin users will see a maintenance page.</p>',
+        html: '<p>This will enable or disable system maintenance mode.</p><p class="text-yellow-500 dark:text-yellow-400 small"><i class="ti ti-alert-triangle me-1"></i>When enabled, non-admin users will see a maintenance page.</p>',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#dc3545',
@@ -51,7 +51,7 @@ window.EventDelegation.register('toggle-maintenance-mode', function(element, e) 
                             const isEnabled = data.maintenance_mode;
                             window.Swal.fire({
                                 title: isEnabled ? 'Maintenance Mode Enabled' : 'Maintenance Mode Disabled',
-                                html: `<p>${data.message}</p><p class="mt-2"><span class="badge ${isEnabled ? 'bg-danger' : 'bg-success'}">${isEnabled ? 'MAINTENANCE' : 'NORMAL'}</span></p>`,
+                                html: `<p>${data.message}</p><p class="mt-2"><span class="px-2 py-0.5 text-xs font-medium rounded ${isEnabled ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'}" data-badge>${isEnabled ? 'MAINTENANCE' : 'NORMAL'}</span></p>`,
                                 icon: isEnabled ? 'warning' : 'success'
                             });
                         } else {
@@ -85,15 +85,15 @@ window.EventDelegation.register('clear-system-logs', function(element, e) {
         html: `
             <p>This will permanently delete system logs.</p>
             <div class="mb-3">
-                <label class="form-label">Retention Period</label>
-                <select class="form-select" id="logRetentionDays" data-form-select>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Retention Period</label>
+                <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" id="logRetentionDays" data-form-select>
                     <option value="0">Delete ALL logs</option>
                     <option value="7" selected>Keep last 7 days</option>
                     <option value="30">Keep last 30 days</option>
                     <option value="90">Keep last 90 days</option>
                 </select>
             </div>
-            <p class="text-warning small"><i class="ti ti-alert-triangle me-1"></i>This action cannot be undone.</p>
+            <p class="text-yellow-500 dark:text-yellow-400 small"><i class="ti ti-alert-triangle me-1"></i>This action cannot be undone.</p>
         `,
         icon: 'warning',
         showCancelButton: true,
@@ -185,13 +185,13 @@ window.EventDelegation.register('generate-system-report', function(element, e) {
                                 html: `
                                     <div class="text-start">
                                         <h6 class="mb-2">User Statistics</h6>
-                                        <ul class="list-unstyled small mb-3">
+                                        <ul class="list-none small mb-3">
                                             <li>Total Users: <strong>${report.users?.total || 0}</strong></li>
                                             <li>Active Users: <strong>${report.users?.active || 0}</strong></li>
                                             <li>Pending Approval: <strong>${report.users?.pending || 0}</strong></li>
                                         </ul>
                                         <h6 class="mb-2">System Status</h6>
-                                        <ul class="list-unstyled small mb-3">
+                                        <ul class="list-none small mb-3">
                                             <li>Teams: <strong>${report.teams?.total || 0}</strong></li>
                                             <li>Matches: <strong>${report.matches?.total || 0}</strong></li>
                                             <li>Templates: <strong>${report.templates?.total || 0}</strong></li>

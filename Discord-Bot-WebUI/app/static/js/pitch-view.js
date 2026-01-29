@@ -559,7 +559,7 @@ class PitchViewSystem {
         const toast = document.createElement('div');
         toast.className = 'position-warning-toast';
         toast.innerHTML = `
-            <i class="ti ti-alert-triangle text-warning me-2"></i>
+            <i class="ti ti-alert-triangle text-yellow-500 dark:text-yellow-400 me-2"></i>
             <div>
                 <strong>${positionName} Position Over Capacity</strong>
                 <div class="small text-muted">Current: ${currentCount} | Recommended: ${recommendedMax}</div>

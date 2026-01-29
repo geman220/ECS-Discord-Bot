@@ -486,7 +486,11 @@ export function showPlayerDetails(userId) {
     }
 
     // Show loading state
-    document.getElementById('playerDetailsContent').innerHTML = '<div class="text-center py-4"><i class="ti ti-loader ti-spin"></i> Loading player details...</div>';
+    document.getElementById('playerDetailsContent').innerHTML = `
+        <div class="flex items-center justify-center py-8">
+            <i class="ti ti-loader ti-spin text-2xl text-gray-500 dark:text-gray-400"></i>
+            <span class="ml-2 text-gray-500 dark:text-gray-400">Loading player details...</span>
+        </div>`;
 
     // Show modal
     playerDetailsModal.show();
@@ -499,51 +503,54 @@ export function showPlayerDetails(userId) {
                 const user = data.user;
                 const player = user.player;
 
-                let detailsHtml = '<div class="player-details-header">';
+                let detailsHtml = '';
+
+                // Header with avatar and basic info
+                detailsHtml += '<div class="flex items-center gap-4 pb-4 border-b border-gray-200 dark:border-gray-700">';
 
                 // Profile image or avatar
                 if (player && player.profile_picture_url) {
-                    detailsHtml += `<img src="${player.profile_picture_url}" alt="${player.name}" class="player-details-image">`;
+                    detailsHtml += `<img src="${player.profile_picture_url}" alt="${player.name}" class="w-16 h-16 rounded-full object-cover">`;
                 } else {
-                    detailsHtml += `<div class="player-details-avatar">${user.username.charAt(0).toUpperCase()}</div>`;
+                    detailsHtml += `<div class="w-16 h-16 rounded-full bg-ecs-green flex items-center justify-center text-white text-2xl font-bold">${user.username.charAt(0).toUpperCase()}</div>`;
                 }
 
                 // Basic info
-                detailsHtml += '<div class="player-details-info">';
-                detailsHtml += `<h3>${user.username}</h3>`;
+                detailsHtml += '<div class="flex-1">';
+                detailsHtml += `<h3 class="text-lg font-semibold text-gray-900 dark:text-white">${user.username}</h3>`;
                 if (player) {
-                    detailsHtml += `<p class="text-muted mb-2">${player.name}</p>`;
+                    detailsHtml += `<p class="text-sm text-gray-500 dark:text-gray-400">${player.name}</p>`;
                 }
-                detailsHtml += `<p class="mb-0">${user.email}</p>`;
+                detailsHtml += `<p class="text-sm text-gray-500 dark:text-gray-400">${user.email}</p>`;
                 detailsHtml += '</div>';
                 detailsHtml += '</div>';
 
                 // Account Information Section
-                detailsHtml += '<div class="player-details-section">';
-                detailsHtml += '<h5>Account Information</h5>';
-                detailsHtml += '<div class="info-grid">';
+                detailsHtml += '<div class="mt-4">';
+                detailsHtml += '<h5 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Account Information</h5>';
+                detailsHtml += '<div class="grid grid-cols-2 gap-3">';
 
-                detailsHtml += '<div class="info-item">';
-                detailsHtml += '<div class="info-label">Registration Date</div>';
-                detailsHtml += `<div class="info-value">${user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}</div>`;
+                detailsHtml += '<div>';
+                detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Registration Date</div>';
+                detailsHtml += `<div class="text-sm text-gray-900 dark:text-white">${user.created_at ? new Date(user.created_at).toLocaleDateString() : 'Unknown'}</div>`;
                 detailsHtml += '</div>';
 
-                detailsHtml += '<div class="info-item">';
-                detailsHtml += '<div class="info-label">Status</div>';
-                detailsHtml += '<div class="info-value"><span data-badge data-status="pending">Pending Approval</span></div>';
+                detailsHtml += '<div>';
+                detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Status</div>';
+                detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Pending Approval</span></div>';
                 detailsHtml += '</div>';
 
                 if (player && player.discord_id) {
-                    detailsHtml += '<div class="info-item">';
-                    detailsHtml += '<div class="info-label">Discord ID</div>';
-                    detailsHtml += `<div class="info-value"><code>${player.discord_id}</code></div>`;
+                    detailsHtml += '<div>';
+                    detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Discord ID</div>';
+                    detailsHtml += `<div class="text-sm"><code class="px-1 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded">${player.discord_id}</code></div>`;
                     detailsHtml += '</div>';
                 }
 
-                detailsHtml += '<div class="info-item">';
-                detailsHtml += '<div class="info-label">Current Roles</div>';
-                detailsHtml += '<div class="info-value">';
-                detailsHtml += user.roles.map(role => `<span data-badge data-role="user-role">${role}</span>`).join('');
+                detailsHtml += '<div>';
+                detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Current Roles</div>';
+                detailsHtml += '<div class="text-sm flex flex-wrap gap-1">';
+                detailsHtml += user.roles.map(role => `<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 rounded">${role}</span>`).join('');
                 detailsHtml += '</div>';
                 detailsHtml += '</div>';
 
@@ -552,63 +559,63 @@ export function showPlayerDetails(userId) {
 
                 // Player Information Section (if exists)
                 if (player) {
-                    detailsHtml += '<div class="player-details-section">';
-                    detailsHtml += '<h5>Player Information</h5>';
-                    detailsHtml += '<div class="info-grid">';
+                    detailsHtml += '<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">';
+                    detailsHtml += '<h5 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Player Information</h5>';
+                    detailsHtml += '<div class="grid grid-cols-2 gap-3">';
 
                     if (player.pronouns) {
-                        detailsHtml += '<div class="info-item">';
-                        detailsHtml += '<div class="info-label">Pronouns</div>';
-                        detailsHtml += `<div class="info-value">${player.pronouns}</div>`;
+                        detailsHtml += '<div>';
+                        detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Pronouns</div>';
+                        detailsHtml += `<div class="text-sm text-gray-900 dark:text-white">${player.pronouns}</div>`;
                         detailsHtml += '</div>';
                     }
 
                     if (player.phone) {
-                        detailsHtml += '<div class="info-item">';
-                        detailsHtml += '<div class="info-label">Phone</div>';
-                        detailsHtml += `<div class="info-value">${player.phone}</div>`;
+                        detailsHtml += '<div>';
+                        detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Phone</div>';
+                        detailsHtml += `<div class="text-sm text-gray-900 dark:text-white">${player.phone}</div>`;
                         detailsHtml += '</div>';
                     }
 
                     if (player.jersey_size) {
-                        detailsHtml += '<div class="info-item">';
-                        detailsHtml += '<div class="info-label">Jersey Size</div>';
-                        detailsHtml += `<div class="info-value">${player.jersey_size}</div>`;
+                        detailsHtml += '<div>';
+                        detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Jersey Size</div>';
+                        detailsHtml += `<div class="text-sm text-gray-900 dark:text-white">${player.jersey_size}</div>`;
                         detailsHtml += '</div>';
                     }
 
                     if (player.favorite_position) {
-                        detailsHtml += '<div class="info-item">';
-                        detailsHtml += '<div class="info-label">Favorite Position</div>';
-                        detailsHtml += `<div class="info-value">${player.favorite_position}</div>`;
+                        detailsHtml += '<div>';
+                        detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Favorite Position</div>';
+                        detailsHtml += `<div class="text-sm text-gray-900 dark:text-white">${player.favorite_position}</div>`;
                         detailsHtml += '</div>';
                     }
 
                     // Only show player status if user is approved
                     if (user.approval_status === 'approved') {
-                        detailsHtml += '<div class="info-item">';
-                        detailsHtml += '<div class="info-label">Player Status</div>';
-                        detailsHtml += `<div class="info-value">${player.is_current_player ? '<span data-badge data-status="active">Active</span>' : '<span data-badge data-status="inactive">Inactive</span>'}</div>`;
+                        detailsHtml += '<div>';
+                        detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Player Status</div>';
+                        detailsHtml += `<div class="text-sm">${player.is_current_player ? '<span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">Active</span>' : '<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">Inactive</span>'}</div>`;
                         detailsHtml += '</div>';
 
                         if (player.is_coach) {
-                            detailsHtml += '<div class="info-item">';
-                            detailsHtml += '<div class="info-label">Coach Status</div>';
-                            detailsHtml += '<div class="info-value"><span data-badge data-role="coach">Coach</span></div>';
+                            detailsHtml += '<div>';
+                            detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Coach Status</div>';
+                            detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300 rounded">Coach</span></div>';
                             detailsHtml += '</div>';
                         }
 
                         if (player.is_sub) {
-                            detailsHtml += '<div class="info-item">';
-                            detailsHtml += '<div class="info-label">Substitute Status</div>';
-                            detailsHtml += '<div class="info-value"><span data-badge data-role="substitute">Substitute</span></div>';
+                            detailsHtml += '<div>';
+                            detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Substitute Status</div>';
+                            detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300 rounded">Substitute</span></div>';
                             detailsHtml += '</div>';
                         }
                     } else {
                         // For pending users, show that they're awaiting approval
-                        detailsHtml += '<div class="info-item">';
-                        detailsHtml += '<div class="info-label">Player Status</div>';
-                        detailsHtml += '<div class="info-value"><span data-badge data-status="pending">Awaiting Approval</span></div>';
+                        detailsHtml += '<div>';
+                        detailsHtml += '<div class="text-xs text-gray-500 dark:text-gray-400 mb-1">Player Status</div>';
+                        detailsHtml += '<div class="text-sm"><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300 rounded">Awaiting Approval</span></div>';
                         detailsHtml += '</div>';
                     }
 
@@ -622,19 +629,17 @@ export function showPlayerDetails(userId) {
                 const profileLink = document.getElementById('profileLink');
                 if (player) {
                     profileLink.href = `/players/profile/${player.id}`;
-                    profileLink.classList.remove('profile-link-hidden');
-                    profileLink.classList.add('profile-link-visible');
+                    profileLink.classList.remove('hidden');
                 } else {
-                    profileLink.classList.remove('profile-link-visible');
-                    profileLink.classList.add('profile-link-hidden');
+                    profileLink.classList.add('hidden');
                 }
             } else {
-                document.getElementById('playerDetailsContent').innerHTML = '<div class="text-center text-danger py-4">Error loading player details</div>';
+                document.getElementById('playerDetailsContent').innerHTML = '<div class="text-center text-red-500 dark:text-red-400 py-4">Error loading player details</div>';
             }
         })
         .catch(error => {
             console.error('Error loading details:', error);
-            document.getElementById('playerDetailsContent').innerHTML = '<div class="text-center text-danger py-4">Error loading player details</div>';
+            document.getElementById('playerDetailsContent').innerHTML = '<div class="text-center text-red-500 dark:text-red-400 py-4">Error loading player details</div>';
         });
 }
 

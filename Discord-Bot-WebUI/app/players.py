@@ -143,9 +143,9 @@ def create_player():
     try:
         # Gather and clean player data from the form
         player_data = {
-            'name': form.name.data.strip(),
-            'email': form.email.data.lower().strip(),
-            'phone': form.phone.data.strip(),
+            'name': form.name.data.strip() if form.name.data else '',
+            'email': form.email.data.lower().strip() if form.email.data else '',
+            'phone': form.phone.data.strip() if form.phone.data else '',
             'jersey_size': form.jersey_size.data,
         }
         league_id = form.league_id.data

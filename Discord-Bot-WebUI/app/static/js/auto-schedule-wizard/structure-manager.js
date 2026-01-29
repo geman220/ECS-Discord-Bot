@@ -125,8 +125,8 @@ export function updateSeasonStructure() {
     breakdown.innerHTML = `
         <div><strong>Premier:</strong> ${premierRegular} regular + ${premierPlayoffs} playoff weeks</div>
         <div><strong>Classic:</strong> ${classicRegular} regular + ${classicPlayoffs} playoff week</div>
-        <div class="text-muted"><small>Plus ${specialWeeksCount} shared special weeks</small></div>
-        <div class="text-muted"><small>Total season length: ${totalWeeks} weeks</small></div>
+        <div class="text-gray-500 dark:text-gray-400"><small>Plus ${specialWeeksCount} shared special weeks</small></div>
+        <div class="text-gray-500 dark:text-gray-400"><small>Total season length: ${totalWeeks} weeks</small></div>
     `;
 
     // Regenerate calendar if on step 3
@@ -176,12 +176,12 @@ export function updateWizardPracticeWeekOptions() {
 
         for (let i = 1; i <= weekCount; i++) {
             const div = document.createElement('div');
-            div.className = 'form-check form-check-inline';
+            div.className = 'inline-flex items-center me-4';
             const checked = (i === 1 || i === 3) ? 'checked' : '';
 
             div.innerHTML = `
-                <input class="form-check-input" type="checkbox" id="practice-week-${i}" value="${i}" ${checked}>
-                <label class="form-check-label" for="practice-week-${i}">Week ${i}</label>
+                <input class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" type="checkbox" id="practice-week-${i}" value="${i}" ${checked}>
+                <label class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300" for="practice-week-${i}">Week ${i}</label>
             `;
             container.appendChild(div);
         }

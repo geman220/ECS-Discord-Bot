@@ -21,7 +21,7 @@ function refreshNotificationStatus() {
     if (!statusIndicator || !statusContent) return;
 
     // Show loading state
-    statusIndicator.className = 'badge bg-secondary';
+    statusIndicator.className = 'px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
     statusIndicator.innerHTML = '<i class="ti ti-loader-2 spin me-1"></i>Checking...';
 
     // API call to check Firebase status using Flask session auth
@@ -38,10 +38,10 @@ function refreshNotificationStatus() {
     })
     .catch(error => {
         console.error('Error checking notification status:', error);
-        statusIndicator.className = 'badge bg-danger';
+        statusIndicator.className = 'px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
         statusIndicator.innerHTML = '<i class="ti ti-x me-1"></i>Error';
         statusContent.innerHTML = `
-            <div class="alert alert-danger mb-0" data-alert>
+            <div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400 mb-0" role="alert" data-alert>
                 <i class="ti ti-alert-circle me-2"></i>
                 Failed to check Firebase status. Please check your connection and try again.
             </div>
@@ -59,28 +59,28 @@ function updateFirebaseStatus(data) {
     if (!statusIndicator || !statusContent) return;
 
     if (data.firebase_configured) {
-        statusIndicator.className = 'badge bg-success';
+        statusIndicator.className = 'px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
         statusIndicator.innerHTML = '<i class="ti ti-check me-1"></i>Online';
         statusContent.innerHTML = `
-            <div class="alert alert-success mb-0" data-alert>
+            <div class="p-4 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400 mb-0" role="alert" data-alert>
                 <i class="ti ti-check-circle me-2"></i>
                 Firebase Cloud Messaging is properly configured and ready to send notifications.
             </div>
         `;
     } else {
-        statusIndicator.className = 'badge bg-danger';
+        statusIndicator.className = 'px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
         statusIndicator.innerHTML = '<i class="ti ti-x me-1"></i>Not Configured';
         statusContent.innerHTML = `
-            <div class="alert alert-danger mb-3" data-alert>
+            <div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400 mb-3" role="alert" data-alert>
                 <i class="ti ti-alert-circle me-2"></i>
                 Firebase is not properly configured. Please check your service account configuration.
             </div>
-            <ul class="list-unstyled mb-0">
-                <li class="text-danger mb-1">
+            <ul class="list-none mb-0 space-y-1">
+                <li class="text-red-600 dark:text-red-400">
                     <i class="ti ti-arrow-right me-1"></i>
                     Ensure firebase-service-account.json is in your instance folder
                 </li>
-                <li class="text-danger mb-1">
+                <li class="text-red-600 dark:text-red-400">
                     <i class="ti ti-arrow-right me-1"></i>
                     Verify Firebase project settings and permissions
                 </li>
@@ -121,29 +121,37 @@ function loadRecentActivity() {
     .then(response => response.json())
     .then(data => {
         if (data.activities && data.activities.length > 0) {
-            tableBody.innerHTML = data.activities.map(activity => `
-                <tr>
-                    <td>${escapeHtml(new Date(activity.timestamp).toLocaleString())}</td>
-                    <td><span class="badge bg-${activity.type === 'broadcast' ? 'primary' : 'info'}" data-badge>${escapeHtml(activity.type)}</span></td>
-                    <td>${escapeHtml(activity.title)}</td>
-                    <td>${escapeHtml(String(activity.recipients))}</td>
-                    <td>
-                        <div class="progress" class="u-progress-h-6">
-                            <div class="progress-bar" role="progressbar" style="width: ${parseFloat(activity.success_rate) || 0}%"></div>
+            tableBody.innerHTML = data.activities.map(activity => {
+                const typeBadge = activity.type === 'broadcast'
+                    ? 'bg-ecs-green text-white'
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300';
+                const statusBadge = activity.status === 'success'
+                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                    : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+                return `
+                <tr class="border-b dark:border-gray-700">
+                    <td class="py-2">${escapeHtml(new Date(activity.timestamp).toLocaleString())}</td>
+                    <td class="py-2"><span class="px-2 py-0.5 text-xs font-medium rounded ${typeBadge}" data-badge>${escapeHtml(activity.type)}</span></td>
+                    <td class="py-2">${escapeHtml(activity.title)}</td>
+                    <td class="py-2">${escapeHtml(String(activity.recipients))}</td>
+                    <td class="py-2">
+                        <div class="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                            <div class="bg-ecs-green h-1.5 rounded-full" style="width: ${parseFloat(activity.success_rate) || 0}%"></div>
                         </div>
-                        <small class="text-muted">${escapeHtml(String(activity.success_rate))}%</small>
+                        <small class="text-gray-500 dark:text-gray-400">${escapeHtml(String(activity.success_rate))}%</small>
                     </td>
-                    <td>
-                        <span class="badge bg-${activity.status === 'success' ? 'success' : 'danger'}" data-badge>
+                    <td class="py-2">
+                        <span class="px-2 py-0.5 text-xs font-medium rounded ${statusBadge}" data-badge>
                             ${escapeHtml(activity.status)}
                         </span>
                     </td>
                 </tr>
-            `).join('');
+            `;
+            }).join('');
         } else {
             tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center py-4 text-muted">
+                    <td colspan="6" class="text-center py-4 text-gray-500 dark:text-gray-400">
                         <i class="ti ti-bell-off me-2"></i>
                         No recent notification activity
                     </td>
@@ -155,7 +163,7 @@ function loadRecentActivity() {
         console.error('Error loading recent activity:', error);
         tableBody.innerHTML = `
             <tr>
-                <td colspan="6" class="text-center py-4 text-danger">
+                <td colspan="6" class="text-center py-4 text-red-600 dark:text-red-400">
                     <i class="ti ti-alert-circle me-2"></i>
                     Failed to load recent activity
                 </td>

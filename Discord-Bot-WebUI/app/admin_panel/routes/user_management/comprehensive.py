@@ -235,7 +235,7 @@ def update_user_status():
 def update_user_active():
     """Update user active status via AJAX."""
     user_id = request.form.get('user_id')
-    active = request.form.get('active').lower() == 'true'
+    active = request.form.get('active', 'false').lower() == 'true'
 
     if not user_id:
         return jsonify({'success': False, 'message': 'User ID is required'})

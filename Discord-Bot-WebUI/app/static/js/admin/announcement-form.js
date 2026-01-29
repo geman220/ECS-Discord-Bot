@@ -135,7 +135,7 @@ const AnnouncementForm = {
 
         // Build character count display safely (no user input in HTML)
         const charCount = document.createElement('div');
-        charCount.className = 'form-text';
+        charCount.className = 'text-sm text-gray-500 dark:text-gray-400';
 
         const small = document.createElement('small');
         small.textContent = 'Characters: ';
@@ -152,11 +152,11 @@ const AnnouncementForm = {
         this.elements.contentInput.addEventListener('input', function() {
             document.getElementById('char-count').textContent = this.value.length;
             if (this.value.length > maxChars * 0.9) {
-                charCount.className = 'form-text text-warning';
+                charCount.className = 'text-sm text-yellow-500 dark:text-yellow-400';
             } else if (this.value.length > maxChars) {
-                charCount.className = 'form-text text-danger';
+                charCount.className = 'text-sm text-red-500 dark:text-red-400';
             } else {
-                charCount.className = 'form-text';
+                charCount.className = 'text-sm text-gray-500 dark:text-gray-400';
             }
         });
     },

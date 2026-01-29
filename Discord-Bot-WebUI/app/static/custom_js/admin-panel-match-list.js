@@ -91,31 +91,35 @@ function viewMatchDetails(matchId) {
             if (data.success) {
                 const match = data.match;
                 let detailsHtml = `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>Match Information</h6>
-                            <p><strong>Teams:</strong> ${match.home_team} vs ${match.away_team}</p>
-                            <p><strong>Date:</strong> ${match.date || 'TBD'}</p>
-                            <p><strong>Time:</strong> ${match.time || 'TBD'}</p>
-                            <p><strong>Location:</strong> ${match.location}</p>
-                            <p><strong>Status:</strong> <span class="badge bg-primary">${match.status}</span></p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                        <div>
+                            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Match Information</h6>
+                            <div class="space-y-2 text-sm">
+                                <p><span class="font-medium text-gray-700 dark:text-gray-300">Teams:</span> <span class="text-gray-900 dark:text-white">${match.home_team} vs ${match.away_team}</span></p>
+                                <p><span class="font-medium text-gray-700 dark:text-gray-300">Date:</span> <span class="text-gray-900 dark:text-white">${match.date || 'TBD'}</span></p>
+                                <p><span class="font-medium text-gray-700 dark:text-gray-300">Time:</span> <span class="text-gray-900 dark:text-white">${match.time || 'TBD'}</span></p>
+                                <p><span class="font-medium text-gray-700 dark:text-gray-300">Location:</span> <span class="text-gray-900 dark:text-white">${match.location}</span></p>
+                                <p><span class="font-medium text-gray-700 dark:text-gray-300">Status:</span> <span class="px-2 py-0.5 text-xs font-medium bg-ecs-green text-white rounded ml-1">${match.status}</span></p>
+                            </div>
                         </div>
-                        <div class="col-md-6">
-                            <h6>League & Season</h6>
-                            <p><strong>League:</strong> ${match.league}</p>
-                            <p><strong>Season:</strong> ${match.season}</p>
+                        <div>
+                            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">League & Season</h6>
+                            <div class="space-y-2 text-sm">
+                                <p><span class="font-medium text-gray-700 dark:text-gray-300">League:</span> <span class="text-gray-900 dark:text-white">${match.league}</span></p>
+                                <p><span class="font-medium text-gray-700 dark:text-gray-300">Season:</span> <span class="text-gray-900 dark:text-white">${match.season}</span></p>
+                            </div>
                         </div>
                     </div>
                 `;
 
                 if (match.rsvp_data && match.rsvp_data.total > 0) {
                     detailsHtml += `
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6>RSVP Information</h6>
-                                <p><strong>Total RSVPs:</strong> ${match.rsvp_data.total}</p>
+                        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-left">
+                            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">RSVP Information</h6>
+                            <p class="text-sm mb-2"><span class="font-medium text-gray-700 dark:text-gray-300">Total RSVPs:</span> <span class="text-gray-900 dark:text-white">${match.rsvp_data.total}</span></p>
+                            <div class="flex flex-wrap gap-1">
                                 ${match.rsvp_data.status_breakdown ? Object.entries(match.rsvp_data.status_breakdown).map(([status, count]) =>
-                                    `<span class="badge bg-secondary me-1">${status}: ${count}</span>`
+                                    `<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">${status}: ${count}</span>`
                                 ).join('') : ''}
                             </div>
                         </div>
@@ -124,19 +128,23 @@ function viewMatchDetails(matchId) {
 
                 if (match.team_history && match.team_history.length > 0) {
                     detailsHtml += `
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6>Recent Head-to-Head</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
-                                        <thead><tr><th>Date</th><th>Match</th><th>Status</th></tr></thead>
-                                        <tbody>
-                                            ${match.team_history.map(h =>
-                                                `<tr><td>${h.date}</td><td>${h.home_team} vs ${h.away_team}</td><td>${h.status}</td></tr>`
-                                            ).join('')}
-                                        </tbody>
-                                    </table>
-                                </div>
+                        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 text-left">
+                            <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Recent Head-to-Head</h6>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                                        <tr>
+                                            <th class="px-3 py-2">Date</th>
+                                            <th class="px-3 py-2">Match</th>
+                                            <th class="px-3 py-2">Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${match.team_history.map(h =>
+                                            `<tr class="border-b border-gray-200 dark:border-gray-700"><td class="px-3 py-2">${h.date}</td><td class="px-3 py-2">${h.home_team} vs ${h.away_team}</td><td class="px-3 py-2">${h.status}</td></tr>`
+                                        ).join('')}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     `;

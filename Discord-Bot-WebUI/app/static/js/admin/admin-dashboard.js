@@ -293,7 +293,7 @@ const AdminDashboard = {
             const statusIcon = cont.status === 'running' ? 'ti-check' : 'ti-x';
 
             return `
-                <div class="col-xl-4 col-lg-6 mb-3">
+                <div class="xl:w-1/3 lg:w-1/2 w-full p-2 mb-3">
                     <div class="c-container-card" data-component="container-card" data-container-name="${cont.name}">
                         <div class="c-container-card__header">
                             <div class="c-container-card__info">
@@ -438,7 +438,7 @@ const AdminDashboard = {
                 this.renderTaskManagement(data);
             } else {
                 container.innerHTML = `
-                    <div class="alert alert-warning" role="alert">
+                    <div class="p-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-400" role="alert">
                         <i class="ti ti-alert-triangle me-2"></i>
                         ${data.error || 'Unable to load task management'}
                     </div>
@@ -447,7 +447,7 @@ const AdminDashboard = {
         } catch (error) {
             console.error('Error fetching task management:', error);
             container.innerHTML = `
-                <div class="alert alert-danger" role="alert">
+                <div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
                     <i class="ti ti-alert-circle me-2"></i>
                     Failed to load task management
                 </div>
@@ -463,29 +463,29 @@ const AdminDashboard = {
         const activeTasks = data.active_tasks || [];
 
         const html = `
-            <div class="row mb-4">
-                <div class="col-md-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div>
                     <div class="c-stat-card c-stat-card--primary">
                         <div class="c-stat-card__value">${stats.total_active || 0}</div>
                         <div class="c-stat-card__label">Active Tasks</div>
                         <div class="c-stat-card__icon"><i class="ti ti-activity"></i></div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div>
                     <div class="c-stat-card c-stat-card--success">
                         <div class="c-stat-card__value">${stats.by_status?.SUCCESS || 0}</div>
                         <div class="c-stat-card__label">Completed</div>
                         <div class="c-stat-card__icon"><i class="ti ti-check"></i></div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div>
                     <div class="c-stat-card c-stat-card--danger">
                         <div class="c-stat-card__value">${stats.by_status?.FAILURE || 0}</div>
                         <div class="c-stat-card__label">Failed</div>
                         <div class="c-stat-card__icon"><i class="ti ti-x"></i></div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div>
                     <div class="c-stat-card c-stat-card--warning">
                         <div class="c-stat-card__value">${stats.by_status?.PENDING || 0}</div>
                         <div class="c-stat-card__label">Pending</div>
@@ -591,7 +591,7 @@ const AdminDashboard = {
             title: 'DESTROY Task?',
             html: `
                 <div class="text-start">
-                    <p class="text-warning"><strong>WARNING: Nuclear Option</strong></p>
+                    <p class="text-yellow-500 dark:text-yellow-400"><strong>WARNING: Nuclear Option</strong></p>
                     <p>This will completely <strong>DESTROY</strong> the task:</p>
                     <ul class="text-start">
                         <li>Terminate the running process</li>
@@ -599,7 +599,7 @@ const AdminDashboard = {
                         <li>Purge from all tracking systems</li>
                         <li>Cannot be undone</li>
                     </ul>
-                    <p class="text-danger"><strong>Are you absolutely sure?</strong></p>
+                    <p class="text-red-500 dark:text-red-400"><strong>Are you absolutely sure?</strong></p>
                 </div>
             `,
             icon: 'warning',
@@ -731,7 +731,7 @@ const AdminDashboard = {
                         <li>Celery metadata older than 7 days</li>
                         <li>Improves Redis performance</li>
                     </ul>
-                    <p class="text-muted"><small>Recent tasks will be preserved</small></p>
+                    <p class="text-gray-500 dark:text-gray-400"><small>Recent tasks will be preserved</small></p>
                 </div>
             `,
             icon: 'question',
@@ -812,7 +812,7 @@ const AdminDashboard = {
 
         const toastId = 'toast-' + Date.now();
         const toastHTML = `
-            <div id="${toastId}" class="toast align-items-center border-0 bg-${type} text-white" role="alert" aria-live="assertive" aria-atomic="true">
+            <div id="${toastId}" class="toast items-center border-0 bg-${type} text-white" role="alert" aria-live="assertive" aria-atomic="true">
                 <div class="flex">
                     <div class="toast-body">
                         <strong>${title}:</strong> ${message}

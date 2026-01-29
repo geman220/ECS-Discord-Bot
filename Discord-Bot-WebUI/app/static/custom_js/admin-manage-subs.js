@@ -197,11 +197,11 @@ function handleLoadAssignments(button) {
 
 function renderAssignments(container, assignments, playerId) {
     if (assignments.length === 0) {
-        container.innerHTML = '<div class="alert alert-info" data-alert>No active assignments found.</div>';
+        container.innerHTML = '<div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400" role="alert" data-alert>No active assignments found.</div>';
         return;
     }
 
-    let html = '<div class="list-group">';
+    let html = '<div class="divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg">';
     assignments.forEach(a => {
         const matchDate = new Date(a.match_date);
         const formattedDate = matchDate.toLocaleDateString('en-US', {
@@ -211,16 +211,16 @@ function renderAssignments(container, assignments, playerId) {
         });
 
         html += `
-            <div class="list-group-item list-group-item-action c-assignment-item" data-assignment-id="${a.id}">
-                <div class="c-assignment-item__header">
-                    <span class="c-assignment-item__title">${a.home_team_name} vs ${a.away_team_name}</span>
-                    <span class="c-badge c-badge--primary">${formattedDate}</span>
+            <div class="p-3 hover:bg-gray-50 dark:hover:bg-gray-700 c-assignment-item" data-assignment-id="${a.id}">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">${a.home_team_name} vs ${a.away_team_name}</span>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">${formattedDate}</span>
                 </div>
-                <div class="c-assignment-item__footer">
-                    <span class="c-assignment-item__team">
-                        <i class="ti ti-users"></i> ${a.team_name}
+                <div class="flex justify-between items-center">
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                        <i class="ti ti-users mr-1"></i> ${a.team_name}
                     </span>
-                    <button class="btn btn-sm btn-outline-danger"
+                    <button class="p-1.5 text-xs text-red-600 border border-red-600 rounded hover:bg-red-600 hover:text-white dark:text-red-400 dark:border-red-400"
                             data-action="remove-assignment"
                             data-assignment-id="${a.id}"
                             title="Remove assignment">
@@ -403,7 +403,7 @@ function performRemoveAssignment(assignmentId, button) {
                 // Check if any assignments left
                 const list = button.closest('[data-role="assignments-list"]');
                 if (list && list.querySelectorAll('.c-assignment-item').length === 0) {
-                    list.innerHTML = '<div class="alert alert-info" data-alert>No active assignments found.</div>';
+                    list.innerHTML = '<div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400" role="alert" data-alert>No active assignments found.</div>';
                 }
             }, 300);
         } else {

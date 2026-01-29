@@ -175,21 +175,21 @@ export function displaySearchResults(players) {
     resultsContainer.empty();
 
     if (players.length === 0) {
-        resultsContainer.html('<div class="search-result-item">No players found</div>');
+        resultsContainer.html('<div class="p-3 text-sm text-gray-500 dark:text-gray-400">No players found</div>');
     } else {
         players.forEach(function(player) {
             const item = $(`
-                <div class="search-result-item">
-                    <div class="flex justify-content-between align-items-center">
+                <div class="p-3 border-b border-gray-200 dark:border-gray-700 last:border-b-0 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <div class="flex justify-between items-center">
                         <div>
-                            <strong>${player.name}</strong>
-                            <br><small class="text-muted">${player.email || 'No email'}</small>
+                            <span class="font-medium text-gray-900 dark:text-white">${player.name}</span>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">${player.email || 'No email'}</p>
                         </div>
-                        <div class="text-end">
-                            <small class="text-muted block">Can add to:</small>
-                            <div>
+                        <div class="text-right">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 block mb-1">Can add to:</span>
+                            <div class="flex gap-1">
                                 ${player.can_add_to.map(league => `
-                                    <button class="btn btn-sm btn-outline-primary ms-1"
+                                    <button class="px-2 py-1 text-xs font-medium text-ecs-green border border-ecs-green rounded hover:bg-ecs-green hover:text-white transition-colors"
                                             data-action="add-player-to-league"
                                             data-player-id="${player.id}"
                                             data-league="${league}">
@@ -337,11 +337,11 @@ export function openPlayerDetailsModal(playerId) {
         .catch(error => {
             console.error('Error loading player profile:', error);
             document.getElementById('detailsLoading').innerHTML = `
-                <div class="text-center py-4">
-                    <i class="ti ti-alert-circle text-danger mb-2" class="icon-2x"></i>
-                    <p class="text-muted">Failed to load player details</p>
-                    <button class="btn btn-sm btn-outline-primary" data-action="view-pool-player-details" data-player-id="${playerId}">
-                        <i class="ti ti-refresh me-1"></i>Retry
+                <div class="text-center py-8">
+                    <i class="ti ti-alert-circle text-red-500 dark:text-red-400 text-4xl mb-3"></i>
+                    <p class="text-gray-500 dark:text-gray-400 mb-3">Failed to load player details</p>
+                    <button class="px-3 py-1.5 text-sm font-medium text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors" data-action="view-pool-player-details" data-player-id="${playerId}">
+                        <i class="ti ti-refresh mr-1"></i>Retry
                     </button>
                 </div>
             `;
@@ -361,45 +361,47 @@ export function displayPlayerDetails(data, playerId) {
     if (data.success && data.profile) {
         const profile = data.profile;
         document.getElementById('detailsData').innerHTML = `
-            <div class="player-profile-header p-4 bg-primary text-white">
-                <div class="row align-items-center">
-                    <div class="col-auto">
-                        <img src="${profile.profile_picture_url || '/static/img/default_player.png'}"
-                             alt="${profile.name}"
-                             class="rounded-circle avatar-80"
-                             data-fallback-src="/static/img/default_player.png">
-                    </div>
-                    <div class="col">
-                        <h4 class="mb-1">${profile.name}</h4>
-                        <p class="mb-1"><i class="ti ti-mail me-2"></i>${profile.email || 'No email'}</p>
-                        ${profile.phone ? `<p class="mb-0"><i class="ti ti-phone me-2"></i>${profile.phone}</p>` : ''}
+            <div class="p-4 bg-ecs-green text-white rounded-t-lg">
+                <div class="flex items-center gap-4">
+                    <img src="${profile.profile_picture_url || '/static/img/default_player.png'}"
+                         alt="${profile.name}"
+                         class="w-20 h-20 rounded-full object-cover border-2 border-white"
+                         data-fallback-src="/static/img/default_player.png">
+                    <div>
+                        <h4 class="text-xl font-bold mb-1">${profile.name}</h4>
+                        <p class="text-green-100 text-sm mb-1"><i class="ti ti-mail mr-2"></i>${profile.email || 'No email'}</p>
+                        ${profile.phone ? `<p class="text-green-100 text-sm"><i class="ti ti-phone mr-2"></i>${profile.phone}</p>` : ''}
                     </div>
                 </div>
             </div>
             <div class="p-4">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="fw-bold mb-3">Teams</h6>
-                        ${profile.teams && profile.teams.length > 0 ?
-                            profile.teams.map(team => `<span class="badge bg-primary me-1 mb-1">${team.name}</span>`).join('') :
-                            '<span class="text-muted">No teams assigned</span>'
-                        }
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Teams</h6>
+                        <div class="flex flex-wrap gap-1">
+                            ${profile.teams && profile.teams.length > 0 ?
+                                profile.teams.map(team => `<span class="px-2 py-0.5 text-xs font-medium bg-ecs-green text-white rounded">${team.name}</span>`).join('') :
+                                '<span class="text-gray-500 dark:text-gray-400 text-sm">No teams assigned</span>'
+                            }
+                        </div>
                     </div>
-                    <div class="col-md-6">
-                        <h6 class="fw-bold mb-3">Roles</h6>
-                        ${profile.roles && profile.roles.length > 0 ?
-                            profile.roles.map(role => `<span class="badge bg-secondary me-1 mb-1">${role}</span>`).join('') :
-                            '<span class="text-muted">No roles assigned</span>'
-                        }
+                    <div>
+                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Roles</h6>
+                        <div class="flex flex-wrap gap-1">
+                            ${profile.roles && profile.roles.length > 0 ?
+                                profile.roles.map(role => `<span class="px-2 py-0.5 text-xs font-medium bg-gray-500 text-white rounded">${role}</span>`).join('') :
+                                '<span class="text-gray-500 dark:text-gray-400 text-sm">No roles assigned</span>'
+                            }
+                        </div>
                     </div>
                 </div>
             </div>
         `;
     } else {
         document.getElementById('detailsData').innerHTML = `
-            <div class="text-center py-4">
-                <i class="ti ti-user-off text-muted mb-2" class="icon-2x"></i>
-                <p class="text-muted">Player details not available</p>
+            <div class="text-center py-8">
+                <i class="ti ti-user-off text-gray-400 dark:text-gray-500 text-4xl mb-3"></i>
+                <p class="text-gray-500 dark:text-gray-400">Player details not available</p>
             </div>
         `;
     }

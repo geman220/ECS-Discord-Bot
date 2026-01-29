@@ -25,7 +25,7 @@ export function initPushHistoryHandlers(ED) {
                     <div class="mb-3">
                         <strong>Notification ID:</strong> ${notificationId}<br>
                         <strong>Type:</strong> Push Notification<br>
-                        <strong>Status:</strong> <span class="badge bg-success" data-badge>Sent</span><br>
+                        <strong>Status:</strong> <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>Sent</span><br>
                         <strong>Created:</strong> 2024-01-30 18:00:00
                     </div>
                     <div class="mb-3">

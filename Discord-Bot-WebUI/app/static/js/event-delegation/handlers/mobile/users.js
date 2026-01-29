@@ -32,21 +32,26 @@ export function initMobileUsersHandlers(ED) {
                 let deviceTokensHtml = '';
 
                 if (user.device_tokens && user.device_tokens.length > 0) {
-                    deviceTokensHtml = user.device_tokens.map(token => `
+                    deviceTokensHtml = user.device_tokens.map(token => {
+                        const badgeClass = token.is_active
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                            : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                        return `
                         <div class="mb-2">
-                            <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex justify-between items-center">
                                 <div>
-                                    <strong>Token:</strong> ${token.token.substring(0, 20)}...<br>
-                                    <small class="text-muted">Platform: ${token.platform || 'Unknown'} | Created: ${token.created_at ? new Date(token.created_at).toLocaleDateString() : 'Unknown'}</small>
+                                    <strong class="text-gray-900 dark:text-white">Token:</strong> <span class="text-gray-700 dark:text-gray-300">${token.token.substring(0, 20)}...</span><br>
+                                    <small class="text-gray-500 dark:text-gray-400">Platform: ${token.platform || 'Unknown'} | Created: ${token.created_at ? new Date(token.created_at).toLocaleDateString() : 'Unknown'}</small>
                                 </div>
-                                <span class="badge bg-${token.is_active ? 'success' : 'secondary'}" data-badge>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded ${badgeClass}" data-badge>
                                     ${token.is_active ? 'Active' : 'Inactive'}
                                 </span>
                             </div>
                         </div>
-                    `).join('');
+                    `;
+                    }).join('');
                 } else {
-                    deviceTokensHtml = '<p class="text-muted">No device tokens found</p>';
+                    deviceTokensHtml = '<p class="text-gray-500 dark:text-gray-400">No device tokens found</p>';
                 }
 
                 window.Swal.fire({
@@ -89,17 +94,17 @@ export function initMobileUsersHandlers(ED) {
             html: `
                 <div class="text-start">
                     <div class="mb-3">
-                        <label class="form-label">Notification Title</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title</label>
                         <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="notificationTitle" placeholder="Match Update" data-form-control>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Notification Message</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Message</label>
                         <textarea class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="notificationMessage" rows="3" placeholder="Your match against Arsenal FC starts in 30 minutes!" data-form-control></textarea>
                     </div>
                     <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="highPriority">
-                            <label class="form-check-label" for="highPriority">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="highPriority" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="highPriority" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">
                                 High Priority Notification
                             </label>
                         </div>
@@ -142,24 +147,24 @@ export function initMobileUsersHandlers(ED) {
             title: 'Device Management',
             html: `
                 <div class="text-start">
-                    <p class="text-muted">Loading device information...</p>
-                    <div class="list-group">
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                    <p class="text-gray-500 dark:text-gray-400">Loading device information...</p>
+                    <div class="divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <div class="flex justify-between items-center p-3">
                             <div>
-                                <strong>iPhone 12 Pro</strong><br>
-                                <small class="text-muted">iOS 17.2 - Last active: 2 hours ago</small>
+                                <strong class="text-gray-900 dark:text-white">iPhone 12 Pro</strong><br>
+                                <small class="text-gray-500 dark:text-gray-400">iOS 17.2 - Last active: 2 hours ago</small>
                             </div>
-                            <div class="btn-group btn-group-sm">
-                                <button class="c-btn c-btn--outline-warning" data-action="deactivate-device" data-token-id="token123" aria-label="Block"><i class="ti ti-ban"></i></button>
+                            <div>
+                                <button class="text-yellow-600 bg-transparent border border-yellow-600 hover:bg-yellow-600 hover:text-white focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-xs p-1.5" data-action="deactivate-device" data-token-id="token123" aria-label="Block"><i class="ti ti-ban"></i></button>
                             </div>
                         </div>
-                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div class="flex justify-between items-center p-3">
                             <div>
-                                <strong>Samsung Galaxy S23</strong><br>
-                                <small class="text-muted">Android 14 - Last active: 1 day ago</small>
+                                <strong class="text-gray-900 dark:text-white">Samsung Galaxy S23</strong><br>
+                                <small class="text-gray-500 dark:text-gray-400">Android 14 - Last active: 1 day ago</small>
                             </div>
-                            <div class="btn-group btn-group-sm">
-                                <button class="c-btn c-btn--outline-warning" data-action="deactivate-device" data-token-id="token456" aria-label="Block"><i class="ti ti-ban"></i></button>
+                            <div>
+                                <button class="text-yellow-600 bg-transparent border border-yellow-600 hover:bg-yellow-600 hover:text-white focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-xs p-1.5" data-action="deactivate-device" data-token-id="token456" aria-label="Block"><i class="ti ti-ban"></i></button>
                             </div>
                         </div>
                     </div>
@@ -228,15 +233,15 @@ export function initMobileUsersHandlers(ED) {
             html: `
                 <div class="text-start">
                     <div class="mb-3">
-                        <label class="form-label">Notification Title</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title</label>
                         <input type="text" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="bulkNotificationTitle" placeholder="Important Update" data-form-control>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Notification Message</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Message</label>
                         <textarea class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="bulkNotificationMessage" rows="3" placeholder="Check out the latest updates in the app!" data-form-control></textarea>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Send Schedule</label>
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Schedule</label>
                         <select class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" id="sendSchedule" data-form-select>
                             <option value="immediate">Send Immediately</option>
                             <option value="scheduled">Schedule for Later</option>
@@ -305,21 +310,21 @@ export function initMobileUsersHandlers(ED) {
             title: `Bulk Device Management (${selectedUsers.length} users)`,
             html: `
                 <div class="text-start">
-                    <div class="list-group">
-                        <button class="list-group-item list-group-item-action" data-action="bulk-deactivate-devices">
-                            <i class="ti ti-ban text-danger me-2"></i>
-                            <strong>Deactivate All Devices</strong><br>
-                            <small class="text-muted">Stop push notifications for selected users</small>
+                    <div class="divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg">
+                        <button class="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="bulk-deactivate-devices">
+                            <i class="ti ti-ban text-red-600 me-2"></i>
+                            <strong class="text-gray-900 dark:text-white">Deactivate All Devices</strong><br>
+                            <small class="text-gray-500 dark:text-gray-400">Stop push notifications for selected users</small>
                         </button>
-                        <button class="list-group-item list-group-item-action" data-action="bulk-reactivate-devices">
-                            <i class="ti ti-check text-success me-2"></i>
-                            <strong>Reactivate All Devices</strong><br>
-                            <small class="text-muted">Resume push notifications for selected users</small>
+                        <button class="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="bulk-reactivate-devices">
+                            <i class="ti ti-check text-green-600 me-2"></i>
+                            <strong class="text-gray-900 dark:text-white">Reactivate All Devices</strong><br>
+                            <small class="text-gray-500 dark:text-gray-400">Resume push notifications for selected users</small>
                         </button>
-                        <button class="list-group-item list-group-item-action" data-action="cleanup-inactive-devices">
-                            <i class="ti ti-trash text-warning me-2"></i>
-                            <strong>Cleanup Inactive Devices</strong><br>
-                            <small class="text-muted">Remove devices not used in 30+ days</small>
+                        <button class="w-full text-left p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-action="cleanup-inactive-devices">
+                            <i class="ti ti-trash text-yellow-600 me-2"></i>
+                            <strong class="text-gray-900 dark:text-white">Cleanup Inactive Devices</strong><br>
+                            <small class="text-gray-500 dark:text-gray-400">Remove devices not used in 30+ days</small>
                         </button>
                     </div>
                 </div>

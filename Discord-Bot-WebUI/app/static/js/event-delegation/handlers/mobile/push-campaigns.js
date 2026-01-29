@@ -31,19 +31,19 @@ export function initPushCampaignsHandlers(ED) {
                 <div class="text-start">
                     <div class="c-card border mb-3 mx-auto max-w-300">
                         <div class="c-card__body">
-                            <div class="d-flex align-items-center mb-2">
-                                <div class="bg-primary rounded-circle me-2 d-flex align-items-center justify-content-center avatar-32">
+                            <div class="flex items-center mb-2">
+                                <div class="bg-primary rounded-circle me-2 flex items-center justify-center avatar-32">
                                     <i class="ti ti-shield text-white"></i>
                                 </div>
                                 <div>
                                     <strong class="text-14">ECS FC</strong><br>
-                                    <small class="text-muted">now</small>
+                                    <small class="text-gray-500 dark:text-gray-400">now</small>
                                 </div>
                             </div>
                             <div class="mb-2">
                                 <strong class="text-15">${title}</strong>
                             </div>
-                            <div class="text-muted text-14">
+                            <div class="text-gray-500 dark:text-gray-400 text-14">
                                 ${message}
                             </div>
                         </div>

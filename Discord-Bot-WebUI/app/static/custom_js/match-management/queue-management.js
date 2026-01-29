@@ -35,13 +35,13 @@ export function refreshQueueStatus() {
                 displayQueueStatus(data);
             } else {
                 document.getElementById('queueStatusContent').innerHTML =
-                    '<div class="alert alert-danger">Failed to load queue status</div>';
+                    '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">Failed to load queue status</div>';
             }
         })
         .catch(error => {
             console.error('Error loading queue status:', error);
             document.getElementById('queueStatusContent').innerHTML =
-                '<div class="alert alert-danger">Error loading queue status</div>';
+                '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">Error loading queue status</div>';
         });
 }
 
@@ -54,18 +54,19 @@ export function displayQueueStatus(data) {
 
     // Active tasks
     if (data.active_tasks && data.active_tasks.length > 0) {
-        html += '<h6>Active Tasks</h6>';
-        html += '<div class="table-responsive"><table class="table table-sm">';
-        html += '<thead><tr><th>Task ID</th><th>Name</th><th>State</th><th>Worker</th><th>ETA</th></tr></thead><tbody>';
+        html += '<h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Active Tasks</h6>';
+        html += '<div class="overflow-x-auto"><table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">';
+        html += '<thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"><tr><th class="px-3 py-2">Task ID</th><th class="px-3 py-2">Name</th><th class="px-3 py-2">State</th><th class="px-3 py-2">Worker</th><th class="px-3 py-2">ETA</th></tr></thead><tbody>';
 
         data.active_tasks.forEach(task => {
+            const stateColor = getTaskStatusColorTailwind(task.state);
             html += `
-                <tr>
-                    <td><code>${task.task_id.substring(0, 8)}...</code></td>
-                    <td>${task.name || 'Unknown'}</td>
-                    <td><span class="badge bg-${getTaskStatusColor(task.state)}" data-task-state="${task.state}">${task.state}</span></td>
-                    <td>${task.worker || 'Unknown'}</td>
-                    <td>${task.eta ? formatTaskETA(task.eta) : 'N/A'}</td>
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                    <td class="px-3 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">${task.task_id.substring(0, 8)}...</code></td>
+                    <td class="px-3 py-2 text-gray-900 dark:text-white">${task.name || 'Unknown'}</td>
+                    <td class="px-3 py-2"><span class="px-2 py-0.5 text-xs font-medium rounded ${stateColor}" data-task-state="${task.state}">${task.state}</span></td>
+                    <td class="px-3 py-2">${task.worker || 'Unknown'}</td>
+                    <td class="px-3 py-2">${task.eta ? formatTaskETA(task.eta) : 'N/A'}</td>
                 </tr>
             `;
         });
@@ -75,16 +76,16 @@ export function displayQueueStatus(data) {
 
     // Scheduled tasks
     if (data.scheduled_tasks && data.scheduled_tasks.length > 0) {
-        html += '<h6 class="mt-3">Scheduled Tasks</h6>';
-        html += '<div class="table-responsive"><table class="table table-sm">';
-        html += '<thead><tr><th>Task ID</th><th>Name</th><th>ETA</th></tr></thead><tbody>';
+        html += '<h6 class="text-sm font-semibold text-gray-900 dark:text-white mt-4 mb-2">Scheduled Tasks</h6>';
+        html += '<div class="overflow-x-auto"><table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">';
+        html += '<thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400"><tr><th class="px-3 py-2">Task ID</th><th class="px-3 py-2">Name</th><th class="px-3 py-2">ETA</th></tr></thead><tbody>';
 
         data.scheduled_tasks.forEach(task => {
             html += `
-                <tr>
-                    <td><code>${task.task_id.substring(0, 8)}...</code></td>
-                    <td>${task.name || 'Unknown'}</td>
-                    <td>${task.eta ? formatScheduledTime(task.eta) : 'N/A'}</td>
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                    <td class="px-3 py-2"><code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">${task.task_id.substring(0, 8)}...</code></td>
+                    <td class="px-3 py-2 text-gray-900 dark:text-white">${task.name || 'Unknown'}</td>
+                    <td class="px-3 py-2">${task.eta ? formatScheduledTime(task.eta) : 'N/A'}</td>
                 </tr>
             `;
         });
@@ -94,21 +95,17 @@ export function displayQueueStatus(data) {
 
     // Worker stats
     if (data.worker_stats) {
-        html += '<h6 class="mt-3">Worker Statistics</h6>';
-        html += '<div class="row">';
+        html += '<h6 class="text-sm font-semibold text-gray-900 dark:text-white mt-4 mb-2">Worker Statistics</h6>';
+        html += '<div class="grid grid-cols-1 md:grid-cols-2 gap-2">';
 
         Object.entries(data.worker_stats).forEach(([worker, stats]) => {
             html += `
-                <div class="col-md-6 mb-2">
-                    <div data-component="worker-stats-card" data-worker="${worker}" class="card">
-                        <div class="card-body p-2">
-                            <h6 class="card-title mb-1">${worker}</h6>
-                            <small class="text-muted">
-                                Active: ${stats.active || 0} |
-                                Processed: ${stats.processed || 0}
-                            </small>
-                        </div>
-                    </div>
+                <div data-component="worker-stats-card" data-worker="${worker}" class="p-3 bg-white border border-gray-200 rounded-lg dark:bg-gray-800 dark:border-gray-700">
+                    <h6 class="text-sm font-medium text-gray-900 dark:text-white mb-1">${worker}</h6>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">
+                        Active: ${stats.active || 0} |
+                        Processed: ${stats.processed || 0}
+                    </p>
                 </div>
             `;
         });
@@ -117,10 +114,27 @@ export function displayQueueStatus(data) {
     }
 
     if (!html) {
-        html = '<div class="alert alert-info">No active or scheduled tasks</div>';
+        html = '<div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400" role="alert">No active or scheduled tasks</div>';
     }
 
     document.getElementById('queueStatusContent').innerHTML = html;
+}
+
+/**
+ * Get Tailwind color classes for task status
+ * @param {string} state
+ * @returns {string}
+ */
+function getTaskStatusColorTailwind(state) {
+    const colors = {
+        'PENDING': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+        'STARTED': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+        'SUCCESS': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+        'FAILURE': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+        'RETRY': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+        'REVOKED': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+    };
+    return colors[state] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
 }
 
 /**
@@ -148,26 +162,26 @@ export function debugMatchTasks(matchId) {
  * @param {Object} debugInfo
  */
 export function showDebugModal(debugInfo) {
-    let html = '<div class="text-start">';
+    let html = '<div class="text-left">';
 
     if (debugInfo.match_info) {
-        html += '<h6>Match Information</h6>';
-        html += '<pre class="bg-light p-2 rounded">' + JSON.stringify(debugInfo.match_info, null, 2) + '</pre>';
+        html += '<h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Match Information</h6>';
+        html += '<pre class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-xs text-gray-800 dark:text-gray-200 overflow-x-auto mb-4">' + JSON.stringify(debugInfo.match_info, null, 2) + '</pre>';
     }
 
     if (debugInfo.scheduled_tasks) {
-        html += '<h6>Scheduled Tasks</h6>';
-        html += '<pre class="bg-light p-2 rounded">' + JSON.stringify(debugInfo.scheduled_tasks, null, 2) + '</pre>';
+        html += '<h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Scheduled Tasks</h6>';
+        html += '<pre class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-xs text-gray-800 dark:text-gray-200 overflow-x-auto mb-4">' + JSON.stringify(debugInfo.scheduled_tasks, null, 2) + '</pre>';
     }
 
     if (debugInfo.active_tasks) {
-        html += '<h6>Active Tasks</h6>';
-        html += '<pre class="bg-light p-2 rounded">' + JSON.stringify(debugInfo.active_tasks, null, 2) + '</pre>';
+        html += '<h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Active Tasks</h6>';
+        html += '<pre class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-xs text-gray-800 dark:text-gray-200 overflow-x-auto mb-4">' + JSON.stringify(debugInfo.active_tasks, null, 2) + '</pre>';
     }
 
     if (debugInfo.celery_status) {
-        html += '<h6>Celery Status</h6>';
-        html += '<pre class="bg-light p-2 rounded">' + JSON.stringify(debugInfo.celery_status, null, 2) + '</pre>';
+        html += '<h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-2">Celery Status</h6>';
+        html += '<pre class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-xs text-gray-800 dark:text-gray-200 overflow-x-auto">' + JSON.stringify(debugInfo.celery_status, null, 2) + '</pre>';
     }
 
     html += '</div>';

@@ -129,8 +129,8 @@ const MobileDraft = {
       const playerId = card.dataset.playerId;
 
       panel.innerHTML = `
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <div class="d-flex align-items-center gap-2">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
             <img src="${card.querySelector('img')?.src || ''}"
                  class="rounded-circle"
                  width="40" height="40"

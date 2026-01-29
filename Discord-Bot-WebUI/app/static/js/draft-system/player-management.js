@@ -31,7 +31,7 @@ export function addPlayerToTeam(player, teamId, teamName) {
     }
 
     const playerCard = document.createElement('div');
-    playerCard.className = 'col-md-6 col-lg-4';
+    playerCard.className = 'md:w-1/2 lg:w-1/3 p-2';
     playerCard.setAttribute('data-component', 'team-player-card');
     playerCard.setAttribute('data-player-id', player.id);
 
@@ -49,7 +49,7 @@ export function addPlayerToTeam(player, teamId, teamName) {
             </div>
             ` : ''}
             <div class="card-body p-2">
-                <div class="d-flex align-items-center mb-2">
+                <div class="flex items-center mb-2">
                     <img src="${profilePictureUrl}"
                          alt="${player.name}"
                          class="rounded-circle me-2 avatar-40"
@@ -57,7 +57,7 @@ export function addPlayerToTeam(player, teamId, teamName) {
                          data-fallback-src="/static/img/default_player.png">
                     <div class="flex-grow-1 min-width-0">
                         <div class="fw-semibold text-truncate small">${player.name}</div>
-                        <div class="text-muted text-xs-75">
+                        <div class="text-gray-500 dark:text-gray-400 text-xs-75">
                             ${formatPosition(player.favorite_position) || 'Any'}
                         </div>
                     </div>
@@ -71,20 +71,20 @@ export function addPlayerToTeam(player, teamId, teamName) {
                         <i class="ti ti-x text-xs-75"></i>
                     </button>
                 </div>
-                <div class="d-flex justify-content-between text-center small">
+                <div class="flex justify-between text-center small">
                     <div>
-                        <div class="fw-bold text-success">${player.career_goals || 0}</div>
-                        <div class="text-muted text-xs-70">Goals</div>
+                        <div class="fw-bold text-green-500 dark:text-green-400">${player.career_goals || 0}</div>
+                        <div class="text-gray-500 dark:text-gray-400 text-xs-70">Goals</div>
                     </div>
                     <div>
-                        <div class="fw-bold text-info">${player.career_assists || 0}</div>
-                        <div class="text-muted text-xs-70">Assists</div>
+                        <div class="fw-bold text-blue-500 dark:text-blue-400">${player.career_assists || 0}</div>
+                        <div class="text-gray-500 dark:text-gray-400 text-xs-70">Assists</div>
                     </div>
                     <div>
                         <div class="fw-bold">
-                            <span class="text-warning">${player.career_yellow_cards || 0}</span>/<span class="text-danger">${player.career_red_cards || 0}</span>
+                            <span class="text-yellow-500 dark:text-yellow-400">${player.career_yellow_cards || 0}</span>/<span class="text-red-500 dark:text-red-400">${player.career_red_cards || 0}</span>
                         </div>
-                        <div class="text-muted text-xs-70">Cards</div>
+                        <div class="text-gray-500 dark:text-gray-400 text-xs-70">Cards</div>
                     </div>
                 </div>
             </div>
@@ -114,7 +114,7 @@ export function addPlayerToAvailable(player) {
     }
 
     const playerCard = document.createElement('div');
-    playerCard.className = 'col-xl-3 col-lg-4 col-md-6 col-sm-6';
+    playerCard.className = 'xl:w-1/4 lg:w-1/3 md:w-1/2 sm:w-1/2 p-2';
     playerCard.setAttribute('data-component', 'player-column');
 
     const profilePictureUrl = player.profile_picture_url || '/static/img/default_player.png';
@@ -181,46 +181,46 @@ export function addPlayerToAvailable(player) {
             <div class="card-body p-3 text-center">
                 <div class="mb-2">
                     ${position !== 'Any' ?
-                        `<span class="badge bg-primary rounded-pill">${position}</span>` :
-                        `<span class="badge bg-secondary rounded-pill">Any Position</span>`
+                        `<span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-ecs-green text-white">${position}</span>` :
+                        `<span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-500 text-white dark:bg-gray-600">Any Position</span>`
                     }
                 </div>
 
                 <div class="row text-center mb-2 small">
                     <div class="col-6">
-                        <div class="fw-bold text-success">${player.career_goals || 0}</div>
-                        <div class="text-muted">Goals</div>
+                        <div class="fw-bold text-green-500 dark:text-green-400">${player.career_goals || 0}</div>
+                        <div class="text-gray-500 dark:text-gray-400">Goals</div>
                     </div>
                     <div class="col-6">
-                        <div class="fw-bold text-info">${player.career_assists || 0}</div>
-                        <div class="text-muted">Assists</div>
+                        <div class="fw-bold text-blue-500 dark:text-blue-400">${player.career_assists || 0}</div>
+                        <div class="text-gray-500 dark:text-gray-400">Assists</div>
                     </div>
                 </div>
 
                 <div class="row text-center mb-3 small">
                     <div class="col-6">
                         <div class="fw-bold">
-                            <span class="text-warning">${player.career_yellow_cards || 0}</span>/<span class="text-danger">${player.career_red_cards || 0}</span>
+                            <span class="text-yellow-500 dark:text-yellow-400">${player.career_yellow_cards || 0}</span>/<span class="text-red-500 dark:text-red-400">${player.career_red_cards || 0}</span>
                         </div>
-                        <div class="text-muted">Y/R Cards</div>
+                        <div class="text-gray-500 dark:text-gray-400">Y/R Cards</div>
                     </div>
                     <div class="col-6">
                         <div class="fw-bold text-${attendanceColor}">
                             ${attendanceDisplay}
                         </div>
-                        <div class="text-muted">Attendance</div>
+                        <div class="text-gray-500 dark:text-gray-400">Attendance</div>
                     </div>
                 </div>
 
-                <div class="small text-muted mb-2">
+                <div class="small text-gray-500 dark:text-gray-400 mb-2">
                     ${experienceSeasons} season${experienceSeasons !== 1 ? 's' : ''}
                 </div>
 
                 ${expectedAvailability !== 'All weeks' ?
-                    `<div class="small text-info mb-3">
+                    `<div class="small text-blue-500 dark:text-blue-400 mb-3">
                         <i class="ti ti-calendar-event me-1"></i><strong>Expected:</strong> ${expectedAvailability}
                     </div>` :
-                    `<div class="small text-success mb-3">
+                    `<div class="small text-green-500 dark:text-green-400 mb-3">
                         <i class="ti ti-calendar-check me-1"></i><strong>Available:</strong> All weeks
                     </div>`
                 }

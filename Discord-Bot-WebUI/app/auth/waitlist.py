@@ -480,7 +480,7 @@ def _handle_new_user_waitlist(db_session, discord_email, discord_id, discord_use
     if preferred_league == 'not_sure':
         preferred_league = None
 
-    name = request.form.get('name', discord_username).strip()
+    name = (request.form.get('name') or discord_username or '').strip()
     username = name
 
     # Generate a random password
@@ -536,7 +536,7 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
     if not claim_code:
         claim_code = session.get('pending_claim_code', '').strip().upper()
 
-    name = request.form.get('name', discord_username).strip()
+    name = (request.form.get('name') or discord_username or '').strip()
     phone = request.form.get('phone', '')
 
     # Check for phone number duplicates

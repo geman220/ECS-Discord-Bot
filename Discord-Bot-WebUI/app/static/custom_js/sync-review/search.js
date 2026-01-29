@@ -21,7 +21,7 @@ export function searchPlayersDelayed(input, issueId, orderIndex) {
 
     if (query.length < 2) {
         if (resultsDiv) {
-            resultsDiv.innerHTML = '<div class="text-muted small">Type at least 2 characters to search</div>';
+            resultsDiv.innerHTML = '<div class="text-xs text-gray-500 dark:text-gray-400">Type at least 2 characters to search</div>';
         }
         return;
     }
@@ -59,12 +59,12 @@ export function searchPlayers(query, issueId, orderIndex) {
         if (!resultsDiv) return;
 
         if (data.success && data.players.length > 0) {
-            let html = '<div class="mb-2"><small class="text-muted">Found ' + data.total_found + ' player(s):</small></div>';
+            let html = '<div class="mb-2"><p class="text-xs text-gray-500 dark:text-gray-400">Found ' + data.total_found + ' player(s):</p></div>';
 
             data.players.forEach(player => {
                 const statusBadge = player.is_current ?
-                    '<span class="badge bg-success" data-badge>Active</span>' :
-                    '<span class="badge bg-warning" data-badge>Inactive</span>';
+                    '<span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge>Active</span>' :
+                    '<span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" data-badge>Inactive</span>';
 
                 let playerDetails = `Email: ${player.email}<br>Phone: ${player.phone}<br>League: ${player.league}`;
                 if (player.jersey_size && player.jersey_size !== 'N/A') {
@@ -72,15 +72,15 @@ export function searchPlayers(query, issueId, orderIndex) {
                 }
 
                 html += `
-                    <div class="border rounded p-2 mb-2 player-result js-assign-player" data-action="assign-player" data-issue-id="${issueId}" data-order-index="${orderIndex}" data-player-id="${player.id}" data-player-name="${player.name}">
-                        <div class="d-flex justify-content-between align-items-start">
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-2 mb-2 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer player-result js-assign-player" data-action="assign-player" data-issue-id="${issueId}" data-order-index="${orderIndex}" data-player-id="${player.id}" data-player-name="${player.name}">
+                        <div class="flex justify-between items-start">
                             <div>
-                                <strong>${player.name}</strong> ${statusBadge}
-                                <br><small class="text-muted">
+                                <span class="text-sm font-semibold text-gray-900 dark:text-white">${player.name}</span> ${statusBadge}
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
                                     ${playerDetails}
-                                </small>
+                                </p>
                             </div>
-                            <i class="ti ti-arrow-right"></i>
+                            <i class="ti ti-arrow-right text-gray-400"></i>
                         </div>
                     </div>
                 `;

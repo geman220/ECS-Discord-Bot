@@ -144,29 +144,29 @@ function displayResult(data) {
     resultCard.classList.add(isValid ? 'valid' : 'invalid');
 
     let statusBadge = isValid
-        ? '<span class="badge bg-success fs-6" data-badge><i class="ti ti-check me-1"></i>VALID</span>'
-        : '<span class="badge bg-danger fs-6" data-badge><i class="ti ti-x me-1"></i>INVALID</span>';
+        ? '<span class="px-3 py-1 text-sm font-semibold rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-badge><i class="ti ti-check mr-1"></i>VALID</span>'
+        : '<span class="px-3 py-1 text-sm font-semibold rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" data-badge><i class="ti ti-x mr-1"></i>INVALID</span>';
 
     let alertHtml = '';
     if (!isValid && data.reason) {
-        alertHtml = `<div class="alert alert-danger mt-3 mb-0" data-alert><i class="ti ti-alert-circle me-1"></i>${data.reason}</div>`;
+        alertHtml = `<div class="p-3 mt-3 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert" data-alert><i class="ti ti-alert-circle mr-1"></i>${data.reason}</div>`;
     }
     if (data.check_in_recorded) {
-        alertHtml += '<div class="alert alert-success mt-3 mb-0" data-alert><i class="ti ti-check me-1"></i>Check-in recorded successfully</div>';
+        alertHtml += '<div class="p-3 mt-3 text-sm text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400" role="alert" data-alert><i class="ti ti-check mr-1"></i>Check-in recorded successfully</div>';
     }
 
     resultBody.innerHTML = `
-        <div class="d-flex justify-content-between align-items-start mb-3">
-            <h4 class="mb-0">${pass.member_name}</h4>
+        <div class="flex justify-between items-start mb-3">
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-white">${pass.member_name}</h4>
             ${statusBadge}
         </div>
         <div class="c-table-wrapper" data-table-responsive>
             <table class="c-table c-table--compact mb-0" data-mobile-table data-table-type="checkins" data-table>
-                <tr><td class="text-muted u-w-35-percent">Email</td><td>${pass.member_email || '-'}</td></tr>
-                <tr><td class="text-muted">Pass Type</td><td><span class="badge bg-label-primary" data-badge>${pass.pass_type || '-'}</span></td></tr>
-                <tr><td class="text-muted">Validity</td><td>${pass.validity || '-'}</td></tr>
-                ${pass.team_name ? `<tr><td class="text-muted">Team</td><td>${pass.team_name}</td></tr>` : ''}
-                <tr><td class="text-muted">Status</td><td>${pass.status}</td></tr>
+                <tr><td class="text-gray-500 dark:text-gray-400 u-w-35-percent">Email</td><td class="text-gray-900 dark:text-white">${pass.member_email || '-'}</td></tr>
+                <tr><td class="text-gray-500 dark:text-gray-400">Pass Type</td><td><span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300" data-badge>${pass.pass_type || '-'}</span></td></tr>
+                <tr><td class="text-gray-500 dark:text-gray-400">Validity</td><td class="text-gray-900 dark:text-white">${pass.validity || '-'}</td></tr>
+                ${pass.team_name ? `<tr><td class="text-gray-500 dark:text-gray-400">Team</td><td class="text-gray-900 dark:text-white">${pass.team_name}</td></tr>` : ''}
+                <tr><td class="text-gray-500 dark:text-gray-400">Status</td><td class="text-gray-900 dark:text-white">${pass.status}</td></tr>
             </table>
         </div>
         ${alertHtml}
@@ -191,7 +191,7 @@ function displayError(message) {
  * Add to scan history
  */
 function addToHistory(data) {
-    const historyEmpty = scanHistory.querySelector('.text-muted');
+    const historyEmpty = scanHistory.querySelector('.text-gray-500');
     if (historyEmpty) scanHistory.innerHTML = '';
 
     const time = new Date().toLocaleTimeString();
@@ -201,14 +201,14 @@ function addToHistory(data) {
     const item = document.createElement('div');
     item.className = `scan-history-item ${isValid ? 'valid' : 'invalid'}`;
     item.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center">
+        <div class="flex justify-between items-center">
             <div>
-                <strong>${name}</strong>
-                ${data.pass ? `<br><small class="text-muted">${data.pass.pass_type}</small>` : ''}
+                <span class="font-semibold text-gray-900 dark:text-white">${name}</span>
+                ${data.pass ? `<p class="text-xs text-gray-500 dark:text-gray-400">${data.pass.pass_type}</p>` : ''}
             </div>
-            <div class="text-end">
-                <span class="badge ${isValid ? 'bg-success' : 'bg-danger'}" data-badge>${isValid ? 'Valid' : 'Invalid'}</span>
-                <br><small class="text-muted">${time}</small>
+            <div class="text-right">
+                <span class="px-2 py-0.5 text-xs font-medium rounded ${isValid ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'}" data-badge>${isValid ? 'Valid' : 'Invalid'}</span>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${time}</p>
             </div>
         </div>
     `;
@@ -234,13 +234,13 @@ function updateStats(isValid) {
  * Clear history
  */
 function clearHistory() {
-    scanHistory.innerHTML = '<div class="text-center text-muted py-4"><small>No scans in this session</small></div>';
+    scanHistory.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-4"><p class="text-sm">No scans in this session</p></div>';
     scanStats = { valid: 0, invalid: 0, total: 0 };
     document.getElementById('stat-valid').textContent = '0';
     document.getElementById('stat-invalid').textContent = '0';
     document.getElementById('stat-total').textContent = '0';
     resultCard.classList.remove('valid', 'invalid');
-    resultBody.innerHTML = '<div class="text-center text-muted py-5"><i class="ti ti-qrcode mb-2 u-icon-3xl"></i><p class="mb-0">Scan a pass to see validation results</p></div>';
+    resultBody.innerHTML = '<div class="text-center text-gray-500 dark:text-gray-400 py-5"><i class="ti ti-qrcode mb-2 text-5xl"></i><p class="text-sm">Scan a pass to see validation results</p></div>';
 }
 
 /**

@@ -84,7 +84,7 @@ function previewTemplate(templateId) {
             `;
         } else {
             previewContent.innerHTML = `
-                <div class="alert alert-danger">
+                <div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
                     <i class="ti ti-alert-circle me-2"></i>
                     Failed to load preview
                 </div>
@@ -93,7 +93,7 @@ function previewTemplate(templateId) {
     })
     .catch(error => {
         previewContent.innerHTML = `
-            <div class="alert alert-danger">
+            <div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert">
                 <i class="ti ti-alert-circle me-2"></i>
                 Error loading preview: ${error.message}
             </div>

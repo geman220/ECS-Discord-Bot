@@ -590,7 +590,7 @@ export function updateEventsUI(events) {
     $eventsList.empty();
 
     if (!events || events.length === 0) {
-        $eventsList.append('<li class="list-group-item">No events recorded yet</li>');
+        $eventsList.append('<li class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">No events recorded yet</li>');
         return;
     }
 
@@ -609,17 +609,19 @@ export function updateEventsUI(events) {
             eventText += ` - ${event.minute}'`;
         }
 
-        let eventClass = 'list-group-item js-event-item';
+        let eventClass = 'px-4 py-3 text-sm border-b border-gray-200 dark:border-gray-700 js-event-item';
         switch (event.event_type) {
             case 'GOAL':
-                eventClass += ' event-type-goal';
+                eventClass += ' bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300';
                 break;
             case 'YELLOW_CARD':
-                eventClass += ' event-type-yellow-card';
+                eventClass += ' bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300';
                 break;
             case 'RED_CARD':
-                eventClass += ' event-type-red-card';
+                eventClass += ' bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-300';
                 break;
+            default:
+                eventClass += ' text-gray-900 dark:text-white';
         }
 
         $eventsList.append(`<li class="${eventClass}">${eventText}</li>`);
@@ -658,7 +660,7 @@ export function updateReportersUI(reporters) {
     $reportersList.empty();
 
     if (!reporters || reporters.length === 0) {
-        $reportersList.append('<li class="list-group-item">No other reporters</li>');
+        $reportersList.append('<li class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">No other reporters</li>');
         return;
     }
 
@@ -667,9 +669,9 @@ export function updateReportersUI(reporters) {
         const timeSince = timeSinceLastActive(lastActive);
 
         $reportersList.append(`
-            <li class="list-group-item js-reporter-item d-flex justify-content-between align-items-center">
-                ${reporter.username} (${reporter.team_name})
-                <span class="badge bg-secondary reporter-time-badge">${timeSince}</span>
+            <li class="px-4 py-3 text-sm border-b border-gray-200 dark:border-gray-700 flex justify-between items-center js-reporter-item">
+                <span class="text-gray-900 dark:text-white">${reporter.username} (${reporter.team_name})</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">${timeSince}</span>
             </li>
         `);
     });
@@ -702,7 +704,7 @@ export function updateShiftsUI(shifts) {
     $shiftsContainer.empty();
 
     if (!shifts || shifts.length === 0) {
-        $shiftsContainer.append('<p>No player shifts recorded</p>');
+        $shiftsContainer.append('<p class="text-sm text-gray-500 dark:text-gray-400">No player shifts recorded</p>');
         return;
     }
 
@@ -711,21 +713,19 @@ export function updateShiftsUI(shifts) {
     const inactiveShifts = shifts.filter(s => !s.is_active);
 
     // Add active players section
-    $shiftsContainer.append('<h5 class="mt-3">Active Players</h5>');
+    $shiftsContainer.append('<h5 class="text-sm font-semibold text-gray-900 dark:text-white mt-3 mb-2">Active Players</h5>');
     if (activeShifts.length === 0) {
-        $shiftsContainer.append('<p>No active players</p>');
+        $shiftsContainer.append('<p class="text-sm text-gray-500 dark:text-gray-400">No active players</p>');
     } else {
-        const $activeList = window.$('<div class="row"></div>');
+        const $activeList = window.$('<div class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>');
 
         activeShifts.forEach(shift => {
             $activeList.append(`
-                <div class="col-md-6 mb-2">
-                    <button class="btn btn-success w-100 js-player-shift-toggle"
-                            data-player-id="${shift.player_id}"
-                            data-active="true">
-                        ${shift.player_name}
-                    </button>
-                </div>
+                <button class="w-full text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-4 py-2 js-player-shift-toggle"
+                        data-player-id="${shift.player_id}"
+                        data-active="true">
+                    ${shift.player_name}
+                </button>
             `);
         });
 
@@ -733,21 +733,19 @@ export function updateShiftsUI(shifts) {
     }
 
     // Add inactive players section
-    $shiftsContainer.append('<h5 class="mt-3">Available Players</h5>');
+    $shiftsContainer.append('<h5 class="text-sm font-semibold text-gray-900 dark:text-white mt-4 mb-2">Available Players</h5>');
     if (inactiveShifts.length === 0) {
-        $shiftsContainer.append('<p>No available players</p>');
+        $shiftsContainer.append('<p class="text-sm text-gray-500 dark:text-gray-400">No available players</p>');
     } else {
-        const $inactiveList = window.$('<div class="row"></div>');
+        const $inactiveList = window.$('<div class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>');
 
         inactiveShifts.forEach(shift => {
             $inactiveList.append(`
-                <div class="col-md-6 mb-2">
-                    <button class="btn btn-outline-secondary w-100 js-player-shift-toggle"
-                            data-player-id="${shift.player_id}"
-                            data-active="false">
-                        ${shift.player_name}
-                    </button>
-                </div>
+                <button class="w-full text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 font-medium rounded-lg text-sm px-4 py-2 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 js-player-shift-toggle"
+                        data-player-id="${shift.player_id}"
+                        data-active="false">
+                    ${shift.player_name}
+                </button>
             `);
         });
 
@@ -816,11 +814,25 @@ export function disableReportingControls() {
 export function liveReportingShowNotification(message, type = 'info') {
     const $notifications = window.$('#notifications');
 
+    // Map type to Tailwind colors
+    const typeColors = {
+        'success': 'text-green-800 bg-green-50 dark:bg-gray-800 dark:text-green-400',
+        'error': 'text-red-800 bg-red-50 dark:bg-gray-800 dark:text-red-400',
+        'danger': 'text-red-800 bg-red-50 dark:bg-gray-800 dark:text-red-400',
+        'warning': 'text-yellow-800 bg-yellow-50 dark:bg-gray-800 dark:text-yellow-400',
+        'info': 'text-blue-800 bg-blue-50 dark:bg-gray-800 dark:text-blue-400'
+    };
+    const colorClass = typeColors[type] || typeColors['info'];
+
     // Create notification element
     const $notification = window.$(`
-        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-            ${message}
-            <button type="button" class="btn-close" onclick="this.closest('.alert').remove()" aria-label="Close"></button>
+        <div class="p-4 mb-2 text-sm rounded-lg ${colorClass}" role="alert">
+            <div class="flex items-center justify-between">
+                <span>${message}</span>
+                <button type="button" class="ml-2 -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex items-center justify-center h-8 w-8 hover:bg-gray-200 dark:hover:bg-gray-700" onclick="this.closest('[role=alert]').remove()" aria-label="Close">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                </button>
+            </div>
         </div>
     `);
 
@@ -829,7 +841,7 @@ export function liveReportingShowNotification(message, type = 'info') {
 
     // Auto-remove after 5 seconds
     setTimeout(() => {
-        $notification.alert('close');
+        $notification.remove();
     }, 5000);
 }
 

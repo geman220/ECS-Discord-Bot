@@ -146,7 +146,7 @@ function updateTables(connections) {
             <tr>
                 <td data-label="PID"><span class="fw-medium">${conn.pid}</span></td>
                 <td data-label="Age">${formatDuration(conn.age)}</td>
-                <td data-label="State"><span class="badge bg-label-${getStateColor(conn.state)}" data-badge>${conn.state}</span></td>
+                <td data-label="State"><span class="px-2 py-0.5 text-xs font-medium rounded ${getStateColorTailwind(conn.state)}">${conn.state}</span></td>
                 <td data-label="Source">${escapeHtml(conn.usename || 'unknown')}@${escapeHtml(conn.client_addr || 'local')}</td>
                 <td data-label="Tx Age">${formatDuration(conn.transaction_age)}</td>
                 <td data-label="Query Start">${conn.query_start ? new Date(conn.query_start).toLocaleTimeString() : '-'}</td>
@@ -350,6 +350,16 @@ function formatDuration(seconds) {
 function getStateColor(state) {
     const colors = { 'active': 'success', 'idle': 'info', 'idle in transaction': 'warning', 'idle in transaction (aborted)': 'danger' };
     return colors[state] || 'secondary';
+}
+
+function getStateColorTailwind(state) {
+    const colors = {
+        'active': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+        'idle': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+        'idle in transaction': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+        'idle in transaction (aborted)': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+    };
+    return colors[state] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
 }
 
 // Use global escapeHtml from utils/safe-html.js

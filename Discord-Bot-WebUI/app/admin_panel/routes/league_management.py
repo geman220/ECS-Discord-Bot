@@ -257,6 +257,7 @@ def wizard_validate_step():
 def _validate_wizard_step(step: int, data: dict) -> dict:
     """Validate data for a specific wizard step."""
     from app.models import Season
+    from app.services.league_management_service import validate_team_name_for_discord
 
     errors = []
     warnings = []
@@ -297,10 +298,34 @@ def _validate_wizard_step(step: int, data: dict) -> dict:
                 errors.append('Premier division requires at least 2 teams')
             if not isinstance(classic_count, int) or classic_count < 2:
                 errors.append('Classic division requires at least 2 teams')
+
+            # Validate custom team names for Discord compatibility
+            premier_teams = data.get('premier_teams', [])
+            for team_name in premier_teams:
+                is_valid, team_errors = validate_team_name_for_discord(team_name)
+                if not is_valid:
+                    for err in team_errors:
+                        errors.append(f'Premier team "{team_name}": {err}')
+
+            classic_teams = data.get('classic_teams', [])
+            for team_name in classic_teams:
+                is_valid, team_errors = validate_team_name_for_discord(team_name)
+                if not is_valid:
+                    for err in team_errors:
+                        errors.append(f'Classic team "{team_name}": {err}')
+
         else:  # ECS FC
             team_count = data.get('team_count', 8)
             if not isinstance(team_count, int) or team_count < 2:
                 errors.append('At least 2 teams are required')
+
+            # Validate custom team names for Discord compatibility
+            teams = data.get('teams', [])
+            for team_name in teams:
+                is_valid, team_errors = validate_team_name_for_discord(team_name)
+                if not is_valid:
+                    for err in team_errors:
+                        errors.append(f'Team "{team_name}": {err}')
 
     elif step == 3:  # Schedule configuration
         if not data.get('regular_weeks') or data['regular_weeks'] < 1:
@@ -445,10 +470,24 @@ def wizard_create_season():
         )
 
         if success:
+            # Commit the transaction before queuing Discord tasks
+            # The @transactional decorator will commit, but we need to ensure
+            # teams exist before Celery workers try to access them
+            db.session.flush()
+
+            # Queue Discord creation tasks after data is committed
+            # This ensures teams exist in DB when Celery workers run
+            discord_tasks_queued = service.queue_pending_discord_tasks()
+
+            response_message = message
+            if discord_tasks_queued > 0:
+                response_message += f' ({discord_tasks_queued} Discord tasks queued)'
+
             return jsonify({
                 'success': True,
-                'message': message,
+                'message': response_message,
                 'season_id': season.id if season else None,
+                'discord_tasks_queued': discord_tasks_queued,
                 'redirect_url': url_for('admin_panel.league_management_dashboard')
             })
         else:

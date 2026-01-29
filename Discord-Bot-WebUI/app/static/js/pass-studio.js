@@ -603,11 +603,11 @@ const PassStudio = {
                 const header = googleContent.querySelector('.google-header');
                 if (header) header.after(primaryValue);
             }
-            primaryValue.classList.remove('text-muted');
+            primaryValue.classList.remove('text-gray-500', 'dark:text-gray-400');
             // Using textContent here is safe (no HTML injection possible)
             primaryValue.textContent = resolveValue(field);
         } else if (primaryValue) {
-            primaryValue.classList.add('text-muted');
+            primaryValue.classList.add('text-gray-500', 'dark:text-gray-400');
             primaryValue.textContent = 'No primary field configured';
         }
 

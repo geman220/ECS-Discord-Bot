@@ -211,7 +211,7 @@ export class DiscordMembershipChecker {
 
     setSuccessState(elements) {
         if (elements.card) {
-            elements.card.className = 'alert alert-success mb-4';
+            elements.card.className = 'p-4 mb-4 text-green-800 rounded-lg bg-green-50 dark:bg-gray-800 dark:text-green-400';
         }
         if (elements.title) {
             elements.title.innerHTML = '✅ Great! You\'re in our Discord Server';
@@ -223,15 +223,15 @@ export class DiscordMembershipChecker {
             elements.footer.innerHTML = '<strong>You\'re all set!</strong>';
         }
         if (elements.button) {
-            elements.button.innerHTML = '<i class="ti ti-brand-discord me-2"></i>Visit Discord Server';
-            elements.button.className = 'btn btn-success';
+            elements.button.innerHTML = '<i class="ti ti-brand-discord mr-2"></i>Visit Discord Server';
+            elements.button.className = 'text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5';
             elements.button.href = this.options.discordInviteUrl;
         }
     }
 
     setWarningState(elements) {
         if (elements.card) {
-            elements.card.className = 'alert alert-warning mb-4';
+            elements.card.className = 'p-4 mb-4 text-yellow-800 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-400';
         }
         if (elements.title) {
             elements.title.innerHTML = '⚠️ Critical: You\'re Not in Our Discord Server!';
@@ -243,8 +243,8 @@ export class DiscordMembershipChecker {
             elements.footer.innerHTML = '<strong>Join now or you\'ll miss opportunities!</strong>';
         }
         if (elements.button) {
-            elements.button.innerHTML = '<i class="ti ti-brand-discord me-2"></i>Join Discord Now - Don\'t Miss Out!';
-            elements.button.className = 'btn btn-warning btn-lg btn-pulse-warning';
+            elements.button.innerHTML = '<i class="ti ti-brand-discord mr-2"></i>Join Discord Now - Don\'t Miss Out!';
+            elements.button.className = 'text-white bg-yellow-500 hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-lg px-6 py-3 animate-pulse';
             elements.button.href = this.options.discordInviteUrl;
         }
     }

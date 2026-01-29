@@ -177,8 +177,8 @@ export function renderMatchesList(matches) {
 
     if (matches.length === 0) {
         container.innerHTML = `
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle me-2"></i>
+            <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400" role="alert">
+                <i class="ti ti-info-circle mr-2"></i>
                 No matches found. Create your first match using the "Create Match" button.
             </div>
         `;
@@ -202,30 +202,30 @@ export function createMatchCard(match) {
     const isUpcoming = matchDate > new Date();
     const statusBadge = getStatusBadge(match.status);
     const homeAwayBadge = match.is_home_match
-        ? '<span class="badge bg-success match-location-home">Home</span>'
-        : '<span class="badge bg-primary match-location-away">Away</span>';
+        ? '<span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Home</span>'
+        : '<span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Away</span>';
 
     return `
-        <div class="card mb-3 js-match-card" data-match-id="${match.id}">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h6 class="mb-0">
-                    <i class="fas fa-futbol me-2"></i>
+        <div class="bg-white border border-gray-200 rounded-lg shadow-sm dark:bg-gray-800 dark:border-gray-700 mb-3 js-match-card" data-match-id="${match.id}">
+            <div class="flex justify-between items-center p-4 border-b border-gray-200 dark:border-gray-700">
+                <h6 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-ball-football mr-2"></i>
                     ${match.team_name} vs ${match.opponent_name}
                 </h6>
-                <div>
+                <div class="flex gap-2">
                     ${homeAwayBadge}
                     ${statusBadge}
                 </div>
             </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <p class="mb-1"><strong>Date:</strong> ${ecsFcFormatDate(match.match_date)}</p>
-                        <p class="mb-1"><strong>Time:</strong> ${formatTime(match.match_time)}</p>
-                        <p class="mb-1"><strong>Location:</strong> ${match.location}</p>
-                        ${match.field_name ? `<p class="mb-1"><strong>Field:</strong> ${match.field_name}</p>` : ''}
+            <div class="p-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 mb-1"><strong>Date:</strong> ${ecsFcFormatDate(match.match_date)}</p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 mb-1"><strong>Time:</strong> ${formatTime(match.match_time)}</p>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 mb-1"><strong>Location:</strong> ${match.location}</p>
+                        ${match.field_name ? `<p class="text-sm text-gray-700 dark:text-gray-300 mb-1"><strong>Field:</strong> ${match.field_name}</p>` : ''}
                     </div>
-                    <div class="col-md-6">
+                    <div>
                         <div class="js-rsvp-summary" id="rsvp-summary-${match.id}">
                             <div class="inline-block w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin" role="status">
                                 <span class="sr-only">Loading...</span>
@@ -233,29 +233,29 @@ export function createMatchCard(match) {
                         </div>
                     </div>
                 </div>
-                ${match.notes ? `<div class="mt-2"><strong>Notes:</strong> ${match.notes}</div>` : ''}
+                ${match.notes ? `<div class="mt-2 text-sm text-gray-700 dark:text-gray-300"><strong>Notes:</strong> ${match.notes}</div>` : ''}
 
-                <div class="mt-3 d-flex flex-wrap gap-2">
+                <div class="mt-4 flex flex-wrap gap-2">
                     ${isUpcoming ? `
-                        <button class="btn btn-sm btn-success js-rsvp-btn" data-match-id="${match.id}" data-response="yes">
-                            <i class="fas fa-check me-1"></i>Yes
+                        <button class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-xs px-3 py-1.5 js-rsvp-btn" data-match-id="${match.id}" data-response="yes">
+                            <i class="ti ti-check mr-1"></i>Yes
                         </button>
-                        <button class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 js-rsvp-btn" data-match-id="${match.id}" data-response="no">
-                            <i class="fas fa-times me-1"></i>No
+                        <button class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 js-rsvp-btn" data-match-id="${match.id}" data-response="no">
+                            <i class="ti ti-x mr-1"></i>No
                         </button>
-                        <button class="btn btn-sm btn-warning js-rsvp-btn" data-match-id="${match.id}" data-response="maybe">
-                            <i class="fas fa-question me-1"></i>Maybe
+                        <button class="text-white bg-yellow-500 hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-xs px-3 py-1.5 js-rsvp-btn" data-match-id="${match.id}" data-response="maybe">
+                            <i class="ti ti-question-mark mr-1"></i>Maybe
                         </button>
-                        <button class="btn btn-sm btn-info js-send-reminder-btn" data-match-id="${match.id}">
-                            <i class="fas fa-bell me-1"></i>Send Reminder
+                        <button class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-xs px-3 py-1.5 js-send-reminder-btn" data-match-id="${match.id}">
+                            <i class="ti ti-bell mr-1"></i>Send Reminder
                         </button>
                     ` : ''}
 
-                    <button class="text-ecs-green border border-ecs-green hover:bg-ecs-green hover:text-white focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 js-edit-match-btn" data-match-id="${match.id}">
-                        <i class="fas fa-edit me-1"></i>Edit
+                    <button class="text-ecs-green border border-ecs-green hover:bg-ecs-green hover:text-white focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-xs px-3 py-1.5 js-edit-match-btn" data-match-id="${match.id}">
+                        <i class="ti ti-edit mr-1"></i>Edit
                     </button>
-                    <button class="text-red-600 border border-red-600 hover:bg-red-600 hover:text-white focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 js-delete-match-btn" data-match-id="${match.id}">
-                        <i class="fas fa-trash me-1"></i>Delete
+                    <button class="text-red-600 border border-red-600 hover:bg-red-600 hover:text-white focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 js-delete-match-btn" data-match-id="${match.id}">
+                        <i class="ti ti-trash mr-1"></i>Delete
                     </button>
                 </div>
             </div>
@@ -269,13 +269,13 @@ export function createMatchCard(match) {
 export function getStatusBadge(status) {
     switch (status) {
         case 'SCHEDULED':
-            return '<span class="badge bg-info match-status-scheduled">Scheduled</span>';
+            return '<span class="px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Scheduled</span>';
         case 'COMPLETED':
-            return '<span class="badge bg-success match-status-completed">Completed</span>';
+            return '<span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Completed</span>';
         case 'CANCELLED':
-            return '<span class="badge bg-danger match-status-cancelled">Cancelled</span>';
+            return '<span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Cancelled</span>';
         default:
-            return '<span class="badge bg-secondary match-status-unknown">Unknown</span>';
+            return '<span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Unknown</span>';
     }
 }
 
@@ -309,14 +309,14 @@ export function renderRsvpSummary(matchId, summary) {
 
     container.innerHTML = `
         <div class="js-rsvp-counts">
-            <small class="text-muted">RSVP Status:</small>
-            <div class="d-flex justify-content-between mt-1">
-                <span class="badge bg-success rsvp-status-yes">${summary.yes}</span>
-                <span class="badge bg-danger rsvp-status-no">${summary.no}</span>
-                <span class="badge bg-warning rsvp-status-maybe">? ${summary.maybe}</span>
-                <span class="badge bg-secondary rsvp-status-none">- ${summary.no_response}</span>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">RSVP Status:</p>
+            <div class="flex justify-between gap-1 mt-1">
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">${summary.yes}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">${summary.no}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">? ${summary.maybe}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">- ${summary.no_response}</span>
             </div>
-            <small class="text-muted">${responseRate}% responded</small>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${responseRate}% responded</p>
         </div>
     `;
 }
@@ -674,13 +674,28 @@ export function formatTime(timeString) {
 }
 
 export function ecsFcShowAlert(type, message) {
+    // Map type to Tailwind colors
+    const typeColors = {
+        'success': 'text-green-800 bg-green-50 dark:bg-gray-800 dark:text-green-400',
+        'error': 'text-red-800 bg-red-50 dark:bg-gray-800 dark:text-red-400',
+        'danger': 'text-red-800 bg-red-50 dark:bg-gray-800 dark:text-red-400',
+        'warning': 'text-yellow-800 bg-yellow-50 dark:bg-gray-800 dark:text-yellow-400',
+        'info': 'text-blue-800 bg-blue-50 dark:bg-gray-800 dark:text-blue-400'
+    };
+    const colorClass = typeColors[type] || typeColors['info'];
+
     // Create alert element
     const alertDiv = document.createElement('div');
-    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-    alertDiv.classList.add('js-alert-message');
+    alertDiv.className = `p-4 mb-2 text-sm rounded-lg ${colorClass} js-alert-message`;
+    alertDiv.setAttribute('role', 'alert');
     alertDiv.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" onclick="this.closest('.alert').remove()"></button>
+        <div class="flex items-center justify-between">
+            <span>${message}</span>
+            <button type="button" class="ml-2 -mx-1.5 -my-1.5 rounded-lg p-1.5 inline-flex items-center justify-center h-8 w-8 hover:bg-gray-200 dark:hover:bg-gray-700" onclick="this.closest('[role=alert]').remove()">
+                <span class="sr-only">Close</span>
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+            </button>
+        </div>
     `;
 
     // Find alerts container or create one
@@ -688,7 +703,7 @@ export function ecsFcShowAlert(type, message) {
     if (!container) {
         container = document.createElement('div');
         container.id = 'alerts-container';
-        container.classList.add('js-alerts-container', 'u-fixed-top', 'u-z-index-9999');
+        container.className = 'fixed top-4 right-4 z-50 w-80 js-alerts-container';
         document.body.appendChild(container);
     }
 

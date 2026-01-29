@@ -121,14 +121,14 @@ window.EventDelegation.register('view-user', function(element, e) {
                 }
             } else {
                 if (contentElement) {
-                    contentElement.innerHTML = '<div class="alert alert-danger" data-alert>Error loading user details</div>';
+                    contentElement.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert" data-alert>Error loading user details</div>';
                 }
             }
         })
         .catch(error => {
             console.error('[view-user] Error loading user details:', error);
             if (contentElement) {
-                contentElement.innerHTML = '<div class="alert alert-danger" data-alert>Error loading user details</div>';
+                contentElement.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-gray-800 dark:text-red-400" role="alert" data-alert>Error loading user details</div>';
             }
         });
 }, { preventDefault: true });

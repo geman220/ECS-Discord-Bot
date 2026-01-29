@@ -449,8 +449,8 @@ class DraftSystemV2 {
         const player = data.player;
 
         const profileHtml = `
-            <div class="row">
-                <div class="col-md-4 text-center">
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div class="md:col-span-4 text-center">
                     <div class="player-avatar-container mx-auto mb-3 avatar-120">
                         <div class="player-avatar-fallback">
                             ${player.name.substring(0, 2).toUpperCase()}
@@ -474,31 +474,31 @@ class DraftSystemV2 {
                         </span>
                     </div>
                 </div>
-                <div class="col-md-8">
-                    <div class="row">
-                        <div class="col-sm-6 mb-3">
-                            <h6 class="text-muted mb-1">Career Stats</h6>
+                <div class="md:col-span-8">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="mb-3">
+                            <h6 class="text-gray-500 dark:text-gray-400 mb-1">Career Stats</h6>
                             <div class="flex gap-2 flex-wrap">
                                 <span class="stat-chip stat-goals">${player.career_goals}G</span>
                                 <span class="stat-chip stat-assists">${player.career_assists}A</span>
-                                <span class="stat-chip bg-warning text-dark">${player.career_yellow_cards}Y</span>
-                                <span class="stat-chip bg-danger">${player.career_red_cards}R</span>
+                                <span class="stat-chip bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">${player.career_yellow_cards}Y</span>
+                                <span class="stat-chip bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">${player.career_red_cards}R</span>
                                 <span class="stat-chip stat-seasons">${player.league_experience_seasons}T</span>
                             </div>
                         </div>
-                        <div class="col-sm-6 mb-3">
-                            <h6 class="text-muted mb-1">Season Stats</h6>
+                        <div class="mb-3">
+                            <h6 class="text-gray-500 dark:text-gray-400 mb-1">Season Stats</h6>
                             <div class="flex gap-2 flex-wrap">
                                 <span class="stat-chip stat-goals">${player.season_goals}G</span>
                                 <span class="stat-chip stat-assists">${player.season_assists}A</span>
-                                <span class="stat-chip bg-warning text-dark">${player.season_yellow_cards}Y</span>
-                                <span class="stat-chip bg-danger">${player.season_red_cards}R</span>
+                                <span class="stat-chip bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">${player.season_yellow_cards}Y</span>
+                                <span class="stat-chip bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">${player.season_red_cards}R</span>
                             </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="col-sm-6 mb-3">
-                            <h6 class="text-muted mb-1">Attendance</h6>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="mb-3">
+                            <h6 class="text-gray-500 dark:text-gray-400 mb-1">Attendance</h6>
                             <div class="attendance-section">
                                 <div class="attendance-label">
                                     <span>Rate</span>
@@ -511,31 +511,31 @@ class DraftSystemV2 {
                                 </div>
                             </div>
                         </div>
-                        <div class="col-sm-6 mb-3">
-                            <h6 class="text-muted mb-1">Reliability</h6>
+                        <div class="mb-3">
+                            <h6 class="text-gray-500 dark:text-gray-400 mb-1">Reliability</h6>
                             <div class="text-center">
-                                <div class="fs-4 fw-bold text-primary">${Math.round(player.reliability_score)}%</div>
-                                <small class="text-muted">Response Rate: ${Math.round(player.rsvp_response_rate)}%</small>
+                                <div class="text-xl font-bold text-ecs-green">${Math.round(player.reliability_score)}%</div>
+                                <small class="text-gray-500 dark:text-gray-400">Response Rate: ${Math.round(player.rsvp_response_rate)}%</small>
                             </div>
                         </div>
                     </div>
                     ${player.player_notes ?
                         `<div class="mb-3">
-                            <h6 class="text-muted mb-1">Player Notes</h6>
+                            <h6 class="text-gray-500 dark:text-gray-400 mb-1">Player Notes</h6>
                             <p class="mb-0">${player.player_notes}</p>
                         </div>`
                         : ''
                     }
                     ${player.admin_notes ?
                         `<div class="mb-3">
-                            <h6 class="text-muted mb-1">Admin/Coach Notes</h6>
+                            <h6 class="text-gray-500 dark:text-gray-400 mb-1">Admin/Coach Notes</h6>
                             <p class="mb-0">${player.admin_notes}</p>
                         </div>`
                         : ''
                     }
                     ${player.expected_weeks_available && player.expected_weeks_available !== 'All weeks' ?
                         `<div class="mb-3">
-                            <h6 class="text-muted mb-1">Availability</h6>
+                            <h6 class="text-gray-500 dark:text-gray-400 mb-1">Availability</h6>
                             <p class="mb-0">${player.expected_weeks_available}</p>
                         </div>`
                         : ''
@@ -543,8 +543,8 @@ class DraftSystemV2 {
                 </div>
             </div>
             ${player.match_history && player.match_history.length > 0 ?
-                `<hr>
-                <h6 class="text-muted mb-3">Recent Match History</h6>
+                `<hr class="my-4 border-gray-200 dark:border-gray-700">
+                <h6 class="text-gray-500 dark:text-gray-400 mb-3">Recent Match History</h6>
                 <div class="table-responsive">
                     <table class="table table-sm">
                         <thead>
@@ -562,8 +562,8 @@ class DraftSystemV2 {
                                     <td>${match.goals}</td>
                                     <td>${match.assists}</td>
                                     <td>
-                                        ${match.yellow_cards ? `<span class="badge bg-warning">${match.yellow_cards}Y</span>` : ''}
-                                        ${match.red_cards ? `<span class="badge bg-danger">${match.red_cards}R</span>` : ''}
+                                        ${match.yellow_cards ? `<span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">${match.yellow_cards}Y</span>` : ''}
+                                        ${match.red_cards ? `<span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">${match.red_cards}R</span>` : ''}
                                     </td>
                                 </tr>
                             `).join('')}

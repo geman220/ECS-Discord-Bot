@@ -74,14 +74,17 @@ function buildVerificationHTML(config) {
     } = config;
 
     const bothVerified = homeTeamVerified && awayTeamVerified;
+    const alertClass = bothVerified
+        ? 'text-green-800 bg-green-50 dark:bg-gray-800 dark:text-green-400'
+        : 'text-yellow-800 bg-yellow-50 dark:bg-gray-800 dark:text-yellow-400';
 
     return `
-        <h5 class="mb-3">Match Verification</h5>
-        <div class="alert ${bothVerified ? 'alert-success' : 'alert-warning'} mb-3" data-status="${bothVerified ? 'complete' : 'pending'}">
-            <div class="d-flex align-items-center">
-                <i class="fa ${bothVerified ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2 fs-3"></i>
+        <h5 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">Match Verification</h5>
+        <div class="p-4 rounded-lg mb-3 ${alertClass}" role="alert" data-status="${bothVerified ? 'complete' : 'pending'}">
+            <div class="flex items-center">
+                <i class="ti ${bothVerified ? 'ti-circle-check' : 'ti-alert-circle'} mr-2 text-xl"></i>
                 <div>
-                    <p class="mb-0">
+                    <p class="text-sm">
                         ${bothVerified
                             ? 'This match has been verified by both teams.'
                             : 'This match requires verification from both teams to be complete.'}
@@ -90,8 +93,8 @@ function buildVerificationHTML(config) {
             </div>
         </div>
 
-        <div class="row">
-            <div class="col-md-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
                 ${buildTeamVerificationCard({
                     matchId,
                     teamType: 'home',
@@ -102,7 +105,7 @@ function buildVerificationHTML(config) {
                     verifiedAt: homeVerifiedAt
                 })}
             </div>
-            <div class="col-md-6">
+            <div>
                 ${buildTeamVerificationCard({
                     matchId,
                     teamType: 'away',
@@ -135,29 +138,35 @@ function buildTeamVerificationCard(config) {
 
     const inputId = teamType === 'home' ? `verifyHomeTeam-${matchId}` : `verifyAwayTeam-${matchId}`;
     const inputName = teamType === 'home' ? 'verify_home_team' : 'verify_away_team';
+    const borderClass = isVerified
+        ? 'border-green-500 dark:border-green-400'
+        : 'border-yellow-500 dark:border-yellow-400';
 
     return `
-        <div class="card mb-2 ${isVerified ? 'border-success' : 'border-warning'}" data-verification="${teamType}" data-verified="${isVerified}">
-            <div class="card-body">
-                <h6 class="card-title d-flex align-items-center">
-                    <i class="fa ${isVerified ? 'fa-check text-success' : 'fa-clock text-warning'} me-2"></i>
-                    ${teamName}
-                </h6>
-                <p class="card-text small mb-2">
-                    ${isVerified
-                        ? `Verified by ${verifier || 'Unknown'}${verifiedAt ? ' on ' + new Date(verifiedAt).toLocaleString() : ''}`
-                        : 'Not verified yet'}
-                </p>
-                ${!isVerified && canVerify ? `
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" value="true" id="${inputId}" name="${inputName}" data-verification-input="${teamType}">
-                        <label class="form-check-label" for="${inputId}">
+        <div class="mb-2 p-4 bg-white border rounded-lg dark:bg-gray-800 ${borderClass}" data-verification="${teamType}" data-verified="${isVerified}">
+            <h6 class="text-sm font-medium text-gray-900 dark:text-white flex items-center mb-2">
+                <i class="ti ${isVerified ? 'ti-check text-green-600' : 'ti-clock text-yellow-500'} mr-2"></i>
+                ${teamName}
+            </h6>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                ${isVerified
+                    ? `Verified by ${verifier || 'Unknown'}${verifiedAt ? ' on ' + new Date(verifiedAt).toLocaleString() : ''}`
+                    : 'Not verified yet'}
+            </p>
+            ${!isVerified && canVerify ? `
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input type="checkbox" value="true" id="${inputId}" name="${inputName}" data-verification-input="${teamType}"
+                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                    </div>
+                    <div class="ml-2">
+                        <label for="${inputId}" class="text-sm font-medium text-gray-900 dark:text-gray-300">
                             Verify for ${teamName}
                         </label>
-                        <div class="text-muted small">Check this box to verify the match results for your team</div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Check this box to verify the match results for your team</p>
                     </div>
-                ` : ''}
-            </div>
+                </div>
+            ` : ''}
         </div>
     `;
 }

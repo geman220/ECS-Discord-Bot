@@ -432,7 +432,7 @@ export function showMessagesLoading() {
 
   if (elements.messagesContainer) {
     elements.messagesContainer.innerHTML = `
-      <div class="d-flex justify-content-center p-5">
+      <div class="flex justify-center p-5">
         <div class="c-chat-widget__typing-dots">
           <span class="c-chat-widget__typing-dot"></span>
           <span class="c-chat-widget__typing-dot"></span>

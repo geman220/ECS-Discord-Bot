@@ -396,10 +396,19 @@ window.EventDelegation.register('refresh-match-statuses', function(element, e) {
         .then(response => response.json())
         .then(data => {
             if (data.statuses) {
+                const colorMap = {
+                    'success': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+                    'danger': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+                    'warning': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+                    'info': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+                    'primary': 'bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300',
+                    'secondary': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                };
                 data.statuses.forEach(status => {
                     const el = document.getElementById(`status-${status.id}`);
                     if (el) {
-                        el.className = `badge bg-${status.status_color}`;
+                        const badgeClasses = colorMap[status.status_color] || colorMap['secondary'];
+                        el.className = `px-2 py-0.5 text-xs font-medium rounded ${badgeClasses}`;
                         el.innerHTML = `<i class="ti ${status.status_icon} me-1"></i>${status.status_display}`;
                     }
                 });

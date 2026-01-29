@@ -267,11 +267,11 @@ export function createWeekHTML(weekNumber, date, type, isPractice = false, isSha
     };
 
     const typeColors = {
-        regular: isPractice ? 'bg-info' : 'bg-success',
-        tst: 'bg-warning',
-        fun: 'bg-primary',
-        playoff: 'bg-danger',
-        bonus: 'bg-secondary'
+        regular: isPractice ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+        tst: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+        fun: 'bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300',
+        playoff: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+        bonus: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
     };
 
     const sharedClass = isShared ? 'shared-week' : '';
@@ -279,14 +279,14 @@ export function createWeekHTML(weekNumber, date, type, isPractice = false, isSha
 
     return `
         <div class="week-item ${sharedClass}" draggable="true" data-week="${weekNumber}" data-type="${type}" ${sharedAttr}>
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="flex justify-between items-center">
                 <div>
-                    <span class="week-number fw-bold">Week ${weekNumber}</span>
-                    <span class="week-date text-muted ms-2">${formatDate(date)}</span>
+                    <span class="week-number font-bold">Week ${weekNumber}</span>
+                    <span class="week-date text-gray-500 dark:text-gray-400 ms-2">${formatDate(date)}</span>
                 </div>
                 <div>
-                    <span class="badge ${typeColors[type] || typeColors.regular} week-type">${typeLabels[type] || 'Regular Match'}</span>
-                    ${isShared ? '<span class="badge bg-secondary ms-1">Shared</span>' : ''}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded ${typeColors[type] || typeColors.regular} week-type">${typeLabels[type] || 'Regular Match'}</span>
+                    ${isShared ? '<span class="px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 ms-1">Shared</span>' : ''}
                 </div>
             </div>
         </div>
