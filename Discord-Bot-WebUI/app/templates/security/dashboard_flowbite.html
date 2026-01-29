@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}Security Dashboard{% endblock %}
 
@@ -378,53 +379,29 @@
 {% block modals %}
 {{ super() }}
 <!-- Ban IP Modal -->
-<div id="banIpModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full" data-modal>
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b border-gray-200 dark:border-gray-700 rounded-t">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2" id="banIpModalLabel">
-                    <i class="ti ti-ban text-red-500"></i>
-                    Ban IP Address
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="banIpModal" aria-label="Close">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-5">
-                <form id="banIpForm">
-                    <div class="mb-4">
-                        <label for="ipAddress" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">IP Address <span class="text-red-500">*</span></label>
-                        <input type="text" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="ipAddress" name="ip_address" placeholder="192.168.1.100" required data-form-control>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Enter the IP address to ban (IPv4 or IPv6)</p>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="banDuration" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Ban Duration</label>
-                        <select class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="banDuration" name="duration" data-form-select>
-                            <option value="1">1 Hour</option>
-                            <option value="24">24 Hours</option>
-                            <option value="168">1 Week</option>
-                            <option value="720">1 Month</option>
-                            <option value="">Permanent</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="banReason" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason</label>
-                        <textarea class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="banReason" name="reason" rows="3" placeholder="Optional reason for the ban..." data-form-control></textarea>
-                    </div>
-                </form>
-            </div>
-            <div class="flex items-center justify-end gap-3 p-4 md:p-5 border-t border-gray-200 dark:border-gray-700 rounded-b">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700 transition-colors" data-modal-hide="banIpModal">Cancel</button>
-                <button type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:ring-red-300 dark:focus:ring-red-800 transition-colors" id="confirmBanBtn" data-action="ban-ip-confirm">
-                    <i class="ti ti-ban"></i>
-                    Ban IP Address
-                </button>
-            </div>
-        </div>
+{% call modal_form('banIpModal', 'Ban IP Address', form_id='banIpForm', submit_text='Ban IP Address', submit_color='danger', loading_text='Banning...') %}
+    <div class="mb-4">
+        <label for="ipAddress" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">IP Address <span class="text-red-500">*</span></label>
+        <input type="text" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="ipAddress" name="ip_address" placeholder="192.168.1.100" required data-form-control>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Enter the IP address to ban (IPv4 or IPv6)</p>
     </div>
-</div>
+
+    <div class="mb-4">
+        <label for="banDuration" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Ban Duration</label>
+        <select class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="banDuration" name="duration" data-form-select>
+            <option value="1">1 Hour</option>
+            <option value="24">24 Hours</option>
+            <option value="168">1 Week</option>
+            <option value="720">1 Month</option>
+            <option value="">Permanent</option>
+        </select>
+    </div>
+
+    <div class="mb-4">
+        <label for="banReason" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason</label>
+        <textarea class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="banReason" name="reason" rows="3" placeholder="Optional reason for the ban..." data-form-control></textarea>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}

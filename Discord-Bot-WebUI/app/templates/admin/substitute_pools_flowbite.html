@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import modal_form, modal_info %}
 
 {% block title %}Substitute Pool Management{% endblock %}
 
@@ -210,167 +211,122 @@
 </div>
 
 <!-- Player Details Modal -->
-<div id="playerDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-user text-blue-600"></i>Player Details
-                </h3>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="playerDetailsModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-4">
-                <div id="playerDetailsContent">
-                    <div id="detailsLoading" class="text-center py-8">
-                        <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
-                        <p class="text-gray-500 dark:text-gray-400">Loading player details...</p>
-                    </div>
-                    <div id="detailsData" class="hidden"></div>
-                </div>
-            </div>
+{% call modal_info('playerDetailsModal', 'Player Details', size='lg', footer=false) %}
+    <div id="playerDetailsContent">
+        <div id="detailsLoading" class="text-center py-8">
+            <div class="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-2"></div>
+            <p class="text-gray-500 dark:text-gray-400">Loading player details...</p>
         </div>
+        <div id="detailsData" class="hidden"></div>
     </div>
-</div>
+{% endcall %}
 
 <!-- Edit Preferences Modal -->
-<div id="editPreferencesModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Substitute Preferences</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="editPreferencesModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="preferencesForm">
-                <div class="p-4 space-y-4">
-                    <input type="hidden" id="editPlayerId" name="player_id">
-                    <input type="hidden" id="editLeagueType" name="league_type">
+{% call modal_form('editPreferencesModal', 'Edit Substitute Preferences', form_id='preferencesForm', submit_text='Save Changes', loading_text='Saving...') %}
+    <input type="hidden" id="editPlayerId" name="player_id">
+    <input type="hidden" id="editLeagueType" name="league_type">
 
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Preferred Positions</label>
-                        <input type="text" id="editPositions" name="preferred_positions" placeholder="e.g., Forward, Midfielder"
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Preferred Positions</label>
+        <input type="text" id="editPositions" name="preferred_positions" placeholder="e.g., Forward, Midfielder"
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    </div>
 
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Matches Per Week</label>
-                        <input type="number" id="editMaxMatches" name="max_matches_per_week" min="1" max="10" value="3"
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Matches Per Week</label>
+        <input type="number" id="editMaxMatches" name="max_matches_per_week" min="1" max="10" value="3"
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    </div>
 
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Preferences</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center">
-                                <input type="checkbox" id="editSmsNotifications" name="sms_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="editDiscordNotifications" name="discord_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="editEmailNotifications" name="email_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
-                        <textarea id="editNotes" name="notes" rows="3" placeholder="Any additional notes..."
-                                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="editPreferencesModal">Cancel</button>
-                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Save Changes</button>
-                </div>
-            </form>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Preferences</label>
+        <div class="space-y-2">
+            <label class="flex items-center">
+                <input type="checkbox" id="editSmsNotifications" name="sms_notifications" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
+            </label>
+            <label class="flex items-center">
+                <input type="checkbox" id="editDiscordNotifications" name="discord_notifications" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
+            </label>
+            <label class="flex items-center">
+                <input type="checkbox" id="editEmailNotifications" name="email_notifications" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
+            </label>
         </div>
     </div>
-</div>
+
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
+        <textarea id="editNotes" name="notes" rows="3" placeholder="Any additional notes..."
+                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+    </div>
+{% endcall %}
 
 <!-- League Management Modal -->
-<div id="leagueManagementModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-4xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i id="leagueIcon" class="ti ti-ball-football"></i>
-                    <span id="leagueTitle">League</span> Pool Management
-                </h3>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="leagueManagementModal">
-                    <i class="ti ti-x text-xl"></i>
+{% call modal_info('leagueManagementModal', 'Pool Management', size='xl', footer=false) %}
+    <!-- League Stats -->
+    <div class="grid grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg mb-6">
+        <div class="text-center">
+            <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="modalTotalActive">0</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Active Substitutes</p>
+        </div>
+        <div class="text-center">
+            <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="modalPendingApproval">0</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Pending Approval</p>
+        </div>
+        <div class="text-center">
+            <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400" id="modalTotalRequests">0</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Total Requests</p>
+        </div>
+        <div class="text-center">
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400" id="modalMatchesPlayed">0</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Matches Played</p>
+        </div>
+    </div>
+
+    <!-- Quick Actions and Settings -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <i class="ti ti-users text-gray-500"></i>Quick Actions
+            </h6>
+            <div class="space-y-2">
+                <button type="button" id="bulkApproveBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors">
+                    <i class="ti ti-check-circle mr-2"></i>Approve All Pending
+                </button>
+                <button type="button" id="exportPoolBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 border border-cyan-200 dark:border-cyan-800 rounded-lg transition-colors">
+                    <i class="ti ti-download mr-2"></i>Export Pool Data
+                </button>
+                <button type="button" id="sendNotificationBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 border border-yellow-200 dark:border-yellow-800 rounded-lg transition-colors">
+                    <i class="ti ti-bell mr-2"></i>Send Pool Notification
                 </button>
             </div>
-            <div class="p-4">
-                <!-- League Stats -->
-                <div class="grid grid-cols-4 gap-4 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg mb-6">
-                    <div class="text-center">
-                        <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400" id="modalTotalActive">0</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Active Substitutes</p>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="modalPendingApproval">0</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Pending Approval</p>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400" id="modalTotalRequests">0</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Total Requests</p>
-                    </div>
-                    <div class="text-center">
-                        <h3 class="text-2xl font-bold text-green-600 dark:text-green-400" id="modalMatchesPlayed">0</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Matches Played</p>
-                    </div>
+        </div>
+        <div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                <i class="ti ti-settings text-gray-500"></i>Pool Settings
+            </h6>
+            <div class="space-y-4">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Default Max Matches Per Week</label>
+                    <input type="number" id="defaultMaxMatches" min="1" max="10" value="3"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 </div>
-
-                <!-- Quick Actions and Settings -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                            <i class="ti ti-users text-gray-500"></i>Quick Actions
-                        </h6>
-                        <div class="space-y-2">
-                            <button type="button" id="bulkApproveBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors">
-                                <i class="ti ti-check-circle mr-2"></i>Approve All Pending
-                            </button>
-                            <button type="button" id="exportPoolBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 hover:bg-cyan-100 dark:hover:bg-cyan-900/40 border border-cyan-200 dark:border-cyan-800 rounded-lg transition-colors">
-                                <i class="ti ti-download mr-2"></i>Export Pool Data
-                            </button>
-                            <button type="button" id="sendNotificationBtn" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 hover:bg-yellow-100 dark:hover:bg-yellow-900/40 border border-yellow-200 dark:border-yellow-800 rounded-lg transition-colors">
-                                <i class="ti ti-bell mr-2"></i>Send Pool Notification
-                            </button>
-                        </div>
-                    </div>
-                    <div>
-                        <h6 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                            <i class="ti ti-settings text-gray-500"></i>Pool Settings
-                        </h6>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Default Max Matches Per Week</label>
-                                <input type="number" id="defaultMaxMatches" min="1" max="10" value="3"
-                                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            </div>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="autoApprovalSwitch" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Automatically approve players with required role</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="leagueManagementModal">Close</button>
-                <button type="button" id="savePoolSettings" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Save Settings</button>
+                <label class="flex items-center">
+                    <input type="checkbox" id="autoApprovalSwitch" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Automatically approve players with required role</span>
+                </label>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Custom Footer -->
+    <div class="flex justify-end gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="leagueManagementModal">Close</button>
+        <button type="button" id="savePoolSettings" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green-dark rounded-lg transition-colors">Save Settings</button>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}

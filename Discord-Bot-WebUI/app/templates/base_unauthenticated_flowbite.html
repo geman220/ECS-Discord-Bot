@@ -17,8 +17,8 @@
     <!-- Icons -->
     <link rel="stylesheet" href="{{ url_for('static', filename='vendor/fonts/tabler-icons.css') }}">
 
-    <!-- Flowbite JS -->
-    <script src="https://cdn.jsdelivr.net/npm/flowbite@2.3.0/dist/flowbite.min.js" defer></script>
+    <!-- NOTE: Flowbite JS is bundled via npm in our Vite build (vendor-globals.js).
+         CDN script REMOVED to prevent double-initialization and timing issues. -->
 
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -98,6 +98,15 @@
             }
         });
     </script>
+
+    <!-- Main Vite bundle (includes Flowbite from npm) -->
+    {% if vite_production_mode is defined and vite_production_mode() %}
+    {{ vite_asset('js/main-entry.js') }}
+    {% elif vite_dev_mode is defined and vite_dev_mode() %}
+    {{ vite_asset('js/main-entry.js') }}
+    {% else %}
+    <script type="module" src="{{ url_for('static', filename='js/main-entry.js') }}"></script>
+    {% endif %}
 
     {% block extra_js %}{% endblock %}
     {% block custom_js %}{% endblock %}

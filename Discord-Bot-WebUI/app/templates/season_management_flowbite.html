@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal %}
 
 {% block title %}{{ league.name }} Management{% endblock %}
 
@@ -134,127 +135,105 @@
 </div>
 
 <!-- Add Week Modal -->
-<div id="addWeekModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="fixed inset-0 bg-black/50" data-modal-backdrop></div>
-    <div class="relative min-h-screen flex items-center justify-center p-4">
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Week</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-close>
-                    <i class="ti ti-x text-xl"></i>
-                </button>
+{% call modal('addWeekModal', 'Add New Week', size='lg') %}
+    <form id="addWeekForm">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Week Date *</label>
+                <input type="date" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green"
+                       id="weekDate" required>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Will automatically adjust to Sunday</p>
             </div>
-            <div class="p-6">
-                <form id="addWeekForm">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Week Date *</label>
-                            <input type="date" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green"
-                                   id="weekDate" required>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Will automatically adjust to Sunday</p>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Week Type</label>
-                            <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="weekType">
-                                <option value="REGULAR">Regular Week</option>
-                                <option value="PLAYOFFS">Playoffs</option>
-                                <option value="CHAMPIONSHIP">Championship</option>
-                                <option value="TOURNAMENT">Tournament</option>
-                                <option value="FRIENDLY">Friendly</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-4">
-                        <h4 class="font-medium text-blue-700 dark:text-blue-300 mb-1">
-                            <i class="ti ti-info-circle mr-1"></i> Match Setup
-                        </h4>
-                        <p class="text-blue-600 dark:text-blue-400 text-sm">Add the matches for this week. Each team should play 2 consecutive matches.</p>
-                    </div>
-
-                    <div id="matchesContainer" class="space-y-4">
-                        <!-- Match slots will be dynamically added here -->
-                    </div>
-
-                    <div class="text-center mt-4">
-                        <button type="button" class="js-add-match-slot inline-flex items-center gap-1 px-4 py-2 border border-ecs-green text-ecs-green rounded-lg hover:bg-ecs-green hover:text-white"
-                                data-action="add-match-slot">
-                            <i class="ti ti-plus"></i> Add Match
-                        </button>
-                    </div>
-                </form>
-            </div>
-            <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                        data-modal-close>Cancel</button>
-                <button type="button" class="js-create-week px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90"
-                        data-action="create-week">
-                    <i class="ti ti-check mr-1"></i> Create Week
-                </button>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Week Type</label>
+                <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="weekType">
+                    <option value="REGULAR">Regular Week</option>
+                    <option value="PLAYOFFS">Playoffs</option>
+                    <option value="CHAMPIONSHIP">Championship</option>
+                    <option value="TOURNAMENT">Tournament</option>
+                    <option value="FRIENDLY">Friendly</option>
+                </select>
             </div>
         </div>
+
+        <div class="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-lg mb-4">
+            <h4 class="font-medium text-blue-700 dark:text-blue-300 mb-1">
+                <i class="ti ti-info-circle mr-1"></i> Match Setup
+            </h4>
+            <p class="text-blue-600 dark:text-blue-400 text-sm">Add the matches for this week. Each team should play 2 consecutive matches.</p>
+        </div>
+
+        <div id="matchesContainer" class="space-y-4">
+            <!-- Match slots will be dynamically added here -->
+        </div>
+
+        <div class="text-center mt-4">
+            <button type="button" class="js-add-match-slot inline-flex items-center gap-1 px-4 py-2 border border-ecs-green text-ecs-green rounded-lg hover:bg-ecs-green hover:text-white"
+                    data-action="add-match-slot">
+                <i class="ti ti-plus"></i> Add Match
+            </button>
+        </div>
+    </form>
+
+    <!-- Custom Footer -->
+    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+        <button type="button" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                data-modal-hide="addWeekModal">Cancel</button>
+        <button type="button" class="js-create-week px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90"
+                data-action="create-week">
+            <i class="ti ti-check mr-1"></i> Create Week
+        </button>
     </div>
-</div>
+{% endcall %}
 
 <!-- Edit Match Modal -->
-<div id="editMatchModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="fixed inset-0 bg-black/50" data-modal-backdrop></div>
-    <div class="relative min-h-screen flex items-center justify-center p-4">
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Match</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-close>
-                    <i class="ti ti-x text-xl"></i>
-                </button>
+{% call modal('editMatchModal', 'Edit Match', size='md') %}
+    <form id="editMatchForm">
+        <input type="hidden" id="editMatchId">
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+                <input type="time" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green"
+                       id="editMatchTime">
             </div>
-            <div class="p-6">
-                <form id="editMatchForm">
-                    <input type="hidden" id="editMatchId">
-                    <div class="grid grid-cols-2 gap-4 mb-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
-                            <input type="time" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green"
-                                   id="editMatchTime">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
-                            <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editMatchField">
-                                <option value="North">North</option>
-                                <option value="South">South</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Home Team</label>
-                            <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editHomeTeam">
-                                {% for team in teams_full %}
-                                <option value="{{ team.id }}">{{ team.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Away Team</label>
-                            <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editAwayTeam">
-                                {% for team in teams_full %}
-                                <option value="{{ team.id }}">{{ team.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                        data-modal-close>Cancel</button>
-                <button type="button" class="js-save-match px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90"
-                        data-action="save-match-edit">
-                    <i class="ti ti-check mr-1"></i> Save Changes
-                </button>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
+                <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editMatchField">
+                    <option value="North">North</option>
+                    <option value="South">South</option>
+                </select>
             </div>
         </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Home Team</label>
+                <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editHomeTeam">
+                    {% for team in teams_full %}
+                    <option value="{{ team.id }}">{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Away Team</label>
+                <select class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green" id="editAwayTeam">
+                    {% for team in teams_full %}
+                    <option value="{{ team.id }}">{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+    </form>
+
+    <!-- Custom Footer -->
+    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+        <button type="button" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                data-modal-hide="editMatchModal">Cancel</button>
+        <button type="button" class="js-save-match px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90"
+                data-action="save-match-edit">
+            <i class="ti ti-check mr-1"></i> Save Changes
+        </button>
     </div>
-</div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -264,27 +243,32 @@ let matchSlotCount = 0;
 const teams = {{ teams | tojson }};
 const isDark = document.documentElement.classList.contains('dark');
 
-// Modal helpers
+// Modal helpers using Flowbite
 function showModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden');
+    const modalEl = document.getElementById(modalId);
+    if (modalEl) {
+        // Use Flowbite's Modal API if available, otherwise toggle class
+        if (window.FlowbiteInstances && FlowbiteInstances.getInstance('Modal', modalId)) {
+            FlowbiteInstances.getInstance('Modal', modalId).show();
+        } else {
+            modalEl.classList.remove('hidden');
+            modalEl.classList.add('flex');
+        }
+    }
 }
 
 function hideModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
+    const modalEl = document.getElementById(modalId);
+    if (modalEl) {
+        const closeBtn = modalEl.querySelector('[data-modal-hide="' + modalId + '"]');
+        if (closeBtn) {
+            closeBtn.click();
+        } else {
+            modalEl.classList.add('hidden');
+            modalEl.classList.remove('flex');
+        }
+    }
 }
-
-// Close modal on backdrop click
-document.querySelectorAll('[data-modal-backdrop]').forEach(backdrop => {
-    backdrop.addEventListener('click', () => {
-        backdrop.closest('[id]').classList.add('hidden');
-    });
-});
-
-document.querySelectorAll('[data-modal-close]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        btn.closest('[id]').classList.add('hidden');
-    });
-});
 
 // Event delegation
 document.addEventListener('click', function(e) {

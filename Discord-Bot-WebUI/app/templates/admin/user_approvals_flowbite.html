@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}User Approvals{% endblock %}
 
@@ -111,10 +112,10 @@
                             </td>
                             <td class="px-4 py-3">
                                 <div class="flex gap-2">
-                                    <button class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" data-action="show-approval-modal" data-user-id="{{ user.id }}">
+                                    <button class="px-3 py-1.5 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
                                         <i class="ti ti-check mr-1"></i>Approve
                                     </button>
-                                    <button class="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors" data-action="show-denial-modal" data-user-id="{{ user.id }}">
+                                    <button class="px-3 py-1.5 text-xs font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
                                         <i class="ti ti-x mr-1"></i>Deny
                                     </button>
                                 </div>
@@ -185,79 +186,43 @@
 </div>
 
 <!-- Approval Modal -->
-<div id="approvalModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Approve User</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="approvalModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-5">
-                <form id="approvalForm">
-                    <div class="mb-4">
-                        <label for="leagueSelect" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Assign to League <span class="text-red-500">*</span></label>
-                        <select id="leagueSelect" name="league_type" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                            <option value="">Select a league...</option>
-                            <optgroup label="Full League Roles">
-                                <option value="classic">Classic Division</option>
-                                <option value="premier">Premier Division</option>
-                                <option value="ecs-fc">ECS FC League</option>
-                            </optgroup>
-                            <optgroup label="Substitute Roles (Mid-Season)">
-                                <option value="sub-classic">Classic Substitute</option>
-                                <option value="sub-premier">Premier Substitute</option>
-                                <option value="sub-ecs-fc">ECS FC Substitute</option>
-                            </optgroup>
-                        </select>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Substitute roles are for mid-season signups who will join as subs initially.</p>
-                    </div>
-                    <div class="mb-4">
-                        <label for="approvalNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
-                        <textarea id="approvalNotes" name="notes" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Add any notes about the approval..."></textarea>
-                    </div>
-                    <input type="hidden" id="approvalUserId" name="user_id">
-                </form>
-            </div>
-            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
-                <button type="button" class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800" data-action="submit-user-approval">Approve User</button>
-                <button type="button" data-modal-hide="approvalModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
-            </div>
-        </div>
+{% call modal_form('approvalModal', 'Approve User', form_id='approvalForm', size='sm', submit_text='Approve User', submit_color='primary', loading_text='Approving...') %}
+    <div class="mb-4">
+        <label for="leagueSelect" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Assign to League <span class="text-red-500">*</span></label>
+        <select id="leagueSelect" name="league_type" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+            <option value="">Select a league...</option>
+            <optgroup label="Full League Roles">
+                <option value="classic">Classic Division</option>
+                <option value="premier">Premier Division</option>
+                <option value="ecs-fc">ECS FC League</option>
+            </optgroup>
+            <optgroup label="Substitute Roles (Mid-Season)">
+                <option value="sub-classic">Classic Substitute</option>
+                <option value="sub-premier">Premier Substitute</option>
+                <option value="sub-ecs-fc">ECS FC Substitute</option>
+            </optgroup>
+        </select>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Substitute roles are for mid-season signups who will join as subs initially.</p>
     </div>
-</div>
+    <div class="mb-4">
+        <label for="approvalNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
+        <textarea id="approvalNotes" name="notes" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Add any notes about the approval..."></textarea>
+    </div>
+    <input type="hidden" id="approvalUserId" name="user_id" data-field="user_id">
+{% endcall %}
 
 <!-- Denial Modal -->
-<div id="denialModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Deny User Application</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="denialModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-5">
-                <form id="denialForm">
-                    <div class="flex items-center p-4 mb-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-400 dark:border-yellow-800">
-                        <i class="ti ti-alert-triangle mr-2"></i>
-                        <div><strong>Warning:</strong> Denying this user will remove their Discord roles and prevent them from accessing league features.</div>
-                    </div>
-                    <div class="mb-4">
-                        <label for="denialNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason for Denial <span class="text-red-500">*</span></label>
-                        <textarea id="denialNotes" name="notes" rows="3" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Explain why this application is being denied..."></textarea>
-                    </div>
-                    <input type="hidden" id="denialUserId" name="user_id">
-                </form>
-            </div>
-            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
-                <button type="button" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800" data-action="deny-user">Deny Application</button>
-                <button type="button" data-modal-hide="denialModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
-            </div>
-        </div>
+{% call modal_form('denialModal', 'Deny User Application', form_id='denialForm', size='sm', submit_text='Deny Application', submit_color='danger', loading_text='Processing...') %}
+    <div class="flex items-center p-4 mb-4 text-sm text-yellow-800 border border-yellow-300 rounded-lg bg-yellow-50 dark:bg-gray-800 dark:text-yellow-400 dark:border-yellow-800">
+        <i class="ti ti-alert-triangle mr-2"></i>
+        <div><strong>Warning:</strong> Denying this user will remove their Discord roles and prevent them from accessing league features.</div>
     </div>
-</div>
+    <div class="mb-4">
+        <label for="denialNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason for Denial <span class="text-red-500">*</span></label>
+        <textarea id="denialNotes" name="notes" rows="3" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Explain why this application is being denied..."></textarea>
+    </div>
+    <input type="hidden" id="denialUserId" name="user_id" data-field="user_id">
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}

@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_info %}
 
 {% block title %}ECS Pub League Calendar{% endblock %}
 
@@ -243,24 +244,11 @@
 </div>
 
 <!-- Event Detail Modal -->
-<div id="eventDetailModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-lg max-h-full">
-        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 rounded-t">
-                <h3 id="eventDetailTitle" class="text-xl font-semibold text-gray-900 dark:text-white">
-                    Event Details
-                </h3>
-                <button type="button" id="closeEventDetailModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
-                    <i class="ti ti-x text-xl"></i>
-                    <span class="sr-only">Close modal</span>
-                </button>
-            </div>
-            <div id="eventDetailContent" class="p-6">
-                <!-- Content populated by JS -->
-            </div>
-        </div>
-    </div>
+{% call modal_info('eventDetailModal', 'Event Details', footer=false) %}
+<div id="eventDetailContent">
+    <!-- Content populated by JS -->
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -576,7 +564,7 @@
         const color = eventTypeColors[eventType] || eventTypeColors.other;
         const eventDate = new Date(event.start);
 
-        document.getElementById('eventDetailTitle').textContent = event.title;
+        document.getElementById('eventDetailModal-title').textContent = event.title;
 
         let content = `
             <div class="space-y-4">
@@ -639,7 +627,7 @@
         if (dayEvents.length === 0) return;
 
         const date = new Date(dateStr + 'T00:00:00');
-        document.getElementById('eventDetailTitle').textContent = formatDate(date);
+        document.getElementById('eventDetailModal-title').textContent = formatDate(date);
 
         let content = '<div class="space-y-3">';
 
@@ -668,11 +656,15 @@
         modal.classList.add('flex');
     };
 
-    // Close modal
+    // Close modal using modal manager
     function closeModal() {
-        const modal = document.getElementById('eventDetailModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
+        if (window.ModalManager) {
+            window.ModalManager.hide('eventDetailModal');
+        } else {
+            const modal = document.getElementById('eventDetailModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
     }
 
     // Escape HTML
@@ -725,17 +717,9 @@
         document.getElementById('todayBtn').addEventListener('click', goToToday);
         document.getElementById('viewMonthBtn').addEventListener('click', () => switchView('month'));
         document.getElementById('viewListBtn').addEventListener('click', () => switchView('list'));
-        document.getElementById('closeEventDetailModal').addEventListener('click', closeModal);
 
-        // Close modal on backdrop click
-        document.getElementById('eventDetailModal').addEventListener('click', function(e) {
-            if (e.target === this) closeModal();
-        });
-
-        // Close modal on escape
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeModal();
-        });
+        // Modal close is now handled by the modal macro's data-modal-hide buttons
+        // and the ModalManager handles backdrop click and escape key
     });
 })();
 </script>

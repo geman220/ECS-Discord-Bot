@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form, modal %}
 
 {% block title %}Store Administration{% endblock %}
 
@@ -246,163 +247,122 @@
 {% block modals %}
 {{ super() }}
 <!-- Create Item Modal -->
-<div id="createItemModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full" data-modal>
-    <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <form id="createItemForm" enctype="multipart/form-data">
-                <div class="flex items-center justify-between p-4 md:p-5 border-b border-gray-200 dark:border-gray-700 rounded-t bg-gray-50 dark:bg-gray-700">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2" id="createItemModalLabel">
-                        <i class="ti ti-plus text-ecs-green"></i>
-                        Add New Store Item
-                    </h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="createItemModal" data-dismiss aria-label="Close">
-                        <i class="ti ti-x text-lg"></i>
-                    </button>
-                </div>
-                <div class="p-4 md:p-5 space-y-4">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="md:col-span-2">
-                            <label for="store-admin-item-name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Item Name *</label>
-                            <input type="text" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="store-admin-item-name" name="name" required placeholder="e.g. 0857 Pioneer Pullover" data-form-control>
-                        </div>
-                        <div>
-                            <label for="price" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Price (Admin Only)</label>
-                            <div class="flex">
-                                <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:text-gray-400 dark:border-gray-600">$</span>
-                                <input type="number" class="rounded-none rounded-r-lg w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="price" name="price" step="0.01" min="0" placeholder="15.00" data-form-control>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="store-admin-item-description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
-                        <textarea class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="store-admin-item-description" name="description" rows="3" placeholder="Describe the item, materials, features, etc." data-form-control></textarea>
-                    </div>
-
-                    <div>
-                        <label for="category" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Category</label>
-                        <input type="text" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="category" name="category" placeholder="e.g. Apparel, Equipment, Accessories" data-form-control>
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Image</label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label for="image_file" class="block mb-1 text-xs text-gray-500 dark:text-gray-400">Upload Image</label>
-                                <input type="file" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" id="image_file" name="image_file" accept="image/*" data-form-control>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Upload an image file</p>
-                            </div>
-                            <div>
-                                <label for="image_url" class="block mb-1 text-xs text-gray-500 dark:text-gray-400">Or Image URL</label>
-                                <input type="url" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="image_url" name="image_url" placeholder="https://example.com/image.jpg" data-form-control>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Provide a direct link to an image</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Colors</label>
-                            <div id="colors-container" class="space-y-2">
-                                <div class="flex">
-                                    <input type="text" class="flex-1 rounded-l-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" name="colors[]" placeholder="e.g. Navy, Black, White" data-form-control aria-label="Color option">
-                                    <button type="button" class="hidden px-3 text-red-600 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-red-50 dark:bg-gray-600 dark:border-gray-600 dark:hover:bg-red-900/30 remove-color" aria-label="Remove color">
-                                        <i class="ti ti-x"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <button type="button" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-lg hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/50 transition-colors" id="add-color">
-                                <i class="ti ti-plus"></i>Add Color
-                            </button>
-                        </div>
-
-                        <div>
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Sizes</label>
-                            <div id="sizes-container" class="space-y-2">
-                                <div class="flex">
-                                    <input type="text" class="flex-1 rounded-l-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL, AS, AM, AL" data-form-control aria-label="Size option">
-                                    <button type="button" class="hidden px-3 text-red-600 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-red-50 dark:bg-gray-600 dark:border-gray-600 dark:hover:bg-red-900/30 remove-size" aria-label="Remove size">
-                                        <i class="ti ti-x"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <button type="button" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-lg hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/50 transition-colors" id="add-size">
-                                <i class="ti ti-plus"></i>Add Size
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center justify-end gap-3 p-4 md:p-5 border-t border-gray-200 dark:border-gray-700 rounded-b bg-gray-50 dark:bg-gray-700">
-                    <button type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700 transition-colors" data-modal-hide="createItemModal" data-dismiss>
-                        <i class="ti ti-x"></i>Cancel
-                    </button>
-                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors">
-                        <i class="ti ti-device-floppy"></i>Create Item
-                    </button>
-                </div>
-            </form>
+{% call modal_form('createItemModal', 'Add New Store Item', form_id='createItemForm', size='lg', submit_text='Create Item', loading_text='Creating...', enctype='multipart/form-data') %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="md:col-span-2">
+        <label for="store-admin-item-name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Item Name *</label>
+        <input type="text" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="store-admin-item-name" name="name" required placeholder="e.g. 0857 Pioneer Pullover" data-form-control>
+    </div>
+    <div>
+        <label for="price" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Price (Admin Only)</label>
+        <div class="flex">
+            <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-200 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:text-gray-400 dark:border-gray-600">$</span>
+            <input type="number" class="rounded-none rounded-r-lg w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="price" name="price" step="0.01" min="0" placeholder="15.00" data-form-control>
         </div>
     </div>
 </div>
+
+<div>
+    <label for="store-admin-item-description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+    <textarea class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="store-admin-item-description" name="description" rows="3" placeholder="Describe the item, materials, features, etc." data-form-control></textarea>
+</div>
+
+<div>
+    <label for="category" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Category</label>
+    <input type="text" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="category" name="category" placeholder="e.g. Apparel, Equipment, Accessories" data-form-control>
+</div>
+
+<div>
+    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Image</label>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label for="image_file" class="block mb-1 text-xs text-gray-500 dark:text-gray-400">Upload Image</label>
+            <input type="file" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" id="image_file" name="image_file" accept="image/*" data-form-control>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Upload an image file</p>
+        </div>
+        <div>
+            <label for="image_url" class="block mb-1 text-xs text-gray-500 dark:text-gray-400">Or Image URL</label>
+            <input type="url" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" id="image_url" name="image_url" placeholder="https://example.com/image.jpg" data-form-control>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Provide a direct link to an image</p>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Colors</label>
+        <div id="colors-container" class="space-y-2">
+            <div class="flex">
+                <input type="text" class="flex-1 rounded-l-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" name="colors[]" placeholder="e.g. Navy, Black, White" data-form-control aria-label="Color option">
+                <button type="button" class="hidden px-3 text-red-600 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-red-50 dark:bg-gray-600 dark:border-gray-600 dark:hover:bg-red-900/30 remove-color" aria-label="Remove color">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+        </div>
+        <button type="button" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-lg hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/50 transition-colors" id="add-color">
+            <i class="ti ti-plus"></i>Add Color
+        </button>
+    </div>
+
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Sizes</label>
+        <div id="sizes-container" class="space-y-2">
+            <div class="flex">
+                <input type="text" class="flex-1 rounded-l-lg px-4 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" name="sizes[]" placeholder="e.g. YXS, YS, YM, YL, AS, AM, AL" data-form-control aria-label="Size option">
+                <button type="button" class="hidden px-3 text-red-600 bg-gray-100 border border-l-0 border-gray-300 rounded-r-lg hover:bg-red-50 dark:bg-gray-600 dark:border-gray-600 dark:hover:bg-red-900/30 remove-size" aria-label="Remove size">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+        </div>
+        <button type="button" class="mt-2 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-lg hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-700 dark:hover:bg-blue-900/50 transition-colors" id="add-size">
+            <i class="ti ti-plus"></i>Add Size
+        </button>
+    </div>
+</div>
+{% endcall %}
 
 <!-- Reset Season Ordering Modal -->
-<div id="resetOrderingModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full" data-modal>
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b border-amber-200 dark:border-amber-700 rounded-t bg-amber-50 dark:bg-amber-900/30">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2" id="resetOrderingModalLabel">
-                    <i class="ti ti-refresh text-amber-600 dark:text-amber-400"></i>
-                    Reset Season Ordering
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="resetOrderingModal" data-dismiss aria-label="Close">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-5 space-y-4">
-                <div class="flex items-start p-4 text-sm text-amber-800 rounded-lg bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400" role="alert" data-alert>
-                    <i class="ti ti-alert-triangle text-lg mr-2 flex-shrink-0"></i>
-                    <div>
-                        <span class="font-medium">Warning:</span> This action will allow all coaches to place new orders for the current season, even if they have already placed an order. Use this at the beginning of a new season.
-                    </div>
-                </div>
+{% call modal('resetOrderingModal', 'Reset Season Ordering', size='sm') %}
+<div class="flex items-start p-4 text-sm text-amber-800 rounded-lg bg-amber-50 dark:bg-amber-900/30 dark:text-amber-400" role="alert" data-alert>
+    <i class="ti ti-alert-triangle text-lg mr-2 flex-shrink-0"></i>
+    <div>
+        <span class="font-medium">Warning:</span> This action will allow all coaches to place new orders for the current season, even if they have already placed an order. Use this at the beginning of a new season.
+    </div>
+</div>
 
-                <p class="text-sm text-gray-700 dark:text-gray-300">Choose how to reset ordering eligibility:</p>
+<p class="text-sm text-gray-700 dark:text-gray-300">Choose how to reset ordering eligibility:</p>
 
-                <div class="space-y-4">
-                    <div class="flex items-start">
-                        <div class="flex items-center h-5">
-                            <input id="resetAll" type="radio" name="resetType" value="all" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                        </div>
-                        <div class="ms-3 text-sm">
-                            <label for="resetAll" class="font-medium text-gray-900 dark:text-white">Delete all orders for current season</label>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">This will permanently delete all orders for the current season and allow everyone to order again.</p>
-                        </div>
-                    </div>
+<div class="space-y-4">
+    <div class="flex items-start">
+        <div class="flex items-center h-5">
+            <input id="resetAll" type="radio" name="resetType" value="all" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+        </div>
+        <div class="ms-3 text-sm">
+            <label for="resetAll" class="font-medium text-gray-900 dark:text-white">Delete all orders for current season</label>
+            <p class="text-xs text-gray-500 dark:text-gray-400">This will permanently delete all orders for the current season and allow everyone to order again.</p>
+        </div>
+    </div>
 
-                    <div class="flex items-start">
-                        <div class="flex items-center h-5">
-                            <input id="resetEligibility" type="radio" name="resetType" value="eligibility" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                        </div>
-                        <div class="ms-3 text-sm">
-                            <label for="resetEligibility" class="font-medium text-gray-900 dark:text-white">Reset eligibility only</label>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">Keep existing orders but allow coaches to place additional orders (useful for special promotions).</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="flex items-center justify-end gap-3 p-4 md:p-5 border-t border-amber-200 dark:border-amber-700 rounded-b bg-amber-50 dark:bg-amber-900/30">
-                <button type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-gray-700 transition-colors" data-modal-hide="resetOrderingModal" data-dismiss>
-                    <i class="ti ti-x"></i>Cancel
-                </button>
-                <button type="button" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 focus:ring-4 focus:ring-amber-300 dark:focus:ring-amber-800 transition-colors" id="confirmResetBtn">
-                    <i class="ti ti-refresh"></i>Reset Season Ordering
-                </button>
-            </div>
+    <div class="flex items-start">
+        <div class="flex items-center h-5">
+            <input id="resetEligibility" type="radio" name="resetType" value="eligibility" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+        </div>
+        <div class="ms-3 text-sm">
+            <label for="resetEligibility" class="font-medium text-gray-900 dark:text-white">Reset eligibility only</label>
+            <p class="text-xs text-gray-500 dark:text-gray-400">Keep existing orders but allow coaches to place additional orders (useful for special promotions).</p>
         </div>
     </div>
 </div>
+
+<div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-600 mt-4">
+    <button type="button" class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 modal-close-btn" data-modal-hide="resetOrderingModal">
+        Cancel
+    </button>
+    <button type="button" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-amber-500 rounded-lg hover:bg-amber-600 focus:ring-4 focus:ring-amber-300 dark:focus:ring-amber-800 transition-colors" id="confirmResetBtn">
+        <i class="ti ti-refresh"></i>Reset Season Ordering
+    </button>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}

@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal %}
 {% block title %}Season Management{% endblock %}
 
 {% block main_content %}
@@ -228,47 +229,42 @@
 </form>
 
 <!-- Confirm Delete Modal -->
-<div id="confirmDeleteModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="confirm-modal-overlay"></div>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <div class="px-4 pt-5 pb-4 sm:p-6">
-                <div class="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-red-100 dark:bg-red-900/50 mb-4">
-                    <i class="ti ti-alert-triangle text-xl text-red-600 dark:text-red-400"></i>
-                </div>
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white text-center mb-2">Confirm Season Deletion</h3>
-                <p class="text-center text-gray-500 dark:text-gray-400 mb-4"><strong>Are you sure you want to delete this season?</strong></p>
+{% call modal(id="confirmDeleteModal", title="Confirm Season Deletion", size="md", static_backdrop=true) %}
+<div class="text-center">
+    <div class="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-red-100 dark:bg-red-900/50 mb-4">
+        <i class="ti ti-alert-triangle text-xl text-red-600 dark:text-red-400"></i>
+    </div>
+    <p class="text-gray-500 dark:text-gray-400 mb-4"><strong>Are you sure you want to delete this season?</strong></p>
 
-                <div class="flex items-start gap-3 p-4 mb-4 text-yellow-800 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/50 rounded-lg border border-yellow-200 dark:border-yellow-800">
-                    <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
-                    <div>
-                        <h6 class="font-semibold mb-1">This action will:</h6>
-                        <ul class="text-sm list-disc pl-4 space-y-1">
-                            <li>Delete all teams and their Discord channels/roles</li>
-                            <li>Remove all matches and schedules</li>
-                            <li>Clear all player team assignments</li>
-                            <li>Restore the previous season as current</li>
-                        </ul>
-                    </div>
-                </div>
-
-                <p class="text-center text-gray-600 dark:text-gray-300 mb-2" id="seasonToDelete"></p>
-                <p class="text-center text-red-600 dark:text-red-400 font-bold">This action cannot be undone!</p>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 flex flex-col sm:flex-row-reverse gap-3">
-                <button type="button" id="confirmDeleteBtn"
-                        class="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700">
-                    <i class="ti ti-trash"></i>
-                    Delete Season
-                </button>
-                <button type="button" id="cancelDeleteBtn"
-                        class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    Cancel
-                </button>
-            </div>
+    <div class="flex items-start gap-3 p-4 mb-4 text-yellow-800 dark:text-yellow-200 bg-yellow-50 dark:bg-yellow-900/50 rounded-lg border border-yellow-200 dark:border-yellow-800 text-left">
+        <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
+        <div>
+            <h6 class="font-semibold mb-1">This action will:</h6>
+            <ul class="text-sm list-disc pl-4 space-y-1">
+                <li>Delete all teams and their Discord channels/roles</li>
+                <li>Remove all matches and schedules</li>
+                <li>Clear all player team assignments</li>
+                <li>Restore the previous season as current</li>
+            </ul>
         </div>
     </div>
+
+    <p class="text-gray-600 dark:text-gray-300 mb-2" id="seasonToDelete"></p>
+    <p class="text-red-600 dark:text-red-400 font-bold">This action cannot be undone!</p>
 </div>
+
+<div class="flex items-center justify-center gap-3 mt-6">
+    <button type="button" id="cancelDeleteBtn" data-modal-hide="confirmDeleteModal"
+            class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">
+        Cancel
+    </button>
+    <button type="button" id="confirmDeleteBtn"
+            class="px-5 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-500 inline-flex items-center gap-2">
+        <i class="ti ti-trash"></i>
+        Delete Season
+    </button>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -299,8 +295,17 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentSeasonId = null;
     let currentSeasonName = null;
     let currentSeasonType = null;
-    const confirmModal = document.getElementById('confirmDeleteModal');
+    const confirmModalEl = document.getElementById('confirmDeleteModal');
     const isDark = document.documentElement.classList.contains('dark');
+
+    // Initialize Flowbite modal
+    let confirmModal = null;
+    if (confirmModalEl && typeof Modal !== 'undefined') {
+        confirmModal = new Modal(confirmModalEl, {
+            backdrop: 'static',
+            closable: true
+        });
+    }
 
     document.querySelectorAll('.delete-season-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -308,16 +313,23 @@ document.addEventListener('DOMContentLoaded', function() {
             currentSeasonName = this.dataset.seasonName;
             currentSeasonType = this.dataset.seasonType;
             document.getElementById('seasonToDelete').textContent = `${currentSeasonType} - ${currentSeasonName}`;
-            confirmModal.classList.remove('hidden');
+            if (confirmModal) {
+                confirmModal.show();
+            }
         });
     });
 
-    document.getElementById('cancelDeleteBtn')?.addEventListener('click', () => confirmModal.classList.add('hidden'));
-    document.getElementById('confirm-modal-overlay')?.addEventListener('click', () => confirmModal.classList.add('hidden'));
+    document.getElementById('cancelDeleteBtn')?.addEventListener('click', () => {
+        if (confirmModal) {
+            confirmModal.hide();
+        }
+    });
 
     document.getElementById('confirmDeleteBtn')?.addEventListener('click', function() {
         if (!currentSeasonId) return;
-        confirmModal.classList.add('hidden');
+        if (confirmModal) {
+            confirmModal.hide();
+        }
 
         Swal.fire({
             title: 'Deleting Season...',

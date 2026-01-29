@@ -365,4 +365,54 @@
   .scrollbar-dark::-webkit-scrollbar-thumb:hover {
     background: #6B7280;
   }
+
+  /* ============================================
+     Modal Mobile Enhancements
+     ============================================ */
+
+  /* Touch-friendly tap targets (44px minimum per WCAG) */
+  @media (max-width: 640px) {
+    .modal-close-btn,
+    [data-modal-hide],
+    [data-modal-toggle],
+    [data-drawer-hide] {
+      @apply min-h-[44px] min-w-[44px];
+    }
+
+    /* Larger touch targets for modal buttons on mobile */
+    [role="dialog"] button,
+    [role="alertdialog"] button {
+      @apply min-h-[44px];
+    }
+  }
+
+  /* Safe area padding for notched devices (iPhone X+, etc.) */
+  @supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .pb-safe {
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+
+    .pt-safe {
+      padding-top: calc(1rem + env(safe-area-inset-top));
+    }
+
+    /* Modal drawer safe area */
+    [data-drawer-placement="bottom"] .pb-safe {
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+  }
+
+  /* Modal backdrop blur effect */
+  .modal-backdrop-blur {
+    @apply backdrop-blur-sm;
+  }
+
+  /* Smooth drawer animations */
+  [data-drawer-placement="bottom"] {
+    transition: transform 0.3s ease-out;
+  }
+
+  [data-drawer-placement="bottom"].show {
+    transform: translateY(0);
+  }
 }

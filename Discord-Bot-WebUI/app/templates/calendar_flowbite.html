@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal, modal_form, modal_info %}
 
 {% block title %}Pub League Calendar{% endblock %}
 
@@ -490,519 +491,436 @@
 {% block modals %}
 {{ super() }}
 <!-- Referee Assignment Modal -->
-<div id="assignRefModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
-    <div class="relative p-4 w-full max-w-lg max-h-full mx-auto mt-20">
-        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                    <i class="ti ti-user-check text-ecs-green dark:text-green-400 mr-2"></i>
-                    Referee Assignment
-                </h5>
-                <button type="button" data-modal-close="assignRefModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4">
-                <form id="assignRefForm">
-                    <input type="hidden" id="matchId" name="match_id">
+{% call modal_form('assignRefModal', 'Referee Assignment', form_id='assignRefForm', submit_text='Assign Referee', loading_text='Assigning...') %}
+<input type="hidden" id="matchId" name="match_id">
 
-                    <div class="p-4 mb-4 rounded-lg match-detail-card">
-                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            <i class="ti ti-calendar-event mr-2"></i>
-                            <span id="matchDateTime">Date & Time</span>
-                        </div>
-                        <div class="text-center mb-3">
-                            <span id="homeTeam" class="font-bold text-gray-900 dark:text-white">Home Team</span>
-                            <span class="mx-2 text-gray-400">vs</span>
-                            <span id="awayTeam" class="font-bold text-gray-900 dark:text-white">Away Team</span>
-                        </div>
-                        <div class="flex justify-between items-center text-sm">
-                            <span class="text-gray-600 dark:text-gray-400">
-                                <i class="ti ti-map-pin mr-1"></i>
-                                <span id="matchLocation">Location</span>
-                            </span>
-                            <span id="matchDivision" class="px-2 py-0.5 text-xs font-medium text-white bg-ecs-green rounded-full">Division</span>
-                        </div>
-                    </div>
-
-                    <div id="currentRefereeSection" class="mb-4">
-                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Current Referee</label>
-                        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                            <div class="flex items-center">
-                                <div class="w-8 h-8 rounded-full bg-ecs-green/10 dark:bg-green-900/30 flex items-center justify-center mr-2">
-                                    <i class="ti ti-user text-ecs-green dark:text-green-400"></i>
-                                </div>
-                                <span id="currentRefereeName" class="font-semibold text-gray-900 dark:text-white">Unassigned</span>
-                            </div>
-                            <button type="button" id="removeRefButton" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-800 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-700">
-                                <i class="ti ti-user-x mr-1"></i> Remove
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="refSelect" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Assign Referee</label>
-                        <select id="refSelect" name="ref_id" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
-                            <option value="" selected disabled>Choose a referee</option>
-                        </select>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Select a referee from the list to assign to this match</p>
-                    </div>
-
-                    <div id="assignRefFeedback"></div>
-                </form>
-            </div>
-            <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" data-modal-close="assignRefModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">Cancel</button>
-                <button type="submit" form="assignRefForm" id="assignRefButton" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
-                    <i class="ti ti-user-check mr-2"></i> Assign Referee
-                </button>
-            </div>
-        </div>
+<div class="p-4 mb-4 rounded-lg match-detail-card">
+    <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-2">
+        <i class="ti ti-calendar-event mr-2"></i>
+        <span id="matchDateTime">Date & Time</span>
+    </div>
+    <div class="text-center mb-3">
+        <span id="homeTeam" class="font-bold text-gray-900 dark:text-white">Home Team</span>
+        <span class="mx-2 text-gray-400">vs</span>
+        <span id="awayTeam" class="font-bold text-gray-900 dark:text-white">Away Team</span>
+    </div>
+    <div class="flex justify-between items-center text-sm">
+        <span class="text-gray-600 dark:text-gray-400">
+            <i class="ti ti-map-pin mr-1"></i>
+            <span id="matchLocation">Location</span>
+        </span>
+        <span id="matchDivision" class="px-2 py-0.5 text-xs font-medium text-white bg-ecs-green rounded-full">Division</span>
     </div>
 </div>
+
+<div id="currentRefereeSection" class="mb-4">
+    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Current Referee</label>
+    <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+        <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full bg-ecs-green/10 dark:bg-green-900/30 flex items-center justify-center mr-2">
+                <i class="ti ti-user text-ecs-green dark:text-green-400"></i>
+            </div>
+            <span id="currentRefereeName" class="font-semibold text-gray-900 dark:text-white">Unassigned</span>
+        </div>
+        <button type="button" id="removeRefButton" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-800 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-700">
+            <i class="ti ti-user-x mr-1"></i> Remove
+        </button>
+    </div>
+</div>
+
+<div class="mb-4">
+    <label for="refSelect" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Assign Referee</label>
+    <select id="refSelect" name="ref_id" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+        <option value="" selected disabled>Choose a referee</option>
+    </select>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Select a referee from the list to assign to this match</p>
+</div>
+
+<div id="assignRefFeedback"></div>
+{% endcall %}
 
 <!-- Match Details Modal -->
-<div id="matchDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
-    <div class="relative p-4 w-full max-w-lg max-h-full mx-auto mt-20">
-        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                    <i class="ti ti-soccer-field text-ecs-green dark:text-green-400 mr-2"></i>
-                    Match Details
-                </h5>
-                <button type="button" data-modal-close="matchDetailsModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
+{% call modal_info('matchDetailsModal', 'Match Details', footer=false) %}
+<div class="match-detail-full">
+    <div class="flex items-center justify-center gap-8 py-4">
+        <div class="text-center">
+            <div class="w-16 h-16 rounded-full bg-ecs-green/10 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
+                <i class="ti ti-home text-2xl text-ecs-green dark:text-green-400"></i>
             </div>
-            <div class="p-4">
-                <div class="match-detail-full">
-                    <div class="flex items-center justify-center gap-8 py-4">
-                        <div class="text-center">
-                            <div class="w-16 h-16 rounded-full bg-ecs-green/10 dark:bg-green-900/30 flex items-center justify-center mx-auto mb-2">
-                                <i class="ti ti-home text-2xl text-ecs-green dark:text-green-400"></i>
-                            </div>
-                            <div id="detailHomeTeam" class="font-bold text-gray-900 dark:text-white">Home Team</div>
-                        </div>
-                        <div class="text-2xl font-bold text-gray-400">VS</div>
-                        <div class="text-center">
-                            <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-2">
-                                <i class="ti ti-plane-departure text-2xl text-gray-500 dark:text-gray-400"></i>
-                            </div>
-                            <div id="detailAwayTeam" class="font-bold text-gray-900 dark:text-white">Away Team</div>
-                        </div>
-                    </div>
+            <div id="detailHomeTeam" class="font-bold text-gray-900 dark:text-white">Home Team</div>
+        </div>
+        <div class="text-2xl font-bold text-gray-400">VS</div>
+        <div class="text-center">
+            <div class="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mx-auto mb-2">
+                <i class="ti ti-plane-departure text-2xl text-gray-500 dark:text-gray-400"></i>
+            </div>
+            <div id="detailAwayTeam" class="font-bold text-gray-900 dark:text-white">Away Team</div>
+        </div>
+    </div>
 
-                    <div class="grid grid-cols-2 gap-4 mt-4">
-                        <div class="flex items-center gap-2">
-                            <i class="ti ti-calendar text-ecs-green dark:text-green-400"></i>
-                            <span id="detailMatchDate" class="font-medium text-gray-900 dark:text-white">Date</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <i class="ti ti-clock text-ecs-green dark:text-green-400"></i>
-                            <span id="detailMatchTime" class="font-medium text-gray-900 dark:text-white">Time</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <i class="ti ti-map-pin text-ecs-green dark:text-green-400"></i>
-                            <span id="detailMatchLocation" class="font-medium text-gray-900 dark:text-white">Location</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <i class="ti ti-flag text-ecs-green dark:text-green-400"></i>
-                            <span id="detailMatchDivision" class="font-medium text-gray-900 dark:text-white">Division</span>
-                        </div>
-                    </div>
+    <div class="grid grid-cols-2 gap-4 mt-4">
+        <div class="flex items-center gap-2">
+            <i class="ti ti-calendar text-ecs-green dark:text-green-400"></i>
+            <span id="detailMatchDate" class="font-medium text-gray-900 dark:text-white">Date</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <i class="ti ti-clock text-ecs-green dark:text-green-400"></i>
+            <span id="detailMatchTime" class="font-medium text-gray-900 dark:text-white">Time</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <i class="ti ti-map-pin text-ecs-green dark:text-green-400"></i>
+            <span id="detailMatchLocation" class="font-medium text-gray-900 dark:text-white">Location</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <i class="ti ti-flag text-ecs-green dark:text-green-400"></i>
+            <span id="detailMatchDivision" class="font-medium text-gray-900 dark:text-white">Division</span>
+        </div>
+    </div>
 
-                    <div class="mt-6 p-4 bg-ecs-green/10 dark:bg-green-900/20 rounded-lg">
-                        <div class="flex items-center justify-between mb-3">
-                            <h6 class="font-bold text-gray-900 dark:text-white">Referee Assignment</h6>
-                            {% if can_assign_referee %}
-                            <button type="button" id="openAssignRefBtnTop" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800">
-                                <i class="ti ti-user-check mr-1"></i> Assign Referee
-                            </button>
-                            {% endif %}
-                        </div>
-                        <div class="flex items-center">
-                            <div class="w-8 h-8 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center mr-2">
-                                <i class="ti ti-user-circle text-ecs-green dark:text-green-400"></i>
-                            </div>
-                            <span id="detailMatchReferee" class="font-semibold text-gray-900 dark:text-white">Unassigned</span>
-                        </div>
-                    </div>
-                </div>
+    <div class="mt-6 p-4 bg-ecs-green/10 dark:bg-green-900/20 rounded-lg">
+        <div class="flex items-center justify-between mb-3">
+            <h6 class="font-bold text-gray-900 dark:text-white">Referee Assignment</h6>
+            {% if can_assign_referee %}
+            <button type="button" id="openAssignRefBtnTop" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800">
+                <i class="ti ti-user-check mr-1"></i> Assign Referee
+            </button>
+            {% endif %}
+        </div>
+        <div class="flex items-center">
+            <div class="w-8 h-8 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center mr-2">
+                <i class="ti ti-user-circle text-ecs-green dark:text-green-400"></i>
             </div>
-            <div class="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" data-modal-close="matchDetailsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">Close</button>
-                {% if can_assign_referee %}
-                <button type="button" id="openAssignRefBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
-                    <i class="ti ti-user-check mr-2"></i> Assign Referee
-                </button>
-                {% endif %}
-            </div>
+            <span id="detailMatchReferee" class="font-semibold text-gray-900 dark:text-white">Unassigned</span>
         </div>
     </div>
 </div>
+<!-- Custom footer with conditional button -->
+<div class="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
+    <button type="button" data-modal-hide="matchDetailsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 modal-close-btn">Close</button>
+    {% if can_assign_referee %}
+    <button type="button" id="openAssignRefBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
+        <i class="ti ti-user-check mr-2"></i> Assign Referee
+    </button>
+    {% endif %}
+</div>
+{% endcall %}
 
 <!-- League Event Details Modal (view-only) -->
-<div id="leagueEventDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
-    <div class="relative p-4 w-full max-w-lg max-h-full mx-auto mt-20">
-        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                    <i id="leagueEventDetailIcon" class="ti ti-calendar-event text-ecs-green dark:text-green-400 mr-2"></i>
-                    <span id="leagueEventDetailTitle">Event Details</span>
-                </h5>
-                <button type="button" data-modal-close="leagueEventDetailsModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4">
-                <div class="mb-4">
-                    <span id="leagueEventDetailTypeBadge" class="px-3 py-1 text-sm font-medium text-white rounded-full">Event</span>
-                </div>
+{% call modal_info('leagueEventDetailsModal', 'Event Details', footer=false) %}
+<div class="mb-4">
+    <span id="leagueEventDetailTypeBadge" class="px-3 py-1 text-sm font-medium text-white rounded-full">Event</span>
+</div>
 
-                <h3 id="leagueEventDetailName" class="text-xl font-bold text-gray-900 dark:text-white mb-4">Event Name</h3>
+<h3 id="leagueEventDetailName" class="text-xl font-bold text-gray-900 dark:text-white mb-4">Event Name</h3>
 
-                <div id="leagueEventDetailDescription" class="text-gray-600 dark:text-gray-400 mb-4 hidden"></div>
+<div id="leagueEventDetailDescription" class="text-gray-600 dark:text-gray-400 mb-4 hidden"></div>
 
-                <div class="grid grid-cols-2 gap-4 mt-4">
-                    <div class="flex items-center gap-2">
-                        <i class="ti ti-calendar text-ecs-green dark:text-green-400"></i>
-                        <span id="leagueEventDetailDate" class="font-medium text-gray-900 dark:text-white">Date</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <i class="ti ti-clock text-ecs-green dark:text-green-400"></i>
-                        <span id="leagueEventDetailTime" class="font-medium text-gray-900 dark:text-white">Time</span>
-                    </div>
-                    <div id="leagueEventDetailEndTimeContainer" class="flex items-center gap-2 hidden">
-                        <i class="ti ti-clock-off text-gray-400"></i>
-                        <span>Until <span id="leagueEventDetailEndTime" class="font-medium text-gray-900 dark:text-white">End Time</span></span>
-                    </div>
-                    <div id="leagueEventDetailLocationContainer" class="flex items-center gap-2 col-span-2">
-                        <i class="ti ti-map-pin text-ecs-green dark:text-green-400"></i>
-                        <span id="leagueEventDetailLocation" class="font-medium text-gray-900 dark:text-white">Location</span>
-                    </div>
-                </div>
-            </div>
-            <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700">
-                {% if can_edit_events %}
-                <button type="button" id="deleteLeagueEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-600">
-                    <i class="ti ti-trash mr-2"></i> Delete
-                </button>
-                {% else %}
-                <div></div>
-                {% endif %}
-                <div class="flex gap-2">
-                    <button type="button" data-modal-close="leagueEventDetailsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">Close</button>
-                    {% if can_edit_events %}
-                    <button type="button" id="editLeagueEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
-                        <i class="ti ti-edit mr-2"></i> Edit
-                    </button>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+<div class="grid grid-cols-2 gap-4 mt-4">
+    <div class="flex items-center gap-2">
+        <i class="ti ti-calendar text-ecs-green dark:text-green-400"></i>
+        <span id="leagueEventDetailDate" class="font-medium text-gray-900 dark:text-white">Date</span>
+    </div>
+    <div class="flex items-center gap-2">
+        <i class="ti ti-clock text-ecs-green dark:text-green-400"></i>
+        <span id="leagueEventDetailTime" class="font-medium text-gray-900 dark:text-white">Time</span>
+    </div>
+    <div id="leagueEventDetailEndTimeContainer" class="flex items-center gap-2 hidden">
+        <i class="ti ti-clock-off text-gray-400"></i>
+        <span>Until <span id="leagueEventDetailEndTime" class="font-medium text-gray-900 dark:text-white">End Time</span></span>
+    </div>
+    <div id="leagueEventDetailLocationContainer" class="flex items-center gap-2 col-span-2">
+        <i class="ti ti-map-pin text-ecs-green dark:text-green-400"></i>
+        <span id="leagueEventDetailLocation" class="font-medium text-gray-900 dark:text-white">Location</span>
     </div>
 </div>
+<!-- Custom footer with edit/delete buttons -->
+<div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 -mx-4 md:-mx-5 -mb-4 mt-4">
+    {% if can_edit_events %}
+    <button type="button" id="deleteLeagueEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-600">
+        <i class="ti ti-trash mr-2"></i> Delete
+    </button>
+    {% else %}
+    <div></div>
+    {% endif %}
+    <div class="flex gap-2">
+        <button type="button" data-modal-hide="leagueEventDetailsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 modal-close-btn">Close</button>
+        {% if can_edit_events %}
+        <button type="button" id="editLeagueEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
+            <i class="ti ti-edit mr-2"></i> Edit
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% endcall %}
 
 <!-- League Event Modal (for admin event creation/editing) -->
 {% if can_edit_events %}
-<div id="leagueEventModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
-    <div class="relative p-4 w-full max-w-xl max-h-full mx-auto mt-10">
-        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                    <i class="ti ti-calendar-plus text-ecs-green dark:text-green-400 mr-2"></i>
-                    <span id="eventModalTitle">Create League Event</span>
-                </h5>
-                <button type="button" data-modal-close="leagueEventModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4 max-h-[70vh] overflow-y-auto">
-                <form id="leagueEventForm" class="space-y-4">
-                    <input type="hidden" id="eventId" value="">
+{% call modal('leagueEventModal', 'Create League Event', size='lg', static_backdrop=true) %}
+<form id="leagueEventForm" class="space-y-4">
+    <input type="hidden" id="eventId" value="">
 
-                    <div>
-                        <label for="eventTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Title <span class="text-red-500">*</span></label>
-                        <input type="text" id="eventTitle" placeholder="e.g., Pre-Season Party" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
-                    </div>
+    <div>
+        <label for="eventTitle" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Title <span class="text-red-500">*</span></label>
+        <input type="text" id="eventTitle" placeholder="e.g., Pre-Season Party" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+    </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="eventType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type</label>
-                            <select id="eventType" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
-                                <option value="party">Party/Social</option>
-                                <option value="tournament">Tournament</option>
-                                <option value="meeting">Meeting</option>
-                                <option value="plop">PLOP</option>
-                                <option value="fundraiser">Fundraiser</option>
-                                <option value="social">Social Event</option>
-                                <option value="other" selected>Other</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="eventLocation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
-                            <input type="text" id="eventLocation" placeholder="e.g., The Local Pub" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="eventStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date/Time <span class="text-red-500">*</span></label>
-                            <input type="datetime-local" id="eventStartDate" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
-                        </div>
-                        <div>
-                            <label for="eventEndDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date/Time</label>
-                            <input type="datetime-local" id="eventEndDate" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="flex items-center">
-                            <input type="checkbox" id="eventAllDay" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">All-day event</span>
-                        </label>
-                    </div>
-
-                    <!-- Recurring Event Section -->
-                    <div id="recurringSection" class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
-                        <label class="flex items-center cursor-pointer">
-                            <input type="checkbox" id="eventRecurring" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
-                                <i class="ti ti-repeat mr-1"></i>
-                                Recurring event
-                            </span>
-                        </label>
-                        <div id="recurringOptions" class="hidden mt-3 space-y-3">
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label for="recurrencePattern" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Repeat</label>
-                                    <select id="recurrencePattern" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                                        <option value="weekly">Weekly</option>
-                                        <option value="biweekly">Every 2 weeks</option>
-                                        <option value="monthly">Monthly</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="recurrenceDay" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Day of Week</label>
-                                    <select id="recurrenceDay" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                                        <option value="0">Sunday</option>
-                                        <option value="1">Monday</option>
-                                        <option value="2">Tuesday</option>
-                                        <option value="3">Wednesday</option>
-                                        <option value="4">Thursday</option>
-                                        <option value="5">Friday</option>
-                                        <option value="6">Saturday</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div>
-                                    <label for="recurrenceTime" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Time</label>
-                                    <input type="time" id="recurrenceTime" value="09:00" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                                </div>
-                                <div>
-                                    <label for="recurrenceEndDate" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Until (optional)</label>
-                                    <input type="date" id="recurrenceEndDate" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                                </div>
-                            </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                <i class="ti ti-info-circle mr-1"></i>
-                                Creates individual events based on the pattern. Leave end date empty to create 12 events.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="eventDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                        <textarea id="eventDescription" rows="3" placeholder="Event details..." class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"></textarea>
-                    </div>
-
-                    <div id="discordNotifySection">
-                        <label class="flex items-center">
-                            <input type="checkbox" id="eventNotifyDiscord" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span id="discordLabel" class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                                <i class="ti ti-brand-discord mr-1"></i>
-                                Announce in Discord
-                            </span>
-                        </label>
-                    </div>
-
-                    <!-- Reminder Settings -->
-                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 space-y-2">
-                        <label class="flex items-center">
-                            <input type="checkbox" id="eventSendReminder" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
-                                <i class="ti ti-bell mr-1"></i>
-                                Send reminder before event
-                            </span>
-                        </label>
-                        <div id="reminderDaysSection" class="flex items-center gap-2 ml-6">
-                            <label for="eventReminderDays" class="text-sm text-gray-600 dark:text-gray-400">Remind</label>
-                            <select id="eventReminderDays" class="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                                <option value="1">1 day</option>
-                                <option value="2" selected>2 days</option>
-                                <option value="3">3 days</option>
-                            </select>
-                            <span class="text-sm text-gray-600 dark:text-gray-400">before</span>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" id="deleteEventBtn" class="hidden inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-600">
-                    <i class="ti ti-trash mr-2"></i> Delete
-                </button>
-                <div class="flex gap-2 ml-auto">
-                    <button type="button" data-modal-close="leagueEventModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">Cancel</button>
-                    <button type="button" id="saveEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
-                        <i class="ti ti-check mr-2"></i> Create Event
-                    </button>
-                </div>
-            </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="eventType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Event Type</label>
+            <select id="eventType" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                <option value="party">Party/Social</option>
+                <option value="tournament">Tournament</option>
+                <option value="meeting">Meeting</option>
+                <option value="plop">PLOP</option>
+                <option value="fundraiser">Fundraiser</option>
+                <option value="social">Social Event</option>
+                <option value="other" selected>Other</option>
+            </select>
+        </div>
+        <div>
+            <label for="eventLocation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+            <input type="text" id="eventLocation" placeholder="e.g., The Local Pub" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
         </div>
     </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="eventStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date/Time <span class="text-red-500">*</span></label>
+            <input type="datetime-local" id="eventStartDate" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+        </div>
+        <div>
+            <label for="eventEndDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date/Time</label>
+            <input type="datetime-local" id="eventEndDate" class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+        </div>
+    </div>
+
+    <div>
+        <label class="flex items-center">
+            <input type="checkbox" id="eventAllDay" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">All-day event</span>
+        </label>
+    </div>
+
+    <!-- Recurring Event Section -->
+    <div id="recurringSection" class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+        <label class="flex items-center cursor-pointer">
+            <input type="checkbox" id="eventRecurring" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+            <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                <i class="ti ti-repeat mr-1"></i>
+                Recurring event
+            </span>
+        </label>
+        <div id="recurringOptions" class="hidden mt-3 space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="recurrencePattern" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Repeat</label>
+                    <select id="recurrencePattern" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <option value="weekly">Weekly</option>
+                        <option value="biweekly">Every 2 weeks</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="recurrenceDay" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Day of Week</label>
+                    <select id="recurrenceDay" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                        <option value="0">Sunday</option>
+                        <option value="1">Monday</option>
+                        <option value="2">Tuesday</option>
+                        <option value="3">Wednesday</option>
+                        <option value="4">Thursday</option>
+                        <option value="5">Friday</option>
+                        <option value="6">Saturday</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label for="recurrenceTime" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Time</label>
+                    <input type="time" id="recurrenceTime" value="09:00" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                </div>
+                <div>
+                    <label for="recurrenceEndDate" class="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Until (optional)</label>
+                    <input type="date" id="recurrenceEndDate" class="w-full px-3 py-2 text-sm text-gray-900 bg-white rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                <i class="ti ti-info-circle mr-1"></i>
+                Creates individual events based on the pattern. Leave end date empty to create 12 events.
+            </p>
+        </div>
+    </div>
+
+    <div>
+        <label for="eventDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+        <textarea id="eventDescription" rows="3" placeholder="Event details..." class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500"></textarea>
+    </div>
+
+    <div id="discordNotifySection">
+        <label class="flex items-center">
+            <input type="checkbox" id="eventNotifyDiscord" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+            <span id="discordLabel" class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                <i class="ti ti-brand-discord mr-1"></i>
+                Announce in Discord
+            </span>
+        </label>
+    </div>
+
+    <!-- Reminder Settings -->
+    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 space-y-2">
+        <label class="flex items-center">
+            <input type="checkbox" id="eventSendReminder" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-green-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300 flex items-center">
+                <i class="ti ti-bell mr-1"></i>
+                Send reminder before event
+            </span>
+        </label>
+        <div id="reminderDaysSection" class="flex items-center gap-2 ml-6">
+            <label for="eventReminderDays" class="text-sm text-gray-600 dark:text-gray-400">Remind</label>
+            <select id="eventReminderDays" class="px-2 py-1 text-sm border border-gray-300 rounded-lg focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="1">1 day</option>
+                <option value="2" selected>2 days</option>
+                <option value="3">3 days</option>
+            </select>
+            <span class="text-sm text-gray-600 dark:text-gray-400">before</span>
+        </div>
+    </div>
+</form>
+<!-- Custom footer with delete/cancel/save buttons -->
+<div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 -mx-4 md:-mx-5 -mb-4 mt-4">
+    <button type="button" id="deleteEventBtn" class="hidden inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-600">
+        <i class="ti ti-trash mr-2"></i> Delete
+    </button>
+    <div class="flex gap-2 ml-auto">
+        <button type="button" data-modal-hide="leagueEventModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 modal-close-btn">Cancel</button>
+        <button type="button" id="saveEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
+            <i class="ti ti-check mr-2"></i> Create Event
+        </button>
+    </div>
 </div>
+{% endcall %}
 
 <!-- Import Events Modal -->
-<div id="importEventsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
-    <div class="relative p-4 w-full max-w-2xl max-h-full mx-auto mt-10">
-        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                    <i class="ti ti-file-upload text-ecs-green dark:text-green-400 mr-2"></i>
-                    Import Events from CSV
-                </h5>
-                <button type="button" data-modal-close="importEventsModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4 space-y-4">
-                <!-- Instructions -->
-                <div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <h6 class="font-medium text-blue-800 dark:text-blue-300 mb-2">CSV Format</h6>
-                    <p class="text-sm text-blue-700 dark:text-blue-400 mb-2">
-                        Upload a CSV file with the following columns:
-                    </p>
-                    <ul class="text-xs text-blue-600 dark:text-blue-400 list-disc list-inside space-y-1">
-                        <li><strong>date</strong> - Event date (1/4, 01/04/2026, or 2026-01-04)</li>
-                        <li><strong>title</strong> - Event name (optional, uses event type if empty)</li>
-                        <li><strong>event_type</strong> - plop, party, meeting, tournament, social, fundraiser, other</li>
-                        <li><strong>start_time</strong> - Start time (9:30, 9:30 AM, 17:30)</li>
-                        <li><strong>end_time</strong> - End time (optional)</li>
-                        <li><strong>location</strong> - Venue name (optional)</li>
-                        <li><strong>description</strong> - Details (optional)</li>
-                    </ul>
-                    <a href="/api/calendar/league-events/import/template" class="inline-flex items-center mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                        <i class="ti ti-download mr-1"></i> Download template CSV
-                    </a>
-                </div>
+{% call modal('importEventsModal', 'Import Events from CSV', size='lg', static_backdrop=true) %}
+<!-- Instructions -->
+<div class="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+    <h6 class="font-medium text-blue-800 dark:text-blue-300 mb-2">CSV Format</h6>
+    <p class="text-sm text-blue-700 dark:text-blue-400 mb-2">
+        Upload a CSV file with the following columns:
+    </p>
+    <ul class="text-xs text-blue-600 dark:text-blue-400 list-disc list-inside space-y-1">
+        <li><strong>date</strong> - Event date (1/4, 01/04/2026, or 2026-01-04)</li>
+        <li><strong>title</strong> - Event name (optional, uses event type if empty)</li>
+        <li><strong>event_type</strong> - plop, party, meeting, tournament, social, fundraiser, other</li>
+        <li><strong>start_time</strong> - Start time (9:30, 9:30 AM, 17:30)</li>
+        <li><strong>end_time</strong> - End time (optional)</li>
+        <li><strong>location</strong> - Venue name (optional)</li>
+        <li><strong>description</strong> - Details (optional)</li>
+    </ul>
+    <a href="/api/calendar/league-events/import/template" class="inline-flex items-center mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+        <i class="ti ti-download mr-1"></i> Download template CSV
+    </a>
+</div>
 
-                <!-- File Upload -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Select CSV File
-                    </label>
-                    <input type="file" id="importCsvFile" accept=".csv"
-                           class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400">
-                </div>
+<!-- File Upload -->
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        Select CSV File
+    </label>
+    <input type="file" id="importCsvFile" accept=".csv"
+           class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400">
+</div>
 
-                <!-- Options -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="importYear" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Default Year
-                        </label>
-                        <input type="number" id="importYear" value=""
-                               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">For dates without year (e.g., 1/4)</p>
-                    </div>
-                    <div>
-                        <label for="importEventType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Default Event Type
-                        </label>
-                        <select id="importEventType"
-                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="plop">PLOP</option>
-                            <option value="party">Party/Social</option>
-                            <option value="meeting">Meeting</option>
-                            <option value="tournament">Tournament</option>
-                            <option value="social">Social Event</option>
-                            <option value="fundraiser">Fundraiser</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="flex items-center">
-                    <input type="checkbox" id="importNotifyDiscord"
-                           class="w-4 h-4 text-ecs-green border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600"
-                           onchange="document.getElementById('discordModeContainer').classList.toggle('hidden', !this.checked)">
-                    <label for="importNotifyDiscord" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                        Post announcements to Discord
-                    </label>
-                </div>
-
-                <!-- Discord Mode Options (shown when Discord checkbox is checked) -->
-                <div id="discordModeContainer" class="hidden ml-6 mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Announcement Style</label>
-                    <div class="space-y-2">
-                        <label class="flex items-center">
-                            <input type="radio" name="discordMode" value="summary" checked
-                                   class="w-4 h-4 text-ecs-green border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                                <strong>Summary</strong> - Single announcement listing all events (recommended)
-                            </span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" name="discordMode" value="individual"
-                                   class="w-4 h-4 text-ecs-green border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                                <strong>Individual</strong> - Separate announcement for each event
-                            </span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Preview Area -->
-                <div id="importPreviewArea" class="hidden">
-                    <h6 class="font-medium text-gray-900 dark:text-white mb-2">Preview</h6>
-                    <div id="importPreviewContent" class="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
-                        <!-- Preview content will be inserted here -->
-                    </div>
-                    <div id="importPreviewErrors" class="mt-2 text-sm text-red-600 dark:text-red-400 hidden">
-                        <!-- Errors will be shown here -->
-                    </div>
-                </div>
-
-                <!-- Result Area -->
-                <div id="importResultArea" class="hidden">
-                    <div id="importResultContent" class="p-4 rounded-lg">
-                        <!-- Result content will be inserted here -->
-                    </div>
-                </div>
-            </div>
-            <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" data-modal-close="importEventsModal"
-                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
-                    Cancel
-                </button>
-                <button type="button" id="previewImportBtn"
-                        class="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-300 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/50">
-                    <i class="ti ti-eye mr-2"></i> Preview
-                </button>
-                <button type="button" id="confirmImportBtn" disabled
-                        class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
-                    <i class="ti ti-upload mr-2"></i> Import Events
-                </button>
-            </div>
-        </div>
+<!-- Options -->
+<div class="grid grid-cols-2 gap-4">
+    <div>
+        <label for="importYear" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Default Year
+        </label>
+        <input type="number" id="importYear" value=""
+               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">For dates without year (e.g., 1/4)</p>
+    </div>
+    <div>
+        <label for="importEventType" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Default Event Type
+        </label>
+        <select id="importEventType"
+                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="plop">PLOP</option>
+            <option value="party">Party/Social</option>
+            <option value="meeting">Meeting</option>
+            <option value="tournament">Tournament</option>
+            <option value="social">Social Event</option>
+            <option value="fundraiser">Fundraiser</option>
+            <option value="other">Other</option>
+        </select>
     </div>
 </div>
+
+<div class="flex items-center">
+    <input type="checkbox" id="importNotifyDiscord"
+           class="w-4 h-4 text-ecs-green border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600"
+           onchange="document.getElementById('discordModeContainer').classList.toggle('hidden', !this.checked)">
+    <label for="importNotifyDiscord" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+        Post announcements to Discord
+    </label>
+</div>
+
+<!-- Discord Mode Options (shown when Discord checkbox is checked) -->
+<div id="discordModeContainer" class="hidden ml-6 mt-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Announcement Style</label>
+    <div class="space-y-2">
+        <label class="flex items-center">
+            <input type="radio" name="discordMode" value="summary" checked
+                   class="w-4 h-4 text-ecs-green border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                <strong>Summary</strong> - Single announcement listing all events (recommended)
+            </span>
+        </label>
+        <label class="flex items-center">
+            <input type="radio" name="discordMode" value="individual"
+                   class="w-4 h-4 text-ecs-green border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                <strong>Individual</strong> - Separate announcement for each event
+            </span>
+        </label>
+    </div>
+</div>
+
+<!-- Preview Area -->
+<div id="importPreviewArea" class="hidden">
+    <h6 class="font-medium text-gray-900 dark:text-white mb-2">Preview</h6>
+    <div id="importPreviewContent" class="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+        <!-- Preview content will be inserted here -->
+    </div>
+    <div id="importPreviewErrors" class="mt-2 text-sm text-red-600 dark:text-red-400 hidden">
+        <!-- Errors will be shown here -->
+    </div>
+</div>
+
+<!-- Result Area -->
+<div id="importResultArea" class="hidden">
+    <div id="importResultContent" class="p-4 rounded-lg">
+        <!-- Result content will be inserted here -->
+    </div>
+</div>
+
+<!-- Custom footer -->
+<div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700 -mx-4 md:-mx-5 -mb-4 mt-4">
+    <button type="button" data-modal-hide="importEventsModal"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 modal-close-btn">
+        Cancel
+    </button>
+    <button type="button" id="previewImportBtn"
+            class="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 border border-green-300 rounded-lg hover:bg-green-100 dark:bg-green-900/30 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-900/50">
+        <i class="ti ti-eye mr-2"></i> Preview
+    </button>
+    <button type="button" id="confirmImportBtn" disabled
+            class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="ti ti-upload mr-2"></i> Import Events
+    </button>
+</div>
+{% endcall %}
 {% endif %}
 
 <!-- Keyboard Shortcuts Modal (created dynamically) -->
@@ -1015,65 +933,14 @@
 // Dark mode detection for SweetAlert2
 const isDark = () => document.documentElement.classList.contains('dark');
 
-// Modal helper functions for Flowbite-style modals
-const FlowbiteModal = {
-    show(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.classList.add('overflow-hidden');
-        }
-    },
-    hide(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.body.classList.remove('overflow-hidden');
-        }
-    },
-    hideAll() {
-        // Close all open modals and clean up body state
-        document.querySelectorAll('[id$="Modal"]:not(.hidden)').forEach(modal => {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        });
-        document.body.classList.remove('overflow-hidden');
-    },
-    getOpenModal() {
-        return document.querySelector('[id$="Modal"]:not(.hidden)');
-    }
-};
-
-// Initialize modal close buttons
-document.querySelectorAll('[data-modal-close]').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-        e.stopPropagation();
-        const modalId = this.getAttribute('data-modal-close');
-        FlowbiteModal.hide(modalId);
-    });
-});
-
-// Close modals when clicking backdrop
-document.querySelectorAll('[data-modal-backdrop]').forEach(backdrop => {
-    backdrop.addEventListener('click', function(e) {
-        e.stopPropagation();
-        // Find the parent modal (the one with an ID ending in 'Modal')
-        const modal = this.closest('[id$="Modal"]');
-        if (modal) {
-            FlowbiteModal.hide(modal.id);
-        }
-    });
-});
-
-// Close modal on Escape key
+// Close modal on Escape key (ModalManager handles modal state)
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        const openModal = FlowbiteModal.getOpenModal();
+        // Find any open modal and close it via ModalManager
+        const openModal = document.querySelector('[id$="Modal"]:not(.hidden)');
         if (openModal) {
             e.preventDefault();
-            FlowbiteModal.hide(openModal.id);
+            window.ModalManager.hide(openModal.id);
         }
     }
 });
@@ -1837,17 +1704,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const openAssignRefBtnTop = document.getElementById('openAssignRefBtnTop');
         if (openAssignRefBtn) {
             openAssignRefBtn.onclick = function() {
-                FlowbiteModal.hide('matchDetailsModal');
+                window.ModalManager.hide('matchDetailsModal');
                 setTimeout(() => showAssignRefModal(event), 300);
             };
         }
         if (openAssignRefBtnTop) {
             openAssignRefBtnTop.onclick = function() {
-                FlowbiteModal.hide('matchDetailsModal');
+                window.ModalManager.hide('matchDetailsModal');
                 setTimeout(() => showAssignRefModal(event), 300);
             };
         }
-        FlowbiteModal.show('matchDetailsModal');
+        window.ModalManager.show('matchDetailsModal');
     }
 
     function showLeagueEventDetailsModal(event) {
@@ -1865,9 +1732,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const eventType = event.eventType || event.extendedProps?.eventType || 'other';
         const config = eventTypeConfig[eventType] || eventTypeConfig.other;
 
-        // Set modal header icon and title
-        document.getElementById('leagueEventDetailIcon').className = `ti ${config.icon} text-ecs-green dark:text-green-400 mr-2`;
-        document.getElementById('leagueEventDetailTitle').textContent = 'Event Details';
+        // Set modal title (using macro-generated title element)
+        document.getElementById('leagueEventDetailsModal-title').textContent = 'Event Details';
 
         // Set event type badge
         const typeBadge = document.getElementById('leagueEventDetailTypeBadge');
@@ -1921,7 +1787,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const editBtn = document.getElementById('editLeagueEventBtn');
         if (editBtn) {
             editBtn.onclick = function() {
-                FlowbiteModal.hide('leagueEventDetailsModal');
+                window.ModalManager.hide('leagueEventDetailsModal');
                 setTimeout(() => {
                     if (typeof openLeagueEventModal === 'function') {
                         openLeagueEventModal(event);
@@ -1961,7 +1827,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                     if (!response.ok) throw new Error('Failed to delete event');
 
-                    FlowbiteModal.hide('leagueEventDetailsModal');
+                    window.ModalManager.hide('leagueEventDetailsModal');
                     if (window.showToast) window.showToast('Event deleted successfully', 'success');
                     window.refreshCalendar?.();
                 } catch (error) {
@@ -1971,7 +1837,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        FlowbiteModal.show('leagueEventDetailsModal');
+        window.ModalManager.show('leagueEventDetailsModal');
     }
 
     function showAssignRefModal(event) {
@@ -1993,7 +1859,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         fetchRefereesForMatch(event.id);
         document.getElementById('assignRefFeedback').innerHTML = '';
-        FlowbiteModal.show('assignRefModal');
+        window.ModalManager.show('assignRefModal');
     }
 
     async function fetchRefereesForMatch(matchId) {
@@ -2056,7 +1922,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             displayModalFeedback('assignRefFeedback', 'Referee assigned successfully!', 'success');
             setTimeout(() => {
-                FlowbiteModal.hide('assignRefModal');
+                window.ModalManager.hide('assignRefModal');
                 Promise.all([loadScheduleEvents(), fetchAvailableReferees()]).then(() => showToast('success', 'Referee assigned'));
             }, 1000);
         } catch (error) {
@@ -2094,7 +1960,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             displayModalFeedback('assignRefFeedback', 'Referee removed successfully!', 'success');
             setTimeout(() => {
-                FlowbiteModal.hide('assignRefModal');
+                window.ModalManager.hide('assignRefModal');
                 Promise.all([loadScheduleEvents(), fetchAvailableReferees()]).then(() => showToast('success', 'Referee removed'));
             }, 1000);
         } catch (error) {
@@ -2378,7 +2244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('leagueEventForm');
             form.reset();
             document.getElementById('eventId').value = '';
-            document.getElementById('eventModalTitle').textContent = eventData ? 'Edit League Event' : 'Create League Event';
+            document.getElementById('leagueEventModal-title').textContent = eventData ? 'Edit League Event' : 'Create League Event';
             document.getElementById('saveEventBtn').innerHTML = eventData ? '<i class="ti ti-check mr-2"></i> Save Changes' : '<i class="ti ti-check mr-2"></i> Create Event';
             document.getElementById('deleteEventBtn').classList.toggle('hidden', !eventData);
             document.getElementById('recurringSection').classList.toggle('hidden', !!eventData);
@@ -2626,7 +2492,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('importResultArea').classList.add('hidden');
             document.getElementById('confirmImportBtn').disabled = true;
             previewData = null;
-            FlowbiteModal.show('importEventsModal');
+            window.ModalManager.show('importEventsModal');
         });
 
         // Preview button
@@ -2799,7 +2665,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Reset button and close after delay
                 confirmBtn.innerHTML = '<i class="ti ti-check mr-2"></i> Done!';
                 setTimeout(() => {
-                    FlowbiteModal.hide('importEventsModal');
+                    window.ModalManager.hide('importEventsModal');
                     confirmBtn.innerHTML = '<i class="ti ti-upload mr-2"></i> Import Events';
                     confirmBtn.disabled = true;
                 }, 2000);

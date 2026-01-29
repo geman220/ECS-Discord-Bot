@@ -357,53 +357,289 @@
 
 
 {# ============================================================================
-   MODAL COMPONENT
+   MODAL COMPONENT (Base)
    ============================================================================
-   Dialog/modal overlay.
+   Base modal with caller body - fully accessible and mobile-responsive.
+   Uses Flowbite standard pattern with proper ARIA attributes.
 
    Args:
        id: Modal ID (required for targeting)
        title: Modal title
-       size: sm|md|lg|xl
-       footer: HTML content for footer
+       size: sm|md|lg|xl|2xl
+       closable: Whether modal can be closed (default: true)
+       static_backdrop: Prevent closing on backdrop click (default: false)
+       mobile_fullscreen: Make modal fullscreen on mobile (default: false)
 
    Usage:
-       {% call modal(id="confirm-modal", title="Confirm Action") %}
-           <p>Are you sure you want to proceed?</p>
+       {% call modal(id="my-modal", title="Modal Title") %}
+           <p>Modal content here</p>
        {% endcall %}
    ============================================================================ #}
-{% macro modal(id, title, size="md", footer=None) %}
-{% set sizes = {
-    "sm": "max-w-md",
-    "md": "max-w-lg",
-    "lg": "max-w-2xl",
-    "xl": "max-w-4xl"
+{% macro modal(id, title, size='md', closable=true, static_backdrop=false, mobile_fullscreen=false) %}
+{% set size_classes = {
+  'sm': 'max-w-sm',
+  'md': 'max-w-lg',
+  'lg': 'max-w-2xl',
+  'xl': 'max-w-4xl',
+  '2xl': 'max-w-6xl'
 } %}
 
-<div id="{{ id }}" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full {{ sizes.get(size, sizes.md) }}">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <!-- Header -->
-                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">{{ title }}</h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="{{ id }}">
-                        <i class="ti ti-x text-lg"></i>
-                    </button>
-                </div>
-                <!-- Body -->
-                <div class="p-6">
-                    {{ caller() }}
-                </div>
-                <!-- Footer -->
-                {% if footer %}
-                <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
-                    {{ footer }}
-                </div>
+<div id="{{ id }}"
+     tabindex="-1"
+     aria-hidden="true"
+     aria-labelledby="{{ id }}-title"
+     aria-modal="true"
+     role="dialog"
+     {% if static_backdrop %}data-modal-backdrop="static"{% endif %}
+     class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full {{ size_classes[size] | default(size_classes['md']) }} max-h-full {{ 'sm:max-w-full sm:h-full sm:p-0' if mobile_fullscreen else '' }}">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 {{ 'sm:rounded-none sm:h-full' if mobile_fullscreen else '' }}">
+            <!-- Header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 id="{{ id }}-title" class="text-xl font-semibold text-gray-900 dark:text-white">
+                    {{ title }}
+                </h3>
+                {% if closable %}
+                <button type="button"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white modal-close-btn"
+                        data-modal-hide="{{ id }}"
+                        aria-label="Close modal">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                </button>
                 {% endif %}
             </div>
+            <!-- Body -->
+            <div class="p-4 md:p-5 space-y-4">
+                {{ caller() }}
+            </div>
         </div>
+    </div>
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   FORM MODAL COMPONENT
+   ============================================================================
+   Modal with integrated form, submit/cancel buttons, and loading state support.
+   Includes CSRF protection automatically.
+
+   Args:
+       id: Modal ID (required)
+       title: Modal title
+       form_id: Form ID (defaults to id + '-form')
+       action: Form action URL
+       method: HTTP method (default: POST)
+       size: sm|md|lg|xl
+       submit_text: Submit button text (default: Save)
+       submit_color: primary|danger|warning
+       loading_text: Text shown during submission (default: Saving...)
+       cancel_text: Cancel button text (default: Cancel)
+       enctype: Form enctype (e.g., 'multipart/form-data' for file uploads)
+
+   Usage:
+       {% call modal_form('editPlayerModal', 'Edit Player', action='/api/player/update') %}
+           <input type="hidden" name="player_id" data-field="id">
+           <div>
+               <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Name</label>
+               <input type="text" name="name" class="input-ecs">
+           </div>
+       {% endcall %}
+   ============================================================================ #}
+{% macro modal_form(id, title, form_id=none, action='', method='POST', size='md', submit_text='Save', submit_color='primary', loading_text='Saving...', cancel_text='Cancel', enctype=none) %}
+{% set form_id = form_id or (id ~ '-form') %}
+{% set btn_colors = {
+  'primary': 'bg-ecs-green hover:bg-ecs-green-dark focus:ring-ecs-green',
+  'danger': 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+  'warning': 'bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-400'
+} %}
+{% set size_classes = {'sm': 'max-w-sm', 'md': 'max-w-lg', 'lg': 'max-w-2xl', 'xl': 'max-w-4xl', '2xl': 'max-w-6xl'} %}
+
+<div id="{{ id }}" tabindex="-1" aria-hidden="true" aria-labelledby="{{ id }}-title" aria-modal="true" role="dialog"
+     data-modal-backdrop="static"
+     class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full {{ size_classes[size] | default(size_classes['md']) }} max-h-full">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 id="{{ id }}-title" class="text-xl font-semibold text-gray-900 dark:text-white">{{ title }}</h3>
+                <button type="button" data-modal-hide="{{ id }}" aria-label="Close modal"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white modal-close-btn">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                </button>
+            </div>
+            <form id="{{ form_id }}" action="{{ action }}" method="{{ method }}"{% if enctype %} enctype="{{ enctype }}"{% endif %}>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="p-4 md:p-5 space-y-4">{{ caller() }}</div>
+                <div class="flex items-center justify-end gap-3 p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                    <button type="button" data-modal-hide="{{ id }}"
+                            class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 modal-close-btn">
+                        {{ cancel_text }}
+                    </button>
+                    <button type="submit" data-loading-text="{{ loading_text }}"
+                            class="px-5 py-2.5 text-sm font-medium text-white rounded-lg focus:ring-4 focus:outline-none {{ btn_colors[submit_color] | default(btn_colors['primary']) }}">
+                        {{ submit_text }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   CONFIRMATION MODAL COMPONENT
+   ============================================================================
+   Centered confirmation dialog with icon, typically for destructive actions.
+   Uses role="alertdialog" for screen readers.
+
+   Args:
+       id: Modal ID (required)
+       title: Confirmation title
+       message: Confirmation message/question
+       confirm_text: Confirm button text (default: Confirm)
+       confirm_color: danger|warning|primary
+       icon: warning|danger|info
+       cancel_text: Cancel button text (default: Cancel)
+
+   Usage:
+       {{ modal_confirm('deleteConfirmModal', 'Delete Player?',
+           'This action cannot be undone.',
+           confirm_text='Delete', confirm_color='danger') }}
+
+       <script>
+       document.getElementById('deleteConfirmModal-confirm-btn').addEventListener('click', () => {
+           // Handle delete
+       });
+       </script>
+   ============================================================================ #}
+{% macro modal_confirm(id, title, message, confirm_text='Confirm', confirm_color='danger', icon='warning', cancel_text='Cancel') %}
+{% set icons = {
+  'warning': '<svg class="w-12 h-12 mx-auto mb-4 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>',
+  'danger': '<svg class="w-12 h-12 mx-auto mb-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+  'info': '<svg class="w-12 h-12 mx-auto mb-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+  'success': '<svg class="w-12 h-12 mx-auto mb-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+} %}
+{% set btn_colors = {'danger': 'bg-red-600 hover:bg-red-700 focus:ring-red-500', 'warning': 'bg-yellow-500 hover:bg-yellow-600 focus:ring-yellow-400', 'primary': 'bg-ecs-green hover:bg-ecs-green-dark focus:ring-ecs-green'} %}
+
+<div id="{{ id }}" tabindex="-1" aria-hidden="true" aria-labelledby="{{ id }}-title" aria-modal="true" role="alertdialog"
+     class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800">
+            <button type="button" data-modal-hide="{{ id }}" aria-label="Close"
+                    class="absolute top-3 end-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white modal-close-btn">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+            </button>
+            <div class="p-6 text-center">
+                {{ icons[icon] | default(icons['warning']) | safe }}
+                <h3 id="{{ id }}-title" class="mb-2 text-lg font-semibold text-gray-900 dark:text-white">{{ title }}</h3>
+                <p class="mb-5 text-gray-500 dark:text-gray-400">{{ message }}</p>
+                <div class="flex justify-center gap-3">
+                    <button type="button" data-modal-hide="{{ id }}"
+                            class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 modal-close-btn">
+                        {{ cancel_text }}
+                    </button>
+                    <button type="button" id="{{ id }}-confirm-btn"
+                            class="px-5 py-2.5 text-sm font-medium text-white rounded-lg focus:ring-4 focus:outline-none {{ btn_colors[confirm_color] | default(btn_colors['danger']) }}">
+                        {{ confirm_text }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   INFO MODAL COMPONENT
+   ============================================================================
+   Read-only content display modal for player details, help text, etc.
+   Has scrollable body for long content.
+
+   Args:
+       id: Modal ID (required)
+       title: Modal title
+       size: sm|md|lg|xl
+       footer: Show footer with close button (default: true)
+       close_text: Close button text (default: Close)
+
+   Usage:
+       {% call modal_info('playerDetailsModal', 'Player Details', size='lg') %}
+           <div class="space-y-4">
+               <p><strong>Name:</strong> <span data-field="name"></span></p>
+               <p><strong>Team:</strong> <span data-field="team"></span></p>
+           </div>
+       {% endcall %}
+   ============================================================================ #}
+{% macro modal_info(id, title, size='md', footer=true, close_text='Close') %}
+{% set size_classes = {'sm': 'max-w-sm', 'md': 'max-w-lg', 'lg': 'max-w-2xl', 'xl': 'max-w-4xl', '2xl': 'max-w-6xl'} %}
+
+<div id="{{ id }}" tabindex="-1" aria-hidden="true" aria-labelledby="{{ id }}-title" aria-modal="true" role="dialog"
+     class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full {{ size_classes[size] | default(size_classes['md']) }} max-h-full">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800">
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 id="{{ id }}-title" class="text-xl font-semibold text-gray-900 dark:text-white">{{ title }}</h3>
+                <button type="button" data-modal-hide="{{ id }}" aria-label="Close modal"
+                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white modal-close-btn">
+                    <svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+                </button>
+            </div>
+            <div class="p-4 md:p-5 space-y-4 max-h-[60vh] overflow-y-auto">{{ caller() }}</div>
+            {% if footer %}
+            <div class="flex items-center justify-end p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
+                <button type="button" data-modal-hide="{{ id }}"
+                        class="px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:outline-none focus:ring-ecs-green modal-close-btn">
+                    {{ close_text }}
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endmacro %}
+
+
+{# ============================================================================
+   MOBILE DRAWER COMPONENT
+   ============================================================================
+   Bottom sheet/drawer for mobile interfaces. Slides up from bottom.
+   Ideal for filters, mobile actions, and compact forms.
+
+   Args:
+       id: Drawer ID (required)
+       title: Drawer title
+
+   Usage:
+       {% call modal_drawer('filterDrawer', 'Filters') %}
+           <div class="space-y-4">
+               <select class="input-ecs">...</select>
+               <button class="btn-ecs-primary w-full">Apply Filters</button>
+           </div>
+       {% endcall %}
+   ============================================================================ #}
+{% macro modal_drawer(id, title) %}
+<div id="{{ id }}" tabindex="-1" aria-hidden="true" aria-labelledby="{{ id }}-title"
+     class="hidden fixed bottom-0 left-0 right-0 z-50 w-full transform transition-transform duration-300 translate-y-full"
+     data-drawer-placement="bottom">
+    <div class="bg-white dark:bg-gray-800 rounded-t-2xl shadow-xl">
+        <!-- Drag handle -->
+        <div class="flex justify-center pt-2 pb-1">
+            <div class="w-12 h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
+        </div>
+        <!-- Header -->
+        <div class="flex items-center justify-between p-4 border-b dark:border-gray-600">
+            <h3 id="{{ id }}-title" class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }}</h3>
+            <button type="button" data-drawer-hide="{{ id }}" aria-label="Close drawer"
+                    class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white modal-close-btn">
+                <svg class="w-3 h-3" fill="none" viewBox="0 0 14 14"><path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/></svg>
+            </button>
+        </div>
+        <!-- Body -->
+        <div class="p-4 max-h-[70vh] overflow-y-auto pb-safe">{{ caller() }}</div>
     </div>
 </div>
 {% endmacro %}

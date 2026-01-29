@@ -19,8 +19,10 @@ if (!window.jQuery) {
 
 // ============================================================================
 // 2. FLOWBITE - UI Components (modern Tailwind-based components)
+// NOTE: We use ONLY the npm package. CDN scripts have been removed from base
+// templates to prevent double-initialization and timing issues.
 // ============================================================================
-import { Modal, Dropdown, Collapse, Tooltip, Dismiss, Tabs, Carousel } from 'flowbite';
+import { Modal, Dropdown, Collapse, Tooltip, Dismiss, Tabs, Carousel, initFlowbite } from 'flowbite';
 
 // Expose Flowbite components globally for programmatic usage
 window.Modal = Modal;
@@ -30,6 +32,7 @@ window.Tooltip = Tooltip;
 window.Dismiss = Dismiss;
 window.Tabs = Tabs;
 window.Carousel = Carousel;
+window.initFlowbite = initFlowbite;
 
 // Flowbite components object for convenience
 window.Flowbite = {
@@ -39,7 +42,8 @@ window.Flowbite = {
   Tooltip,
   Dismiss,
   Tabs,
-  Carousel
+  Carousel,
+  init: initFlowbite
 };
 
 // ============================================================================

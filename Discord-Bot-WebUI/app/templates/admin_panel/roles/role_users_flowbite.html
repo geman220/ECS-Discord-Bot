@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, avatar %}
+{% from 'macros/flowbite.html' import card, button, badge, avatar, modal_form %}
 
 {% block admin_title %}Role Users - {{ role.name }}{% endblock %}
 {% block panel_description %}View and manage users assigned to this role{% endblock %}
@@ -162,69 +162,42 @@
 
 {% block modals %}
 <!-- Assign User Modal -->
-<div id="assignUserModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-md">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <form method="POST" id="assignUserForm" action="{{ url_for('admin_panel.assign_role_to_user_comprehensive', role_id=role.id) }}">
-                    <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                            <i class="ti ti-user-plus mr-2 text-ecs-green"></i>
-                            Assign User to {{ role.name }}
-                        </h3>
-                        <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="assignUserModal">
-                            <i class="ti ti-x text-lg"></i>
-                        </button>
-                    </div>
-                    <div class="p-6">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" name="role_id" value="{{ role.id }}">
+{% call modal_form('assignUserModal', 'Assign User to ' ~ role.name, form_id='assignUserForm', action=url_for('admin_panel.assign_role_to_user_comprehensive', role_id=role.id), submit_text='Assign User', loading_text='Assigning...') %}
+    <input type="hidden" name="role_id" value="{{ role.id }}">
 
-                        <div class="mb-4">
-                            <label for="userSearchInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search User</label>
-                            <div class="relative">
-                                <div class="relative">
-                                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                                        <i class="ti ti-search"></i>
-                                    </span>
-                                    <input type="text" id="userSearchInput" autocomplete="off" placeholder="Type to search users..." class="w-full pl-10 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                                    <span id="userSearchSpinner" class="absolute inset-y-0 right-0 hidden items-center pr-3 text-gray-400">
-                                        <i class="ti ti-loader-2 animate-spin"></i>
-                                    </span>
-                                    <button type="button" id="userSearchClear" class="absolute inset-y-0 right-0 hidden items-center pr-3 text-gray-400 hover:text-gray-600">
-                                        <i class="ti ti-x"></i>
-                                    </button>
-                                </div>
-                                <input type="hidden" id="selectUser" name="user_id" required>
-                                <!-- Search results dropdown -->
-                                <div id="userSearchResults" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                    <!-- Results populated via JavaScript -->
-                                </div>
-                            </div>
-                            <p id="selectedUserDisplay" class="mt-2 text-sm text-ecs-green hidden">
-                                <i class="ti ti-check mr-1"></i>Selected: <span id="selectedUserName" class="font-medium"></span>
-                            </p>
-                        </div>
-
-                        <div class="flex items-start p-4 rounded-lg border bg-blue-50 dark:bg-gray-700 border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-400">
-                            <i class="ti ti-info-circle flex-shrink-0 w-5 h-5 mr-3"></i>
-                            <div class="text-sm">
-                                The selected user will be assigned to the <span class="font-medium">{{ role.name }}</span> role.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-modal-hide="assignUserModal">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
-                            <i class="ti ti-user-plus mr-1"></i>Assign User
-                        </button>
-                    </div>
-                </form>
+    <div class="mb-4">
+        <label for="userSearchInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search User</label>
+        <div class="relative">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                    <i class="ti ti-search"></i>
+                </span>
+                <input type="text" id="userSearchInput" autocomplete="off" placeholder="Type to search users..." class="w-full pl-10 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                <span id="userSearchSpinner" class="absolute inset-y-0 right-0 hidden items-center pr-3 text-gray-400">
+                    <i class="ti ti-loader-2 animate-spin"></i>
+                </span>
+                <button type="button" id="userSearchClear" class="absolute inset-y-0 right-0 hidden items-center pr-3 text-gray-400 hover:text-gray-600">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <input type="hidden" id="selectUser" name="user_id" required>
+            <!-- Search results dropdown -->
+            <div id="userSearchResults" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <!-- Results populated via JavaScript -->
             </div>
         </div>
+        <p id="selectedUserDisplay" class="mt-2 text-sm text-ecs-green hidden">
+            <i class="ti ti-check mr-1"></i>Selected: <span id="selectedUserName" class="font-medium"></span>
+        </p>
     </div>
-</div>
+
+    <div class="flex items-start p-4 rounded-lg border bg-blue-50 dark:bg-gray-700 border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-400">
+        <i class="ti ti-info-circle flex-shrink-0 w-5 h-5 mr-3"></i>
+        <div class="text-sm">
+            The selected user will be assigned to the <span class="font-medium">{{ role.name }}</span> role.
+        </div>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}

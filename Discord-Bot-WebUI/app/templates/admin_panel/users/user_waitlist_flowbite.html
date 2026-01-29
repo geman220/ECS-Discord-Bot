@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form, modal_info %}
 
 {% block admin_title %}User Waitlist{% endblock %}
 {% block panel_description %}Manage users waiting for league placement{% endblock %}
@@ -275,138 +275,69 @@
 {% endif %}
 
 <!-- Removal Modal -->
-<div id="removalModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white"><i class="ti ti-user-x mr-2"></i>Remove from Waitlist</h3>
-                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="removalModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6 space-y-4">
-                <p class="text-gray-600 dark:text-gray-300">Are you sure you want to remove this user from the waitlist?</p>
-                <div>
-                    <label for="removal-reason" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason for removal <span class="text-red-500">*</span></label>
-                    <textarea id="removal-reason" rows="3" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Please provide a reason..."></textarea>
-                </div>
-                <input type="hidden" id="removalUserId">
-            </div>
-            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="removalModal">Cancel</button>
-                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600" data-action="submit-removal">Remove from Waitlist</button>
-            </div>
-        </div>
-    </div>
+{% call modal_form('removalModal', 'Remove from Waitlist', form_id='removalForm', submit_text='Remove from Waitlist', submit_color='danger', loading_text='Removing...') %}
+<p class="text-gray-600 dark:text-gray-300">Are you sure you want to remove this user from the waitlist?</p>
+<div>
+    <label for="removal-reason" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason for removal <span class="text-red-500">*</span></label>
+    <textarea id="removal-reason" name="reason" rows="3" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Please provide a reason..."></textarea>
 </div>
+<input type="hidden" id="removalUserId" name="user_id">
+{% endcall %}
 
 <!-- Contact Modal -->
-<div id="contactModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white"><i class="ti ti-mail mr-2"></i>Contact Waitlist User</h3>
-                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="contactModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label for="contact-method" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Contact Method</label>
-                    <select id="contact-method" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <option value="email">Email</option>
-                        <option value="discord">Discord</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="contact-message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
-                    <textarea id="contact-message" rows="4" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter your message..."></textarea>
-                </div>
-                <input type="hidden" id="contactUserId">
-            </div>
-            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="contactModal">Cancel</button>
-                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-cyan-500 rounded-lg hover:bg-cyan-600" data-action="submit-contact">Log Contact</button>
-            </div>
-        </div>
-    </div>
+{% call modal_form('contactModal', 'Contact Waitlist User', form_id='contactForm', submit_text='Log Contact', submit_color='primary', loading_text='Sending...') %}
+<div>
+    <label for="contact-method" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Contact Method</label>
+    <select id="contact-method" name="contact_method" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        <option value="email">Email</option>
+        <option value="discord">Discord</option>
+    </select>
 </div>
+<div>
+    <label for="contact-message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+    <textarea id="contact-message" name="message" rows="4" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter your message..."></textarea>
+</div>
+<input type="hidden" id="contactUserId" name="user_id">
+{% endcall %}
 
 <!-- Approval Modal -->
-<div id="approvalModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white"><i class="ti ti-user-check mr-2"></i>Approve Waitlist User</h3>
-                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="approvalModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="approvalForm">
-                <div class="p-6 space-y-4">
-                    <div class="p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300">
-                        <i class="ti ti-info-circle mr-2"></i>
-                        Approving <strong id="approvalUsername">this user</strong> will remove them from the waitlist and assign them to the selected league with Discord roles.
-                    </div>
-                    <div>
-                        <label for="leagueSelect" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Assign to League <span class="text-red-500">*</span></label>
-                        <select id="leagueSelect" name="league_type" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="">Select a league...</option>
-                            <optgroup label="Full League Roles">
-                                <option value="classic">Classic Division</option>
-                                <option value="premier">Premier Division</option>
-                                <option value="ecs-fc">ECS FC League</option>
-                            </optgroup>
-                            <optgroup label="Substitute Roles (Mid-Season)">
-                                <option value="sub-classic">Classic Substitute</option>
-                                <option value="sub-premier">Premier Substitute</option>
-                                <option value="sub-ecs-fc">ECS FC Substitute</option>
-                            </optgroup>
-                        </select>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">This will sync roles to Discord automatically.</p>
-                    </div>
-                    <div>
-                        <label for="approvalNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
-                        <textarea id="approvalNotes" name="notes" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Add any notes about this approval..."></textarea>
-                    </div>
-                    <input type="hidden" id="approvalUserId" name="user_id">
-                </div>
-                <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="approvalModal">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600">
-                        <i class="ti ti-check mr-1"></i>Approve User
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+{% call modal_form('approvalModal', 'Approve Waitlist User', form_id='approvalForm', submit_text='Approve User', submit_color='primary', loading_text='Approving...') %}
+<div class="p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300">
+    <i class="ti ti-info-circle mr-2"></i>
+    Approving <strong id="approvalUsername">this user</strong> will remove them from the waitlist and assign them to the selected league with Discord roles.
 </div>
+<div>
+    <label for="leagueSelect" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Assign to League <span class="text-red-500">*</span></label>
+    <select id="leagueSelect" name="league_type" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        <option value="">Select a league...</option>
+        <optgroup label="Full League Roles">
+            <option value="classic">Classic Division</option>
+            <option value="premier">Premier Division</option>
+            <option value="ecs-fc">ECS FC League</option>
+        </optgroup>
+        <optgroup label="Substitute Roles (Mid-Season)">
+            <option value="sub-classic">Classic Substitute</option>
+            <option value="sub-premier">Premier Substitute</option>
+            <option value="sub-ecs-fc">ECS FC Substitute</option>
+        </optgroup>
+    </select>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">This will sync roles to Discord automatically.</p>
+</div>
+<div>
+    <label for="approvalNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
+    <textarea id="approvalNotes" name="notes" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Add any notes about this approval..."></textarea>
+</div>
+<input type="hidden" id="approvalUserId" name="user_id">
+{% endcall %}
 
 <!-- Player Details Modal -->
-<div id="playerDetailsModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white"><i class="ti ti-user mr-2"></i>Player Details</h3>
-                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="playerDetailsModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6" id="playerDetailsContent">
-                <div class="text-center py-8">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
-                </div>
-            </div>
-            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="playerDetailsModal">Close</button>
-            </div>
-        </div>
+{% call modal_info('playerDetailsModal', 'Player Details', size='lg') %}
+<div id="playerDetailsContent">
+    <div class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
     </div>
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -482,18 +413,14 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'contact-modal':
                 currentUserId = userId;
                 document.getElementById('contactUserId').value = userId;
+                document.getElementById('contact-message').value = '';
                 if (contactModal) contactModal.show();
                 break;
             case 'removal-modal':
                 currentUserId = userId;
                 document.getElementById('removalUserId').value = userId;
+                document.getElementById('removal-reason').value = '';
                 if (removalModal) removalModal.show();
-                break;
-            case 'submit-removal':
-                submitRemoval();
-                break;
-            case 'submit-contact':
-                submitContact();
                 break;
         }
     });
@@ -557,8 +484,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // Submit removal
-    function submitRemoval() {
+    // Removal form submission
+    document.getElementById('removalForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
         const reason = document.getElementById('removal-reason').value;
         const userId = document.getElementById('removalUserId').value;
 
@@ -566,6 +494,12 @@ document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({title: 'Error', text: 'Please provide a reason.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
             return;
         }
+
+        // Disable submit button
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i>Removing...';
 
         fetch(`{{ url_for('admin_panel.remove_from_waitlist', user_id=0) }}`.replace('/0', '/' + userId), {
             method: 'POST',
@@ -578,15 +512,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({title: 'Success', text: data.message, icon: 'success', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'}).then(() => location.reload());
             } else {
                 Swal.fire({title: 'Error', text: data.message, icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
             }
         })
         .catch(error => {
             Swal.fire({title: 'Error', text: 'Failed to remove user.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
         });
-    }
+    });
 
-    // Submit contact
-    function submitContact() {
+    // Contact form submission
+    document.getElementById('contactForm')?.addEventListener('submit', function(e) {
+        e.preventDefault();
         const method = document.getElementById('contact-method').value;
         const message = document.getElementById('contact-message').value;
         const userId = document.getElementById('contactUserId').value;
@@ -595,6 +534,12 @@ document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({title: 'Error', text: 'Please enter a message.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
             return;
         }
+
+        // Disable submit button
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i>Sending...';
 
         fetch(`{{ url_for('admin_panel.contact_waitlist_user', user_id=0) }}`.replace('/0', '/' + userId), {
             method: 'POST',
@@ -607,14 +552,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({title: 'Success', text: data.message, icon: 'success', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
                 if (contactModal) contactModal.hide();
                 document.getElementById('contact-message').value = '';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
             } else {
                 Swal.fire({title: 'Error', text: data.message, icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
             }
         })
         .catch(error => {
             Swal.fire({title: 'Error', text: 'Failed to send message.', icon: 'error', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
         });
-    }
+    });
 
     // Approval form submission
     document.getElementById('approvalForm')?.addEventListener('submit', function(e) {

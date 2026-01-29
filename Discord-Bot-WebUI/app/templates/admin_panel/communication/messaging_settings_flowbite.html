@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal, modal_info %}
 
 {% block admin_title %}Messaging Settings{% endblock %}
 {% block panel_description %}Configure in-app messaging system settings{% endblock %}
@@ -233,62 +233,37 @@
 </div>
 
 <!-- Edit Permissions Modal -->
-<div id="editPermissionsModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-edit mr-2"></i>Edit Permissions: <span id="modalRoleName">Role</span>
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="editPermissionsModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-5">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Select which roles <strong id="modalRoleNameText">this role</strong> can send messages to:</p>
+{% call modal('editPermissionsModal', 'Edit Permissions: <span id="modalRoleName">Role</span>') %}
+<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Select which roles <strong id="modalRoleNameText">this role</strong> can send messages to:</p>
 
-                <div id="permissionChecklist" class="space-y-2 max-h-64 overflow-y-auto"></div>
+<div id="permissionChecklist" class="space-y-2 max-h-64 overflow-y-auto"></div>
 
-                <div class="flex gap-2 mt-4">
-                    <button type="button" id="modalSelectAll" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300">
-                        <i class="ti ti-checkbox mr-1"></i>Select All
-                    </button>
-                    <button type="button" id="modalDeselectAll" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300">
-                        <i class="ti ti-square mr-1"></i>Deselect All
-                    </button>
-                </div>
-            </div>
-            <div class="flex items-center justify-end p-5 border-t dark:border-gray-700 gap-3">
-                <button type="button" data-modal-hide="editPermissionsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
-                <button type="button" id="savePermissions" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                    <i class="ti ti-check mr-1"></i>Apply Changes
-                </button>
-            </div>
-        </div>
-    </div>
+<div class="flex gap-2 mt-4">
+    <button type="button" id="modalSelectAll" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300">
+        <i class="ti ti-checkbox mr-1"></i>Select All
+    </button>
+    <button type="button" id="modalDeselectAll" class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300">
+        <i class="ti ti-square mr-1"></i>Deselect All
+    </button>
 </div>
+
+<div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+    <button type="button" data-modal-hide="editPermissionsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
+    <button type="button" id="savePermissions" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+        <i class="ti ti-check mr-1"></i>Apply Changes
+    </button>
+</div>
+{% endcall %}
 
 <!-- Statistics Modal -->
-<div id="messageStatsModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-chart-bar mr-2"></i>Messaging Statistics
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="messageStatsModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-5" id="statsContent">
-                <div class="text-center py-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Loading statistics...</p>
-                </div>
-            </div>
-        </div>
+{% call modal_info('messageStatsModal', 'Messaging Statistics', size='lg', footer=false) %}
+<div id="statsContent">
+    <div class="text-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Loading statistics...</p>
     </div>
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}

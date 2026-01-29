@@ -1,5 +1,5 @@
 {% extends "base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, stat_card, avatar %}
+{% from 'macros/flowbite.html' import card, button, badge, stat_card, avatar, modal_form %}
 
 {% block title %}Match RSVP Status{% endblock %}
 
@@ -506,171 +506,105 @@
 </div>
 
 <!-- SMS Modal -->
-<div id="sendSmsModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600 bg-blue-600">
-                <h3 class="text-lg font-semibold text-white">
-                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    Text Message
-                </h3>
-                <button type="button" class="text-white bg-transparent hover:bg-blue-700 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center" data-modal-hide="sendSmsModal">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-                </button>
-            </div>
-            <form id="sendSmsForm" action="{{ url_for('admin.send_custom_sms') }}" method="POST">
-                <div class="p-6">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="player_id" id="smsPlayerId">
-                    <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
-                    <input type="hidden" name="phone" id="smsPlayerPhone">
+{% call modal_form('sendSmsModal', 'Text Message', form_id='sendSmsForm', action=url_for('admin.send_custom_sms'), submit_text='Send Message', loading_text='Sending...') %}
+    <input type="hidden" name="player_id" id="smsPlayerId">
+    <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
+    <input type="hidden" name="phone" id="smsPlayerPhone">
 
-                    <div class="flex items-center mb-4 pb-4 border-b border-gray-200 dark:border-gray-600">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="font-medium text-gray-900 dark:text-white">To: <span id="smsPlayerName"></span></p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400" id="smsPlayerPhoneDisplay"></p>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="smsMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
-                        <textarea id="smsMessage" name="message" rows="4" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Type your message here..." required></textarea>
-                        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                            <span id="smsCharCount">0</span>/160 characters
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-600 gap-2">
-                    <button type="button" data-modal-hide="sendSmsModal" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-600">Cancel</button>
-                    <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">Send Message</button>
-                </div>
-            </form>
+    <div class="flex items-center mb-4 pb-4 border-b border-gray-200 dark:border-gray-600">
+        <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+        </div>
+        <div class="ml-3">
+            <p class="font-medium text-gray-900 dark:text-white">To: <span id="smsPlayerName"></span></p>
+            <p class="text-sm text-gray-500 dark:text-gray-400" id="smsPlayerPhoneDisplay"></p>
         </div>
     </div>
-</div>
+
+    <div class="mb-4">
+        <label for="smsMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+        <textarea id="smsMessage" name="message" rows="4" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Type your message here..." required></textarea>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            <span id="smsCharCount">0</span>/160 characters
+        </p>
+    </div>
+{% endcall %}
 
 <!-- Assign Substitute Modal -->
 {% if has_role('Global Admin') or has_role('Pub League Admin') %}
-<div id="assignSubModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-lg max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600 bg-green-600">
-                <h3 class="text-lg font-semibold text-white">
-                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
-                    Assign Substitute
-                </h3>
-                <button type="button" class="text-white bg-transparent hover:bg-green-700 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center" data-modal-hide="assignSubModal">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-                </button>
-            </div>
-            <form id="assignSubForm" action="{% if is_ecs_fc_match and ecs_sub_request %}{{ url_for('admin.ecs_fc_subs.assign_substitute', request_id=ecs_sub_request.id) }}{% else %}{{ url_for('admin.assign_sub') }}{% endif %}" method="POST">
-                <div class="p-6">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
-                    <input type="hidden" name="redirect_to" value="rsvp_status">
+{% call modal_form('assignSubModal', 'Assign Substitute', form_id='assignSubForm', action=(url_for('admin.ecs_fc_subs.assign_substitute', request_id=ecs_sub_request.id) if is_ecs_fc_match and ecs_sub_request else url_for('admin.assign_sub')), size='lg', submit_text='Assign Substitute', loading_text='Assigning...') %}
+    <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
+    <input type="hidden" name="redirect_to" value="rsvp_status">
 
-                    <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300" role="alert">
-                        <div class="font-medium">Match Information</div>
-                        <p>{% if is_ecs_fc_match %}{{ ecs_match.team.name }} vs {{ ecs_match.opponent_name }} - {{ ecs_match.match_date.strftime('%a, %b %d') }} at {{ ecs_match.match_time.strftime('%I:%M %p') }}{% else %}{{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}{% endif %}</p>
-                    </div>
+    <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300" role="alert">
+        <div class="font-medium">Match Information</div>
+        <p>{% if is_ecs_fc_match %}{{ ecs_match.team.name }} vs {{ ecs_match.opponent_name }} - {{ ecs_match.match_date.strftime('%a, %b %d') }} at {{ ecs_match.match_time.strftime('%I:%M %p') }}{% else %}{{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}{% endif %}</p>
+    </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="subPlayer" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Substitute Player</label>
-                            <select id="subPlayer" name="player_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                                <option value="" selected disabled>Select a substitute...</option>
-                                <option value="loading" disabled>Loading...</option>
-                            </select>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Only approved substitutes shown</p>
-                        </div>
-                        <div>
-                            <label for="subTeam" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Team</label>
-                            <select id="subTeam" name="team_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                                <option value="" selected disabled>Select a team...</option>
-                                {% if is_ecs_fc_match %}
-                                <option value="{{ ecs_match.team_id }}">{{ ecs_match.team.name }}</option>
-                                {% else %}
-                                <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
-                                <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
-                                {% endif %}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-600 gap-2">
-                    <button type="button" data-modal-hide="assignSubModal" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-600">Cancel</button>
-                    <button type="submit" class="text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-green-800">Assign Substitute</button>
-                </div>
-            </form>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label for="subPlayer" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Substitute Player</label>
+            <select id="subPlayer" name="player_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                <option value="" selected disabled>Select a substitute...</option>
+                <option value="loading" disabled>Loading...</option>
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Only approved substitutes shown</p>
+        </div>
+        <div>
+            <label for="subTeam" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Team</label>
+            <select id="subTeam" name="team_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                <option value="" selected disabled>Select a team...</option>
+                {% if is_ecs_fc_match %}
+                <option value="{{ ecs_match.team_id }}">{{ ecs_match.team.name }}</option>
+                {% else %}
+                <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
+                <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
+                {% endif %}
+            </select>
         </div>
     </div>
-</div>
+{% endcall %}
 {% endif %}
 
 <!-- Request Substitute Modal -->
 {% if has_role('Pub League Coach') or has_role('Global Admin') or has_role('Pub League Admin') or has_role('ECS FC Coach') %}
-<div id="requestSubModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600 bg-yellow-500">
-                <h3 class="text-lg font-semibold text-white">
-                    <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
-                    Request Substitute
-                </h3>
-                <button type="button" class="text-white bg-transparent hover:bg-yellow-600 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center" data-modal-hide="requestSubModal">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-                </button>
-            </div>
-            <form id="requestSubForm" action="{{ url_for('admin.request_sub') }}" method="POST">
-                <div class="p-6">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
+{% call modal_form('requestSubModal', 'Request Substitute', form_id='requestSubForm', action=url_for('admin.request_sub'), size='lg', submit_text='Request Substitute', submit_color='warning', loading_text='Requesting...') %}
+    <input type="hidden" name="match_id" value="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% else %}{{ match.id }}{% endif %}">
 
-                    <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300" role="alert">
-                        <div class="font-medium">Match Information</div>
-                        <p>{% if is_ecs_fc_match %}{{ ecs_match.team.name }} vs {{ ecs_match.opponent_name }} - {{ ecs_match.match_date.strftime('%a, %b %d') }} at {{ ecs_match.match_time.strftime('%I:%M %p') }}{% else %}{{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}{% endif %}</p>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="requestTeamId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Team Needing Substitute</label>
-                        <select id="requestTeamId" name="team_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                            <option value="" selected disabled>Select team...</option>
-                            {% if is_ecs_fc_match %}
-                            <option value="{{ ecs_match.team_id }}">{{ ecs_match.team.name }}</option>
-                            {% else %}
-                            <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
-                            <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
-                            {% endif %}
-                        </select>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="substitutesNeeded" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Number of Substitutes Needed</label>
-                        <select id="substitutesNeeded" name="substitutes_needed" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-yellow-500 focus:border-yellow-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                            <option value="1" selected>1 substitute</option>
-                            <option value="2">2 substitutes</option>
-                            <option value="3">3 substitutes</option>
-                            <option value="4">4 substitutes</option>
-                            <option value="5">5 substitutes</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="requestNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Additional Notes</label>
-                        <textarea id="requestNotes" name="notes" rows="3" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-yellow-500 focus:border-yellow-500 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Need sub for injured player, specific position preferences, etc."></textarea>
-                    </div>
-                </div>
-                <div class="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-600 gap-2">
-                    <button type="button" data-modal-hide="requestSubModal" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-600">Cancel</button>
-                    <button type="submit" class="text-white bg-yellow-500 hover:bg-yellow-600 focus:ring-4 focus:ring-yellow-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:bg-yellow-500 dark:hover:bg-yellow-600 dark:focus:ring-yellow-800">Request Substitute</button>
-                </div>
-            </form>
-        </div>
+    <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300" role="alert">
+        <div class="font-medium">Match Information</div>
+        <p>{% if is_ecs_fc_match %}{{ ecs_match.team.name }} vs {{ ecs_match.opponent_name }} - {{ ecs_match.match_date.strftime('%a, %b %d') }} at {{ ecs_match.match_time.strftime('%I:%M %p') }}{% else %}{{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%a, %b %d') }} at {{ match.time.strftime('%I:%M %p') }}{% endif %}</p>
     </div>
-</div>
+
+    <div class="mb-4">
+        <label for="requestTeamId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Team Needing Substitute</label>
+        <select id="requestTeamId" name="team_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+            <option value="" selected disabled>Select team...</option>
+            {% if is_ecs_fc_match %}
+            <option value="{{ ecs_match.team_id }}">{{ ecs_match.team.name }}</option>
+            {% else %}
+            <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
+            <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
+            {% endif %}
+        </select>
+    </div>
+
+    <div class="mb-4">
+        <label for="substitutesNeeded" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Number of Substitutes Needed</label>
+        <select id="substitutesNeeded" name="substitutes_needed" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+            <option value="1" selected>1 substitute</option>
+            <option value="2">2 substitutes</option>
+            <option value="3">3 substitutes</option>
+            <option value="4">4 substitutes</option>
+            <option value="5">5 substitutes</option>
+        </select>
+    </div>
+
+    <div class="mb-4">
+        <label for="requestNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Additional Notes</label>
+        <textarea id="requestNotes" name="notes" rows="3" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Need sub for injured player, specific position preferences, etc."></textarea>
+    </div>
+{% endcall %}
 {% endif %}
 {% endblock %}
 

@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/flowbite.html' import modal_form %}
 
 {% block title %}Push Notification Management{% endblock %}
 
@@ -154,57 +155,35 @@
 </div>
 
 <!-- Broadcast Modal -->
-<div id="broadcastModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-lg max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-send"></i>Send Broadcast Notification
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="broadcastModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="broadcastForm">
-                <div class="p-4 md:p-5 space-y-4">
-                    <div>
-                        <label for="broadcast-title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title</label>
-                        <input type="text" id="broadcast-title" placeholder="Enter notification title" maxlength="100" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum 100 characters</p>
-                    </div>
-                    <div>
-                        <label for="broadcast-message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
-                        <textarea id="broadcast-message" rows="4" placeholder="Enter your message" maxlength="300" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"></textarea>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum 300 characters</p>
-                    </div>
-                    <div>
-                        <label for="broadcast-target" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send To</label>
-                        <select id="broadcast-target" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                            <option value="">Select recipients</option>
-                            <option value="all">All Users</option>
-                            <option value="ios">iOS Users Only</option>
-                            <option value="android">Android Users Only</option>
-                            <option value="coaches">Coaches Only</option>
-                            <option value="admins">Admins Only</option>
-                        </select>
-                    </div>
-                    <div class="flex items-start p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                        <i class="ti ti-alert-triangle text-yellow-500 mt-0.5 mr-2"></i>
-                        <p class="text-sm text-yellow-700 dark:text-yellow-300">
-                            <strong>Warning:</strong> This will send a notification to all selected users. Please double-check your message before sending.
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
-                    <button type="submit" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" data-action="send-broadcast">
-                        <i class="ti ti-send mr-1"></i>Send Notification
-                    </button>
-                    <button type="button" data-modal-hide="broadcastModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
+{% call modal_form('broadcastModal', 'Send Broadcast Notification', form_id='broadcastForm', submit_text='Send Notification', loading_text='Sending...') %}
+<div>
+    <label for="broadcast-title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title</label>
+    <input type="text" id="broadcast-title" name="title" placeholder="Enter notification title" maxlength="100" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum 100 characters</p>
 </div>
+<div>
+    <label for="broadcast-message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+    <textarea id="broadcast-message" name="message" rows="4" placeholder="Enter your message" maxlength="300" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"></textarea>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum 300 characters</p>
+</div>
+<div>
+    <label for="broadcast-target" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send To</label>
+    <select id="broadcast-target" name="target" required class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+        <option value="">Select recipients</option>
+        <option value="all">All Users</option>
+        <option value="ios">iOS Users Only</option>
+        <option value="android">Android Users Only</option>
+        <option value="coaches">Coaches Only</option>
+        <option value="admins">Admins Only</option>
+    </select>
+</div>
+<div class="flex items-start p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+    <i class="ti ti-alert-triangle text-yellow-500 mt-0.5 mr-2"></i>
+    <p class="text-sm text-yellow-700 dark:text-yellow-300">
+        <strong>Warning:</strong> This will send a notification to all selected users. Please double-check your message before sending.
+    </p>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}

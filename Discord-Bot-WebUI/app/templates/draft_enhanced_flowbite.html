@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}{{ title }}{% endblock %}
 
@@ -253,35 +254,13 @@
 </div>
 
 <!-- Draft Confirmation Modal -->
-<div id="draftConfirmModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-black/50" onclick="document.getElementById('draftConfirmModal').classList.add('hidden')"></div>
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
-            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-user-plus text-ecs-green"></i>
-                    Draft Player
-                </h3>
-            </div>
-            <div class="p-4">
-                <p id="draftPlayerMessage" class="text-gray-600 dark:text-gray-300 mb-4"></p>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Team:</label>
-                <select id="teamSelect" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                    <option value="">Choose a team...</option>
-                </select>
-            </div>
-            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-                <button onclick="document.getElementById('draftConfirmModal').classList.add('hidden')"
-                        class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    Cancel
-                </button>
-                <button id="confirmDraftBtn" class="px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
-                    <i class="ti ti-user-plus mr-1"></i>Draft Player
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+{% call modal_form('draftConfirmModal', 'Draft Player', form_id='draftConfirmForm', submit_text='Draft Player', loading_text='Drafting...') %}
+<p id="draftPlayerMessage" class="text-gray-600 dark:text-gray-300 mb-4"></p>
+<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select Team:</label>
+<select id="teamSelect" name="team_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    <option value="">Choose a team...</option>
+</select>
+{% endcall %}
 
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="fixed inset-0 z-50 hidden bg-black/50 flex items-center justify-center">

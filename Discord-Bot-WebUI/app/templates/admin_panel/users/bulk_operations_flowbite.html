@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal %}
 
 {% block admin_title %}Bulk Operations{% endblock %}
 {% block panel_description %}Perform bulk actions on users, roles, and approvals{% endblock %}
@@ -226,91 +226,52 @@
 </div>
 
 <!-- Bulk Approval Modal -->
-<div id="bulkApprovalModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-users mr-2"></i>Bulk User Approval
-                </h3>
-                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="bulkApprovalModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6" id="bulkApprovalContent">
-                <div class="text-center py-8">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
-                    <p class="text-gray-500 dark:text-gray-400 mt-2">Loading pending users...</p>
-                </div>
-            </div>
-            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="bulkApprovalModal">Cancel</button>
-                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 disabled:opacity-50 disabled:cursor-not-allowed" id="bulkApprovalBtn" disabled data-action="process-bulk-approval">
-                    <i class="ti ti-check mr-1"></i>Approve Selected
-                </button>
-            </div>
-        </div>
+{% call modal('bulkApprovalModal', 'Bulk User Approval', size='lg', static_backdrop=true) %}
+<div id="bulkApprovalContent">
+    <div class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
+        <p class="text-gray-500 dark:text-gray-400 mt-2">Loading pending users...</p>
     </div>
 </div>
+<div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t dark:border-gray-700">
+    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 modal-close-btn" data-modal-hide="bulkApprovalModal">Cancel</button>
+    <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 disabled:opacity-50 disabled:cursor-not-allowed" id="bulkApprovalBtn" disabled data-action="process-bulk-approval">
+        <i class="ti ti-check mr-1"></i>Approve Selected
+    </button>
+</div>
+{% endcall %}
 
 <!-- Bulk Role Assignment Modal -->
-<div id="bulkRoleModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-shield-plus mr-2"></i>Bulk Role Assignment
-                </h3>
-                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="bulkRoleModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6" id="bulkRoleContent">
-                <div class="text-center py-8">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-                    <p class="text-gray-500 dark:text-gray-400 mt-2">Loading role assignment interface...</p>
-                </div>
-            </div>
-            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="bulkRoleModal">Cancel</button>
-                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed" id="bulkRoleBtn" disabled data-action="process-bulk-role-assignment">
-                    <i class="ti ti-shield-plus mr-1"></i>Assign Roles
-                </button>
-            </div>
-        </div>
+{% call modal('bulkRoleModal', 'Bulk Role Assignment', size='lg', static_backdrop=true) %}
+<div id="bulkRoleContent">
+    <div class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+        <p class="text-gray-500 dark:text-gray-400 mt-2">Loading role assignment interface...</p>
     </div>
 </div>
+<div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t dark:border-gray-700">
+    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 modal-close-btn" data-modal-hide="bulkRoleModal">Cancel</button>
+    <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed" id="bulkRoleBtn" disabled data-action="process-bulk-role-assignment">
+        <i class="ti ti-shield-plus mr-1"></i>Assign Roles
+    </button>
+</div>
+{% endcall %}
 
 <!-- Bulk Waitlist Processing Modal -->
-<div id="bulkWaitlistModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-list-check mr-2"></i>Bulk Waitlist Processing
-                </h3>
-                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="bulkWaitlistModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6" id="bulkWaitlistContent">
-                <div class="text-center py-8">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-                    <p class="text-gray-500 dark:text-gray-400 mt-2">Loading waitlist users...</p>
-                </div>
-            </div>
-            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="bulkWaitlistModal">Cancel</button>
-                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed" id="bulkWaitlistBtn" disabled data-action="process-bulk-waitlist">
-                    <i class="ti ti-arrow-right mr-1"></i>Process Selected
-                </button>
-            </div>
-        </div>
+{% call modal('bulkWaitlistModal', 'Bulk Waitlist Processing', size='lg', static_backdrop=true) %}
+<div id="bulkWaitlistContent">
+    <div class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <p class="text-gray-500 dark:text-gray-400 mt-2">Loading waitlist users...</p>
     </div>
 </div>
+<div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t dark:border-gray-700">
+    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 modal-close-btn" data-modal-hide="bulkWaitlistModal">Cancel</button>
+    <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed" id="bulkWaitlistBtn" disabled data-action="process-bulk-waitlist">
+        <i class="ti ti-arrow-right mr-1"></i>Process Selected
+    </button>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -356,14 +317,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById(modalId);
         if (!modal) return;
 
+        // Handle close buttons
         document.querySelectorAll(`[data-modal-hide="${modalId}"]`).forEach(btn => {
-            btn.addEventListener('click', () => modal.classList.add('hidden'));
+            btn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            });
         });
 
-        const backdrop = modal.querySelector('[data-modal-backdrop]');
-        if (backdrop) {
-            backdrop.addEventListener('click', () => modal.classList.add('hidden'));
-        }
+        // Handle backdrop click (click on modal overlay)
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        });
     }
 
     setupModal('bulkApprovalModal');
@@ -377,13 +345,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
             switch(action) {
                 case 'show-bulk-approval-modal':
-                    document.getElementById('bulkApprovalModal').classList.remove('hidden');
+                    const approvalModal = document.getElementById('bulkApprovalModal');
+                    approvalModal.classList.remove('hidden');
+                    approvalModal.classList.add('flex');
                     break;
                 case 'show-bulk-role-modal':
-                    document.getElementById('bulkRoleModal').classList.remove('hidden');
+                    const roleModal = document.getElementById('bulkRoleModal');
+                    roleModal.classList.remove('hidden');
+                    roleModal.classList.add('flex');
                     break;
                 case 'show-bulk-waitlist-modal':
-                    document.getElementById('bulkWaitlistModal').classList.remove('hidden');
+                    const waitlistModal = document.getElementById('bulkWaitlistModal');
+                    waitlistModal.classList.remove('hidden');
+                    waitlistModal.classList.add('flex');
                     break;
                 case 'load-pending-users':
                     window.location.href = '{{ url_for("admin_panel.user_approvals") }}';

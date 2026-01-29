@@ -1,4 +1,5 @@
 {% extends 'admin/layout.html' %}
+{% from "macros/flowbite.html" import modal_form %}
 {% block title %}Wallet Pass Sponsors{% endblock %}
 
 {% block custom_css %}
@@ -168,136 +169,102 @@
 {% block modals %}
 {{ super() }}
 <!-- Add Sponsor Modal -->
-<div class="modal c-modal fade" id="addSponsorModal" tabindex="-1" data-modal aria-labelledby="addSponsorModalLabel">
-    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content>
-            <form action="{{ url_for('wallet_config.add_sponsor') }}" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-header c-modal__header" data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="addSponsorModalLabel">Add Sponsor</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-                </div>
-                <div class="modal-body c-modal__body" data-modal-body>
-                    <div class="mb-3">
-                        <label class="form-label">Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="name" required data-form-control aria-label="Name">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Display Name</label>
-                        <input type="text" class="form-control" name="display_name" placeholder="Shown on pass" data-form-control aria-label="Shown on pass">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" rows="2" data-form-control></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Website URL</label>
-                        <input type="url" class="form-control" name="website_url" placeholder="https://..." data-form-control>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Sponsor Type</label>
-                            <select class="form-select" name="sponsor_type" data-form-select>
-                                <option value="partner">Partner</option>
-                                <option value="presenting">Presenting</option>
-                                <option value="venue">Venue</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Applies To</label>
-                            <select class="form-select" name="applies_to" data-form-select>
-                                <option value="all">All Passes</option>
-                                <option value="ecs_membership">ECS Membership Only</option>
-                                <option value="pub_league">Pub League Only</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Display Location</label>
-                        <select class="form-select" name="display_location" data-form-select>
-                            <option value="back">Back of Pass</option>
-                            <option value="auxiliary">Auxiliary Field</option>
-                        </select>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="is_active" id="addIsActive" checked>
-                        <label class="form-check-label" for="addIsActive">Active</label>
-                    </div>
-                </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer>
-                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                    <button type="submit" class="c-btn c-btn--primary">Add Sponsor</button>
-                </div>
-            </form>
+{% call modal_form('addSponsorModal', 'Add Sponsor', action=url_for('wallet_config.add_sponsor'), submit_text='Add Sponsor', loading_text='Adding...') %}
+    <div class="mb-3">
+        <label class="form-label">Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="name" required data-form-control aria-label="Name">
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Display Name</label>
+        <input type="text" class="form-control" name="display_name" placeholder="Shown on pass" data-form-control aria-label="Shown on pass">
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" name="description" rows="2" data-form-control></textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Website URL</label>
+        <input type="url" class="form-control" name="website_url" placeholder="https://..." data-form-control>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Sponsor Type</label>
+            <select class="form-select" name="sponsor_type" data-form-select>
+                <option value="partner">Partner</option>
+                <option value="presenting">Presenting</option>
+                <option value="venue">Venue</option>
+            </select>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Applies To</label>
+            <select class="form-select" name="applies_to" data-form-select>
+                <option value="all">All Passes</option>
+                <option value="ecs_membership">ECS Membership Only</option>
+                <option value="pub_league">Pub League Only</option>
+            </select>
         </div>
     </div>
-</div>
+    <div class="mb-3">
+        <label class="form-label">Display Location</label>
+        <select class="form-select" name="display_location" data-form-select>
+            <option value="back">Back of Pass</option>
+            <option value="auxiliary">Auxiliary Field</option>
+        </select>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_active" id="addIsActive" checked>
+        <label class="form-check-label" for="addIsActive">Active</label>
+    </div>
+{% endcall %}
 
 <!-- Edit Sponsor Modal -->
-<div class="modal c-modal fade" id="editSponsorModal" tabindex="-1" data-modal aria-labelledby="editSponsorModalLabel">
-    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content>
-            <form id="editSponsorForm" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-header c-modal__header" data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="editSponsorModalLabel">Edit Sponsor</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-                </div>
-                <div class="modal-body c-modal__body" data-modal-body>
-                    <div class="mb-3">
-                        <label class="form-label">Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="name" id="editName" required data-form-control>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Display Name</label>
-                        <input type="text" class="form-control" name="display_name" id="editDisplayName" data-form-control>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" id="editDescription" rows="2" data-form-control></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Website URL</label>
-                        <input type="url" class="form-control" name="website_url" id="editWebsite" data-form-control>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Sponsor Type</label>
-                            <select class="form-select" name="sponsor_type" id="editType" data-form-select>
-                                <option value="partner">Partner</option>
-                                <option value="presenting">Presenting</option>
-                                <option value="venue">Venue</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Applies To</label>
-                            <select class="form-select" name="applies_to" id="editAppliesTo" data-form-select>
-                                <option value="all">All Passes</option>
-                                <option value="ecs_membership">ECS Membership Only</option>
-                                <option value="pub_league">Pub League Only</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Display Location</label>
-                        <select class="form-select" name="display_location" id="editLocation" data-form-select>
-                            <option value="back">Back of Pass</option>
-                            <option value="auxiliary">Auxiliary Field</option>
-                        </select>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="is_active" id="editIsActive">
-                        <label class="form-check-label" for="editIsActive">Active</label>
-                    </div>
-                </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer>
-                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                    <button type="submit" class="c-btn c-btn--primary">Save Changes</button>
-                </div>
-            </form>
+{% call modal_form('editSponsorModal', 'Edit Sponsor', form_id='editSponsorForm', submit_text='Save Changes', loading_text='Saving...') %}
+    <div class="mb-3">
+        <label class="form-label">Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="name" id="editName" required data-form-control>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Display Name</label>
+        <input type="text" class="form-control" name="display_name" id="editDisplayName" data-form-control>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" name="description" id="editDescription" rows="2" data-form-control></textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Website URL</label>
+        <input type="url" class="form-control" name="website_url" id="editWebsite" data-form-control>
+    </div>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Sponsor Type</label>
+            <select class="form-select" name="sponsor_type" id="editType" data-form-select>
+                <option value="partner">Partner</option>
+                <option value="presenting">Presenting</option>
+                <option value="venue">Venue</option>
+            </select>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Applies To</label>
+            <select class="form-select" name="applies_to" id="editAppliesTo" data-form-select>
+                <option value="all">All Passes</option>
+                <option value="ecs_membership">ECS Membership Only</option>
+                <option value="pub_league">Pub League Only</option>
+            </select>
         </div>
     </div>
-</div>
+    <div class="mb-3">
+        <label class="form-label">Display Location</label>
+        <select class="form-select" name="display_location" id="editLocation" data-form-select>
+            <option value="back">Back of Pass</option>
+            <option value="auxiliary">Auxiliary Field</option>
+        </select>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_active" id="editIsActive">
+        <label class="form-check-label" for="editIsActive">Active</label>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}

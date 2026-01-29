@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}Manage Teams{% endblock %}
 
@@ -114,81 +115,27 @@
 </div>
 
 <!-- Add Team Modal -->
-<div id="addTeamModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="add-modal-overlay"></div>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
-            <form method="POST" action="{{ url_for('publeague.add_team') }}" id="addTeamForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" id="modal_league_name" name="league_name" value="">
-                <input type="hidden" id="modal_season_id" name="season_id" value="">
-
-                <div class="px-4 pt-5 pb-4 sm:p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="addTeamModalLabel">Add Team</h3>
-                        <button type="button" id="close-add-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                            <i class="ti ti-x text-xl"></i>
-                        </button>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name</label>
-                        <input type="text" id="team_name" name="team_name" required
-                               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                    </div>
-                </div>
-                <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
-                    <button type="submit"
-                            class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
-                        Add Team
-                    </button>
-                    <button type="button" id="cancel-add-modal"
-                            class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                        Close
-                    </button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('addTeamModal', 'Add Team', form_id='addTeamForm', action=url_for('publeague.add_team'), size='sm', submit_text='Add Team', loading_text='Adding...', cancel_text='Close') %}
+    <input type="hidden" id="modal_league_name" name="league_name" value="">
+    <input type="hidden" id="modal_season_id" name="season_id" value="">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name</label>
+        <input type="text" id="team_name" name="team_name" required
+               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
     </div>
-</div>
+{% endcall %}
 
 <!-- Edit Team Modal -->
-<div id="editTeamModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="edit-modal-overlay"></div>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md sm:w-full">
-            <form method="POST" action="{{ url_for('publeague.edit_team') }}" id="editTeamForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" id="modal_team_id" name="team_id" value="">
-                <input type="hidden" id="edit_modal_league_name" name="league_name" value="">
-                <input type="hidden" id="edit_modal_season_id" name="season_id" value="">
-
-                <div class="px-4 pt-5 pb-4 sm:p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Team</h3>
-                        <button type="button" id="close-edit-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                            <i class="ti ti-x text-xl"></i>
-                        </button>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name</label>
-                        <input type="text" id="edit_team_name" name="team_name" required
-                               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                    </div>
-                </div>
-                <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
-                    <button type="submit"
-                            class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
-                        Save Changes
-                    </button>
-                    <button type="button" id="cancel-edit-modal"
-                            class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                        Close
-                    </button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('editTeamModal', 'Edit Team', form_id='editTeamForm', action=url_for('publeague.edit_team'), size='sm', submit_text='Save Changes', loading_text='Saving...', cancel_text='Close') %}
+    <input type="hidden" id="modal_team_id" name="team_id" value="">
+    <input type="hidden" id="edit_modal_league_name" name="league_name" value="">
+    <input type="hidden" id="edit_modal_season_id" name="season_id" value="">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team Name</label>
+        <input type="text" id="edit_team_name" name="team_name" required
+               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
     </div>
-</div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -217,46 +164,32 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     {% endfor %}
 
-    // Add Team Modal
-    const addModal = document.getElementById('addTeamModal');
-    const closeAdd = document.getElementById('close-add-modal');
-    const cancelAdd = document.getElementById('cancel-add-modal');
-    const addOverlay = document.getElementById('add-modal-overlay');
-
+    // Add Team Modal - using ModalManager
     document.querySelectorAll('.add-team-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.getElementById('modal_league_name').value = btn.dataset.leagueName;
             document.getElementById('modal_season_id').value = btn.dataset.seasonId;
-            document.getElementById('addTeamModalLabel').textContent = `Add Team to ${btn.dataset.leagueName}`;
-            addModal.classList.remove('hidden');
+            // Update modal title dynamically
+            const titleEl = document.getElementById('addTeamModal-title');
+            if (titleEl) {
+                titleEl.textContent = `Add Team to ${btn.dataset.leagueName}`;
+            }
+            window.ModalManager.show('addTeamModal');
         });
     });
 
-    closeAdd?.addEventListener('click', () => addModal.classList.add('hidden'));
-    cancelAdd?.addEventListener('click', () => addModal.classList.add('hidden'));
-    addOverlay?.addEventListener('click', () => addModal.classList.add('hidden'));
-
-    // Edit Team Modal
-    const editModal = document.getElementById('editTeamModal');
-    const closeEdit = document.getElementById('close-edit-modal');
-    const cancelEdit = document.getElementById('cancel-edit-modal');
-    const editOverlay = document.getElementById('edit-modal-overlay');
-
+    // Edit Team Modal - using ModalManager
     document.querySelectorAll('.edit-team-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.getElementById('modal_team_id').value = btn.dataset.teamId;
             document.getElementById('edit_team_name').value = btn.dataset.teamName;
             document.getElementById('edit_modal_league_name').value = btn.dataset.leagueName;
             document.getElementById('edit_modal_season_id').value = btn.dataset.seasonId;
-            editModal.classList.remove('hidden');
+            window.ModalManager.show('editTeamModal');
         });
     });
 
-    closeEdit?.addEventListener('click', () => editModal.classList.add('hidden'));
-    cancelEdit?.addEventListener('click', () => editModal.classList.add('hidden'));
-    editOverlay?.addEventListener('click', () => editModal.classList.add('hidden'));
-
-    // Delete Team
+    // Delete Team - using SweetAlert2
     document.querySelectorAll('.delete-team-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const teamId = btn.dataset.teamId;

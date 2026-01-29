@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_info %}
 {% block title %}Database Monitor{% endblock %}
 
 {% block main_content %}
@@ -190,58 +191,14 @@
 </div>
 
 <!-- Stack Trace Modal -->
-<div id="stackTraceModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="stack-modal-overlay"></div>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-            <div class="px-4 pt-5 pb-4 sm:p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <i class="ti ti-stack text-ecs-green"></i>
-                        Stack Trace
-                    </h3>
-                    <button type="button" id="close-stack-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                        <i class="ti ti-x text-xl"></i>
-                    </button>
-                </div>
-                <pre class="stack-trace-content p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 overflow-x-auto max-h-96"></pre>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6">
-                <button type="button" id="close-stack-modal-btn"
-                        class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+{% call modal_info('stackTraceModal', 'Stack Trace', size='lg') %}
+<pre class="stack-trace-content p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 overflow-x-auto max-h-96"></pre>
+{% endcall %}
 
 <!-- Query Modal -->
-<div id="queryModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="query-modal-overlay"></div>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-            <div class="px-4 pt-5 pb-4 sm:p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <i class="ti ti-sql text-ecs-green"></i>
-                        SQL Query
-                    </h3>
-                    <button type="button" id="close-query-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                        <i class="ti ti-x text-xl"></i>
-                    </button>
-                </div>
-                <pre class="query-content p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 overflow-x-auto max-h-96"></pre>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6">
-                <button type="button" id="close-query-modal-btn"
-                        class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+{% call modal_info('queryModal', 'SQL Query', size='lg') %}
+<pre class="query-content p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm text-gray-700 dark:text-gray-300 overflow-x-auto max-h-96"></pre>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -258,20 +215,7 @@ DBMonitoring.init({
     csrfToken: '{{ csrf_token() }}'
 });
 
-// Modal handling
-document.addEventListener('DOMContentLoaded', function() {
-    const stackModal = document.getElementById('stackTraceModal');
-    const queryModal = document.getElementById('queryModal');
-
-    // Stack modal
-    document.getElementById('close-stack-modal')?.addEventListener('click', () => stackModal.classList.add('hidden'));
-    document.getElementById('close-stack-modal-btn')?.addEventListener('click', () => stackModal.classList.add('hidden'));
-    document.getElementById('stack-modal-overlay')?.addEventListener('click', () => stackModal.classList.add('hidden'));
-
-    // Query modal
-    document.getElementById('close-query-modal')?.addEventListener('click', () => queryModal.classList.add('hidden'));
-    document.getElementById('close-query-modal-btn')?.addEventListener('click', () => queryModal.classList.add('hidden'));
-    document.getElementById('query-modal-overlay')?.addEventListener('click', () => queryModal.classList.add('hidden'));
-});
+// Modal handling - now using Flowbite modal system via data-modal-hide attributes
+// The modal_info macro handles close button events automatically
 </script>
 {% endblock %}

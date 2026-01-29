@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, stat_card %}
+{% from 'macros/flowbite.html' import card, button, badge, stat_card, modal_form, modal_info %}
 
 {% block admin_title %}Role Management{% endblock %}
 {% block panel_description %}Manage user roles and permissions{% endblock %}
@@ -236,143 +236,70 @@
 
 {% block modals %}
 <!-- Create/Edit Role Modal -->
-<div id="roleModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-md">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <form method="POST" id="roleForm">
-                    <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                            <i class="ti ti-shield-plus mr-2 text-ecs-green"></i>
-                            <span id="roleModalTitle">Create Role</span>
-                        </h3>
-                        <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="roleModal">
-                            <i class="ti ti-x text-lg"></i>
-                        </button>
-                    </div>
-                    <div class="p-6">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" id="roleId" name="role_id">
+{% call modal_form('roleModal', 'Create Role', form_id='roleForm', submit_text='Save Role', loading_text='Saving...') %}
+    <input type="hidden" id="roleId" name="role_id">
 
-                        <div class="mb-4">
-                            <label for="roleName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role Name</label>
-                            <div class="relative">
-                                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                                    <i class="ti ti-shield"></i>
-                                </span>
-                                <input type="text" id="roleName" name="name" required class="w-full pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                            </div>
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Choose a descriptive name (e.g., "pl-premier", "Coach Assistant")</p>
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="roleDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
-                            <textarea id="roleDescription" name="description" rows="3" placeholder="Describe what this role is for..." class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-modal-hide="roleModal">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
-                            <i class="ti ti-device-floppy mr-1"></i>Save Role
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <div class="mb-4">
+        <label for="roleName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role Name</label>
+        <div class="relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                <i class="ti ti-shield"></i>
+            </span>
+            <input type="text" id="roleName" name="name" required class="w-full pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
         </div>
+        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Choose a descriptive name (e.g., "pl-premier", "Coach Assistant")</p>
     </div>
-</div>
+
+    <div class="mb-4">
+        <label for="roleDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+        <textarea id="roleDescription" name="description" rows="3" placeholder="Describe what this role is for..." class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
+    </div>
+{% endcall %}
 
 <!-- Role Details Modal -->
-<div id="roleDetailsModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-2xl">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                        <i class="ti ti-shield mr-2 text-ecs-green"></i>
-                        Role Details
-                    </h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="roleDetailsModal">
-                        <i class="ti ti-x text-lg"></i>
-                    </button>
-                </div>
-                <div class="p-6" id="roleDetailsContent">
-                    <!-- Content loaded via JavaScript -->
-                </div>
-                <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-modal-hide="roleDetailsModal">Close</button>
-                </div>
-            </div>
-        </div>
+{% call modal_info('roleDetailsModal', 'Role Details', size='lg') %}
+    <div id="roleDetailsContent">
+        <!-- Content loaded via JavaScript -->
     </div>
-</div>
+{% endcall %}
 
 <!-- Assign Role Modal -->
-<div id="assignRoleModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-md">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <form method="POST" id="assignRoleForm">
-                    <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                        <h3 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                            <i class="ti ti-user-plus mr-2 text-ecs-green"></i>
-                            Assign Role to User
-                        </h3>
-                        <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="assignRoleModal">
-                            <i class="ti ti-x text-lg"></i>
-                        </button>
-                    </div>
-                    <div class="p-6">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <input type="hidden" id="assignRoleId" name="role_id">
+{% call modal_form('assignRoleModal', 'Assign Role to User', form_id='assignRoleForm', submit_text='Assign Role', loading_text='Assigning...') %}
+    <input type="hidden" id="assignRoleId" name="role_id">
 
-                        <div class="mb-4">
-                            <label for="userSearchInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search User</label>
-                            <div class="relative">
-                                <div class="relative">
-                                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                                        <i class="ti ti-search"></i>
-                                    </span>
-                                    <input type="text" id="userSearchInput" autocomplete="off" placeholder="Type to search users..." class="w-full pl-10 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                                    <span id="userSearchSpinner" class="absolute inset-y-0 right-0 hidden items-center pr-3 text-gray-400">
-                                        <i class="ti ti-loader-2 animate-spin"></i>
-                                    </span>
-                                    <button type="button" id="userSearchClear" class="absolute inset-y-0 right-0 hidden items-center pr-3 text-gray-400 hover:text-gray-600">
-                                        <i class="ti ti-x"></i>
-                                    </button>
-                                </div>
-                                <input type="hidden" id="selectUser" name="user_id" required>
-                                <!-- Search results dropdown -->
-                                <div id="userSearchResults" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                                    <!-- Results populated via JavaScript -->
-                                </div>
-                            </div>
-                            <p id="selectedUserDisplay" class="mt-2 text-sm text-ecs-green hidden">
-                                <i class="ti ti-check mr-1"></i>Selected: <span id="selectedUserName" class="font-medium"></span>
-                            </p>
-                        </div>
-
-                        <div class="flex items-start p-4 rounded-lg border bg-blue-50 dark:bg-gray-700 border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-400">
-                            <i class="ti ti-info-circle flex-shrink-0 w-5 h-5 mr-3"></i>
-                            <div>
-                                <span class="font-medium">Role:</span> <span id="assigningRoleName"></span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-modal-hide="assignRoleModal">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
-                            <i class="ti ti-user-plus mr-1"></i>Assign Role
-                        </button>
-                    </div>
-                </form>
+    <div class="mb-4">
+        <label for="userSearchInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search User</label>
+        <div class="relative">
+            <div class="relative">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
+                    <i class="ti ti-search"></i>
+                </span>
+                <input type="text" id="userSearchInput" autocomplete="off" placeholder="Type to search users..." class="w-full pl-10 pr-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                <span id="userSearchSpinner" class="absolute inset-y-0 right-0 hidden items-center pr-3 text-gray-400">
+                    <i class="ti ti-loader-2 animate-spin"></i>
+                </span>
+                <button type="button" id="userSearchClear" class="absolute inset-y-0 right-0 hidden items-center pr-3 text-gray-400 hover:text-gray-600">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <input type="hidden" id="selectUser" name="user_id" required>
+            <!-- Search results dropdown -->
+            <div id="userSearchResults" class="hidden absolute z-50 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                <!-- Results populated via JavaScript -->
             </div>
         </div>
+        <p id="selectedUserDisplay" class="mt-2 text-sm text-ecs-green hidden">
+            <i class="ti ti-check mr-1"></i>Selected: <span id="selectedUserName" class="font-medium"></span>
+        </p>
     </div>
-</div>
+
+    <div class="flex items-start p-4 rounded-lg border bg-blue-50 dark:bg-gray-700 border-blue-300 dark:border-blue-800 text-blue-800 dark:text-blue-400">
+        <i class="ti ti-info-circle flex-shrink-0 w-5 h-5 mr-3"></i>
+        <div>
+            <span class="font-medium">Role:</span> <span id="assigningRoleName"></span>
+        </div>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}

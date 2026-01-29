@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form, modal_info %}
 
 {% block admin_title %}User Approvals{% endblock %}
 {% block panel_description %}Review and approve new user applications{% endblock %}
@@ -90,7 +90,7 @@
             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
                 <td class="px-4 py-3">
                     <div class="flex items-center">
-                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-medium cursor-pointer" data-action="show-player-details" data-user-id="{{ user.id }}">
+                        <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-medium cursor-pointer" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">
                             {% if user.player and user.player.profile_picture_url %}
                             <img src="{{ user.player.profile_picture_url }}" alt="{{ user.username }}" class="w-10 h-10 rounded-full object-cover">
                             {% else %}
@@ -98,7 +98,7 @@
                             {% endif %}
                         </div>
                         <div class="ml-3">
-                            <p class="font-medium text-gray-900 dark:text-white cursor-pointer hover:text-ecs-green" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</p>
+                            <p class="font-medium text-gray-900 dark:text-white cursor-pointer hover:text-ecs-green" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.player.name if user.player else 'No player record' }}</p>
                         </div>
                     </div>
@@ -140,10 +140,10 @@
                 </td>
                 <td class="px-4 py-3">
                     <div class="flex gap-1">
-                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-green-500 rounded hover:bg-green-600" data-action="show-approval-modal" data-user-id="{{ user.id }}">
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-green-500 rounded hover:bg-green-600" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
                             <i class="ti ti-check mr-1"></i>Approve
                         </button>
-                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600" data-action="show-denial-modal" data-user-id="{{ user.id }}">
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
                             <i class="ti ti-x mr-1"></i>Deny
                         </button>
                     </div>
@@ -272,107 +272,57 @@
 {% endif %}
 
 <!-- Approval Modal -->
-<div id="approvalModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white"><i class="ti ti-user-check mr-2"></i>Approve User</h3>
-                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="approvalModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="approvalForm">
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label for="leagueSelect" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Assign to League <span class="text-red-500">*</span></label>
-                        <select id="leagueSelect" name="league_type" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="">Select a league...</option>
-                            <optgroup label="Full League Roles">
-                                <option value="classic">Classic Division</option>
-                                <option value="premier">Premier Division</option>
-                                <option value="ecs-fc">ECS FC League</option>
-                            </optgroup>
-                            <optgroup label="Substitute Roles (Mid-Season)">
-                                <option value="sub-classic">Classic Substitute</option>
-                                <option value="sub-premier">Premier Substitute</option>
-                                <option value="sub-ecs-fc">ECS FC Substitute</option>
-                            </optgroup>
-                        </select>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Substitute roles are for mid-season signups.</p>
-                    </div>
-                    <div>
-                        <label for="approvalNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
-                        <textarea id="approvalNotes" name="notes" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Add any notes..."></textarea>
-                    </div>
-                    <input type="hidden" id="approvalUserId" name="user_id">
-                </div>
-                <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="approvalModal">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600">Approve User</button>
-                </div>
-            </form>
-        </div>
-    </div>
+{% call modal_form('approvalModal', 'Approve User', form_id='approvalForm', submit_text='Approve User', submit_color='primary', loading_text='Approving...') %}
+<div>
+    <label for="leagueSelect" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Assign to League <span class="text-red-500">*</span></label>
+    <select id="leagueSelect" name="league_type" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        <option value="">Select a league...</option>
+        <optgroup label="Full League Roles">
+            <option value="classic">Classic Division</option>
+            <option value="premier">Premier Division</option>
+            <option value="ecs-fc">ECS FC League</option>
+        </optgroup>
+        <optgroup label="Substitute Roles (Mid-Season)">
+            <option value="sub-classic">Classic Substitute</option>
+            <option value="sub-premier">Premier Substitute</option>
+            <option value="sub-ecs-fc">ECS FC Substitute</option>
+        </optgroup>
+    </select>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Substitute roles are for mid-season signups.</p>
 </div>
+<div>
+    <label for="approvalNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
+    <textarea id="approvalNotes" name="notes" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Add any notes..."></textarea>
+</div>
+<input type="hidden" id="approvalUserId" name="user_id">
+{% endcall %}
 
 <!-- Denial Modal -->
-<div id="denialModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white"><i class="ti ti-user-x mr-2"></i>Deny User Application</h3>
-                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="denialModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="denialForm">
-                <div class="p-6 space-y-4">
-                    <div class="p-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-300">
-                        <i class="ti ti-alert-triangle mr-2"></i>
-                        <strong>Warning:</strong> Denying this user will remove their Discord roles and prevent them from accessing league features.
-                    </div>
-                    <div>
-                        <label for="denialNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason for Denial <span class="text-red-500">*</span></label>
-                        <textarea id="denialNotes" name="notes" rows="3" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Explain why this application is being denied..."></textarea>
-                    </div>
-                    <input type="hidden" id="denialUserId" name="user_id">
-                </div>
-                <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="denialModal">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600">Deny Application</button>
-                </div>
-            </form>
-        </div>
-    </div>
+{% call modal_form('denialModal', 'Deny User Application', form_id='denialForm', submit_text='Deny Application', submit_color='danger', loading_text='Denying...') %}
+<div class="p-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-300">
+    <i class="ti ti-alert-triangle mr-2"></i>
+    <strong>Warning:</strong> Denying this user will remove their Discord roles and prevent them from accessing league features.
 </div>
+<div>
+    <label for="denialNotes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason for Denial <span class="text-red-500">*</span></label>
+    <textarea id="denialNotes" name="notes" rows="3" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Explain why this application is being denied..."></textarea>
+</div>
+<input type="hidden" id="denialUserId" name="user_id">
+{% endcall %}
 
 <!-- Player Details Modal -->
-<div id="playerDetailsModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white"><i class="ti ti-user mr-2"></i>Player Details</h3>
-                <button type="button" class="text-gray-400 hover:bg-gray-200 hover:text-gray-900 rounded-lg p-1.5 dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="playerDetailsModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6" id="playerDetailsContent">
-                <div class="text-center py-8">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
-                </div>
-            </div>
-            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="playerDetailsModal">Close</button>
-                <a id="profileLink" href="#" target="_blank" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
-                    <i class="ti ti-external-link mr-1"></i>View Full Profile
-                </a>
-            </div>
-        </div>
+{% call modal_info('playerDetailsModal', 'Player Details', size='lg') %}
+<div id="playerDetailsContent">
+    <div class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
     </div>
 </div>
+<div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 flex justify-end">
+    <a id="profileLink" href="#" target="_blank" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
+        <i class="ti ti-external-link mr-1"></i>View Full Profile
+    </a>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -380,26 +330,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
 
-    // Modal setup
-    function setupModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (!modal) return;
-
-        document.querySelectorAll(`[data-modal-hide="${modalId}"]`).forEach(btn => {
-            btn.addEventListener('click', () => modal.classList.add('hidden'));
-        });
-
-        const backdrop = modal.querySelector('[data-modal-backdrop]');
-        if (backdrop) {
-            backdrop.addEventListener('click', () => modal.classList.add('hidden'));
-        }
-    }
-
-    setupModal('approvalModal');
-    setupModal('denialModal');
-    setupModal('playerDetailsModal');
-
-    // Action handlers
+    // Action handlers - Flowbite handles modal show/hide via data-modal-toggle
+    // We just need to set form values when buttons are clicked
     document.addEventListener('click', function(e) {
         const target = e.target.closest('[data-action]');
         if (!target) return;
@@ -412,16 +344,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 location.reload();
                 break;
             case 'show-approval-modal':
+                // Set user ID in form - modal is shown by Flowbite via data-modal-toggle
                 document.getElementById('approvalUserId').value = userId;
-                document.getElementById('approvalModal').classList.remove('hidden');
                 break;
             case 'show-denial-modal':
+                // Set user ID in form - modal is shown by Flowbite via data-modal-toggle
                 document.getElementById('denialUserId').value = userId;
-                document.getElementById('denialModal').classList.remove('hidden');
                 break;
             case 'show-player-details':
-                document.getElementById('playerDetailsModal').classList.remove('hidden');
-                // Load player details via API
+                // Modal is shown by Flowbite via data-modal-toggle
+                // TODO: Load player details via API using userId
                 break;
         }
     });

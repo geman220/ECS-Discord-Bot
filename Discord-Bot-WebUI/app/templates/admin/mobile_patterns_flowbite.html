@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_info %}
 
 {% block title %}Mobile Error Patterns{% endblock %}
 
@@ -160,22 +161,11 @@
 </div>
 
 <!-- Pattern Detail Modal -->
-<div id="pattern-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75" id="modal-backdrop"></div>
-        <div class="relative inline-block w-full max-w-2xl p-6 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Pattern Details</h3>
-                <button type="button" id="close-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div id="pattern-detail-content">
-                <!-- Content loaded via AJAX -->
-            </div>
-        </div>
-    </div>
+{% call modal_info(id="pattern-modal", title="Pattern Details", size="lg") %}
+<div id="pattern-detail-content">
+    <!-- Content loaded via AJAX -->
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}
@@ -183,11 +173,15 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
-    const modal = document.getElementById('pattern-modal');
-    const modalBackdrop = document.getElementById('modal-backdrop');
-    const closeModalBtn = document.getElementById('close-modal');
+    const modalEl = document.getElementById('pattern-modal');
     const patternContent = document.getElementById('pattern-detail-content');
     const searchInput = document.getElementById('pattern-search');
+
+    // Initialize Flowbite modal
+    let patternModal = null;
+    if (modalEl && typeof Modal !== 'undefined') {
+        patternModal = new Modal(modalEl, { closable: true });
+    }
 
     // Search functionality
     searchInput?.addEventListener('input', function() {
@@ -210,7 +204,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const patternId = this.dataset.patternId;
 
             patternContent.innerHTML = '<div class="text-center py-8"><i class="ti ti-loader-2 animate-spin text-2xl text-gray-400"></i></div>';
-            modal.classList.remove('hidden');
+            if (patternModal) {
+                patternModal.show();
+            }
 
             fetch(`/admin/mobile-analytics/api/pattern/${patternId}`)
                 .then(res => res.json())
@@ -264,20 +260,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     patternContent.innerHTML = `<div class="text-center py-8 text-red-500">Failed to load pattern details</div>`;
                 });
         });
-    });
-
-    // Close modal
-    function closeModal() {
-        modal.classList.add('hidden');
-    }
-
-    closeModalBtn?.addEventListener('click', closeModal);
-    modalBackdrop?.addEventListener('click', closeModal);
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-            closeModal();
-        }
     });
 });
 </script>

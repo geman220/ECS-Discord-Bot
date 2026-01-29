@@ -26,8 +26,9 @@ export function openPlayerModal(playerId) {
     const profileLoading = document.getElementById('profileLoading');
     profileLoading.classList.add('block');
     profileLoading.classList.remove('hidden');
-    document.getElementById('profileData').classList.remove('is-visible');
-    document.getElementById('draftFromModal').classList.remove('is-visible');
+    // Use Flowbite's hidden class pattern instead of is-visible
+    document.getElementById('profileData').classList.add('hidden');
+    document.getElementById('draftFromModal').classList.add('hidden');
 
     // Open modal
     if (typeof window.ModalManager !== 'undefined') {
@@ -161,18 +162,25 @@ export function displayPlayerProfile(data, playerId) {
     `;
 
     document.getElementById('profileData').innerHTML = profileHtml;
-    document.getElementById('profileData').classList.add('is-visible');
+    // Use Flowbite's hidden class pattern instead of is-visible
+    document.getElementById('profileData').classList.remove('hidden');
 
     // Re-setup image error handlers for dynamically added images
     setupImageErrorHandlers();
 
     // Show draft button and set up click handler
     const draftButton = document.getElementById('draftFromModal');
-    draftButton.classList.add('is-visible');
+    // Use Flowbite's hidden class pattern instead of is-visible
+    draftButton.classList.remove('hidden');
     draftButton.onclick = () => {
-        // Close modal and trigger draft
-        const modalEl = document.getElementById('playerProfileModal');
-        modalEl?._flowbiteModal?.hide();
+        // Close modal and trigger draft using ModalManager
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.hide('playerProfileModal');
+        } else {
+            // Fallback to direct Flowbite instance
+            const modalEl = document.getElementById('playerProfileModal');
+            modalEl?._flowbiteModal?.hide();
+        }
         confirmDraftPlayer(playerId, data.name);
     };
 }

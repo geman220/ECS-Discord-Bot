@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
 {% block admin_title %}Roles & Permissions{% endblock %}
 {% block panel_description %}Manage system roles and user permissions{% endblock %}
@@ -228,27 +228,11 @@
 </div>
 
 <!-- Role Details Modal -->
-<div id="roleDetailsModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75 transition-opacity" data-modal-backdrop></div>
-        <div class="relative w-full max-w-lg transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="roleDetailsTitle">Role Details</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-close>
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-4" id="roleDetailsContent">
-                <!-- Content loaded via JS -->
-            </div>
-            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-close>
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
+{% call modal_info('roleDetailsModal', 'Role Details') %}
+<div id="roleDetailsContent">
+    <!-- Content loaded via JS -->
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -261,25 +245,16 @@ window.ROLES_CONFIG = {
 
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
-    const roleDetailsModal = document.getElementById('roleDetailsModal');
+    const roleDetailsModalEl = document.getElementById('roleDetailsModal');
 
-    function openModal(modal) {
-        modal.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden');
-    }
-
-    function closeModal(modal) {
-        modal.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
-    }
-
-    document.querySelectorAll('[data-modal-close]').forEach(btn => {
-        btn.addEventListener('click', () => closeModal(roleDetailsModal));
-    });
-
-    roleDetailsModal.querySelector('[data-modal-backdrop]').addEventListener('click', () => {
-        closeModal(roleDetailsModal);
-    });
+    // Initialize Flowbite modal
+    const modalOptions = {
+        placement: 'center',
+        backdrop: 'dynamic',
+        backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
+        closable: true
+    };
+    const roleDetailsModal = roleDetailsModalEl ? new Modal(roleDetailsModalEl, modalOptions) : null;
 
     document.addEventListener('click', function(e) {
         const target = e.target.closest('[data-action]');
@@ -304,13 +279,13 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function loadRoleDetails(roleId, roleName) {
-        document.getElementById('roleDetailsTitle').textContent = `Role: ${roleName}`;
+        document.getElementById('roleDetailsModal-title').textContent = `Role: ${roleName}`;
         document.getElementById('roleDetailsContent').innerHTML = `
             <div class="flex justify-center py-8">
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
             </div>
         `;
-        openModal(roleDetailsModal);
+        if (roleDetailsModal) roleDetailsModal.show();
 
         fetch(`${window.ROLES_CONFIG.roleDetailsUrl}?role_id=${roleId}`)
             .then(response => response.json())

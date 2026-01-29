@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state, avatar %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state, avatar, modal_form %}
 
 {% block admin_title %}I-Spy Players{% endblock %}
 {% block panel_description %}Manage I-Spy game players and scores{% endblock %}
@@ -268,93 +268,47 @@
 </div>
 
 <!-- Add Player Modal -->
-<div id="addPlayerModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-md">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Add Player</h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="addPlayerModal">
-                        <i class="ti ti-x text-lg"></i>
-                    </button>
-                </div>
-                <form id="addPlayerForm">
-                    <div class="p-6 space-y-4">
-                        <div>
-                            <label for="playerDiscordId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Discord User <span class="text-red-500">*</span></label>
-                            <select id="playerDiscordId" name="discord_id" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                                <option value="">Select a user...</option>
-                                {% for user in discord_users %}
-                                <option value="{{ user.discord_id }}">{{ user.username }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div>
-                            <label for="playerSeason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season <span class="text-red-500">*</span></label>
-                            <select id="playerSeason" name="season_id" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                                {% for season in seasons %}
-                                <option value="{{ season.id }}" {% if season.is_active %}selected{% endif %}>{{ season.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div>
-                            <label for="playerInitialScore" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Initial Score</label>
-                            <input type="number" id="playerInitialScore" name="initial_score" value="0" min="0" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-hide="addPlayerModal">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
-                            <i class="ti ti-plus mr-1"></i>Add Player
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+{% call modal_form('addPlayerModal', 'Add Player', form_id='addPlayerForm', submit_text='Add Player', loading_text='Adding...') %}
+    <div>
+        <label for="playerDiscordId" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Discord User <span class="text-red-500">*</span></label>
+        <select id="playerDiscordId" name="discord_id" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">Select a user...</option>
+            {% for user in discord_users %}
+            <option value="{{ user.discord_id }}">{{ user.username }}</option>
+            {% endfor %}
+        </select>
     </div>
-</div>
+    <div>
+        <label for="playerSeason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season <span class="text-red-500">*</span></label>
+        <select id="playerSeason" name="season_id" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            {% for season in seasons %}
+            <option value="{{ season.id }}" {% if season.is_active %}selected{% endif %}>{{ season.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="playerInitialScore" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Initial Score</label>
+        <input type="number" id="playerInitialScore" name="initial_score" value="0" min="0" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+{% endcall %}
 
 <!-- Adjust Score Modal -->
-<div id="adjustScoreModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-sm">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Adjust Score</h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="adjustScoreModal">
-                        <i class="ti ti-x text-lg"></i>
-                    </button>
-                </div>
-                <form id="adjustScoreForm">
-                    <input type="hidden" id="adjustPlayerId" name="player_id">
-                    <div class="p-6 space-y-4">
-                        <div class="text-center">
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Current Score</p>
-                            <p id="currentScore" class="text-4xl font-bold text-gray-900 dark:text-white">0</p>
-                        </div>
-                        <div>
-                            <label for="scoreAdjustment" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Adjustment</label>
-                            <input type="number" id="scoreAdjustment" name="adjustment" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white text-center text-xl focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="+/- points">
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Use negative numbers to subtract points</p>
-                        </div>
-                        <div>
-                            <label for="adjustmentReason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason</label>
-                            <input type="text" id="adjustmentReason" name="reason" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="Optional reason for adjustment">
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-hide="adjustScoreModal">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
-                            <i class="ti ti-check mr-1"></i>Apply
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+{% call modal_form('adjustScoreModal', 'Adjust Score', form_id='adjustScoreForm', size='sm', submit_text='Apply', loading_text='Applying...') %}
+    <input type="hidden" id="adjustPlayerId" name="player_id">
+    <div class="text-center">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Current Score</p>
+        <p id="currentScore" class="text-4xl font-bold text-gray-900 dark:text-white">0</p>
     </div>
-</div>
+    <div>
+        <label for="scoreAdjustment" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Adjustment</label>
+        <input type="number" id="scoreAdjustment" name="adjustment" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white text-center text-xl focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="+/- points">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">Use negative numbers to subtract points</p>
+    </div>
+    <div>
+        <label for="adjustmentReason" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Reason</label>
+        <input type="text" id="adjustmentReason" name="reason" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="Optional reason for adjustment">
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}

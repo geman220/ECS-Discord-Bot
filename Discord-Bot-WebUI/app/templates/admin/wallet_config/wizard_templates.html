@@ -1,3 +1,4 @@
+{% from "macros/flowbite.html" import modal_form %}
 <h5><i class="ti ti-file-text me-2"></i>Step 3: Pass Templates</h5>
 
 {% if step_data.pass_types_missing %}
@@ -293,44 +294,35 @@
 {% endif %}
 
 <!-- Create Template Modal -->
-<div class="modal c-modal fade" id="createTemplateModal" tabindex="-1" data-modal aria-labelledby="createTemplateModalLabel">
-    <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header>
-                <h5 class="modal-title c-modal__title" id="createTemplateModalLabel">Create Custom Template</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
-            </div>
-            <form action="{{ url_for('wallet_config.create_template') }}" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="is_wizard" value="true">
-                <div class="modal-body c-modal__body" data-modal-body>
-                    <div class="mb-3">
-                        <label class="form-label">Pass Type</label>
-                        <select name="pass_type_id" class="form-select" required data-form-select>
-                            <option value="">Select pass type...</option>
-                            <option value="{{ ecs_type.id }}">ECS Membership</option>
-                            <option value="{{ pub_type.id }}">Pub League</option>
-                        </select>
-                    </div>
+{% call modal_form('createTemplateModal', 'Create Custom Template', action=url_for('wallet_config.create_template'), size='lg', submit_text='Create Template', loading_text='Creating...') %}
+    <input type="hidden" name="is_wizard" value="true">
+    <div class="mb-3">
+        <label class="form-label">Pass Type</label>
+        <select name="pass_type_id" class="form-select" required data-form-select>
+            <option value="">Select pass type...</option>
+            <option value="{{ ecs_type.id }}">ECS Membership</option>
+            <option value="{{ pub_type.id }}">Pub League</option>
+        </select>
+    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Template Name</label>
-                        <input type="text" name="name" class="form-control" placeholder="e.g. Standard ECS Template" required data-form-control aria-label="e.g. Standard ECS Template">
-                    </div>
+    <div class="mb-3">
+        <label class="form-label">Template Name</label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. Standard ECS Template" required data-form-control aria-label="e.g. Standard ECS Template">
+    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Platform</label>
-                        <select name="platform" class="form-select" required data-form-select>
-                            <option value="apple">Apple Wallet</option>
-                        </select>
-                        <small class="form-text text-muted">
-                            <i class="ti ti-info-circle me-1"></i>Google Wallet passes are generated automatically from pass type settings - no template needed.
-                        </small>
-                    </div>
+    <div class="mb-3">
+        <label class="form-label">Platform</label>
+        <select name="platform" class="form-select" required data-form-select>
+            <option value="apple">Apple Wallet</option>
+        </select>
+        <small class="form-text text-muted">
+            <i class="ti ti-info-circle me-1"></i>Google Wallet passes are generated automatically from pass type settings - no template needed.
+        </small>
+    </div>
 
-                    <div class="mb-3">
-                        <label class="form-label">Template Content (JSON)</label>
-                        <textarea name="content" class="form-control" rows="10" required placeholder='{
+    <div class="mb-3">
+        <label class="form-label">Template Content (JSON)</label>
+        <textarea name="content" class="form-control" rows="10" required placeholder='{
   "formatVersion": 1,
   "passTypeIdentifier": "pass.com.example.membership",
   "serialNumber": "{{serial_number}}",
@@ -364,91 +356,49 @@
     }
   ]
 }' data-form-control></textarea>
-                        <small class="form-text text-muted">Enter valid JSON template structure for the pass</small>
-                    </div>
-
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="is_default" value="true" id="isDefault">
-                        <label class="form-check-label" for="isDefault">
-                            Set as default template
-                        </label>
-                    </div>
-                </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer>
-                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                    <button type="submit" class="c-btn c-btn--primary">Create Template</button>
-                </div>
-            </form>
-        </div>
+        <small class="form-text text-muted">Enter valid JSON template structure for the pass</small>
     </div>
-</div>
+
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_default" value="true" id="isDefault">
+        <label class="form-check-label" for="isDefault">
+            Set as default template
+        </label>
+    </div>
+{% endcall %}
 
 <!-- Generate ECS Template Modal -->
-<div class="modal c-modal fade" id="generateEcsTemplateModal" tabindex="-1" data-modal aria-labelledby="generateEcsTemplateModalLabel">
-    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header>
-                <h5 class="modal-title c-modal__title" id="generateEcsTemplateModalLabel">Generate ECS Membership Template</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
-            </div>
-            <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
-                <input type="hidden" name="platform" value="apple">
-                <input type="hidden" name="is_wizard" value="true">
-                <div class="modal-body c-modal__body" data-modal-body>
-                    <p>This will generate a default template for ECS Membership passes with standard fields and formatting.</p>
+{% call modal_form('generateEcsTemplateModal', 'Generate ECS Membership Template', action=url_for('wallet_config.generate_default_template'), submit_text='Generate Template', submit_color='primary', loading_text='Generating...') %}
+    <input type="hidden" name="pass_type_id" value="{{ ecs_type.id }}">
+    <input type="hidden" name="platform" value="apple">
+    <input type="hidden" name="is_wizard" value="true">
+    <p>This will generate a default template for ECS Membership passes with standard fields and formatting.</p>
 
-                    <div class="alert alert-info" data-alert>
-                        <i class="ti ti-info-circle me-2"></i> The template will include:
-                        <ul class="mb-0 mt-2">
-                            <li>Member name display</li>
-                            <li>Membership year/validity</li>
-                            <li>QR code for validation</li>
-                            <li>Organization information</li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer>
-                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                    <button type="submit" class="c-btn c-btn--success">Generate Template</button>
-                </div>
-            </form>
-        </div>
+    <div class="alert alert-info" data-alert>
+        <i class="ti ti-info-circle me-2"></i> The template will include:
+        <ul class="mb-0 mt-2">
+            <li>Member name display</li>
+            <li>Membership year/validity</li>
+            <li>QR code for validation</li>
+            <li>Organization information</li>
+        </ul>
     </div>
-</div>
+{% endcall %}
 
 <!-- Generate Pub League Template Modal -->
-<div class="modal c-modal fade" id="generatePubTemplateModal" tabindex="-1" data-modal aria-labelledby="generatePubTemplateModalLabel">
-    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content>
-            <div class="modal-header c-modal__header" data-modal-header>
-                <h5 class="modal-title c-modal__title" id="generatePubTemplateModalLabel">Generate Pub League Template</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
-            </div>
-            <form action="{{ url_for('wallet_config.generate_default_template') }}" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
-                <input type="hidden" name="platform" value="apple">
-                <input type="hidden" name="is_wizard" value="true">
-                <div class="modal-body c-modal__body" data-modal-body>
-                    <p>This will generate a default template for Pub League passes with standard fields and formatting.</p>
+{% call modal_form('generatePubTemplateModal', 'Generate Pub League Template', action=url_for('wallet_config.generate_default_template'), submit_text='Generate Template', submit_color='primary', loading_text='Generating...') %}
+    <input type="hidden" name="pass_type_id" value="{{ pub_type.id }}">
+    <input type="hidden" name="platform" value="apple">
+    <input type="hidden" name="is_wizard" value="true">
+    <p>This will generate a default template for Pub League passes with standard fields and formatting.</p>
 
-                    <div class="alert alert-info" data-alert>
-                        <i class="ti ti-info-circle me-2"></i> The template will include:
-                        <ul class="mb-0 mt-2">
-                            <li>Member name display</li>
-                            <li>Team name display</li>
-                            <li>Season validity</li>
-                            <li>QR code for validation</li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer>
-                    <button type="button" class="c-btn c-btn--secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                    <button type="submit" class="c-btn c-btn--success">Generate Template</button>
-                </div>
-            </form>
-        </div>
+    <div class="alert alert-info" data-alert>
+        <i class="ti ti-info-circle me-2"></i> The template will include:
+        <ul class="mb-0 mt-2">
+            <li>Member name display</li>
+            <li>Team name display</li>
+            <li>Season validity</li>
+            <li>QR code for validation</li>
+        </ul>
     </div>
-</div>
+{% endcall %}

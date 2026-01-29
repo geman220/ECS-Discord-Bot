@@ -1,5 +1,5 @@
 {% extends "base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, avatar, stat_card, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, avatar, stat_card, alert, modal_form %}
 
 {% block title %}{{ player.name }} - Player Profile{% endblock %}
 
@@ -974,112 +974,75 @@
 </div>
 
 <!-- Profile Image Modal -->
-<div id="profileImageModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-lg max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Update Profile Picture</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="profileImageModal">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-                </button>
-            </div>
-            <form method="POST" enctype="multipart/form-data" action="{{ url_for('players.player_profile', player_id=player.id) }}">
-                {{ form.hidden_tag() }}
-                <div class="p-6">
-                    <div class="flex justify-center mb-4">
-                        <div class="w-32 h-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-600">
-                            <img id="imagePreview" src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" class="w-full h-full object-cover" alt="Preview">
-                        </div>
-                    </div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Choose Image</label>
-                    <input type="file" name="profile_picture" accept="image/*" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" id="profilePictureInput">
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">PNG, JPG or WEBP (MAX. 2MB)</p>
-                </div>
-                <div class="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-600 gap-2">
-                    <button type="button" data-modal-hide="profileImageModal" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-600">Cancel</button>
-                    <button type="submit" name="update_picture" class="text-white bg-ecs-green hover:bg-ecs-green/90 focus:ring-4 focus:ring-ecs-green/50 font-medium rounded-lg text-sm px-5 py-2.5">Upload</button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('profileImageModal', 'Update Profile Picture', action=url_for('players.player_profile', player_id=player.id), submit_text='Upload', loading_text='Uploading...', enctype='multipart/form-data') %}
+<input type="hidden" name="update_picture" value="1">
+<div class="flex justify-center mb-4">
+    <div class="w-32 h-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-600">
+        <img id="imagePreview" src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" class="w-full h-full object-cover" alt="Preview">
     </div>
 </div>
+<label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Choose Image</label>
+<input type="file" name="profile_picture" accept="image/*" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" id="profilePictureInput">
+<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">PNG, JPG or WEBP (MAX. 2MB)</p>
+{% endcall %}
 
 <!-- Contact Player Modal -->
 {% if is_admin or 'Pub League Coach' in user_roles %}
-<div id="contactPlayerModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-lg max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Contact {{ player.name }}</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="contactPlayerModal">
-                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>
-                </button>
-            </div>
-            <form method="POST" action="{{ url_for('players.contact_player', player_id=player.id) }}">
-                {{ form.hidden_tag() }}
-                <div class="p-6">
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Select how you want to contact this player:</p>
+{% call modal_form('contactPlayerModal', 'Contact ' ~ player.name, action=url_for('players.contact_player', player_id=player.id), submit_text='Send Message', loading_text='Sending...') %}
+<p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Select how you want to contact this player:</p>
 
-                    {% set email_available = user.email %}
-                    {% set email_enabled = user.email_notifications %}
-                    {% set sms_available = player.phone %}
-                    {% set sms_enabled = user.sms_notifications %}
-                    {% set discord_available = player.discord_id %}
-                    {% set discord_enabled = user.discord_notifications %}
+{% set email_available = user.email %}
+{% set email_enabled = user.email_notifications %}
+{% set sms_available = player.phone %}
+{% set sms_enabled = user.sms_notifications %}
+{% set discord_available = player.discord_id %}
+{% set discord_enabled = user.discord_notifications %}
 
-                    <div class="space-y-3 mb-4">
-                        <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-600 rounded-lg cursor-pointer {{ 'opacity-50' if not email_available or not email_enabled }}">
-                            <input type="checkbox" name="contact_channels" value="email" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" {% if not email_available or not email_enabled %}disabled{% endif %}>
-                            <svg class="w-5 h-5 ml-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                            <span class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Email</span>
-                            {% if not email_available %}
-                            <span class="ml-auto text-xs text-red-500">No email</span>
-                            {% elif not email_enabled %}
-                            <span class="ml-auto text-xs text-yellow-500">Disabled</span>
-                            {% endif %}
-                        </label>
+<div class="space-y-3 mb-4">
+    <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-600 rounded-lg cursor-pointer {{ 'opacity-50' if not email_available or not email_enabled }}">
+        <input type="checkbox" name="contact_channels" value="email" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600" {% if not email_available or not email_enabled %}disabled{% endif %}>
+        <svg class="w-5 h-5 ml-3 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+        <span class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Email</span>
+        {% if not email_available %}
+        <span class="ml-auto text-xs text-red-500">No email</span>
+        {% elif not email_enabled %}
+        <span class="ml-auto text-xs text-yellow-500">Disabled</span>
+        {% endif %}
+    </label>
 
-                        <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-600 rounded-lg cursor-pointer {{ 'opacity-50' if not sms_available or not sms_enabled }}">
-                            <input type="checkbox" name="contact_channels" value="sms" class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600" {% if not sms_available or not sms_enabled %}disabled{% endif %}>
-                            <svg class="w-5 h-5 ml-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                            <span class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">SMS</span>
-                            {% if not sms_available %}
-                            <span class="ml-auto text-xs text-red-500">No phone</span>
-                            {% elif not sms_enabled %}
-                            <span class="ml-auto text-xs text-yellow-500">Disabled</span>
-                            {% endif %}
-                        </label>
+    <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-600 rounded-lg cursor-pointer {{ 'opacity-50' if not sms_available or not sms_enabled }}">
+        <input type="checkbox" name="contact_channels" value="sms" class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600" {% if not sms_available or not sms_enabled %}disabled{% endif %}>
+        <svg class="w-5 h-5 ml-3 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+        <span class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">SMS</span>
+        {% if not sms_available %}
+        <span class="ml-auto text-xs text-red-500">No phone</span>
+        {% elif not sms_enabled %}
+        <span class="ml-auto text-xs text-yellow-500">Disabled</span>
+        {% endif %}
+    </label>
 
-                        <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-600 rounded-lg cursor-pointer {{ 'opacity-50' if not discord_available or not discord_enabled }}">
-                            <input type="checkbox" name="contact_channels" value="discord" class="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600" {% if not discord_available or not discord_enabled %}disabled{% endif %}>
-                            <svg class="w-5 h-5 ml-3 text-indigo-500" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
-                            <span class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Discord</span>
-                            {% if not discord_available %}
-                            <span class="ml-auto text-xs text-red-500">Not linked</span>
-                            {% elif not discord_enabled %}
-                            <span class="ml-auto text-xs text-yellow-500">Disabled</span>
-                            {% endif %}
-                        </label>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="contactMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
-                        <textarea id="contactMessage" name="message" rows="4" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Enter your message..." required></textarea>
-                    </div>
-
-                    <div class="p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
-                        <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        Discord messages are delivered via the ECS Bot.
-                    </div>
-                </div>
-                <div class="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-600 gap-2">
-                    <button type="button" data-modal-hide="contactPlayerModal" class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:bg-gray-600">Cancel</button>
-                    <button type="submit" class="text-white bg-ecs-green hover:bg-ecs-green/90 focus:ring-4 focus:ring-ecs-green/50 font-medium rounded-lg text-sm px-5 py-2.5">Send Message</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-600 rounded-lg cursor-pointer {{ 'opacity-50' if not discord_available or not discord_enabled }}">
+        <input type="checkbox" name="contact_channels" value="discord" class="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600" {% if not discord_available or not discord_enabled %}disabled{% endif %}>
+        <svg class="w-5 h-5 ml-3 text-indigo-500" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+        <span class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Discord</span>
+        {% if not discord_available %}
+        <span class="ml-auto text-xs text-red-500">Not linked</span>
+        {% elif not discord_enabled %}
+        <span class="ml-auto text-xs text-yellow-500">Disabled</span>
+        {% endif %}
+    </label>
 </div>
+
+<div class="mb-4">
+    <label for="contactMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+    <textarea id="contactMessage" name="message" rows="4" class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Enter your message..." required></textarea>
+</div>
+
+<div class="p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+    Discord messages are delivered via the ECS Bot.
+</div>
+{% endcall %}
 {% endif %}
 {% endblock %}
 

@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_info %}
 
 {% block title %}Join the Waitlist - ECS Soccer League{% endblock %}
 
@@ -137,131 +138,116 @@
 </div>
 
 <!-- Profile Review Modal -->
-<div id="profileModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="modal-overlay"></div>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <i class="ti ti-user-check"></i>
-                        Review Your Profile
-                    </h3>
-                    <button type="button" id="close-modal-btn" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                        <i class="ti ti-x text-xl"></i>
-                    </button>
+{% call modal_info('profileModal', 'Review Your Profile', size='xl', footer=false) %}
+    <!-- Info Alert -->
+    <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
+        <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
+        <div class="text-sm">
+            <h6 class="font-semibold mb-1">Review Your Profile</h6>
+            <p class="mb-2">Before joining the waitlist, please review and update your profile information to ensure it's current and accurate.</p>
+            <ul class="list-disc list-inside space-y-1 text-xs">
+                <li>Verify your contact information is up to date</li>
+                <li>Review your playing preferences and availability</li>
+                <li>Ensure you get the correct jersey size</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Profile Form (Read-only) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Basic Information -->
+        <div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h6>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Name</label>
+                    <input type="text" value="{{ user.username if user else '' }}" readonly
+                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
                 </div>
-
-                <!-- Info Alert -->
-                <div class="flex items-start gap-3 p-4 mb-6 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <i class="ti ti-info-circle text-xl flex-shrink-0 mt-0.5"></i>
-                    <div class="text-sm">
-                        <h6 class="font-semibold mb-1">Review Your Profile</h6>
-                        <p class="mb-2">Before joining the waitlist, please review and update your profile information to ensure it's current and accurate.</p>
-                        <ul class="list-disc list-inside space-y-1 text-xs">
-                            <li>Verify your contact information is up to date</li>
-                            <li>Review your playing preferences and availability</li>
-                            <li>Ensure you get the correct jersey size</li>
-                        </ul>
-                    </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
+                    <input type="email" value="{{ user.email if user else '' }}" readonly
+                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
                 </div>
-
-                <!-- Profile Form (Read-only) -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Basic Information -->
-                    <div>
-                        <h6 class="font-semibold text-gray-900 dark:text-white mb-4">Basic Information</h6>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Name</label>
-                                <input type="text" value="{{ user.username if user else '' }}" readonly
-                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Email</label>
-                                <input type="email" value="{{ user.email if user else '' }}" readonly
-                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Phone</label>
-                                <input type="text" value="{{ player.phone if player and player.phone else '' }}" readonly
-                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Pronouns</label>
-                                <input type="text" value="{{ player.pronouns if player and player.pronouns else '' }}" readonly
-                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Jersey Size</label>
-                                <input type="text" value="{{ player.jersey_size if player and player.jersey_size else '' }}" readonly
-                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Availability & Preferences -->
-                    <div>
-                        <h6 class="font-semibold text-gray-900 dark:text-white mb-4">Availability & Preferences</h6>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Expected Weeks Available</label>
-                                <input type="text" value="{{ player.expected_weeks_available if player and player.expected_weeks_available else '' }}" readonly
-                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Unavailable Dates</label>
-                                <input type="text" value="{{ player.unavailable_dates if player and player.unavailable_dates else '' }}" readonly
-                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Favorite Position</label>
-                                <input type="text" value="{{ player.favorite_position if player and player.favorite_position else '' }}" readonly
-                                       class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Player Notes</label>
-                                <textarea readonly rows="3"
-                                          class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">{{ player.player_notes if player and player.player_notes else '' }}</textarea>
-                            </div>
-
-                            <!-- Profile Status -->
-                            {% if player and player.profile_last_updated %}
-                            <div class="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-300 text-sm">
-                                <i class="ti ti-check-circle"></i>
-                                <span>Profile updated {{ player.profile_last_updated.strftime('%Y-%m-%d') }}. Looks current!</span>
-                            </div>
-                            {% else %}
-                            <div class="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg text-amber-700 dark:text-amber-300 text-sm">
-                                <i class="ti ti-alert-circle"></i>
-                                <span>Profile has never been verified. Please review.</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Phone</label>
+                    <input type="text" value="{{ player.phone if player and player.phone else '' }}" readonly
+                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Pronouns</label>
+                    <input type="text" value="{{ player.pronouns if player and player.pronouns else '' }}" readonly
+                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Jersey Size</label>
+                    <input type="text" value="{{ player.jersey_size if player and player.jersey_size else '' }}" readonly
+                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
                 </div>
             </div>
-            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 flex flex-col sm:flex-row-reverse gap-3">
-                {% if player %}
-                <a href="{{ url_for('players.player_profile_wizard', player_id=player.id) }}"
-                   class="inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
-                    <i class="ti ti-edit mr-2"></i>
-                    Edit Profile
-                </a>
+        </div>
+
+        <!-- Availability & Preferences -->
+        <div>
+            <h6 class="font-semibold text-gray-900 dark:text-white mb-4">Availability & Preferences</h6>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Expected Weeks Available</label>
+                    <input type="text" value="{{ player.expected_weeks_available if player and player.expected_weeks_available else '' }}" readonly
+                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Unavailable Dates</label>
+                    <input type="text" value="{{ player.unavailable_dates if player and player.unavailable_dates else '' }}" readonly
+                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Favorite Position</label>
+                    <input type="text" value="{{ player.favorite_position if player and player.favorite_position else '' }}" readonly
+                           class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Player Notes</label>
+                    <textarea readonly rows="3"
+                              class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white bg-gray-50 dark:bg-gray-600">{{ player.player_notes if player and player.player_notes else '' }}</textarea>
+                </div>
+
+                <!-- Profile Status -->
+                {% if player and player.profile_last_updated %}
+                <div class="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-900/30 rounded-lg text-green-700 dark:text-green-300 text-sm">
+                    <i class="ti ti-check-circle"></i>
+                    <span>Profile updated {{ player.profile_last_updated.strftime('%Y-%m-%d') }}. Looks current!</span>
+                </div>
+                {% else %}
+                <div class="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-900/30 rounded-lg text-amber-700 dark:text-amber-300 text-sm">
+                    <i class="ti ti-alert-circle"></i>
+                    <span>Profile has never been verified. Please review.</span>
+                </div>
                 {% endif %}
-                <button type="button" id="confirm-profile-btn"
-                        class="inline-flex justify-center items-center px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700">
-                    <i class="ti ti-check mr-2"></i>
-                    Confirm Profile is Accurate
-                </button>
-                <button type="button" id="skip-btn"
-                        class="inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600">
-                    Skip for Now
-                </button>
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Custom Footer -->
+    <div class="flex flex-col sm:flex-row-reverse gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+        {% if player %}
+        <a href="{{ url_for('players.player_profile_wizard', player_id=player.id) }}"
+           class="inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
+            <i class="ti ti-edit mr-2"></i>
+            Edit Profile
+        </a>
+        {% endif %}
+        <button type="button" id="confirm-profile-btn"
+                class="inline-flex justify-center items-center px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700">
+            <i class="ti ti-check mr-2"></i>
+            Confirm Profile is Accurate
+        </button>
+        <button type="button" id="skip-btn" data-modal-hide="profileModal"
+                class="inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600">
+            Skip for Now
+        </button>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -269,28 +255,21 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const reviewBtn = document.getElementById('review-profile-btn');
-    const modal = document.getElementById('profileModal');
-    const closeBtn = document.getElementById('close-modal-btn');
-    const skipBtn = document.getElementById('skip-btn');
     const confirmBtn = document.getElementById('confirm-profile-btn');
-    const overlay = document.getElementById('modal-overlay');
 
+    // Open modal using Flowbite's modal manager
     if (reviewBtn) {
-        reviewBtn.addEventListener('click', () => modal.classList.remove('hidden'));
-    }
-
-    if (closeBtn) {
-        closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
-    }
-
-    if (skipBtn) {
-        skipBtn.addEventListener('click', () => modal.classList.add('hidden'));
+        reviewBtn.setAttribute('data-modal-target', 'profileModal');
+        reviewBtn.setAttribute('data-modal-toggle', 'profileModal');
     }
 
     if (confirmBtn) {
         confirmBtn.addEventListener('click', () => {
-            // Could add an AJAX call here to verify profile
-            modal.classList.add('hidden');
+            // Close modal using Flowbite pattern
+            const modalEl = document.getElementById('profileModal');
+            const closeBtn = modalEl.querySelector('[data-modal-hide="profileModal"]');
+            if (closeBtn) closeBtn.click();
+
             const isDark = document.documentElement.classList.contains('dark');
             Swal.fire({
                 icon: 'success',
@@ -302,17 +281,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-
-    if (overlay) {
-        overlay.addEventListener('click', () => modal.classList.add('hidden'));
-    }
-
-    // Close modal on escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-            modal.classList.add('hidden');
-        }
-    });
 });
 </script>
 {% endblock %}

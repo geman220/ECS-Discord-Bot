@@ -287,9 +287,11 @@ function handleAssignSub(link) {
     // Set player in form
     document.getElementById('subPlayer').value = playerId;
 
-    // Update modal title
-    const modalTitle = document.getElementById('assignSubModalLabel');
-    modalTitle.innerHTML = `<i class="ti ti-user-plus me-2"></i>Assign ${playerName} as Substitute`;
+    // Update modal title (new pattern: {modalId}-title, fallback: old Bootstrap pattern)
+    const modalTitle = document.getElementById('assignSubModal-title') || document.getElementById('assignSubModalLabel');
+    if (modalTitle) {
+        modalTitle.innerHTML = `<i class="ti ti-user-plus me-2"></i>Assign ${playerName} as Substitute`;
+    }
 
     // Open modal
     const modalEl = document.getElementById('assignSubModal');

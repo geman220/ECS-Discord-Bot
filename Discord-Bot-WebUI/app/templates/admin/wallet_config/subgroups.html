@@ -1,4 +1,5 @@
 {% extends 'admin/layout.html' %}
+{% from "macros/flowbite.html" import modal_form %}
 {% block title %}Wallet Pass Subgroups{% endblock %}
 
 {% block content %}
@@ -120,42 +121,25 @@
 {% block modals %}
 {{ super() }}
 <!-- Add Subgroup Modal -->
-<div class="modal c-modal fade" id="addSubgroupModal" tabindex="-1" data-modal aria-labelledby="addSubgroupModalLabel">
-    <div class="modal-dialog c-modal__dialog" data-modal-dialog>
-        <div class="modal-content c-modal__content" data-modal-content>
-            <form action="{{ url_for('wallet_config.add_subgroup') }}" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="modal-header c-modal__header" data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="addSubgroupModalLabel">Add Subgroup</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss></button>
-                </div>
-                <div class="modal-body c-modal__body" data-modal-body>
-                    <div class="mb-3">
-                        <label class="form-label">Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="name" required placeholder="e.g., Gorilla FC" data-form-control aria-label="e.g., Gorilla FC">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Code <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" name="code" required placeholder="e.g., gorilla_fc" data-form-control aria-label="e.g., gorilla_fc">
-                        <div class="form-text">Lowercase identifier (spaces become underscores)</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" rows="2" data-form-control></textarea>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="is_active" id="addIsActive" checked>
-                        <label class="form-check-label" for="addIsActive">Active</label>
-                    </div>
-                </div>
-                <div class="modal-footer c-modal__footer" data-modal-footer>
-                    <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                    <button type="submit" class="c-btn c-btn--primary">Add Subgroup</button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('addSubgroupModal', 'Add Subgroup', action=url_for('wallet_config.add_subgroup'), submit_text='Add Subgroup', loading_text='Adding...') %}
+    <div class="mb-3">
+        <label class="form-label">Name <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="name" required placeholder="e.g., Gorilla FC" data-form-control aria-label="e.g., Gorilla FC">
     </div>
-</div>
+    <div class="mb-3">
+        <label class="form-label">Code <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" name="code" required placeholder="e.g., gorilla_fc" data-form-control aria-label="e.g., gorilla_fc">
+        <div class="form-text">Lowercase identifier (spaces become underscores)</div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        <textarea class="form-control" name="description" rows="2" data-form-control></textarea>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="is_active" id="addIsActive" checked>
+        <label class="form-check-label" for="addIsActive">Active</label>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}

@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
 
 {% block admin_title %}Security Dashboard{% endblock %}
 {% block panel_description %}Monitor security status, threats, and IP bans{% endblock %}
@@ -288,46 +288,24 @@
 {% endif %}
 
 <!-- Ban IP Modal -->
-<div id="banIpModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-gray-900/50">
-    <div class="relative w-full max-w-md p-4">
-        <div class="bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-ban mr-2"></i>Ban IP Address
-                </h3>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-hide="banIpModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-5 space-y-4">
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">IP Address</label>
-                    <input type="text" id="banIpAddress" placeholder="e.g., 192.168.1.100" class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                </div>
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason</label>
-                    <input type="text" id="banReason" placeholder="Reason for ban" class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                </div>
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Duration (hours)</label>
-                    <input type="number" id="banDuration" value="24" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                </div>
-                <div class="flex items-center">
-                    <input type="checkbox" id="banPermanent" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                    <label for="banPermanent" class="ml-2 text-sm text-gray-900 dark:text-white">Permanent ban</label>
-                </div>
-            </div>
-            <div class="flex justify-end gap-2 p-5 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-modal-hide="banIpModal">
-                    Cancel
-                </button>
-                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700" data-action="ban-ip">
-                    Ban IP
-                </button>
-            </div>
-        </div>
-    </div>
+{% call modal_form('banIpModal', 'Ban IP Address', form_id='banIpForm', action='', method='POST', size='sm', submit_text='Ban IP', submit_color='danger', loading_text='Banning...') %}
+<div>
+    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">IP Address</label>
+    <input type="text" id="banIpAddress" name="ip_address" placeholder="e.g., 192.168.1.100" class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
 </div>
+<div>
+    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason</label>
+    <input type="text" id="banReason" name="reason" placeholder="Reason for ban" class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+</div>
+<div>
+    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Duration (hours)</label>
+    <input type="number" id="banDuration" name="duration_hours" value="24" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+</div>
+<div class="flex items-center">
+    <input type="checkbox" id="banPermanent" name="permanent" class="w-4 h-4 text-ecs-green border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+    <label for="banPermanent" class="ml-2 text-sm text-gray-900 dark:text-white">Permanent ban</label>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -341,22 +319,30 @@ document.addEventListener('DOMContentLoaded', function() {
     setInterval(refreshStats, 30000);
 
     // Modal controls
+    const banIpModal = document.getElementById('banIpModal');
+
     document.querySelectorAll('[data-action="show-ban-ip-modal"]').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.getElementById('banIpModal').classList.remove('hidden');
+            banIpModal.classList.remove('hidden');
+            banIpModal.classList.add('flex');
         });
     });
 
     document.querySelectorAll('[data-modal-hide="banIpModal"]').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.getElementById('banIpModal').classList.add('hidden');
+            banIpModal.classList.add('hidden');
+            banIpModal.classList.remove('flex');
         });
     });
 
-    // Ban IP
-    document.querySelectorAll('[data-action="ban-ip"]').forEach(btn => {
-        btn.addEventListener('click', banIp);
-    });
+    // Handle form submission for ban IP (prevent default, use JS)
+    const banIpForm = document.getElementById('banIpForm');
+    if (banIpForm) {
+        banIpForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            banIp();
+        });
+    }
 
     // Unban IP
     document.querySelectorAll('[data-action="unban-ip"]').forEach(btn => {

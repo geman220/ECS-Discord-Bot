@@ -1,5 +1,5 @@
 {% extends "base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, empty_state %}
+{% from 'macros/flowbite.html' import card, button, badge, empty_state, modal_form, modal_info %}
 
 {% block title %}AI Prompt Templates{% endblock %}
 {% block page_title %}AI Prompt Templates{% endblock %}
@@ -172,100 +172,58 @@
 </div>
 
 <!-- Create Template Modal -->
-<div id="createTemplateModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" id="modal-backdrop"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Create Prompt Template</h3>
-                <button type="button" id="closeModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="createTemplateForm" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label for="template-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Template Name <span class="text-red-500">*</span></label>
-                        <input type="text" id="template-name" name="name" required
-                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
-                               placeholder="e.g., MLS Match Commentary">
-                    </div>
-                    <div>
-                        <label for="template-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category <span class="text-red-500">*</span></label>
-                        <select id="template-category" name="category" required
-                                class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                            <option value="">Select category</option>
-                            <option value="match_commentary">Match Commentary</option>
-                            <option value="goal">Goal Events</option>
-                            <option value="card">Card Events</option>
-                            <option value="substitution">Substitutions</option>
-                            <option value="rivalry">Rivalry Matches</option>
-                            <option value="general">General</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="template-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                        <input type="text" id="template-description" name="description"
-                               class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
-                               placeholder="Brief description of this template">
-                    </div>
-                    <div>
-                        <label for="template-data" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Template Data (JSON)</label>
-                        <textarea id="template-data" name="template_data" rows="6"
-                                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white font-mono text-sm focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
-                                  placeholder='{"system_prompt": "...", "temperature": 0.7}'></textarea>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="template-default" name="is_default"
-                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                        <label for="template-default" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                            Set as default template for this category
-                        </label>
-                    </div>
-                </div>
-                <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" id="cancelModal" class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
-                        Create Template
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+{% call modal_form('createTemplateModal', 'Create Prompt Template', form_id='createTemplateForm', size='lg', submit_text='Create Template', loading_text='Creating...') %}
+<div>
+    <label for="template-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Template Name <span class="text-red-500">*</span></label>
+    <input type="text" id="template-name" name="name" required
+           class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+           placeholder="e.g., MLS Match Commentary">
 </div>
+<div>
+    <label for="template-category" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category <span class="text-red-500">*</span></label>
+    <select id="template-category" name="category" required
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <option value="">Select category</option>
+        <option value="match_commentary">Match Commentary</option>
+        <option value="goal">Goal Events</option>
+        <option value="card">Card Events</option>
+        <option value="substitution">Substitutions</option>
+        <option value="rivalry">Rivalry Matches</option>
+        <option value="general">General</option>
+    </select>
+</div>
+<div>
+    <label for="template-description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+    <input type="text" id="template-description" name="description"
+           class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+           placeholder="Brief description of this template">
+</div>
+<div>
+    <label for="template-data" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Template Data (JSON)</label>
+    <textarea id="template-data" name="template_data" rows="6"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-gray-900 dark:text-white font-mono text-sm focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+              placeholder='{"system_prompt": "...", "temperature": 0.7}'></textarea>
+</div>
+<div class="flex items-center">
+    <input type="checkbox" id="template-default" name="is_default"
+           class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+    <label for="template-default" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+        Set as default template for this category
+    </label>
+</div>
+{% endcall %}
 
 <!-- View Template Modal -->
-<div id="viewTemplateModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80" id="view-modal-backdrop"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white" id="view-template-title">Template Details</h3>
-                <button type="button" id="closeViewModal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Description</label>
-                    <p id="view-template-desc" class="text-gray-900 dark:text-white">--</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Template Data</label>
-                    <pre id="view-template-data" class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-sm overflow-x-auto text-gray-900 dark:text-white font-mono">--</pre>
-                </div>
-            </div>
-            <div class="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" id="closeViewModalBtn" class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
+{% call modal_info('viewTemplateModal', 'Template Details', size='lg') %}
+<div>
+    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Description</label>
+    <p id="view-template-desc" class="text-gray-900 dark:text-white">--</p>
 </div>
+<div>
+    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Template Data</label>
+    <pre id="view-template-data" class="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg text-sm overflow-x-auto text-gray-900 dark:text-white font-mono">--</pre>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -276,20 +234,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const createModal = document.getElementById('createTemplateModal');
     const viewModal = document.getElementById('viewTemplateModal');
 
-    // Show create modal
+    // Show create modal using Flowbite pattern
     function showCreateModal() {
         createModal.classList.remove('hidden');
+        createModal.classList.add('flex');
     }
 
     // Hide create modal
     function hideCreateModal() {
         createModal.classList.add('hidden');
-        document.getElementById('createTemplateForm').reset();
+        createModal.classList.remove('flex');
+        document.getElementById('createTemplateForm')?.reset();
     }
 
     // Show view modal
     function showViewModal(name, desc, data) {
-        document.getElementById('view-template-title').textContent = name;
+        document.getElementById('viewTemplateModal-title').textContent = name;
         document.getElementById('view-template-desc').textContent = desc || 'No description';
         try {
             const parsed = JSON.parse(data);
@@ -298,22 +258,34 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('view-template-data').textContent = data || 'No template data';
         }
         viewModal.classList.remove('hidden');
+        viewModal.classList.add('flex');
     }
 
     // Hide view modal
     function hideViewModal() {
         viewModal.classList.add('hidden');
+        viewModal.classList.remove('flex');
     }
 
-    // Event listeners
+    // Event listeners for opening modals
     document.getElementById('createTemplateBtn')?.addEventListener('click', showCreateModal);
     document.getElementById('createFirstTemplateBtn')?.addEventListener('click', showCreateModal);
-    document.getElementById('closeModal')?.addEventListener('click', hideCreateModal);
-    document.getElementById('cancelModal')?.addEventListener('click', hideCreateModal);
-    document.getElementById('modal-backdrop')?.addEventListener('click', hideCreateModal);
-    document.getElementById('closeViewModal')?.addEventListener('click', hideViewModal);
-    document.getElementById('closeViewModalBtn')?.addEventListener('click', hideViewModal);
-    document.getElementById('view-modal-backdrop')?.addEventListener('click', hideViewModal);
+
+    // Close buttons use data-modal-hide attribute from macro - add listeners for those
+    document.querySelectorAll('[data-modal-hide="createTemplateModal"]').forEach(btn => {
+        btn.addEventListener('click', hideCreateModal);
+    });
+    document.querySelectorAll('[data-modal-hide="viewTemplateModal"]').forEach(btn => {
+        btn.addEventListener('click', hideViewModal);
+    });
+
+    // Close on backdrop click
+    createModal?.addEventListener('click', function(e) {
+        if (e.target === createModal) hideCreateModal();
+    });
+    viewModal?.addEventListener('click', function(e) {
+        if (e.target === viewModal) hideViewModal();
+    });
 
     // Action buttons
     document.addEventListener('click', function(e) {

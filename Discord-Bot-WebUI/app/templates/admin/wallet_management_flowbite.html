@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_info %}
 
 {% block title %}Digital Wallets Dashboard{% endblock %}
 
@@ -321,26 +322,14 @@
 </div>
 
 <!-- Player Eligibility Modal -->
-<div id="eligibilityModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>Player Eligibility
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="eligibilityModal">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="p-4 md:p-5" id="eligibilityModalBody">
-                <div class="text-center py-8">
-                    <span class="inline-block w-8 h-8 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></span>
-                    <p class="mt-2 text-gray-500 dark:text-gray-400">Checking eligibility...</p>
-                </div>
-            </div>
+{% call modal_info('eligibilityModal', 'Player Eligibility', footer=false) %}
+    <div id="eligibilityModalBody">
+        <div class="text-center py-8">
+            <span class="inline-block w-8 h-8 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></span>
+            <p class="mt-2 text-gray-500 dark:text-gray-400">Checking eligibility...</p>
         </div>
     </div>
-</div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}

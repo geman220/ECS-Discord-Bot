@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_info %}
 
 {% block title %}Message Management - ECS Portal{% endblock %}
 
@@ -227,39 +228,22 @@
 </div>
 
 <!-- Setup Modal -->
-<div id="setupModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-settings text-blue-600"></i>Setup Message System
-                </h3>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="setupModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-4">
-                <div class="p-4 mb-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">Initialize Message Templates</h6>
-                    <p class="text-sm text-blue-700 dark:text-blue-400">To set up the Discord bot message system, you need to run the initialization script.</p>
-                </div>
-                <div class="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white mb-1">Run this command:</p>
-                    <code class="text-blue-600 dark:text-blue-400">python initialize_message_config.py</code>
-                </div>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">This will create:</p>
-                <ul class="text-sm text-gray-500 dark:text-gray-400 list-disc list-inside space-y-1">
-                    <li>Default message categories (Onboarding, League, System)</li>
-                    <li>Template messages for common scenarios</li>
-                    <li>Database tables for message management</li>
-                </ul>
-            </div>
-            <div class="flex justify-end p-4 border-t border-gray-200 dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="setupModal">Close</button>
-            </div>
-        </div>
+{% call modal_info('setupModal', 'Setup Message System', size='md') %}
+    <div class="p-4 mb-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-2">Initialize Message Templates</h6>
+        <p class="text-sm text-blue-700 dark:text-blue-400">To set up the Discord bot message system, you need to run the initialization script.</p>
     </div>
-</div>
+    <div class="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg mb-4">
+        <p class="text-sm font-medium text-gray-900 dark:text-white mb-1">Run this command:</p>
+        <code class="text-blue-600 dark:text-blue-400">python initialize_message_config.py</code>
+    </div>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">This will create:</p>
+    <ul class="text-sm text-gray-500 dark:text-gray-400 list-disc list-inside space-y-1">
+        <li>Default message categories (Onboarding, League, System)</li>
+        <li>Template messages for common scenarios</li>
+        <li>Database tables for message management</li>
+    </ul>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}

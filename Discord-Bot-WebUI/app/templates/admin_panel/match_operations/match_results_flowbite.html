@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
 
 {% block admin_title %}Match Results{% endblock %}
 {% block panel_description %}Enter and review match results{% endblock %}
@@ -149,37 +149,19 @@
 </div>
 
 <!-- Enter Result Modal -->
-<div id="enterResultModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Enter Match Result</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideResultModal()">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <form id="enterResultForm" onsubmit="submitResult(event)">
-                <div class="p-4 md:p-5 space-y-4">
-                    <input type="hidden" id="result_match_id" name="match_id">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Home Score</label>
-                            <input type="number" min="0" name="home_score" id="home_score" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required>
-                        </div>
-                        <div>
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Away Score</label>
-                            <input type="number" min="0" name="away_score" id="away_score" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600 gap-3">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="hideResultModal()">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Submit Result</button>
-                </div>
-            </form>
+{% call modal_form('enterResultModal', 'Enter Match Result', form_id='enterResultForm', submit_text='Submit Result', submit_color='primary', loading_text='Submitting...') %}
+    <input type="hidden" id="result_match_id" name="match_id">
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Home Score</label>
+            <input type="number" min="0" name="home_score" id="home_score" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required>
+        </div>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Away Score</label>
+            <input type="number" min="0" name="away_score" id="away_score" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required>
         </div>
     </div>
-</div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -198,13 +180,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function showResultModal() {
-    document.getElementById('enterResultModal').classList.remove('hidden');
-    document.getElementById('enterResultModal').classList.add('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', 'enterResultModal');
+    if (modal) modal.show();
 }
 
 function hideResultModal() {
-    document.getElementById('enterResultModal').classList.add('hidden');
-    document.getElementById('enterResultModal').classList.remove('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', 'enterResultModal');
+    if (modal) modal.hide();
 }
 
 function submitResult(event) {

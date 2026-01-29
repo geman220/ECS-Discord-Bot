@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form, modal_info %}
 
 {% block title %}{{ league_config.name }} Substitute Pool{% endblock %}
 
@@ -259,76 +260,48 @@
 </div>
 
 <!-- Edit Preferences Modal -->
-<div id="editPreferencesModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Substitute Preferences</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="editPreferencesModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="preferencesForm">
-                <input type="hidden" id="editPlayerId" name="player_id">
-                <div class="p-4 space-y-4">
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Preferred Positions</label>
-                        <input type="text" id="editPositions" name="preferred_positions" placeholder="e.g., Forward, Midfielder"
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Matches Per Week</label>
-                        <input type="number" id="editMaxMatches" name="max_matches_per_week" min="1" max="10" value="3"
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Preferences</label>
-                        <div class="space-y-2">
-                            <label class="flex items-center">
-                                <input type="checkbox" id="editSmsNotifications" name="sms_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="editDiscordNotifications" name="discord_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
-                            </label>
-                            <label class="flex items-center">
-                                <input type="checkbox" id="editEmailNotifications" name="email_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
-                            </label>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
-                        <textarea id="editNotes" name="notes" rows="3" placeholder="Any additional notes..."
-                                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="editPreferencesModal">Cancel</button>
-                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors">Save Changes</button>
-                </div>
-            </form>
+{% call modal_form('editPreferencesModal', 'Edit Substitute Preferences', form_id='preferencesForm', size='md', submit_text='Save Changes', loading_text='Saving...') %}
+    <input type="hidden" id="editPlayerId" name="player_id">
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Preferred Positions</label>
+        <input type="text" id="editPositions" name="preferred_positions" placeholder="e.g., Forward, Midfielder"
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    </div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Matches Per Week</label>
+        <input type="number" id="editMaxMatches" name="max_matches_per_week" min="1" max="10" value="3"
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    </div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Preferences</label>
+        <div class="space-y-2">
+            <label class="flex items-center">
+                <input type="checkbox" id="editSmsNotifications" name="sms_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">SMS Notifications</span>
+            </label>
+            <label class="flex items-center">
+                <input type="checkbox" id="editDiscordNotifications" name="discord_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Discord Notifications</span>
+            </label>
+            <label class="flex items-center">
+                <input type="checkbox" id="editEmailNotifications" name="email_notifications" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Email Notifications</span>
+            </label>
         </div>
     </div>
-</div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
+        <textarea id="editNotes" name="notes" rows="3" placeholder="Any additional notes..."
+                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+    </div>
+{% endcall %}
 
 <!-- Player Details Modal -->
-<div id="playerDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Player Details</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="playerDetailsModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-4" id="playerDetailsContent">
-                <!-- Content will be loaded via AJAX -->
-            </div>
-        </div>
+{% call modal_info('playerDetailsModal', 'Player Details', size='lg') %}
+    <div id="playerDetailsContent">
+        <!-- Content will be loaded via AJAX -->
     </div>
-</div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}

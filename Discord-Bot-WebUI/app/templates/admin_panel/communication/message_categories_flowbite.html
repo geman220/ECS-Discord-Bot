@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form, modal_info %}
 
 {% block admin_title %}Message Management{% endblock %}
 {% block panel_description %}Manage Discord bot messages and website announcements{% endblock %}
@@ -282,166 +282,84 @@
 </div>
 
 <!-- Preview Modal -->
-<div id="previewModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-eye mr-2"></i>Message Preview
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="previewModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6" id="previewContent">
-                <div class="text-center py-8">
-                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
-                </div>
-            </div>
-            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="previewModal">Close</button>
-            </div>
-        </div>
+{% call modal_info('previewModal', 'Message Preview', size='lg') %}
+<div id="previewContent">
+    <div class="text-center py-8">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
     </div>
 </div>
+{% endcall %}
 
 <!-- Announcement Modal -->
-<div id="announcementModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="announcementModalLabel">
-                    <i class="ti ti-speakerphone mr-2"></i>Create Announcement
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="announcementModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="announcementForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" id="announcement_id" name="announcement_id" value="">
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label for="announcement_title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Title</label>
-                        <input type="text" id="announcement_title" name="title" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
-                    </div>
-                    <div>
-                        <label for="announcement_content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Content</label>
-                        <textarea id="announcement_content" name="content" rows="4" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required></textarea>
-                    </div>
-                    <div>
-                        <label for="announcement_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Type</label>
-                        <select id="announcement_type" name="type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="info">Info</option>
-                            <option value="warning">Warning</option>
-                            <option value="success">Success</option>
-                            <option value="danger">Important</option>
-                        </select>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="announcement_is_active" name="is_active" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                        <label for="announcement_is_active" class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Active</label>
-                    </div>
-                </div>
-                <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="announcementModal">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600">
-                        <i class="ti ti-device-floppy mr-1"></i>Save Announcement
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+{% call modal_form('announcementModal', 'Create Announcement', form_id='announcementForm', action='', method='POST', size='md', submit_text='Save Announcement', submit_color='primary', loading_text='Saving...') %}
+<input type="hidden" id="announcement_id" name="announcement_id" value="">
+<div>
+    <label for="announcement_title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Title</label>
+    <input type="text" id="announcement_title" name="title" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
 </div>
+<div>
+    <label for="announcement_content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Content</label>
+    <textarea id="announcement_content" name="content" rows="4" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required></textarea>
+</div>
+<div>
+    <label for="announcement_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Type</label>
+    <select id="announcement_type" name="type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        <option value="info">Info</option>
+        <option value="warning">Warning</option>
+        <option value="success">Success</option>
+        <option value="danger">Important</option>
+    </select>
+</div>
+<div class="flex items-center">
+    <input type="checkbox" id="announcement_is_active" name="is_active" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+    <label for="announcement_is_active" class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Active</label>
+</div>
+{% endcall %}
 
 <!-- Create Template Modal -->
-<div id="createTemplateModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="createTemplateModalLabel">
-                    <i class="ti ti-plus mr-2"></i>Create New Template
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="createTemplateModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="createTemplateForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" id="create_category_id" name="category_id" value="">
-                <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-                    <div>
-                        <label for="create_template_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Name</label>
-                        <input type="text" id="create_template_name" name="name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
-                    </div>
-                    <div>
-                        <label for="create_template_key" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Key</label>
-                        <input type="text" id="create_template_key" name="key" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Unique identifier (e.g., welcome_message, league_info)</p>
-                    </div>
-                    <div>
-                        <label for="create_template_description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
-                        <textarea id="create_template_description" name="description" rows="2" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
-                    </div>
-                    <div>
-                        <label for="create_template_content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message Content</label>
-                        <textarea id="create_template_content" name="message_content" rows="6" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono text-xs" required></textarea>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Use variables like <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{{'{'}}username{{'}'}}</code>, <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{{'{'}}league_display_name{{'}'}}</code></p>
-                    </div>
-                    <div class="flex items-center">
-                        <input type="checkbox" id="create_template_active" name="is_active" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
-                        <label for="create_template_active" class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Active</label>
-                    </div>
-                </div>
-                <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="createTemplateModal">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600">
-                        <i class="ti ti-device-floppy mr-1"></i>Create Template
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+{% call modal_form('createTemplateModal', 'Create New Template', form_id='createTemplateForm', action='', method='POST', size='lg', submit_text='Create Template', submit_color='primary', loading_text='Creating...') %}
+<input type="hidden" id="create_category_id" name="category_id" value="">
+<div>
+    <label for="create_template_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Name</label>
+    <input type="text" id="create_template_name" name="name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
 </div>
+<div>
+    <label for="create_template_key" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Key</label>
+    <input type="text" id="create_template_key" name="key" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Unique identifier (e.g., welcome_message, league_info)</p>
+</div>
+<div>
+    <label for="create_template_description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+    <textarea id="create_template_description" name="description" rows="2" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+</div>
+<div>
+    <label for="create_template_content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message Content</label>
+    <textarea id="create_template_content" name="message_content" rows="6" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono text-xs" required></textarea>
+    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Use variables like <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{{'{'}}username{{'}'}}</code>, <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded">{{'{'}}league_display_name{{'}'}}</code></p>
+</div>
+<div class="flex items-center">
+    <input type="checkbox" id="create_template_active" name="is_active" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+    <label for="create_template_active" class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Active</label>
+</div>
+{% endcall %}
 
 <!-- Setup Modal -->
-<div id="setupModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-settings mr-2"></i>Setup Message System
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="setupModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300">
-                    <h6 class="font-medium mb-1"><i class="ti ti-info-circle mr-1"></i>Initialize Message Templates</h6>
-                    <p>To set up the Discord bot message system, you need to run the initialization script.</p>
-                </div>
-                <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg mb-4">
-                    <p class="text-sm font-medium text-gray-900 dark:text-white mb-1">Run this command:</p>
-                    <code class="text-sm text-ecs-green">python initialize_message_config.py</code>
-                </div>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">This will create:</p>
-                <ul class="text-xs text-gray-500 dark:text-gray-400 space-y-1 ml-4 list-disc">
-                    <li>Default message categories (Onboarding, League, System)</li>
-                    <li>Template messages for common scenarios</li>
-                    <li>Database tables for message management</li>
-                </ul>
-            </div>
-            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="setupModal">Close</button>
-            </div>
-        </div>
-    </div>
+{% call modal_info('setupModal', 'Setup Message System', size='md') %}
+<div class="p-4 mb-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300">
+    <h6 class="font-medium mb-1"><i class="ti ti-info-circle mr-1"></i>Initialize Message Templates</h6>
+    <p>To set up the Discord bot message system, you need to run the initialization script.</p>
 </div>
+<div class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg mb-4">
+    <p class="text-sm font-medium text-gray-900 dark:text-white mb-1">Run this command:</p>
+    <code class="text-sm text-ecs-green">python initialize_message_config.py</code>
+</div>
+<p class="text-xs text-gray-500 dark:text-gray-400 mb-2">This will create:</p>
+<ul class="text-xs text-gray-500 dark:text-gray-400 space-y-1 ml-4 list-disc">
+    <li>Default message categories (Onboarding, League, System)</li>
+    <li>Template messages for common scenarios</li>
+    <li>Database tables for message management</li>
+</ul>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -450,21 +368,39 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
 
     // Modal setup
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+    }
+
+    function hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+    }
+
     function setupModal(modalId) {
         const modal = document.getElementById(modalId);
         if (!modal) return;
 
         document.querySelectorAll(`[data-modal-toggle="${modalId}"]`).forEach(btn => {
-            btn.addEventListener('click', () => modal.classList.remove('hidden'));
+            btn.addEventListener('click', () => showModal(modalId));
         });
 
         document.querySelectorAll(`[data-modal-hide="${modalId}"]`).forEach(btn => {
-            btn.addEventListener('click', () => modal.classList.add('hidden'));
+            btn.addEventListener('click', () => hideModal(modalId));
         });
 
         const backdrop = modal.querySelector('[data-modal-backdrop]');
         if (backdrop) {
-            backdrop.addEventListener('click', () => modal.classList.add('hidden'));
+            backdrop.addEventListener('click', () => hideModal(modalId));
         }
     }
 
@@ -486,7 +422,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('announcementForm').reset();
                 document.getElementById('announcement_id').value = '';
                 document.getElementById('announcement_is_active').checked = true;
-                document.getElementById('announcementModal').classList.remove('hidden');
+                showModal('announcementModal');
                 break;
 
             case 'edit-announcement':
@@ -494,7 +430,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('announcementModalLabel').innerHTML = '<i class="ti ti-edit mr-2"></i>Edit Announcement';
                 document.getElementById('announcement_id').value = announcementId;
                 // In production, fetch announcement data via API
-                document.getElementById('announcementModal').classList.remove('hidden');
+                showModal('announcementModal');
                 break;
 
             case 'delete-announcement':
@@ -518,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('createTemplateForm').reset();
                 document.getElementById('create_category_id').value = categoryId;
                 document.getElementById('create_template_active').checked = true;
-                document.getElementById('createTemplateModal').classList.remove('hidden');
+                showModal('createTemplateModal');
                 break;
 
             case 'preview-template':
@@ -546,7 +482,7 @@ Here's what you need to know:
 }</pre>
                     </div>
                 `;
-                document.getElementById('previewModal').classList.remove('hidden');
+                showModal('previewModal');
                 break;
 
             case 'copy-template':
@@ -574,7 +510,7 @@ Here's what you need to know:
             background: isDark ? '#1f2937' : '#ffffff',
             color: isDark ? '#f3f4f6' : '#111827'
         }).then(() => {
-            document.getElementById('announcementModal').classList.add('hidden');
+            hideModal('announcementModal');
         });
     });
 
@@ -588,7 +524,7 @@ Here's what you need to know:
             background: isDark ? '#1f2937' : '#ffffff',
             color: isDark ? '#f3f4f6' : '#111827'
         }).then(() => {
-            document.getElementById('createTemplateModal').classList.add('hidden');
+            hideModal('createTemplateModal');
         });
     });
 });

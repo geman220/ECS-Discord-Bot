@@ -19,7 +19,7 @@
  * window.InitSystem Registration: Priority 25 (after window.ModalManager at 20)
  *
  * Dependencies:
- * - Bootstrap 5.x
+ * - Flowbite (with Bootstrap fallback for backwards compatibility)
  * - window.ModalManager
  * - /css/components/modals.css
  *
@@ -343,13 +343,13 @@ const ModalHelpers = {
     // ========================================================================
 
     /**
-     * Registers Bootstrap modal event handlers
+     * Registers modal event handlers for both Flowbite and Bootstrap (backwards compatibility)
      */
     registerModalEventHandlers: function() {
         const self = this;
 
         // Handler for modal show event (before modal is shown)
-        document.addEventListener('show.bs.modal', function(event) {
+        const handleModalShow = function(event) {
             const modal = event.target;
 
             // Add active class for z-index management
@@ -364,10 +364,10 @@ const ModalHelpers = {
             self.applyButtonTransformFix(modal);
 
             console.log('[Modal Helpers] Modal show handler executed');
-        });
+        };
 
         // Handler for modal shown event (after modal is visible)
-        document.addEventListener('shown.bs.modal', function(event) {
+        const handleModalShown = function(event) {
             const modal = event.target;
 
             // Apply iOS scroll fix to modal body
@@ -379,18 +379,18 @@ const ModalHelpers = {
             }
 
             console.log('[Modal Helpers] Modal shown handler executed');
-        });
+        };
 
         // Handler for modal hide event (before modal is hidden)
-        document.addEventListener('hide.bs.modal', function(event) {
+        const handleModalHide = function(event) {
             const modal = event.target;
             modal.classList.remove(CSS_CLASSES.MODAL_ACTIVE);
 
             console.log('[Modal Helpers] Modal hide handler executed');
-        });
+        };
 
         // Handler for modal hidden event (after modal is closed)
-        document.addEventListener('hidden.bs.modal', function(event) {
+        const handleModalHidden = function(event) {
             // Clean up backdrops and body state
             self.cleanupModalBackdrop();
 
@@ -400,17 +400,29 @@ const ModalHelpers = {
             }
 
             console.log('[Modal Helpers] Modal hidden handler executed');
-        });
+        };
+
+        // Register Flowbite modal events (primary)
+        document.addEventListener('show.fb.modal', handleModalShow);
+        document.addEventListener('shown.fb.modal', handleModalShown);
+        document.addEventListener('hide.fb.modal', handleModalHide);
+        document.addEventListener('hidden.fb.modal', handleModalHidden);
+
+        // Register Bootstrap modal events (backwards compatibility)
+        document.addEventListener('show.bs.modal', handleModalShow);
+        document.addEventListener('shown.bs.modal', handleModalShown);
+        document.addEventListener('hide.bs.modal', handleModalHide);
+        document.addEventListener('hidden.bs.modal', handleModalHidden);
 
         // Handler for ESC key press
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape' && document.querySelector(`${CONFIG.MODAL_SELECTORS}.${CSS_CLASSES.MODAL_SHOW}`)) {
-                // Bootstrap will handle closing, we just clean up after
+                // Modal library will handle closing, we just clean up after
                 setTimeout(() => self.cleanupModalBackdrop(), CONFIG.BACKDROP_TRANSITION_MS);
             }
         });
 
-        console.log('[Modal Helpers] Event handlers registered');
+        console.log('[Modal Helpers] Event handlers registered (Flowbite + Bootstrap fallback)');
     }
 };
 

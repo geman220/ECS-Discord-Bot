@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state, modal, modal_info %}
 
 {% block admin_title %}Quick Profiles{% endblock %}
 {% block panel_description %}Manage tryout player profiles and claim codes{% endblock %}
@@ -204,379 +204,324 @@
 </div>
 
 <!-- Create Profile Modal -->
-<div id="create-modal" tabindex="-1" aria-hidden="true"
-     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
-    <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl">
-        <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Create Quick Profile</h3>
-            <button type="button" onclick="closeCreateModal()"
-                    class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                <i class="ti ti-x text-xl"></i>
-            </button>
+{% call modal('create-modal', 'Create Quick Profile', size='md', static_backdrop=true) %}
+<!-- Duplicate Warning (hidden by default) -->
+<div id="duplicate-warning" class="hidden p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
+    <div class="flex items-start gap-3">
+        <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400 text-xl mt-0.5"></i>
+        <div class="flex-1">
+            <h4 class="font-medium text-amber-800 dark:text-amber-200">Similar profiles found</h4>
+            <p class="text-sm text-amber-700 dark:text-amber-300 mb-2">Please verify this is a different person:</p>
+            <div id="duplicate-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
         </div>
+    </div>
+</div>
 
-        <!-- Body -->
-        <div class="p-4 space-y-4">
-            <!-- Duplicate Warning (hidden by default) -->
-            <div id="duplicate-warning" class="hidden p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-lg">
-                <div class="flex items-start gap-3">
-                    <i class="ti ti-alert-triangle text-amber-600 dark:text-amber-400 text-xl mt-0.5"></i>
-                    <div class="flex-1">
-                        <h4 class="font-medium text-amber-800 dark:text-amber-200">Similar profiles found</h4>
-                        <p class="text-sm text-amber-700 dark:text-amber-300 mb-2">Please verify this is a different person:</p>
-                        <div id="duplicate-list" class="space-y-2 max-h-32 overflow-y-auto"></div>
-                    </div>
-                </div>
-            </div>
+<!-- Player Name -->
+<div>
+    <label for="player-name" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">
+        Player Name <span class="text-red-500">*</span>
+    </label>
+    <input type="text" id="player-name" name="player_name" required maxlength="100"
+           placeholder="Enter player's full name"
+           class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+</div>
 
-            <!-- Player Name -->
-            <div>
-                <label for="player-name" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">
-                    Player Name <span class="text-red-500">*</span>
-                </label>
-                <input type="text" id="player-name" name="player_name" required maxlength="100"
-                       placeholder="Enter player's full name"
-                       class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
-            </div>
-
-            <!-- Photo Upload -->
-            <div>
-                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-1">
-                    Photo <span class="text-red-500">*</span>
-                </label>
-                <div id="photo-upload-area"
-                     class="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-ecs-green transition-colors cursor-pointer">
-                    <input type="file" id="photo-input" accept="image/*" class="hidden">
-                    <div id="photo-placeholder">
-                        <i class="ti ti-camera text-4xl text-gray-400 mb-2"></i>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Click or drag to upload photo</p>
-                    </div>
-                    <div id="photo-preview" class="hidden">
-                        <img id="preview-image" src="" alt="Preview" class="max-h-40 mx-auto rounded-lg">
-                        <button type="button" onclick="clearPhoto()" class="mt-2 text-sm text-red-600 hover:text-red-700">
-                            <i class="ti ti-x mr-1"></i>Remove
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Notes -->
-            <div>
-                <label for="notes" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Notes</label>
-                <textarea id="notes" name="notes" rows="2" maxlength="500"
-                          placeholder="Optional notes about the player (e.g., position, skill level)"
-                          class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green"></textarea>
-            </div>
-
-            <!-- Optional Fields Row -->
-            <div class="grid grid-cols-3 gap-3">
-                <div>
-                    <label for="jersey-number" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Jersey #</label>
-                    <input type="number" id="jersey-number" name="jersey_number" min="1" max="99"
-                           placeholder="1-99"
-                           class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
-                </div>
-                <div>
-                    <label for="jersey-size" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Size</label>
-                    <select id="jersey-size" name="jersey_size"
-                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
-                        <option value="">-</option>
-                        <option value="S">S</option>
-                        <option value="M">M</option>
-                        <option value="L">L</option>
-                        <option value="XL">XL</option>
-                        <option value="XXL">XXL</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="pronouns" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Pronouns</label>
-                    <select id="pronouns" name="pronouns"
-                            class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
-                        <option value="">-</option>
-                        <option value="he/him">he/him</option>
-                        <option value="she/her">she/her</option>
-                        <option value="they/them">they/them</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Contact Info (for sending code) -->
-            <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
-                    <i class="ti ti-send mr-1"></i>Optionally send the code to the player:
-                </p>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label for="player-email" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Email</label>
-                        <input type="email" id="player-email" name="email"
-                               placeholder="player@example.com"
-                               class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
-                    </div>
-                    <div>
-                        <label for="player-phone" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Phone (SMS)</label>
-                        <input type="tel" id="player-phone" name="phone_number"
-                               placeholder="(555) 123-4567"
-                               class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
-                    </div>
-                </div>
-            </div>
+<!-- Photo Upload -->
+<div>
+    <label class="block text-sm font-medium text-gray-900 dark:text-white mb-1">
+        Photo <span class="text-red-500">*</span>
+    </label>
+    <div id="photo-upload-area"
+         class="relative border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center hover:border-ecs-green transition-colors cursor-pointer">
+        <input type="file" id="photo-input" accept="image/*" class="hidden">
+        <div id="photo-placeholder">
+            <i class="ti ti-camera text-4xl text-gray-400 mb-2"></i>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Click or drag to upload photo</p>
         </div>
-
-        <!-- Footer -->
-        <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-            <button type="button" onclick="closeCreateModal()"
-                    class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                Cancel
-            </button>
-            <button type="button" id="create-submit-btn" onclick="submitCreateProfile()"
-                    class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors disabled:opacity-50">
-                <i class="ti ti-plus mr-1"></i>Create Profile
+        <div id="photo-preview" class="hidden">
+            <img id="preview-image" src="" alt="Preview" class="max-h-40 mx-auto rounded-lg">
+            <button type="button" onclick="clearPhoto()" class="mt-2 text-sm text-red-600 hover:text-red-700">
+                <i class="ti ti-x mr-1"></i>Remove
             </button>
         </div>
     </div>
 </div>
+
+<!-- Notes -->
+<div>
+    <label for="notes" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Notes</label>
+    <textarea id="notes" name="notes" rows="2" maxlength="500"
+              placeholder="Optional notes about the player (e.g., position, skill level)"
+              class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green"></textarea>
+</div>
+
+<!-- Optional Fields Row -->
+<div class="grid grid-cols-3 gap-3">
+    <div>
+        <label for="jersey-number" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Jersey #</label>
+        <input type="number" id="jersey-number" name="jersey_number" min="1" max="99"
+               placeholder="1-99"
+               class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+    </div>
+    <div>
+        <label for="jersey-size" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Size</label>
+        <select id="jersey-size" name="jersey_size"
+                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+            <option value="">-</option>
+            <option value="S">S</option>
+            <option value="M">M</option>
+            <option value="L">L</option>
+            <option value="XL">XL</option>
+            <option value="XXL">XXL</option>
+        </select>
+    </div>
+    <div>
+        <label for="pronouns" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Pronouns</label>
+        <select id="pronouns" name="pronouns"
+                class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+            <option value="">-</option>
+            <option value="he/him">he/him</option>
+            <option value="she/her">she/her</option>
+            <option value="they/them">they/them</option>
+        </select>
+    </div>
+</div>
+
+<!-- Contact Info (for sending code) -->
+<div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+        <i class="ti ti-send mr-1"></i>Optionally send the code to the player:
+    </p>
+    <div class="grid grid-cols-2 gap-3">
+        <div>
+            <label for="player-email" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Email</label>
+            <input type="email" id="player-email" name="email"
+                   placeholder="player@example.com"
+                   class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+        </div>
+        <div>
+            <label for="player-phone" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">Phone (SMS)</label>
+            <input type="tel" id="player-phone" name="phone_number"
+                   placeholder="(555) 123-4567"
+                   class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+        </div>
+    </div>
+</div>
+
+<!-- Footer Actions -->
+<div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+    <button type="button" data-modal-hide="create-modal"
+            class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors modal-close-btn">
+        Cancel
+    </button>
+    <button type="button" id="create-submit-btn" onclick="submitCreateProfile()"
+            class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors disabled:opacity-50">
+        <i class="ti ti-plus mr-1"></i>Create Profile
+    </button>
+</div>
+{% endcall %}
 
 <!-- Link Profile Modal -->
-<div id="link-modal" tabindex="-1" aria-hidden="true"
-     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
-    <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl">
-        <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Link to Existing Player</h3>
-            <button type="button" onclick="closeLinkModal()"
-                    class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                <i class="ti ti-x text-xl"></i>
-            </button>
-        </div>
+{% call modal('link-modal', 'Link to Existing Player', size='md', static_backdrop=true) %}
+<input type="hidden" id="link-profile-id">
+<p class="text-sm text-gray-500 dark:text-gray-400">
+    Linking profile: <strong id="link-profile-name" class="text-gray-900 dark:text-white"></strong>
+</p>
 
-        <!-- Body -->
-        <div class="p-4 space-y-4">
-            <input type="hidden" id="link-profile-id">
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-                Linking profile: <strong id="link-profile-name" class="text-gray-900 dark:text-white"></strong>
-            </p>
-
-            <!-- Player Search -->
-            <div>
-                <label for="player-search" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">
-                    Search Players
-                </label>
-                <input type="text" id="player-search" placeholder="Type to search..."
-                       class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
-            </div>
-
-            <!-- Search Results -->
-            <div id="player-search-results" class="max-h-48 overflow-y-auto space-y-2"></div>
-
-            <!-- Selected Player -->
-            <div id="selected-player-container" class="hidden p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-                <div class="flex items-center gap-3">
-                    <img id="selected-player-photo" src="" alt="" class="w-10 h-10 rounded-full object-cover">
-                    <div class="flex-1">
-                        <div id="selected-player-name" class="font-medium text-gray-900 dark:text-white"></div>
-                        <div id="selected-player-teams" class="text-xs text-gray-500 dark:text-gray-400"></div>
-                    </div>
-                    <button type="button" onclick="clearSelectedPlayer()" class="text-gray-400 hover:text-gray-600">
-                        <i class="ti ti-x"></i>
-                    </button>
-                </div>
-                <input type="hidden" id="selected-player-id">
-            </div>
-
-            <!-- Overwrite Photo Option -->
-            <div id="overwrite-photo-option" class="hidden">
-                <label class="flex items-center gap-2 cursor-pointer">
-                    <input type="checkbox" id="overwrite-photo" class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
-                    <span class="text-sm text-gray-700 dark:text-gray-300">Overwrite player's existing photo</span>
-                </label>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-            <button type="button" onclick="closeLinkModal()"
-                    class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                Cancel
-            </button>
-            <button type="button" id="link-submit-btn" onclick="submitLinkProfile()" disabled
-                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
-                <i class="ti ti-link mr-1"></i>Link Profile
-            </button>
-        </div>
-    </div>
+<!-- Player Search -->
+<div>
+    <label for="player-search" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">
+        Search Players
+    </label>
+    <input type="text" id="player-search" placeholder="Type to search..."
+           class="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
 </div>
+
+<!-- Search Results -->
+<div id="player-search-results" class="max-h-48 overflow-y-auto space-y-2"></div>
+
+<!-- Selected Player -->
+<div id="selected-player-container" class="hidden p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+    <div class="flex items-center gap-3">
+        <img id="selected-player-photo" src="" alt="" class="w-10 h-10 rounded-full object-cover">
+        <div class="flex-1">
+            <div id="selected-player-name" class="font-medium text-gray-900 dark:text-white"></div>
+            <div id="selected-player-teams" class="text-xs text-gray-500 dark:text-gray-400"></div>
+        </div>
+        <button type="button" onclick="clearSelectedPlayer()" class="text-gray-400 hover:text-gray-600">
+            <i class="ti ti-x"></i>
+        </button>
+    </div>
+    <input type="hidden" id="selected-player-id">
+</div>
+
+<!-- Overwrite Photo Option -->
+<div id="overwrite-photo-option" class="hidden">
+    <label class="flex items-center gap-2 cursor-pointer">
+        <input type="checkbox" id="overwrite-photo" class="rounded border-gray-300 text-ecs-green focus:ring-ecs-green">
+        <span class="text-sm text-gray-700 dark:text-gray-300">Overwrite player's existing photo</span>
+    </label>
+</div>
+
+<!-- Footer Actions -->
+<div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+    <button type="button" data-modal-hide="link-modal"
+            class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors modal-close-btn">
+        Cancel
+    </button>
+    <button type="button" id="link-submit-btn" onclick="submitLinkProfile()" disabled
+            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+        <i class="ti ti-link mr-1"></i>Link Profile
+    </button>
+</div>
+{% endcall %}
 
 <!-- Success Modal (shows claim code) -->
-<div id="success-modal" tabindex="-1" aria-hidden="true"
-     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
-    <div class="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-xl text-center p-6">
-        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50 mb-4">
-            <i class="ti ti-check text-3xl text-green-600 dark:text-green-400"></i>
-        </div>
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Profile Created!</h3>
-        <p class="text-gray-500 dark:text-gray-400 mb-4">Give this code to the player:</p>
+{% call modal('success-modal', 'Profile Created!', size='sm', closable=false, static_backdrop=true) %}
+<div class="text-center">
+    <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/50 mb-4">
+        <i class="ti ti-check text-3xl text-green-600 dark:text-green-400"></i>
+    </div>
+    <p class="text-gray-500 dark:text-gray-400 mb-4">Give this code to the player:</p>
 
-        <input type="hidden" id="success-profile-id">
+    <input type="hidden" id="success-profile-id">
 
-        <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4">
-            <code id="success-claim-code" class="text-3xl font-mono font-bold tracking-widest text-gray-900 dark:text-white"></code>
-        </div>
+    <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 mb-4">
+        <code id="success-claim-code" class="text-3xl font-mono font-bold tracking-widest text-gray-900 dark:text-white"></code>
+    </div>
 
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-            They can enter this code when registering at<br>
-            <strong class="text-gray-900 dark:text-white">ecsfc.com</strong> via Discord
-        </p>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        They can enter this code when registering at<br>
+        <strong class="text-gray-900 dark:text-white">ecsfc.com</strong> via Discord
+    </p>
 
-        <!-- Send Options -->
-        <div id="success-send-options" class="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
-            <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Send code to player:</p>
-            <div class="flex flex-col gap-2">
-                <div id="success-email-row" class="hidden flex items-center gap-2">
-                    <span id="success-email-display" class="flex-1 text-sm text-gray-600 dark:text-gray-400 truncate"></span>
-                    <button type="button" onclick="sendEmailFromSuccess()"
-                            class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors">
-                        <i class="ti ti-mail mr-1"></i>Send Email
-                    </button>
-                </div>
-                <div id="success-phone-row" class="hidden flex items-center gap-2">
-                    <span id="success-phone-display" class="flex-1 text-sm text-gray-600 dark:text-gray-400"></span>
-                    <button type="button" onclick="sendSmsFromSuccess()"
-                            class="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors">
-                        <i class="ti ti-message mr-1"></i>Send SMS
-                    </button>
-                </div>
-                <p id="success-no-contact" class="text-sm text-gray-400 italic hidden">No contact info provided</p>
+    <!-- Send Options -->
+    <div id="success-send-options" class="border-t border-gray-200 dark:border-gray-700 pt-4 mb-4">
+        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Send code to player:</p>
+        <div class="flex flex-col gap-2">
+            <div id="success-email-row" class="hidden flex items-center gap-2">
+                <span id="success-email-display" class="flex-1 text-sm text-gray-600 dark:text-gray-400 truncate"></span>
+                <button type="button" onclick="sendEmailFromSuccess()"
+                        class="px-3 py-1.5 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors">
+                    <i class="ti ti-mail mr-1"></i>Send Email
+                </button>
             </div>
-        </div>
-
-        <div class="flex justify-center gap-3">
-            <button type="button" onclick="copySuccessCode()"
-                    class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                <i class="ti ti-copy mr-1"></i>Copy Code
-            </button>
-            <button type="button" onclick="closeSuccessModal()"
-                    class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
-                Done
-            </button>
+            <div id="success-phone-row" class="hidden flex items-center gap-2">
+                <span id="success-phone-display" class="flex-1 text-sm text-gray-600 dark:text-gray-400"></span>
+                <button type="button" onclick="sendSmsFromSuccess()"
+                        class="px-3 py-1.5 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors">
+                    <i class="ti ti-message mr-1"></i>Send SMS
+                </button>
+            </div>
+            <p id="success-no-contact" class="text-sm text-gray-400 italic hidden">No contact info provided</p>
         </div>
     </div>
+
+    <div class="flex justify-center gap-3">
+        <button type="button" onclick="copySuccessCode()"
+                class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+            <i class="ti ti-copy mr-1"></i>Copy Code
+        </button>
+        <button type="button" onclick="closeSuccessModal()"
+                class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+            Done
+        </button>
+    </div>
 </div>
+{% endcall %}
 
 <!-- View Details Modal -->
-<div id="details-modal" tabindex="-1" aria-hidden="true"
-     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/50">
-    <div class="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl">
-        <!-- Header -->
-        <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Quick Profile Details</h3>
-            <button type="button" onclick="closeDetailsModal()"
-                    class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                <i class="ti ti-x text-xl"></i>
+{% call modal_info('details-modal', 'Quick Profile Details', size='md') %}
+<!-- Photo and Basic Info -->
+<div class="flex items-start gap-4">
+    <img id="details-photo" src="" alt="" class="w-20 h-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600">
+    <div class="flex-1">
+        <h4 id="details-name" class="text-xl font-bold text-gray-900 dark:text-white"></h4>
+        <div id="details-status" class="mt-1"></div>
+    </div>
+</div>
+
+<!-- Claim Code (always visible for reference) -->
+<div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+    <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Claim Code</label>
+    <div class="flex items-center gap-3">
+        <code id="details-code" class="text-2xl font-mono font-bold tracking-widest text-gray-900 dark:text-white"></code>
+        <button type="button" onclick="copyDetailsCode()" class="p-2 text-gray-400 hover:text-ecs-green transition-colors">
+            <i class="ti ti-copy text-xl"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Additional Details -->
+<div class="grid grid-cols-2 gap-4 text-sm">
+    <div>
+        <label class="block text-gray-500 dark:text-gray-400">Created</label>
+        <span id="details-created" class="text-gray-900 dark:text-white"></span>
+    </div>
+    <div>
+        <label class="block text-gray-500 dark:text-gray-400">Expires</label>
+        <span id="details-expires" class="text-gray-900 dark:text-white"></span>
+    </div>
+    <div id="details-jersey-container" class="hidden">
+        <label class="block text-gray-500 dark:text-gray-400">Jersey</label>
+        <span id="details-jersey" class="text-gray-900 dark:text-white"></span>
+    </div>
+    <div id="details-pronouns-container" class="hidden">
+        <label class="block text-gray-500 dark:text-gray-400">Pronouns</label>
+        <span id="details-pronouns" class="text-gray-900 dark:text-white"></span>
+    </div>
+</div>
+
+<!-- Notes -->
+<div id="details-notes-container" class="hidden">
+    <label class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Notes</label>
+    <p id="details-notes" class="text-gray-900 dark:text-white text-sm bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3"></p>
+</div>
+
+<!-- Send Code Section (only for pending profiles) -->
+<div id="details-send-container" class="hidden border-t border-gray-200 dark:border-gray-700 pt-4">
+    <input type="hidden" id="details-profile-id">
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+        <i class="ti ti-send mr-1"></i>Send Code to Player
+    </label>
+    <div class="space-y-3">
+        <!-- Email row -->
+        <div class="flex items-center gap-2">
+            <input type="email" id="details-email-input" placeholder="Email address"
+                   class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            <button type="button" onclick="sendEmailFromDetails()"
+                    class="px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap">
+                <i class="ti ti-mail mr-1"></i>Email
             </button>
         </div>
-
-        <!-- Body -->
-        <div class="p-4 space-y-4">
-            <!-- Photo and Basic Info -->
-            <div class="flex items-start gap-4">
-                <img id="details-photo" src="" alt="" class="w-20 h-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600">
-                <div class="flex-1">
-                    <h4 id="details-name" class="text-xl font-bold text-gray-900 dark:text-white"></h4>
-                    <div id="details-status" class="mt-1"></div>
-                </div>
-            </div>
-
-            <!-- Claim Code (always visible for reference) -->
-            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Claim Code</label>
-                <div class="flex items-center gap-3">
-                    <code id="details-code" class="text-2xl font-mono font-bold tracking-widest text-gray-900 dark:text-white"></code>
-                    <button type="button" onclick="copyDetailsCode()" class="p-2 text-gray-400 hover:text-ecs-green transition-colors">
-                        <i class="ti ti-copy text-xl"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Additional Details -->
-            <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                    <label class="block text-gray-500 dark:text-gray-400">Created</label>
-                    <span id="details-created" class="text-gray-900 dark:text-white"></span>
-                </div>
-                <div>
-                    <label class="block text-gray-500 dark:text-gray-400">Expires</label>
-                    <span id="details-expires" class="text-gray-900 dark:text-white"></span>
-                </div>
-                <div id="details-jersey-container" class="hidden">
-                    <label class="block text-gray-500 dark:text-gray-400">Jersey</label>
-                    <span id="details-jersey" class="text-gray-900 dark:text-white"></span>
-                </div>
-                <div id="details-pronouns-container" class="hidden">
-                    <label class="block text-gray-500 dark:text-gray-400">Pronouns</label>
-                    <span id="details-pronouns" class="text-gray-900 dark:text-white"></span>
-                </div>
-            </div>
-
-            <!-- Notes -->
-            <div id="details-notes-container" class="hidden">
-                <label class="block text-sm text-gray-500 dark:text-gray-400 mb-1">Notes</label>
-                <p id="details-notes" class="text-gray-900 dark:text-white text-sm bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3"></p>
-            </div>
-
-            <!-- Send Code Section (only for pending profiles) -->
-            <div id="details-send-container" class="hidden border-t border-gray-200 dark:border-gray-700 pt-4">
-                <input type="hidden" id="details-profile-id">
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    <i class="ti ti-send mr-1"></i>Send Code to Player
-                </label>
-                <div class="space-y-3">
-                    <!-- Email row -->
-                    <div class="flex items-center gap-2">
-                        <input type="email" id="details-email-input" placeholder="Email address"
-                               class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                        <button type="button" onclick="sendEmailFromDetails()"
-                                class="px-3 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition-colors whitespace-nowrap">
-                            <i class="ti ti-mail mr-1"></i>Email
-                        </button>
-                    </div>
-                    <!-- Phone row -->
-                    <div class="flex items-center gap-2">
-                        <input type="tel" id="details-phone-input" placeholder="Phone number"
-                               class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
-                        <button type="button" onclick="sendSmsFromDetails()"
-                                class="px-3 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors whitespace-nowrap">
-                            <i class="ti ti-message mr-1"></i>SMS
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Linked Player (if claimed/linked) -->
-            <div id="details-linked-container" class="hidden">
-                <label class="block text-sm text-gray-500 dark:text-gray-400 mb-2">Linked To Player</label>
-                <div class="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
-                    <img id="details-linked-photo" src="" alt="" class="w-10 h-10 rounded-full object-cover">
-                    <div>
-                        <div id="details-linked-name" class="font-medium text-gray-900 dark:text-white"></div>
-                        <div id="details-linked-date" class="text-xs text-gray-500 dark:text-gray-400"></div>
-                    </div>
-                    <a id="details-linked-link" href="#" class="ml-auto text-ecs-green hover:underline text-sm">
-                        View Player <i class="ti ti-external-link"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="flex items-center justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-            <button type="button" onclick="closeDetailsModal()"
-                    class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                Close
+        <!-- Phone row -->
+        <div class="flex items-center gap-2">
+            <input type="tel" id="details-phone-input" placeholder="Phone number"
+                   class="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+            <button type="button" onclick="sendSmsFromDetails()"
+                    class="px-3 py-2 bg-green-500 text-white text-sm rounded-lg hover:bg-green-600 transition-colors whitespace-nowrap">
+                <i class="ti ti-message mr-1"></i>SMS
             </button>
         </div>
     </div>
 </div>
+
+<!-- Linked Player (if claimed/linked) -->
+<div id="details-linked-container" class="hidden">
+    <label class="block text-sm text-gray-500 dark:text-gray-400 mb-2">Linked To Player</label>
+    <div class="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 rounded-lg">
+        <img id="details-linked-photo" src="" alt="" class="w-10 h-10 rounded-full object-cover">
+        <div>
+            <div id="details-linked-name" class="font-medium text-gray-900 dark:text-white"></div>
+            <div id="details-linked-date" class="text-xs text-gray-500 dark:text-gray-400"></div>
+        </div>
+        <a id="details-linked-link" href="#" class="ml-auto text-ecs-green hover:underline text-sm">
+            View Player <i class="ti ti-external-link"></i>
+        </a>
+    </div>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -618,7 +563,7 @@ document.getElementById('create-profile-btn').addEventListener('click', openCrea
 document.getElementById('create-profile-btn-empty')?.addEventListener('click', openCreateModal);
 
 function openCreateModal() {
-    document.getElementById('create-modal').classList.remove('hidden');
+    // Reset form fields
     document.getElementById('player-name').value = '';
     document.getElementById('notes').value = '';
     document.getElementById('jersey-number').value = '';
@@ -628,10 +573,19 @@ function openCreateModal() {
     document.getElementById('player-phone').value = '';
     clearPhoto();
     hideDuplicateWarning();
+
+    // Show modal using Flowbite
+    const modal = FlowbiteInstances.getInstance('Modal', 'create-modal');
+    if (modal) {
+        modal.show();
+    }
 }
 
 function closeCreateModal() {
-    document.getElementById('create-modal').classList.add('hidden');
+    const modal = FlowbiteInstances.getInstance('Modal', 'create-modal');
+    if (modal) {
+        modal.hide();
+    }
 }
 
 // Photo upload
@@ -800,7 +754,11 @@ async function submitCreateProfile() {
                 noContact.classList.add('hidden');
             }
 
-            document.getElementById('success-modal').classList.remove('hidden');
+            // Show success modal using Flowbite
+            const successModal = FlowbiteInstances.getInstance('Modal', 'success-modal');
+            if (successModal) {
+                successModal.show();
+            }
         } else {
             showToast(data.error || 'Failed to create profile', 'error');
         }
@@ -821,7 +779,10 @@ function copySuccessCode() {
 }
 
 function closeSuccessModal() {
-    document.getElementById('success-modal').classList.add('hidden');
+    const modal = FlowbiteInstances.getInstance('Modal', 'success-modal');
+    if (modal) {
+        modal.hide();
+    }
     window.location.reload();
 }
 
@@ -832,11 +793,18 @@ function openLinkModal(profileId, profileName) {
     document.getElementById('player-search').value = '';
     document.getElementById('player-search-results').innerHTML = '';
     clearSelectedPlayer();
-    document.getElementById('link-modal').classList.remove('hidden');
+
+    const modal = FlowbiteInstances.getInstance('Modal', 'link-modal');
+    if (modal) {
+        modal.show();
+    }
 }
 
 function closeLinkModal() {
-    document.getElementById('link-modal').classList.add('hidden');
+    const modal = FlowbiteInstances.getInstance('Modal', 'link-modal');
+    if (modal) {
+        modal.hide();
+    }
 }
 
 // Player search for linking
@@ -1058,8 +1026,11 @@ async function viewProfile(profileId) {
                 document.getElementById('details-send-container').classList.add('hidden');
             }
 
-            // Show modal
-            document.getElementById('details-modal').classList.remove('hidden');
+            // Show modal using Flowbite
+            const modal = FlowbiteInstances.getInstance('Modal', 'details-modal');
+            if (modal) {
+                modal.show();
+            }
         }
     } catch (error) {
         showToast('Could not load profile details', 'error');
@@ -1067,7 +1038,10 @@ async function viewProfile(profileId) {
 }
 
 function closeDetailsModal() {
-    document.getElementById('details-modal').classList.add('hidden');
+    const modal = FlowbiteInstances.getInstance('Modal', 'details-modal');
+    if (modal) {
+        modal.hide();
+    }
 }
 
 function copyDetailsCode() {

@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}Manage Sub Requests{% endblock %}
 
@@ -249,63 +250,38 @@
 <!-- Fulfill Modals -->
 {% for request in sub_requests %}
 {% if request.status == 'PENDING' or request.status == 'APPROVED' %}
-<div id="fulfillModal{{ request.id }}" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-green-600 text-white rounded-t-lg">
-                <h3 class="text-lg font-semibold flex items-center gap-2">
-                    <i class="ti ti-user-plus"></i>Assign Substitute
-                </h3>
-                <button type="button" class="text-white hover:text-gray-200" data-modal-hide="fulfillModal{{ request.id }}">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
+{% call modal_form('fulfillModal' ~ request.id, 'Assign Substitute', action=url_for('admin.update_sub_request', request_id=request.id), size='md', submit_text='Assign Substitute', submit_color='primary', loading_text='Assigning...') %}
+    <input type="hidden" name="action" value="fulfill">
+
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Substitute</label>
+        <select name="player_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="" selected disabled>Choose a substitute player...</option>
+            {% if subs_by_match[request.match_id] and subs_by_match[request.match_id].subs %}
+                {% for sub in subs_by_match[request.match_id].subs %}
+                <option value="{{ sub.id }}">{{ sub.name }} ({{ subs_by_match[request.match_id].league_type }})</option>
+                {% endfor %}
+            {% else %}
+                {% for sub in available_subs %}
+                <option value="{{ sub.id }}">{{ sub.name }}</option>
+                {% endfor %}
+            {% endif %}
+        </select>
+    </div>
+
+    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div class="flex gap-3">
+            <i class="ti ti-info-circle text-2xl text-blue-600 dark:text-blue-400"></i>
+            <div>
+                <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-1">Request Details</h6>
+                <p class="text-sm text-blue-700 dark:text-blue-400">{{ request.team.name }} needs <strong>{{ request.substitutes_needed }} substitute(s)</strong> for their match on {{ request.match.date.strftime('%a, %b %d') }}</p>
+                {% if request.notes %}
+                <p class="text-sm text-blue-600 dark:text-blue-400 italic mt-2">"{{ request.notes }}"</p>
+                {% endif %}
             </div>
-            <form action="{{ url_for('admin.update_sub_request', request_id=request.id) }}" method="POST">
-                <div class="p-4">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="action" value="fulfill">
-
-                    <div class="mb-4">
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Substitute</label>
-                        <select name="player_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="" selected disabled>Choose a substitute player...</option>
-                            {% if subs_by_match[request.match_id] and subs_by_match[request.match_id].subs %}
-                                {% for sub in subs_by_match[request.match_id].subs %}
-                                <option value="{{ sub.id }}">{{ sub.name }} ({{ subs_by_match[request.match_id].league_type }})</option>
-                                {% endfor %}
-                            {% else %}
-                                {% for sub in available_subs %}
-                                <option value="{{ sub.id }}">{{ sub.name }}</option>
-                                {% endfor %}
-                            {% endif %}
-                        </select>
-                    </div>
-
-                    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                        <div class="flex gap-3">
-                            <i class="ti ti-info-circle text-2xl text-blue-600 dark:text-blue-400"></i>
-                            <div>
-                                <h6 class="font-semibold text-blue-800 dark:text-blue-300 mb-1">Request Details</h6>
-                                <p class="text-sm text-blue-700 dark:text-blue-400">{{ request.team.name }} needs <strong>{{ request.substitutes_needed }} substitute(s)</strong> for their match on {{ request.match.date.strftime('%a, %b %d') }}</p>
-                                {% if request.notes %}
-                                <p class="text-sm text-blue-600 dark:text-blue-400 italic mt-2">"{{ request.notes }}"</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" data-modal-hide="fulfillModal{{ request.id }}">
-                        <i class="ti ti-x mr-1"></i>Cancel
-                    </button>
-                    <button type="submit" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors">
-                        <i class="ti ti-user-plus mr-2"></i>Assign Substitute
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
-</div>
+{% endcall %}
 {% endif %}
 {% endfor %}
 {% endblock %}

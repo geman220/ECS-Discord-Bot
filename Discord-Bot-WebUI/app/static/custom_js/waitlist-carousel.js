@@ -51,9 +51,21 @@ function initWaitlistCarousel() {
             keyboard: false
         });
 
-        modalElement.addEventListener('shown.bs.modal', function() {
+        // Handler for modal shown event
+        const handleModalShown = function() {
             updateProgress();
-        });
+        };
+
+        // Use ModalManager.onShow if available (Flowbite pattern)
+        if (typeof window.ModalManager.onShow === 'function') {
+            window.ModalManager.onShow('waitlistRegistrationModal', handleModalShown);
+        }
+
+        // Also listen for Flowbite's native event
+        modalElement.addEventListener('show.fb.modal', handleModalShown);
+
+        // Fallback: listen for Bootstrap event for backwards compatibility
+        modalElement.addEventListener('shown.bs.modal', handleModalShown);
     }
 
     // Initialize carousel using Flowbite Carousel

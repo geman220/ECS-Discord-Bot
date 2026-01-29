@@ -1,4 +1,5 @@
 {% extends "base_unauthenticated_flowbite.html" %}
+{% from "macros/flowbite.html" import modal %}
 
 {% block title %}Complete Waitlist Registration - ECS FC Pub League{% endblock %}
 
@@ -356,59 +357,47 @@
 </div>
 
 <!-- Profile Image Modal -->
-<div id="profileImageModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="modal-overlay"></div>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
-            <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Upload and Crop Profile Picture</h3>
-                    <button type="button" id="close-modal-btn" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                        <i class="ti ti-x text-xl"></i>
-                    </button>
+{% call modal('profileImageModal', 'Upload and Crop Profile Picture', size='xl') %}
+    <div class="mb-4">
+        <input type="file" id="imageInput" accept="image/*"
+               class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-ecs-green file:text-white hover:file:bg-ecs-green/90">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Supported formats: JPG, PNG, GIF. Maximum size: 10MB</p>
+    </div>
+    <div id="imageEditor" class="hidden">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="md:col-span-2">
+                <canvas id="imageCanvas" class="max-w-full border border-gray-200 dark:border-gray-600 rounded-lg"></canvas>
+            </div>
+            <div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Crop Size:</label>
+                    <input type="range" id="cropSize" min="100" max="300" value="200"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
+                    <span id="cropSizeValue" class="text-sm text-gray-500 dark:text-gray-400">200px</span>
                 </div>
                 <div class="mb-4">
-                    <input type="file" id="imageInput" accept="image/*"
-                           class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-ecs-green file:text-white hover:file:bg-ecs-green/90">
-                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Supported formats: JPG, PNG, GIF. Maximum size: 10MB</p>
+                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preview:</p>
+                    <canvas id="previewCanvas" width="150" height="150" class="border border-gray-200 dark:border-gray-600 rounded-lg"></canvas>
                 </div>
-                <div id="imageEditor" class="hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="md:col-span-2">
-                            <canvas id="imageCanvas" class="max-w-full border border-gray-200 dark:border-gray-600 rounded-lg"></canvas>
-                        </div>
-                        <div>
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Crop Size:</label>
-                                <input type="range" id="cropSize" min="100" max="300" value="200"
-                                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                                <span id="cropSizeValue" class="text-sm text-gray-500 dark:text-gray-400">200px</span>
-                            </div>
-                            <div class="mb-4">
-                                <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preview:</p>
-                                <canvas id="previewCanvas" width="150" height="150" class="border border-gray-200 dark:border-gray-600 rounded-lg"></canvas>
-                            </div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
-                                <p>Click and drag to position the crop area</p>
-                                <p>Use the slider to adjust size</p>
-                            </div>
-                        </div>
-                    </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                    <p>Click and drag to position the crop area</p>
+                    <p>Use the slider to adjust size</p>
                 </div>
-            </div>
-            <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
-                <button type="button" id="applyCropBtn" disabled
-                        class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 disabled:opacity-50 disabled:cursor-not-allowed">
-                    Apply Changes
-                </button>
-                <button type="button" id="cancel-modal-btn"
-                        class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                    Cancel
-                </button>
             </div>
         </div>
     </div>
-</div>
+    <!-- Custom Footer -->
+    <div class="flex flex-col sm:flex-row-reverse gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+        <button type="button" id="applyCropBtn" disabled
+                class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 disabled:opacity-50 disabled:cursor-not-allowed">
+            Apply Changes
+        </button>
+        <button type="button" id="cancel-modal-btn" data-modal-hide="profileImageModal"
+                class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
+            Cancel
+        </button>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -418,21 +407,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const termsCheckbox = document.getElementById('terms-agreement-waitlist');
     const submitBtn = document.getElementById('complete-waitlist-btn');
     const uploadBtn = document.getElementById('upload-photo-btn');
-    const modal = document.getElementById('profileImageModal');
-    const closeBtn = document.getElementById('close-modal-btn');
-    const cancelBtn = document.getElementById('cancel-modal-btn');
-    const overlay = document.getElementById('modal-overlay');
 
     // Enable submit button when terms are checked
     termsCheckbox.addEventListener('change', function() {
         submitBtn.disabled = !this.checked;
     });
 
-    // Modal open/close
-    uploadBtn.addEventListener('click', () => modal.classList.remove('hidden'));
-    closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
-    cancelBtn.addEventListener('click', () => modal.classList.add('hidden'));
-    overlay.addEventListener('click', () => modal.classList.add('hidden'));
+    // Set up modal trigger using Flowbite data attributes
+    if (uploadBtn) {
+        uploadBtn.setAttribute('data-modal-target', 'profileImageModal');
+        uploadBtn.setAttribute('data-modal-toggle', 'profileImageModal');
+    }
 });
 </script>
 <script src="{{ url_for('static', filename='custom_js/waitlist-discord-cropper.js') }}"></script>

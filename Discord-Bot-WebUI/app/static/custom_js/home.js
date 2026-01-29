@@ -179,14 +179,22 @@ function initializeModalIosFix() {
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
     if (!isIOS) return; // Skip if not iOS
 
-    // Use Bootstrap events with delegation
-    document.addEventListener('shown.bs.modal', function() {
+    // Handler functions for modal events
+    const handleModalShown = function() {
         document.body.classList.add('modal-open-ios');
-    });
+    };
 
-    document.addEventListener('hidden.bs.modal', function() {
+    const handleModalHidden = function() {
         document.body.classList.remove('modal-open-ios');
-    });
+    };
+
+    // Listen for Flowbite modal events (primary)
+    document.addEventListener('show.fb.modal', handleModalShown);
+    document.addEventListener('hide.fb.modal', handleModalHidden);
+
+    // Fallback: listen for Bootstrap events for backwards compatibility
+    document.addEventListener('shown.bs.modal', handleModalShown);
+    document.addEventListener('hidden.bs.modal', handleModalHidden);
 }
 
 /**

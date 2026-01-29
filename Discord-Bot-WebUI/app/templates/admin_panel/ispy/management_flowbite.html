@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state, modal_form %}
 
 {% block admin_title %}I-Spy Game Management{% endblock %}
 {% block panel_description %}Manage I-Spy game seasons, categories, and players{% endblock %}
@@ -273,108 +273,62 @@
 </div>
 
 <!-- Create Season Modal -->
-<div id="createSeasonModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-lg">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Create New I-Spy Season</h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="createSeasonModal">
-                        <i class="ti ti-x text-lg"></i>
-                    </button>
-                </div>
-                <form id="createSeasonForm">
-                    <div class="p-6 space-y-4">
-                        <div>
-                            <label for="seasonName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season Name <span class="text-red-500">*</span></label>
-                            <input type="text" id="seasonName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label for="seasonDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                            <textarea id="seasonDescription" name="description" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="seasonStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
-                                <input type="date" id="seasonStartDate" name="start_date" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                            </div>
-                            <div>
-                                <label for="seasonEndDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
-                                <input type="date" id="seasonEndDate" name="end_date" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                            </div>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="seasonIsActive" name="is_active" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                            <label for="seasonIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Set as active season</label>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-hide="createSeasonModal">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
-                            <i class="ti ti-plus mr-1"></i>Create Season
-                        </button>
-                    </div>
-                </form>
-            </div>
+{% call modal_form('createSeasonModal', 'Create New I-Spy Season', form_id='createSeasonForm', submit_text='Create Season', loading_text='Creating...') %}
+    <div>
+        <label for="seasonName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Season Name <span class="text-red-500">*</span></label>
+        <input type="text" id="seasonName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+    <div>
+        <label for="seasonDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+        <textarea id="seasonDescription" name="description" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="seasonStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+            <input type="date" id="seasonStartDate" name="start_date" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        </div>
+        <div>
+            <label for="seasonEndDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">End Date</label>
+            <input type="date" id="seasonEndDate" name="end_date" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
         </div>
     </div>
-</div>
+    <div class="flex items-center">
+        <input type="checkbox" id="seasonIsActive" name="is_active" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+        <label for="seasonIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Set as active season</label>
+    </div>
+{% endcall %}
 
 <!-- Create Category Modal -->
-<div id="createCategoryModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-lg">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Create New Category</h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="createCategoryModal">
-                        <i class="ti ti-x text-lg"></i>
-                    </button>
-                </div>
-                <form id="createCategoryForm">
-                    <div class="p-6 space-y-4">
-                        <div>
-                            <label for="categoryName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category Name <span class="text-red-500">*</span></label>
-                            <input type="text" id="categoryName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label for="categoryDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                            <textarea id="categoryDescription" name="description" rows="2" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="categoryColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
-                                <input type="color" id="categoryColor" name="color" value="#1a472a" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer">
-                            </div>
-                            <div>
-                                <label for="categoryIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
-                                <select id="categoryIcon" name="icon" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                                    <option value="ti-eye">Eye</option>
-                                    <option value="ti-camera">Camera</option>
-                                    <option value="ti-target">Target</option>
-                                    <option value="ti-search">Search</option>
-                                    <option value="ti-focus">Focus</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="categoryIsActive" name="is_active" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                            <label for="categoryIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Active category</label>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-hide="createCategoryModal">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
-                            <i class="ti ti-plus mr-1"></i>Create Category
-                        </button>
-                    </div>
-                </form>
-            </div>
+{% call modal_form('createCategoryModal', 'Create New Category', form_id='createCategoryForm', submit_text='Create Category', loading_text='Creating...') %}
+    <div>
+        <label for="categoryName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category Name <span class="text-red-500">*</span></label>
+        <input type="text" id="categoryName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+    <div>
+        <label for="categoryDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+        <textarea id="categoryDescription" name="description" rows="2" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="categoryColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+            <input type="color" id="categoryColor" name="color" value="#1a472a" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer">
+        </div>
+        <div>
+            <label for="categoryIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
+            <select id="categoryIcon" name="icon" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                <option value="ti-eye">Eye</option>
+                <option value="ti-camera">Camera</option>
+                <option value="ti-target">Target</option>
+                <option value="ti-search">Search</option>
+                <option value="ti-focus">Focus</option>
+            </select>
         </div>
     </div>
-</div>
+    <div class="flex items-center">
+        <input type="checkbox" id="categoryIsActive" name="is_active" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+        <label for="categoryIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Active category</label>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}

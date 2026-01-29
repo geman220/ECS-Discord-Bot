@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
 {% block admin_title %}Discord Role Mapping{% endblock %}
 {% block panel_description %}Map Flask roles to Discord server roles{% endblock %}
@@ -199,30 +199,13 @@
 </div>
 
 <!-- User Preview Modal -->
-<div id="userPreviewModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 transition-opacity" data-modal-backdrop></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Users with Role</h5>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-close>
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-5" id="userPreviewContent">
-                <div class="flex items-center justify-center py-8">
-                    <i class="ti ti-loader animate-spin text-3xl text-gray-400"></i>
-                </div>
-            </div>
-            <div class="p-5 border-t border-gray-200 dark:border-gray-700 flex justify-end">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-modal-close>
-                    Close
-                </button>
-            </div>
+{% call modal_info('userPreviewModal', 'Users with Role', size='lg') %}
+    <div id="userPreviewContent">
+        <div class="flex items-center justify-center py-8">
+            <i class="ti ti-loader animate-spin text-3xl text-gray-400"></i>
         </div>
     </div>
-</div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -240,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Modal close handlers
-    document.querySelectorAll('[data-modal-close], [data-modal-backdrop]').forEach(el => {
+    document.querySelectorAll('[data-modal-hide="userPreviewModal"]').forEach(el => {
         el.addEventListener('click', function() {
             hideModal('userPreviewModal');
         });

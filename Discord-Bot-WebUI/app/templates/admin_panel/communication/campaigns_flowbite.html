@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form, modal %}
 
 {% block admin_title %}Push Campaigns{% endblock %}
 {% block panel_description %}Manage push notification campaigns{% endblock %}
@@ -234,144 +234,106 @@
 </div>
 
 <!-- Create Campaign Modal -->
-<div id="createCampaignModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-plus mr-2"></i>Create Push Campaign
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="createCampaignModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="createCampaignForm">
-                <div class="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="campaign_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Campaign Name *</label>
-                            <input type="text" id="campaign_name" name="name" required placeholder="e.g., Spring Season Launch" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        </div>
-                        <div>
-                            <label for="campaign_priority" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Priority</label>
-                            <select id="campaign_priority" name="priority" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                                <option value="normal">Normal</option>
-                                <option value="high">High</option>
-                                <option value="urgent">Urgent</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label for="campaign_title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title *</label>
-                        <input type="text" id="campaign_title" name="title" required maxlength="50" placeholder="e.g., New Season Starting!" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <p class="mt-1 text-xs text-gray-500">Max 50 characters</p>
-                    </div>
-
-                    <div>
-                        <label for="campaign_body" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message Body *</label>
-                        <textarea id="campaign_body" name="body" rows="3" required maxlength="200" placeholder="The notification message..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
-                        <p class="mt-1 text-xs text-gray-500">Max 200 characters</p>
-                    </div>
-
-                    <hr class="border-gray-200 dark:border-gray-700">
-
-                    <h6 class="text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-target mr-2"></i>Targeting</h6>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label for="campaign_target_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Target Type</label>
-                            <select id="campaign_target_type" name="target_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                                <option value="all">All Subscribers</option>
-                                <option value="team">By Team</option>
-                                <option value="league">By League</option>
-                                <option value="role">By Role</option>
-                                <option value="pool">Substitute Pool</option>
-                                <option value="group">Notification Group</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="campaign_platform" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Platform</label>
-                            <select id="campaign_platform" name="platform_filter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                                <option value="all">All Platforms</option>
-                                <option value="ios">iOS Only</option>
-                                <option value="android">Android Only</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <hr class="border-gray-200 dark:border-gray-700">
-
-                    <h6 class="text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-clock mr-2"></i>Scheduling</h6>
-
-                    <div class="flex flex-wrap gap-4">
-                        <label class="flex items-center">
-                            <input type="radio" name="send_type" value="immediate" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Save as Draft</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" name="send_type" value="send_now" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Send Immediately</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" name="send_type" value="scheduled" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Schedule for Later</span>
-                        </label>
-                    </div>
-
-                    <div id="campaignScheduleContainer" class="hidden">
-                        <label for="campaign_schedule_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Date & Time</label>
-                        <input type="datetime-local" id="campaign_schedule_time" name="scheduled_send_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-
-                    <div>
-                        <label for="campaign_action_url" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Action URL (Optional)</label>
-                        <input type="url" id="campaign_action_url" name="action_url" placeholder="https://example.com/action" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                        <p class="mt-1 text-xs text-gray-500">URL to open when notification is clicked</p>
-                    </div>
-                </div>
-                <div class="flex items-center justify-end p-5 border-t dark:border-gray-700 gap-3">
-                    <button type="button" data-modal-hide="createCampaignModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                        <i class="ti ti-plus mr-1"></i>Create Campaign
-                    </button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('createCampaignModal', 'Create Push Campaign', form_id='createCampaignForm', size='lg', submit_text='Create Campaign', loading_text='Creating...') %}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+        <label for="campaign_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Campaign Name *</label>
+        <input type="text" id="campaign_name" name="name" required placeholder="e.g., Spring Season Launch" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    </div>
+    <div>
+        <label for="campaign_priority" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Priority</label>
+        <select id="campaign_priority" name="priority" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="normal">Normal</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
+        </select>
     </div>
 </div>
+
+<div>
+    <label for="campaign_title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title *</label>
+    <input type="text" id="campaign_title" name="title" required maxlength="50" placeholder="e.g., New Season Starting!" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    <p class="mt-1 text-xs text-gray-500">Max 50 characters</p>
+</div>
+
+<div>
+    <label for="campaign_body" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message Body *</label>
+    <textarea id="campaign_body" name="body" rows="3" required maxlength="200" placeholder="The notification message..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+    <p class="mt-1 text-xs text-gray-500">Max 200 characters</p>
+</div>
+
+<hr class="border-gray-200 dark:border-gray-700">
+
+<h6 class="text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-target mr-2"></i>Targeting</h6>
+
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+        <label for="campaign_target_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Target Type</label>
+        <select id="campaign_target_type" name="target_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="all">All Subscribers</option>
+            <option value="team">By Team</option>
+            <option value="league">By League</option>
+            <option value="role">By Role</option>
+            <option value="pool">Substitute Pool</option>
+            <option value="group">Notification Group</option>
+        </select>
+    </div>
+    <div>
+        <label for="campaign_platform" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Platform</label>
+        <select id="campaign_platform" name="platform_filter" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="all">All Platforms</option>
+            <option value="ios">iOS Only</option>
+            <option value="android">Android Only</option>
+        </select>
+    </div>
+</div>
+
+<hr class="border-gray-200 dark:border-gray-700">
+
+<h6 class="text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-clock mr-2"></i>Scheduling</h6>
+
+<div class="flex flex-wrap gap-4">
+    <label class="flex items-center">
+        <input type="radio" name="send_type" value="immediate" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+        <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Save as Draft</span>
+    </label>
+    <label class="flex items-center">
+        <input type="radio" name="send_type" value="send_now" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+        <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Send Immediately</span>
+    </label>
+    <label class="flex items-center">
+        <input type="radio" name="send_type" value="scheduled" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+        <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Schedule for Later</span>
+    </label>
+</div>
+
+<div id="campaignScheduleContainer" class="hidden">
+    <label for="campaign_schedule_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Date & Time</label>
+    <input type="datetime-local" id="campaign_schedule_time" name="scheduled_send_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+</div>
+
+<div>
+    <label for="campaign_action_url" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Action URL (Optional)</label>
+    <input type="url" id="campaign_action_url" name="action_url" placeholder="https://example.com/action" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    <p class="mt-1 text-xs text-gray-500">URL to open when notification is clicked</p>
+</div>
+{% endcall %}
 
 <!-- Schedule Campaign Modal -->
-<div id="scheduleCampaignModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-clock mr-2"></i>Schedule Campaign
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="scheduleCampaignModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-5">
-                <input type="hidden" id="schedule_campaign_id">
-                <p class="text-gray-600 dark:text-gray-400 mb-4">Schedule <strong id="schedule_campaign_name"></strong> for delivery:</p>
-                <div>
-                    <label for="schedule_send_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Date & Time</label>
-                    <input type="datetime-local" id="schedule_send_time" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                </div>
-            </div>
-            <div class="flex items-center justify-end p-5 border-t dark:border-gray-700 gap-3">
-                <button type="button" data-modal-hide="scheduleCampaignModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
-                <button type="button" id="confirmScheduleBtn" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                    <i class="ti ti-clock mr-1"></i>Schedule
-                </button>
-            </div>
-        </div>
-    </div>
+{% call modal('scheduleCampaignModal', 'Schedule Campaign', size='md') %}
+<input type="hidden" id="schedule_campaign_id">
+<p class="text-gray-600 dark:text-gray-400 mb-4">Schedule <strong id="schedule_campaign_name"></strong> for delivery:</p>
+<div>
+    <label for="schedule_send_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Date & Time</label>
+    <input type="datetime-local" id="schedule_send_time" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
 </div>
+<div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-600 mt-4">
+    <button type="button" data-modal-hide="scheduleCampaignModal" class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">Cancel</button>
+    <button type="button" id="confirmScheduleBtn" class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300">
+        <i class="ti ti-clock mr-1"></i>Schedule
+    </button>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -508,6 +470,10 @@ document.addEventListener('DOMContentLoaded', function() {
             now.setMinutes(now.getMinutes() + 5); // Minimum 5 minutes from now
             sendTimeInput.min = now.toISOString().slice(0, 16);
             sendTimeInput.value = '';
+            // Show modal using Flowbite pattern
+            const modal = document.getElementById('scheduleCampaignModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
     });
 

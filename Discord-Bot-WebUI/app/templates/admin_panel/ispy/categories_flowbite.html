@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state, modal_form %}
 
 {% block admin_title %}I-Spy Categories{% endblock %}
 {% block panel_description %}Manage I-Spy game categories{% endblock %}
@@ -186,136 +186,90 @@
 </div>
 
 <!-- Create Category Modal -->
-<div id="createCategoryModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-lg">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Create New Category</h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="createCategoryModal">
-                        <i class="ti ti-x text-lg"></i>
-                    </button>
-                </div>
-                <form id="createCategoryForm">
-                    <div class="p-6 space-y-4">
-                        <div>
-                            <label for="categoryName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category Name <span class="text-red-500">*</span></label>
-                            <input type="text" id="categoryName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label for="categoryDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                            <textarea id="categoryDescription" name="description" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="Describe what players should look for..."></textarea>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="categoryColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
-                                <div class="flex items-center gap-2">
-                                    <input type="color" id="categoryColor" name="color" value="#1a472a" class="w-12 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer">
-                                    <input type="text" id="categoryColorText" value="#1a472a" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white font-mono">
-                                </div>
-                            </div>
-                            <div>
-                                <label for="categoryPoints" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Points Value</label>
-                                <input type="number" id="categoryPoints" name="points_value" value="10" min="1" max="100" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                            </div>
-                        </div>
-                        <div>
-                            <label for="categoryIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
-                            <select id="categoryIcon" name="icon" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                                <option value="eye">Eye</option>
-                                <option value="camera">Camera</option>
-                                <option value="target">Target</option>
-                                <option value="search">Search</option>
-                                <option value="focus">Focus</option>
-                                <option value="flag">Flag</option>
-                                <option value="star">Star</option>
-                                <option value="heart">Heart</option>
-                                <option value="trophy">Trophy</option>
-                                <option value="ball-football">Football</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="categoryIsActive" name="is_active" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                            <label for="categoryIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Active category</label>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-hide="createCategoryModal">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
-                            <i class="ti ti-plus mr-1"></i>Create Category
-                        </button>
-                    </div>
-                </form>
+{% call modal_form('createCategoryModal', 'Create New Category', form_id='createCategoryForm', submit_text='Create Category', loading_text='Creating...') %}
+    <div>
+        <label for="categoryName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category Name <span class="text-red-500">*</span></label>
+        <input type="text" id="categoryName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+    <div>
+        <label for="categoryDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+        <textarea id="categoryDescription" name="description" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="Describe what players should look for..."></textarea>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="categoryColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+            <div class="flex items-center gap-2">
+                <input type="color" id="categoryColor" name="color" value="#1a472a" class="w-12 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer">
+                <input type="text" id="categoryColorText" value="#1a472a" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white font-mono">
             </div>
         </div>
+        <div>
+            <label for="categoryPoints" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Points Value</label>
+            <input type="number" id="categoryPoints" name="points_value" value="10" min="1" max="100" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        </div>
     </div>
-</div>
+    <div>
+        <label for="categoryIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
+        <select id="categoryIcon" name="icon" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="eye">Eye</option>
+            <option value="camera">Camera</option>
+            <option value="target">Target</option>
+            <option value="search">Search</option>
+            <option value="focus">Focus</option>
+            <option value="flag">Flag</option>
+            <option value="star">Star</option>
+            <option value="heart">Heart</option>
+            <option value="trophy">Trophy</option>
+            <option value="ball-football">Football</option>
+        </select>
+    </div>
+    <div class="flex items-center">
+        <input type="checkbox" id="categoryIsActive" name="is_active" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+        <label for="categoryIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Active category</label>
+    </div>
+{% endcall %}
 
 <!-- Edit Category Modal -->
-<div id="editCategoryModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/50 dark:bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-lg">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                    <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Edit Category</h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="editCategoryModal">
-                        <i class="ti ti-x text-lg"></i>
-                    </button>
-                </div>
-                <form id="editCategoryForm">
-                    <input type="hidden" id="editCategoryId" name="id">
-                    <div class="p-6 space-y-4">
-                        <div>
-                            <label for="editCategoryName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category Name <span class="text-red-500">*</span></label>
-                            <input type="text" id="editCategoryName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label for="editCategoryDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-                            <textarea id="editCategoryDescription" name="description" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
-                        </div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label for="editCategoryColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
-                                <input type="color" id="editCategoryColor" name="color" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer">
-                            </div>
-                            <div>
-                                <label for="editCategoryPoints" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Points Value</label>
-                                <input type="number" id="editCategoryPoints" name="points_value" min="1" max="100" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                            </div>
-                        </div>
-                        <div>
-                            <label for="editCategoryIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
-                            <select id="editCategoryIcon" name="icon" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                                <option value="eye">Eye</option>
-                                <option value="camera">Camera</option>
-                                <option value="target">Target</option>
-                                <option value="search">Search</option>
-                                <option value="focus">Focus</option>
-                                <option value="flag">Flag</option>
-                                <option value="star">Star</option>
-                                <option value="heart">Heart</option>
-                                <option value="trophy">Trophy</option>
-                                <option value="ball-football">Football</option>
-                            </select>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="editCategoryIsActive" name="is_active" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                            <label for="editCategoryIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Active category</label>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-end gap-3 p-4 border-t dark:border-gray-700">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-hide="editCategoryModal">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
-                            <i class="ti ti-check mr-1"></i>Save Changes
-                        </button>
-                    </div>
-                </form>
-            </div>
+{% call modal_form('editCategoryModal', 'Edit Category', form_id='editCategoryForm', submit_text='Save Changes', loading_text='Saving...') %}
+    <input type="hidden" id="editCategoryId" name="id">
+    <div>
+        <label for="editCategoryName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category Name <span class="text-red-500">*</span></label>
+        <input type="text" id="editCategoryName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+    <div>
+        <label for="editCategoryDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+        <textarea id="editCategoryDescription" name="description" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="editCategoryColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
+            <input type="color" id="editCategoryColor" name="color" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer">
+        </div>
+        <div>
+            <label for="editCategoryPoints" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Points Value</label>
+            <input type="number" id="editCategoryPoints" name="points_value" min="1" max="100" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
         </div>
     </div>
-</div>
+    <div>
+        <label for="editCategoryIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
+        <select id="editCategoryIcon" name="icon" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="eye">Eye</option>
+            <option value="camera">Camera</option>
+            <option value="target">Target</option>
+            <option value="search">Search</option>
+            <option value="focus">Focus</option>
+            <option value="flag">Flag</option>
+            <option value="star">Star</option>
+            <option value="heart">Heart</option>
+            <option value="trophy">Trophy</option>
+            <option value="ball-football">Football</option>
+        </select>
+    </div>
+    <div class="flex items-center">
+        <input type="checkbox" id="editCategoryIsActive" name="is_active" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+        <label for="editCategoryIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Active category</label>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}

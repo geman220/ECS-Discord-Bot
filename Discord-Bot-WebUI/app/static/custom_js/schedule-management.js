@@ -88,11 +88,21 @@ export class ScheduleManager {
 
         const self = this;
 
-        // Delegated show.bs.modal handler for single week modal
-        document.addEventListener('show.bs.modal', function(e) {
+        // Capture trigger button for Flowbite compatibility (relatedTarget may not be set)
+        document.addEventListener('click', function(e) {
+            if (!e.target || typeof e.target.closest !== 'function') return;
+            const trigger = e.target.closest('[data-modal-target="addSingleWeekModal"], [data-bs-target="#addSingleWeekModal"]');
+            if (trigger) {
+                window._lastSingleWeekModalTrigger = trigger;
+            }
+        });
+
+        // Handler for single week modal show event
+        const handleSingleWeekModalShow = function(e) {
             if (e.target.id !== 'addSingleWeekModal') return;
 
-            const button = e.relatedTarget;
+            // For Flowbite events, relatedTarget may not be set
+            const button = e.relatedTarget || window._lastSingleWeekModalTrigger;
             if (!button) return;
 
             const leagueId = button.getAttribute('data-league-id');
@@ -104,7 +114,13 @@ export class ScheduleManager {
 
             // Add at least one slot
             self.addSingleWeekTimeSlot();
-        });
+        };
+
+        // Listen for Flowbite modal event (primary)
+        document.addEventListener('show.fb.modal', handleSingleWeekModalShow);
+
+        // Fallback: listen for Bootstrap event for backwards compatibility
+        document.addEventListener('show.bs.modal', handleSingleWeekModalShow);
 
         // Delegated click handler for add time slot button
         document.addEventListener('click', function(e) {

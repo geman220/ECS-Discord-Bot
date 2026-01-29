@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}Player List{% endblock %}
 
@@ -19,7 +20,7 @@
                     <span class="hidden sm:inline">Update Players</span>
                 </button>
             </form>
-            <button type="button" id="create-player-btn"
+            <button type="button" data-modal-target="createPlayerModal" data-modal-toggle="createPlayerModal"
                     class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
                 <i class="ti ti-plus"></i>
                 <span class="hidden sm:inline">Create Player</span>
@@ -162,90 +163,51 @@
 </div>
 
 <!-- Create Player Modal -->
-<div id="createPlayerModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="modal-overlay"></div>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <form method="POST" action="{{ url_for('players.create_player') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Create New Player</h3>
-                        <button type="button" id="close-modal-btn" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                            <i class="ti ti-x text-xl"></i>
-                        </button>
-                    </div>
-
-                    <div class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
-                            <input type="text" name="name" required
-                                   class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                            <input type="email" name="email" required
-                                   class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
-                            <input type="tel" name="phone" required
-                                   class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
-                            <select name="jersey_size" required
-                                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                                <option value="">Select a size</option>
-                                {% for size in jersey_sizes %}
-                                <option value="{{ size }}">{{ size }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
-                            <select name="league_id" required
-                                    class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
-                                <option value="">Select a league</option>
-                                {% for league in leagues %}
-                                <option value="{{ league.id }}">{{ league.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
-                    <button type="submit"
-                            class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
-                        <i class="ti ti-plus mr-2"></i>
-                        Create Player
-                    </button>
-                    <button type="button" id="cancel-modal-btn"
-                            class="mt-3 sm:mt-0 w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-                        Cancel
-                    </button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('createPlayerModal', 'Create New Player', action=url_for('players.create_player'), submit_text='Create Player', loading_text='Creating...') %}
+<div class="space-y-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+        <input type="text" name="name" required
+               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+        <input type="email" name="email" required
+               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+        <input type="tel" name="phone" required
+               class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
+        <select name="jersey_size" required
+                class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+            <option value="">Select a size</option>
+            {% for size in jersey_sizes %}
+            <option value="{{ size }}">{{ size }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
+        <select name="league_id" required
+                class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green">
+            <option value="">Select a league</option>
+            {% for league in leagues %}
+            <option value="{{ league.id }}">{{ league.name }}</option>
+            {% endfor %}
+        </select>
     </div>
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
 {{ super() }}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const createBtn = document.getElementById('create-player-btn');
-    const modal = document.getElementById('createPlayerModal');
-    const closeBtn = document.getElementById('close-modal-btn');
-    const cancelBtn = document.getElementById('cancel-modal-btn');
-    const overlay = document.getElementById('modal-overlay');
-
-    createBtn?.addEventListener('click', () => modal.classList.remove('hidden'));
-    closeBtn?.addEventListener('click', () => modal.classList.add('hidden'));
-    cancelBtn?.addEventListener('click', () => modal.classList.add('hidden'));
-    overlay?.addEventListener('click', () => modal.classList.add('hidden'));
-
     // Delete player buttons
     document.querySelectorAll('.delete-player-btn').forEach(btn => {
         btn.addEventListener('click', function() {

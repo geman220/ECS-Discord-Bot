@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
 
 {% block admin_title %}Teams{% endblock %}
 {% block panel_description %}Manage teams across all seasons and divisions{% endblock %}
@@ -175,90 +175,50 @@
 </div>
 
 <!-- Create Team Modal -->
-<div id="createTeamModal" tabindex="-1" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-modal md:h-full justify-center items-center bg-gray-900/50">
-    <div class="relative w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                    <i class="ti ti-plus mr-2"></i>Create Team
-                </h3>
-                <button type="button" onclick="closeCreateModal()" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6 space-y-4">
-                <div>
-                    <label for="newTeamName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                        Team Name <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="newTeamName" required
-                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                </div>
-                <div>
-                    <label for="newTeamLeague" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                        League <span class="text-red-500">*</span>
-                    </label>
-                    <select id="newTeamLeague" required
-                            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                        <option value="">Select a league...</option>
-                        {% for season in seasons %}
-                        {% if season.is_current %}
-                        <optgroup label="{{ season.name }} ({{ season.league_type }})">
-                            {% for league in season.leagues %}
-                            <option value="{{ league.id }}">{{ league.name }}</option>
-                            {% endfor %}
-                        </optgroup>
-                        {% endif %}
-                        {% endfor %}
-                    </select>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Only current season leagues are shown</p>
-                </div>
-            </div>
-            <div class="flex items-center p-4 border-t border-gray-200 rounded-b dark:border-gray-600 gap-2">
-                <button onclick="closeCreateModal()" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">Cancel</button>
-                <button onclick="createTeam()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                    <i class="ti ti-plus mr-1"></i>Create Team
-                </button>
-            </div>
-        </div>
+{% call modal_form('createTeamModal', 'Create Team', form_id='createTeamForm', submit_text='Create Team', loading_text='Creating...') %}
+    <div>
+        <label for="newTeamName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Team Name <span class="text-red-500">*</span>
+        </label>
+        <input type="text" id="newTeamName" name="name" required
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
     </div>
-</div>
+    <div>
+        <label for="newTeamLeague" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            League <span class="text-red-500">*</span>
+        </label>
+        <select id="newTeamLeague" name="league_id" required
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+            <option value="">Select a league...</option>
+            {% for season in seasons %}
+            {% if season.is_current %}
+            <optgroup label="{{ season.name }} ({{ season.league_type }})">
+                {% for league in season.leagues %}
+                <option value="{{ league.id }}">{{ league.name }}</option>
+                {% endfor %}
+            </optgroup>
+            {% endif %}
+            {% endfor %}
+        </select>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Only current season leagues are shown</p>
+    </div>
+{% endcall %}
 
 <!-- Edit Team Modal -->
-<div id="editTeamModal" tabindex="-1" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-modal md:h-full justify-center items-center bg-gray-900/50">
-    <div class="relative w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                    <i class="ti ti-edit mr-2"></i>Rename Team
-                </h3>
-                <button type="button" onclick="closeEditModal()" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6 space-y-4">
-                <input type="hidden" id="editTeamId">
-                <div>
-                    <label for="editTeamName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                        Team Name <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="editTeamName" required
-                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                </div>
-                <div class="p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-600 dark:text-blue-300">
-                    <i class="ti ti-info-circle mr-1"></i>
-                    Renaming will also update the Discord channel and role names.
-                </div>
-            </div>
-            <div class="flex items-center p-4 border-t border-gray-200 rounded-b dark:border-gray-600 gap-2">
-                <button onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">Cancel</button>
-                <button onclick="saveTeamEdit()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                    <i class="ti ti-check mr-1"></i>Save Changes
-                </button>
-            </div>
-        </div>
+{% call modal_form('editTeamModal', 'Rename Team', form_id='editTeamForm', submit_text='Save Changes', loading_text='Saving...') %}
+    <input type="hidden" id="editTeamId" name="team_id">
+    <div>
+        <label for="editTeamName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Team Name <span class="text-red-500">*</span>
+        </label>
+        <input type="text" id="editTeamName" name="name" required
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
     </div>
-</div>
+    <div class="p-3 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-gray-600 dark:text-blue-300">
+        <i class="ti ti-info-circle mr-1"></i>
+        Renaming will also update the Discord channel and role names.
+    </div>
+{% endcall %}
 
 <script>
 window.ADMIN_TEAMS_CONFIG = {
@@ -276,16 +236,20 @@ function applyFilters() {
 }
 
 function openCreateModal() {
-    document.getElementById('createTeamModal').classList.remove('hidden');
-    document.getElementById('createTeamModal').classList.add('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', 'createTeamModal');
+    if (modal) modal.show();
 }
 
-function closeCreateModal() {
-    document.getElementById('createTeamModal').classList.add('hidden');
-    document.getElementById('createTeamModal').classList.remove('flex');
+function editTeam(teamId, teamName) {
+    document.getElementById('editTeamId').value = teamId;
+    document.getElementById('editTeamName').value = teamName;
+    const modal = FlowbiteInstances.getInstance('Modal', 'editTeamModal');
+    if (modal) modal.show();
 }
 
-function createTeam() {
+// Handle create team form submission
+document.getElementById('createTeamForm').addEventListener('submit', function(e) {
+    e.preventDefault();
     const name = document.getElementById('newTeamName').value;
     const leagueId = document.getElementById('newTeamLeague').value;
 
@@ -303,21 +267,11 @@ function createTeam() {
     .then(data => {
         if (data.success) window.location.reload();
     });
-}
+});
 
-function editTeam(teamId, teamName) {
-    document.getElementById('editTeamId').value = teamId;
-    document.getElementById('editTeamName').value = teamName;
-    document.getElementById('editTeamModal').classList.remove('hidden');
-    document.getElementById('editTeamModal').classList.add('flex');
-}
-
-function closeEditModal() {
-    document.getElementById('editTeamModal').classList.add('hidden');
-    document.getElementById('editTeamModal').classList.remove('flex');
-}
-
-function saveTeamEdit() {
+// Handle edit team form submission
+document.getElementById('editTeamForm').addEventListener('submit', function(e) {
+    e.preventDefault();
     const teamId = document.getElementById('editTeamId').value;
     const name = document.getElementById('editTeamName').value;
 
@@ -333,7 +287,7 @@ function saveTeamEdit() {
     .then(data => {
         if (data.success) window.location.reload();
     });
-}
+});
 
 function syncDiscord(teamId) {
     fetch(`/admin-panel/league-management/teams/${teamId}/sync-discord`, {

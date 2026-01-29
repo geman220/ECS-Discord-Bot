@@ -4,7 +4,7 @@ This template has been replaced by /app/templates/admin/match_management_flowbit
 TODO: Remove this template after new system is verified in production
 -->
 {% extends "base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge %}
+{% from 'macros/flowbite.html' import card, button, badge, modal_info %}
 
 {% block title %}MLS Matches [DEPRECATED]{% endblock %}
 
@@ -136,24 +136,12 @@ TODO: Remove this template after new system is verified in production
 </div>
 
 <!-- Status Modal -->
-<div id="taskStatusModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Task Status</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="taskStatusModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-4">
-                <div class="flex items-center">
-                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-ecs-green mr-3"></div>
-                    <span id="taskStatusMessage" class="text-gray-700 dark:text-gray-300">Processing...</span>
-                </div>
-            </div>
-        </div>
+{% call modal_info('taskStatusModal', 'Task Status', size='md') %}
+    <div class="flex items-center">
+        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-ecs-green mr-3"></div>
+        <span id="taskStatusMessage" class="text-gray-700 dark:text-gray-300">Processing...</span>
     </div>
-</div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}

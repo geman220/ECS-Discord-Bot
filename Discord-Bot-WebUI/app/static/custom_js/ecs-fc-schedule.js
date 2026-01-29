@@ -420,8 +420,8 @@ export function ecsFcEditMatch(matchId) {
     form.querySelector('[name="is_home_match"]').checked = match.is_home_match;
     form.querySelector('[name="notes"]').value = match.notes || '';
 
-    // Update modal title
-    const modalTitle = document.querySelector('#createMatchModal .modal-title');
+    // Update modal title (new pattern: {modalId}-title, fallback: old .modal-title selector)
+    const modalTitle = document.getElementById('createMatchModal-title') || document.querySelector('#createMatchModal .modal-title');
     if (modalTitle) {
         modalTitle.textContent = 'Edit Match';
     }

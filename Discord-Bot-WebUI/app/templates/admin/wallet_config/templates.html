@@ -1,4 +1,5 @@
 {% extends 'admin/layout.html' %}
+{% from "macros/flowbite.html" import modal_form %}
 {% block title %}Wallet Pass Templates{% endblock %}
 
 {% block page_head %}
@@ -392,90 +393,56 @@
 {% block modals %}
 {{ super() }}
     <!-- Create Template Modal -->
-    <div class="modal c-modal fade" id="createTemplateModal" tabindex="-1" aria-hidden="true" data-modal aria-labelledby="createTemplateModalLabel">
-        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content>
-                <div class="modal-header c-modal__header" data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="createTemplateModalLabel">Create Template</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
-                </div>
-                <form action="{{ url_for('wallet_config.create_template') }}" method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="modal-body c-modal__body" data-modal-body>
-                        <div class="mb-3">
-                            <label for="templateName" class="form-label">Template Name</label>
-                            <input type="text" class="form-control" id="templateName" name="name" required data-form-control>
-                        </div>
-                        <div class="mb-3">
-                            <label for="templatePlatform" class="form-label">Platform</label>
-                            <select class="form-select" id="templatePlatform" name="platform" required data-form-select>
-                                <option value="apple" selected>Apple Wallet</option>
-                                <option value="google">Google Wallet</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="templateContent" class="form-label">Template Content (JSON)</label>
-                            <textarea class="form-control" id="templateContent" name="content" rows="15" required data-form-control></textarea>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="isDefault" name="is_default" value="true">
-                            <label class="form-check-label" for="isDefault">
-                                Set as Default Template
-                            </label>
-                        </div>
-                        <input type="hidden" id="passTypeId" name="pass_type_id">
-                    </div>
-                    <div class="modal-footer c-modal__footer" data-modal-footer>
-                        <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                        <button type="submit" class="c-btn c-btn--primary">Create Template</button>
-                    </div>
-                </form>
-            </div>
+    {% call modal_form('createTemplateModal', 'Create Template', action=url_for('wallet_config.create_template'), size='lg', submit_text='Create Template', loading_text='Creating...') %}
+        <div class="mb-3">
+            <label for="templateName" class="form-label">Template Name</label>
+            <input type="text" class="form-control" id="templateName" name="name" required data-form-control>
         </div>
-    </div>
+        <div class="mb-3">
+            <label for="templatePlatform" class="form-label">Platform</label>
+            <select class="form-select" id="templatePlatform" name="platform" required data-form-select>
+                <option value="apple" selected>Apple Wallet</option>
+                <option value="google">Google Wallet</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="templateContent" class="form-label">Template Content (JSON)</label>
+            <textarea class="form-control" id="templateContent" name="content" rows="15" required data-form-control></textarea>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="isDefault" name="is_default" value="true">
+            <label class="form-check-label" for="isDefault">
+                Set as Default Template
+            </label>
+        </div>
+        <input type="hidden" id="passTypeId" name="pass_type_id">
+    {% endcall %}
 
     <!-- Edit Template Modal -->
-    <div class="modal c-modal fade" id="editTemplateModal" tabindex="-1" aria-hidden="true" data-modal aria-labelledby="editTemplateModalLabel">
-        <div class="modal-dialog c-modal__dialog modal-lg c-modal__dialog--lg modal-dialog-centered c-modal__dialog--centered" data-modal-dialog>
-            <div class="modal-content c-modal__content" data-modal-content>
-                <div class="modal-header c-modal__header" data-modal-header>
-                    <h5 class="modal-title c-modal__title" id="editTemplateModalLabel">Edit Template</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" data-dismiss></button>
-                </div>
-                <form action="{{ url_for('wallet_config.create_template') }}" method="post">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <div class="modal-body c-modal__body" data-modal-body>
-                        <div class="mb-3">
-                            <label for="editTemplateName" class="form-label">Template Name</label>
-                            <input type="text" class="form-control" id="editTemplateName" name="name" required data-form-control>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editTemplatePlatform" class="form-label">Platform</label>
-                            <select class="form-select" id="editTemplatePlatform" name="platform" required disabled data-form-select>
-                                <option value="apple">Apple Wallet</option>
-                                <option value="google">Google Wallet</option>
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="editTemplateContent" class="form-label">Template Content (JSON)</label>
-                            <textarea class="form-control" id="editTemplateContent" name="content" rows="15" required data-form-control></textarea>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="editIsDefault" name="is_default" value="true">
-                            <label class="form-check-label" for="editIsDefault">
-                                Set as Default Template
-                            </label>
-                        </div>
-                        <input type="hidden" id="editPassTypeId" name="pass_type_id">
-                    </div>
-                    <div class="modal-footer c-modal__footer" data-modal-footer>
-                        <button type="button" class="c-btn c-btn--outline-secondary" data-bs-dismiss="modal" data-dismiss>Cancel</button>
-                        <button type="submit" class="c-btn c-btn--primary">Save Changes</button>
-                    </div>
-                </form>
-            </div>
+    {% call modal_form('editTemplateModal', 'Edit Template', action=url_for('wallet_config.create_template'), size='lg', submit_text='Save Changes', loading_text='Saving...') %}
+        <div class="mb-3">
+            <label for="editTemplateName" class="form-label">Template Name</label>
+            <input type="text" class="form-control" id="editTemplateName" name="name" required data-form-control>
         </div>
-    </div>
+        <div class="mb-3">
+            <label for="editTemplatePlatform" class="form-label">Platform</label>
+            <select class="form-select" id="editTemplatePlatform" name="platform" required disabled data-form-select>
+                <option value="apple">Apple Wallet</option>
+                <option value="google">Google Wallet</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="editTemplateContent" class="form-label">Template Content (JSON)</label>
+            <textarea class="form-control" id="editTemplateContent" name="content" rows="15" required data-form-control></textarea>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="editIsDefault" name="is_default" value="true">
+            <label class="form-check-label" for="editIsDefault">
+                Set as Default Template
+            </label>
+        </div>
+        <input type="hidden" id="editPassTypeId" name="pass_type_id">
+    {% endcall %}
 {% endblock %}
 
 {% block page_js %}

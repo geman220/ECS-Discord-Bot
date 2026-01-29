@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert, modal, empty_state %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal, modal_form, modal_info, empty_state %}
 
 {% block admin_title %}Substitute Management{% endblock %}
 {% block panel_description %}Manage substitute requests and availability{% endblock %}
@@ -249,293 +249,233 @@
 </div>
 
 <!-- Sub Assignment Modal -->
-<div id="subAssignmentModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all">
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Assign Substitute</h3>
-                <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" onclick="closeModal('subAssignmentModal')">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="subAssignmentForm" method="POST" action="{{ url_for('admin_panel.assign_substitute') }}">
-                <div class="p-6 space-y-4">
-                    <input type="hidden" name="match_id" id="assignMatchId">
-                    <input type="hidden" name="team_id" id="assignTeamId">
-                    <input type="hidden" name="request_id" id="assignRequestId">
+{% call modal_form('subAssignmentModal', 'Assign Substitute', form_id='subAssignmentForm', action=url_for('admin_panel.assign_substitute'), submit_text='Assign Substitute', loading_text='Assigning...') %}
+    <input type="hidden" name="match_id" id="assignMatchId">
+    <input type="hidden" name="team_id" id="assignTeamId">
+    <input type="hidden" name="request_id" id="assignRequestId">
 
-                    <div>
-                        <label for="assignPlayerId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Substitutes</label>
-                        <select name="player_id" id="assignPlayerId" required
-                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="">Select a substitute...</option>
-                            {% for sub in available_subs %}
-                            <option value="{{ sub.id }}">{{ sub.name }}{% if sub.positions %} - {{ sub.positions }}{% endif %}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="position_assigned" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Position Assigned</label>
-                        <input type="text" name="position_assigned" id="position_assigned" placeholder="e.g., Midfielder"
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    </div>
-
-                    <div>
-                        <label for="notes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
-                        <textarea name="notes" id="notes" rows="2" placeholder="Any additional notes..."
-                                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
-                    </div>
-
-                    <div class="flex items-center">
-                        <input id="sendConfirmation" name="send_confirmation" type="checkbox" value="true" checked
-                               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                        <label for="sendConfirmation" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Send confirmation notification to sub</label>
-                    </div>
-                </div>
-                <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-                    <button type="button" onclick="closeModal('subAssignmentModal')"
-                            class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
-                        Cancel
-                    </button>
-                    <button type="submit"
-                            class="px-4 py-2 text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
-                        <i class="ti ti-check mr-1"></i>Assign Substitute
-                    </button>
-                </div>
-            </form>
-        </div>
+    <div>
+        <label for="assignPlayerId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Substitutes</label>
+        <select name="player_id" id="assignPlayerId" required
+                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="">Select a substitute...</option>
+            {% for sub in available_subs %}
+            <option value="{{ sub.id }}">{{ sub.name }}{% if sub.positions %} - {{ sub.positions }}{% endif %}</option>
+            {% endfor %}
+        </select>
     </div>
-</div>
+
+    <div>
+        <label for="position_assigned" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Position Assigned</label>
+        <input type="text" name="position_assigned" id="position_assigned" placeholder="e.g., Midfielder"
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+    </div>
+
+    <div>
+        <label for="notes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes (optional)</label>
+        <textarea name="notes" id="notes" rows="2" placeholder="Any additional notes..."
+                  class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+    </div>
+
+    <div class="flex items-center">
+        <input id="sendConfirmation" name="send_confirmation" type="checkbox" value="true" checked
+               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+        <label for="sendConfirmation" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Send confirmation notification to sub</label>
+    </div>
+{% endcall %}
 
 <!-- Contact Subs Modal -->
-<div id="contactSubsModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all">
-            <!-- Header -->
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-ecs-green to-ecs-green/80">
-                <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                    <i class="ti ti-send"></i> Contact Substitutes
-                </h3>
-                <p class="text-green-100 text-sm mt-1">Send notifications to available subs</p>
-                <button type="button" class="absolute top-4 right-4 text-white/80 hover:text-white" data-action="close-contact-modal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
+{% call modal('contactSubsModal', 'Contact Substitutes', size='lg', static_backdrop=true) %}
+    <!-- Hidden fields -->
+    <input type="hidden" id="contactRequestId">
+    <input type="hidden" id="contactLeagueType">
 
-            <div class="p-6 space-y-6">
-                <!-- Hidden fields -->
-                <input type="hidden" id="contactRequestId">
-                <input type="hidden" id="contactLeagueType">
-
-                <!-- Match Details -->
-                <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Match Details</h4>
-                    <div id="contactMatchDetails" class="text-gray-900 dark:text-white">
-                        <div class="flex justify-center items-center gap-2">
-                            <div class="w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin"></div>
-                            Loading...
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Recipients Section -->
-                <div>
-                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Who do you want to contact?</h4>
-                    <div class="space-y-3">
-                        <!-- Recipient Type -->
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                            <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
-                                <input type="radio" name="recipient_type" value="all" checked class="sr-only">
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">All Subs</span>
-                            </label>
-                            <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
-                                <input type="radio" name="recipient_type" value="gender" class="sr-only">
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">By Gender</span>
-                            </label>
-                            <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
-                                <input type="radio" name="recipient_type" value="position" class="sr-only">
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">By Position</span>
-                            </label>
-                            <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
-                                <input type="radio" name="recipient_type" value="specific" class="sr-only">
-                                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Specific</span>
-                            </label>
-                        </div>
-
-                        <!-- Gender Filter (hidden by default) -->
-                        <div id="genderFilterSection" class="hidden p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Select gender:</p>
-                            <div class="flex gap-4">
-                                <label class="flex items-center">
-                                    <input type="radio" name="gender" value="male" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Male</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="radio" name="gender" value="female" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Female</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Position Filter (hidden by default) -->
-                        <div id="positionFilterSection" class="hidden p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Select position(s):</p>
-                            <div class="flex flex-wrap gap-3">
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="positions" value="GK" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">GK</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="positions" value="DEF" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">DEF</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="positions" value="MID" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">MID</span>
-                                </label>
-                                <label class="flex items-center">
-                                    <input type="checkbox" name="positions" value="FWD" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">FWD</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Specific Players (hidden by default) -->
-                        <div id="specificPlayersSection" class="hidden p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Select players:</p>
-                            <input type="text" id="playerSearchInput" placeholder="Search players..."
-                                   class="w-full mb-2 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white text-sm">
-                            <div id="playerSelectList" class="max-h-40 overflow-y-auto space-y-1">
-                                <p class="text-sm text-gray-500 dark:text-gray-400 italic">Loading players...</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Number of Subs Needed -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">How many subs do you need?</label>
-                    <div class="flex items-center gap-3">
-                        <input type="number" name="subs_needed" id="contactSubsNeeded" min="1" max="10" value="1"
-                               class="w-20 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm text-center">
-                        <span class="text-sm text-gray-500 dark:text-gray-400">sub(s)</span>
-                    </div>
-                </div>
-
-                <!-- Notification Channels -->
-                <div>
-                    <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Notification Channels</h4>
-                    <div class="flex flex-wrap gap-4">
-                        <label class="flex items-center">
-                            <input type="checkbox" id="channelEmail" name="channels" value="EMAIL" checked
-                                   class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-mail mr-1"></i>Email</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" id="channelSMS" name="channels" value="SMS" checked
-                                   class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-device-mobile mr-1"></i>SMS</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="checkbox" id="channelDiscord" name="channels" value="DISCORD" checked
-                                   class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
-                            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-brand-discord mr-1"></i>Discord</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Message -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message (optional)</label>
-                    <textarea id="contactMessage" rows="3" placeholder="Add a personal message..."
-                              class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm"></textarea>
-                </div>
-
-                <!-- Preview -->
-                <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm text-blue-700 dark:text-blue-300">
-                            <i class="ti ti-users mr-1"></i>This will contact <strong id="contactPreviewCount">0</strong> subs
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-                <button type="button" data-action="close-contact-modal"
-                        class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
-                    Cancel
-                </button>
-                <button type="button" data-action="send-sub-request"
-                        class="px-4 py-2 text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 flex items-center gap-2">
-                    <i class="ti ti-send"></i> Send Request
-                </button>
+    <!-- Match Details -->
+    <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <h4 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Match Details</h4>
+        <div id="contactMatchDetails" class="text-gray-900 dark:text-white">
+            <div class="flex justify-center items-center gap-2">
+                <div class="w-4 h-4 border-2 border-ecs-green border-t-transparent rounded-full animate-spin"></div>
+                Loading...
             </div>
         </div>
     </div>
-</div>
+
+    <!-- Recipients Section -->
+    <div>
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Who do you want to contact?</h4>
+        <div class="space-y-3">
+            <!-- Recipient Type -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                    <input type="radio" name="recipient_type" value="all" checked class="sr-only">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">All Subs</span>
+                </label>
+                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                    <input type="radio" name="recipient_type" value="gender" class="sr-only">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">By Gender</span>
+                </label>
+                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                    <input type="radio" name="recipient_type" value="position" class="sr-only">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">By Position</span>
+                </label>
+                <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                    <input type="radio" name="recipient_type" value="specific" class="sr-only">
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Specific</span>
+                </label>
+            </div>
+
+            <!-- Gender Filter (hidden by default) -->
+            <div id="genderFilterSection" class="hidden p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Select gender:</p>
+                <div class="flex gap-4">
+                    <label class="flex items-center">
+                        <input type="radio" name="gender" value="male" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Male</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="gender" value="female" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Female</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Position Filter (hidden by default) -->
+            <div id="positionFilterSection" class="hidden p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Select position(s):</p>
+                <div class="flex flex-wrap gap-3">
+                    <label class="flex items-center">
+                        <input type="checkbox" name="positions" value="GK" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">GK</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="positions" value="DEF" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">DEF</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="positions" value="MID" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">MID</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="checkbox" name="positions" value="FWD" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                        <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">FWD</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Specific Players (hidden by default) -->
+            <div id="specificPlayersSection" class="hidden p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Select players:</p>
+                <input type="text" id="playerSearchInput" placeholder="Search players..."
+                       class="w-full mb-2 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-600 dark:text-white text-sm">
+                <div id="playerSelectList" class="max-h-40 overflow-y-auto space-y-1">
+                    <p class="text-sm text-gray-500 dark:text-gray-400 italic">Loading players...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Number of Subs Needed -->
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">How many subs do you need?</label>
+        <div class="flex items-center gap-3">
+            <input type="number" name="subs_needed" id="contactSubsNeeded" min="1" max="10" value="1"
+                   class="w-20 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm text-center">
+            <span class="text-sm text-gray-500 dark:text-gray-400">sub(s)</span>
+        </div>
+    </div>
+
+    <!-- Notification Channels -->
+    <div>
+        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Notification Channels</h4>
+        <div class="flex flex-wrap gap-4">
+            <label class="flex items-center">
+                <input type="checkbox" id="channelEmail" name="channels" value="EMAIL" checked
+                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-mail mr-1"></i>Email</span>
+            </label>
+            <label class="flex items-center">
+                <input type="checkbox" id="channelSMS" name="channels" value="SMS" checked
+                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-device-mobile mr-1"></i>SMS</span>
+            </label>
+            <label class="flex items-center">
+                <input type="checkbox" id="channelDiscord" name="channels" value="DISCORD" checked
+                       class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600">
+                <span class="ml-2 text-sm text-gray-700 dark:text-gray-300"><i class="ti ti-brand-discord mr-1"></i>Discord</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Message -->
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Message (optional)</label>
+        <textarea id="contactMessage" rows="3" placeholder="Add a personal message..."
+                  class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm"></textarea>
+    </div>
+
+    <!-- Preview -->
+    <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-blue-700 dark:text-blue-300">
+                <i class="ti ti-users mr-1"></i>This will contact <strong id="contactPreviewCount">0</strong> subs
+            </span>
+        </div>
+    </div>
+
+    <!-- Custom Footer (inside body since base modal doesn't have footer) -->
+    <div class="flex justify-end gap-3 pt-4 mt-4 border-t border-gray-200 dark:border-gray-600">
+        <button type="button" data-modal-hide="contactSubsModal"
+                class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 modal-close-btn">
+            Cancel
+        </button>
+        <button type="button" data-action="send-sub-request"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:outline-none focus:ring-ecs-green flex items-center gap-2">
+            <i class="ti ti-send"></i> Send Request
+        </button>
+    </div>
+{% endcall %}
 
 <!-- Availability Modal -->
-<div id="availabilityModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-lg transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all">
-            <!-- Header -->
-            <div class="p-6 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-list-check text-blue-500"></i> Sub Responses
-                </h3>
-                <button type="button" class="absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-action="close-availability-modal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
+{% call modal('availabilityModal', 'Sub Responses', size='md') %}
+    <input type="hidden" id="availabilityRequestId">
 
-            <input type="hidden" id="availabilityRequestId">
-
-            <div class="p-6">
-                <!-- Summary Stats -->
-                <div class="grid grid-cols-3 gap-4 mb-6">
-                    <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <p class="text-2xl font-bold text-green-600 dark:text-green-400" id="availableCount">0</p>
-                        <p class="text-xs text-green-700 dark:text-green-300">Available</p>
-                    </div>
-                    <div class="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                        <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="pendingCount">0</p>
-                        <p class="text-xs text-yellow-700 dark:text-yellow-300">Pending</p>
-                    </div>
-                    <div class="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                        <p class="text-2xl font-bold text-red-600 dark:text-red-400" id="notAvailableCount">0</p>
-                        <p class="text-xs text-red-700 dark:text-red-300">Unavailable</p>
-                    </div>
-                </div>
-
-                <!-- Response List -->
-                <div id="availabilityList" class="max-h-80 overflow-y-auto">
-                    <div class="flex flex-col items-center py-3 text-gray-500 dark:text-gray-400">
-                        <div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin"></div>
-                        <p class="mt-2">Loading responses...</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Footer -->
-            <div class="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-between">
-                <button type="button" data-action="refresh-availability"
-                        class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 flex items-center gap-2">
-                    <i class="ti ti-refresh"></i> Refresh
-                </button>
-                <button type="button" data-action="close-availability-modal"
-                        class="px-4 py-2 text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700">
-                    Close
-                </button>
-            </div>
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+            <p class="text-2xl font-bold text-green-600 dark:text-green-400" id="availableCount">0</p>
+            <p class="text-xs text-green-700 dark:text-green-300">Available</p>
+        </div>
+        <div class="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+            <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="pendingCount">0</p>
+            <p class="text-xs text-yellow-700 dark:text-yellow-300">Pending</p>
+        </div>
+        <div class="text-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+            <p class="text-2xl font-bold text-red-600 dark:text-red-400" id="notAvailableCount">0</p>
+            <p class="text-xs text-red-700 dark:text-red-300">Unavailable</p>
         </div>
     </div>
-</div>
+
+    <!-- Response List -->
+    <div id="availabilityList" class="max-h-80 overflow-y-auto">
+        <div class="flex flex-col items-center py-3 text-gray-500 dark:text-gray-400">
+            <div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin"></div>
+            <p class="mt-2">Loading responses...</p>
+        </div>
+    </div>
+
+    <!-- Custom Footer -->
+    <div class="flex justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-600">
+        <button type="button" data-action="refresh-availability"
+                class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 flex items-center gap-2">
+            <i class="ti ti-refresh"></i> Refresh
+        </button>
+        <button type="button" data-modal-hide="availabilityModal"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:outline-none focus:ring-ecs-green modal-close-btn">
+            Close
+        </button>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}

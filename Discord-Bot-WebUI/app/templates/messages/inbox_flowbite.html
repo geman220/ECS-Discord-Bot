@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal %}
 
 {% block title %}Messages{% endblock %}
 
@@ -211,44 +212,23 @@
 </div>
 
 {# New Conversation Modal #}
-<div id="newConversationModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full" data-modal>
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            {# Modal Header #}
-            <div class="flex items-center justify-between p-4 md:p-5 border-b border-gray-200 dark:border-gray-700 rounded-t">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2" id="newConversationModalLabel">
-                    <i class="ti ti-message-plus text-ecs-green" aria-hidden="true"></i>
-                    <span>New Conversation</span>
-                </h3>
-                <button type="button"
-                        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white"
-                        data-modal-hide="newConversationModal"
-                        data-action="close-modal"
-                        aria-label="Close">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            {# Modal Body #}
-            <div class="p-4 md:p-5">
-                <div class="mb-4">
-                    <label for="userSearchInput" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search for a user</label>
-                    <input type="text"
-                           class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green"
-                           id="userSearchInput"
-                           data-input="user-search"
-                           placeholder="Type a name to search..."
-                           autocomplete="off">
-                </div>
-                <div class="max-h-64 overflow-y-auto" data-list="user-results">
-                    <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 py-4 justify-center">
-                        <i class="ti ti-info-circle" aria-hidden="true"></i>
-                        Type at least 2 characters to search
-                    </div>
-                </div>
-            </div>
-        </div>
+{% call modal('newConversationModal', 'New Conversation', size='sm') %}
+<div class="mb-4">
+    <label for="userSearchInput" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search for a user</label>
+    <input type="text"
+           class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green"
+           id="userSearchInput"
+           data-input="user-search"
+           placeholder="Type a name to search..."
+           autocomplete="off">
+</div>
+<div class="max-h-64 overflow-y-auto" data-list="user-results">
+    <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 py-4 justify-center">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>
+        Type at least 2 characters to search
     </div>
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}

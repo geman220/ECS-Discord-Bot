@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
 {% block admin_title %}Edit {{ template.name }}{% endblock %}
 {% block panel_description %}Edit message template content{% endblock %}
@@ -166,27 +166,11 @@
 </div>
 
 <!-- Preview Modal -->
-<div id="previewModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-eye mr-2"></i>Message Preview
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="previewModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6" id="previewContent">
-                <!-- Preview content loads here -->
-            </div>
-            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="previewModal">Close</button>
-            </div>
-        </div>
-    </div>
+{% call modal_info('previewModal', 'Message Preview', size='lg') %}
+<div id="previewContent">
+    <!-- Preview content loads here -->
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -196,14 +180,30 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Modal setup
     const modal = document.getElementById('previewModal');
+
+    function showModal() {
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+    }
+    function hideModal() {
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+    }
+
     if (modal) {
         document.querySelectorAll('[data-modal-hide="previewModal"]').forEach(btn => {
-            btn.addEventListener('click', () => modal.classList.add('hidden'));
+            btn.addEventListener('click', hideModal);
         });
 
         const backdrop = modal.querySelector('[data-modal-backdrop]');
         if (backdrop) {
-            backdrop.addEventListener('click', () => modal.classList.add('hidden'));
+            backdrop.addEventListener('click', hideModal);
         }
     }
 
@@ -262,7 +262,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <pre class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-xs overflow-auto">${JSON.stringify(sampleData, null, 2)}</pre>
                 </div>
             `;
-            modal.classList.remove('hidden');
+            showModal();
         }
     });
 

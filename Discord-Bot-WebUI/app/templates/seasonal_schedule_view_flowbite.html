@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}{{ season.name }} Schedule{% endblock %}
 
@@ -334,138 +335,92 @@
 </div>
 
 <!-- Edit Match Modal -->
-<div id="editMatchModal" class="fixed inset-0 z-50 hidden">
-    <div class="fixed inset-0 bg-black/50" id="editMatchModalBackdrop"></div>
-    <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg relative">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Match</h3>
-                <button type="button" class="js-close-edit-modal text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="editMatchForm">
-                <input type="hidden" id="editMatchId">
-                <div class="p-4 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="editMatchTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
-                            <input type="time" id="editMatchTime" required
-                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label for="editMatchField" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
-                            <select id="editMatchField" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                                <option value="North">North</option>
-                                <option value="South">South</option>
-                                <option value="East">East</option>
-                                <option value="West">West</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="editMatchHomeTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Home Team</label>
-                            <select id="editMatchHomeTeam" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            </select>
-                        </div>
-                        <div>
-                            <label for="editMatchAwayTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Away Team</label>
-                            <select id="editMatchAwayTeam" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" class="js-close-edit-modal px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
-                        Save Changes
-                    </button>
-                </div>
-            </form>
+{% call modal_form('editMatchModal', 'Edit Match', form_id='editMatchForm', submit_text='Save Changes', loading_text='Saving...') %}
+    <input type="hidden" id="editMatchId">
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="editMatchTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+            <input type="time" id="editMatchTime" required
+                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        </div>
+        <div>
+            <label for="editMatchField" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
+            <select id="editMatchField" required
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                <option value="North">North</option>
+                <option value="South">South</option>
+                <option value="East">East</option>
+                <option value="West">West</option>
+            </select>
         </div>
     </div>
-</div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="editMatchHomeTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Home Team</label>
+            <select id="editMatchHomeTeam" required
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            </select>
+        </div>
+        <div>
+            <label for="editMatchAwayTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Away Team</label>
+            <select id="editMatchAwayTeam" required
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            </select>
+        </div>
+    </div>
+{% endcall %}
 
 <!-- Add Match Modal -->
-<div id="addMatchModal" class="fixed inset-0 z-50 hidden">
-    <div class="fixed inset-0 bg-black/50" id="addMatchModalBackdrop"></div>
-    <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg relative">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Match</h3>
-                <button type="button" class="js-close-add-modal text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="addMatchForm">
-                <input type="hidden" id="addMatchWeek">
-                <div class="p-4 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="addMatchDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
-                            <input type="date" id="addMatchDate" required
-                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label for="addMatchTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
-                            <input type="time" id="addMatchTime" value="19:00" required
-                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="addMatchField" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
-                            <select id="addMatchField" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                                <option value="North">North</option>
-                                <option value="South">South</option>
-                                <option value="East">East</option>
-                                <option value="West">West</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label for="addMatchLeague" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
-                            <select id="addMatchLeague" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                                {% for league in leagues %}
-                                <option value="{{ league.id }}">{{ league.name }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="addMatchHomeTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Home Team</label>
-                            <select id="addMatchHomeTeam" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            </select>
-                        </div>
-                        <div>
-                            <label for="addMatchAwayTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Away Team</label>
-                            <select id="addMatchAwayTeam" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" class="js-close-add-modal px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
-                        Add Match
-                    </button>
-                </div>
-            </form>
+{% call modal_form('addMatchModal', 'Add New Match', form_id='addMatchForm', submit_text='Add Match', loading_text='Adding...') %}
+    <input type="hidden" id="addMatchWeek">
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="addMatchDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+            <input type="date" id="addMatchDate" required
+                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        </div>
+        <div>
+            <label for="addMatchTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+            <input type="time" id="addMatchTime" value="19:00" required
+                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
         </div>
     </div>
-</div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="addMatchField" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Field</label>
+            <select id="addMatchField" required
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                <option value="North">North</option>
+                <option value="South">South</option>
+                <option value="East">East</option>
+                <option value="West">West</option>
+            </select>
+        </div>
+        <div>
+            <label for="addMatchLeague" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
+            <select id="addMatchLeague" required
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                {% for league in leagues %}
+                <option value="{{ league.id }}">{{ league.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="addMatchHomeTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Home Team</label>
+            <select id="addMatchHomeTeam" required
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            </select>
+        </div>
+        <div>
+            <label for="addMatchAwayTeam" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Away Team</label>
+            <select id="addMatchAwayTeam" required
+                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            </select>
+        </div>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -574,8 +529,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Edit Match Modal
-    const editMatchModal = document.getElementById('editMatchModal');
+    // Edit Match Modal - using Flowbite modal API
+    const editMatchModalEl = document.getElementById('editMatchModal');
+    const editMatchModalInstance = editMatchModalEl ? new Modal(editMatchModalEl) : null;
 
     function openEditMatchModal(matchId, time, field, homeTeamId, awayTeamId, leagueId) {
         document.getElementById('editMatchId').value = matchId;
@@ -590,17 +546,12 @@ document.addEventListener('DOMContentLoaded', function() {
         homeSelect.innerHTML = teams.map(t => `<option value="${t.id}" ${t.id == homeTeamId ? 'selected' : ''}>${t.name}</option>`).join('');
         awaySelect.innerHTML = teams.map(t => `<option value="${t.id}" ${t.id == awayTeamId ? 'selected' : ''}>${t.name}</option>`).join('');
 
-        editMatchModal.classList.remove('hidden');
+        editMatchModalInstance?.show();
     }
 
     function closeEditMatchModal() {
-        editMatchModal.classList.add('hidden');
+        editMatchModalInstance?.hide();
     }
-
-    document.querySelectorAll('.js-close-edit-modal').forEach(btn => {
-        btn.addEventListener('click', closeEditMatchModal);
-    });
-    document.getElementById('editMatchModalBackdrop')?.addEventListener('click', closeEditMatchModal);
 
     document.querySelectorAll('.js-edit-match').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -658,20 +609,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add Match Modal
-    const addMatchModal = document.getElementById('addMatchModal');
+    // Add Match Modal - using Flowbite modal API
+    const addMatchModalEl = document.getElementById('addMatchModal');
+    const addMatchModalInstance = addMatchModalEl ? new Modal(addMatchModalEl) : null;
 
     function openAddMatchModal(weekNum) {
         document.getElementById('addMatchWeek').value = weekNum;
-        addMatchModal.classList.remove('hidden');
 
         // Populate teams based on first league
         const firstLeagueId = document.getElementById('addMatchLeague').value;
         populateTeamDropdowns(firstLeagueId);
+
+        addMatchModalInstance?.show();
     }
 
     function closeAddMatchModal() {
-        addMatchModal.classList.add('hidden');
+        addMatchModalInstance?.hide();
     }
 
     function populateTeamDropdowns(leagueId) {
@@ -682,11 +635,6 @@ document.addEventListener('DOMContentLoaded', function() {
         homeSelect.innerHTML = teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
         awaySelect.innerHTML = teams.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
     }
-
-    document.querySelectorAll('.js-close-add-modal').forEach(btn => {
-        btn.addEventListener('click', closeAddMatchModal);
-    });
-    document.getElementById('addMatchModalBackdrop')?.addEventListener('click', closeAddMatchModal);
 
     document.querySelectorAll('.js-add-match-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {

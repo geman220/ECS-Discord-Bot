@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_info %}
 
 {% block title %}Live Reporting Sessions{% endblock %}
 
@@ -226,22 +227,11 @@
 </div>
 
 <!-- Session Detail Modal -->
-<div id="session-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-        <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75" id="modal-backdrop"></div>
-        <div class="relative inline-block w-full max-w-lg p-6 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-gray-800 shadow-xl rounded-lg">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Session Details</h3>
-                <button type="button" id="close-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div id="session-detail-content">
-                <!-- Content loaded via AJAX or shown from data -->
-            </div>
-        </div>
-    </div>
+{% call modal_info(id="session-modal", title="Session Details", size="md") %}
+<div id="session-detail-content">
+    <!-- Content loaded via AJAX or shown from data -->
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block scripts %}
@@ -250,10 +240,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-    const modal = document.getElementById('session-modal');
-    const modalBackdrop = document.getElementById('modal-backdrop');
-    const closeModalBtn = document.getElementById('close-modal');
+    const modalEl = document.getElementById('session-modal');
     const sessionContent = document.getElementById('session-detail-content');
+
+    // Initialize Flowbite modal
+    let sessionModal = null;
+    if (modalEl && typeof Modal !== 'undefined') {
+        sessionModal = new Modal(modalEl, { closable: true });
+    }
 
     // Refresh
     document.getElementById('refresh-btn')?.addEventListener('click', function() {
@@ -374,22 +368,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             `;
-            modal.classList.remove('hidden');
+            if (sessionModal) {
+                sessionModal.show();
+            }
         });
-    });
-
-    // Close modal
-    function closeModal() {
-        modal.classList.add('hidden');
-    }
-
-    closeModalBtn?.addEventListener('click', closeModal);
-    modalBackdrop?.addEventListener('click', closeModal);
-
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
-            closeModal();
-        }
     });
 });
 </script>

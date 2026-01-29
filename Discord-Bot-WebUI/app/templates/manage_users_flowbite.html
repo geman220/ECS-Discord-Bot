@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}User Management{% endblock %}
 
@@ -181,80 +182,52 @@
 </div>
 
 <!-- Edit User Modal -->
-<div id="editUserModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-black/50" onclick="document.getElementById('editUserModal').classList.add('hidden')"></div>
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <form method="POST" id="editUserForm">
-                {{ edit_form.csrf_token }}
-                {{ edit_form.user_id(id='editUserId') }}
-                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                        <i class="ti ti-edit text-ecs-green"></i>
-                        Edit User
-                    </h3>
-                    <button type="button" onclick="document.getElementById('editUserModal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600">
-                        <i class="ti ti-x text-xl"></i>
-                    </button>
-                </div>
-                <div class="p-4 space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
-                        <input type="text" id="editUsername" name="username" required
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
-                        <input type="email" id="editEmail" name="email" required
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roles</label>
-                        <select multiple id="editRoles" name="roles" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green h-24">
-                            {% for role in roles %}
-                            <option value="{{ role.id }}">{{ role.name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <hr class="border-gray-200 dark:border-gray-700">
-                    <h4 class="font-medium text-gray-900 dark:text-white">Player Profile</h4>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
-                        <select id="editLeague" name="league_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            <option value="0">Select League</option>
-                            {% for league in leagues %}{% if league.season.is_current %}
-                            <option value="{{ league.id }}">{{ league.name }}</option>
-                            {% endif %}{% endfor %}
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team</label>
-                        <select id="editTeam" name="team_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            <option value="0">Select Team</option>
-                            {% for league in leagues %}{% if league.season.is_current %}{% for team in league.teams %}
-                            <option value="{{ team.id }}" data-league="{{ league.id }}">{{ team.name }}</option>
-                            {% endfor %}{% endif %}{% endfor %}
-                        </select>
-                    </div>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" id="editIsCurrentPlayer" name="is_current_player"
-                               class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
-                        <span class="text-gray-700 dark:text-gray-300">Active Player</span>
-                    </label>
-                </div>
-                <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-2">
-                    <button type="button" onclick="document.getElementById('editUserModal').classList.add('hidden')"
-                            class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
-                        <i class="ti ti-device-floppy mr-1"></i>Update
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+{% call modal_form('editUserModal', 'Edit User', form_id='editUserForm', method='POST', submit_text='Update', loading_text='Updating...') %}
+{{ edit_form.user_id(id='editUserId') }}
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+    <input type="text" id="editUsername" name="username" required
+           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
 </div>
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+    <input type="email" id="editEmail" name="email" required
+           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+</div>
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Roles</label>
+    <select multiple id="editRoles" name="roles" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green h-24">
+        {% for role in roles %}
+        <option value="{{ role.id }}">{{ role.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+<hr class="border-gray-200 dark:border-gray-700">
+<h4 class="font-medium text-gray-900 dark:text-white">Player Profile</h4>
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">League</label>
+    <select id="editLeague" name="league_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        <option value="0">Select League</option>
+        {% for league in leagues %}{% if league.season.is_current %}
+        <option value="{{ league.id }}">{{ league.name }}</option>
+        {% endif %}{% endfor %}
+    </select>
+</div>
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team</label>
+    <select id="editTeam" name="team_id" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        <option value="0">Select Team</option>
+        {% for league in leagues %}{% if league.season.is_current %}{% for team in league.teams %}
+        <option value="{{ team.id }}" data-league="{{ league.id }}">{{ team.name }}</option>
+        {% endfor %}{% endif %}{% endfor %}
+    </select>
+</div>
+<label class="flex items-center gap-2 cursor-pointer">
+    <input type="checkbox" id="editIsCurrentPlayer" name="is_current_player"
+           class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+    <span class="text-gray-700 dark:text-gray-300">Active Player</span>
+</label>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}

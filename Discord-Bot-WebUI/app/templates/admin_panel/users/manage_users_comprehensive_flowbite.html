@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal %}
 
 {% block admin_title %}User Management{% endblock %}
 {% block panel_description %}Comprehensive user management and administration{% endblock %}
@@ -358,21 +358,22 @@
 {% endcall %}
 
 <!-- Edit User Modal -->
-<div id="editUserModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75 transition-opacity" data-modal-backdrop></div>
-        <div class="relative w-full max-w-2xl transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl transition-all">
+<div id="editUserModal" tabindex="-1" aria-hidden="true" aria-labelledby="editUserModal-title" aria-modal="true" role="dialog" data-modal-backdrop="static" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800">
             <form method="POST" action="" id="editUserForm">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" id="editUserId" name="user_id">
 
                 <!-- Modal Header -->
-                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 bg-ecs-green text-white">
-                    <h3 class="text-lg font-semibold flex items-center">
+                <div class="flex items-center justify-between p-4 border-b dark:border-gray-700 bg-ecs-green text-white rounded-t-lg">
+                    <h3 id="editUserModal-title" class="text-lg font-semibold flex items-center">
                         <i class="ti ti-edit mr-2"></i>Edit User
                     </h3>
-                    <button type="button" class="text-white/80 hover:text-white" data-modal-close>
-                        <i class="ti ti-x text-xl"></i>
+                    <button type="button" class="text-white/80 hover:text-white rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center modal-close-btn" data-modal-hide="editUserModal" aria-label="Close modal">
+                        <svg class="w-3 h-3" fill="none" viewBox="0 0 14 14">
+                            <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                        </svg>
                     </button>
                 </div>
 
@@ -571,7 +572,7 @@
 
                 <!-- Modal Footer -->
                 <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-modal-close>
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 modal-close-btn" data-modal-hide="editUserModal">
                         <i class="ti ti-x mr-1"></i>Cancel
                     </button>
                     <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
@@ -604,12 +605,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Modal handlers
     function openModal(modal) {
         modal.classList.remove('hidden');
+        modal.classList.add('flex');
         modal.setAttribute('aria-hidden', 'false');
         document.body.classList.add('overflow-hidden');
     }
 
     function closeModal(modal) {
         modal.classList.add('hidden');
+        modal.classList.remove('flex');
         modal.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('overflow-hidden');
 
@@ -641,7 +644,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    document.querySelectorAll('[data-modal-close]').forEach(btn => {
+    document.querySelectorAll('[data-modal-hide="editUserModal"]').forEach(btn => {
         btn.addEventListener('click', () => closeModal(editUserModal));
     });
 
@@ -657,17 +660,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add backdrop click handler only if modal exists
+    // Add backdrop click handler only if modal exists (click on modal overlay area)
     if (editUserModal) {
-        const backdrop = editUserModal.querySelector('[data-modal-backdrop]');
-        if (backdrop) {
-            backdrop.addEventListener('click', (e) => {
-                // Only close if clicking the backdrop itself, not its children
-                if (e.target === backdrop) {
-                    closeModal(editUserModal);
-                }
-            });
-        }
+        editUserModal.addEventListener('click', (e) => {
+            // Only close if clicking the modal backdrop (the outer container), not its children
+            if (e.target === editUserModal) {
+                closeModal(editUserModal);
+            }
+        });
     }
 
     // Select all checkbox

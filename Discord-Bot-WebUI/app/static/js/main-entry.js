@@ -286,6 +286,14 @@ function initializeApp() {
         // InitSystem.init() triggered
         window.InitSystem.init();
     }
+
+    // Initialize Flowbite components AFTER ModalManager has pre-initialized modals
+    // This ensures modals exist before Flowbite tries to attach data-modal-hide handlers
+    // NOTE: CDN Flowbite scripts have been removed from base templates to prevent
+    // double-initialization. We use ONLY the npm package via this bundle.
+    if (typeof window.initFlowbite === 'function') {
+        window.initFlowbite();
+    }
 }
 
 if (document.readyState === 'loading') {

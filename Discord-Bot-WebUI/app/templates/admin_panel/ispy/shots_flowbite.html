@@ -1,5 +1,7 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
+{# Note: viewShotModal uses a custom two-column layout with image viewer,
+   which doesn't fit the standard modal_info pattern. Kept as custom implementation. #}
 
 {% block admin_title %}I-Spy Shots{% endblock %}
 {% block panel_description %}Review and manage I-Spy photo submissions{% endblock %}

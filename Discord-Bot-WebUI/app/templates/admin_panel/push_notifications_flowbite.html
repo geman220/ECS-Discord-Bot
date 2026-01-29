@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
 {% block admin_title %}Push Notifications{% endblock %}
 {% block panel_description %}Send and manage push notifications{% endblock %}
@@ -425,38 +425,23 @@
 </div>
 
 <!-- Preview Modal -->
-<div id="previewModal" tabindex="-1" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Notification Preview</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="previewModal">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <div class="flex items-start p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                    <div class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
-                        <i class="ti ti-bell text-white"></i>
-                    </div>
-                    <div>
-                        <h6 class="font-medium text-gray-900 dark:text-white" id="preview_title">Notification Title</h6>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" id="preview_body">Notification body...</p>
-                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">ECS FC • Now</p>
-                    </div>
-                </div>
-                <div class="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                    <p>Target: <span id="preview_target">All Subscribers</span></p>
-                    <p>Priority: <span id="preview_priority">Normal</span></p>
-                    <p>Recipients: <span id="preview_recipients">0</span></p>
-                </div>
-            </div>
-            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
-                <button type="button" data-modal-hide="previewModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Close</button>
-            </div>
-        </div>
+{% call modal_info('previewModal', 'Notification Preview', size='sm') %}
+<div class="flex items-start p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+    <div class="flex-shrink-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+        <i class="ti ti-bell text-white"></i>
+    </div>
+    <div>
+        <h6 class="font-medium text-gray-900 dark:text-white" id="preview_title">Notification Title</h6>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" id="preview_body">Notification body...</p>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-2">ECS FC • Now</p>
     </div>
 </div>
+<div class="mt-4 text-sm text-gray-500 dark:text-gray-400">
+    <p>Target: <span id="preview_target">All Subscribers</span></p>
+    <p>Priority: <span id="preview_priority">Normal</span></p>
+    <p>Recipients: <span id="preview_recipients">0</span></p>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}

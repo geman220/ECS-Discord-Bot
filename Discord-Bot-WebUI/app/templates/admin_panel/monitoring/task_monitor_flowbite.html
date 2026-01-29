@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
 {% block admin_title %}Task Monitor{% endblock %}
 {% block panel_description %}Background task monitoring and management{% endblock %}
@@ -265,73 +265,36 @@
 </div>
 
 <!-- Task Details Modal -->
-<div id="taskDetailsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80"></div>
-    <div class="relative p-4 w-full max-w-4xl max-h-full mx-auto mt-20">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Task Details</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="closeTaskModal('taskDetailsModal')">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4" id="task_details_content">
-                <!-- Task details will be loaded here -->
-            </div>
-            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
-                <button type="button" onclick="closeTaskModal('taskDetailsModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
+{% call modal_info('taskDetailsModal', 'Task Details', size='xl') %}
+<div id="task_details_content">
+    <!-- Task details will be loaded here -->
 </div>
+{% endcall %}
 
 <!-- Task Logs Modal -->
-<div id="taskLogsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80"></div>
-    <div class="relative p-4 w-full max-w-6xl max-h-full mx-auto mt-20">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Task Logs</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="closeTaskModal('taskLogsModal')">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4" id="task_logs_content" style="max-height: 60vh; overflow-y: auto;">
-                <!-- Task logs will be loaded here -->
-            </div>
-            <div class="flex items-center justify-end p-4 border-t dark:border-gray-700">
-                <button type="button" onclick="closeTaskModal('taskLogsModal')" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
+{% call modal_info('taskLogsModal', 'Task Logs', size='2xl') %}
+<div id="task_logs_content">
+    <!-- Task logs will be loaded here -->
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Modal functions now handled by Flowbite's data-modal-hide and data-modal-show attributes
+// Legacy functions kept for backward compatibility with view/cancel task buttons
 function openTaskModal(modalId) {
-    document.getElementById(modalId).classList.remove('hidden');
-    document.getElementById(modalId).classList.add('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', modalId);
+    if (modal) {
+        modal.show();
+    }
 }
 
 function closeTaskModal(modalId) {
-    document.getElementById(modalId).classList.add('hidden');
-    document.getElementById(modalId).classList.remove('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', modalId);
+    if (modal) {
+        modal.hide();
+    }
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Close modal on backdrop click
-    ['taskDetailsModal', 'taskLogsModal'].forEach(modalId => {
-        document.getElementById(modalId).addEventListener('click', function(e) {
-            if (e.target === this || e.target.classList.contains('bg-gray-900')) {
-                closeTaskModal(modalId);
-            }
-        });
-    });
-});
 </script>
 {% endblock %}

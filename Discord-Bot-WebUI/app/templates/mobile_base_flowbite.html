@@ -100,11 +100,15 @@
         {% endif %}
     {% endwith %}
 
-    <!-- Flowbite JS -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.2.1/flowbite.min.js"></script>
-
-    <!-- Cropper.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
+    <!-- Main Vite bundle (includes Flowbite from npm, SweetAlert2, Cropper.js) -->
+    {% if vite_production_mode is defined and vite_production_mode() %}
+    {{ vite_asset('js/main-entry.js') }}
+    {% elif vite_dev_mode is defined and vite_dev_mode() %}
+    {{ vite_asset('js/main-entry.js') }}
+    {% else %}
+    <!-- Fallback: direct script load -->
+    <script type="module" src="{{ url_for('static', filename='js/main-entry.js') }}"></script>
+    {% endif %}
 
     {% block custom_js %}{% endblock %}
 </body>

@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}ECS FC Management{% endblock %}
 
@@ -151,125 +152,83 @@
 </div>
 
 <!-- Add Week Modal -->
-<div id="addWeekModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="fixed inset-0 bg-black/50" data-modal-backdrop></div>
-    <div class="relative min-h-screen flex items-center justify-center p-4">
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Week</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-close>
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form method="POST" action="{{ url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season.id) }}">
-                <input type="hidden" name="action" value="add">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" id="modal_league_name" name="league_name" value="">
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Week Number</label>
-                        <input type="number" name="week" required
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
-                        <input type="date" name="date" required
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team A</label>
-                            <select name="teamA" id="teamA" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team B</label>
-                            <select name="teamB" id="teamB" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
-                            <input type="time" name="time" required
-                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
-                            <select name="location" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                                <option value="North">North</option>
-                                <option value="South">South</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                            data-modal-close>Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">Add Week</button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('addWeekModal', 'Add New Week', action=url_for('publeague.schedule.manage_ecsfc_schedule', season_id=season.id), submit_text='Add Week', submit_color='primary') %}
+<input type="hidden" name="action" value="add">
+<input type="hidden" id="modal_league_name" name="league_name" value="">
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Week Number</label>
+    <input type="number" name="week" required
+           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+</div>
+<div>
+    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+    <input type="date" name="date" required
+           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+</div>
+<div class="grid grid-cols-2 gap-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team A</label>
+        <select name="teamA" id="teamA" required
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        </select>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team B</label>
+        <select name="teamB" id="teamB" required
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        </select>
     </div>
 </div>
+<div class="grid grid-cols-2 gap-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+        <input type="time" name="time" required
+               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+        <select name="location" required
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            <option value="North">North</option>
+            <option value="South">South</option>
+        </select>
+    </div>
+</div>
+{% endcall %}
 
 <!-- Edit Match Modal -->
-<div id="editMatchModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="fixed inset-0 bg-black/50" data-modal-backdrop></div>
-    <div class="relative min-h-screen flex items-center justify-center p-4">
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Match</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-close>
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form method="POST" action="#" id="editMatchForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <div class="p-6 space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team A</label>
-                            <select id="edit_team_a" name="teamA" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team B</label>
-                            <select id="edit_team_b" name="teamB" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
-                            <input type="time" id="edit_time" name="time" required
-                                   class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
-                            <select id="edit_location" name="location" required
-                                    class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                                <option value="North">North</option>
-                                <option value="South">South</option>
-                            </select>
-                        </div>
-                    </div>
-                    <input type="hidden" id="edit_date" name="date">
-                </div>
-                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
-                            data-modal-close>Cancel</button>
-                    <button type="submit" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">Save Changes</button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('editMatchModal', 'Edit Match', form_id='editMatchForm', action='#', submit_text='Save Changes', submit_color='primary') %}
+<div class="grid grid-cols-2 gap-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team A</label>
+        <select id="edit_team_a" name="teamA" required
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        </select>
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team B</label>
+        <select id="edit_team_b" name="teamB" required
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        </select>
     </div>
 </div>
+<div class="grid grid-cols-2 gap-4">
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+        <input type="time" id="edit_time" name="time" required
+               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+    </div>
+    <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+        <select id="edit_location" name="location" required
+                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+            <option value="North">North</option>
+            <option value="South">South</option>
+        </select>
+    </div>
+</div>
+<input type="hidden" id="edit_date" name="date">
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -299,16 +258,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Modal handling
-    function showModal(id) { document.getElementById(id).classList.remove('hidden'); }
-    function hideModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-    document.querySelectorAll('[data-modal-backdrop]').forEach(el => {
-        el.addEventListener('click', () => el.closest('[id]').classList.add('hidden'));
-    });
-    document.querySelectorAll('[data-modal-close]').forEach(el => {
-        el.addEventListener('click', () => el.closest('[id]').classList.add('hidden'));
-    });
+    // Modal handling using modal-manager
+    function showModal(id) {
+        if (window.modalManager) {
+            window.modalManager.show(id);
+        } else {
+            document.getElementById(id)?.classList.remove('hidden');
+            document.getElementById(id)?.classList.add('flex');
+        }
+    }
+    function hideModal(id) {
+        if (window.modalManager) {
+            window.modalManager.hide(id);
+        } else {
+            document.getElementById(id)?.classList.add('hidden');
+            document.getElementById(id)?.classList.remove('flex');
+        }
+    }
 
     // Event delegation
     document.addEventListener('click', function(e) {

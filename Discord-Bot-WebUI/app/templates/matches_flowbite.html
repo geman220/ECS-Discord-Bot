@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}Sounders Schedule [DEPRECATED]{% endblock %}
 
@@ -195,42 +196,21 @@
 {% block modals %}
 {{ super() }}
 <!-- Add Match Modal -->
-<div id="addMatchModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="fixed inset-0 bg-black/50 dark:bg-black/70" data-modal-backdrop></div>
-    <div class="relative p-4 w-full max-w-md max-h-full mx-auto mt-20">
-        <div class="relative bg-white rounded-lg shadow-xl dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Match</h5>
-                <button type="button" data-modal-close="addMatchModal" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4">
-                <form method="POST" action="{{ url_for('bot_admin.add_mls_match') }}" id="addMatchForm">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-                    <div class="mb-4">
-                        <label for="date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date</label>
-                        <input type="text" id="date" name="date" placeholder="Select Date" required class="flatpickr w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="competition" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Competition</label>
-                        <select id="competition" name="competition" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
-                            {% for name, value in competition_mappings.items() %}
-                            <option value="{{ name }}">{{ name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800 transition-colors">
-                        <i class="ti ti-plus mr-2"></i> Add Match
-                    </button>
-                </form>
-            </div>
-        </div>
+{% call modal_form('addMatchModal', 'Add New Match', form_id='addMatchForm', action=url_for('bot_admin.add_mls_match'), size='sm', submit_text='Add Match', loading_text='Adding...') %}
+    <div class="mb-4">
+        <label for="date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date</label>
+        <input type="text" id="date" name="date" placeholder="Select Date" required class="flatpickr w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
     </div>
-</div>
+
+    <div>
+        <label for="competition" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Competition</label>
+        <select id="competition" name="competition" required class="w-full px-4 py-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+            {% for name, value in competition_mappings.items() %}
+            <option value="{{ name }}">{{ name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}

@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
 {% block admin_title %}Substitute Pools{% endblock %}
 {% block panel_description %}Manage substitute player pools{% endblock %}
@@ -162,28 +162,14 @@
 </div>
 
 <!-- Player Search Modal -->
-<div id="playerSearchModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-user-search mr-2"></i>Search Player to Add
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideSearchModal()">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-5">
-                <div class="mb-4">
-                    <input type="text" id="playerSearchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Type player name or email...">
-                </div>
-                <div id="playerSearchResults" class="max-h-64 overflow-y-auto">
-                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type at least 2 characters to search</p>
-                </div>
-            </div>
-        </div>
+{% call modal_info('playerSearchModal', 'Search Player to Add', size='lg', footer=false) %}
+    <div class="mb-4">
+        <input type="text" id="playerSearchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Type player name or email...">
     </div>
-</div>
+    <div id="playerSearchResults" class="max-h-64 overflow-y-auto">
+        <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type at least 2 characters to search</p>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -263,13 +249,13 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function showSearchModal() {
-    document.getElementById('playerSearchModal').classList.remove('hidden');
-    document.getElementById('playerSearchModal').classList.add('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', 'playerSearchModal');
+    if (modal) modal.show();
 }
 
 function hideSearchModal() {
-    document.getElementById('playerSearchModal').classList.add('hidden');
-    document.getElementById('playerSearchModal').classList.remove('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', 'playerSearchModal');
+    if (modal) modal.hide();
 }
 
 async function addToPool(playerId, leagueType) {

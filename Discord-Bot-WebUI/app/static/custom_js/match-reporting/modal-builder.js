@@ -297,7 +297,13 @@ export function populateModal(modal, data) {
  * @param {Object} data - Match data
  */
 function updateModalTitle(modal, data) {
-    const modalTitle = modal.querySelector('.modal-title');
+    // Try the new {modalId}-title pattern first, then fall back to .modal-title
+    const modalId = modal.id;
+    let modalTitle = modalId ? document.getElementById(`${modalId}-title`) : null;
+    if (!modalTitle) {
+        modalTitle = modal.querySelector('.modal-title');
+    }
+
     if (modalTitle) {
         const homeTeamName = data.home_team_name || 'Home Team';
         const awayTeamName = data.away_team_name || 'Away Team';
@@ -364,23 +370,44 @@ function populateEventContainers(matchId, data) {
 }
 
 /**
- * Show a modal using Flowbite
+ * Show a modal using ModalManager (preferred) or Flowbite fallback
  * @param {Element} modal - Modal element
  */
 function showModal(modal) {
+    const modalId = modal.id;
+
+    // Use ModalManager if available (preferred - handles caching)
+    if (typeof window.ModalManager !== 'undefined' && modalId) {
+        const shown = window.ModalManager.show(modalId, {
+            backdrop: 'static',
+            closable: true
+        });
+        if (shown) {
+            // Setup close button handlers for dynamically created modals
+            setupModalCloseHandlers(modal);
+            return;
+        }
+    }
+
+    // Fallback: Use Flowbite Modal directly
     try {
-        // Try Flowbite Modal class first
         if (typeof window.Modal !== 'undefined') {
-            const flowbiteModal = new window.Modal(modal, {
-                backdrop: 'static',
-                closable: true
-            });
+            // Check if already has a cached instance
+            let flowbiteModal = modal._flowbiteModal;
+            if (!flowbiteModal) {
+                flowbiteModal = new window.Modal(modal, {
+                    backdrop: 'static',
+                    closable: true
+                });
+                modal._flowbiteModal = flowbiteModal;
+            }
             flowbiteModal.show();
-            // Store reference for later hiding
-            modal._flowbiteModal = flowbiteModal;
         } else {
-            // Fallback: manual show/hide
-            flowbiteShowModal(modal);
+            // Ultimate fallback: manual show
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modal.setAttribute('aria-hidden', 'false');
+            document.body.classList.add('overflow-hidden');
         }
 
         // Setup close button handlers
@@ -388,24 +415,16 @@ function showModal(modal) {
     } catch (error) {
         console.error('Modal show error:', error);
         // Ultimate fallback
-        flowbiteShowModal(modal);
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('overflow-hidden');
         setupModalCloseHandlers(modal);
     }
 }
 
 /**
- * Show modal using Flowbite patterns (manual)
- * @param {Element} modal - Modal element
- */
-function flowbiteShowModal(modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('overflow-hidden');
-}
-
-/**
- * Hide modal using Flowbite patterns
+ * Hide modal using ModalManager (preferred) or Flowbite fallback
  * @param {Element} modal - Modal element
  */
 function hideModal(modal) {
@@ -415,6 +434,17 @@ function hideModal(modal) {
         modal._escapeHandler = null;
     }
 
+    const modalId = modal.id;
+
+    // Use ModalManager if available (preferred)
+    if (typeof window.ModalManager !== 'undefined' && modalId) {
+        const hidden = window.ModalManager.hide(modalId);
+        if (hidden) {
+            return;
+        }
+    }
+
+    // Fallback: Use cached Flowbite instance or manual hide
     if (modal._flowbiteModal) {
         modal._flowbiteModal.hide();
     } else {

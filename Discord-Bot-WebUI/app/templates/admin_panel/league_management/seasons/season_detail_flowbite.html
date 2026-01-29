@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
 
 {% block admin_title %}{{ season.name }}{% endblock %}
 {% block panel_description %}Season Details - {{ season.name }}{% endblock %}
@@ -190,63 +190,38 @@
 </div>
 
 <!-- Edit Season Modal -->
-<div id="editSeasonModal" tabindex="-1" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-modal md:h-full justify-center items-center bg-gray-900/50">
-    <div class="relative w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-                    <i class="ti ti-edit mr-2"></i>Edit Season
-                </h3>
-                <button type="button" onclick="closeEditModal()" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="editSeasonForm">
-                <input type="hidden" id="editSeasonId">
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label for="editSeasonName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                            Season Name <span class="text-red-500">*</span>
-                        </label>
-                        <input type="text" id="editSeasonName" required
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                    </div>
-                    <div>
-                        <label for="editSeasonStartDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Start Date</label>
-                        <input type="date" id="editSeasonStartDate"
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                    </div>
-                    <div>
-                        <label for="editSeasonEndDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">End Date</label>
-                        <input type="date" id="editSeasonEndDate"
-                               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                    </div>
-                </div>
-                <div class="flex items-center p-4 border-t border-gray-200 rounded-b dark:border-gray-600 gap-2">
-                    <button type="button" onclick="closeEditModal()" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600">Cancel</button>
-                    <button type="button" onclick="saveSeason()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                        <i class="ti ti-check mr-1"></i>Save Changes
-                    </button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('editSeasonModal', 'Edit Season', form_id='editSeasonForm', submit_text='Save Changes', loading_text='Saving...') %}
+    <input type="hidden" id="editSeasonId">
+    <div>
+        <label for="editSeasonName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            Season Name <span class="text-red-500">*</span>
+        </label>
+        <input type="text" id="editSeasonName" name="name" required
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
     </div>
-</div>
+    <div>
+        <label for="editSeasonStartDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Start Date</label>
+        <input type="date" id="editSeasonStartDate" name="start_date"
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+    </div>
+    <div>
+        <label for="editSeasonEndDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">End Date</label>
+        <input type="date" id="editSeasonEndDate" name="end_date"
+               class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+    </div>
+{% endcall %}
 
 <script>
 function editSeason(seasonId, seasonName) {
     document.getElementById('editSeasonId').value = seasonId;
     document.getElementById('editSeasonName').value = seasonName;
-    document.getElementById('editSeasonModal').classList.remove('hidden');
-    document.getElementById('editSeasonModal').classList.add('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', 'editSeasonModal');
+    if (modal) modal.show();
 }
 
-function closeEditModal() {
-    document.getElementById('editSeasonModal').classList.add('hidden');
-    document.getElementById('editSeasonModal').classList.remove('flex');
-}
-
-function saveSeason() {
+// Handle form submission
+document.getElementById('editSeasonForm').addEventListener('submit', function(e) {
+    e.preventDefault();
     const seasonId = document.getElementById('editSeasonId').value;
     const name = document.getElementById('editSeasonName').value;
     const startDate = document.getElementById('editSeasonStartDate').value;
@@ -266,7 +241,7 @@ function saveSeason() {
             window.location.reload();
         }
     });
-}
+});
 
 function setCurrentSeason(seasonId) {
     const isDark = document.documentElement.classList.contains('dark');

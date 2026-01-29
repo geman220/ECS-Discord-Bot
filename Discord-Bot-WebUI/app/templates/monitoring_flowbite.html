@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_info %}
 {% block title %}System Monitoring{% endblock %}
 
 {% block main_content %}
@@ -228,26 +229,13 @@
 </div>
 
 <!-- Queue Details Modal -->
-<div id="queueDetailsModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 dark:bg-gray-900 bg-opacity-75 dark:bg-opacity-75 transition-opacity" id="queue-modal-overlay"></div>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-            <div class="px-4 pt-5 pb-4 sm:p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Queue Task Details</h3>
-                    <button type="button" id="close-queue-modal" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300">
-                        <i class="ti ti-x text-xl"></i>
-                    </button>
-                </div>
-                <div id="queueDetailsContent">
-                    <div class="flex items-center justify-center py-8">
-                        <div class="animate-spin rounded-full h-8 w-8 border-4 border-ecs-green border-t-transparent"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+{% call modal_info('queueDetailsModal', 'Queue Task Details', size='lg') %}
+<div id="queueDetailsContent">
+    <div class="flex items-center justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-4 border-ecs-green border-t-transparent"></div>
     </div>
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -279,9 +267,8 @@ class MonitoringDashboard {
         document.getElementById('refreshWorkersBtn')?.addEventListener('click', () => this.loadWorkerStatus());
         document.getElementById('showQueueDetailsBtn')?.addEventListener('click', () => this.showQueueDetails());
 
-        // Modal
-        document.getElementById('close-queue-modal')?.addEventListener('click', () => this.hideQueueModal());
-        document.getElementById('queue-modal-overlay')?.addEventListener('click', () => this.hideQueueModal());
+        // Modal - Use Flowbite's modal system
+        // The modal_info macro uses data-modal-hide attributes for closing
 
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
@@ -553,7 +540,14 @@ class MonitoringDashboard {
     async showQueueDetails() {
         const modal = document.getElementById('queueDetailsModal');
         const content = document.getElementById('queueDetailsContent');
-        modal.classList.remove('hidden');
+
+        // Use Flowbite modal API or fallback to class manipulation
+        if (window.FlowbiteInstances && window.FlowbiteInstances.getInstance('Modal', 'queueDetailsModal')) {
+            window.FlowbiteInstances.getInstance('Modal', 'queueDetailsModal').show();
+        } else {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
 
         content.innerHTML = '<div class="flex items-center justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-4 border-ecs-green border-t-transparent"></div></div>';
 
@@ -590,7 +584,13 @@ class MonitoringDashboard {
     }
 
     hideQueueModal() {
-        document.getElementById('queueDetailsModal').classList.add('hidden');
+        const modal = document.getElementById('queueDetailsModal');
+        if (window.FlowbiteInstances && window.FlowbiteInstances.getInstance('Modal', 'queueDetailsModal')) {
+            window.FlowbiteInstances.getInstance('Modal', 'queueDetailsModal').hide();
+        } else {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
     }
 
     handleError(error) {

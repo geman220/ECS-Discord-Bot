@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form, modal_info %}
 
 {% block admin_title %}Notification Groups{% endblock %}
 {% block panel_description %}Manage notification target groups{% endblock %}
@@ -161,192 +161,140 @@
 </div>
 
 <!-- Create Group Modal -->
-<div id="createGroupModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-plus mr-2"></i>Create Notification Group
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideCreateGroupModal()">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <form id="createGroupForm" onsubmit="submitCreateGroup(event)">
-                <div class="p-4 md:p-5 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="md:col-span-2">
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Group Name <span class="text-red-500">*</span></label>
-                            <input type="text" name="name" id="group_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Premium Members, Team Captains" required>
-                        </div>
-                        <div>
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Group Type <span class="text-red-500">*</span></label>
-                            <select name="group_type" id="group_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white" onchange="toggleGroupTypeOptions()" required>
-                                <option value="dynamic">Dynamic (criteria-based)</option>
-                                <option value="static">Static (manual members)</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
-                        <textarea name="description" id="group_description" rows="2" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Describe who belongs to this group..."></textarea>
-                    </div>
-
-                    <!-- Dynamic Group Options -->
-                    <div id="dynamicGroupOptions">
-                        <hr class="border-gray-200 dark:border-gray-600 my-4">
-                        <h6 class="text-md font-medium text-gray-900 dark:text-white mb-4"><i class="ti ti-adjustments mr-2"></i>Dynamic Targeting Criteria</h6>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Target Type</label>
-                                <select name="criteria_target_type" id="criteria_target_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white" onchange="toggleCriteriaOptions()">
-                                    <option value="all">All Users with Push Enabled</option>
-                                    <option value="team">By Team</option>
-                                    <option value="league">By League</option>
-                                    <option value="role">By Role</option>
-                                    <option value="pool">Substitute Pool</option>
-                                    <option value="platform">By Platform</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Platform Filter</label>
-                                <select name="criteria_platform" id="criteria_platform" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                                    <option value="all">All Platforms</option>
-                                    <option value="ios">iOS Only</option>
-                                    <option value="android">Android Only</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Sub-criteria options -->
-                        <div id="criteriaTeamContainer" class="mt-4 hidden">
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Teams</label>
-                            <select name="criteria_teams" id="criteria_teams" multiple class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white h-32">
-                                {% for team in teams|default([]) %}
-                                <option value="{{ team.id }}">{{ team.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
-                        </div>
-
-                        <div id="criteriaLeagueContainer" class="mt-4 hidden">
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Leagues</label>
-                            <select name="criteria_leagues" id="criteria_leagues" multiple class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white h-32">
-                                {% for league in leagues|default([]) %}
-                                <option value="{{ league.id }}">{{ league.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
-                        </div>
-
-                        <div id="criteriaRoleContainer" class="mt-4 hidden">
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Roles</label>
-                            <select name="criteria_roles" id="criteria_roles" multiple class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white h-32">
-                                {% for role in roles|default([]) %}
-                                <option value="{{ role.name }}">{{ role.name }}</option>
-                                {% endfor %}
-                            </select>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
-                        </div>
-
-                        <div id="criteriaPoolContainer" class="mt-4 hidden">
-                            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Pool</label>
-                            <select name="criteria_pool" id="criteria_pool" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
-                                <option value="all">All Pools</option>
-                                <option value="pub_league">Pub League Sub Pool</option>
-                                <option value="ecs_fc">ECS FC Sub Pool</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Static Group Options -->
-                    <div id="staticGroupOptions" class="hidden">
-                        <hr class="border-gray-200 dark:border-gray-600 my-4">
-                        <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
-                            <i class="ti ti-info-circle mr-2"></i>
-                            After creating the group, you can add members by clicking the "Manage Members" button.
-                        </div>
-                    </div>
-                </div>
-                <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600 gap-3">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="hideCreateGroupModal()">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                        <i class="ti ti-plus mr-1"></i>Create Group
-                    </button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('createGroupModal', 'Create Notification Group', form_id='createGroupForm', size='lg', submit_text='Create Group', loading_text='Creating...') %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="md:col-span-2">
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Group Name <span class="text-red-500">*</span></label>
+        <input type="text" name="name" id="group_name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Premium Members, Team Captains" required>
+    </div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Group Type <span class="text-red-500">*</span></label>
+        <select name="group_type" id="group_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white" onchange="toggleGroupTypeOptions()" required>
+            <option value="dynamic">Dynamic (criteria-based)</option>
+            <option value="static">Static (manual members)</option>
+        </select>
     </div>
 </div>
+
+<div>
+    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+    <textarea name="description" id="group_description" rows="2" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Describe who belongs to this group..."></textarea>
+</div>
+
+<!-- Dynamic Group Options -->
+<div id="dynamicGroupOptions">
+    <hr class="border-gray-200 dark:border-gray-600 my-4">
+    <h6 class="text-md font-medium text-gray-900 dark:text-white mb-4"><i class="ti ti-adjustments mr-2"></i>Dynamic Targeting Criteria</h6>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Target Type</label>
+            <select name="criteria_target_type" id="criteria_target_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white" onchange="toggleCriteriaOptions()">
+                <option value="all">All Users with Push Enabled</option>
+                <option value="team">By Team</option>
+                <option value="league">By League</option>
+                <option value="role">By Role</option>
+                <option value="pool">Substitute Pool</option>
+                <option value="platform">By Platform</option>
+            </select>
+        </div>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Platform Filter</label>
+            <select name="criteria_platform" id="criteria_platform" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+                <option value="all">All Platforms</option>
+                <option value="ios">iOS Only</option>
+                <option value="android">Android Only</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Sub-criteria options -->
+    <div id="criteriaTeamContainer" class="mt-4 hidden">
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Teams</label>
+        <select name="criteria_teams" id="criteria_teams" multiple class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white h-32">
+            {% for team in teams|default([]) %}
+            <option value="{{ team.id }}">{{ team.name }}</option>
+            {% endfor %}
+        </select>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+    </div>
+
+    <div id="criteriaLeagueContainer" class="mt-4 hidden">
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Leagues</label>
+        <select name="criteria_leagues" id="criteria_leagues" multiple class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white h-32">
+            {% for league in leagues|default([]) %}
+            <option value="{{ league.id }}">{{ league.name }}</option>
+            {% endfor %}
+        </select>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+    </div>
+
+    <div id="criteriaRoleContainer" class="mt-4 hidden">
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Roles</label>
+        <select name="criteria_roles" id="criteria_roles" multiple class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white h-32">
+            {% for role in roles|default([]) %}
+            <option value="{{ role.name }}">{{ role.name }}</option>
+            {% endfor %}
+        </select>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+    </div>
+
+    <div id="criteriaPoolContainer" class="mt-4 hidden">
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Pool</label>
+        <select name="criteria_pool" id="criteria_pool" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+            <option value="all">All Pools</option>
+            <option value="pub_league">Pub League Sub Pool</option>
+            <option value="ecs_fc">ECS FC Sub Pool</option>
+        </select>
+    </div>
+</div>
+
+<!-- Static Group Options -->
+<div id="staticGroupOptions" class="hidden">
+    <hr class="border-gray-200 dark:border-gray-600 my-4">
+    <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/50 dark:text-blue-300">
+        <i class="ti ti-info-circle mr-2"></i>
+        After creating the group, you can add members by clicking the "Manage Members" button.
+    </div>
+</div>
+{% endcall %}
 
 <!-- View Group Modal -->
-<div id="viewGroupModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="viewGroupTitle">Group Details</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideViewGroupModal()">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-5" id="viewGroupContent">
-                <div class="flex justify-center py-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-            </div>
-            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="hideViewGroupModal()">Close</button>
-            </div>
-        </div>
+{% call modal_info('viewGroupModal', 'Group Details', size='lg') %}
+<div id="viewGroupContent">
+    <div class="flex justify-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     </div>
 </div>
+{% endcall %}
 
 <!-- Manage Members Modal -->
-<div id="manageMembersModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-4xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-users mr-2"></i>Manage Members - <span id="memberGroupName"></span>
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideMembersModal()">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-5">
-                <input type="hidden" id="manage_members_group_id">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Add Members -->
-                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                        <h6 class="font-medium text-gray-900 dark:text-white mb-3"><i class="ti ti-user-plus mr-2"></i>Add Members</h6>
-                        <div class="mb-3">
-                            <input type="text" id="memberSearch" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Search by name or email..." onkeyup="searchUsers()">
-                        </div>
-                        <div id="searchResults" class="max-h-64 overflow-y-auto space-y-2">
-                            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type to search users</p>
-                        </div>
-                    </div>
+{% call modal_info('manageMembersModal', 'Manage Members - <span id="memberGroupName"></span>', size='xl') %}
+<input type="hidden" id="manage_members_group_id">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Add Members -->
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+        <h6 class="font-medium text-gray-900 dark:text-white mb-3"><i class="ti ti-user-plus mr-2"></i>Add Members</h6>
+        <div class="mb-3">
+            <input type="text" id="memberSearch" class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Search by name or email..." onkeyup="searchUsers()">
+        </div>
+        <div id="searchResults" class="max-h-64 overflow-y-auto space-y-2">
+            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type to search users</p>
+        </div>
+    </div>
 
-                    <!-- Current Members -->
-                    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                        <div class="flex justify-between items-center mb-3">
-                            <h6 class="font-medium text-gray-900 dark:text-white"><i class="ti ti-users mr-2"></i>Current Members</h6>
-                            <span id="memberCount" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">0</span>
-                        </div>
-                        <div id="currentMembers" class="max-h-64 overflow-y-auto space-y-2">
-                            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No members yet</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="hideMembersModal()">Close</button>
-            </div>
+    <!-- Current Members -->
+    <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+        <div class="flex justify-between items-center mb-3">
+            <h6 class="font-medium text-gray-900 dark:text-white"><i class="ti ti-users mr-2"></i>Current Members</h6>
+            <span id="memberCount" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">0</span>
+        </div>
+        <div id="currentMembers" class="max-h-64 overflow-y-auto space-y-2">
+            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No members yet</p>
         </div>
     </div>
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -356,26 +304,91 @@ const baseUrl = '/admin-panel';
 const csrfToken = '{{ csrf_token() }}';
 let currentMemberGroupId = null;
 
-// Modal functions
+// Modal functions using Flowbite modal instances
+let createGroupModalInstance = null;
+let viewGroupModalInstance = null;
+let manageMembersModalInstance = null;
+
+function initModals() {
+    const createGroupEl = document.getElementById('createGroupModal');
+    const viewGroupEl = document.getElementById('viewGroupModal');
+    const manageMembersEl = document.getElementById('manageMembersModal');
+
+    if (createGroupEl && typeof Modal !== 'undefined') {
+        createGroupModalInstance = new Modal(createGroupEl);
+    }
+    if (viewGroupEl && typeof Modal !== 'undefined') {
+        viewGroupModalInstance = new Modal(viewGroupEl);
+    }
+    if (manageMembersEl && typeof Modal !== 'undefined') {
+        manageMembersModalInstance = new Modal(manageMembersEl);
+    }
+}
+
 function showCreateGroupModal() {
-    document.getElementById('createGroupModal').classList.remove('hidden');
-    document.getElementById('createGroupModal').classList.add('flex');
+    if (createGroupModalInstance) {
+        createGroupModalInstance.show();
+    } else {
+        document.getElementById('createGroupModal').classList.remove('hidden');
+        document.getElementById('createGroupModal').classList.add('flex');
+    }
 }
 
 function hideCreateGroupModal() {
-    document.getElementById('createGroupModal').classList.add('hidden');
-    document.getElementById('createGroupModal').classList.remove('flex');
+    if (createGroupModalInstance) {
+        createGroupModalInstance.hide();
+    } else {
+        document.getElementById('createGroupModal').classList.add('hidden');
+        document.getElementById('createGroupModal').classList.remove('flex');
+    }
+}
+
+function showViewGroupModal() {
+    if (viewGroupModalInstance) {
+        viewGroupModalInstance.show();
+    } else {
+        document.getElementById('viewGroupModal').classList.remove('hidden');
+        document.getElementById('viewGroupModal').classList.add('flex');
+    }
 }
 
 function hideViewGroupModal() {
-    document.getElementById('viewGroupModal').classList.add('hidden');
-    document.getElementById('viewGroupModal').classList.remove('flex');
+    if (viewGroupModalInstance) {
+        viewGroupModalInstance.hide();
+    } else {
+        document.getElementById('viewGroupModal').classList.add('hidden');
+        document.getElementById('viewGroupModal').classList.remove('flex');
+    }
+}
+
+function showMembersModal() {
+    if (manageMembersModalInstance) {
+        manageMembersModalInstance.show();
+    } else {
+        document.getElementById('manageMembersModal').classList.remove('hidden');
+        document.getElementById('manageMembersModal').classList.add('flex');
+    }
 }
 
 function hideMembersModal() {
-    document.getElementById('manageMembersModal').classList.add('hidden');
-    document.getElementById('manageMembersModal').classList.remove('flex');
+    if (manageMembersModalInstance) {
+        manageMembersModalInstance.hide();
+    } else {
+        document.getElementById('manageMembersModal').classList.add('hidden');
+        document.getElementById('manageMembersModal').classList.remove('flex');
+    }
 }
+
+// Initialize modals and form handler when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    initModals();
+
+    // Attach form submit handler
+    const createGroupForm = document.getElementById('createGroupForm');
+    if (createGroupForm) {
+        createGroupForm.addEventListener('submit', submitCreateGroup);
+    }
+});
 
 // Toggle group type options
 function toggleGroupTypeOptions() {
@@ -488,8 +501,7 @@ async function submitCreateGroup(event) {
 
 // View group
 async function viewGroup(groupId) {
-    document.getElementById('viewGroupModal').classList.remove('hidden');
-    document.getElementById('viewGroupModal').classList.add('flex');
+    showViewGroupModal();
     document.getElementById('viewGroupContent').innerHTML = '<div class="flex justify-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>';
 
     try {
@@ -606,9 +618,7 @@ async function manageMembers(groupId, groupName) {
     document.getElementById('manage_members_group_id').value = groupId;
     document.getElementById('memberGroupName').textContent = groupName;
 
-    document.getElementById('manageMembersModal').classList.remove('hidden');
-    document.getElementById('manageMembersModal').classList.add('flex');
-
+    showMembersModal();
     await loadMembers();
 }
 

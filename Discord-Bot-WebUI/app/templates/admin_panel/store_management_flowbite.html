@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
 
 {% block admin_title %}Store Management{% endblock %}
 {% block panel_description %}Manage products and orders{% endblock %}
@@ -188,55 +188,40 @@
 </div>
 {% endif %}
 
+{% endblock %}
+
+{% block modals %}
 <!-- Add Product Modal -->
-<div id="addProductModal" tabindex="-1" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-lg max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Product</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="addProductModal">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <form id="addProductForm">
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label for="productName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Product Name</label>
-                        <input type="text" id="productName" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter product name">
-                    </div>
-                    <div>
-                        <label for="productDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
-                        <textarea id="productDescription" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Product description"></textarea>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label for="productPrice" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Price ($)</label>
-                            <input type="number" id="productPrice" step="0.01" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0.00">
-                        </div>
-                        <div>
-                            <label for="productStock" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Stock Quantity</label>
-                            <input type="number" id="productStock" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0">
-                        </div>
-                    </div>
-                    <div>
-                        <label for="productCategory" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Category</label>
-                        <select id="productCategory" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            <option value="">Select category</option>
-                            <option value="jersey">Jerseys</option>
-                            <option value="merchandise">Merchandise</option>
-                            <option value="equipment">Equipment</option>
-                            <option value="accessories">Accessories</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                    <button type="button" data-modal-hide="addProductModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Add Product</button>
-                </div>
-            </form>
+{% call modal_form('addProductModal', 'Add New Product', form_id='addProductForm', size='lg', submit_text='Add Product', loading_text='Adding...') %}
+    <div>
+        <label for="productName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Product Name</label>
+        <input type="text" id="productName" name="name" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter product name">
+    </div>
+    <div>
+        <label for="productDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+        <textarea id="productDescription" name="description" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Product description"></textarea>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="productPrice" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Price ($)</label>
+            <input type="number" id="productPrice" name="price" step="0.01" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0.00">
+        </div>
+        <div>
+            <label for="productStock" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Stock Quantity</label>
+            <input type="number" id="productStock" name="stock" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="0">
         </div>
     </div>
-</div>
+    <div>
+        <label for="productCategory" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Category</label>
+        <select id="productCategory" name="category" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <option value="">Select category</option>
+            <option value="jersey">Jerseys</option>
+            <option value="merchandise">Merchandise</option>
+            <option value="equipment">Equipment</option>
+            <option value="accessories">Accessories</option>
+        </select>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}

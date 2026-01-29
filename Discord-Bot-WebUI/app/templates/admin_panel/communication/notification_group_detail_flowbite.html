@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form, modal_info %}
 
 {% block admin_title %}{{ page_title }}{% endblock %}
 {% block panel_description %}Notification group details and members{% endblock %}
@@ -218,61 +218,27 @@
 </div>
 
 <!-- Add Member Modal -->
-<div id="addMemberModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-user-plus mr-2"></i>Add Member
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="addMemberModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-4">
-                <div class="mb-4">
-                    <label for="memberSearchInput" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Users</label>
-                    <input type="text" id="memberSearchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Type to search users...">
-                </div>
-                <div id="memberSearchResults" class="max-h-60 overflow-y-auto space-y-2">
-                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Start typing to search for users</p>
-                </div>
-            </div>
-        </div>
-    </div>
+{% call modal_info('addMemberModal', 'Add Member', footer=false) %}
+<div class="mb-4">
+    <label for="memberSearchInput" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Users</label>
+    <input type="text" id="memberSearchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" placeholder="Type to search users...">
 </div>
+<div id="memberSearchResults" class="max-h-60 overflow-y-auto space-y-2">
+    <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Start typing to search for users</p>
+</div>
+{% endcall %}
 
 <!-- Edit Group Modal -->
-<div id="editGroupModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-4 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-edit mr-2"></i>Edit Group
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="editGroupModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-4">
-                <form id="editGroupForm">
-                    <div class="mb-4">
-                        <label for="editGroupName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Group Name</label>
-                        <input type="text" id="editGroupName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="{{ group.name }}" required>
-                    </div>
-                    <div class="mb-4">
-                        <label for="editGroupDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
-                        <textarea id="editGroupDescription" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ group.description or '' }}</textarea>
-                    </div>
-                    <div class="flex justify-end gap-2">
-                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500" data-modal-hide="editGroupModal">Cancel</button>
-                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Save Changes</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+{% call modal_form('editGroupModal', 'Edit Group', form_id='editGroupForm', submit_text='Save Changes', loading_text='Saving...') %}
+<div class="mb-4">
+    <label for="editGroupName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Group Name</label>
+    <input type="text" id="editGroupName" name="name" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" value="{{ group.name }}" required>
 </div>
+<div class="mb-4">
+    <label for="editGroupDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+    <textarea id="editGroupDescription" name="description" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ group.description or '' }}</textarea>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block panel_scripts %}
@@ -435,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Edit Group form submission
-    const editGroupForm = document.getElementById('editGroupForm');
+    const editGroupForm = document.getElementById('editGroupModal-form');
     if (editGroupForm) {
         editGroupForm.addEventListener('submit', async function(e) {
             e.preventDefault();

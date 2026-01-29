@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
 {% block admin_title %}{{ league_config.name }} Substitute Pool{% endblock %}
 {% block panel_description %}Manage substitute players for {{ league_config.name }}{% endblock %}
@@ -241,50 +241,24 @@
 </div>
 
 <!-- Add Player Modal -->
-<div id="addPlayerModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-user-plus mr-2"></i>Add Player to {{ league_config.name }} Pool
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideAddPlayerModal()">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-5">
-                <div class="mb-4">
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Player</label>
-                    <input type="text" id="playerSearchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Type player name or email...">
-                </div>
-                <div id="playerSearchResults" class="max-h-64 overflow-y-auto">
-                    <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type at least 2 characters to search</p>
-                </div>
-            </div>
-        </div>
+{% call modal_info('addPlayerModal', 'Add Player to ' ~ league_config.name ~ ' Pool', size='lg', footer=false) %}
+    <div class="mb-4">
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Player</label>
+        <input type="text" id="playerSearchInput" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Type player name or email...">
     </div>
-</div>
+    <div id="playerSearchResults" class="max-h-64 overflow-y-auto">
+        <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type at least 2 characters to search</p>
+    </div>
+{% endcall %}
 
 <!-- Statistics Modal -->
-<div id="statisticsModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-chart-bar mr-2"></i>{{ league_config.name }} Pool Statistics
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideStatisticsModal()">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-5" id="statisticsContent">
-                <div class="flex justify-center py-8">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-            </div>
+{% call modal_info('statisticsModal', league_config.name ~ ' Pool Statistics', size='lg', footer=false) %}
+    <div id="statisticsContent">
+        <div class="flex justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
     </div>
-</div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -329,26 +303,26 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function showAddPlayerModal() {
-    document.getElementById('addPlayerModal').classList.remove('hidden');
-    document.getElementById('addPlayerModal').classList.add('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', 'addPlayerModal');
+    if (modal) modal.show();
     document.getElementById('playerSearchInput').value = '';
     document.getElementById('playerSearchResults').innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Type at least 2 characters to search</p>';
     setTimeout(() => document.getElementById('playerSearchInput').focus(), 100);
 }
 
 function hideAddPlayerModal() {
-    document.getElementById('addPlayerModal').classList.add('hidden');
-    document.getElementById('addPlayerModal').classList.remove('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', 'addPlayerModal');
+    if (modal) modal.hide();
 }
 
 function showStatisticsModal() {
-    document.getElementById('statisticsModal').classList.remove('hidden');
-    document.getElementById('statisticsModal').classList.add('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', 'statisticsModal');
+    if (modal) modal.show();
 }
 
 function hideStatisticsModal() {
-    document.getElementById('statisticsModal').classList.add('hidden');
-    document.getElementById('statisticsModal').classList.remove('flex');
+    const modal = FlowbiteInstances.getInstance('Modal', 'statisticsModal');
+    if (modal) modal.hide();
 }
 
 // Player search

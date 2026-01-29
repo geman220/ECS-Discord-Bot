@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal %}
 
 {% block title %}Dashboard{% endblock %}
 
@@ -366,26 +367,11 @@
 {{ super() }}
 <!-- Enhanced Onboarding Modal -->
 {% if show_onboarding or session.get('force_onboarding') %}
-<div id="onboardingSlideModal" tabindex="-1" aria-hidden="true"
-     class="fixed top-0 left-0 right-0 z-50 w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full flex items-center justify-center bg-black/50 dark:bg-black/70">
-    <div class="relative w-full max-w-2xl max-h-full">
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-lg">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 rounded-t-xl">
-                <h5 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-user-circle text-ecs-green dark:text-ecs-gold"></i>Player Profile Setup
-                </h5>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-hide="onboardingSlideModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <!-- Modal Body -->
-            <div class="p-0">
-                {% include 'onboarding_modal_content.html' %}
-            </div>
-        </div>
-    </div>
+{% call modal('onboardingSlideModal', 'Player Profile Setup', size='lg', closable=true) %}
+<div class="-m-4 md:-m-5">
+    {% include 'onboarding_modal_content.html' %}
 </div>
+{% endcall %}
 {% endif %}
 {% endblock modals %}
 

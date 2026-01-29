@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form, modal_info %}
 
 {% block admin_title %}Push Notifications{% endblock %}
 {% block panel_description %}Manage push notifications for mobile apps{% endblock %}
@@ -152,86 +152,48 @@
 {% endcall %}
 
 <!-- Broadcast Modal -->
-<div id="broadcastModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-lg transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-send mr-2"></i>Send Broadcast Notification
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="broadcastModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="broadcastForm">
-                <div class="p-6 space-y-4">
-                    <div>
-                        <label for="broadcast-title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title</label>
-                        <input type="text" id="broadcast-title" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter notification title" maxlength="100" required>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum 100 characters</p>
-                    </div>
-                    <div>
-                        <label for="broadcast-message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
-                        <textarea id="broadcast-message" rows="4" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter your message" maxlength="300" required></textarea>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum 300 characters</p>
-                    </div>
-                    <div>
-                        <label for="broadcast-target" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send To</label>
-                        <select id="broadcast-target" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
-                            <option value="">Select recipients</option>
-                            <option value="all">All Users</option>
-                            <option value="ios">iOS Users Only</option>
-                            <option value="android">Android Users Only</option>
-                            <option value="coaches">Coaches Only</option>
-                            <option value="admins">Admins Only</option>
-                        </select>
-                    </div>
-                    <div class="p-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-300">
-                        <i class="ti ti-alert-triangle mr-2"></i>
-                        <strong>Warning:</strong> This will send a notification to all selected users. Please double-check your message before sending.
-                    </div>
-                </div>
-                <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="broadcastModal">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700" data-action="send-broadcast">
-                        <i class="ti ti-send mr-1"></i>Send Notification
-                    </button>
-                </div>
-            </form>
-        </div>
+{% call modal_form('broadcastModal', 'Send Broadcast Notification', form_id='broadcastForm', submit_text='Send Notification', loading_text='Sending...') %}
+    <div>
+        <label for="broadcast-title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notification Title</label>
+        <input type="text" id="broadcast-title" name="broadcast_title" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter notification title" maxlength="100" required>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum 100 characters</p>
     </div>
-</div>
+    <div>
+        <label for="broadcast-message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+        <textarea id="broadcast-message" name="broadcast_message" rows="4" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Enter your message" maxlength="300" required></textarea>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum 300 characters</p>
+    </div>
+    <div>
+        <label for="broadcast-target" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send To</label>
+        <select id="broadcast-target" name="broadcast_target" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white" required>
+            <option value="">Select recipients</option>
+            <option value="all">All Users</option>
+            <option value="ios">iOS Users Only</option>
+            <option value="android">Android Users Only</option>
+            <option value="coaches">Coaches Only</option>
+            <option value="admins">Admins Only</option>
+        </select>
+    </div>
+    <div class="p-4 text-sm text-yellow-800 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-300">
+        <i class="ti ti-alert-triangle mr-2"></i>
+        <strong>Warning:</strong> This will send a notification to all selected users. Please double-check your message before sending.
+    </div>
+{% endcall %}
 
 <!-- Test Notification Modal -->
-<div id="testNotificationModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex min-h-full items-center justify-center p-4">
-        <div class="fixed inset-0 bg-gray-500/75 dark:bg-gray-900/75" data-modal-backdrop></div>
-        <div class="relative w-full max-w-md transform overflow-hidden rounded-lg bg-white dark:bg-gray-800 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-test-pipe mr-2"></i>Send Test Notification
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="testNotificationModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <p class="text-gray-600 dark:text-gray-300 mb-4">This will send a test notification to your own device to verify the system is working properly.</p>
-                <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300">
-                    <i class="ti ti-info-circle mr-2"></i>
-                    Make sure you have the ECS Soccer mobile app installed and are logged in to receive the test notification.
-                </div>
-            </div>
-            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600" data-modal-hide="testNotificationModal">Cancel</button>
-                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700" data-action="confirm-send-test">
-                    <i class="ti ti-send mr-1"></i>Send Test
-                </button>
-            </div>
-        </div>
+{% call modal_info('testNotificationModal', 'Send Test Notification', size='md', footer=false) %}
+    <p class="text-gray-600 dark:text-gray-300 mb-4">This will send a test notification to your own device to verify the system is working properly.</p>
+    <div class="p-4 text-sm text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300">
+        <i class="ti ti-info-circle mr-2"></i>
+        Make sure you have the ECS Soccer mobile app installed and are logged in to receive the test notification.
     </div>
-</div>
+    <div class="flex items-center justify-end gap-2 mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
+        <button type="button" class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700" data-modal-hide="testNotificationModal">Cancel</button>
+        <button type="button" class="px-5 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:outline-none focus:ring-ecs-green" data-action="confirm-send-test">
+            <i class="ti ti-send mr-1"></i>Send Test
+        </button>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -240,24 +202,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
 
     // Modal toggle functionality
+    function showModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            modal.setAttribute('aria-hidden', 'false');
+        }
+    }
+
+    function hideModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+    }
+
     function setupModal(modalId) {
         const modal = document.getElementById(modalId);
         if (!modal) return;
 
         // Toggle buttons
         document.querySelectorAll(`[data-modal-toggle="${modalId}"]`).forEach(btn => {
-            btn.addEventListener('click', () => modal.classList.remove('hidden'));
+            btn.addEventListener('click', () => showModal(modalId));
         });
 
         // Hide buttons
         document.querySelectorAll(`[data-modal-hide="${modalId}"]`).forEach(btn => {
-            btn.addEventListener('click', () => modal.classList.add('hidden'));
+            btn.addEventListener('click', () => hideModal(modalId));
         });
 
         // Backdrop click
         const backdrop = modal.querySelector('[data-modal-backdrop]');
         if (backdrop) {
-            backdrop.addEventListener('click', () => modal.classList.add('hidden'));
+            backdrop.addEventListener('click', () => hideModal(modalId));
         }
     }
 
@@ -276,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 location.reload();
                 break;
             case 'send-test-notification':
-                document.getElementById('testNotificationModal').classList.remove('hidden');
+                showModal('testNotificationModal');
                 break;
             case 'confirm-send-test':
                 Swal.fire({
@@ -288,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     background: isDark ? '#1f2937' : '#ffffff',
                     color: isDark ? '#f3f4f6' : '#111827'
                 });
-                document.getElementById('testNotificationModal').classList.add('hidden');
+                hideModal('testNotificationModal');
                 break;
             case 'send-match-reminder':
             case 'send-rsvp-reminder-notification':
@@ -321,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         color: isDark ? '#f3f4f6' : '#111827'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            document.getElementById('broadcastModal').classList.add('hidden');
+                            hideModal('broadcastModal');
                             Swal.fire({
                                 title: 'Sent!',
                                 text: 'Broadcast notification has been sent.',

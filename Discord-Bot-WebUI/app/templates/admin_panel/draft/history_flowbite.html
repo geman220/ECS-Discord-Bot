@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
 
 {% block admin_title %}Draft History{% endblock %}
 {% block panel_description %}View and manage draft pick history{% endblock %}
@@ -165,44 +165,26 @@
 {% endif %}
 
 <!-- Edit Pick Modal -->
-<div id="editPickModal" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 dark:bg-gray-900 dark:bg-opacity-75 transition-opacity" data-modal-backdrop></div>
-        <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
-        <div class="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Draft Pick</h5>
-                <button type="button" class="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300" data-modal-close>
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-5">
-                <input type="hidden" id="edit-pick-id">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Position</label>
-                    <input type="number" id="edit-position" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Position Mode</label>
-                    <select id="edit-mode" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
-                        <option value="cascading">Cascading (shift others down)</option>
-                        <option value="smart">Smart (automatic)</option>
-                        <option value="absolute">Absolute (no shift)</option>
-                        <option value="insert">Insert (shift at position)</option>
-                    </select>
-                </div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
-                    <textarea id="edit-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500"></textarea>
-                </div>
-            </div>
-            <div class="p-5 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600" data-modal-close>Cancel</button>
-                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" data-action="save-pick">Save Changes</button>
-            </div>
-        </div>
+{% call modal_form('editPickModal', 'Edit Draft Pick', form_id='editPickForm', submit_text='Save Changes', loading_text='Saving...') %}
+    <input type="hidden" id="edit-pick-id">
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Position</label>
+        <input type="number" id="edit-position" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
     </div>
-</div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Position Mode</label>
+        <select id="edit-mode" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500">
+            <option value="cascading">Cascading (shift others down)</option>
+            <option value="smart">Smart (automatic)</option>
+            <option value="absolute">Absolute (no shift)</option>
+            <option value="insert">Insert (shift at position)</option>
+        </select>
+    </div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+        <textarea id="edit-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500"></textarea>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -211,12 +193,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     const modal = document.getElementById('editPickModal');
 
-    function showModal() { modal.classList.remove('hidden'); }
-    function hideModal() { modal.classList.add('hidden'); }
+    function showModal() {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        modal.setAttribute('aria-hidden', 'false');
+    }
+    function hideModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        modal.setAttribute('aria-hidden', 'true');
+    }
 
     // Modal close handlers
-    modal.querySelectorAll('[data-modal-close], [data-modal-backdrop]').forEach(el => {
+    modal.querySelectorAll('[data-modal-hide="editPickModal"]').forEach(el => {
         el.addEventListener('click', hideModal);
+    });
+
+    // Form submit handler
+    document.getElementById('editPickForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        savePick();
     });
 
     document.addEventListener('click', function(e) {
@@ -236,11 +232,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const normalizeBtn = e.target.closest('[data-action="normalize-positions"]');
         if (normalizeBtn) {
             normalizePositions(normalizeBtn.dataset.seasonId, normalizeBtn.dataset.leagueId);
-        }
-
-        const saveBtn = e.target.closest('[data-action="save-pick"]');
-        if (saveBtn) {
-            savePick();
         }
     });
 

@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_form, modal_info %}
 
 {% block admin_title %}{{ category.name }} Templates{% endblock %}
 {% block panel_description %}Message templates in {{ category.name }}{% endblock %}
@@ -164,145 +164,112 @@
 </div>
 
 <!-- Create Template Modal -->
-<div id="createTemplateModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-4xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Create Message Template</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="createTemplateModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
+{% call modal_form('createTemplateModal', 'Create Message Template', action=url_for('admin_panel.create_message_template'), size='xl', submit_text='Create Template', loading_text='Creating...') %}
+<input type="hidden" name="category_id" value="{{ category.id }}">
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-4">
+        <div>
+            <label for="template_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Name *</label>
+            <input type="text" id="template_name" name="name" required placeholder="e.g., Welcome New Player" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+
+        <div>
+            <label for="template_description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+            <input type="text" id="template_description" name="description" placeholder="Brief description of when this template is used" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label for="channel_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Channel Type</label>
+                <select id="channel_type" name="channel_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">-- Select Channel --</option>
+                    <option value="discord_dm">Discord DM</option>
+                    <option value="discord_channel">Discord Channel</option>
+                    <option value="sms">SMS</option>
+                    <option value="email">Email</option>
+                    <option value="announcement">Announcement</option>
+                </select>
             </div>
-            <form method="POST" action="{{ url_for('admin_panel.create_message_template') }}">
-                <div class="p-5 max-h-[70vh] overflow-y-auto">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="category_id" value="{{ category.id }}">
+            <div>
+                <label for="usage_context" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Usage Context</label>
+                <input type="text" id="usage_context" name="usage_context" placeholder="e.g., Onboarding flow" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+        </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div class="lg:col-span-2 space-y-4">
-                            <div>
-                                <label for="template_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Name *</label>
-                                <input type="text" id="template_name" name="name" required placeholder="e.g., Welcome New Player" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            </div>
+        <div>
+            <label for="template_content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Content *</label>
+            <textarea id="template_content" name="content" rows="10" required placeholder="Enter your message template here..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono"></textarea>
+        </div>
 
-                            <div>
-                                <label for="template_description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
-                                <input type="text" id="template_description" name="description" placeholder="Brief description of when this template is used" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                            </div>
+        <label class="flex items-center">
+            <input type="checkbox" name="is_active" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
+            <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Activate template immediately</span>
+        </label>
+    </div>
 
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <label for="channel_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Channel Type</label>
-                                    <select id="channel_type" name="channel_type" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                                        <option value="">-- Select Channel --</option>
-                                        <option value="discord_dm">Discord DM</option>
-                                        <option value="discord_channel">Discord Channel</option>
-                                        <option value="sms">SMS</option>
-                                        <option value="email">Email</option>
-                                        <option value="announcement">Announcement</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label for="usage_context" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Usage Context</label>
-                                    <input type="text" id="usage_context" name="usage_context" placeholder="e.g., Onboarding flow" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                                </div>
-                            </div>
+    <!-- Variables Panel -->
+    <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+        <h6 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
+            <i class="ti ti-code mr-1"></i>Available Variables
+        </h6>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Click to insert into content:</p>
 
-                            <div>
-                                <label for="template_content" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Content *</label>
-                                <textarea id="template_content" name="content" rows="10" required placeholder="Enter your message template here..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono"></textarea>
-                            </div>
-
-                            <label class="flex items-center">
-                                <input type="checkbox" name="is_active" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600">
-                                <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Activate template immediately</span>
-                            </label>
-                        </div>
-
-                        <!-- Variables Panel -->
-                        <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                            <h6 class="text-sm font-medium text-gray-900 dark:text-white mb-3">
-                                <i class="ti ti-code mr-1"></i>Available Variables
-                            </h6>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Click to insert into content:</p>
-
-                            <div class="space-y-3">
-                                <div>
-                                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">Player</label>
-                                    <div class="flex flex-wrap gap-1">
-                                        <code class="var-btn px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800" data-var="{player_name}">{player_name}</code>
-                                        <code class="var-btn px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800" data-var="{username}">{username}</code>
-                                        <code class="var-btn px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800" data-var="{discord_name}">{discord_name}</code>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">Team</label>
-                                    <div class="flex flex-wrap gap-1">
-                                        <code class="var-btn px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded cursor-pointer hover:bg-green-200 dark:hover:bg-green-800" data-var="{team_name}">{team_name}</code>
-                                        <code class="var-btn px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded cursor-pointer hover:bg-green-200 dark:hover:bg-green-800" data-var="{captain_name}">{captain_name}</code>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">Match</label>
-                                    <div class="flex flex-wrap gap-1">
-                                        <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{match_date}">{match_date}</code>
-                                        <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{match_time}">{match_time}</code>
-                                        <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{opponent}">{opponent}</code>
-                                        <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{location}">{location}</code>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">League</label>
-                                    <div class="flex flex-wrap gap-1">
-                                        <code class="var-btn px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800" data-var="{league_name}">{league_name}</code>
-                                        <code class="var-btn px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800" data-var="{season_name}">{season_name}</code>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">System</label>
-                                    <div class="flex flex-wrap gap-1">
-                                        <code class="var-btn px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs rounded cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500" data-var="{site_url}">{site_url}</code>
-                                        <code class="var-btn px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs rounded cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500" data-var="{date}">{date}</code>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <div class="space-y-3">
+            <div>
+                <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">Player</label>
+                <div class="flex flex-wrap gap-1">
+                    <code class="var-btn px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800" data-var="{player_name}">{player_name}</code>
+                    <code class="var-btn px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800" data-var="{username}">{username}</code>
+                    <code class="var-btn px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800" data-var="{discord_name}">{discord_name}</code>
                 </div>
-                <div class="flex items-center justify-end p-5 border-t dark:border-gray-700 gap-3">
-                    <button type="button" data-modal-hide="createTemplateModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Cancel</button>
-                    <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">Create Template</button>
+            </div>
+
+            <div>
+                <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">Team</label>
+                <div class="flex flex-wrap gap-1">
+                    <code class="var-btn px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded cursor-pointer hover:bg-green-200 dark:hover:bg-green-800" data-var="{team_name}">{team_name}</code>
+                    <code class="var-btn px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded cursor-pointer hover:bg-green-200 dark:hover:bg-green-800" data-var="{captain_name}">{captain_name}</code>
                 </div>
-            </form>
+            </div>
+
+            <div>
+                <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">Match</label>
+                <div class="flex flex-wrap gap-1">
+                    <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{match_date}">{match_date}</code>
+                    <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{match_time}">{match_time}</code>
+                    <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{opponent}">{opponent}</code>
+                    <code class="var-btn px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800" data-var="{location}">{location}</code>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">League</label>
+                <div class="flex flex-wrap gap-1">
+                    <code class="var-btn px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800" data-var="{league_name}">{league_name}</code>
+                    <code class="var-btn px-2 py-1 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200 text-xs rounded cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-800" data-var="{season_name}">{season_name}</code>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs text-gray-500 dark:text-gray-400 font-medium block mb-1">System</label>
+                <div class="flex flex-wrap gap-1">
+                    <code class="var-btn px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs rounded cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500" data-var="{site_url}">{site_url}</code>
+                    <code class="var-btn px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-800 dark:text-gray-200 text-xs rounded cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-500" data-var="{date}">{date}</code>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+{% endcall %}
 
 <!-- View Template Modal -->
-<div id="viewTemplateModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-5 border-b dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="view_template_title">Template Preview</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 ml-auto inline-flex items-center dark:hover:bg-gray-700 dark:hover:text-white" data-modal-hide="viewTemplateModal">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-5">
-                <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
-                    <pre id="view_template_content" class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200"></pre>
-                </div>
-            </div>
-            <div class="flex items-center justify-end p-5 border-t dark:border-gray-700">
-                <button type="button" data-modal-hide="viewTemplateModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600">Close</button>
-            </div>
-        </div>
-    </div>
+{% call modal_info('viewTemplateModal', 'Template Preview', size='lg') %}
+<h4 id="view_template_title" class="text-lg font-semibold text-gray-900 dark:text-white mb-4"></h4>
+<div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+    <pre id="view_template_content" class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200"></pre>
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -339,6 +306,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (action === 'view-template') {
             document.getElementById('view_template_title').textContent = templateName;
             document.getElementById('view_template_content').textContent = templateContent;
+            // Show modal using Flowbite pattern
+            const modal = document.getElementById('viewTemplateModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         } else if (action === 'delete-template') {
             Swal.fire({
                 title: 'Delete Template?',

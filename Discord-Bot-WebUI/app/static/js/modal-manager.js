@@ -105,15 +105,40 @@ export class ModalManager {
     /**
      * Discover all modals in context and cache their instances
      * Uses data-modal attribute first, falls back to Flowbite modal patterns
+     * Also pre-initializes modals referenced by data-modal-hide to prevent Flowbite warnings
      * @private
      * @param {Element} context - Context element to search within
      */
     static discoverModals(context = document) {
+        // First, find all modal IDs referenced by data-modal-hide buttons
+        // This ensures we initialize modals BEFORE Flowbite tries to attach hide handlers
+        const hideButtons = context.querySelectorAll('[data-modal-hide]');
+        const referencedModalIds = new Set();
+        hideButtons.forEach(btn => {
+            const modalId = btn.getAttribute('data-modal-hide');
+            if (modalId) referencedModalIds.add(modalId);
+        });
+
         // Query by data attribute first, then fall back to common modal selectors
         // Flowbite modals typically use 'hidden fixed inset-0' pattern
         const modalElements = context.querySelectorAll('[data-modal], .modal, [id*="Modal"]');
 
-        modalElements.forEach(modalEl => {
+        // Also include any modals referenced by hide buttons that might not match the selector
+        referencedModalIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el && !Array.from(modalElements).includes(el)) {
+                // Will be processed in the main loop below
+            }
+        });
+
+        // Process all discovered modals
+        const allModalElements = new Set(modalElements);
+        referencedModalIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) allModalElements.add(el);
+        });
+
+        allModalElements.forEach(modalEl => {
             if (modalEl.id) {
                 // Skip if already cached
                 if (this.modalInstances.has(modalEl.id)) {
@@ -124,9 +149,12 @@ export class ModalManager {
                 // Flowbite modals should have 'fixed' positioning and contain a modal dialog
                 const isProperModal = modalEl.classList.contains('fixed') ||
                                        modalEl.classList.contains('modal') ||
+                                       modalEl.classList.contains('hidden') ||
                                        modalEl.hasAttribute('data-modal') ||
                                        modalEl.hasAttribute('aria-hidden') ||
-                                       modalEl.querySelector('[role="dialog"]');
+                                       modalEl.hasAttribute('tabindex') ||
+                                       modalEl.querySelector('[role="dialog"]') ||
+                                       referencedModalIds.has(modalEl.id);
 
                 if (!isProperModal) {
                     this.log(`Skipping non-modal element: ${modalEl.id}`);
@@ -426,6 +454,181 @@ export class ModalManager {
     }
 
     /**
+     * Populate modal form fields with data
+     * Uses data-field attributes to map data to form elements
+     *
+     * @param {string} modalId - The ID of the modal
+     * @param {Object} data - Key-value pairs to populate (keys match data-field values)
+     * @returns {boolean} - True if population was successful
+     *
+     * @example
+     * // HTML: <input type="text" name="name" data-field="name">
+     * window.ModalManager.populate('editPlayerModal', { name: 'John Doe', id: 123 });
+     */
+    static populate(modalId, data) {
+        if (!modalId || !data) {
+            console.error('[window.ModalManager] populate() requires modalId and data');
+            return false;
+        }
+
+        const modalElement = document.getElementById(modalId);
+        if (!modalElement) {
+            console.warn(`[window.ModalManager] Modal not found: ${modalId}`);
+            return false;
+        }
+
+        this.log(`Populating modal ${modalId} with data:`, data);
+
+        // Find all elements with data-field attribute
+        const fields = modalElement.querySelectorAll('[data-field]');
+
+        fields.forEach(field => {
+            const fieldName = field.dataset.field;
+            const value = data[fieldName];
+
+            if (value !== undefined) {
+                if (field.tagName === 'INPUT' || field.tagName === 'TEXTAREA') {
+                    if (field.type === 'checkbox') {
+                        field.checked = Boolean(value);
+                    } else if (field.type === 'radio') {
+                        field.checked = field.value === String(value);
+                    } else {
+                        field.value = value;
+                    }
+                } else if (field.tagName === 'SELECT') {
+                    field.value = value;
+                    // Trigger change event for Select2 or other enhanced selects
+                    field.dispatchEvent(new Event('change', { bubbles: true }));
+                } else {
+                    // For spans, divs, etc. - set text content
+                    field.textContent = value;
+                }
+            }
+        });
+
+        return true;
+    }
+
+    /**
+     * Show modal and populate with data in one call
+     *
+     * @param {string} modalId - The ID of the modal
+     * @param {Object} data - Data to populate
+     * @param {Object} options - Modal options
+     * @returns {boolean} - True if successful
+     *
+     * @example
+     * window.ModalManager.showWithData('editPlayerModal', { id: 1, name: 'John' });
+     */
+    static showWithData(modalId, data, options = null) {
+        const populated = this.populate(modalId, data);
+        if (!populated) {
+            return false;
+        }
+        return this.show(modalId, options);
+    }
+
+    /**
+     * Reset all form fields in a modal
+     *
+     * @param {string} modalId - The ID of the modal
+     * @returns {boolean} - True if reset was successful
+     */
+    static reset(modalId) {
+        if (!modalId) {
+            console.error('[window.ModalManager] reset() requires a modal ID');
+            return false;
+        }
+
+        const modalElement = document.getElementById(modalId);
+        if (!modalElement) {
+            console.warn(`[window.ModalManager] Modal not found: ${modalId}`);
+            return false;
+        }
+
+        // Find and reset all forms in the modal
+        const forms = modalElement.querySelectorAll('form');
+        forms.forEach(form => form.reset());
+
+        // Clear non-form display elements with data-field
+        const displayFields = modalElement.querySelectorAll('[data-field]:not(input):not(select):not(textarea)');
+        displayFields.forEach(field => {
+            field.textContent = '';
+        });
+
+        this.log(`Reset modal: ${modalId}`);
+        return true;
+    }
+
+    /**
+     * Set the action URL for a modal's form
+     * Useful for edit modals where the URL includes an ID
+     *
+     * @param {string} modalId - The ID of the modal
+     * @param {string} action - The new action URL
+     * @returns {boolean} - True if successful
+     *
+     * @example
+     * window.ModalManager.setFormAction('editPlayerModal', '/api/players/123/update');
+     */
+    static setFormAction(modalId, action) {
+        if (!modalId || !action) {
+            console.error('[window.ModalManager] setFormAction() requires modalId and action');
+            return false;
+        }
+
+        const modalElement = document.getElementById(modalId);
+        if (!modalElement) {
+            console.warn(`[window.ModalManager] Modal not found: ${modalId}`);
+            return false;
+        }
+
+        const form = modalElement.querySelector('form');
+        if (!form) {
+            console.warn(`[window.ModalManager] No form found in modal: ${modalId}`);
+            return false;
+        }
+
+        form.action = action;
+        this.log(`Set form action for ${modalId}: ${action}`);
+        return true;
+    }
+
+    /**
+     * Register a callback for when a modal is shown
+     *
+     * @param {string} modalId - The ID of the modal
+     * @param {Function} callback - Function to call when modal is shown
+     */
+    static onShow(modalId, callback) {
+        const modalElement = document.getElementById(modalId);
+        if (!modalElement) {
+            console.warn(`[window.ModalManager] Modal not found: ${modalId}`);
+            return;
+        }
+
+        // Use Flowbite's show event
+        modalElement.addEventListener('show.fb.modal', callback);
+    }
+
+    /**
+     * Register a callback for when a modal is hidden
+     *
+     * @param {string} modalId - The ID of the modal
+     * @param {Function} callback - Function to call when modal is hidden
+     */
+    static onHide(modalId, callback) {
+        const modalElement = document.getElementById(modalId);
+        if (!modalElement) {
+            console.warn(`[window.ModalManager] Modal not found: ${modalId}`);
+            return;
+        }
+
+        // Use Flowbite's hide event
+        modalElement.addEventListener('hide.fb.modal', callback);
+    }
+
+    /**
      * Enable debug logging
      */
     static enableDebug() {
@@ -589,4 +792,21 @@ if (typeof window.EventDelegation !== 'undefined') {
 } else {
     // Fallback: Wait for DOMContentLoaded (for individual script loading)
     document.addEventListener('DOMContentLoaded', registerModalManagerEventHandlers);
+}
+
+// CRITICAL: Pre-initialize modals BEFORE Flowbite's auto-init runs
+// This prevents "Instance with ID does not exist" warnings from Flowbite
+// when it encounters data-modal-hide buttons without prior initialization
+// We use 'capture: true' to run before other DOMContentLoaded handlers
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        if (typeof window.Modal !== 'undefined') {
+            ModalManager.discoverModals();
+        }
+    }, { capture: true });
+} else {
+    // DOM already loaded, initialize immediately
+    if (typeof window.Modal !== 'undefined') {
+        ModalManager.discoverModals();
+    }
 }

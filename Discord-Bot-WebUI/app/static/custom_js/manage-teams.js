@@ -35,11 +35,25 @@ export const ManageTeams = {
     },
 
     setupModalHandlers() {
+        // Capture trigger buttons for Flowbite compatibility (relatedTarget may not be set)
+        document.addEventListener('click', (e) => {
+            if (!e.target || typeof e.target.closest !== 'function') return;
+            const addTrigger = e.target.closest('[data-modal-target="addTeamModal"], [data-bs-target="#addTeamModal"]');
+            if (addTrigger) {
+                window._lastAddTeamModalTrigger = addTrigger;
+            }
+            const editTrigger = e.target.closest('[data-modal-target="editTeamModal"], [data-bs-target="#editTeamModal"]');
+            if (editTrigger) {
+                window._lastEditTeamModalTrigger = editTrigger;
+            }
+        });
+
         // Add Team Modal
         const addTeamModal = document.getElementById('addTeamModal');
         if (addTeamModal) {
-            addTeamModal.addEventListener('show.bs.modal', (event) => {
-                const button = event.relatedTarget;
+            const handleAddTeamShow = (event) => {
+                // For Flowbite events, relatedTarget may not be set
+                const button = event.relatedTarget || window._lastAddTeamModalTrigger;
                 if (!button) return;
 
                 const leagueName = button.dataset.leagueName;
@@ -52,18 +66,31 @@ export const ManageTeams = {
                 if (modalLeagueNameInput) modalLeagueNameInput.value = leagueName;
                 if (modalSeasonIdInput) modalSeasonIdInput.value = seasonId;
 
-                const modalTitle = addTeamModal.querySelector('.modal-title');
+                // Update modal title (new pattern: {modalId}-title, fallback: old .modal-title selector)
+                const modalTitle = document.getElementById('addTeamModal-title') || addTeamModal.querySelector('.modal-title');
                 if (modalTitle) {
                     modalTitle.textContent = `Add Team to ${leagueName} (${seasonName})`;
                 }
-            });
+            };
+
+            // Use ModalManager.onShow if available (Flowbite pattern)
+            if (window.ModalManager && typeof window.ModalManager.onShow === 'function') {
+                window.ModalManager.onShow('addTeamModal', handleAddTeamShow);
+            }
+
+            // Also listen for Flowbite's native event
+            addTeamModal.addEventListener('show.fb.modal', handleAddTeamShow);
+
+            // Fallback: listen for Bootstrap event for backwards compatibility
+            addTeamModal.addEventListener('show.bs.modal', handleAddTeamShow);
         }
 
         // Edit Team Modal
         const editTeamModal = document.getElementById('editTeamModal');
         if (editTeamModal) {
-            editTeamModal.addEventListener('show.bs.modal', (event) => {
-                const button = event.relatedTarget;
+            const handleEditTeamShow = (event) => {
+                // For Flowbite events, relatedTarget may not be set
+                const button = event.relatedTarget || window._lastEditTeamModalTrigger;
                 if (!button) return;
 
                 const teamId = button.dataset.teamId;
@@ -81,11 +108,23 @@ export const ManageTeams = {
                 if (modalLeagueNameInput) modalLeagueNameInput.value = leagueName;
                 if (modalSeasonIdInput) modalSeasonIdInput.value = seasonId;
 
-                const modalTitle = editTeamModal.querySelector('.modal-title');
+                // Update modal title (new pattern: {modalId}-title, fallback: old .modal-title selector)
+                const modalTitle = document.getElementById('editTeamModal-title') || editTeamModal.querySelector('.modal-title');
                 if (modalTitle) {
                     modalTitle.textContent = `Edit Team: ${teamName}`;
                 }
-            });
+            };
+
+            // Use ModalManager.onShow if available (Flowbite pattern)
+            if (window.ModalManager && typeof window.ModalManager.onShow === 'function') {
+                window.ModalManager.onShow('editTeamModal', handleEditTeamShow);
+            }
+
+            // Also listen for Flowbite's native event
+            editTeamModal.addEventListener('show.fb.modal', handleEditTeamShow);
+
+            // Fallback: listen for Bootstrap event for backwards compatibility
+            editTeamModal.addEventListener('show.bs.modal', handleEditTeamShow);
         }
     },
 

@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
 {% block admin_title %}Announcements{% endblock %}
 {% block panel_description %}Manage system and league announcements{% endblock %}
@@ -141,26 +141,12 @@
 </div>
 
 <!-- View Announcement Modal -->
-<div id="viewAnnouncementModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-2xl max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="view_announcement_title">Announcement Details</h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="hideViewModal()">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4 md:p-5">
-                <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
-                    <pre id="view_announcement_content" class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300"></pre>
-                </div>
-            </div>
-            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
-                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" onclick="hideViewModal()">Close</button>
-            </div>
-        </div>
-    </div>
+{% call modal_info('viewAnnouncementModal', 'Announcement Details', size='lg') %}
+<h4 id="view_announcement_title" class="text-lg font-semibold text-gray-900 dark:text-white mb-4"></h4>
+<div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4">
+    <pre id="view_announcement_content" class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300"></pre>
 </div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -174,7 +160,10 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             document.getElementById('view_announcement_title').textContent = viewBtn.dataset.title;
             document.getElementById('view_announcement_content').textContent = viewBtn.dataset.content;
-            showViewModal();
+            // Show modal using Flowbite pattern
+            const modal = document.getElementById('viewAnnouncementModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
         const deleteBtn = e.target.closest('[data-action="delete-announcement"]');
@@ -211,15 +200,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-
-function showViewModal() {
-    document.getElementById('viewAnnouncementModal').classList.remove('hidden');
-    document.getElementById('viewAnnouncementModal').classList.add('flex');
-}
-
-function hideViewModal() {
-    document.getElementById('viewAnnouncementModal').classList.add('hidden');
-    document.getElementById('viewAnnouncementModal').classList.remove('flex');
-}
 </script>
 {% endblock %}

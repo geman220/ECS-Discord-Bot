@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}Manage Wallet Passes{% endblock %}
 
@@ -348,101 +349,61 @@
 
 {% if 'Global Admin' in user_roles %}
 <!-- Bulk Generate Modal -->
-<div id="bulkGenerateModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>Bulk Generate Passes
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="bulkGenerateModal">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="p-4 md:p-5 space-y-4">
-                <p class="text-sm text-gray-600 dark:text-gray-400">Generate wallet passes for all eligible players who don't already have one.</p>
+{% call modal_form('bulkGenerateModal', 'Bulk Generate Passes', submit_text='Generate Passes', submit_color='primary', loading_text='Generating...', cancel_text='Close') %}
+    <p class="text-sm text-gray-600 dark:text-gray-400">Generate wallet passes for all eligible players who don't already have one.</p>
 
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Pass Type</label>
-                    <select id="bulkPassType" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                        <option value="ecs_membership">ECS Membership</option>
-                        <option value="pub_league">Pub League</option>
-                    </select>
-                </div>
-
-                <div id="yearField">
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Year</label>
-                    <select id="bulkYear" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                        {% for y in range(2024, 2027) %}
-                        <option value="{{ y }}" {{ 'selected' if y == 2025 else '' }}>{{ y }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <div id="seasonField" class="hidden">
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Season Name</label>
-                    <input type="text" id="bulkSeasonName" placeholder="e.g., Spring 2025" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                </div>
-
-                <div class="flex items-start p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                    <svg class="w-4 h-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <p class="text-sm text-blue-700 dark:text-blue-300">
-                        <strong>Note:</strong> Only players who are active, have a team assignment, and have a user account will receive passes. Players who already have a non-voided pass of this type will be skipped.
-                    </p>
-                </div>
-
-                <div id="bulkGenerateResults" class="hidden">
-                    <hr class="border-gray-200 dark:border-gray-600 my-4">
-                    <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Results:</h6>
-                    <div id="bulkResultsContent"></div>
-                </div>
-            </div>
-            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
-                <button type="button" class="text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800" data-action="bulk-generate-passes">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>Generate Passes
-                </button>
-                <button type="button" data-modal-hide="bulkGenerateModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Close</button>
-            </div>
-        </div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Pass Type</label>
+        <select id="bulkPassType" name="bulkPassType" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+            <option value="ecs_membership">ECS Membership</option>
+            <option value="pub_league">Pub League</option>
+        </select>
     </div>
-</div>
+
+    <div id="yearField">
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Year</label>
+        <select id="bulkYear" name="bulkYear" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+            {% for y in range(2024, 2027) %}
+            <option value="{{ y }}" {{ 'selected' if y == 2025 else '' }}>{{ y }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div id="seasonField" class="hidden">
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Season Name</label>
+        <input type="text" id="bulkSeasonName" name="bulkSeasonName" placeholder="e.g., Spring 2025" class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+    </div>
+
+    <div class="flex items-start p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <svg class="w-4 h-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        <p class="text-sm text-blue-700 dark:text-blue-300">
+            <strong>Note:</strong> Only players who are active, have a team assignment, and have a user account will receive passes. Players who already have a non-voided pass of this type will be skipped.
+        </p>
+    </div>
+
+    <div id="bulkGenerateResults" class="hidden">
+        <hr class="border-gray-200 dark:border-gray-600 my-4">
+        <h6 class="font-semibold text-gray-900 dark:text-white mb-2">Results:</h6>
+        <div id="bulkResultsContent"></div>
+    </div>
+{% endcall %}
 
 <!-- Bulk Void Modal -->
-<div id="bulkVoidModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="relative p-4 w-full max-w-md max-h-full">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
-            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>Bulk Void Passes
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="bulkVoidModal">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            </div>
-            <div class="p-4 md:p-5 space-y-4">
-                <p class="text-sm text-gray-600 dark:text-gray-400">You are about to void <strong id="voidCount">0</strong> passes.</p>
+{% call modal_form('bulkVoidModal', 'Bulk Void Passes', submit_text='Void Passes', submit_color='danger', loading_text='Voiding...') %}
+    <p class="text-sm text-gray-600 dark:text-gray-400">You are about to void <strong id="voidCount">0</strong> passes.</p>
 
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason for Voiding</label>
-                    <input type="text" id="voidReason" value="Bulk voided by admin" placeholder="Enter reason..." class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
-                </div>
-
-                <div class="flex items-start p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                    <svg class="w-5 h-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    <p class="text-sm text-yellow-700 dark:text-yellow-300">
-                        <strong>Warning:</strong> Voided passes will be marked as invalid. Push notifications will be sent to affected users' devices.
-                    </p>
-                </div>
-            </div>
-            <div class="flex items-center p-4 md:p-5 border-t border-gray-200 rounded-b dark:border-gray-600">
-                <button type="button" class="text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800" data-action="confirm-bulk-void">
-                    <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>Void Passes
-                </button>
-                <button type="button" data-modal-hide="bulkVoidModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">Cancel</button>
-            </div>
-        </div>
+    <div>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Reason for Voiding</label>
+        <input type="text" id="voidReason" name="voidReason" value="Bulk voided by admin" placeholder="Enter reason..." class="w-full bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
     </div>
-</div>
+
+    <div class="flex items-start p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+        <svg class="w-5 h-5 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        <p class="text-sm text-yellow-700 dark:text-yellow-300">
+            <strong>Warning:</strong> Voided passes will be marked as invalid. Push notifications will be sent to affected users' devices.
+        </p>
+    </div>
+{% endcall %}
 {% endif %}
 {% endblock %}
 

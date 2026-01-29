@@ -13,8 +13,8 @@
  * - Event delegation for dynamic content
  *
  * Dependencies:
- * - window.ModalManager (from modal-helpers.js)
- * - Bootstrap 5.x
+ * - window.ModalManager (from modal-manager.js)
+ * - Flowbite (with Bootstrap fallback for backwards compatibility)
  *
  * ============================================================================
  */
@@ -78,17 +78,46 @@ export class ECSFCScheduleManager {
         // Add Week Modal setup
         const addWeekModal = document.getElementById('addWeekModal');
         if (addWeekModal) {
-            addWeekModal.addEventListener('show.bs.modal', (event) => {
-                const button = event.relatedTarget;
+            // Store reference for use in callback
+            const self = this;
+
+            // Define the show handler
+            const handleModalShow = (event) => {
+                // For Flowbite events, relatedTarget may not be set
+                // Try to get the trigger button from the event or use a stored reference
+                const button = event.relatedTarget || window._lastModalTrigger;
                 if (!button) return;
 
                 const leagueName = button.getAttribute('data-league-name');
-                document.getElementById('modal_league_name').value = leagueName;
+                const leagueNameInput = document.getElementById('modal_league_name');
+                if (leagueNameInput) {
+                    leagueNameInput.value = leagueName;
+                }
 
                 // Populate team dropdowns
-                const league = this.leagues.find(l => l.name === leagueName);
+                const league = self.leagues.find(l => l.name === leagueName);
                 if (league) {
-                    this.populateTeamSelects(league.teams, ['teamA', 'teamB']);
+                    self.populateTeamSelects(league.teams, ['teamA', 'teamB']);
+                }
+            };
+
+            // Use ModalManager.onShow if available (Flowbite pattern)
+            if (window.ModalManager && typeof window.ModalManager.onShow === 'function') {
+                window.ModalManager.onShow('addWeekModal', handleModalShow);
+            }
+
+            // Also listen for Flowbite's native event
+            addWeekModal.addEventListener('show.fb.modal', handleModalShow);
+
+            // Fallback: listen for Bootstrap event for backwards compatibility
+            addWeekModal.addEventListener('show.bs.modal', handleModalShow);
+
+            // Capture the trigger button when clicked (for Flowbite compatibility)
+            document.addEventListener('click', (e) => {
+                if (!e.target || typeof e.target.closest !== 'function') return;
+                const trigger = e.target.closest('[data-modal-target="addWeekModal"], [data-bs-target="#addWeekModal"]');
+                if (trigger) {
+                    window._lastModalTrigger = trigger;
                 }
             });
         }

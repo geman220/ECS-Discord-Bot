@@ -464,7 +464,8 @@ window.EventDelegation.register('view-task-details', (element, event) => {
     const taskId = element.dataset.taskId;
     const taskName = element.dataset.taskName || 'Task';
 
-    const modalTitle = document.getElementById('task_details_title');
+    // Update modal title (new pattern: {modalId}-title, fallback: old id pattern)
+    const modalTitle = document.getElementById('taskDetailsModal-title') || document.getElementById('task_details_title');
     const modalContent = document.getElementById('task_details_content');
 
     if (modalTitle) modalTitle.textContent = `Details for ${taskName}`;
@@ -500,7 +501,8 @@ window.EventDelegation.register('view-task-logs', (element, event) => {
     const taskId = element.dataset.taskId;
     const taskName = element.dataset.taskName || 'Task';
 
-    const modalTitle = document.getElementById('task_logs_title');
+    // Update modal title (new pattern: {modalId}-title, fallback: old id pattern)
+    const modalTitle = document.getElementById('taskLogsModal-title') || document.getElementById('task_logs_title');
     const modalContent = document.getElementById('task_logs_content');
 
     if (modalTitle) modalTitle.textContent = `Logs for ${taskName}`;

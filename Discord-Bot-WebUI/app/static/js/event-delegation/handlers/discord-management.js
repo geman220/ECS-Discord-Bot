@@ -242,7 +242,8 @@ window.EventDelegation.register('send-discord-dm', function(element, e) {
     }
 
     const dmDiscordIdInput = document.getElementById('dmDiscordId');
-    const modalTitle = document.querySelector('#discordDMModal .modal-title');
+    // Update modal title (new pattern: {modalId}-title, fallback: old .modal-title selector)
+    const modalTitle = document.getElementById('discordDMModal-title') || document.querySelector('#discordDMModal .modal-title');
     const dmMessageTextarea = document.getElementById('dmMessage');
 
     if (dmDiscordIdInput) dmDiscordIdInput.value = discordId;

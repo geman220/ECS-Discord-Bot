@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_info %}
 
 {% block title %}WooCommerce Sync Review{% endblock %}
 
@@ -605,27 +606,12 @@
 </div>
 
 <!-- Player Search Modal -->
-<div id="playerSearchModal" tabindex="-1" class="hidden fixed inset-0 z-50 overflow-y-auto">
-    <div class="fixed inset-0 bg-black/50" data-modal-backdrop></div>
-    <div class="relative min-h-screen flex items-center justify-center p-4">
-        <div class="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-search"></i> Search for Existing Player
-                </h3>
-                <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" data-modal-close>
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <div class="p-6">
-                <input type="text" id="playerSearchInput"
-                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green mb-4"
-                       placeholder="Type to search players by name or email...">
-                <div id="playerSearchResults"></div>
-            </div>
-        </div>
-    </div>
-</div>
+{% call modal_info('playerSearchModal', 'Search for Existing Player', size='lg', footer=false) %}
+<input type="text" id="playerSearchInput"
+       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green mb-4"
+       placeholder="Type to search players by name or email...">
+<div id="playerSearchResults"></div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}

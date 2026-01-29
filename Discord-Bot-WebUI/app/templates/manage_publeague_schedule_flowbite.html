@@ -1,4 +1,5 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/flowbite.html" import modal_form %}
 
 {% block title %}Pub League Schedule Management{% endblock %}
 
@@ -191,145 +192,95 @@
 </div>
 
 <!-- Edit/Add Match Modal -->
-<div id="matchModal" class="fixed inset-0 z-50 hidden">
-    <div class="fixed inset-0 bg-black/50" id="matchModalBackdrop"></div>
-    <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md relative">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white" id="matchModalTitle">Edit Match</h3>
-                <button type="button" class="js-close-modal text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="matchForm">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" id="matchId" name="match_id">
-                <input type="hidden" id="matchWeek" name="week">
-                <input type="hidden" id="matchLeagueId" name="league_id">
+{% call modal_form('matchModal', 'Edit Match', form_id='matchForm', action='', method='POST', submit_text='Save Changes', submit_color='primary') %}
+<input type="hidden" id="matchId" name="match_id">
+<input type="hidden" id="matchWeek" name="week">
+<input type="hidden" id="matchLeagueId" name="league_id">
 
-                <div class="p-4 space-y-4">
-                    <div>
-                        <label for="matchDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
-                        <input type="date" id="matchDate" name="date" required
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                    </div>
-
-                    <div>
-                        <label for="matchTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
-                        <input type="time" id="matchTime" name="time" required
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                    </div>
-
-                    <div>
-                        <label for="matchTeamA" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team A</label>
-                        <select id="matchTeamA" name="team_a" required
-                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            <option value="">Select Team A</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="matchTeamB" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team B</label>
-                        <select id="matchTeamB" name="team_b" required
-                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            <option value="">Select Team B</option>
-                        </select>
-                    </div>
-
-                    <div>
-                        <label for="matchLocation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
-                        <select id="matchLocation" name="location" required
-                                class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                            <option value="North">North</option>
-                            <option value="South">South</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
-                    <button type="button" class="js-close-modal px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
-                        Save Changes
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+<div>
+    <label for="matchDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
+    <input type="date" id="matchDate" name="date" required
+           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
 </div>
+
+<div>
+    <label for="matchTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time</label>
+    <input type="time" id="matchTime" name="time" required
+           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+</div>
+
+<div>
+    <label for="matchTeamA" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team A</label>
+    <select id="matchTeamA" name="team_a" required
+            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        <option value="">Select Team A</option>
+    </select>
+</div>
+
+<div>
+    <label for="matchTeamB" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Team B</label>
+    <select id="matchTeamB" name="team_b" required
+            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        <option value="">Select Team B</option>
+    </select>
+</div>
+
+<div>
+    <label for="matchLocation" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+    <select id="matchLocation" name="location" required
+            class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+        <option value="North">North</option>
+        <option value="South">South</option>
+    </select>
+</div>
+{% endcall %}
 
 <!-- Add Single Week Modal -->
-<div id="singleWeekModal" class="fixed inset-0 z-50 hidden">
-    <div class="fixed inset-0 bg-black/50" id="singleWeekModalBackdrop"></div>
-    <div class="fixed inset-0 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-lg relative max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add Single Week</h3>
-                <button type="button" class="js-close-single-week-modal text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <i class="ti ti-x text-xl"></i>
-                </button>
-            </div>
-            <form id="singleWeekForm" action="{{ url_for('publeague.schedule.add_single_week') }}" method="POST">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <input type="hidden" name="league_id" id="singleWeekLeagueId">
+{% call modal_form('singleWeekModal', 'Add Single Week', form_id='singleWeekForm', action=url_for('publeague.schedule.add_single_week'), method='POST', size='lg', submit_text='Create Week', submit_color='primary') %}
+<input type="hidden" name="league_id" id="singleWeekLeagueId">
 
-                <div class="p-4 space-y-4">
-                    <div>
-                        <label for="weekDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Week Date (Sunday) <span class="text-red-500">*</span>
-                        </label>
-                        <input type="date" id="weekDate" name="week_date" required
-                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
-                    </div>
+<div>
+    <label for="weekDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        Week Date (Sunday) <span class="text-red-500">*</span>
+    </label>
+    <input type="date" id="weekDate" name="week_date" required
+           class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+</div>
 
-                    <!-- Time Slots -->
-                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                        <div class="flex justify-between items-center mb-3">
-                            <h4 class="font-medium text-gray-900 dark:text-white">Time Slots</h4>
-                            <button type="button" id="addTimeSlotBtn"
-                                    class="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
-                                <i class="ti ti-plus"></i> Add Slot
-                            </button>
-                        </div>
-                        <div id="timeSlotsContainer" class="space-y-2">
-                            <!-- Time slots will be added here dynamically -->
-                        </div>
-                    </div>
-
-                    <!-- Special Week Options -->
-                    <div class="space-y-3">
-                        <label class="flex items-center gap-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/30">
-                            <input type="checkbox" name="fun_week" value="1"
-                                   class="rounded border-gray-300 dark:border-gray-600 text-yellow-500 focus:ring-yellow-500">
-                            <div>
-                                <p class="font-medium text-gray-900 dark:text-white">Fun Week</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Mark entire day as FUN WEEK</p>
-                            </div>
-                        </label>
-                        <label class="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600">
-                            <input type="checkbox" name="bye_week" value="1"
-                                   class="rounded border-gray-300 dark:border-gray-600 text-gray-500 focus:ring-gray-500">
-                            <div>
-                                <p class="font-medium text-gray-900 dark:text-white">Bye Week</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Mark entire day as BYE WEEK</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="flex justify-end gap-3 p-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800">
-                    <button type="button" class="js-close-single-week-modal px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
-                        Create Week
-                    </button>
-                </div>
-            </form>
-        </div>
+<!-- Time Slots -->
+<div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+    <div class="flex justify-between items-center mb-3">
+        <h4 class="font-medium text-gray-900 dark:text-white">Time Slots</h4>
+        <button type="button" id="addTimeSlotBtn"
+                class="inline-flex items-center gap-1 px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+            <i class="ti ti-plus"></i> Add Slot
+        </button>
+    </div>
+    <div id="timeSlotsContainer" class="space-y-2">
+        <!-- Time slots will be added here dynamically -->
     </div>
 </div>
+
+<!-- Special Week Options -->
+<div class="space-y-3">
+    <label class="flex items-center gap-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg cursor-pointer hover:bg-yellow-100 dark:hover:bg-yellow-900/30">
+        <input type="checkbox" name="fun_week" value="1"
+               class="rounded border-gray-300 dark:border-gray-600 text-yellow-500 focus:ring-yellow-500">
+        <div>
+            <p class="font-medium text-gray-900 dark:text-white">Fun Week</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Mark entire day as FUN WEEK</p>
+        </div>
+    </label>
+    <label class="flex items-center gap-3 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600">
+        <input type="checkbox" name="bye_week" value="1"
+               class="rounded border-gray-300 dark:border-gray-600 text-gray-500 focus:ring-gray-500">
+        <div>
+            <p class="font-medium text-gray-900 dark:text-white">Bye Week</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Mark entire day as BYE WEEK</p>
+        </div>
+    </label>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -439,7 +390,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const matchForm = document.getElementById('matchForm');
 
     function openMatchModal(mode, data = {}) {
-        document.getElementById('matchModalTitle').textContent = mode === 'add' ? 'Add Match' : 'Edit Match';
+        // Update title dynamically
+        const titleEl = document.getElementById('matchModal-title');
+        if (titleEl) {
+            titleEl.textContent = mode === 'add' ? 'Add Match' : 'Edit Match';
+        }
         document.getElementById('matchId').value = data.matchId || '';
         document.getElementById('matchWeek').value = data.week || '';
         document.getElementById('matchLeagueId').value = data.leagueId || '';
@@ -464,18 +419,23 @@ document.addEventListener('DOMContentLoaded', function() {
         if (data.teamAId) teamASelect.value = data.teamAId;
         if (data.teamBId) teamBSelect.value = data.teamBId;
 
-        matchModal.classList.remove('hidden');
+        // Use modal-manager if available
+        if (window.modalManager) {
+            window.modalManager.show('matchModal');
+        } else {
+            matchModal.classList.remove('hidden');
+            matchModal.classList.add('flex');
+        }
     }
 
     function closeMatchModal() {
-        matchModal.classList.add('hidden');
+        if (window.modalManager) {
+            window.modalManager.hide('matchModal');
+        } else {
+            matchModal.classList.add('hidden');
+            matchModal.classList.remove('flex');
+        }
     }
-
-    document.querySelectorAll('.js-close-modal').forEach(btn => {
-        btn.addEventListener('click', closeMatchModal);
-    });
-
-    document.getElementById('matchModalBackdrop')?.addEventListener('click', closeMatchModal);
 
     // Add Match button
     document.querySelectorAll('.js-add-match').forEach(btn => {
@@ -602,18 +562,24 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('timeSlotsContainer').innerHTML = '';
         timeSlotCount = 0;
         addTimeSlot();
-        singleWeekModal.classList.remove('hidden');
+
+        // Use modal-manager if available
+        if (window.modalManager) {
+            window.modalManager.show('singleWeekModal');
+        } else {
+            singleWeekModal.classList.remove('hidden');
+            singleWeekModal.classList.add('flex');
+        }
     }
 
     function closeSingleWeekModal() {
-        singleWeekModal.classList.add('hidden');
+        if (window.modalManager) {
+            window.modalManager.hide('singleWeekModal');
+        } else {
+            singleWeekModal.classList.add('hidden');
+            singleWeekModal.classList.remove('flex');
+        }
     }
-
-    document.querySelectorAll('.js-close-single-week-modal').forEach(btn => {
-        btn.addEventListener('click', closeSingleWeekModal);
-    });
-
-    document.getElementById('singleWeekModalBackdrop')?.addEventListener('click', closeSingleWeekModal);
 
     document.querySelectorAll('.js-add-single-week').forEach(btn => {
         btn.addEventListener('click', function() {

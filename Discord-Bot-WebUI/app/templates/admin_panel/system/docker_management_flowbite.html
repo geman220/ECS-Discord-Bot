@@ -1,5 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
 {% block admin_title %}Docker Management{% endblock %}
 {% block panel_description %}Docker container monitoring and management{% endblock %}
@@ -180,37 +180,22 @@
 </div>
 
 <!-- Log Modal -->
-<div id="logModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
-    <div class="fixed inset-0 bg-gray-900 bg-opacity-50 dark:bg-opacity-80"></div>
-    <div class="relative p-4 w-full max-w-4xl max-h-full mx-auto mt-20">
-        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-            <div class="flex items-center justify-between p-4 border-b dark:border-gray-700">
-                <h3 class="text-xl font-semibold text-gray-900 dark:text-white" id="logModalLabel">
-                    <i class="ti ti-file-text mr-2"></i>Container Logs
-                </h3>
-                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="closeLogModal()">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-            </div>
-            <div class="p-4" style="max-height: 60vh; overflow-y: auto;">
-                <div id="log-content">
-                    <div class="text-center py-4">
-                        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
-                        <p class="mt-2 text-gray-500 dark:text-gray-400">Loading logs...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="flex items-center justify-end gap-2 p-4 border-t dark:border-gray-700">
-                <button type="button" onclick="closeLogModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
-                    Close
-                </button>
-                <button type="button" onclick="refreshLogs()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                    <i class="ti ti-refresh mr-1"></i>Refresh
-                </button>
-            </div>
-        </div>
+{% call modal_info('logModal', 'Container Logs', size='xl', footer=false) %}
+<div id="log-content">
+    <div class="text-center py-4">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+        <p class="mt-2 text-gray-500 dark:text-gray-400">Loading logs...</p>
     </div>
 </div>
+<div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t dark:border-gray-700">
+    <button type="button" data-modal-hide="logModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 modal-close-btn">
+        Close
+    </button>
+    <button type="button" onclick="refreshLogs()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+        <i class="ti ti-refresh mr-1"></i>Refresh
+    </button>
+</div>
+{% endcall %}
 {% endblock %}
 
 {% block extra_js %}
@@ -218,21 +203,23 @@
 let currentContainerId = null;
 
 function showLogModal() {
-    document.getElementById('logModal').classList.remove('hidden');
-    document.getElementById('logModal').classList.add('flex');
+    const modal = document.getElementById('logModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
 }
 
 function closeLogModal() {
-    document.getElementById('logModal').classList.add('hidden');
-    document.getElementById('logModal').classList.remove('flex');
+    const modal = document.getElementById('logModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
 }
 
 function viewContainerLogs(containerId, containerName) {
     currentContainerId = containerId;
 
-    const logModalLabel = document.getElementById('logModalLabel');
+    const logModalLabel = document.getElementById('logModal-title');
     if (logModalLabel) {
-        logModalLabel.innerHTML = `<i class="ti ti-file-text mr-2"></i>Logs: ${containerName}`;
+        logModalLabel.textContent = `Logs: ${containerName}`;
     }
 
     const logContent = document.getElementById('log-content');
@@ -372,11 +359,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Close modal on backdrop click
-    document.getElementById('logModal').addEventListener('click', function(e) {
-        if (e.target === this || e.target.classList.contains('bg-gray-900')) {
+    // Close modal on backdrop click and close button
+    const logModal = document.getElementById('logModal');
+    logModal.addEventListener('click', function(e) {
+        if (e.target === this) {
             closeLogModal();
         }
+    });
+
+    // Handle data-modal-hide buttons
+    logModal.querySelectorAll('[data-modal-hide="logModal"]').forEach(btn => {
+        btn.addEventListener('click', closeLogModal);
     });
 });
 </script>
