@@ -332,10 +332,10 @@ def handle_career_stats_update(player, form):
 
 def handle_admin_notes_update(player, form):
     """
-    Update a player's admin notes (only for admins and coaches).
+    Create a new admin note for a player (with author attribution).
 
     Args:
-        player: The player object to update.
+        player: The player object to add the note to.
         form: The submitted form containing admin notes data.
 
     Returns:
@@ -344,24 +344,36 @@ def handle_admin_notes_update(player, form):
     Raises:
         Exception: Propagates any encountered exception.
     """
+    from app.models.players import PlayerAdminNote
+    from app.utils.user_helpers import safe_current_user
+
     try:
         logger.debug(f"Entering handle_admin_notes_update for player {player.id}")
-        
-        # Update admin notes
-        player.notes = form.notes.data
-        
+
+        note_content = form.notes.data
+        if not note_content or not note_content.strip():
+            show_error('Note content is required.')
+            return redirect(url_for('players.player_profile', player_id=player.id))
+
         session = g.db_session
-        session.add(player)
+
+        # Create a new admin note with attribution
+        admin_note = PlayerAdminNote(
+            player_id=player.id,
+            author_id=safe_current_user.id if safe_current_user else None,
+            content=note_content.strip()
+        )
+        session.add(admin_note)
         session.commit()
-        
-        logger.info(f"Admin notes for player {player.id} updated successfully.")
-        show_success('Admin notes updated successfully.')
+
+        logger.info(f"Admin note created for player {player.id} by user {safe_current_user.id if safe_current_user else 'Unknown'}.")
+        show_success('Admin note added successfully.')
         return redirect(url_for('players.player_profile', player_id=player.id))
     except Exception as e:
         session = g.db_session
         session.rollback()
-        logger.error(f"Error updating admin notes: {str(e)}", exc_info=True)
-        show_error('Error updating admin notes.')
+        logger.error(f"Error creating admin note: {str(e)}", exc_info=True)
+        show_error('Error adding admin note.')
         raise
 
 

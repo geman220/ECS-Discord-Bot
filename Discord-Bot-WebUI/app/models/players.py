@@ -216,7 +216,8 @@ class Player(db.Model):
     availability = db.relationship('Availability', back_populates='player', lazy=True, cascade="all, delete-orphan", passive_deletes=True)
     attendance_stats = db.relationship('PlayerAttendanceStats', back_populates='player', uselist=False, cascade="all, delete-orphan")
     image_cache = db.relationship('PlayerImageCache', back_populates='player', uselist=False, cascade="all, delete-orphan")
-    notes = db.Column(db.Text, nullable=True)
+    admin_notes = db.relationship('PlayerAdminNote', back_populates='player', cascade='all, delete-orphan', passive_deletes=True, order_by='desc(PlayerAdminNote.created_at)')
+    notes = db.Column(db.Text, nullable=True)  # DEPRECATED: Use admin_notes relationship instead
     is_current_player = db.Column(db.Boolean, default=False)
     profile_picture_url = db.Column(db.String(255), nullable=True)
     stat_change_logs = db.relationship('StatChangeLog', back_populates='player', cascade='all, delete-orphan', passive_deletes=True)
@@ -601,3 +602,52 @@ class PlayerImageCache(db.Model):
             'file_size': self.file_size,
             'cache_status': self.cache_status
         }
+
+
+class PlayerAdminNote(db.Model):
+    """
+    Admin notes for players with author attribution.
+
+    Allows coaches and admins to add notes about players that are
+    visible only to other coaches/admins. Each note tracks who
+    created it and when.
+    """
+    __tablename__ = 'player_admin_note'
+
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False, index=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Relationships
+    player = db.relationship('Player', back_populates='admin_notes')
+    author = db.relationship('User', foreign_keys=[author_id])
+
+    def to_dict(self, include_author=True):
+        """
+        Convert to dictionary for API responses.
+
+        Args:
+            include_author: Include author details (default True)
+        """
+        data = {
+            'id': self.id,
+            'player_id': self.player_id,
+            'content': self.content,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+        if include_author:
+            data['author'] = {
+                'id': self.author.id if self.author else None,
+                'username': self.author.username if self.author else 'Unknown',
+                'name': self.author.player.name if self.author and self.author.player else (self.author.username if self.author else 'Unknown')
+            }
+
+        return data
+
+    def __repr__(self):
+        return f'<PlayerAdminNote {self.id} for player {self.player_id}>'

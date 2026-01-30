@@ -337,3 +337,465 @@ def _log_league_change(
         )
     except Exception as e:
         logger.error(f"Failed to log league change audit: {e}")
+
+
+# ==================== Admin Notes Management ====================
+
+# Roles allowed to manage admin notes (admins and coaches)
+NOTES_ALLOWED_ROLES = ['Pub League Admin', 'Global Admin', 'Pub League Coach']
+
+
+@mobile_api_v2.route('/admin/players/<int:player_id>/notes', methods=['GET'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def get_player_admin_notes(player_id: int):
+    """
+    Get admin notes for a player.
+
+    Args:
+        player_id: Player ID
+
+    Query parameters:
+        limit: Maximum notes to return (default: 50, max: 100)
+        offset: Pagination offset (default: 0)
+
+    Returns:
+        JSON with list of admin notes with author attribution
+    """
+    limit = min(request.args.get('limit', 50, type=int), 100)
+    offset = request.args.get('offset', 0, type=int)
+
+    with managed_session() as session:
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.get_player_admin_notes(player_id, limit=limit, offset=offset)
+
+        if not result.success:
+            return jsonify({"msg": result.message}), 404
+
+        return jsonify(result.data), 200
+
+
+@mobile_api_v2.route('/admin/players/<int:player_id>/notes', methods=['POST'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def create_player_admin_note(player_id: int):
+    """
+    Create a new admin note for a player.
+
+    Args:
+        player_id: Player ID
+
+    Expected JSON:
+        content: The note content (required)
+
+    Returns:
+        JSON with the created note including author attribution
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    content = data.get('content')
+    if not content or not content.strip():
+        return jsonify({"msg": "Note content is required"}), 400
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.create_admin_note(
+            player_id=player_id,
+            author_id=current_user_id,
+            content=content
+        )
+
+        if not result.success:
+            status_code = 404 if result.error_code == "PLAYER_NOT_FOUND" else 400
+            return jsonify({"msg": result.message}), status_code
+
+        # Log audit trail
+        _log_admin_note_action(
+            session=session,
+            admin_user_id=current_user_id,
+            target_player_id=player_id,
+            action='create_admin_note'
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Note created successfully",
+            **result.data
+        }), 201
+
+
+@mobile_api_v2.route('/admin/players/<int:player_id>/notes/<int:note_id>', methods=['PUT'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def update_player_admin_note(player_id: int, note_id: int):
+    """
+    Update an existing admin note.
+
+    Args:
+        player_id: Player ID (for URL consistency)
+        note_id: Note ID
+
+    Expected JSON:
+        content: The new note content (required)
+
+    Returns:
+        JSON with the updated note
+
+    Note: Users can only edit their own notes unless they are a Global Admin.
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    content = data.get('content')
+    if not content or not content.strip():
+        return jsonify({"msg": "Note content is required"}), 400
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        # Check if user is a Global Admin (can edit any note)
+        from app.models import User
+        user = session.query(User).get(current_user_id)
+        is_global_admin = any(role.name == 'Global Admin' for role in user.roles) if user else False
+
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.update_admin_note(
+            note_id=note_id,
+            editor_id=current_user_id,
+            content=content,
+            allow_edit_others=is_global_admin
+        )
+
+        if not result.success:
+            status_code = 404 if result.error_code == "NOTE_NOT_FOUND" else 403
+            return jsonify({"msg": result.message}), status_code
+
+        return jsonify({
+            "success": True,
+            "message": "Note updated successfully",
+            **result.data
+        }), 200
+
+
+@mobile_api_v2.route('/admin/players/<int:player_id>/notes/<int:note_id>', methods=['DELETE'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def delete_player_admin_note(player_id: int, note_id: int):
+    """
+    Delete an admin note.
+
+    Args:
+        player_id: Player ID (for URL consistency)
+        note_id: Note ID
+
+    Returns:
+        JSON with deletion confirmation
+
+    Note: Users can only delete their own notes unless they are a Global Admin.
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        # Check if user is a Global Admin (can delete any note)
+        from app.models import User
+        user = session.query(User).get(current_user_id)
+        is_global_admin = any(role.name == 'Global Admin' for role in user.roles) if user else False
+
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.delete_admin_note(
+            note_id=note_id,
+            deleter_id=current_user_id,
+            allow_delete_others=is_global_admin
+        )
+
+        if not result.success:
+            status_code = 404 if result.error_code == "NOTE_NOT_FOUND" else 403
+            return jsonify({"msg": result.message}), status_code
+
+        # Log audit trail
+        _log_admin_note_action(
+            session=session,
+            admin_user_id=current_user_id,
+            target_player_id=player_id,
+            action='delete_admin_note'
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Note deleted successfully",
+            **result.data
+        }), 200
+
+
+# ==================== Player Profile Management ====================
+
+@mobile_api_v2.route('/admin/players/<int:player_id>/profile', methods=['GET'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def get_player_full_profile(player_id: int):
+    """
+    Get full player profile including admin-only fields.
+
+    Args:
+        player_id: Player ID
+
+    Returns:
+        JSON with complete player profile data including:
+        - All profile fields
+        - Admin-specific fields (is_coach, is_ref, discord info)
+        - Recent admin notes
+        - User account info
+    """
+    with managed_session() as session:
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.get_player_full_profile(player_id)
+
+        if not result.success:
+            return jsonify({"msg": result.message}), 404
+
+        return jsonify(result.data), 200
+
+
+@mobile_api_v2.route('/admin/players/<int:player_id>/profile', methods=['PUT'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def update_player_profile_admin(player_id: int):
+    """
+    Update a player's profile (admin/coach operation).
+
+    Args:
+        player_id: Player ID
+
+    Expected JSON (all fields optional):
+        name: Player name
+        phone: Phone number
+        jersey_size: Jersey size
+        jersey_number: Jersey number
+        pronouns: Preferred pronouns
+        favorite_position: Favorite playing position
+        other_positions: Other positions (comma-separated)
+        positions_not_to_play: Positions to avoid
+        frequency_play_goal: Goal frequency preference
+        expected_weeks_available: Expected availability
+        unavailable_dates: Dates unavailable
+        willing_to_referee: Referee willingness
+        additional_info: Additional information
+        player_notes: Player's own notes
+        is_coach: Boolean - is this player a coach
+        is_ref: Boolean - is this player a referee
+        is_current_player: Boolean - is this a current player
+
+    Returns:
+        JSON with updated player data and list of changed fields
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.update_player_profile(
+            player_id=player_id,
+            editor_id=current_user_id,
+            data=data
+        )
+
+        if not result.success:
+            return jsonify({"msg": result.message}), 404
+
+        # Log audit trail if fields were updated
+        if result.data.get('updated_fields'):
+            _log_profile_update(
+                session=session,
+                admin_user_id=current_user_id,
+                target_player_id=player_id,
+                updated_fields=result.data['updated_fields']
+            )
+
+        return jsonify({
+            "success": True,
+            "message": "Profile updated successfully",
+            **result.data
+        }), 200
+
+
+@mobile_api_v2.route('/admin/players/<int:player_id>/profile-picture', methods=['POST'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def upload_player_profile_picture_admin(player_id: int):
+    """
+    Upload a profile picture for a player (admin/coach operation).
+
+    Args:
+        player_id: Player ID
+
+    Supports two formats:
+    1. Base64 JSON: {"cropped_image_data": "data:image/png;base64,..."}
+    2. Multipart form data with 'file' field
+
+    Returns:
+        JSON with new profile picture URL
+    """
+    current_user_id = int(get_jwt_identity())
+
+    # Get image data based on content type
+    content_type = request.content_type or ''
+
+    if 'multipart/form-data' in content_type:
+        if 'file' not in request.files:
+            return jsonify({"msg": "No file provided"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"msg": "No file selected"}), 400
+
+        # Validate file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'webp'}
+        file_ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        if file_ext not in allowed_extensions:
+            return jsonify({
+                "msg": f"Invalid file type. Allowed: {', '.join(allowed_extensions)}"
+            }), 400
+
+        # Read and convert to base64
+        import base64
+        file_data = file.read()
+
+        # Check file size (5MB limit)
+        max_size = 5 * 1024 * 1024
+        if len(file_data) > max_size:
+            return jsonify({"msg": "File too large. Maximum size: 5MB"}), 400
+
+        mime_type = file.content_type or f'image/{file_ext}'
+        base64_data = base64.b64encode(file_data).decode('utf-8')
+        image_data = f"data:{mime_type};base64,{base64_data}"
+    else:
+        data = request.get_json()
+        if not data:
+            return jsonify({"msg": "Missing request data"}), 400
+
+        image_data = data.get('cropped_image_data')
+        if not image_data:
+            return jsonify({"msg": "Missing cropped_image_data"}), 400
+
+    with managed_session() as session:
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.upload_player_profile_picture(
+            player_id=player_id,
+            uploader_id=current_user_id,
+            image_data=image_data
+        )
+
+        if not result.success:
+            status_code = 404 if result.error_code == "PLAYER_NOT_FOUND" else 400
+            return jsonify({"msg": result.message}), status_code
+
+        # Build full URL for response
+        base_url = request.host_url.rstrip('/')
+        profile_url = result.data.get('profile_picture_url', '')
+        full_url = (
+            profile_url if profile_url.startswith('http')
+            else f"{base_url}{profile_url}"
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Profile picture updated successfully",
+            "player_id": result.data['player_id'],
+            "player_name": result.data['player_name'],
+            "profile_picture_url": full_url
+        }), 200
+
+
+@mobile_api_v2.route('/admin/players/<int:player_id>/profile-picture', methods=['DELETE'])
+@jwt_required()
+@jwt_role_required(NOTES_ALLOWED_ROLES)
+def delete_player_profile_picture_admin(player_id: int):
+    """
+    Delete a player's profile picture (admin/coach operation).
+
+    Args:
+        player_id: Player ID
+
+    Returns:
+        JSON with confirmation and default image URL
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        from app.services.mobile.player_admin_service import PlayerAdminService
+        service = PlayerAdminService(session)
+        result = service.delete_player_profile_picture(
+            player_id=player_id,
+            deleter_id=current_user_id
+        )
+
+        if not result.success:
+            status_code = 404 if result.error_code in ["PLAYER_NOT_FOUND", "NO_PICTURE"] else 400
+            return jsonify({"msg": result.message}), status_code
+
+        base_url = request.host_url.rstrip('/')
+        return jsonify({
+            "success": True,
+            "message": "Profile picture deleted successfully",
+            "player_id": result.data['player_id'],
+            "player_name": result.data['player_name'],
+            "profile_picture_url": f"{base_url}/static/img/default_player.png"
+        }), 200
+
+
+# ==================== Additional Audit Logging Helpers ====================
+
+def _log_admin_note_action(
+    session,
+    admin_user_id: int,
+    target_player_id: int,
+    action: str
+) -> None:
+    """Log admin note actions to audit log."""
+    try:
+        AdminAuditLog.log_action(
+            user_id=admin_user_id,
+            action=action,
+            resource_type='player_admin_notes',
+            resource_id=str(target_player_id),
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+    except Exception as e:
+        logger.error(f"Failed to log admin note audit: {e}")
+
+
+def _log_profile_update(
+    session,
+    admin_user_id: int,
+    target_player_id: int,
+    updated_fields: list
+) -> None:
+    """Log profile update actions to audit log."""
+    try:
+        AdminAuditLog.log_action(
+            user_id=admin_user_id,
+            action='admin_update_profile',
+            resource_type='player_management',
+            resource_id=str(target_player_id),
+            new_value=f"Updated fields: {', '.join(updated_fields)}",
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+    except Exception as e:
+        logger.error(f"Failed to log profile update audit: {e}")

@@ -129,6 +129,12 @@
                         <i class="ti ti-menu-2 w-6 h-6"></i>
                     </button>
 
+                    <!-- Mobile Search (visible only on mobile) -->
+                    <div class="relative flex-1 mx-2 md:hidden">
+                        <input type="text" id="player-search-mobile" placeholder="Search players..." class="w-full px-3 py-2 pl-9 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" />
+                        <i class="ti ti-search absolute left-3 top-2.5 text-gray-500 dark:text-gray-400"></i>
+                    </div>
+
                     <!-- Page Title -->
                     <h1 class="text-xl font-semibold text-gray-900 dark:text-white hidden lg:block">
                         {% block page_title %}{{ title if title else 'Dashboard' }}{% endblock %}
@@ -332,48 +338,60 @@
             var playerProfileBaseUrl = "{{ url_for('players.player_profile', player_id=9999) }}";
             playerProfileBaseUrl = playerProfileBaseUrl.replace('9999', '');
 
-            $("#player-search-flowbite").autocomplete({
-                source: function(request, response) {
-                    $.ajax({
-                        url: "{{ url_for('search.search_players') }}",
-                        dataType: "json",
-                        data: { term: request.term },
-                        success: function(data) {
-                            response($.map(data, function(item) {
-                                return {
-                                    label: item.name,
-                                    value: item.name,
-                                    id: item.id,
-                                    profile_picture_url: item.profile_picture_url
-                                };
-                            }));
-                        }
-                    });
-                },
-                minLength: 1,
-                select: function(event, ui) {
-                    window.location.href = playerProfileBaseUrl + ui.item.id;
-                }
-            }).autocomplete("instance")._renderItem = function(ul, item) {
-                var $li = $("<li>");
-                var $div = $("<div>").addClass("ui-menu-item-wrapper");
-                if(item.profile_picture_url) {
-                    $div.append("<img src='" + item.profile_picture_url + "' alt='" + item.label + "' class='autocomplete-profile-img' />");
-                }
-                $div.append("<span>" + item.label + "</span>");
-                return $li.append($div).appendTo(ul);
-            };
-
-            // Handle ENTER key
-            $("#player-search-flowbite").on("keypress", function(e) {
-                if (e.which == 13) {
-                    var firstItem = $("#player-search-flowbite").autocomplete("instance").menu.element.find("li:first-child a");
-                    if (firstItem.length) {
-                        var playerId = firstItem.data("ui-autocomplete-item").id;
-                        window.location.href = playerProfileBaseUrl + playerId;
+            // Initialize autocomplete for both desktop and mobile search inputs
+            function initPlayerSearch(selector) {
+                $(selector).autocomplete({
+                    source: function(request, response) {
+                        $.ajax({
+                            url: "{{ url_for('search.search_players') }}",
+                            dataType: "json",
+                            data: { term: request.term },
+                            success: function(data) {
+                                response($.map(data, function(item) {
+                                    return {
+                                        label: item.name,
+                                        value: item.name,
+                                        id: item.id,
+                                        profile_picture_url: item.profile_picture_url
+                                    };
+                                }));
+                            }
+                        });
+                    },
+                    minLength: 1,
+                    select: function(event, ui) {
+                        window.location.href = playerProfileBaseUrl + ui.item.id;
                     }
-                }
-            });
+                }).autocomplete("instance")._renderItem = function(ul, item) {
+                    var $li = $("<li>");
+                    var $div = $("<div>").addClass("ui-menu-item-wrapper");
+                    if(item.profile_picture_url) {
+                        $div.append("<img src='" + item.profile_picture_url + "' alt='" + item.label + "' class='autocomplete-profile-img' />");
+                    }
+                    $div.append("<span>" + item.label + "</span>");
+                    return $li.append($div).appendTo(ul);
+                };
+
+                // Handle ENTER key
+                $(selector).on("keypress", function(e) {
+                    if (e.which == 13) {
+                        var instance = $(this).autocomplete("instance");
+                        if (instance && instance.menu && instance.menu.element) {
+                            var firstItem = instance.menu.element.find("li:first-child");
+                            if (firstItem.length && firstItem.data("ui-autocomplete-item")) {
+                                var playerId = firstItem.data("ui-autocomplete-item").id;
+                                window.location.href = playerProfileBaseUrl + playerId;
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Initialize for desktop search
+            initPlayerSearch("#player-search-flowbite");
+
+            // Initialize for mobile search
+            initPlayerSearch("#player-search-mobile");
         });
     </script>
 

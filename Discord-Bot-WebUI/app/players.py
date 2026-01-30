@@ -219,13 +219,15 @@ def player_profile(player_id):
 
     # Load player with all needed relationships using the main session
     from sqlalchemy.orm import selectinload
-    from app.models import PlayerEvent, PlayerTeamSeason
+    from app.models import PlayerEvent, PlayerTeamSeason, User
+    from app.models.players import PlayerAdminNote
     player = session.query(Player).options(
         selectinload(Player.teams),
         selectinload(Player.user),
         selectinload(Player.career_stats),
         selectinload(Player.season_stats),
-        selectinload(Player.events).selectinload(PlayerEvent.match)
+        selectinload(Player.events).selectinload(PlayerEvent.match),
+        selectinload(Player.admin_notes).selectinload(PlayerAdminNote.author).selectinload(User.player)
     ).get(player_id)
 
     if not player:

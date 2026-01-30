@@ -22,8 +22,8 @@ from .core import (
 )
 
 from .players import (
-    Team, Player, PlayerOrderHistory, PlayerTeamSeason, 
-    PlayerTeamHistory, PlayerImageCache,
+    Team, Player, PlayerOrderHistory, PlayerTeamSeason,
+    PlayerTeamHistory, PlayerImageCache, PlayerAdminNote,
     player_league, player_teams
 )
 
@@ -171,7 +171,7 @@ __all__ = [
     
     # Player and team models
     'Team', 'Player', 'PlayerOrderHistory', 'PlayerTeamSeason',
-    'PlayerTeamHistory', 'PlayerImageCache',
+    'PlayerTeamHistory', 'PlayerImageCache', 'PlayerAdminNote',
     'player_league', 'player_teams',
     
     # Match and schedule models
