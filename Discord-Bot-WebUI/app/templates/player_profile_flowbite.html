@@ -1119,6 +1119,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Edit toggle functionality
+    // Note: iOS touch target fix is handled globally in mobile-gestures.js
     document.querySelectorAll('[data-action="edit-toggle"]').forEach(button => {
         button.addEventListener('click', () => {
             const section = button.dataset.section;

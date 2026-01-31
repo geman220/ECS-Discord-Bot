@@ -308,6 +308,8 @@ main.c-base-layout__main {
 }
 
 /* Focus state - athletic energy */
+/* NOTE: Removed transform: translateY(-1px) - transforms inside sticky navbars cause
+   touch target misalignment on iOS Safari. Using box-shadow only for focus effect. */
 
 .c-navbar-modern__search-input:focus {
   outline: none;
@@ -315,10 +317,11 @@ main.c-base-layout__main {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 4px var(--color-primary-alpha),
     0 4px 12px var(--color-primary-alpha);
-  transform: translateY(-1px);
 }
 
 /* Search icon */
+/* NOTE: Using top + margin-top instead of transform: translateY(-50%) to avoid
+   iOS Safari touch target misalignment issues in sticky navbar context. */
 
 .c-navbar-modern__search::before {
   content: '\eb1c';
@@ -327,7 +330,7 @@ main.c-base-layout__main {
   position: absolute;
   left: var(--space-4, 1rem);
   top: 50%;
-  transform: translateY(-50%);
+  margin-top: -0.625rem; /* Half of font-size (1.25rem / 2) for vertical centering */
   font-size: 1.25rem;
   color: var(--color-text-muted);
   pointer-events: none;

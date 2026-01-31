@@ -35,6 +35,33 @@ export const Visibility = {
     LEGACY_CLASSES: ['d-none', 'js-hidden', 'is-hidden'],
 
     /**
+     * Detect iOS device (all browsers on iOS use WebKit)
+     * @private
+     */
+    _isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+            (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1),
+
+    /**
+     * Force iOS layout recalculation to fix touch target alignment
+     * iOS Safari can miscalculate touch targets after visibility changes
+     * @private
+     * @param {Element} el - Element that changed visibility
+     */
+    _triggerIOSReflow(el) {
+        if (!this._isIOS || !el) return;
+
+        // Use requestAnimationFrame to run after the DOM update
+        requestAnimationFrame(() => {
+            // Reading offsetHeight forces synchronous reflow
+            void el.offsetHeight;
+            // Also force reflow on form controls within
+            el.querySelectorAll('select, input, textarea').forEach(control => {
+                void control.offsetHeight;
+            });
+        });
+    },
+
+    /**
      * Hide an element
      * @param {Element|string} element - DOM element or selector
      * @returns {Element|null} The element, for chaining
@@ -45,6 +72,8 @@ export const Visibility = {
             el.classList.add(this.HIDDEN_CLASS);
             // Clean up legacy classes if present
             this.LEGACY_CLASSES.forEach(cls => el.classList.remove(cls));
+            // iOS touch target fix
+            this._triggerIOSReflow(el.parentElement);
         }
         return el;
     },
@@ -60,6 +89,8 @@ export const Visibility = {
             el.classList.remove(this.HIDDEN_CLASS);
             // Clean up legacy classes if present
             this.LEGACY_CLASSES.forEach(cls => el.classList.remove(cls));
+            // iOS touch target fix
+            this._triggerIOSReflow(el);
         }
         return el;
     },
@@ -80,6 +111,8 @@ export const Visibility = {
             }
             // Clean up legacy classes if present
             this.LEGACY_CLASSES.forEach(cls => el.classList.remove(cls));
+            // iOS touch target fix
+            this._triggerIOSReflow(el.classList.contains(this.HIDDEN_CLASS) ? el.parentElement : el);
         }
         return el;
     },

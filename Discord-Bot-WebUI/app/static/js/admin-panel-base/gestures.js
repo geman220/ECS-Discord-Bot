@@ -65,6 +65,10 @@ export function initTouchGestures(context) {
  * Uses data-action or falls back to element types
  * EXCLUDES navigation elements that have their own event handling
  * ROOT CAUSE FIX: Uses event delegation instead of per-element listeners
+ *
+ * CRITICAL FIX: Native form controls (select, input, textarea) are EXCLUDED
+ * from touchend preventDefault because it breaks mobile pickers/keyboards.
+ * Calling .click() on a <select> doesn't open the native picker on iOS.
  */
 export function initDoubleTapPrevention(context) {
     // Only register document-level delegation once
@@ -82,6 +86,12 @@ export function initDoubleTapPrevention(context) {
         return el.matches('[data-action], button, .c-btn, input, select, textarea');
     }
 
+    // Helper to check if element is a native form control that needs default behavior
+    function isNativeFormControl(el) {
+        return el.matches('select, input, textarea, [contenteditable="true"]') ||
+               el.closest('select, label[for]');
+    }
+
     // Single delegated touchend listener
     document.addEventListener('touchend', function(e) {
         // Guard: ensure e.target is an Element with closest method
@@ -90,6 +100,13 @@ export function initDoubleTapPrevention(context) {
         const element = e.target.closest('[data-action], button, .c-btn, input, select, textarea');
         if (!element || !isInteractiveElement(element)) return;
         if (element.disabled) return;
+
+        // CRITICAL: Do NOT preventDefault on native form controls!
+        // This breaks mobile select pickers, keyboards, and other native behaviors.
+        // The native touchend → click chain must complete for these elements.
+        if (isNativeFormControl(element) || isNativeFormControl(e.target)) {
+            return; // Let native behavior handle it
+        }
 
         e.preventDefault();
         element.click();
@@ -102,6 +119,11 @@ export function initDoubleTapPrevention(context) {
 
         const element = e.target.closest('[data-action], button, .c-btn, input, select, textarea');
         if (!element || !isInteractiveElement(element)) return;
+
+        // Don't prevent double-click on native form controls
+        if (isNativeFormControl(element) || isNativeFormControl(e.target)) {
+            return;
+        }
 
         if (e.detail > 1) {
             e.preventDefault();

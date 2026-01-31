@@ -39,12 +39,11 @@ body:not(.auth-page) .form-select {
 }
 
 /* Touch action for form elements */
+/* NOTE: Removed translateZ(0) as it can cause touch hit-testing issues on iOS */
 
 .form-control,
 .form-select {
   touch-action: manipulation;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 /* ============================================================================
@@ -396,6 +395,7 @@ body:not(.auth-page) .form-select {
 
 @media (max-width: 767.98px) {
   /* iOS zoom prevention - must be exactly 16px */
+  /* NOTE: Touch target fixes moved to tailwind-entry.css for consistency */
 
 @supports (-webkit-touch-callout: none) {
     select,

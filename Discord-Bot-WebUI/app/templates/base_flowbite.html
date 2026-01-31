@@ -129,14 +129,16 @@
                     </button>
 
                     <!-- Mobile Search (visible only on mobile) -->
-                    <div class="relative flex-1 mx-2 md:hidden min-w-0">
+                    <!-- NOTE: Using flexbox for icon centering instead of transform (-translate-y-1/2) -->
+                    <!-- Transforms inside sticky elements cause touch target misalignment on iOS Safari -->
+                    <div class="relative flex-1 mx-2 md:hidden min-w-0 flex items-center">
                         <input type="text" id="player-search-mobile" placeholder="Search players..."
                                autocomplete="off"
                                aria-expanded="false"
                                aria-haspopup="listbox"
                                aria-controls="search-results-mobile"
                                class="w-full h-11 px-4 pl-10 text-base text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" />
-                        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"></i>
+                        <i class="ti ti-search absolute left-3 text-gray-500 dark:text-gray-400" style="top: 50%; margin-top: -0.5em;"></i>
                         <!-- Mobile Search Results Dropdown -->
                         <div id="search-results-mobile"
                              role="listbox"
@@ -154,14 +156,16 @@
                     <!-- Right side: Search + User Menu -->
                     <div class="flex items-center gap-4">
                         <!-- Desktop Search -->
-                        <div class="relative hidden md:block">
+                        <!-- NOTE: Using flexbox + margin for icon centering instead of top-2.5 -->
+                        <!-- This avoids any transform-related touch issues on iOS Safari -->
+                        <div class="relative hidden md:block flex items-center">
                             <input type="text" id="player-search-flowbite" placeholder="Search players..."
                                    autocomplete="off"
                                    aria-expanded="false"
                                    aria-haspopup="listbox"
                                    aria-controls="search-results-desktop"
                                    class="w-64 px-4 py-2 pl-10 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" />
-                            <i class="ti ti-search absolute left-3 top-2.5 text-gray-500 dark:text-gray-400"></i>
+                            <i class="ti ti-search absolute left-3 text-gray-500 dark:text-gray-400" style="top: 50%; margin-top: -0.5em;"></i>
                             <!-- Desktop Search Results Dropdown -->
                             <div id="search-results-desktop"
                                  role="listbox"

@@ -341,15 +341,22 @@ const MobileKeyboard = {
       });
 
       // Prevent rubber band scrolling when keyboard is open
+      // CRITICAL FIX: Exclude form controls from preventDefault to avoid blocking touch targets
       document.addEventListener('touchmove', (e) => {
         // Guard: ensure e.target is an Element with closest method
         if (!e.target || typeof e.target.closest !== 'function') return;
 
         if (this.state.isVisible && this.state.activeInput) {
+          // Allow touch on scrollable containers
           const scrollable = e.target.closest('[data-modal-body], [data-table-responsive], [data-scrollable]');
-          if (!scrollable) {
-            e.preventDefault();
-          }
+          if (scrollable) return;
+
+          // CRITICAL: Allow touch on form controls - blocking these breaks iOS touch targets
+          const isFormControl = e.target.closest('input, select, textarea, button, [role="button"], label, .btn, [type="submit"]');
+          if (isFormControl) return;
+
+          // Only prevent default for non-interactive areas
+          e.preventDefault();
         }
       }, { passive: false });
     },

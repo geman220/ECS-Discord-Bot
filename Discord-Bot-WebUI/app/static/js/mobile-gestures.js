@@ -516,6 +516,196 @@ const MobileGestures = {
     },
 
     /**
+     * iOS Safari Touch Target Fix
+     *
+     * iOS Safari has a bug where touch targets are misaligned after:
+     * 1. Elements are shown/hidden dynamically (classList.toggle('hidden'))
+     * 2. Page is scrolled with sticky elements present
+     * 3. CSS transforms exist in the element hierarchy
+     *
+     * This fix uses event delegation to automatically force layout recalculation
+     * whenever elements with [data-action="edit-toggle"] are clicked, or when
+     * any element's visibility is toggled via common patterns.
+     *
+     * COMPREHENSIVE COVERAGE:
+     * - [data-action="edit-toggle"] click handlers
+     * - MutationObserver for class changes (hidden, u-hidden, edit-mode, view-mode)
+     * - Flowbite Modal show/hide interception
+     * - style.display changes on form containers
+     */
+    setupIOSTouchTargetFix: function () {
+      // Only apply on iOS (all browsers on iOS use WebKit)
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      if (!isIOS) {
+        console.debug('[MobileGestures] Not iOS, skipping touch target fix');
+        return;
+      }
+
+      /**
+       * Force layout recalculation for an element and its form controls
+       * Reading offsetHeight triggers synchronous reflow
+       */
+      function forceLayoutRecalc(element) {
+        if (!element) return;
+        void element.offsetHeight;
+        // Force recalc on all form controls within
+        element.querySelectorAll('select, input, textarea').forEach(el => {
+          void el.offsetHeight;
+        });
+      }
+
+      /**
+       * Check if an element or its ancestors contain form controls
+       */
+      function containsFormControls(element) {
+        if (!element) return false;
+        return element.matches && (
+          element.matches('select, input, textarea, form') ||
+          element.querySelector('select, input, textarea')
+        );
+      }
+
+      // Global click handler for edit toggles
+      document.addEventListener('click', (e) => {
+        const editToggle = e.target.closest('[data-action="edit-toggle"]');
+        if (!editToggle) return;
+
+        // Find the associated form/section
+        const section = editToggle.dataset.section;
+        const form = section ? document.getElementById(section + '-form') : null;
+        const parent = form || editToggle.closest('form, .card, .bg-white, [class*="dark:bg-gray"]');
+
+        if (parent) {
+          // Use requestAnimationFrame to run after the toggle completes
+          requestAnimationFrame(() => {
+            forceLayoutRecalc(parent);
+            console.debug('[MobileGestures] iOS touch target fix applied to:', section || 'parent element');
+          });
+        }
+      });
+
+      // Track recent class changes to avoid duplicate reflows
+      const recentReflows = new WeakSet();
+      let recentReflowTimeout = null;
+
+      // Watch for classList changes that might affect touch targets
+      // Covers: hidden, u-hidden, d-none, edit-mode, view-mode, show, active, visible
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+            const target = mutation.target;
+            if (!target || !target.matches) continue;
+
+            // Skip if we just processed this element
+            if (recentReflows.has(target)) continue;
+
+            // Check if this is a visibility-related class change on form-related elements
+            const isVisibilityElement = target.matches(
+              '.hidden, .u-hidden, .d-none, .edit-mode, .view-mode, ' +
+              '.show, .active, .visible, .collapse, .collapsed, ' +
+              '[class*="hidden"], [class*="visible"]'
+            ) || target.classList.contains('hidden') || target.classList.contains('u-hidden');
+
+            const isFormRelated = target.matches('select, input, textarea, form, fieldset') ||
+                                  containsFormControls(target) ||
+                                  target.closest('form, .modal-body, .card-body');
+
+            if (isVisibilityElement || isFormRelated) {
+              recentReflows.add(target);
+              requestAnimationFrame(() => {
+                const container = target.closest('form, .modal-body, .modal-content, .card, .card-body') || target.parentElement;
+                forceLayoutRecalc(container);
+              });
+
+              // Clear from recent set after a short delay
+              clearTimeout(recentReflowTimeout);
+              recentReflowTimeout = setTimeout(() => {
+                recentReflows.delete(target);
+              }, 100);
+            }
+          }
+        }
+      });
+
+      // Observe the entire document for class changes
+      observer.observe(document.body, {
+        attributes: true,
+        attributeFilter: ['class'],
+        subtree: true
+      });
+
+      // Intercept Flowbite Modal show/hide to trigger reflow
+      // Flowbite modals contain forms and need touch target recalculation
+      if (typeof window.Modal !== 'undefined') {
+        const originalShow = window.Modal.prototype.show;
+        const originalHide = window.Modal.prototype.hide;
+
+        window.Modal.prototype.show = function() {
+          const result = originalShow.apply(this, arguments);
+          requestAnimationFrame(() => {
+            const modalElement = this._targetEl || this._element;
+            if (modalElement) {
+              forceLayoutRecalc(modalElement);
+              console.debug('[MobileGestures] iOS reflow after Flowbite Modal show');
+            }
+          });
+          return result;
+        };
+
+        window.Modal.prototype.hide = function() {
+          const result = originalHide.apply(this, arguments);
+          // Reflow on the document body after modal hide
+          requestAnimationFrame(() => {
+            forceLayoutRecalc(document.body);
+          });
+          return result;
+        };
+
+        console.debug('[MobileGestures] Flowbite Modal intercepted for iOS touch fix');
+      }
+
+      // Also intercept Flowbite when it loads dynamically
+      if (typeof window.Flowbite !== 'undefined' && window.Flowbite.Modal) {
+        // Already available via window.Modal above
+      } else {
+        // Watch for Flowbite to be added to window
+        let flowbiteCheckCount = 0;
+        const flowbiteCheck = setInterval(() => {
+          flowbiteCheckCount++;
+          if (window.Modal && window.Modal.prototype && !window.Modal.prototype._iosReflowPatched) {
+            window.Modal.prototype._iosReflowPatched = true;
+            const originalShow = window.Modal.prototype.show;
+            const originalHide = window.Modal.prototype.hide;
+
+            window.Modal.prototype.show = function() {
+              const result = originalShow.apply(this, arguments);
+              requestAnimationFrame(() => {
+                const modalElement = this._targetEl || this._element;
+                if (modalElement) forceLayoutRecalc(modalElement);
+              });
+              return result;
+            };
+
+            window.Modal.prototype.hide = function() {
+              const result = originalHide.apply(this, arguments);
+              requestAnimationFrame(() => forceLayoutRecalc(document.body));
+              return result;
+            };
+
+            console.debug('[MobileGestures] Flowbite Modal patched (deferred)');
+            clearInterval(flowbiteCheck);
+          }
+          // Stop checking after 10 seconds
+          if (flowbiteCheckCount > 100) clearInterval(flowbiteCheck);
+        }, 100);
+      }
+
+      console.debug('[MobileGestures] iOS touch target fix initialized (comprehensive)');
+    },
+
+    /**
      * Initialize all gesture handlers
      */
     init: function () {
@@ -530,6 +720,9 @@ const MobileGestures = {
 
       // Always setup scroll click prevention (doesn't need Hammer.js)
       this.setupScrollClickPrevention();
+
+      // Always setup iOS touch target fix (doesn't need Hammer.js)
+      this.setupIOSTouchTargetFix();
 
       if (!this.isHammerLoaded()) {
         console.warn('MobileGestures: Hammer.js not loaded, gesture support disabled');

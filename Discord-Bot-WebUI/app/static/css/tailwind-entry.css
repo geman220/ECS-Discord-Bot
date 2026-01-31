@@ -415,4 +415,56 @@
   [data-drawer-placement="bottom"].show {
     transform: translateY(0);
   }
+
+  /* ============================================================================
+     iOS SAFARI TOUCH TARGET FIX
+     ============================================================================
+     iOS Safari has a bug where touch targets are misaligned when:
+     1. Elements are inside sticky containers
+     2. CSS transforms exist in the element hierarchy
+     3. Elements are shown/hidden dynamically
+
+     This creates proper stacking contexts to fix touch coordinate calculation.
+     Uses @supports to only apply on iOS Safari (WebKit).
+     ============================================================================ */
+  @supports (-webkit-touch-callout: none) {
+    /* Force stacking context on all form controls for proper touch targets */
+    select,
+    input,
+    textarea {
+      @apply relative z-[1];
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Form controls in visibility-toggled containers need isolation */
+    .edit-mode select,
+    .edit-mode input,
+    .edit-mode textarea,
+    .show select,
+    .show input,
+    .show textarea,
+    .active select,
+    .active input,
+    .active textarea {
+      isolation: isolate;
+    }
+
+    /* Visible form controls (not hidden) get proper stacking */
+    select:not(.hidden):not(.u-hidden),
+    input:not(.hidden):not(.u-hidden),
+    textarea:not(.hidden):not(.u-hidden) {
+      isolation: isolate;
+    }
+
+    /* Modal form controls need explicit stacking */
+    .modal-body select,
+    .modal-body input,
+    .modal-body textarea,
+    [role="dialog"] select,
+    [role="dialog"] input,
+    [role="dialog"] textarea {
+      @apply relative z-[1];
+      isolation: isolate;
+    }
+  }
 }
