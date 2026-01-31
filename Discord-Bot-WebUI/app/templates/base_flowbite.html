@@ -41,8 +41,7 @@
     <!-- Chat Widget CSS (for messaging functionality) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components/c-chat-widget.css') }}" />
 
-    <!-- jQuery UI CSS (for autocomplete) -->
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" />
+    <!-- jQuery UI CSS removed - using vanilla JS autocomplete -->
 
     <!-- Template Styles (includes jQuery UI autocomplete overrides) -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/template-styles.css') }}" />
@@ -131,8 +130,20 @@
 
                     <!-- Mobile Search (visible only on mobile) -->
                     <div class="relative flex-1 mx-2 md:hidden min-w-0">
-                        <input type="text" id="player-search-mobile" placeholder="Search players..." class="w-full h-11 px-4 pl-10 text-base text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" />
+                        <input type="text" id="player-search-mobile" placeholder="Search players..."
+                               autocomplete="off"
+                               aria-expanded="false"
+                               aria-haspopup="listbox"
+                               aria-controls="search-results-mobile"
+                               class="w-full h-11 px-4 pl-10 text-base text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" />
                         <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400"></i>
+                        <!-- Mobile Search Results Dropdown -->
+                        <div id="search-results-mobile"
+                             role="listbox"
+                             class="hidden absolute top-full left-0 w-full mt-1 bg-white dark:bg-gray-700
+                                    border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg
+                                    z-50 max-h-60 overflow-y-auto">
+                        </div>
                     </div>
 
                     <!-- Page Title -->
@@ -142,10 +153,22 @@
 
                     <!-- Right side: Search + User Menu -->
                     <div class="flex items-center gap-4">
-                        <!-- Search -->
+                        <!-- Desktop Search -->
                         <div class="relative hidden md:block">
-                            <input type="text" id="player-search-flowbite" placeholder="Search players..." class="w-64 px-4 py-2 pl-10 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" />
+                            <input type="text" id="player-search-flowbite" placeholder="Search players..."
+                                   autocomplete="off"
+                                   aria-expanded="false"
+                                   aria-haspopup="listbox"
+                                   aria-controls="search-results-desktop"
+                                   class="w-64 px-4 py-2 pl-10 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" />
                             <i class="ti ti-search absolute left-3 top-2.5 text-gray-500 dark:text-gray-400"></i>
+                            <!-- Desktop Search Results Dropdown -->
+                            <div id="search-results-desktop"
+                                 role="listbox"
+                                 class="hidden absolute top-full left-0 w-full mt-1 bg-white dark:bg-gray-700
+                                        border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg
+                                        z-50 max-h-80 overflow-y-auto">
+                            </div>
                         </div>
 
                         <!-- Dark Mode Toggle -->
@@ -328,70 +351,22 @@
     <!-- Socket.IO for real-time updates -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.js"></script>
 
-    <!-- jQuery UI for autocomplete -->
-    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <!-- Player Search Autocomplete (Vanilla JS - Touch-friendly) -->
+    <script type="module">
+        import { initAllPlayerSearches } from '{{ url_for("static", filename="js/navbar/player-autocomplete.js") }}';
+        import { initDrawerCleanup } from '{{ url_for("static", filename="js/navbar/drawer-cleanup.js") }}';
 
-    <!-- Player Search Autocomplete -->
-    <script>
-        $(document).ready(function() {
+        document.addEventListener('DOMContentLoaded', function() {
             // Build the base URL for player profiles
-            var playerProfileBaseUrl = "{{ url_for('players.player_profile', player_id=9999) }}";
-            playerProfileBaseUrl = playerProfileBaseUrl.replace('9999', '');
+            const searchUrl = "{{ url_for('search.search_players') }}";
+            let profileBaseUrl = "{{ url_for('players.player_profile', player_id=9999) }}";
+            profileBaseUrl = profileBaseUrl.replace('9999', '');
 
-            // Initialize autocomplete for both desktop and mobile search inputs
-            function initPlayerSearch(selector) {
-                $(selector).autocomplete({
-                    source: function(request, response) {
-                        $.ajax({
-                            url: "{{ url_for('search.search_players') }}",
-                            dataType: "json",
-                            data: { term: request.term },
-                            success: function(data) {
-                                response($.map(data, function(item) {
-                                    return {
-                                        label: item.name,
-                                        value: item.name,
-                                        id: item.id,
-                                        profile_picture_url: item.profile_picture_url
-                                    };
-                                }));
-                            }
-                        });
-                    },
-                    minLength: 1,
-                    select: function(event, ui) {
-                        window.location.href = playerProfileBaseUrl + ui.item.id;
-                    }
-                }).autocomplete("instance")._renderItem = function(ul, item) {
-                    var $li = $("<li>");
-                    var $div = $("<div>").addClass("ui-menu-item-wrapper");
-                    if(item.profile_picture_url) {
-                        $div.append("<img src='" + item.profile_picture_url + "' alt='" + item.label + "' class='autocomplete-profile-img' />");
-                    }
-                    $div.append("<span>" + item.label + "</span>");
-                    return $li.append($div).appendTo(ul);
-                };
+            // Initialize vanilla JS player search (touch-friendly)
+            initAllPlayerSearches(searchUrl, profileBaseUrl);
 
-                // Handle ENTER key
-                $(selector).on("keypress", function(e) {
-                    if (e.which == 13) {
-                        var instance = $(this).autocomplete("instance");
-                        if (instance && instance.menu && instance.menu.element) {
-                            var firstItem = instance.menu.element.find("li:first-child");
-                            if (firstItem.length && firstItem.data("ui-autocomplete-item")) {
-                                var playerId = firstItem.data("ui-autocomplete-item").id;
-                                window.location.href = playerProfileBaseUrl + playerId;
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Initialize for desktop search
-            initPlayerSearch("#player-search-flowbite");
-
-            // Initialize for mobile search
-            initPlayerSearch("#player-search-mobile");
+            // Initialize drawer backdrop cleanup (prevents touch blocking)
+            initDrawerCleanup();
         });
     </script>
 

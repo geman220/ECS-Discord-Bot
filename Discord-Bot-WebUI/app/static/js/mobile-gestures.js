@@ -461,13 +461,25 @@ const MobileGestures = {
      *
      * On mobile, users often accidentally trigger clicks when trying to scroll.
      * This tracks scroll state and prevents click events during active scrolling.
+     *
+     * FIXED: Now properly allows form controls (dropdowns, inputs) to work
+     * even immediately after scrolling. Only blocks navigation links.
      */
     setupScrollClickPrevention: function () {
       let isScrolling = false;
       let scrollTimeout = null;
       const SCROLL_TIMEOUT = 150; // ms to wait after scroll stops
 
-      // Track touch move (scrolling)
+      // Track scroll events (more reliable than touchmove for detecting scroll)
+      document.addEventListener('scroll', () => {
+        isScrolling = true;
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+          isScrolling = false;
+        }, SCROLL_TIMEOUT);
+      }, { passive: true });
+
+      // Also track touch move for additional coverage
       document.addEventListener('touchmove', () => {
         isScrolling = true;
         clearTimeout(scrollTimeout);
@@ -476,24 +488,26 @@ const MobileGestures = {
         }, SCROLL_TIMEOUT);
       }, { passive: true });
 
-      // Reset on touch start
-      document.addEventListener('touchstart', () => {
-        // Don't immediately reset - wait a tiny bit
-        // This helps with quick taps after scrolling
-      }, { passive: true });
-
-      // Prevent click events during scroll momentum
+      // Prevent click events during scroll momentum - but ALLOW form controls
       document.addEventListener('click', (e) => {
         if (isScrolling) {
-          // Only prevent on interactive elements that aren't form controls
           const target = e.target;
-          const isFormControl = target.matches('input, select, textarea, [contenteditable]');
-          const isLink = target.closest('a, button, [role="button"], .btn, .nav-link, .list-group-item');
 
-          if (isLink && !isFormControl) {
+          // FIXED: Check if target OR any ancestor is a form control
+          // This handles clicking on labels, icons inside selects, etc.
+          const isFormControl = target.closest('select, input, textarea, [contenteditable], label');
+
+          // If it's a form control, ALLOW the click through
+          if (isFormControl) {
+            return; // Don't block form controls
+          }
+
+          // Only block navigation links during scroll, not all clickable elements
+          const isNavLink = target.closest('a[href], .nav-link');
+          if (isNavLink) {
             e.preventDefault();
             e.stopPropagation();
-            console.debug('[MobileGestures] Prevented accidental click during scroll');
+            console.debug('[MobileGestures] Prevented accidental navigation during scroll');
           }
         }
       }, { capture: true });
