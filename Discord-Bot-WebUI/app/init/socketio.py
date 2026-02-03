@@ -25,7 +25,7 @@ def init_socketio(app):
         app,
         message_queue=app.config.get('REDIS_URL', 'redis://redis:6379/0'),
         manage_session=False,
-        async_mode='eventlet',
+        async_mode='gevent',
         cors_allowed_origins=app.config.get('CORS_ORIGINS', '*'),
         path='/socket.io/',  # Explicitly set SocketIO path to avoid conflicts
         allow_upgrades=True,  # Allow HTTP to WebSocket upgrades

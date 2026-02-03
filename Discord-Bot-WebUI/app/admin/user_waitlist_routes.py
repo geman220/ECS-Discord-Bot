@@ -98,13 +98,16 @@ def remove_from_waitlist(user_id: int):
         if not waitlist_role:
             return jsonify({'success': False, 'message': 'Waitlist role not found'}), 404
         
+        # Refresh user roles from database to avoid stale data issues
+        db_session.refresh(user, ['roles'])
+
         # Check if user is on waitlist
         if waitlist_role not in user.roles:
             return jsonify({'success': False, 'message': 'User is not on waitlist'}), 400
-        
+
         # Get removal reason from request
         reason = request.json.get('reason', 'No reason provided')
-        
+
         # Remove the waitlist role
         user.roles.remove(waitlist_role)
         

@@ -16,7 +16,8 @@ import logging
 import collections
 from datetime import datetime
 import time
-import eventlet
+import gevent
+from gevent.lock import Semaphore
 import traceback
 import threading
 
@@ -29,7 +30,7 @@ from app.core import db
 logger = logging.getLogger(__name__)
 
 # Global semaphore for synchronizing critical sections (if needed)
-lock = eventlet.semaphore.Semaphore()
+lock = Semaphore()
 
 # Global dictionary to hold transaction metadata (e.g. stack traces), keyed by backend PID.
 transaction_metadata = {}
@@ -166,14 +167,14 @@ class DatabaseManager:
                         logger.info(f"Cleared stale transaction metadata for PID {pid}")
                 
                 # Schedule next cleanup
-                eventlet.spawn_after(60, cleanup)  # Run cleanup every minute instead of 5 minutes
+                gevent.spawn_later(60, cleanup)  # Run cleanup every minute instead of 5 minutes
             except Exception as e:
                 logger.error(f"Error in transaction metadata cleanup: {e}", exc_info=True)
                 # Even if we have an error, try again later
-                eventlet.spawn_after(60, cleanup)
+                gevent.spawn_later(60, cleanup)
 
         # Start the first cleanup after 60 seconds
-        eventlet.spawn_after(60, cleanup)
+        gevent.spawn_later(60, cleanup)
 
     def check_for_leaked_connections(self):
         """

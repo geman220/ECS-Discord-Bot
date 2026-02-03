@@ -356,11 +356,14 @@ def approve_user(user_id: int):
                 return jsonify({'success': False, 'message': f'Role {role_name} not found'}), 404
             new_roles.append(role)
         
+        # Refresh user roles from database to avoid stale data issues
+        db_session.refresh(user, ['roles'])
+
         # Remove the pl-unverified role
         unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
         if unverified_role and unverified_role in user.roles:
             user.roles.remove(unverified_role)
-        
+
         # Add all the new approved roles
         for new_role in new_roles:
             if new_role not in user.roles:
@@ -458,10 +461,13 @@ def deny_user(user_id: int):
         
         if user.approval_status != 'pending':
             return jsonify({'success': False, 'message': 'User is not pending approval'}), 400
-        
+
+        # Refresh user roles from database to avoid stale data issues
+        db_session.refresh(user, ['roles'])
+
         # Get form data
         notes = request.form.get('notes', '')
-        
+
         # Remove all roles except basic ones
         unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
         if unverified_role and unverified_role in user.roles:

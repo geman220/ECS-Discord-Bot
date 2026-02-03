@@ -14,13 +14,6 @@ Set SKIP_REDIS=true, SKIP_CELERY=true, SKIP_SOCKETIO=true to create a minimal ap
 for asset building without external service dependencies.
 """
 
-# Fix eventlet database connection handling
-try:
-    import eventlet.debug
-    eventlet.debug.hub_prevent_multiple_readers(False)
-except ImportError:
-    pass
-
 import os
 import logging
 from flask import Flask

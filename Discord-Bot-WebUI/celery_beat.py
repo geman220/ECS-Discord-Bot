@@ -4,12 +4,12 @@
 Celery Beat Scheduler Script
 
 This script initializes the Celery beat scheduler after verifying the Redis
-connection and ensuring the beat schedule directory is set up. It uses Eventlet
+connection and ensuring the beat schedule directory is set up. It uses Gevent
 to monkey-patch the standard library for asynchronous operations.
 """
 
-import eventlet
-eventlet.monkey_patch(thread=False)
+from gevent import monkey
+monkey.patch_all(thread=False)
 
 import os
 import sys

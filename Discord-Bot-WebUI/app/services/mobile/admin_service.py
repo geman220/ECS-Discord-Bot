@@ -142,6 +142,9 @@ class MobileAdminService(BaseService):
 
         user = player.user
 
+        # Refresh user roles from database to avoid stale data issues
+        self.session.refresh(user, ['roles'])
+
         # Validate and get roles to add
         roles_to_add = []
         for role_id in add_role_ids:
@@ -308,6 +311,8 @@ class MobileAdminService(BaseService):
         # Auto-assign league role if player has user account
         auto_assigned_role = None
         if player.user:
+            # Refresh user roles from database to avoid stale data issues
+            self.session.refresh(player.user, ['roles'])
             auto_assigned_role = self._auto_assign_league_role(player.user, league)
 
         self.session.commit()
@@ -366,6 +371,8 @@ class MobileAdminService(BaseService):
         # Cleanup league role if no longer in any league of that type
         removed_role = None
         if player.user:
+            # Refresh user roles from database to avoid stale data issues
+            self.session.refresh(player.user, ['roles'])
             removed_role = self._cleanup_league_role(player.user, league, player)
 
         self.session.commit()

@@ -153,7 +153,7 @@ def emit_rsvp_update(match_id, player_id, availability, source='system', player_
         logger.debug(f"📤 Emitted RSVP update to rooms {room_with_underscore} & {room_without_underscore}: {player_name} -> {availability} (source: {source})")
         
         # CROSS-PLATFORM SYNC: Trigger Discord embed update for non-Discord sources
-        # Use Celery task instead of background greenlet to avoid blocking the eventlet event loop
+        # Use Celery task instead of background greenlet to avoid blocking the gevent event loop
         if source != 'discord':
             try:
                 from app.tasks.tasks_rsvp import update_discord_embed_task

@@ -6,7 +6,7 @@ and to run basic connectivity checks for the database and Redis.
 """
 
 import threading
-import eventlet
+import gevent
 import logging
 import sys
 from sqlalchemy import text
@@ -33,7 +33,7 @@ def diagnostic_middleware(app):
             return
 
         # Schedule a timeout handler to run after 30 seconds.
-        g._request_timeout = eventlet.spawn_after(30, timeout_handler)
+        g._request_timeout = gevent.spawn_later(30, timeout_handler)
         logger.info("Request started")
 
     @app.after_request

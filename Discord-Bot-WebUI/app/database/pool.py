@@ -155,7 +155,7 @@ class RateLimitedPool(QueuePool):
         instead of waiting the full timeout. This prevents thundering herd cascades
         where many requests pile up waiting, then all fail simultaneously.
 
-        NOTE: Rate limiting (time.sleep) was removed because it blocks the eventlet
+        NOTE: Rate limiting (time.sleep) was removed because it blocks the gevent
         event loop, causing slowdowns under load. The pool_size and max_overflow
         settings already provide adequate protection against connection storms.
 

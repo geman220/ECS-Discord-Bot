@@ -516,6 +516,9 @@ class RoleSyncService:
             logger.warning(f"User {user_id} not found when syncing Flask role")
             return
 
+        # Refresh user roles from database to avoid stale data issues
+        db.session.refresh(user, ['roles'])
+
         # Get role objects from the same db.session
         new_role = db.session.query(Role).filter_by(name=new_role_name).first()
         opposite_role = db.session.query(Role).filter_by(name=opposite_role_name).first()

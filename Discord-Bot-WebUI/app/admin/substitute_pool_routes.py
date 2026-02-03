@@ -384,6 +384,9 @@ def remove_player_from_pool(league_type: str):
         # Remove the Flask role if player is not in any other pools
         player = pool_entry.player
         if player and player.user:
+            # Refresh user roles from database to avoid stale data issues
+            session.refresh(player.user, ['roles'])
+
             # Check if player is in any other active pools
             other_active_pools = session.query(SubstitutePool).filter(
                 SubstitutePool.player_id == player_id,

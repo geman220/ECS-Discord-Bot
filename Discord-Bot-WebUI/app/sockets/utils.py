@@ -26,7 +26,7 @@ def get_draft_lock(player_id: int):
     # Create a Redis lock with:
     # - timeout=30: Lock auto-expires after 30 seconds (prevents deadlock on crash)
     # - blocking_timeout=5: Wait up to 5 seconds to acquire (matches old behavior)
-    # - thread_local=False: Required for eventlet compatibility
+    # - thread_local=False: Required for gevent compatibility
     return redis_client.lock(
         name=f"draft:player:{player_id}",
         timeout=30,

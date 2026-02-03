@@ -697,12 +697,13 @@ class SyncAIClient:
             finally:
                 new_loop.close()
         
-        # Check for eventlet environment
+        # Check for gevent environment
         try:
-            import eventlet
-            if eventlet.patcher.is_monkey_patched('thread'):
-                import eventlet.tpool
-                return eventlet.tpool.execute(run_in_new_loop)
+            from gevent import monkey
+            if monkey.is_module_patched('threading'):
+                from gevent.threadpool import ThreadPool
+                pool = ThreadPool(1)
+                return pool.spawn(run_in_new_loop).get()
         except ImportError:
             pass
         

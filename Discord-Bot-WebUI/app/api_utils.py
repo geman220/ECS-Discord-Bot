@@ -256,7 +256,7 @@ def async_to_sync(coroutine: Any) -> Any:
     paths (web routes, etc.) but has been eliminated from all scheduled tasks
     as part of the V2 synchronous migration to prevent queue buildup issues.
     
-    Safely handles nested event loop scenarios, including eventlet.
+    Safely handles nested event loop scenarios, including gevent.
     
     Args:
         coroutine: The async coroutine to execute.
@@ -276,13 +276,14 @@ def async_to_sync(coroutine: Any) -> Any:
         finally:
             new_loop.close()
     
-    # Check if we're in an eventlet environment
+    # Check if we're in a gevent environment
     try:
-        import eventlet
-        # If eventlet is patched, we need to use native threads
-        if eventlet.patcher.is_monkey_patched('thread'):
-            import eventlet.tpool
-            return eventlet.tpool.execute(run_in_new_loop)
+        from gevent import monkey
+        # If gevent is patched, we need to use native threads
+        if monkey.is_module_patched('threading'):
+            from gevent.threadpool import ThreadPool
+            pool = ThreadPool(1)
+            return pool.spawn(run_in_new_loop).get()
     except ImportError:
         pass
     

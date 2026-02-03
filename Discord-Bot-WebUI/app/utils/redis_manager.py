@@ -71,7 +71,7 @@ class UnifiedRedisManager:
                 redis_port = int(os.getenv('REDIS_PORT', '6379'))
                 redis_db = int(os.getenv('REDIS_DB', '0'))
                 redis_url = os.getenv('REDIS_URL')
-                # Pool size should handle concurrent eventlet greenlets
+                # Pool size should handle concurrent gevent greenlets
                 # Default 100 for webui (handles burst traffic), workers can use less
                 max_pool_connections = int(os.getenv('REDIS_MAX_CONNECTIONS', '100'))
                 
@@ -113,7 +113,7 @@ class UnifiedRedisManager:
                     eviction_policy='lru' # Least Recently Used eviction
                 )
 
-                # Create clients using the shared pool with EventLet-safe settings
+                # Create clients using the shared pool with Gevent-safe settings
                 # Client-side caching enabled via cache_config for better read performance
                 self._decoded_client = Redis(
                     connection_pool=self._pool,

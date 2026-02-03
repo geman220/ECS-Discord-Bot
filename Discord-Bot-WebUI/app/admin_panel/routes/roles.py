@@ -341,7 +341,10 @@ def remove_role_from_user_comprehensive(role_id, user_id):
     try:
         role = Role.query.get_or_404(role_id)
         user = User.query.get_or_404(user_id)
-        
+
+        # Refresh user roles from database to avoid stale data issues
+        db.session.refresh(user, ['roles'])
+
         # Check if user has this role
         if role not in user.roles:
             return jsonify({'success': False, 'message': f'User does not have role "{role.name}"'})

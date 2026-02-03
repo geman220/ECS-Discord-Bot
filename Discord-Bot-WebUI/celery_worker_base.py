@@ -3,14 +3,14 @@
 """
 Celery Worker Base Module
 
-This module initializes the Flask application, applies Eventlet monkey patching
+This module initializes the Flask application, applies Gevent monkey patching
 for asynchronous support, and updates the Celery configuration using the Flask
 app's configuration. It exports the Flask app, the Celery app, and a logger
 for use by worker scripts.
 """
 
-import eventlet
-eventlet.monkey_patch(thread=False)  # Apply monkey patching for async support, disable thread patching to avoid greenlet errors
+from gevent import monkey
+monkey.patch_all(thread=False)  # Apply monkey patching for async support, disable thread patching to avoid greenlet errors
 
 import logging
 from app import create_app

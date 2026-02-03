@@ -377,6 +377,9 @@ def assign_user_role():
         user = User.query.options(joinedload(User.player)).get_or_404(user_id)
         role = Role.query.get_or_404(role_id)
 
+        # Refresh user roles from database to avoid stale data issues
+        db.session.refresh(user, ['roles'])
+
         if action == 'add':
             if role not in user.roles:
                 user.roles.append(role)

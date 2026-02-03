@@ -127,6 +127,9 @@ def bulk_approve_users():
                     failed_users.append({'id': user_id, 'reason': 'User not found or not pending'})
                     continue
 
+                # Refresh user roles from database to avoid stale data issues
+                db.session.refresh(user, ['roles'])
+
                 # Remove unverified role
                 if unverified_role and unverified_role in user.roles:
                     user.roles.remove(unverified_role)
@@ -215,6 +218,9 @@ def bulk_assign_roles():
                 if not user:
                     failed_users.append({'id': user_id, 'reason': 'User not found'})
                     continue
+
+                # Refresh user roles from database to avoid stale data issues
+                db.session.refresh(user, ['roles'])
 
                 if operation == 'replace':
                     # Clear all existing roles and assign new ones
@@ -306,6 +312,9 @@ def bulk_process_waitlist():
                 if not user:
                     failed_users.append({'id': user_id, 'reason': 'User not found'})
                     continue
+
+                # Refresh user roles from database to avoid stale data issues
+                db.session.refresh(user, ['roles'])
 
                 if waitlist_role not in user.roles:
                     failed_users.append({'id': user_id, 'reason': 'User not on waitlist'})

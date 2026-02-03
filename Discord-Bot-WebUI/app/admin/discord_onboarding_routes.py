@@ -853,6 +853,10 @@ def sync_roles_from_discord():
             }), 200
 
         user = player.user
+
+        # Refresh user roles from database to avoid stale data issues
+        g.db_session.refresh(user, ['roles'])
+
         results = {
             'added': [],
             'removed': [],

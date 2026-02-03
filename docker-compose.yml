@@ -308,7 +308,7 @@ services:
       sh -c "chmod +x node_modules/.bin/* node_modules/@esbuild/*/bin/* 2>/dev/null;
       npm run build &&
       gunicorn
-      --worker-class eventlet
+      --worker-class geventwebsocket.gunicorn.workers.GeventWebSocketWorker
       --workers 1
       --bind 0.0.0.0:5000
       --log-level info
@@ -325,7 +325,6 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-      - EVENTLET_NO_GREENDNS=yes
       - PYTHONPATH=/app
       - FLASK_DEBUG=${FLASK_DEBUG:-0}
       - REDIS_URL=redis://redis:6379/0

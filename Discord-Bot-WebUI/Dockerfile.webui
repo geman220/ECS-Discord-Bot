@@ -36,7 +36,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
-ENV EVENTLET_NO_GREENDNS=yes
 
 # Create directories for logs and temp files
 RUN mkdir -p /var/log/gunicorn /tmp/celery /tmp/celerybeat

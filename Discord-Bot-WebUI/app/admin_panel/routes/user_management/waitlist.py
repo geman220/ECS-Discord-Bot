@@ -139,6 +139,9 @@ def remove_from_waitlist(user_id: int):
         if not waitlist_role:
             return jsonify({'success': False, 'message': 'Waitlist role not found'}), 404
 
+        # Refresh user roles from database to avoid stale data issues
+        db.session.refresh(user, ['roles'])
+
         # Check if user is on waitlist
         if waitlist_role not in user.roles:
             return jsonify({'success': False, 'message': 'User is not on waitlist'}), 400
@@ -515,6 +518,9 @@ def process_waitlist_user():
             processed_count = 0
             for user in waitlist_users:
                 try:
+                    # Refresh user roles from database to avoid stale data issues
+                    db.session.refresh(user, ['roles'])
+
                     # Remove waitlist role and add unverified role
                     waitlist_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
                     unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()

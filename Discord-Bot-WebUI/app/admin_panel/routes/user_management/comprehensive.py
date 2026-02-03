@@ -101,11 +101,12 @@ def users_comprehensive():
                     )
                 )
             else:
-                # Search username and player name (via outerjoin)
-                query = query.outerjoin(Player, User.player).filter(
+                # Search by real name (Player.name) and username
+                # Use outerjoin with explicit condition to avoid conflict with joinedload
+                query = query.outerjoin(Player, Player.user_id == User.id).filter(
                     or_(
-                        User.username.ilike(search_term),
-                        Player.name.ilike(search_term)
+                        Player.name.ilike(search_term),
+                        User.username.ilike(search_term)
                     )
                 )
 
@@ -501,6 +502,9 @@ def edit_user_comprehensive(user_id):
 
         # Auto-manage league roles based on league assignments
         if user.player:
+            # Refresh user roles from database to avoid stale data issues
+            db.session.refresh(user, ['roles'])
+
             # Determine which league roles the user should have
             required_league_roles = set()
 

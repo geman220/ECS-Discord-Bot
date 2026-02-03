@@ -209,6 +209,10 @@ def approve_user(user_id: int):
         if user.approval_status != 'pending' and not has_waitlist_role:
             return jsonify({'success': False, 'message': 'User is not pending approval or on waitlist'}), 400
 
+        # Refresh user roles from database to avoid stale data issues
+        # This prevents "expected to delete X row(s); Only 0 were matched" errors
+        db.session.refresh(user, ['roles'])
+
         # Get form data
         league_type = request.form.get('league_type')
         notes = request.form.get('notes', '')
@@ -326,6 +330,9 @@ def deny_user(user_id: int):
 
         if user.approval_status != 'pending':
             return jsonify({'success': False, 'message': 'User is not pending approval'}), 400
+
+        # Refresh user roles from database to avoid stale data issues
+        db.session.refresh(user, ['roles'])
 
         # Get form data
         notes = request.form.get('notes', '')

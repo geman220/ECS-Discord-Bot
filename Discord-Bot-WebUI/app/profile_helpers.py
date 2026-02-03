@@ -60,6 +60,9 @@ def handle_coach_status_update(player, user):
         
         # Update Flask roles to match coach status
         if player.user:
+            # Refresh user roles from database to avoid stale data issues
+            session.refresh(player.user, ['roles'])
+
             from app.models import Role
             coach_role = session.query(Role).filter_by(name='Pub League Coach').first()
             if coach_role:
@@ -124,6 +127,9 @@ def handle_ref_status_update(player, user):
         
         # Update Flask roles to match referee status
         if player.user:
+            # Refresh user roles from database to avoid stale data issues
+            session.refresh(player.user, ['roles'])
+
             from app.models import Role
             ref_role = session.query(Role).filter_by(name='Pub League Ref').first()
             if ref_role:

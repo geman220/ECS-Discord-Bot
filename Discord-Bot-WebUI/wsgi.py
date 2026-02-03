@@ -3,10 +3,10 @@
 import sys
 import os
 
-# Only use eventlet and full app setup when not running migrations
+# Only use gevent and full app setup when not running migrations
 if 'flask db' not in ' '.join(sys.argv):
-    import eventlet
-    eventlet.monkey_patch(thread=False)
+    from gevent import monkey
+    monkey.patch_all(thread=False)
     
     import logging
     from app import create_app, socketio
