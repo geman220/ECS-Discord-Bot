@@ -1559,6 +1559,12 @@ html[data-style="dark"] .positioned-player .player-initials {
   border-color: var(--draft-gray-600, var(--color-secondary-700, var(--color-secondary-700, var(--color-secondary-700))));
 }
 
+/* Hidden class for fallback initials when image loads */
+.positioned-player .player-initials.hidden,
+.positioned-player .player-profile-img.hidden {
+  display: none !important;
+}
+
 /* Remove Button */
 
 .positioned-player .remove-btn {

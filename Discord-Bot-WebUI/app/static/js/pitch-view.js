@@ -479,25 +479,35 @@ class PitchViewSystem {
     }
 
     removePlayerFromPosition(playerId, position, teamId) {
-        const positionContainer = document.getElementById(`position-${position}-${teamId}`);
-        if (positionContainer) {
-            const playerElement = positionContainer.querySelector(`[data-player-id="${playerId}"]`);
-            if (playerElement) {
-                // Use CSS classes for animation instead of inline styles
-                playerElement.classList.add('removing');
+        // Emit socket event to remove player from team (returns to draft pool)
+        if (this.socket && this.isConnected) {
+            this.showLoading();
+            this.socket.emit('remove_player_enhanced', {
+                player_id: parseInt(playerId),
+                team_id: parseInt(teamId),
+                league_name: this.leagueName
+            });
+        } else {
+            this.showToast('Not connected to server', 'error');
+        }
+    }
 
-                setTimeout(() => {
-                    playerElement.remove();
-                    this.updatePositionStats(teamId);
-                }, 300);
+    removePlayerFromPositionUI(playerId, teamId) {
+        // Remove player from all positions in the UI (called after socket confirmation)
+        const positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
+        positions.forEach(position => {
+            const positionContainer = document.getElementById(`position-${position}-${teamId}`);
+            if (positionContainer) {
+                const playerElement = positionContainer.querySelector(`[data-player-id="${playerId}"]`);
+                if (playerElement) {
+                    playerElement.classList.add('removing');
+                    setTimeout(() => {
+                        playerElement.remove();
+                        this.updatePositionStats(teamId);
+                    }, 300);
+                }
             }
-        }
-
-        // If removing from team entirely, add back to available
-        const teamHasPlayer = this.isPlayerInTeam(playerId, teamId);
-        if (!teamHasPlayer) {
-            this.addPlayerBackToAvailable(playerId);
-        }
+        });
     }
 
     removePlayerFromAllPositions(playerId, teamId) {

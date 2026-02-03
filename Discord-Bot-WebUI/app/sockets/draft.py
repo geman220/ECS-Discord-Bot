@@ -52,6 +52,7 @@ def handle_draft_player_enhanced(data):
     player_id = data.get('player_id')
     team_id = data.get('team_id')
     league_name = data.get('league_name')
+    position = data.get('position', 'bench')  # Position from pitch view, defaults to bench
 
     if not all([player_id, team_id, league_name]):
         print(f"🚫 Missing data: {data}")
@@ -199,14 +200,28 @@ def handle_draft_player_enhanced(data):
                     joinedload(Team.players)
                 ).filter(Team.id == team_id).first()
 
-                # Execute the draft
+                # Execute the draft with position support
                 if player not in team.players:
-                    team.players.append(player)
+                    # Insert directly into player_teams with position (instead of using ORM append)
+                    from sqlalchemy import insert
+                    stmt = insert(player_teams).values(
+                        player_id=player_id,
+                        team_id=team_id,
+                        position=position
+                    )
+                    session.execute(stmt)
                     player.primary_team_id = team_id
-                    print(f"🎯 Added {player_name} to {team_name} and set as primary team (ID: {team_id})")
+                    print(f"🎯 Added {player_name} to {team_name} at position '{position}' and set as primary team (ID: {team_id})")
                 else:
+                    # Player already on team - update position if provided
+                    from sqlalchemy import update
+                    stmt = update(player_teams).where(
+                        player_teams.c.player_id == player_id,
+                        player_teams.c.team_id == team_id
+                    ).values(position=position)
+                    session.execute(stmt)
                     player.primary_team_id = team_id
-                    print(f"🎯 {player_name} already on {team_name} - updated primary team ID to {team_id}")
+                    print(f"🎯 {player_name} already on {team_name} - updated position to '{position}' and primary team ID to {team_id}")
 
                 # Create PlayerTeamSeason record for current season
                 player_team_season = PlayerTeamSeason(
@@ -281,11 +296,13 @@ def handle_draft_player_enhanced(data):
                         'league_experience_seasons': 0,
                         'attendance_estimate': 75,
                         'experience_level': 'New Player',
-                        'prev_draft_position': None  # New draft, no previous position yet
+                        'prev_draft_position': None,  # New draft, no previous position yet
+                        'current_position': position  # Position on the pitch (from pitch view)
                     },
                     'team_id': team_id,
                     'team_name': team_name,
-                    'league_name': league_name
+                    'league_name': league_name,
+                    'position': position  # Include position at top level for easier access
                 }
 
             # Broadcast to all clients in the draft room so everyone sees the update
