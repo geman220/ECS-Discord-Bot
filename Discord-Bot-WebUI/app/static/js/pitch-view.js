@@ -70,7 +70,20 @@ class PitchViewSystem {
 
                 window.SocketManager.on('pitchView', 'error', (data) => {
                     console.error('❌ Socket error:', data);
+                    self.hideLoading();
                     self.showToast('Error: ' + data.message, 'error');
+                });
+
+                window.SocketManager.on('pitchView', 'draft_error', (data) => {
+                    console.error('❌ Draft error:', data);
+                    self.hideLoading();
+                    self.showToast('Draft error: ' + data.message, 'error');
+                });
+
+                window.SocketManager.on('pitchView', 'remove_error', (data) => {
+                    console.error('❌ Remove error:', data);
+                    self.hideLoading();
+                    self.showToast('Remove error: ' + data.message, 'error');
                 });
 
                 return;
@@ -129,7 +142,20 @@ class PitchViewSystem {
 
         this.socket.on('error', (data) => {
             console.error('❌ Socket error:', data);
+            this.hideLoading();
             this.showToast('Error: ' + data.message, 'error');
+        });
+
+        this.socket.on('draft_error', (data) => {
+            console.error('❌ Draft error:', data);
+            this.hideLoading();
+            this.showToast('Draft error: ' + data.message, 'error');
+        });
+
+        this.socket.on('remove_error', (data) => {
+            console.error('❌ Remove error:', data);
+            this.hideLoading();
+            this.showToast('Remove error: ' + data.message, 'error');
         });
     }
 
@@ -439,21 +465,25 @@ class PitchViewSystem {
         const safeName = escapeHtml(player.name);
         const safeInitials = escapeHtml(this.getPlayerInitials(player.name));
 
-        // Player image or initials
+        // Player image or initials (only render one, not both)
         if (player.profile_picture_url && player.profile_picture_url !== '/static/img/default_player.png') {
             element.innerHTML = `
                 <img src="${escapeHtml(player.profile_picture_url)}" alt="${safeName}"
                      class="player-profile-img"
                      data-fallback-initials="${safeInitials}">
-                <div class="player-initials hidden">${safeInitials}</div>
                 <button class="remove-btn" data-action="remove-player-from-pitch" data-player-id="${player.id}" data-position="${position}" data-team-id="${teamId}" title="Remove ${safeName}" aria-label="Remove ${safeName}">×</button>
             `;
-            // Set up image error handling
+            // Set up image error handling - create initials fallback only if image fails
             const img = element.querySelector('img');
             if (img) {
                 img.onerror = function() {
-                    this.classList.add('hidden');
-                    this.nextElementSibling?.classList.remove('hidden');
+                    // Hide the broken image
+                    this.style.display = 'none';
+                    // Create and insert initials fallback
+                    const initialsDiv = document.createElement('div');
+                    initialsDiv.className = 'player-initials';
+                    initialsDiv.textContent = this.dataset.fallbackInitials;
+                    this.parentElement.insertBefore(initialsDiv, this);
                 };
             }
         } else {
@@ -480,14 +510,18 @@ class PitchViewSystem {
 
     removePlayerFromPosition(playerId, position, teamId) {
         // Emit socket event to remove player from team (returns to draft pool)
-        if (this.socket && this.isConnected) {
+        // Use window.socket (from SocketManager) or this.socket as fallback
+        const socket = window.socket || this.socket;
+        if (socket && this.isConnected) {
             this.showLoading();
-            this.socket.emit('remove_player_enhanced', {
+            socket.emit('remove_player_enhanced', {
                 player_id: parseInt(playerId),
                 team_id: parseInt(teamId),
                 league_name: this.leagueName
             });
+            console.log(`🗑️ Emitting remove_player_enhanced for player ${playerId} from team ${teamId}`);
         } else {
+            console.error('❌ Socket not connected:', { socket: !!socket, isConnected: this.isConnected });
             this.showToast('Not connected to server', 'error');
         }
     }
