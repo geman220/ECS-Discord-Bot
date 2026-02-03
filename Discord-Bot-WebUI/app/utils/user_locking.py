@@ -11,13 +11,16 @@ Key features:
 - Context manager for automatic lock release
 - Support for NOWAIT to fail fast when lock is unavailable
 - Proper integration with Flask's g.db_session and db.session patterns
+
+Note: We intentionally do NOT use joinedload with FOR UPDATE because PostgreSQL
+does not support FOR UPDATE on the nullable side of LEFT OUTER JOINs. Instead,
+we lock the user row first, then trigger lazy loading of relationships.
 """
 
 import logging
 from contextlib import contextmanager
 
 from flask import g, has_request_context
-from sqlalchemy.orm import joinedload
 from sqlalchemy.exc import OperationalError
 
 from app.core import db
@@ -86,11 +89,13 @@ def lock_user_for_role_update(user_id, session=None, nowait=True, timeout=None):
         session = get_session()
 
     try:
-        # Build the query with eager loading of relationships we'll need
-        query = session.query(User).options(
-            joinedload(User.player),
-            joinedload(User.roles)
-        ).filter(User.id == user_id)
+        # IMPORTANT: Do NOT use joinedload with FOR UPDATE!
+        # PostgreSQL does not support FOR UPDATE on LEFT OUTER JOINs
+        # (which joinedload creates for nullable relationships like User.player)
+        #
+        # Instead, we lock the user row first, then access relationships after.
+        # SQLAlchemy will lazy-load them within the same transaction.
+        query = session.query(User).filter(User.id == user_id)
 
         # Apply the FOR UPDATE lock
         # nowait=True: Fail immediately if another transaction holds the lock
@@ -101,6 +106,11 @@ def lock_user_for_role_update(user_id, session=None, nowait=True, timeout=None):
 
         if user is None:
             raise LockAcquisitionError(f"User {user_id} not found")
+
+        # Explicitly load the relationships we need within the lock
+        # This triggers lazy loading but keeps it within the transaction
+        _ = user.roles  # Load roles collection
+        _ = user.player  # Load player (may be None)
 
         logger.debug(f"Acquired lock on user {user_id}")
 
@@ -167,10 +177,9 @@ def lock_users_for_role_update(user_ids, session=None, nowait=True):
 
     try:
         # Query all users with FOR UPDATE, locked in order
-        users = session.query(User).options(
-            joinedload(User.player),
-            joinedload(User.roles)
-        ).filter(
+        # IMPORTANT: Do NOT use joinedload - PostgreSQL doesn't support
+        # FOR UPDATE on LEFT OUTER JOINs
+        users = session.query(User).filter(
             User.id.in_(sorted_ids)
         ).order_by(
             User.id
@@ -185,6 +194,11 @@ def lock_users_for_role_update(user_ids, session=None, nowait=True):
             raise LockAcquisitionError(
                 f"Users not found: {sorted(missing_ids)}"
             )
+
+        # Load relationships for all locked users within the transaction
+        for user in users:
+            _ = user.roles  # Trigger lazy load
+            _ = user.player  # Trigger lazy load
 
         logger.debug(f"Acquired locks on {len(locked_users)} users")
 

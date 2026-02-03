@@ -32,6 +32,8 @@ from app.utils.pii_encryption import create_hash
 from app.player_management_helpers import create_player_profile, record_order_history
 from app.players_helpers import create_user_for_player
 from app.decorators import role_required
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import DeferredDiscordQueue
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -508,206 +510,212 @@ def edit_user(user_id):
     
     # Validate the form submission
     if form.validate_on_submit():
+        discord_queue = DeferredDiscordQueue()
         try:
-            logger.warning(f"=== FORM VALIDATION PASSED ===")
-            logger.warning(f"Form data - username: {form.username.data}, email: {form.email.data}, roles: {form.roles.data}")
-            
-            # Update basic user information
-            user.username = form.username.data
-            user.email = form.email.data
+            # Acquire lock on user to prevent concurrent role modifications
+            with lock_user_for_role_update(user_id, session=session) as locked_user:
+                # Use the locked user for all operations
+                user = locked_user
 
-            # Get league information for validation
-            league_id = form.league_id.data
-            selected_league = None
-            if league_id and league_id != 0:
-                selected_league = session.query(League).get(league_id)
+                logger.warning(f"=== FORM VALIDATION PASSED ===")
+                logger.warning(f"Form data - username: {form.username.data}, email: {form.email.data}, roles: {form.roles.data}")
+
+                # Update basic user information
+                user.username = form.username.data
+                user.email = form.email.data
+
+                # Get league information for validation
+                league_id = form.league_id.data
+                selected_league = None
+                if league_id and league_id != 0:
+                    selected_league = session.query(League).get(league_id)
             
-            # Update user roles with validation
-            selected_role_ids = form.roles.data if form.roles.data else []
-            new_roles = session.query(Role).filter(Role.id.in_(selected_role_ids)).all() if selected_role_ids else []
+                # Update user roles with validation
+                selected_role_ids = form.roles.data if form.roles.data else []
+                new_roles = session.query(Role).filter(Role.id.in_(selected_role_ids)).all() if selected_role_ids else []
             
-            logger.info(f"Selected role IDs: {selected_role_ids}")
-            logger.info(f"Current roles before update: {[role.name for role in user.roles]}")
+                logger.info(f"Selected role IDs: {selected_role_ids}")
+                logger.info(f"Current roles before update: {[role.name for role in user.roles]}")
             
-            # Validate league/role consistency
-            role_names = [role.name for role in new_roles]
-            has_premier_role = 'pl-premier' in role_names
-            has_classic_role = 'pl-classic' in role_names
+                # Validate league/role consistency
+                role_names = [role.name for role in new_roles]
+                has_premier_role = 'pl-premier' in role_names
+                has_classic_role = 'pl-classic' in role_names
             
-            if selected_league:
-                if selected_league.name == 'Premier' and has_classic_role and not has_premier_role:
-                    show_error('Cannot assign Classic role (pl-classic) to a player in Premier league without also having Premier role (pl-premier).')
-                    return redirect(url_for('user_management.manage_users'))
-                elif selected_league.name == 'Classic' and has_premier_role and not has_classic_role:
-                    show_error('Cannot assign Premier role (pl-premier) to a player in Classic league without also having Classic role (pl-classic).')
-                    return redirect(url_for('user_management.manage_users'))
+                if selected_league:
+                    if selected_league.name == 'Premier' and has_classic_role and not has_premier_role:
+                        show_error('Cannot assign Classic role (pl-classic) to a player in Premier league without also having Premier role (pl-premier).')
+                        return redirect(url_for('user_management.manage_users'))
+                    elif selected_league.name == 'Classic' and has_premier_role and not has_classic_role:
+                        show_error('Cannot assign Premier role (pl-premier) to a player in Classic league without also having Classic role (pl-classic).')
+                        return redirect(url_for('user_management.manage_users'))
             
-            # Safely update roles to avoid StaleDataError
-            try:
-                # Clear current roles using direct SQL to avoid ORM issues
-                session.execute(
-                    user_roles.delete().where(user_roles.c.user_id == user.id)
-                )
-                session.flush()
-                
-                # Add new roles
-                if new_roles:
-                    for role in new_roles:
-                        session.execute(
-                            user_roles.insert().values(user_id=user.id, role_id=role.id)
-                        )
+                # Safely update roles to avoid StaleDataError
+                try:
+                    # Clear current roles using direct SQL to avoid ORM issues
+                    session.execute(
+                        user_roles.delete().where(user_roles.c.user_id == user.id)
+                    )
                     session.flush()
                 
-                # Refresh user to get updated roles
-                session.refresh(user)
-                
-                logger.info(f"New roles after update: {[role.name for role in user.roles]}")
-            
-            except Exception as role_error:
-                logger.error(f"Error updating roles: {role_error}")
-                show_error('Failed to update user roles. Please try again.')
-                return redirect(url_for('user_management.manage_users'))
-            
-            # Auto-assign league roles if not present and league is selected
-            if selected_league and user.player:
-                current_role_names = [role.name for role in user.roles]
-                required_role = f"pl-{selected_league.name.lower()}"
-                
-                if required_role not in current_role_names:
-                    # Find the required role
-                    role_to_add = session.query(Role).filter_by(name=required_role).first()
-                    if role_to_add:
-                        try:
+                    # Add new roles
+                    if new_roles:
+                        for role in new_roles:
                             session.execute(
-                                user_roles.insert().values(user_id=user.id, role_id=role_to_add.id)
+                                user_roles.insert().values(user_id=user.id, role_id=role.id)
                             )
-                            session.flush()
-                            session.refresh(user)
-                            logger.info(f"Auto-assigned {required_role} role to user {user.username} based on league selection")
-                            show_info(f"Automatically assigned {required_role} role based on league selection.")
-                        except Exception as auto_role_error:
-                            logger.error(f"Failed to auto-assign role {required_role}: {auto_role_error}")
-                            # Don't fail the entire operation for this
+                        session.flush()
+                
+                    # Refresh user to get updated roles
+                    session.refresh(user)
+                
+                    logger.info(f"New roles after update: {[role.name for role in user.roles]}")
             
-            # Invalidate draft cache when user roles change (optimized with league context)
-            from app.draft_cache_service import DraftCacheService
-            league_id = form.league_id.data
-            if league_id and league_id != 0:
-                # Get league name for targeted cache invalidation
-                league = session.query(League).get(league_id)
-                league_name = league.name if league else None
-                if league_name:
-                    DraftCacheService.invalidate_player_cache_optimized(user.id, league_name)
-                    logger.debug(f"Targeted cache invalidation for user {user.id} in league {league_name}")
+                except Exception as role_error:
+                    logger.error(f"Error updating roles: {role_error}")
+                    show_error('Failed to update user roles. Please try again.')
+                    return redirect(url_for('user_management.manage_users'))
+            
+                # Auto-assign league roles if not present and league is selected
+                if selected_league and user.player:
+                    current_role_names = [role.name for role in user.roles]
+                    required_role = f"pl-{selected_league.name.lower()}"
+                
+                    if required_role not in current_role_names:
+                        # Find the required role
+                        role_to_add = session.query(Role).filter_by(name=required_role).first()
+                        if role_to_add:
+                            try:
+                                session.execute(
+                                    user_roles.insert().values(user_id=user.id, role_id=role_to_add.id)
+                                )
+                                session.flush()
+                                session.refresh(user)
+                                logger.info(f"Auto-assigned {required_role} role to user {user.username} based on league selection")
+                                show_info(f"Automatically assigned {required_role} role based on league selection.")
+                            except Exception as auto_role_error:
+                                logger.error(f"Failed to auto-assign role {required_role}: {auto_role_error}")
+                                # Don't fail the entire operation for this
+            
+                # Invalidate draft cache when user roles change (optimized with league context)
+                from app.draft_cache_service import DraftCacheService
+                league_id = form.league_id.data
+                if league_id and league_id != 0:
+                    # Get league name for targeted cache invalidation
+                    league = session.query(League).get(league_id)
+                    league_name = league.name if league else None
+                    if league_name:
+                        DraftCacheService.invalidate_player_cache_optimized(user.id, league_name)
+                        logger.debug(f"Targeted cache invalidation for user {user.id} in league {league_name}")
+                    else:
+                        DraftCacheService.invalidate_player_cache_optimized(user.id)
                 else:
                     DraftCacheService.invalidate_player_cache_optimized(user.id)
-            else:
-                DraftCacheService.invalidate_player_cache_optimized(user.id)
             
-            # Check if SUB role is assigned (pl-unverified)
-            has_sub_role = any(role.name == 'pl-unverified' for role in new_roles)
+                # Check if SUB role is assigned (pl-unverified)
+                has_sub_role = any(role.name == 'pl-unverified' for role in new_roles)
 
-            # Update player information if available
-            if user.player:
-                league_id = form.league_id.data
-                user.player.league_id = league_id if league_id != 0 else None
-                user.player.primary_league_id = league_id if league_id != 0 else None
-                user.player.is_current_player = form.is_current_player.data
-                user.player.is_sub = has_sub_role  # Update is_sub flag based on SUB role
+                # Update player information if available
+                if user.player:
+                    league_id = form.league_id.data
+                    user.player.league_id = league_id if league_id != 0 else None
+                    user.player.primary_league_id = league_id if league_id != 0 else None
+                    user.player.is_current_player = form.is_current_player.data
+                    user.player.is_sub = has_sub_role  # Update is_sub flag based on SUB role
 
-                # Update team assignment
-                all_teams = []
+                    # Update team assignment
+                    all_teams = []
             
-                # Handle primary team
-                if form.team_id.data and form.team_id.data != 0:
-                    primary_team = session.query(Team).get(form.team_id.data)
-                    if primary_team:
-                        all_teams.append(primary_team)
-                        user.player.primary_team_id = primary_team.id
-                else:
-                    user.player.primary_team_id = None
+                    # Handle primary team
+                    if form.team_id.data and form.team_id.data != 0:
+                        primary_team = session.query(Team).get(form.team_id.data)
+                        if primary_team:
+                            all_teams.append(primary_team)
+                            user.player.primary_team_id = primary_team.id
+                    else:
+                        user.player.primary_team_id = None
             
-                # Handle secondary team
-                secondary_team_id = request.form.get('secondary_team', type=int)
-                if secondary_team_id and secondary_team_id != 0:
-                    secondary_team = session.query(Team).get(secondary_team_id)
-                    if secondary_team and secondary_team.id != user.player.primary_team_id:
-                        all_teams.append(secondary_team)
+                    # Handle secondary team
+                    secondary_team_id = request.form.get('secondary_team', type=int)
+                    if secondary_team_id and secondary_team_id != 0:
+                        secondary_team = session.query(Team).get(secondary_team_id)
+                        if secondary_team and secondary_team.id != user.player.primary_team_id:
+                            all_teams.append(secondary_team)
             
-                # Update the player's teams relationship
-                user.player.teams = all_teams
+                    # Update the player's teams relationship
+                    user.player.teams = all_teams
 
-                # Handle secondary league
-                secondary_league_id = request.form.get('secondary_league', type=int)
-                if secondary_league_id and secondary_league_id != 0:
-                    secondary_league = session.query(League).get(secondary_league_id)
-                    if secondary_league and secondary_league.id != user.player.primary_league_id:
-                        user.player.other_leagues = [secondary_league]
+                    # Handle secondary league
+                    secondary_league_id = request.form.get('secondary_league', type=int)
+                    if secondary_league_id and secondary_league_id != 0:
+                        secondary_league = session.query(League).get(secondary_league_id)
+                        if secondary_league and secondary_league.id != user.player.primary_league_id:
+                            user.player.other_leagues = [secondary_league]
+                        else:
+                            user.player.other_leagues = []
                     else:
                         user.player.other_leagues = []
-                else:
-                    user.player.other_leagues = []
             
-                # Now automatically sync league roles with league assignments
-                assigned_leagues = set()
+                    # Now automatically sync league roles with league assignments
+                    assigned_leagues = set()
                 
-                # Get primary league
-                if user.player.primary_league_id:
-                    primary_league = session.query(League).get(user.player.primary_league_id)
-                    if primary_league:
-                        assigned_leagues.add(primary_league.name)
+                    # Get primary league
+                    if user.player.primary_league_id:
+                        primary_league = session.query(League).get(user.player.primary_league_id)
+                        if primary_league:
+                            assigned_leagues.add(primary_league.name)
                 
-                # Get secondary leagues
-                for league in user.player.other_leagues:
-                    assigned_leagues.add(league.name)
+                    # Get secondary leagues
+                    for league in user.player.other_leagues:
+                        assigned_leagues.add(league.name)
                 
-                # Also check team assignments for leagues
-                for team in user.player.teams:
-                    if team.league:
-                        assigned_leagues.add(team.league.name)
+                    # Also check team assignments for leagues
+                    for team in user.player.teams:
+                        if team.league:
+                            assigned_leagues.add(team.league.name)
                 
-                # Automatically sync user roles with league assignments
-                logger.info(f"Player assigned to leagues: {assigned_leagues}")
+                    # Automatically sync user roles with league assignments
+                    logger.info(f"Player assigned to leagues: {assigned_leagues}")
                 
-                # Get current league-specific roles
-                current_league_roles = [role for role in user.roles if role.name.startswith('pl-')]
-                current_non_league_roles = [role for role in user.roles if not role.name.startswith('pl-')]
+                    # Get current league-specific roles
+                    current_league_roles = [role for role in user.roles if role.name.startswith('pl-')]
+                    current_non_league_roles = [role for role in user.roles if not role.name.startswith('pl-')]
                 
-                # Determine required league roles based on assignments
-                required_league_roles = []
-                for league_name in assigned_leagues:
-                    if league_name == 'Premier':
-                        premier_role = session.query(Role).filter_by(name='pl-premier').first()
-                        if premier_role:
-                            required_league_roles.append(premier_role)
-                            logger.info(f"Adding pl-premier role for {league_name} league assignment")
-                    elif league_name == 'Classic':
-                        classic_role = session.query(Role).filter_by(name='pl-classic').first()
-                        if classic_role:
-                            required_league_roles.append(classic_role)
-                            logger.info(f"Adding pl-classic role for {league_name} league assignment")
-                    elif league_name == 'ECS FC':
-                        ecs_fc_role = session.query(Role).filter_by(name='pl-ecs-fc').first()
-                        if ecs_fc_role:
-                            required_league_roles.append(ecs_fc_role)
-                            logger.info(f"Adding pl-ecs-fc role for {league_name} league assignment")
+                    # Determine required league roles based on assignments
+                    required_league_roles = []
+                    for league_name in assigned_leagues:
+                        if league_name == 'Premier':
+                            premier_role = session.query(Role).filter_by(name='pl-premier').first()
+                            if premier_role:
+                                required_league_roles.append(premier_role)
+                                logger.info(f"Adding pl-premier role for {league_name} league assignment")
+                        elif league_name == 'Classic':
+                            classic_role = session.query(Role).filter_by(name='pl-classic').first()
+                            if classic_role:
+                                required_league_roles.append(classic_role)
+                                logger.info(f"Adding pl-classic role for {league_name} league assignment")
+                        elif league_name == 'ECS FC':
+                            ecs_fc_role = session.query(Role).filter_by(name='pl-ecs-fc').first()
+                            if ecs_fc_role:
+                                required_league_roles.append(ecs_fc_role)
+                                logger.info(f"Adding pl-ecs-fc role for {league_name} league assignment")
                 
-                # Update user roles: keep non-league roles + add required league roles
-                user.roles = current_non_league_roles + required_league_roles
-                logger.info(f"Updated roles to: {[role.name for role in user.roles]}")
+                    # Update user roles: keep non-league roles + add required league roles
+                    user.roles = current_non_league_roles + required_league_roles
+                    logger.info(f"Updated roles to: {[role.name for role in user.roles]}")
                 
-                # Update approval status if user has league roles
-                if assigned_leagues and user.approval_status != 'approved':
-                    user.approval_status = 'approved'
-                    user.is_approved = True
-                    user.approval_league = list(assigned_leagues)[0].lower().replace(' ', '-')
-                    user.approved_at = datetime.utcnow()
-                    # Note: approved_by would need to be set to current user if we track that
+                    # Update approval status if user has league roles
+                    if assigned_leagues and user.approval_status != 'approved':
+                        user.approval_status = 'approved'
+                        user.is_approved = True
+                        user.approval_league = list(assigned_leagues)[0].lower().replace(' ', '-')
+                        user.approved_at = datetime.utcnow()
+                        # Note: approved_by would need to be set to current user if we track that
 
-            session.add(user)
-            if user.player:
-                session.add(user.player)
-            session.commit()
+                session.add(user)
+                if user.player:
+                    session.add(user.player)
+                session.commit()
             
             # Invalidate draft cache after successful commit (optimized)
             from app.draft_cache_service import DraftCacheService
@@ -724,15 +732,24 @@ def edit_user(user_id):
             else:
                 DraftCacheService.invalidate_player_cache_optimized(user.id)
                 logger.info(f"Global cache invalidation for user {user.id} after edit")
-            
-            # Trigger Discord role sync if player has Discord ID
+
+            # Queue Discord role sync if player has Discord ID (deferred until after commit)
             if user.player and user.player.discord_id:
-                from app.tasks.tasks_discord import assign_roles_to_player_task
-                assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
-                logger.info(f"Triggered Discord role sync for user {user.id} after edit")
-            
+                discord_queue.add_role_sync(user.player.id, only_add=False)
+                logger.info(f"Queued Discord role sync for user {user.id} after edit")
+
+            # Execute deferred Discord operations AFTER transaction commits
+            discord_queue.execute_all()
+
             show_success(f'User {user.username} updated successfully.')
+
+        except LockAcquisitionError:
+            discord_queue.clear()
+            logger.warning(f"Lock acquisition failed for user {user_id} during edit")
+            show_error('User is being modified by another request. Please try again.')
+
         except Exception as e:
+            discord_queue.clear()
             session.rollback()
             logger.exception(f"Error updating user {user_id}: {str(e)}")
             show_error(f'Error updating user: {str(e)}')
