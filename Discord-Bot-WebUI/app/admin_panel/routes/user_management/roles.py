@@ -22,6 +22,8 @@ from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role, Permission
 from app.decorators import role_required
 from app.utils.db_utils import transactional
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import defer_discord_sync, execute_deferred_discord, clear_deferred_discord
 from app.tasks.tasks_discord import assign_roles_to_player_task
 from app.services.discord_role_sync_service import sync_role_assignment, sync_role_removal
 
@@ -163,9 +165,14 @@ def get_role_details():
 @admin_panel_bp.route('/users/roles/assign', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
+@transactional(max_retries=3)
 def assign_user_roles():
-    """Assign roles to a user."""
+    """
+    Assign roles to a user.
+
+    Uses pessimistic locking to prevent concurrent modifications and
+    defers Discord operations until after the transaction commits.
+    """
     user_id = request.form.get('user_id')
     role_ids = request.form.getlist('role_ids')
 
@@ -173,74 +180,85 @@ def assign_user_roles():
         flash('User ID is required', 'error')
         return redirect(url_for('admin_panel.roles_management'))
 
-    user = User.query.options(joinedload(User.player)).get_or_404(user_id)
+    try:
+        # Acquire lock on user to prevent concurrent role modifications
+        with lock_user_for_role_update(int(user_id), session=db.session) as user:
+            # Track roles for sync
+            old_roles = set(user.roles)
+            new_roles = set()
 
-    # Track roles for sync
-    old_roles = set(user.roles)
-    new_roles = set()
+            # Clear existing roles and assign new ones
+            user.roles.clear()
+            for role_id in role_ids:
+                role = Role.query.get(role_id)
+                if role:
+                    user.roles.append(role)
+                    new_roles.add(role)
 
-    # Clear existing roles and assign new ones
-    user.roles.clear()
-    for role_id in role_ids:
-        role = Role.query.get(role_id)
-        if role:
-            user.roles.append(role)
-            new_roles.add(role)
+            # Sync Flask->Discord role mappings
+            roles_added = new_roles - old_roles
+            roles_removed = old_roles - new_roles
 
-    # Sync Flask->Discord role mappings
-    roles_added = new_roles - old_roles
-    roles_removed = old_roles - new_roles
+            for role in roles_added:
+                if role.discord_role_id and role.sync_enabled:
+                    try:
+                        sync_role_assignment(user, role)
+                        logger.info(f"Synced Discord role {role.name} for user {user.username}")
+                    except Exception as e:
+                        logger.error(f"Failed to sync Discord role {role.name}: {e}")
 
-    for role in roles_added:
-        if role.discord_role_id and role.sync_enabled:
-            try:
-                sync_role_assignment(user, role)
-                logger.info(f"Synced Discord role {role.name} for user {user.username}")
-            except Exception as e:
-                logger.error(f"Failed to sync Discord role {role.name}: {e}")
+            for role in roles_removed:
+                if role.discord_role_id and role.sync_enabled:
+                    try:
+                        sync_role_removal(user, role)
+                        logger.info(f"Removed Discord role {role.name} from user {user.username}")
+                    except Exception as e:
+                        logger.error(f"Failed to remove Discord role {role.name}: {e}")
 
-    for role in roles_removed:
-        if role.discord_role_id and role.sync_enabled:
-            try:
-                sync_role_removal(user, role)
-                logger.info(f"Removed Discord role {role.name} from user {user.username}")
-            except Exception as e:
-                logger.error(f"Failed to remove Discord role {role.name}: {e}")
+            # Sync ECS FC Coach role to player_teams.is_coach
+            ecs_fc_coach_added = any(role.name == 'ECS FC Coach' for role in roles_added)
+            ecs_fc_coach_removed = any(role.name == 'ECS FC Coach' for role in roles_removed)
 
-    # Sync ECS FC Coach role to player_teams.is_coach
-    ecs_fc_coach_added = any(role.name == 'ECS FC Coach' for role in roles_added)
-    ecs_fc_coach_removed = any(role.name == 'ECS FC Coach' for role in roles_removed)
+            if ecs_fc_coach_added:
+                try:
+                    sync_ecs_fc_coach_status(user, is_adding_role=True)
+                except Exception as e:
+                    logger.error(f"Failed to sync ECS FC Coach status for user {user.id}: {e}")
 
-    if ecs_fc_coach_added:
-        try:
-            sync_ecs_fc_coach_status(user, is_adding_role=True)
-        except Exception as e:
-            logger.error(f"Failed to sync ECS FC Coach status for user {user.id}: {e}")
+            if ecs_fc_coach_removed:
+                try:
+                    sync_ecs_fc_coach_status(user, is_adding_role=False)
+                except Exception as e:
+                    logger.error(f"Failed to remove ECS FC Coach status for user {user.id}: {e}")
 
-    if ecs_fc_coach_removed:
-        try:
-            sync_ecs_fc_coach_status(user, is_adding_role=False)
-        except Exception as e:
-            logger.error(f"Failed to remove ECS FC Coach status for user {user.id}: {e}")
+            # Queue Discord role sync for AFTER transaction commits
+            if user.player and user.player.discord_id:
+                defer_discord_sync(user.player.id, only_add=False)
+                logger.info(f"Queued Discord role sync for user {user.id} after role assignment")
 
-    # Trigger Discord role sync if player has Discord ID (for team-based roles)
-    if user.player and user.player.discord_id:
-        assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
-        logger.info(f"Triggered Discord role sync for user {user.id} after role assignment")
+            # Log the action
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='assign_roles',
+                resource_type='user_roles',
+                resource_id=str(user_id),
+                new_value=f"Assigned roles: {', '.join([Role.query.get(rid).name for rid in role_ids if Role.query.get(rid)])}",
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
 
-    # Log the action
-    AdminAuditLog.log_action(
-        user_id=current_user.id,
-        action='assign_roles',
-        resource_type='user_roles',
-        resource_id=str(user_id),
-        new_value=f"Assigned roles: {', '.join([Role.query.get(rid).name for rid in role_ids if Role.query.get(rid)])}",
-        ip_address=request.remote_addr,
-        user_agent=request.headers.get('User-Agent')
-    )
+            username = user.name or user.username
 
-    flash(f'Roles assigned to "{user.name or user.username}" successfully', 'success')
-    return redirect(url_for('admin_panel.roles_management'))
+        # Execute deferred Discord operations AFTER transaction commits
+        execute_deferred_discord()
+
+        flash(f'Roles assigned to "{username}" successfully', 'success')
+        return redirect(url_for('admin_panel.roles_management'))
+
+    except LockAcquisitionError:
+        clear_deferred_discord()
+        flash('User is currently being modified by another request. Please try again.', 'error')
+        return redirect(url_for('admin_panel.roles_management'))
 
 
 @admin_panel_bp.route('/users/roles/search', methods=['POST'])
@@ -364,8 +382,14 @@ def get_user_roles():
 @admin_panel_bp.route('/users/assign-role', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
+@transactional(max_retries=3)
 def assign_user_role():
-    """Assign or remove role from user via AJAX."""
+    """
+    Assign or remove role from user via AJAX.
+
+    Uses pessimistic locking to prevent concurrent modifications and
+    defers Discord operations until after the transaction commits.
+    """
     try:
         user_id = request.form.get('user_id')
         role_id = request.form.get('role_id')
@@ -374,69 +398,78 @@ def assign_user_role():
         if not all([user_id, role_id, action]):
             return jsonify({'success': False, 'message': 'Missing required parameters'})
 
-        user = User.query.options(joinedload(User.player)).get_or_404(user_id)
         role = Role.query.get_or_404(role_id)
 
-        # Refresh user roles from database to avoid stale data issues
-        db.session.refresh(user, ['roles'])
-
-        if action == 'add':
-            if role not in user.roles:
-                user.roles.append(role)
-                message = f'Role "{role.name}" added to user "{user.username}"'
-                audit_action = 'assign_role'
-            else:
-                return jsonify({'success': False, 'message': 'User already has this role'})
-        elif action == 'remove':
-            if role in user.roles:
-                user.roles.remove(role)
-                message = f'Role "{role.name}" removed from user "{user.username}"'
-                audit_action = 'remove_role'
-            else:
-                return jsonify({'success': False, 'message': 'User does not have this role'})
-        else:
-            return jsonify({'success': False, 'message': 'Invalid action'})
-
-        db.session.commit()
-
-        # Sync the specific Flask->Discord role mapping if exists
-        if role.discord_role_id and role.sync_enabled:
-            try:
-                if action == 'add':
-                    sync_role_assignment(user, role)
-                    logger.info(f"Synced Flask->Discord role mapping for {role.name} to user {user.username}")
+        # Acquire lock on user to prevent concurrent role modifications
+        with lock_user_for_role_update(int(user_id), session=db.session) as user:
+            if action == 'add':
+                if role not in user.roles:
+                    user.roles.append(role)
+                    message = f'Role "{role.name}" added to user "{user.username}"'
+                    audit_action = 'assign_role'
                 else:
-                    sync_role_removal(user, role)
-                    logger.info(f"Removed Discord role mapping for {role.name} from user {user.username}")
-            except Exception as e:
-                logger.error(f"Failed to sync Discord role mapping: {e}")
+                    return jsonify({'success': False, 'message': 'User already has this role'})
+            elif action == 'remove':
+                if role in user.roles:
+                    user.roles.remove(role)
+                    message = f'Role "{role.name}" removed from user "{user.username}"'
+                    audit_action = 'remove_role'
+                else:
+                    return jsonify({'success': False, 'message': 'User does not have this role'})
+            else:
+                return jsonify({'success': False, 'message': 'Invalid action'})
 
-        # Sync ECS FC Coach role to player_teams.is_coach
-        if role.name == 'ECS FC Coach':
-            try:
-                sync_ecs_fc_coach_status(user, is_adding_role=(action == 'add'))
-                db.session.commit()  # Commit the player_teams update
-            except Exception as e:
-                logger.error(f"Failed to sync ECS FC Coach status for user {user.id}: {e}")
+            db.session.flush()
 
-        # Trigger Discord role sync if player has Discord ID (for team-based roles)
-        if user.player and user.player.discord_id:
-            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
-            logger.info(f"Triggered Discord role sync for user {user.id} after role {action}")
+            # Sync the specific Flask->Discord role mapping if exists
+            if role.discord_role_id and role.sync_enabled:
+                try:
+                    if action == 'add':
+                        sync_role_assignment(user, role)
+                        logger.info(f"Synced Flask->Discord role mapping for {role.name} to user {user.username}")
+                    else:
+                        sync_role_removal(user, role)
+                        logger.info(f"Removed Discord role mapping for {role.name} from user {user.username}")
+                except Exception as e:
+                    logger.error(f"Failed to sync Discord role mapping: {e}")
 
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action=audit_action,
-            resource_type='user_management',
-            resource_id=str(user_id),
-            new_value=f'{action}:{role.name}',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
+            # Sync ECS FC Coach role to player_teams.is_coach
+            if role.name == 'ECS FC Coach':
+                try:
+                    sync_ecs_fc_coach_status(user, is_adding_role=(action == 'add'))
+                except Exception as e:
+                    logger.error(f"Failed to sync ECS FC Coach status for user {user.id}: {e}")
+
+            # Queue Discord role sync for AFTER transaction commits
+            if user.player and user.player.discord_id:
+                defer_discord_sync(user.player.id, only_add=False)
+                logger.info(f"Queued Discord role sync for user {user.id} after role {action}")
+
+            # Log the action
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action=audit_action,
+                resource_type='user_management',
+                resource_id=str(user_id),
+                new_value=f'{action}:{role.name}',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+        # Execute deferred Discord operations AFTER transaction commits
+        execute_deferred_discord()
 
         return jsonify({'success': True, 'message': message})
+
+    except LockAcquisitionError:
+        clear_deferred_discord()
+        return jsonify({
+            'success': False,
+            'message': 'User is currently being modified by another request. Please try again.'
+        }), 409
+
     except Exception as e:
+        clear_deferred_discord()
         logger.error(f"Error assigning user role: {e}")
         return jsonify({'success': False, 'message': 'Error updating user role'})
 

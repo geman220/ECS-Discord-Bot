@@ -27,6 +27,8 @@ from app.models.core import User, Role
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_helpers import safe_current_user
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import DeferredDiscordQueue
 from .helpers import (_check_discord_api_status, _check_push_service_status,
                      _check_email_service_status, _check_redis_service_status,
                      _check_database_service_status, _estimate_api_calls_today,
@@ -1335,12 +1337,16 @@ def _cleanup_inactive_users():
 
 
 def _assign_default_roles():
-    """Assign default roles to users without roles."""
+    """Assign default roles to users without roles.
+
+    Uses pessimistic locking to prevent concurrent role modifications.
+    Discord sync is deferred until after each user's transaction commits.
+    """
     from sqlalchemy.orm import joinedload
     from app.tasks.tasks_discord import assign_roles_to_player_task
 
     try:
-        # Eager load player relationship for Discord sync
+        # Find users without roles
         users_without_roles = User.query.options(
             joinedload(User.player)
         ).filter(~User.roles.any()).all()
@@ -1354,23 +1360,38 @@ def _assign_default_roles():
             }
 
         count = 0
-        users_to_sync = []
-        for user in users_without_roles:
-            # Safety check to prevent duplicates
-            if default_role not in user.roles:
-                user.roles.append(default_role)
-                count += 1
-                # Track users for Discord sync
-                if user.player and user.player.discord_id:
-                    users_to_sync.append(user.player.id)
+        skipped = 0
+        discord_queue = DeferredDiscordQueue()
 
-        # Trigger Discord sync for affected users
-        for player_id in users_to_sync:
-            assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
+        # Process each user individually with locking
+        for user in users_without_roles:
+            try:
+                with lock_user_for_role_update(user.id, session=db.session, nowait=True) as locked_user:
+                    # Safety check to prevent duplicates
+                    if default_role not in locked_user.roles:
+                        locked_user.roles.append(default_role)
+                        count += 1
+                        # Queue Discord sync
+                        if locked_user.player and locked_user.player.discord_id:
+                            discord_queue.add_role_sync(locked_user.player.id, only_add=False)
+
+                    db.session.commit()
+
+            except LockAcquisitionError:
+                db.session.rollback()
+                skipped += 1
+                logger.debug(f"Skipped locked user {user.id} during default role assignment")
+
+        # Execute all queued Discord operations
+        discord_queue.execute_all()
+
+        message = f'Assigned default roles to {count} users'
+        if skipped > 0:
+            message += f', {skipped} skipped (locked)'
 
         return {
             'success': True,
-            'message': f'Assigned default roles to {count} users, syncing {len(users_to_sync)} to Discord',
+            'message': message,
             'count': count
         }
     except Exception as e:

@@ -18,6 +18,7 @@ from app.models import User, Player, db
 from app.utils.db_utils import transactional
 from app.decorators import role_required
 from app.utils.user_helpers import safe_current_user
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
 from app import csrf
 
 logger = logging.getLogger(__name__)
@@ -810,11 +811,12 @@ def get_all_league_settings():
 
 @discord_onboarding.route('/role-sync', methods=['POST'])
 @csrf.exempt
-@transactional
 def sync_roles_from_discord():
     """
     Called by Discord bot when a member's roles change in Discord.
     Syncs the role changes back to Flask using the existing role mappings.
+
+    Uses pessimistic locking to prevent concurrent role modifications.
 
     This enables bidirectional role sync:
     - Flask → Discord: Handled by discord_role_sync_service.py
@@ -852,10 +854,7 @@ def sync_roles_from_discord():
                 'synced': False
             }), 200
 
-        user = player.user
-
-        # Refresh user roles from database to avoid stale data issues
-        g.db_session.refresh(user, ['roles'])
+        user_id = player.user.id
 
         results = {
             'added': [],
@@ -873,68 +872,82 @@ def sync_roles_from_discord():
         # Create a lookup dict: discord_role_id -> Flask Role
         discord_to_flask = {role.discord_role_id: role for role in mapped_roles}
 
-        # Process added Discord roles -> add Flask roles
-        for discord_role_id in added_role_ids:
-            flask_role = discord_to_flask.get(str(discord_role_id))
-            if flask_role:
-                if flask_role not in user.roles:
-                    user.roles.append(flask_role)
-                    results['added'].append({
-                        'discord_role_id': discord_role_id,
-                        'flask_role': flask_role.name
-                    })
-                    logger.info(f"Added Flask role '{flask_role.name}' to user {user.username} (Discord role: {discord_role_id})")
-                else:
-                    results['skipped'].append({
-                        'discord_role_id': discord_role_id,
-                        'flask_role': flask_role.name,
-                        'reason': 'User already has this role'
-                    })
-            # If no mapping exists, just skip silently
+        try:
+            # Acquire lock on user for role modification
+            with lock_user_for_role_update(user_id, session=g.db_session) as user:
+                # Process added Discord roles -> add Flask roles
+                for discord_role_id in added_role_ids:
+                    flask_role = discord_to_flask.get(str(discord_role_id))
+                    if flask_role:
+                        if flask_role not in user.roles:
+                            user.roles.append(flask_role)
+                            results['added'].append({
+                                'discord_role_id': discord_role_id,
+                                'flask_role': flask_role.name
+                            })
+                            logger.info(f"Added Flask role '{flask_role.name}' to user {user.username} (Discord role: {discord_role_id})")
+                        else:
+                            results['skipped'].append({
+                                'discord_role_id': discord_role_id,
+                                'flask_role': flask_role.name,
+                                'reason': 'User already has this role'
+                            })
+                    # If no mapping exists, just skip silently
 
-        # Process removed Discord roles -> remove Flask roles
-        for discord_role_id in removed_role_ids:
-            flask_role = discord_to_flask.get(str(discord_role_id))
-            if flask_role:
-                if flask_role in user.roles:
-                    user.roles.remove(flask_role)
-                    results['removed'].append({
-                        'discord_role_id': discord_role_id,
-                        'flask_role': flask_role.name
-                    })
-                    logger.info(f"Removed Flask role '{flask_role.name}' from user {user.username} (Discord role: {discord_role_id})")
-                else:
-                    results['skipped'].append({
-                        'discord_role_id': discord_role_id,
-                        'flask_role': flask_role.name,
-                        'reason': 'User did not have this role'
-                    })
-            # If no mapping exists, just skip silently
+                # Process removed Discord roles -> remove Flask roles
+                for discord_role_id in removed_role_ids:
+                    flask_role = discord_to_flask.get(str(discord_role_id))
+                    if flask_role:
+                        if flask_role in user.roles:
+                            user.roles.remove(flask_role)
+                            results['removed'].append({
+                                'discord_role_id': discord_role_id,
+                                'flask_role': flask_role.name
+                            })
+                            logger.info(f"Removed Flask role '{flask_role.name}' from user {user.username} (Discord role: {discord_role_id})")
+                        else:
+                            results['skipped'].append({
+                                'discord_role_id': discord_role_id,
+                                'flask_role': flask_role.name,
+                                'reason': 'User did not have this role'
+                            })
+                    # If no mapping exists, just skip silently
 
-        # Commit changes
-        g.db_session.add(user)
+                # Log the sync interaction
+                if results['added'] or results['removed']:
+                    log_discord_interaction(
+                        user.id, discord_id, 'role_sync_from_discord',
+                        success=True,
+                        metadata={
+                            'added': results['added'],
+                            'removed': results['removed'],
+                            'skipped_count': len(results['skipped'])
+                        }
+                    )
 
-        # Log the sync interaction
-        if results['added'] or results['removed']:
-            log_discord_interaction(
-                user.id, discord_id, 'role_sync_from_discord',
-                success=True,
-                metadata={
-                    'added': results['added'],
-                    'removed': results['removed'],
-                    'skipped_count': len(results['skipped'])
-                }
-            )
+                # Commit changes
+                g.db_session.commit()
+
+                username = user.username
+                result_user_id = user.id
+
+        except LockAcquisitionError:
+            g.db_session.rollback()
+            return jsonify({
+                'success': False,
+                'error': 'User is being modified by another request. Please try again.'
+            }), 409
 
         return jsonify({
             'success': True,
-            'user_id': user.id,
-            'username': user.username,
+            'user_id': result_user_id,
+            'username': username,
             'results': results,
             'synced': bool(results['added'] or results['removed'])
         }), 200
 
     except Exception as e:
+        g.db_session.rollback()
         logger.error(f"Error syncing roles from Discord: {e}", exc_info=True)
         return jsonify({
             'success': False,

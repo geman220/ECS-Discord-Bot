@@ -24,6 +24,8 @@ from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role
 from app.decorators import role_required
 from app.utils.db_utils import transactional
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal, execute_deferred_discord, clear_deferred_discord
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.utils.user_helpers import safe_current_user
 from app.admin_panel.routes.user_management.helpers import (
@@ -117,81 +119,83 @@ def user_waitlist():
 @admin_panel_bp.route('/users/waitlist/remove/<int:user_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
+@transactional(max_retries=3)
 def remove_from_waitlist(user_id: int):
     """
     Remove a user from the waitlist.
+
+    Uses pessimistic locking to prevent concurrent modifications.
     """
     try:
         current_user_safe = safe_current_user
 
-        # Get the user
-        user = db.session.query(User).options(
-            joinedload(User.player),
-            joinedload(User.roles)
-        ).filter_by(id=user_id).first()
+        # Acquire lock on user to prevent concurrent role modifications
+        with lock_user_for_role_update(user_id, session=db.session) as user:
+            # Get the pl-waitlist role
+            waitlist_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
+            if not waitlist_role:
+                return jsonify({'success': False, 'message': 'Waitlist role not found'}), 404
 
-        if not user:
-            return jsonify({'success': False, 'message': 'User not found'}), 404
+            # Check if user is on waitlist
+            if waitlist_role not in user.roles:
+                return jsonify({'success': False, 'message': 'User is not on waitlist'}), 400
 
-        # Get the pl-waitlist role
-        waitlist_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
-        if not waitlist_role:
-            return jsonify({'success': False, 'message': 'Waitlist role not found'}), 404
+            # Get removal reason from request
+            reason = request.json.get('reason', 'No reason provided')
 
-        # Refresh user roles from database to avoid stale data issues
-        db.session.refresh(user, ['roles'])
+            # Remove the waitlist role
+            user.roles.remove(waitlist_role)
 
-        # Check if user is on waitlist
-        if waitlist_role not in user.roles:
-            return jsonify({'success': False, 'message': 'User is not on waitlist'}), 400
+            # Clear waitlist joined timestamp since they're no longer on waitlist
+            if hasattr(user, 'waitlist_joined_at'):
+                user.waitlist_joined_at = None
 
-        # Get removal reason from request
-        reason = request.json.get('reason', 'No reason provided')
+            # Update user record
+            user.updated_at = datetime.utcnow()
 
-        # Remove the waitlist role
-        user.roles.remove(waitlist_role)
+            # Log the action
+            AdminAuditLog.log_action(
+                user_id=current_user_safe.id,
+                action='remove_from_waitlist',
+                resource_type='user_waitlist',
+                resource_id=str(user_id),
+                old_value='on_waitlist',
+                new_value=f'removed: {reason}',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
 
-        # Clear waitlist joined timestamp since they're no longer on waitlist
-        if hasattr(user, 'waitlist_joined_at'):
-            user.waitlist_joined_at = None
+            logger.info(f"User {user.id} ({user.username}) removed from waitlist by {current_user_safe.id} ({current_user_safe.username}). Reason: {reason}")
 
-        # Update user record
-        user.updated_at = datetime.utcnow()
+            # Commit the changes
+            db.session.flush()
 
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user_safe.id,
-            action='remove_from_waitlist',
-            resource_type='user_waitlist',
-            resource_id=str(user_id),
-            old_value='on_waitlist',
-            new_value=f'removed: {reason}',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        logger.info(f"User {user.id} ({user.username}) removed from waitlist by {current_user_safe.id} ({current_user_safe.username}). Reason: {reason}")
-
-        # Commit the changes
-        db.session.flush()
-
-        # Sync Discord roles if user has Discord integration
-        if user.player and user.player.discord_id:
-            try:
-                # Remove Discord roles (this will remove the waitlist Discord role)
-                remove_player_roles_task.delay(player_id=user.player.id)
+            # Queue Discord role removal for AFTER transaction commits
+            if user.player and user.player.discord_id:
+                defer_discord_removal(user.player.id)
                 logger.info(f"Queued Discord role removal for user {user.id}")
-            except Exception as e:
-                logger.error(f"Failed to queue Discord role removal for user {user.id}: {str(e)}")
+
+            username = user.username
+
+        # Execute deferred Discord operations AFTER transaction commits
+        execute_deferred_discord()
 
         return jsonify({
             'success': True,
-            'message': f'User {user.username} removed from waitlist successfully',
-            'user_id': user.id
+            'message': f'User {username} removed from waitlist successfully',
+            'user_id': user_id
         })
 
+    except LockAcquisitionError:
+        clear_deferred_discord()
+        logger.warning(f"Lock acquisition failed for user {user_id} during waitlist removal")
+        return jsonify({
+            'success': False,
+            'message': 'User is currently being modified by another request. Please try again.'
+        }), 409
+
     except Exception as e:
+        clear_deferred_discord()
         logger.error(f"Error removing user {user_id} from waitlist: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': 'Failed to remove user from waitlist'}), 500
 
@@ -504,38 +508,62 @@ def get_waitlist_user_details(user_id: int):
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def process_waitlist_user():
-    """Legacy route for bulk waitlist processing."""
+    """Legacy route for bulk waitlist processing.
+
+    Uses per-user mini-transactions with pessimistic locking.
+    Discord sync is deferred until after each user's transaction commits.
+    """
     try:
         action = request.form.get('action')
         user_id = request.form.get('user_id')
 
         if action == 'process_all':
-            # Process all waitlist users - move them to pending approval
-            waitlist_users = db.session.query(User).join(User.roles).filter(
+            # Get roles needed for processing
+            waitlist_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
+            unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
+
+            if not waitlist_role:
+                flash('Waitlist role not found', 'error')
+                return redirect(url_for('admin_panel.user_waitlist'))
+
+            # Get all waitlist user IDs
+            waitlist_user_ids = [u.id for u in db.session.query(User.id).join(User.roles).filter(
                 Role.name == 'pl-waitlist'
-            ).all()
+            ).all()]
 
             processed_count = 0
-            for user in waitlist_users:
+            skipped_count = 0
+            discord_queue = DeferredDiscordQueue()
+
+            # Process each user individually with locking
+            for uid in waitlist_user_ids:
                 try:
-                    # Refresh user roles from database to avoid stale data issues
-                    db.session.refresh(user, ['roles'])
+                    with lock_user_for_role_update(uid, session=db.session, nowait=True) as user:
+                        if waitlist_role in user.roles:
+                            user.roles.remove(waitlist_role)
+                        if unverified_role and unverified_role not in user.roles:
+                            user.roles.append(unverified_role)
 
-                    # Remove waitlist role and add unverified role
-                    waitlist_role = db.session.query(Role).filter_by(name='pl-waitlist').first()
-                    unverified_role = db.session.query(Role).filter_by(name='pl-unverified').first()
+                        user.approval_status = 'pending'
 
-                    if waitlist_role in user.roles:
-                        user.roles.remove(waitlist_role)
-                    if unverified_role and unverified_role not in user.roles:
-                        user.roles.append(unverified_role)
+                        # Queue Discord sync
+                        if user.player and user.player.discord_id:
+                            discord_queue.add_role_sync(user.player.id, only_add=False)
 
-                    user.approval_status = 'pending'
-                    processed_count += 1
+                        db.session.commit()
+                        processed_count += 1
+
+                except LockAcquisitionError:
+                    db.session.rollback()
+                    skipped_count += 1
+                    logger.debug(f"Skipped locked user {uid} during bulk waitlist processing")
+
                 except Exception as e:
-                    logger.error(f"Error processing waitlist user {user.id}: {e}")
+                    db.session.rollback()
+                    logger.error(f"Error processing waitlist user {uid}: {e}")
 
-            db.session.commit()
+            # Execute all queued Discord operations
+            discord_queue.execute_all()
 
             # Log the action
             AdminAuditLog.log_action(
@@ -548,7 +576,10 @@ def process_waitlist_user():
                 user_agent=request.headers.get('User-Agent')
             )
 
-            flash(f'{processed_count} users moved from waitlist to pending approval', 'success')
+            message = f'{processed_count} users moved from waitlist to pending approval'
+            if skipped_count > 0:
+                message += f', {skipped_count} skipped (locked)'
+            flash(message, 'success')
 
         return redirect(url_for('admin_panel.user_waitlist'))
     except Exception as e:

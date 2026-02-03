@@ -21,6 +21,8 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
 from app.utils.db_utils import transactional
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import DeferredDiscordQueue
 
 logger = logging.getLogger(__name__)
 
@@ -203,9 +205,12 @@ def substitute_pool_detail(league_type):
 @admin_panel_bp.route('/substitute-pools/<league_type>/add-player', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
-@transactional
 def add_player_to_pool(league_type):
-    """Add a player to the substitute pool for a specific league."""
+    """Add a player to the substitute pool for a specific league.
+
+    Uses pessimistic locking to prevent concurrent role modifications.
+    Discord sync is deferred until after transaction commits.
+    """
     if league_type not in LEAGUE_TYPES:
         return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
@@ -219,83 +224,116 @@ def add_player_to_pool(league_type):
 
     # Verify player exists
     player = Player.query.options(
-        joinedload(Player.user).joinedload(User.roles)
+        joinedload(Player.user)
     ).get(player_id)
 
     if not player:
         return jsonify({'success': False, 'message': 'Player not found'}), 404
 
-    # Assign the required role if not already assigned
+    if not player.user:
+        return jsonify({'success': False, 'message': 'Player has no associated user account'}), 400
+
+    # Get the required role
     required_role_name = LEAGUE_TYPES[league_type]['role']
     required_role = Role.query.filter_by(name=required_role_name).first()
 
-    if player.user and required_role and required_role not in player.user.roles:
-        player.user.roles.append(required_role)
+    if not required_role:
+        return jsonify({'success': False, 'message': f'Role {required_role_name} not found'}), 500
 
-    # Check if already in pool for this league type
-    existing_pool = SubstitutePool.query.filter_by(
-        player_id=player_id,
-        league_type=league_type
-    ).first()
+    # Queue for deferred Discord operations
+    discord_queue = DeferredDiscordQueue()
 
-    if existing_pool:
-        if existing_pool.is_active:
-            return jsonify({'success': False, 'message': 'Player is already in the active pool'}), 400
-        else:
-            # Reactivate
-            existing_pool.is_active = True
-            message = f"{player.name} has been reactivated in the {league_type} substitute pool"
-    else:
-        # Create new pool entry
-        pool_entry = SubstitutePool(
-            player_id=player_id,
-            league_type=league_type,
-            preferred_positions=request.json.get('preferred_positions', ''),
-            sms_for_sub_requests=request.json.get('sms_notifications', True),
-            discord_for_sub_requests=request.json.get('discord_notifications', True),
-            email_for_sub_requests=request.json.get('email_notifications', True),
-            is_active=True
-        )
-        db.session.add(pool_entry)
-        message = f"{player.name} has been added to the {league_type} substitute pool"
-
-    # Log the action
-    AdminAuditLog.log_action(
-        user_id=current_user.id,
-        action='add_to_substitute_pool',
-        resource_type='substitute_pools',
-        resource_id=str(player_id),
-        new_value=f'Added player {player.name} to {league_type} pool',
-        ip_address=request.remote_addr,
-        user_agent=request.headers.get('User-Agent')
-    )
-
-    # Trigger Discord role update
     try:
-        from app.tasks.tasks_discord import assign_roles_to_player_task
-        assign_roles_to_player_task.delay(player_id=player.id, only_add=False)
-    except Exception as task_error:
-        logger.warning(f"Failed to queue Discord role update: {task_error}")
+        # Acquire lock on user for role modification
+        with lock_user_for_role_update(player.user.id, session=db.session) as user:
+            # Assign the required role if not already assigned
+            if required_role not in user.roles:
+                user.roles.append(required_role)
+
+            # Check if already in pool for this league type
+            existing_pool = SubstitutePool.query.filter_by(
+                player_id=player_id,
+                league_type=league_type
+            ).first()
+
+            if existing_pool:
+                if existing_pool.is_active:
+                    return jsonify({'success': False, 'message': 'Player is already in the active pool'}), 400
+                else:
+                    # Reactivate
+                    existing_pool.is_active = True
+                    message = f"{player.name} has been reactivated in the {league_type} substitute pool"
+            else:
+                # Create new pool entry
+                pool_entry = SubstitutePool(
+                    player_id=player_id,
+                    league_type=league_type,
+                    preferred_positions=request.json.get('preferred_positions', ''),
+                    sms_for_sub_requests=request.json.get('sms_notifications', True),
+                    discord_for_sub_requests=request.json.get('discord_notifications', True),
+                    email_for_sub_requests=request.json.get('email_notifications', True),
+                    is_active=True
+                )
+                db.session.add(pool_entry)
+                message = f"{player.name} has been added to the {league_type} substitute pool"
+
+            # Log the action
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='add_to_substitute_pool',
+                resource_type='substitute_pools',
+                resource_id=str(player_id),
+                new_value=f'Added player {player.name} to {league_type} pool',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+            # Queue Discord role sync (deferred until after commit)
+            if player.discord_id:
+                discord_queue.add_role_sync(player.id, only_add=False)
+
+            # Commit the transaction
+            db.session.commit()
+
+            player_data = {
+                'id': player.id,
+                'name': player.name,
+                'discord_id': player.discord_id,
+                'phone_number': player.phone,
+                'email': user.email
+            }
+
+    except LockAcquisitionError:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'User is being modified by another request. Please try again.'
+        }), 409
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error adding player to pool: {e}")
+        return jsonify({'success': False, 'message': 'Failed to add player to pool'}), 500
+
+    # Execute deferred Discord operations after successful commit
+    discord_queue.execute_all()
 
     return jsonify({
         'success': True,
         'message': message,
-        'player_data': {
-            'id': player.id,
-            'name': player.name,
-            'discord_id': player.discord_id,
-            'phone_number': player.phone,
-            'email': player.user.email if player.user else None
-        }
+        'player_data': player_data
     })
 
 
 @admin_panel_bp.route('/substitute-pools/<league_type>/remove-player', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
-@transactional
 def remove_player_from_pool(league_type):
-    """Remove a player from the substitute pool."""
+    """Remove a player from the substitute pool.
+
+    Uses pessimistic locking to prevent concurrent role modifications.
+    Discord sync is deferred until after transaction commits.
+    """
     if league_type not in LEAGUE_TYPES:
         return jsonify({'success': False, 'message': 'Invalid league type'}), 400
 
@@ -307,7 +345,9 @@ def remove_player_from_pool(league_type):
         return jsonify({'success': False, 'message': 'Player ID is required'}), 400
 
     # Find the pool entry
-    pool_entry = SubstitutePool.query.filter_by(
+    pool_entry = SubstitutePool.query.options(
+        joinedload(SubstitutePool.player)
+    ).filter_by(
         player_id=player_id,
         league_type=league_type,
         is_active=True
@@ -316,49 +356,71 @@ def remove_player_from_pool(league_type):
     if not pool_entry:
         return jsonify({'success': False, 'message': 'Player not found in active pool'}), 404
 
-    # Deactivate the pool entry
-    pool_entry.is_active = False
-
-    # Remove the Flask role if player is not in any other active pools
     player = pool_entry.player
-    if player and player.user:
-        # Refresh user roles from database to avoid stale data issues
-        db.session.refresh(player.user, ['roles'])
+    if not player or not player.user:
+        return jsonify({'success': False, 'message': 'Player has no associated user account'}), 400
 
-        other_active_pools = SubstitutePool.query.filter(
-            SubstitutePool.player_id == player_id,
-            SubstitutePool.is_active == True,
-            SubstitutePool.id != pool_entry.id
-        ).count()
+    # Queue for deferred Discord operations
+    discord_queue = DeferredDiscordQueue()
 
-        if other_active_pools == 0:
-            # Remove all substitute roles
-            for role_name in ['ECS FC Sub', 'Classic Sub', 'Premier Sub']:
-                role = Role.query.filter_by(name=role_name).first()
-                if role and role in player.user.roles:
-                    player.user.roles.remove(role)
-
-    # Log the action
-    AdminAuditLog.log_action(
-        user_id=current_user.id,
-        action='remove_from_substitute_pool',
-        resource_type='substitute_pools',
-        resource_id=str(player_id),
-        new_value=f'Removed player {player.name} from {league_type} pool',
-        ip_address=request.remote_addr,
-        user_agent=request.headers.get('User-Agent')
-    )
-
-    # Trigger Discord role update
     try:
-        from app.tasks.tasks_discord import assign_roles_to_player_task
-        assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
-    except Exception as task_error:
-        logger.warning(f"Failed to queue Discord role update: {task_error}")
+        # Acquire lock on user for role modification
+        with lock_user_for_role_update(player.user.id, session=db.session) as user:
+            # Deactivate the pool entry
+            pool_entry.is_active = False
+
+            # Check if player is in any other active pools
+            other_active_pools = SubstitutePool.query.filter(
+                SubstitutePool.player_id == player_id,
+                SubstitutePool.is_active == True,
+                SubstitutePool.id != pool_entry.id
+            ).count()
+
+            if other_active_pools == 0:
+                # Remove all substitute roles
+                for role_name in ['ECS FC Sub', 'Classic Sub', 'Premier Sub']:
+                    role = Role.query.filter_by(name=role_name).first()
+                    if role and role in user.roles:
+                        user.roles.remove(role)
+
+            # Log the action
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='remove_from_substitute_pool',
+                resource_type='substitute_pools',
+                resource_id=str(player_id),
+                new_value=f'Removed player {player.name} from {league_type} pool',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+            # Queue Discord role sync (deferred until after commit)
+            if player.discord_id:
+                discord_queue.add_role_sync(player.id, only_add=False)
+
+            # Commit the transaction
+            db.session.commit()
+
+            player_name = player.name
+
+    except LockAcquisitionError:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'User is being modified by another request. Please try again.'
+        }), 409
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error removing player from pool: {e}")
+        return jsonify({'success': False, 'message': 'Failed to remove player from pool'}), 500
+
+    # Execute deferred Discord operations after successful commit
+    discord_queue.execute_all()
 
     return jsonify({
         'success': True,
-        'message': f"{pool_entry.player.name} has been removed from the {league_type} substitute pool"
+        'message': f"{player_name} has been removed from the {league_type} substitute pool"
     })
 
 

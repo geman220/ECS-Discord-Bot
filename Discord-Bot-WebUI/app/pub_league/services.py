@@ -28,6 +28,8 @@ from app.models import (
     create_pub_league_pass
 )
 from app.order_helpers import extract_jersey_size_from_product_name, extract_season_name
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import DeferredDiscordQueue
 
 logger = logging.getLogger(__name__)
 
@@ -494,46 +496,39 @@ class RoleSyncService:
         """
         Sync Flask roles in the database.
 
-        Note: We re-query user and roles from db.session to ensure all objects
-        are in the same session, avoiding cross-session issues.
+        Uses pessimistic locking to prevent concurrent role modifications.
 
         Args:
             user: User to update
             new_role_name: Role to add (e.g., 'pl-classic')
             opposite_role_name: Role to remove if present (e.g., 'pl-premier')
         """
-        from sqlalchemy.orm import joinedload
-
         # Save user_id before any session operations to avoid detached instance issues
         user_id = user.id
 
-        # Re-query user with roles from db.session to ensure proper session binding
-        user = db.session.query(User).options(
-            joinedload(User.roles)
-        ).filter_by(id=user_id).first()
+        try:
+            # Acquire lock on user for role modification
+            with lock_user_for_role_update(user_id, session=db.session) as locked_user:
+                # Get role objects from the same db.session
+                new_role = db.session.query(Role).filter_by(name=new_role_name).first()
+                opposite_role = db.session.query(Role).filter_by(name=opposite_role_name).first()
 
-        if not user:
-            logger.warning(f"User {user_id} not found when syncing Flask role")
-            return
+                # Add new role if not already present
+                if new_role and new_role not in locked_user.roles:
+                    locked_user.roles.append(new_role)
+                    logger.info(f"Added Flask role {new_role_name} to user {user_id}")
 
-        # Refresh user roles from database to avoid stale data issues
-        db.session.refresh(user, ['roles'])
+                # Remove opposite role ONLY if they had it (league switch)
+                if opposite_role and opposite_role in locked_user.roles:
+                    locked_user.roles.remove(opposite_role)
+                    logger.info(f"Removed Flask role {opposite_role_name} from user {user_id}")
 
-        # Get role objects from the same db.session
-        new_role = db.session.query(Role).filter_by(name=new_role_name).first()
-        opposite_role = db.session.query(Role).filter_by(name=opposite_role_name).first()
+                db.session.commit()
 
-        # Add new role if not already present
-        if new_role and new_role not in user.roles:
-            user.roles.append(new_role)
-            logger.info(f"Added Flask role {new_role_name} to user {user.id}")
-
-        # Remove opposite role ONLY if they had it (league switch)
-        if opposite_role and opposite_role in user.roles:
-            user.roles.remove(opposite_role)
-            logger.info(f"Removed Flask role {opposite_role_name} from user {user.id}")
-
-        db.session.commit()
+        except LockAcquisitionError:
+            db.session.rollback()
+            logger.warning(f"Could not acquire lock for user {user_id} during role sync")
+            raise
 
     @staticmethod
     def _sync_discord_role(player: Player) -> None:

@@ -13,6 +13,8 @@ from flask import request, redirect, url_for, g
 from app.alert_helpers import show_success, show_error
 from app.models import User
 from app.utils.user_helpers import safe_current_user
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import DeferredDiscordQueue
 from app.tasks.tasks_discord import assign_roles_to_player_task
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,9 @@ def handle_coach_status_update(player, user):
     and also updates the is_coach status in the player_teams association table
     for all teams the player is associated with.
 
+    Uses pessimistic locking to prevent concurrent role modifications.
+    Discord sync is deferred until after transaction commits.
+
     Args:
         player: The player object whose coach status is to be updated.
         user: The associated user object (not used directly here).
@@ -36,6 +41,8 @@ def handle_coach_status_update(player, user):
     Raises:
         Exception: Propagates any encountered exception.
     """
+    session = g.db_session
+
     try:
         logger.debug("Entering handle_coach_status_update")
         is_coach = 'is_coach' in request.form
@@ -45,55 +52,66 @@ def handle_coach_status_update(player, user):
         player.is_coach = is_coach
         player.discord_needs_update = True
 
-        session = g.db_session
         session.add(player)
-        
+
         # Update coach status in the player_teams association table for all teams
         from app.models import player_teams
         from sqlalchemy import text
-        
+
         # Update all team relationships for this player to have the same coach status
         session.execute(
             text("UPDATE player_teams SET is_coach = :is_coach WHERE player_id = :player_id"),
             {"is_coach": is_coach, "player_id": player.id}
         )
-        
+
+        # Queue for deferred Discord operations
+        discord_queue = DeferredDiscordQueue()
+
         # Update Flask roles to match coach status
         if player.user:
-            # Refresh user roles from database to avoid stale data issues
-            session.refresh(player.user, ['roles'])
+            try:
+                # Acquire lock on user for role modification
+                with lock_user_for_role_update(player.user.id, session=session) as locked_user:
+                    from app.models import Role
+                    coach_role = session.query(Role).filter_by(name='Pub League Coach').first()
+                    if coach_role:
+                        if is_coach:
+                            # Add coach role if not already assigned
+                            if coach_role not in locked_user.roles:
+                                locked_user.roles.append(coach_role)
+                                logger.info(f"Added 'Pub League Coach' Flask role to player {player.id}")
+                        else:
+                            # Remove coach role if assigned
+                            if coach_role in locked_user.roles:
+                                locked_user.roles.remove(coach_role)
+                                logger.info(f"Removed 'Pub League Coach' Flask role from player {player.id}")
+                    else:
+                        logger.warning("'Pub League Coach' role not found in database")
 
-            from app.models import Role
-            coach_role = session.query(Role).filter_by(name='Pub League Coach').first()
-            if coach_role:
-                if is_coach:
-                    # Add coach role if not already assigned
-                    if coach_role not in player.user.roles:
-                        player.user.roles.append(coach_role)
-                        logger.info(f"Added 'Pub League Coach' Flask role to player {player.id}")
-                else:
-                    # Remove coach role if assigned
-                    if coach_role in player.user.roles:
-                        player.user.roles.remove(coach_role)
-                        logger.info(f"Removed 'Pub League Coach' Flask role from player {player.id}")
-            else:
-                logger.warning("'Pub League Coach' role not found in database")
-        
-        session.commit()  # Commit changes first
+                    # Queue Discord sync (deferred until after commit)
+                    if player.discord_id:
+                        discord_queue.add_role_sync(player.id, only_add=False)
 
-        if player.discord_id:
-            logger.debug(f"Queueing Discord role update for player {player.id}")
-            discord_task = assign_roles_to_player_task.delay(player_id=player.id, only_add=False)
-            if discord_task:
-                logger.info(f"Discord role update task queued for player {player.id}. This will {'add' if is_coach else 'remove'} coach roles.")
-            else:
-                logger.error(f"Failed to queue Discord role update for player {player.id}")
+                    # Commit the transaction
+                    session.commit()
+
+            except LockAcquisitionError:
+                session.rollback()
+                logger.warning(f"Could not acquire lock for user {player.user.id}, coach status update failed")
+                show_error('User is being modified by another request. Please try again.')
+                return redirect(url_for('players.player_profile', player_id=player.id))
+        else:
+            session.commit()
+
+        # Execute deferred Discord operations after successful commit
+        discord_queue.execute_all()
+        logger.info(f"Discord role update task queued for player {player.id}. This will {'add' if is_coach else 'remove'} coach roles.")
 
         logger.info(f"{player.name}'s coach status updated successfully to {is_coach}")
         show_success(f"{player.name}'s coach status updated successfully.")
         return redirect(url_for('players.player_profile', player_id=player.id))
+
     except Exception as e:
-        session = g.db_session
         session.rollback()
         logger.error(f"Error updating coach status: {str(e)}", exc_info=True)
         show_error('Error updating coach status.')
@@ -103,6 +121,9 @@ def handle_coach_status_update(player, user):
 def handle_ref_status_update(player, user):
     """
     Update a player's referee status and enqueue a Discord role update task.
+
+    Uses pessimistic locking to prevent concurrent role modifications.
+    Discord sync is deferred until after transaction commits.
 
     Args:
         player: The player object whose referee status is to be updated.
@@ -114,6 +135,8 @@ def handle_ref_status_update(player, user):
     Raises:
         Exception: Propagates any encountered exception.
     """
+    session = g.db_session
+
     try:
         logger.debug("Entering handle_ref_status_update")
         is_ref = 'is_ref' in request.form
@@ -122,44 +145,56 @@ def handle_ref_status_update(player, user):
         player.is_ref = is_ref
         player.discord_needs_update = True
 
-        session = g.db_session
         session.add(player)
-        
+
+        # Queue for deferred Discord operations
+        discord_queue = DeferredDiscordQueue()
+
         # Update Flask roles to match referee status
         if player.user:
-            # Refresh user roles from database to avoid stale data issues
-            session.refresh(player.user, ['roles'])
+            try:
+                # Acquire lock on user for role modification
+                with lock_user_for_role_update(player.user.id, session=session) as locked_user:
+                    from app.models import Role
+                    ref_role = session.query(Role).filter_by(name='Pub League Ref').first()
+                    if ref_role:
+                        if is_ref:
+                            # Add referee role if not already assigned
+                            if ref_role not in locked_user.roles:
+                                locked_user.roles.append(ref_role)
+                                logger.info(f"Added 'Pub League Ref' Flask role to player {player.id}")
+                        else:
+                            # Remove referee role if assigned
+                            if ref_role in locked_user.roles:
+                                locked_user.roles.remove(ref_role)
+                                logger.info(f"Removed 'Pub League Ref' Flask role from player {player.id}")
+                    else:
+                        logger.warning("'Pub League Ref' role not found in database")
 
-            from app.models import Role
-            ref_role = session.query(Role).filter_by(name='Pub League Ref').first()
-            if ref_role:
-                if is_ref:
-                    # Add referee role if not already assigned
-                    if ref_role not in player.user.roles:
-                        player.user.roles.append(ref_role)
-                        logger.info(f"Added 'Pub League Ref' Flask role to player {player.id}")
-                else:
-                    # Remove referee role if assigned
-                    if ref_role in player.user.roles:
-                        player.user.roles.remove(ref_role)
-                        logger.info(f"Removed 'Pub League Ref' Flask role from player {player.id}")
-            else:
-                logger.warning("'Pub League Ref' role not found in database")
-        
-        session.commit()  # Commit changes first
+                    # Queue Discord sync (deferred until after commit)
+                    if player.discord_id:
+                        discord_queue.add_role_sync(player.id, only_add=False)
 
-        if player.discord_id:
-            discord_task = assign_roles_to_player_task.delay(player_id=player.id, only_add=False)
-            if discord_task:
-                logger.info(f"Discord role update task queued for player {player.id}. This will {'add' if is_ref else 'remove'} referee roles.")
-            else:
-                logger.error(f"Failed to queue Discord role update for player {player.id}")
+                    # Commit the transaction
+                    session.commit()
+
+            except LockAcquisitionError:
+                session.rollback()
+                logger.warning(f"Could not acquire lock for user {player.user.id}, ref status update failed")
+                show_error('User is being modified by another request. Please try again.')
+                return redirect(url_for('players.player_profile', player_id=player.id))
+        else:
+            session.commit()
+
+        # Execute deferred Discord operations after successful commit
+        discord_queue.execute_all()
+        logger.info(f"Discord role update task queued for player {player.id}. This will {'add' if is_ref else 'remove'} referee roles.")
 
         logger.info(f"{player.name}'s referee status updated successfully to {is_ref}")
         show_success(f"{player.name}'s referee status updated successfully.")
         return redirect(url_for('players.player_profile', player_id=player.id))
+
     except Exception as e:
-        session = g.db_session
         session.rollback()
         logger.error(f"Error updating referee status: {str(e)}", exc_info=True)
         show_error('Error updating referee status.')

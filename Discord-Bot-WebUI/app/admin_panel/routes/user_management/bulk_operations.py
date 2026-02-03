@@ -8,6 +8,9 @@ Routes for bulk user operations:
 - Bulk approve users
 - Bulk role assignment
 - Bulk waitlist processing
+
+NOTE: Bulk operations use per-user mini-transactions to prevent lock contention.
+Each user is processed individually with its own lock acquisition and commit.
 """
 
 import logging
@@ -24,6 +27,8 @@ from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role
 from app.decorators import role_required
 from app.utils.db_utils import transactional
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import DeferredDiscordQueue
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.utils.user_helpers import safe_current_user
 
@@ -75,9 +80,14 @@ def bulk_operations():
 @admin_panel_bp.route('/users/bulk-operations/approve', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
 def bulk_approve_users():
-    """Bulk approve users with specified league assignments."""
+    """
+    Bulk approve users with specified league assignments.
+
+    Uses per-user mini-transactions to prevent lock contention.
+    Each user is processed individually with its own lock and commit.
+    Users that are locked by another request are skipped gracefully.
+    """
     try:
         current_user_safe = safe_current_user
         data = request.get_json()
@@ -113,48 +123,77 @@ def bulk_approve_users():
         # Get unverified role to remove
         unverified_role = Role.query.filter_by(name='pl-unverified').first()
 
-        approved_count = 0
-        failed_users = []
+        # Results tracking
+        results = {
+            'approved': [],
+            'skipped': [],
+            'failed': []
+        }
 
+        # Queue for deferred Discord operations
+        discord_queue = DeferredDiscordQueue()
+
+        # Process each user in its own mini-transaction
         for user_id in user_ids:
             try:
-                user = User.query.options(
-                    joinedload(User.player),
-                    joinedload(User.roles)
-                ).get(user_id)
+                # Acquire lock on this user (nowait=True to skip if locked)
+                with lock_user_for_role_update(user_id, session=db.session, nowait=True) as user:
+                    if user.approval_status != 'pending':
+                        results['skipped'].append({
+                            'id': user_id,
+                            'reason': 'Not pending approval'
+                        })
+                        db.session.rollback()
+                        continue
 
-                if not user or user.approval_status != 'pending':
-                    failed_users.append({'id': user_id, 'reason': 'User not found or not pending'})
-                    continue
+                    # Remove unverified role
+                    if unverified_role and unverified_role in user.roles:
+                        user.roles.remove(unverified_role)
 
-                # Refresh user roles from database to avoid stale data issues
-                db.session.refresh(user, ['roles'])
+                    # Add new role
+                    if new_role not in user.roles:
+                        user.roles.append(new_role)
 
-                # Remove unverified role
-                if unverified_role and unverified_role in user.roles:
-                    user.roles.remove(unverified_role)
+                    # Update approval status
+                    user.approval_status = 'approved'
+                    user.is_approved = True
+                    user.approval_league = default_league
+                    user.approved_by = current_user_safe.id
+                    user.approved_at = datetime.utcnow()
+                    user.approval_notes = f'Bulk approved for {default_league} league'
 
-                # Add new role
-                if new_role not in user.roles:
-                    user.roles.append(new_role)
+                    # Clear waitlist timestamp
+                    user.waitlist_joined_at = None
 
-                # Update approval status
-                user.approval_status = 'approved'
-                user.is_approved = True
-                user.approval_league = default_league
-                user.approved_by = current_user_safe.id
-                user.approved_at = datetime.utcnow()
-                user.approval_notes = f'Bulk approved for {default_league} league'
+                    # Commit this user's changes
+                    db.session.commit()
 
-                # Queue Discord role sync
-                if user.player and user.player.discord_id:
-                    assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+                    # Queue Discord role sync (after successful commit)
+                    if user.player and user.player.discord_id:
+                        discord_queue.add_role_sync(user.player.id, only_add=False)
 
-                approved_count += 1
+                    results['approved'].append(user_id)
+                    logger.info(f"Bulk approved user {user_id} for {default_league}")
+
+            except LockAcquisitionError:
+                # User is being modified by another request - skip gracefully
+                db.session.rollback()
+                results['skipped'].append({
+                    'id': user_id,
+                    'reason': 'User is being modified by another request'
+                })
+                logger.warning(f"Skipped locked user {user_id} during bulk approval")
 
             except Exception as e:
+                db.session.rollback()
+                results['failed'].append({
+                    'id': user_id,
+                    'reason': str(e)[:100]
+                })
                 logger.error(f"Error bulk approving user {user_id}: {e}")
-                failed_users.append({'id': user_id, 'reason': str(e)})
+
+        # Execute all queued Discord operations
+        discord_queue.execute_all()
 
         # Log the bulk action
         AdminAuditLog.log_action(
@@ -162,21 +201,26 @@ def bulk_approve_users():
             action='bulk_approve_users',
             resource_type='user_approval',
             resource_id='bulk',
-            new_value=f'Approved {approved_count} users for {default_league} league',
+            new_value=f'Approved {len(results["approved"])} users for {default_league} league',
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
 
-        result_message = f'Successfully approved {approved_count} users'
-        if failed_users:
-            result_message += f' ({len(failed_users)} failed)'
+        result_message = f'Successfully approved {len(results["approved"])} users'
+        if results['skipped']:
+            result_message += f', {len(results["skipped"])} skipped'
+        if results['failed']:
+            result_message += f', {len(results["failed"])} failed'
 
         return jsonify({
             'success': True,
             'message': result_message,
-            'approved_count': approved_count,
-            'failed_count': len(failed_users),
-            'failed_users': failed_users
+            'approved_count': len(results['approved']),
+            'skipped_count': len(results['skipped']),
+            'failed_count': len(results['failed']),
+            'approved': results['approved'],
+            'skipped': results['skipped'],
+            'failed': results['failed']
         })
 
     except Exception as e:
@@ -187,9 +231,13 @@ def bulk_approve_users():
 @admin_panel_bp.route('/users/bulk-operations/role-assign', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
 def bulk_assign_roles():
-    """Bulk assign roles to multiple users."""
+    """
+    Bulk assign roles to multiple users.
+
+    Uses per-user mini-transactions to prevent lock contention.
+    Each user is processed individually with its own lock and commit.
+    """
     try:
         current_user_safe = safe_current_user
         data = request.get_json()
@@ -206,47 +254,64 @@ def bulk_assign_roles():
         if len(roles) != len(role_ids):
             return jsonify({'success': False, 'message': 'One or more roles not found'}), 404
 
-        processed_count = 0
-        failed_users = []
+        # Results tracking
+        results = {
+            'processed': [],
+            'skipped': [],
+            'failed': []
+        }
 
+        # Queue for deferred Discord operations
+        discord_queue = DeferredDiscordQueue()
+
+        # Process each user in its own mini-transaction
         for user_id in user_ids:
             try:
-                user = User.query.options(
-                    joinedload(User.roles),
-                    joinedload(User.player)
-                ).get(user_id)
-                if not user:
-                    failed_users.append({'id': user_id, 'reason': 'User not found'})
-                    continue
-
-                # Refresh user roles from database to avoid stale data issues
-                db.session.refresh(user, ['roles'])
-
-                if operation == 'replace':
-                    # Clear all existing roles and assign new ones
-                    user.roles.clear()
-                    for role in roles:
-                        user.roles.append(role)
-                elif operation == 'add':
-                    # Add roles if not already present
-                    for role in roles:
-                        if role not in user.roles:
+                # Acquire lock on this user (nowait=True to skip if locked)
+                with lock_user_for_role_update(user_id, session=db.session, nowait=True) as user:
+                    if operation == 'replace':
+                        # Clear all existing roles and assign new ones
+                        user.roles.clear()
+                        for role in roles:
                             user.roles.append(role)
-                elif operation == 'remove':
-                    # Remove specified roles
-                    for role in roles:
-                        if role in user.roles:
-                            user.roles.remove(role)
+                    elif operation == 'add':
+                        # Add roles if not already present
+                        for role in roles:
+                            if role not in user.roles:
+                                user.roles.append(role)
+                    elif operation == 'remove':
+                        # Remove specified roles
+                        for role in roles:
+                            if role in user.roles:
+                                user.roles.remove(role)
 
-                # Sync Discord roles if player has Discord integration
-                if user.player and user.player.discord_id:
-                    assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
+                    # Commit this user's changes
+                    db.session.commit()
 
-                processed_count += 1
+                    # Queue Discord role sync (after successful commit)
+                    if user.player and user.player.discord_id:
+                        discord_queue.add_role_sync(user.player.id, only_add=False)
+
+                    results['processed'].append(user_id)
+
+            except LockAcquisitionError:
+                db.session.rollback()
+                results['skipped'].append({
+                    'id': user_id,
+                    'reason': 'User is being modified by another request'
+                })
+                logger.warning(f"Skipped locked user {user_id} during bulk role assignment")
 
             except Exception as e:
+                db.session.rollback()
+                results['failed'].append({
+                    'id': user_id,
+                    'reason': str(e)[:100]
+                })
                 logger.error(f"Error bulk assigning roles to user {user_id}: {e}")
-                failed_users.append({'id': user_id, 'reason': str(e)})
+
+        # Execute all queued Discord operations
+        discord_queue.execute_all()
 
         # Log the bulk action
         role_names = [role.name for role in roles]
@@ -255,21 +320,26 @@ def bulk_assign_roles():
             action='bulk_assign_roles',
             resource_type='user_roles',
             resource_id='bulk',
-            new_value=f'{operation.title()} roles [{", ".join(role_names)}] for {processed_count} users',
+            new_value=f'{operation.title()} roles [{", ".join(role_names)}] for {len(results["processed"])} users',
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
 
-        result_message = f'Successfully {operation}ed roles for {processed_count} users'
-        if failed_users:
-            result_message += f' ({len(failed_users)} failed)'
+        result_message = f'Successfully {operation}ed roles for {len(results["processed"])} users'
+        if results['skipped']:
+            result_message += f', {len(results["skipped"])} skipped'
+        if results['failed']:
+            result_message += f', {len(results["failed"])} failed'
 
         return jsonify({
             'success': True,
             'message': result_message,
-            'processed_count': processed_count,
-            'failed_count': len(failed_users),
-            'failed_users': failed_users
+            'processed_count': len(results['processed']),
+            'skipped_count': len(results['skipped']),
+            'failed_count': len(results['failed']),
+            'processed': results['processed'],
+            'skipped': results['skipped'],
+            'failed': results['failed']
         })
 
     except Exception as e:
@@ -280,9 +350,13 @@ def bulk_assign_roles():
 @admin_panel_bp.route('/users/bulk-operations/waitlist-process', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
 def bulk_process_waitlist():
-    """Bulk process waitlist users to pending approval."""
+    """
+    Bulk process waitlist users to pending approval.
+
+    Uses per-user mini-transactions to prevent lock contention.
+    Each user is processed individually with its own lock and commit.
+    """
     try:
         current_user_safe = safe_current_user
         data = request.get_json()
@@ -300,52 +374,73 @@ def bulk_process_waitlist():
         if not waitlist_role:
             return jsonify({'success': False, 'message': 'Waitlist role not found'}), 404
 
-        processed_count = 0
-        failed_users = []
+        # Results tracking
+        results = {
+            'processed': [],
+            'skipped': [],
+            'failed': []
+        }
 
+        # Queue for deferred Discord operations
+        discord_queue = DeferredDiscordQueue()
+
+        # Process each user in its own mini-transaction
         for user_id in user_ids:
             try:
-                user = User.query.options(
-                    joinedload(User.roles),
-                    joinedload(User.player)
-                ).get(user_id)
-                if not user:
-                    failed_users.append({'id': user_id, 'reason': 'User not found'})
-                    continue
+                # Acquire lock on this user (nowait=True to skip if locked)
+                with lock_user_for_role_update(user_id, session=db.session, nowait=True) as user:
+                    if waitlist_role not in user.roles:
+                        results['skipped'].append({
+                            'id': user_id,
+                            'reason': 'User not on waitlist'
+                        })
+                        db.session.rollback()
+                        continue
 
-                # Refresh user roles from database to avoid stale data issues
-                db.session.refresh(user, ['roles'])
+                    # Remove from waitlist
+                    user.roles.remove(waitlist_role)
 
-                if waitlist_role not in user.roles:
-                    failed_users.append({'id': user_id, 'reason': 'User not on waitlist'})
-                    continue
-
-                # Remove from waitlist
-                user.roles.remove(waitlist_role)
-
-                if action == 'move_to_pending':
-                    # Add unverified role and set to pending
-                    if unverified_role and unverified_role not in user.roles:
-                        user.roles.append(unverified_role)
-                    user.approval_status = 'pending'
-                elif action == 'remove_from_waitlist':
-                    # Just remove from waitlist without adding to pending
-                    pass
-
-                user.updated_at = datetime.utcnow()
-
-                # Sync Discord roles
-                if user.player and user.player.discord_id:
                     if action == 'move_to_pending':
-                        assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
-                    else:
-                        remove_player_roles_task.delay(player_id=user.player.id)
+                        # Add unverified role and set to pending
+                        if unverified_role and unverified_role not in user.roles:
+                            user.roles.append(unverified_role)
+                        user.approval_status = 'pending'
+                    elif action == 'remove_from_waitlist':
+                        # Just remove from waitlist without adding to pending
+                        pass
 
-                processed_count += 1
+                    user.updated_at = datetime.utcnow()
+
+                    # Commit this user's changes
+                    db.session.commit()
+
+                    # Queue Discord role sync (after successful commit)
+                    if user.player and user.player.discord_id:
+                        if action == 'move_to_pending':
+                            discord_queue.add_role_sync(user.player.id, only_add=False)
+                        else:
+                            discord_queue.add_role_removal(user.player.id)
+
+                    results['processed'].append(user_id)
+
+            except LockAcquisitionError:
+                db.session.rollback()
+                results['skipped'].append({
+                    'id': user_id,
+                    'reason': 'User is being modified by another request'
+                })
+                logger.warning(f"Skipped locked user {user_id} during bulk waitlist processing")
 
             except Exception as e:
+                db.session.rollback()
+                results['failed'].append({
+                    'id': user_id,
+                    'reason': str(e)[:100]
+                })
                 logger.error(f"Error processing waitlist user {user_id}: {e}")
-                failed_users.append({'id': user_id, 'reason': str(e)})
+
+        # Execute all queued Discord operations
+        discord_queue.execute_all()
 
         # Log the bulk action
         AdminAuditLog.log_action(
@@ -353,21 +448,26 @@ def bulk_process_waitlist():
             action='bulk_process_waitlist',
             resource_type='user_waitlist',
             resource_id='bulk',
-            new_value=f'{action} for {processed_count} users',
+            new_value=f'{action} for {len(results["processed"])} users',
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
 
-        result_message = f'Successfully processed {processed_count} waitlist users'
-        if failed_users:
-            result_message += f' ({len(failed_users)} failed)'
+        result_message = f'Successfully processed {len(results["processed"])} waitlist users'
+        if results['skipped']:
+            result_message += f', {len(results["skipped"])} skipped'
+        if results['failed']:
+            result_message += f', {len(results["failed"])} failed'
 
         return jsonify({
             'success': True,
             'message': result_message,
-            'processed_count': processed_count,
-            'failed_count': len(failed_users),
-            'failed_users': failed_users
+            'processed_count': len(results['processed']),
+            'skipped_count': len(results['skipped']),
+            'failed_count': len(results['failed']),
+            'processed': results['processed'],
+            'skipped': results['skipped'],
+            'failed': results['failed']
         })
 
     except Exception as e:

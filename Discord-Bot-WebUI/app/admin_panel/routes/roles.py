@@ -21,6 +21,8 @@ from app.models.admin_config import AdminAuditLog
 from app.models import User, Role, user_roles, Player
 from app.decorators import role_required
 from app.utils.db_utils import transactional
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import DeferredDiscordQueue
 from app.tasks.tasks_discord import assign_roles_to_player_task
 
 # Set up the module logger
@@ -289,45 +291,69 @@ def role_comprehensive_users(role_id):
 @admin_panel_bp.route('/roles-management/<int:role_id>/assign-user', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
-@transactional
 def assign_role_to_user_comprehensive(role_id):
-    """Assign a role to a user."""
+    """Assign a role to a user.
+
+    Uses pessimistic locking to prevent concurrent role modifications.
+    Discord sync is deferred until after transaction commits.
+    """
     try:
         role = Role.query.get_or_404(role_id)
         user_id = request.form.get('user_id', type=int)
-        
+
         if not user_id:
             return jsonify({'success': False, 'message': 'User ID is required'})
-        
-        user = User.query.get_or_404(user_id)
-        
-        # Check if user already has this role
-        if role in user.roles:
-            return jsonify({'success': False, 'message': f'User already has role "{role.name}"'})
-        
-        # Add role to user
-        user.roles.append(role)
 
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='assign_role',
-            resource_type='user_role',
-            resource_id=f'{user_id}:{role_id}',
-            new_value=f'Assigned role "{role.name}" to user "{user.username}"',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
+        # Queue for deferred Discord operations
+        discord_queue = DeferredDiscordQueue()
 
-        # Trigger Discord role sync
-        if user.player and user.player.discord_id:
-            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
-            logger.info(f"Triggered Discord role sync for user {user.id} after role assignment")
+        try:
+            # Acquire lock on user for role modification
+            with lock_user_for_role_update(user_id, session=db.session) as user:
+                # Check if user already has this role
+                if role in user.roles:
+                    return jsonify({'success': False, 'message': f'User already has role "{role.name}"'})
 
-        flash(f'Role "{role.name}" assigned to user "{user.username}" successfully!', 'success')
+                # Add role to user
+                user.roles.append(role)
+
+                # Log the action
+                AdminAuditLog.log_action(
+                    user_id=current_user.id,
+                    action='assign_role',
+                    resource_type='user_role',
+                    resource_id=f'{user_id}:{role_id}',
+                    new_value=f'Assigned role "{role.name}" to user "{user.username}"',
+                    ip_address=request.remote_addr,
+                    user_agent=request.headers.get('User-Agent')
+                )
+
+                # Queue Discord role sync (deferred until after commit)
+                if user.player and user.player.discord_id:
+                    discord_queue.add_role_sync(user.player.id, only_add=False)
+
+                # Commit the transaction
+                db.session.commit()
+
+                username = user.username
+                role_name = role.name
+
+        except LockAcquisitionError:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'message': 'User is being modified by another request. Please try again.'
+            }), 409
+
+        # Execute deferred Discord operations after successful commit
+        discord_queue.execute_all()
+        logger.info(f"Triggered Discord role sync for user {user_id} after role assignment")
+
+        flash(f'Role "{role_name}" assigned to user "{username}" successfully!', 'success')
         return jsonify({'success': True, 'message': 'Role assigned successfully'})
-        
+
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Error assigning role: {e}")
         return jsonify({'success': False, 'message': 'Error assigning role'})
 
@@ -335,43 +361,65 @@ def assign_role_to_user_comprehensive(role_id):
 @admin_panel_bp.route('/roles-management/<int:role_id>/remove-user/<int:user_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin'])
-@transactional
 def remove_role_from_user_comprehensive(role_id, user_id):
-    """Remove a role from a user."""
+    """Remove a role from a user.
+
+    Uses pessimistic locking to prevent concurrent role modifications.
+    Discord sync is deferred until after transaction commits.
+    """
     try:
         role = Role.query.get_or_404(role_id)
-        user = User.query.get_or_404(user_id)
 
-        # Refresh user roles from database to avoid stale data issues
-        db.session.refresh(user, ['roles'])
+        # Queue for deferred Discord operations
+        discord_queue = DeferredDiscordQueue()
 
-        # Check if user has this role
-        if role not in user.roles:
-            return jsonify({'success': False, 'message': f'User does not have role "{role.name}"'})
-        
-        # Remove role from user
-        user.roles.remove(role)
+        try:
+            # Acquire lock on user for role modification
+            with lock_user_for_role_update(user_id, session=db.session) as user:
+                # Check if user has this role
+                if role not in user.roles:
+                    return jsonify({'success': False, 'message': f'User does not have role "{role.name}"'})
 
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='remove_role',
-            resource_type='user_role',
-            resource_id=f'{user_id}:{role_id}',
-            old_value=f'Removed role "{role.name}" from user "{user.username}"',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
+                # Remove role from user
+                user.roles.remove(role)
 
-        # Trigger Discord role sync
-        if user.player and user.player.discord_id:
-            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
-            logger.info(f"Triggered Discord role sync for user {user.id} after role removal")
+                # Log the action
+                AdminAuditLog.log_action(
+                    user_id=current_user.id,
+                    action='remove_role',
+                    resource_type='user_role',
+                    resource_id=f'{user_id}:{role_id}',
+                    old_value=f'Removed role "{role.name}" from user "{user.username}"',
+                    ip_address=request.remote_addr,
+                    user_agent=request.headers.get('User-Agent')
+                )
 
-        flash(f'Role "{role.name}" removed from user "{user.username}" successfully!', 'success')
+                # Queue Discord role sync (deferred until after commit)
+                if user.player and user.player.discord_id:
+                    discord_queue.add_role_sync(user.player.id, only_add=False)
+
+                # Commit the transaction
+                db.session.commit()
+
+                username = user.username
+                role_name = role.name
+
+        except LockAcquisitionError:
+            db.session.rollback()
+            return jsonify({
+                'success': False,
+                'message': 'User is being modified by another request. Please try again.'
+            }), 409
+
+        # Execute deferred Discord operations after successful commit
+        discord_queue.execute_all()
+        logger.info(f"Triggered Discord role sync for user {user_id} after role removal")
+
+        flash(f'Role "{role_name}" removed from user "{username}" successfully!', 'success')
         return jsonify({'success': True, 'message': 'Role removed successfully'})
 
     except Exception as e:
+        db.session.rollback()
         logger.error(f"Error removing role: {e}")
         return jsonify({'success': False, 'message': 'Error removing role'})
 

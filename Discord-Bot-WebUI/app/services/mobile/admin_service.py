@@ -19,6 +19,8 @@ from sqlalchemy.orm import Session, joinedload
 from app.services.base_service import BaseService, ServiceResult
 from app.models import User, Player, Role, League, Season, player_league
 from app.tasks.tasks_discord import assign_roles_to_player_task
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import DeferredDiscordQueue
 
 logger = logging.getLogger(__name__)
 
@@ -159,10 +161,9 @@ class MobileAdminService(BaseService):
                     f"Cannot assign {PROTECTED_ROLE} role via mobile API",
                     "PROTECTED_ROLE"
                 )
-            if role not in user.roles:
-                roles_to_add.append(role)
+            roles_to_add.append(role)
 
-        # Validate and get roles to remove
+        # Validate roles to remove
         roles_to_remove = []
         for role_id in remove_role_ids:
             role = self.session.query(Role).get(role_id)
@@ -176,33 +177,52 @@ class MobileAdminService(BaseService):
                     f"Cannot remove {PROTECTED_ROLE} role via mobile API",
                     "PROTECTED_ROLE"
                 )
-            if role in user.roles:
-                roles_to_remove.append(role)
+            roles_to_remove.append(role)
 
-        # Apply changes
-        added_names = []
-        removed_names = []
+        # Queue for deferred Discord operations
+        discord_queue = DeferredDiscordQueue()
 
-        for role in roles_to_add:
-            user.roles.append(role)
-            added_names.append(role.name)
-            logger.info(f"Added role '{role.name}' to player {player.id}")
+        try:
+            # Acquire lock on user for role modification
+            with lock_user_for_role_update(user.id, session=self.session) as locked_user:
+                # Apply changes
+                added_names = []
+                removed_names = []
 
-        for role in roles_to_remove:
-            user.roles.remove(role)
-            removed_names.append(role.name)
-            logger.info(f"Removed role '{role.name}' from player {player.id}")
+                for role in roles_to_add:
+                    if role not in locked_user.roles:
+                        locked_user.roles.append(role)
+                        added_names.append(role.name)
+                        logger.info(f"Added role '{role.name}' to player {player.id}")
 
-        self.session.commit()
+                for role in roles_to_remove:
+                    if role in locked_user.roles:
+                        locked_user.roles.remove(role)
+                        removed_names.append(role.name)
+                        logger.info(f"Removed role '{role.name}' from player {player.id}")
 
-        # Trigger Discord sync
-        discord_sync_queued = self._trigger_discord_sync(player)
+                # Queue Discord sync (deferred until after commit)
+                if player.discord_id:
+                    discord_queue.add_role_sync(player.id, only_add=False)
 
-        # Build result
-        updated_roles = [
-            {"id": role.id, "name": role.name}
-            for role in user.roles
-        ]
+                self.session.commit()
+
+                # Build result
+                updated_roles = [
+                    {"id": role.id, "name": role.name}
+                    for role in locked_user.roles
+                ]
+
+        except LockAcquisitionError:
+            self.session.rollback()
+            return ServiceResult.fail(
+                "User is being modified by another request. Please try again.",
+                "LOCK_CONFLICT"
+            )
+
+        # Execute deferred Discord operations after successful commit
+        discord_sync_queued = bool(discord_queue._operations)
+        discord_queue.execute_all()
 
         return ServiceResult.ok({
             "player_id": player.id,
@@ -275,6 +295,9 @@ class MobileAdminService(BaseService):
         """
         Add a player to a league.
 
+        Uses pessimistic locking to prevent concurrent role modifications.
+        Discord sync is deferred until after transaction commits.
+
         Args:
             player_id: The player's ID
             league_id: The league's ID
@@ -284,7 +307,7 @@ class MobileAdminService(BaseService):
         """
         player = self.session.query(Player).options(
             joinedload(Player.other_leagues),
-            joinedload(Player.user).joinedload(User.roles)
+            joinedload(Player.user)
         ).get(player_id)
 
         if not player:
@@ -308,17 +331,34 @@ class MobileAdminService(BaseService):
         player.other_leagues.append(league)
         logger.info(f"Added player {player.id} to league {league.name}")
 
-        # Auto-assign league role if player has user account
+        # Queue for deferred Discord operations
+        discord_queue = DeferredDiscordQueue()
         auto_assigned_role = None
+
+        # Auto-assign league role if player has user account
         if player.user:
-            # Refresh user roles from database to avoid stale data issues
-            self.session.refresh(player.user, ['roles'])
-            auto_assigned_role = self._auto_assign_league_role(player.user, league)
+            try:
+                with lock_user_for_role_update(player.user.id, session=self.session) as locked_user:
+                    auto_assigned_role = self._auto_assign_league_role(locked_user, league)
 
-        self.session.commit()
+                    # Queue Discord sync (deferred until after commit)
+                    if player.discord_id:
+                        discord_queue.add_role_sync(player.id, only_add=False)
 
-        # Trigger Discord sync
-        discord_sync_queued = self._trigger_discord_sync(player)
+                    self.session.commit()
+
+            except LockAcquisitionError:
+                self.session.rollback()
+                return ServiceResult.fail(
+                    "User is being modified by another request. Please try again.",
+                    "LOCK_CONFLICT"
+                )
+        else:
+            self.session.commit()
+
+        # Execute deferred Discord operations after successful commit
+        discord_sync_queued = bool(discord_queue._operations)
+        discord_queue.execute_all()
 
         return ServiceResult.ok({
             "player_id": player.id,
@@ -337,6 +377,9 @@ class MobileAdminService(BaseService):
         """
         Remove a player from a league.
 
+        Uses pessimistic locking to prevent concurrent role modifications.
+        Discord sync is deferred until after transaction commits.
+
         Args:
             player_id: The player's ID
             league_id: The league's ID
@@ -346,7 +389,7 @@ class MobileAdminService(BaseService):
         """
         player = self.session.query(Player).options(
             joinedload(Player.other_leagues),
-            joinedload(Player.user).joinedload(User.roles)
+            joinedload(Player.user)
         ).get(player_id)
 
         if not player:
@@ -368,17 +411,34 @@ class MobileAdminService(BaseService):
         player.other_leagues.remove(league)
         logger.info(f"Removed player {player.id} from league {league.name}")
 
-        # Cleanup league role if no longer in any league of that type
+        # Queue for deferred Discord operations
+        discord_queue = DeferredDiscordQueue()
         removed_role = None
+
+        # Cleanup league role if no longer in any league of that type
         if player.user:
-            # Refresh user roles from database to avoid stale data issues
-            self.session.refresh(player.user, ['roles'])
-            removed_role = self._cleanup_league_role(player.user, league, player)
+            try:
+                with lock_user_for_role_update(player.user.id, session=self.session) as locked_user:
+                    removed_role = self._cleanup_league_role(locked_user, league, player)
 
-        self.session.commit()
+                    # Queue Discord sync (deferred until after commit)
+                    if player.discord_id:
+                        discord_queue.add_role_sync(player.id, only_add=False)
 
-        # Trigger Discord sync
-        discord_sync_queued = self._trigger_discord_sync(player)
+                    self.session.commit()
+
+            except LockAcquisitionError:
+                self.session.rollback()
+                return ServiceResult.fail(
+                    "User is being modified by another request. Please try again.",
+                    "LOCK_CONFLICT"
+                )
+        else:
+            self.session.commit()
+
+        # Execute deferred Discord operations after successful commit
+        discord_sync_queued = bool(discord_queue._operations)
+        discord_queue.execute_all()
 
         return ServiceResult.ok({
             "player_id": player.id,
@@ -425,8 +485,11 @@ class MobileAdminService(BaseService):
         """
         Auto-assign a role based on league type (Classic/Premier).
 
+        Note: This should be called within a lock_user_for_role_update context.
+        The caller is responsible for locking.
+
         Args:
-            user: The user to assign role to
+            user: The user to assign role to (should be locked)
             league: The league that was joined
 
         Returns:

@@ -21,6 +21,8 @@ from app.decorators import role_required
 from app.admin.blueprint import admin_bp
 from app.utils.user_helpers import safe_current_user
 from app.alert_helpers import show_success, show_error, show_warning
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import DeferredDiscordQueue
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 
 logger = logging.getLogger(__name__)
@@ -75,74 +77,79 @@ def user_waitlist():
 @admin_bp.route('/admin/user-waitlist/remove/<int:user_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
 def remove_from_waitlist(user_id: int):
     """
     Remove a user from the waitlist.
+
+    Uses pessimistic locking to prevent concurrent role modifications.
+    Discord sync is deferred until after transaction commits.
     """
     db_session = g.db_session
-    current_user = safe_current_user
-    
+    current_user_safe = safe_current_user
+
+    # Get the pl-waitlist role
+    waitlist_role = db_session.query(Role).filter_by(name='pl-waitlist').first()
+    if not waitlist_role:
+        return jsonify({'success': False, 'message': 'Waitlist role not found'}), 404
+
+    # Queue for deferred Discord operations
+    discord_queue = DeferredDiscordQueue()
+
     try:
-        # Get the user
-        user = db_session.query(User).options(
-            joinedload(User.player),
-            joinedload(User.roles)
-        ).filter_by(id=user_id).first()
-        
-        if not user:
-            return jsonify({'success': False, 'message': 'User not found'}), 404
-        
-        # Get the pl-waitlist role
-        waitlist_role = db_session.query(Role).filter_by(name='pl-waitlist').first()
-        if not waitlist_role:
-            return jsonify({'success': False, 'message': 'Waitlist role not found'}), 404
-        
-        # Refresh user roles from database to avoid stale data issues
-        db_session.refresh(user, ['roles'])
+        # Acquire lock on user for role modification
+        with lock_user_for_role_update(user_id, session=db_session) as user:
+            # Check if user is on waitlist
+            if waitlist_role not in user.roles:
+                return jsonify({'success': False, 'message': 'User is not on waitlist'}), 400
 
-        # Check if user is on waitlist
-        if waitlist_role not in user.roles:
-            return jsonify({'success': False, 'message': 'User is not on waitlist'}), 400
+            # Get removal reason from request
+            reason = request.json.get('reason', 'No reason provided')
 
-        # Get removal reason from request
-        reason = request.json.get('reason', 'No reason provided')
+            # Remove the waitlist role
+            user.roles.remove(waitlist_role)
 
-        # Remove the waitlist role
-        user.roles.remove(waitlist_role)
-        
-        # Clear waitlist joined timestamp since they're no longer on waitlist
-        user.waitlist_joined_at = None
-        
-        # Update user record
-        user.updated_at = datetime.utcnow()
-        
-        # Log the action
-        logger.info(f"User {user.id} ({user.username}) removed from waitlist by {current_user.id} ({current_user.username}). Reason: {reason}")
-        
-        # Commit the changes
-        db_session.flush()
-        
-        # Sync Discord roles if user has Discord integration
-        if user.player and user.player.discord_id:
-            try:
-                # Remove Discord roles (this will remove the waitlist Discord role)
-                remove_player_roles_task.delay(player_id=user.player.id)
-                logger.info(f"Queued Discord role removal for user {user.id}")
-            except Exception as e:
-                logger.error(f"Failed to queue Discord role removal for user {user.id}: {str(e)}")
-        
-        show_success(f'User {user.username} has been removed from the waitlist.')
-        
+            # Clear waitlist joined timestamp since they're no longer on waitlist
+            user.waitlist_joined_at = None
+
+            # Update user record
+            user.updated_at = datetime.utcnow()
+
+            # Log the action
+            logger.info(f"User {user.id} ({user.username}) removed from waitlist by {current_user_safe.id} ({current_user_safe.username}). Reason: {reason}")
+
+            # Queue Discord role removal (deferred until after commit)
+            if user.player and user.player.discord_id:
+                discord_queue.add_role_removal(user.player.id)
+
+            # Commit the transaction
+            db_session.commit()
+
+            username = user.username
+            result_user_id = user.id
+
+    except LockAcquisitionError:
+        db_session.rollback()
         return jsonify({
-            'success': True,
-            'message': f'User {user.username} removed from waitlist successfully',
-            'user_id': user.id
-        })
-        
+            'success': False,
+            'message': 'User is being modified by another request. Please try again.'
+        }), 409
+
     except Exception as e:
+        db_session.rollback()
         logger.error(f"Error removing user {user_id} from waitlist: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': 'Failed to remove user from waitlist'}), 500
+
+    # Execute deferred Discord operations after successful commit
+    discord_queue.execute_all()
+    logger.info(f"Queued Discord role removal for user {result_user_id}")
+
+    show_success(f'User {username} has been removed from the waitlist.')
+
+    return jsonify({
+        'success': True,
+        'message': f'User {username} removed from waitlist successfully',
+        'user_id': result_user_id
+    })
 
 
 @admin_bp.route('/admin/user-waitlist/contact/<int:user_id>', methods=['POST'])

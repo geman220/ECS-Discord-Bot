@@ -17,6 +17,8 @@ from flask_login import login_required
 
 from app.models import User, Role, Player, League, Season
 from app.utils.db_utils import transactional
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal, execute_deferred_discord, clear_deferred_discord
 from app.decorators import role_required
 from app.admin.blueprint import admin_bp
 from app.utils.user_helpers import safe_current_user
@@ -296,142 +298,150 @@ def user_approvals():
 @admin_bp.route('/admin/user-approvals/approve/<int:user_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
+@transactional(max_retries=3)
 def approve_user(user_id: int):
     """
     Approve a user for a specific league.
     Assigns appropriate roles and updates Discord.
+
+    Uses pessimistic locking to prevent concurrent modifications and
+    defers Discord operations until after the transaction commits.
     """
     db_session = g.db_session
     current_user = safe_current_user
-    
+
     try:
-        # Get the user to approve
-        user = db_session.query(User).options(
-            joinedload(User.player),
-            joinedload(User.roles)
-        ).filter_by(id=user_id).first()
-        
-        if not user:
-            return jsonify({'success': False, 'message': 'User not found'}), 404
-        
-        if user.approval_status != 'pending':
-            return jsonify({'success': False, 'message': 'User is not pending approval'}), 400
-        
-        # Get form data
-        league_type = request.form.get('league_type')
-        notes = request.form.get('notes', '')
-        
-        valid_league_types = ['classic', 'premier', 'ecs-fc', 'sub-classic', 'sub-premier', 'sub-ecs-fc']
-        if not league_type or league_type not in valid_league_types:
-            return jsonify({'success': False, 'message': 'Invalid league type'}), 400
-        
-        # Get the appropriate roles and league assignment
-        role_mapping = {
-            'classic': ['pl-classic'],
-            'premier': ['pl-premier'],
-            'ecs-fc': ['pl-ecs-fc'],
-            'sub-classic': ['Classic Sub', 'pl-classic'],  # Sub gets both sub role AND division role
-            'sub-premier': ['Premier Sub', 'pl-premier'],  # Sub gets both sub role AND division role
-            'sub-ecs-fc': ['ECS FC Sub', 'pl-ecs-fc']     # Sub gets both sub role AND division role
-        }
-        
-        # League assignment mapping
-        league_assignment_mapping = {
-            'classic': 'Classic',
-            'premier': 'Premier', 
-            'ecs-fc': 'ECS FC',
-            'sub-classic': 'Classic',    # Subs get assigned to the base league
-            'sub-premier': 'Premier',    # Subs get assigned to the base league
-            'sub-ecs-fc': 'ECS FC'       # Subs get assigned to the base league
-        }
-        
-        new_role_names = role_mapping[league_type]
-        new_roles = []
-        
-        # Get all the roles that need to be assigned
-        for role_name in new_role_names:
-            role = db_session.query(Role).filter_by(name=role_name).first()
-            if not role:
-                return jsonify({'success': False, 'message': f'Role {role_name} not found'}), 404
-            new_roles.append(role)
-        
-        # Refresh user roles from database to avoid stale data issues
-        db_session.refresh(user, ['roles'])
+        # Acquire lock on user to prevent concurrent role modifications
+        with lock_user_for_role_update(user_id, session=db_session) as user:
+            if user.approval_status != 'pending':
+                return jsonify({'success': False, 'message': 'User is not pending approval'}), 400
 
-        # Remove the pl-unverified role
-        unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
-        if unverified_role and unverified_role in user.roles:
-            user.roles.remove(unverified_role)
+            # Get form data
+            league_type = request.form.get('league_type')
+            notes = request.form.get('notes', '')
 
-        # Add all the new approved roles
-        for new_role in new_roles:
-            if new_role not in user.roles:
-                user.roles.append(new_role)
-        
-        # Assign user to the appropriate league WITH CURRENT SEASON
-        league_name = league_assignment_mapping[league_type]
-        # Get the league with the current season
-        league = db_session.query(League).join(
-            Season, League.season_id == Season.id
-        ).filter(
-            League.name == league_name,
-            Season.is_current == True
-        ).first()
-        
-        if league:
-            user.league_id = league.id
-            logger.info(f"Assigned user {user.id} to league '{league_name}' (ID: {league.id}) with current season")
-        else:
-            logger.warning(f"No current season league '{league_name}' found for user {user.id}")
-            # Fallback to any league with that name if no current season exists
-            league = db_session.query(League).filter_by(name=league_name).first()
+            valid_league_types = ['classic', 'premier', 'ecs-fc', 'sub-classic', 'sub-premier', 'sub-ecs-fc']
+            if not league_type or league_type not in valid_league_types:
+                return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+            # Get the appropriate roles and league assignment
+            role_mapping = {
+                'classic': ['pl-classic'],
+                'premier': ['pl-premier'],
+                'ecs-fc': ['pl-ecs-fc'],
+                'sub-classic': ['Classic Sub', 'pl-classic'],  # Sub gets both sub role AND division role
+                'sub-premier': ['Premier Sub', 'pl-premier'],  # Sub gets both sub role AND division role
+                'sub-ecs-fc': ['ECS FC Sub', 'pl-ecs-fc']     # Sub gets both sub role AND division role
+            }
+
+            # League assignment mapping
+            league_assignment_mapping = {
+                'classic': 'Classic',
+                'premier': 'Premier',
+                'ecs-fc': 'ECS FC',
+                'sub-classic': 'Classic',    # Subs get assigned to the base league
+                'sub-premier': 'Premier',    # Subs get assigned to the base league
+                'sub-ecs-fc': 'ECS FC'       # Subs get assigned to the base league
+            }
+
+            new_role_names = role_mapping[league_type]
+            new_roles = []
+
+            # Get all the roles that need to be assigned
+            for role_name in new_role_names:
+                role = db_session.query(Role).filter_by(name=role_name).first()
+                if not role:
+                    return jsonify({'success': False, 'message': f'Role {role_name} not found'}), 404
+                new_roles.append(role)
+
+            # Remove the pl-unverified role
+            unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
+            if unverified_role and unverified_role in user.roles:
+                user.roles.remove(unverified_role)
+
+            # Add all the new approved roles
+            for new_role in new_roles:
+                if new_role not in user.roles:
+                    user.roles.append(new_role)
+
+            # Assign user to the appropriate league WITH CURRENT SEASON
+            league_name = league_assignment_mapping[league_type]
+            # Get the league with the current season
+            league = db_session.query(League).join(
+                Season, League.season_id == Season.id
+            ).filter(
+                League.name == league_name,
+                Season.is_current == True
+            ).first()
+
             if league:
                 user.league_id = league.id
-                logger.warning(f"Fallback: Assigned user {user.id} to league '{league_name}' (ID: {league.id}) - NOT CURRENT SEASON")
-            
-        # Also set league on the player if exists  
-        if user.player and league:
-            user.player.league_id = league.id
-            logger.info(f"Assigned player {user.player.id} to league '{league_name}' (ID: {league.id})")
-        
-        # Update user approval status
-        user.approval_status = 'approved'
-        user.is_approved = True
-        user.approval_league = league_type
-        user.approved_by = current_user.id
-        user.approved_at = datetime.utcnow()
-        user.approval_notes = notes
+                logger.info(f"Assigned user {user.id} to league '{league_name}' (ID: {league.id}) with current season")
+            else:
+                logger.warning(f"No current season league '{league_name}' found for user {user.id}")
+                # Fallback to any league with that name if no current season exists
+                league = db_session.query(League).filter_by(name=league_name).first()
+                if league:
+                    user.league_id = league.id
+                    logger.warning(f"Fallback: Assigned user {user.id} to league '{league_name}' (ID: {league.id}) - NOT CURRENT SEASON")
 
-        # Clear waitlist timestamp - user now has a spot
-        user.waitlist_joined_at = None
+            # Also set league on the player if exists
+            if user.player and league:
+                user.player.league_id = league.id
+                logger.info(f"Assigned player {user.player.id} to league '{league_name}' (ID: {league.id})")
 
-        db_session.add(user)
-        db_session.flush()
-        
-        # Trigger Discord role sync
-        if user.player and user.player.discord_id:
-            assign_roles_to_player_task.delay(player_id=user.player.id, only_add=False)
-            logger.info(f"Triggered Discord role sync for approved user {user.id}")
-        
-        assigned_roles = [role.name for role in new_roles]
-        logger.info(f"User {user.id} approved for {league_type} league by {current_user.id}")
-        logger.info(f"Assigned roles: {assigned_roles}")
-        if league:
-            logger.info(f"Assigned to league: {league.name} (ID: {league.id})")
-        
+            # Update user approval status
+            user.approval_status = 'approved'
+            user.is_approved = True
+            user.approval_league = league_type
+            user.approved_by = current_user.id
+            user.approved_at = datetime.utcnow()
+            user.approval_notes = notes
+
+            # Clear waitlist timestamp - user now has a spot
+            user.waitlist_joined_at = None
+
+            db_session.add(user)
+            db_session.flush()
+
+            # Queue Discord role sync for AFTER transaction commits
+            if user.player and user.player.discord_id:
+                defer_discord_sync(user.player.id, only_add=False)
+                logger.info(f"Queued Discord role sync for approved user {user.id}")
+
+            assigned_roles = [role.name for role in new_roles]
+            logger.info(f"User {user.id} approved for {league_type} league by {current_user.id}")
+            logger.info(f"Assigned roles: {assigned_roles}")
+            if league:
+                logger.info(f"Assigned to league: {league.name} (ID: {league.id})")
+
+            # Prepare response data before exiting context
+            response_data = {
+                'success': True,
+                'message': f'User {user.username} approved for {league_type.title()} league with roles: {", ".join(assigned_roles)}',
+                'user_id': user.id,
+                'league_type': league_type,
+                'assigned_roles': assigned_roles,
+                'assigned_league': league.name if league else None,
+                'approved_by': current_user.username,
+                'approved_at': user.approved_at.isoformat()
+            }
+
+        # Execute deferred Discord operations AFTER transaction commits
+        execute_deferred_discord()
+
+        return jsonify(response_data)
+
+    except LockAcquisitionError:
+        clear_deferred_discord()
+        logger.warning(f"Lock acquisition failed for user {user_id} during approval")
         return jsonify({
-            'success': True,
-            'message': f'User {user.username} approved for {league_type.title()} league with roles: {", ".join(assigned_roles)}',
-            'user_id': user.id,
-            'league_type': league_type,
-            'assigned_roles': assigned_roles,
-            'assigned_league': league.name if league else None,
-            'approved_by': current_user.username,
-            'approved_at': user.approved_at.isoformat()
-        })
-        
+            'success': False,
+            'message': 'User is currently being modified by another request. Please try again.'
+        }), 409
+
     except Exception as e:
+        clear_deferred_discord()
         logger.error(f"Error approving user {user_id}: {str(e)}")
         db_session.rollback()
         return jsonify({'success': False, 'message': 'Error processing approval'}), 500
@@ -440,65 +450,73 @@ def approve_user(user_id: int):
 @admin_bp.route('/admin/user-approvals/deny/<int:user_id>', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
+@transactional(max_retries=3)
 def deny_user(user_id: int):
     """
     Deny a user's application.
     Removes Discord roles and updates status.
+
+    Uses pessimistic locking to prevent concurrent modifications and
+    defers Discord operations until after the transaction commits.
     """
     db_session = g.db_session
     current_user = safe_current_user
-    
+
     try:
-        # Get the user to deny
-        user = db_session.query(User).options(
-            joinedload(User.player),
-            joinedload(User.roles)
-        ).filter_by(id=user_id).first()
-        
-        if not user:
-            return jsonify({'success': False, 'message': 'User not found'}), 404
-        
-        if user.approval_status != 'pending':
-            return jsonify({'success': False, 'message': 'User is not pending approval'}), 400
+        # Acquire lock on user to prevent concurrent role modifications
+        with lock_user_for_role_update(user_id, session=db_session) as user:
+            if user.approval_status != 'pending':
+                return jsonify({'success': False, 'message': 'User is not pending approval'}), 400
 
-        # Refresh user roles from database to avoid stale data issues
-        db_session.refresh(user, ['roles'])
+            # Get form data
+            notes = request.form.get('notes', '')
 
-        # Get form data
-        notes = request.form.get('notes', '')
+            # Remove all roles except basic ones
+            unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
+            if unverified_role and unverified_role in user.roles:
+                user.roles.remove(unverified_role)
 
-        # Remove all roles except basic ones
-        unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
-        if unverified_role and unverified_role in user.roles:
-            user.roles.remove(unverified_role)
-        
-        # Update user approval status
-        user.approval_status = 'denied'
-        user.approval_league = None
-        user.approved_by = current_user.id
-        user.approved_at = datetime.utcnow()
-        user.approval_notes = notes
-        
-        db_session.add(user)
-        db_session.flush()
-        
-        # Remove Discord roles
-        if user.player and user.player.discord_id:
-            remove_player_roles_task.delay(player_id=user.player.id)
-            logger.info(f"Triggered Discord role removal for denied user {user.id}")
-        
-        logger.info(f"User {user.id} denied by {current_user.id}")
-        
+            # Update user approval status
+            user.approval_status = 'denied'
+            user.approval_league = None
+            user.approved_by = current_user.id
+            user.approved_at = datetime.utcnow()
+            user.approval_notes = notes
+
+            db_session.add(user)
+            db_session.flush()
+
+            # Queue Discord role removal for AFTER transaction commits
+            if user.player and user.player.discord_id:
+                defer_discord_removal(user.player.id)
+                logger.info(f"Queued Discord role removal for denied user {user.id}")
+
+            logger.info(f"User {user.id} denied by {current_user.id}")
+
+            # Prepare response data before exiting context
+            response_data = {
+                'success': True,
+                'message': f'User {user.username} application denied',
+                'user_id': user.id,
+                'denied_by': current_user.username,
+                'denied_at': user.approved_at.isoformat()
+            }
+
+        # Execute deferred Discord operations AFTER transaction commits
+        execute_deferred_discord()
+
+        return jsonify(response_data)
+
+    except LockAcquisitionError:
+        clear_deferred_discord()
+        logger.warning(f"Lock acquisition failed for user {user_id} during denial")
         return jsonify({
-            'success': True,
-            'message': f'User {user.username} application denied',
-            'user_id': user.id,
-            'denied_by': current_user.username,
-            'denied_at': user.approved_at.isoformat()
-        })
-        
+            'success': False,
+            'message': 'User is currently being modified by another request. Please try again.'
+        }), 409
+
     except Exception as e:
+        clear_deferred_discord()
         logger.error(f"Error denying user {user_id}: {str(e)}")
         db_session.rollback()
         return jsonify({'success': False, 'message': 'Error processing denial'}), 500
