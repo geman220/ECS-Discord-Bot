@@ -526,6 +526,27 @@ class PitchViewSystem {
         }
     }
 
+    movePlayerToBench(playerId, fromPosition, teamId) {
+        // Move player from current position to bench (stays on team)
+        // Find the player element to get their data
+        const playerElement = document.querySelector(`.positioned-player[data-player-id="${playerId}"]`);
+        if (!playerElement) {
+            this.showToast('Player not found', 'error');
+            return;
+        }
+
+        const playerName = playerElement.getAttribute('data-player-name') || 'Unknown';
+        const player = {
+            id: playerId,
+            name: playerName,
+            profile_picture_url: playerElement.querySelector('img')?.src || null
+        };
+
+        // Move to bench position (this will emit the update_player_position socket event)
+        this.addPlayerToPosition(player, 'bench', teamId, true);
+        this.showToast(`${playerName} moved to bench`, 'info');
+    }
+
     removePlayerFromPositionUI(playerId, teamId) {
         // Remove player from all positions in the UI (called after socket confirmation)
         const positions = ['gk', 'lb', 'cb', 'rb', 'lwb', 'rwb', 'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'];
@@ -1125,8 +1146,48 @@ if (true) {
         const playerId = parseInt(element.dataset.playerId, 10);
         const position = element.dataset.position;
         const teamId = parseInt(element.dataset.teamId, 10);
-        if (window.pitchViewInstance && playerId && position) {
-            window.pitchViewInstance.removePlayerFromPosition(playerId, position, teamId);
+        // Get player name from the parent element or title attribute
+        const playerName = element.getAttribute('aria-label')?.replace('Remove ', '') ||
+                          element.closest('.positioned-player')?.getAttribute('data-player-name') ||
+                          'this player';
+
+        if (!window.pitchViewInstance || !playerId || !teamId) {
+            console.error('[remove-player-from-pitch] Missing required data:', { pitchViewInstance: !!window.pitchViewInstance, playerId, teamId });
+            return;
+        }
+
+        // Show confirmation modal with options
+        if (window.Swal) {
+            window.Swal.fire({
+                title: 'Remove Player',
+                html: `<p class="mb-4">What would you like to do with <strong>${playerName}</strong>?</p>`,
+                icon: 'question',
+                showCancelButton: true,
+                showDenyButton: position !== 'bench', // Only show "Move to Bench" if not already on bench
+                confirmButtonText: '<i class="ti ti-trash me-1"></i> Remove from Team',
+                denyButtonText: '<i class="ti ti-armchair me-1"></i> Move to Bench',
+                cancelButtonText: 'Cancel',
+                customClass: {
+                    confirmButton: 'btn btn-danger mx-1',
+                    denyButton: 'btn btn-warning mx-1',
+                    cancelButton: 'btn btn-secondary mx-1'
+                },
+                buttonsStyling: false,
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Remove from team entirely (back to pool)
+                    window.pitchViewInstance.removePlayerFromPosition(playerId, position, teamId);
+                } else if (result.isDenied) {
+                    // Move to bench (keep on team)
+                    window.pitchViewInstance.movePlayerToBench(playerId, position, teamId);
+                }
+            });
+        } else {
+            // Fallback if SweetAlert not available
+            if (confirm(`Remove ${playerName} from team?`)) {
+                window.pitchViewInstance.removePlayerFromPosition(playerId, position, teamId);
+            }
         }
     }, { preventDefault: true });
 }
