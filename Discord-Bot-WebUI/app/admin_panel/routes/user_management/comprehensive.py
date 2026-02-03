@@ -607,8 +607,35 @@ def edit_user_comprehensive(user_id):
 
             updated_username = user.username
 
+            # Track league changes for cache invalidation
+            old_league_id = old_values.get('league_id')
+            new_league_id = user.player.primary_league_id if user.player else None
+            old_was_current = old_values.get('is_current_player')
+            new_is_current = user.player.is_current_player if user.player else False
+
+            # Get league names for cache clearing (need to do this inside the lock context)
+            leagues_to_clear = set()
+            if old_league_id:
+                old_league = League.query.get(old_league_id)
+                if old_league:
+                    leagues_to_clear.add(old_league.name.lower())
+            if new_league_id:
+                new_league = League.query.get(new_league_id)
+                if new_league:
+                    leagues_to_clear.add(new_league.name.lower())
+
         # Execute deferred Discord operations AFTER transaction commits
         execute_deferred_discord()
+
+        # Clear draft cache if league changed OR is_current_player changed
+        if leagues_to_clear and (old_league_id != new_league_id or old_was_current != new_is_current):
+            try:
+                from app.draft_cache_service import DraftCacheService
+                for league_name in leagues_to_clear:
+                    DraftCacheService.clear_all_league_caches(league_name)
+                logger.info(f"Cleared draft caches for {leagues_to_clear} after editing user {user_id}")
+            except Exception as e:
+                logger.warning(f"Could not clear draft cache: {e}")
 
         flash(f'User {updated_username} updated successfully', 'success')
         return redirect(url_for('admin_panel.users_comprehensive'))
