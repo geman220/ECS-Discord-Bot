@@ -25,10 +25,13 @@
 </button>
 <ul id="dropdown-league-ops" class="hidden py-2 space-y-2">
     <li>
-        <a href="{{ url_for('admin_panel.league_management_dashboard') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">League Hub</a>
+        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Season Builder</a>
     </li>
     <li>
-        <a href="{{ url_for('admin_panel.season_wizard') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Season Wizard</a>
+        <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">All Seasons</a>
+    </li>
+    <li>
+        <a href="{{ url_for('admin_panel.league_management_teams') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">All Teams</a>
     </li>
     <li>
         <a href="{{ url_for('admin_panel.match_operations') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 transition duration-75 rounded-lg group hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">Match Operations</a>

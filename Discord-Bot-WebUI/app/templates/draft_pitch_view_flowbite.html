@@ -81,25 +81,62 @@
                                    class="w-full pl-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
                         </div>
                     </div>
-                    <!-- Position Filter -->
-                    <div class="mb-3">
-                        <select id="positionFilterPitch" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
-                            <option value="">All Positions</option>
-                            <option value="goalkeeper">Goalkeeper</option>
-                            <option value="defender">Defender</option>
-                            <option value="midfielder">Midfielder</option>
-                            <option value="forward">Forward</option>
-                            <option value="wing">Wing</option>
-                        </select>
+                    <!-- Filters Grid -->
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <!-- Position Filter -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Position</label>
+                            <select id="positionFilterPitch" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">All</option>
+                                <option value="goalkeeper">Goalkeeper</option>
+                                <option value="defender">Defender</option>
+                                <option value="midfielder">Midfielder</option>
+                                <option value="forward">Forward</option>
+                            </select>
+                        </div>
+                        <!-- Sort By -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Sort By</label>
+                            <select id="sortByPitch" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="name">Name</option>
+                                <option value="experience">Experience</option>
+                                <option value="attendance">Attendance</option>
+                                <option value="goals">Goals</option>
+                            </select>
+                        </div>
+                        <!-- Attendance Filter -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Attendance</label>
+                            <select id="attendanceFilterPitch" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">All</option>
+                                <option value="80-100">80%+</option>
+                                <option value="60-79">60-79%</option>
+                                <option value="0-59">&lt;60%</option>
+                            </select>
+                        </div>
+                        <!-- Goals Filter -->
+                        <div>
+                            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Goals</label>
+                            <select id="goalsFilterPitch" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="">All</option>
+                                <option value="10+">10+</option>
+                                <option value="5-9">5-9</option>
+                                <option value="1-4">1-4</option>
+                                <option value="0">None</option>
+                            </select>
+                        </div>
                     </div>
 
                     <!-- Players List -->
                     <div id="availablePlayersList" class="space-y-2 max-h-[60vh] overflow-y-auto">
                         {% for player in available_players %}
-                        <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-grab js-draggable-player"
+                        <div class="player-item flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-grab js-draggable-player"
                              data-player-id="{{ player.id }}"
                              data-player-name="{{ player.name|lower }}"
                              data-position="{{ (player.favorite_position or '')|lower }}"
+                             data-goals="{{ player.career_goals }}"
+                             data-attendance="{{ player.attendance_estimate if player.attendance_estimate is not none else '' }}"
+                             data-experience="{{ player.league_experience_seasons }}"
                              draggable="true">
                             <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
                                  alt="{{ player.name }}"
@@ -107,7 +144,7 @@
                             <div class="flex-1 min-w-0">
                                 <div class="flex items-center justify-between">
                                     <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ player.favorite_position or 'Any' }}</span>
+                                    <span class="text-xs px-1.5 py-0.5 rounded {{ 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' if player.favorite_position and player.favorite_position != 'Any' else 'text-gray-500 dark:text-gray-400' }}">{{ player.favorite_position or 'Any' }}</span>
                                 </div>
                                 <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
                                     <span class="text-green-500" title="Goals"><i class="ti ti-ball-football"></i> {{ player.career_goals }}</span>
@@ -285,6 +322,19 @@
       });
   });
 </script>
-<script type="module" src="{{ url_for('static', filename='js/pitch-view.js') }}"></script>
-<script type="module" src="{{ url_for('static', filename='js/mobile-draft.js') }}"></script>
+{# pitch-view.js and mobile-draft.js are bundled via Vite main-entry.js - do NOT load separately #}
+{# Initialize pitch view after config is set #}
+<script>
+  // Trigger pitch view initialization after PitchViewConfig is set
+  if (window.InitSystem && window.InitSystem.run) {
+    window.InitSystem.run('pitch-view');
+  } else {
+    // Fallback if InitSystem hasn't loaded yet
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.InitSystem && window.InitSystem.run) {
+        window.InitSystem.run('pitch-view');
+      }
+    });
+  }
+</script>
 {% endblock %}

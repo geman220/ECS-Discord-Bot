@@ -165,7 +165,7 @@
                             <small>{{ match.location or 'TBD' }}</small>
                         </td>
                         <td data-label="Status">
-                            {% if hasattr(match, 'status') and match.status %}
+                            {% if match.status is defined and match.status %}
                             <span class="badge bg-{% if match.status == 'completed' %}success{% elif match.status == 'live' %}warning{% elif match.status == 'cancelled' %}danger{% elif match.status == 'postponed' %}secondary{% else %}primary{% endif %}" data-badge>
                                 {{ match.status.title() }}
                             </span>
@@ -206,7 +206,7 @@
                                         <li><a class="dropdown-item js-schedule-match" href="#" data-action="schedule-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-calendar me-2"></i>Schedule
                                         </a></li>
-                                        {% if hasattr(match, 'status') and match.status != 'cancelled' %}
+                                        {% if match.status is defined and match.status != 'cancelled' %}
                                         <li><hr class="dropdown-divider"></li>
                                         <li><a class="dropdown-item text-warning js-postpone-match" href="#" data-action="postpone-match" data-match-id="{{ match.id }}">
                                             <i class="ti ti-clock me-2"></i>Postpone

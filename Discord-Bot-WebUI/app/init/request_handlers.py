@@ -69,6 +69,11 @@ def _init_before_request(app):
 
     @app.before_request
     def before_request():
+        # Skip all session/Redis operations for static files
+        # This prevents Redis connection exhaustion when serving static assets
+        if request.path.startswith('/static/'):
+            return
+
         # Sync theme settings from cookies to session (for anti-flash support)
         # This must happen before any template rendering
         _sync_theme_from_cookie()

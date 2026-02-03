@@ -798,14 +798,23 @@ def delete_week(league_id):
 @role_required(['Pub League Admin', 'Global Admin'])
 def schedule_manager():
     """
-    Main Auto Schedule Manager - shows all available leagues for schedule generation.
+    Season Builder - Admin panel integrated season creation and management.
+
+    Provides a step-by-step wizard for creating new seasons with:
+    - Season basics (name, type)
+    - Team configuration
+    - Schedule settings (special weeks, times, fields)
+    - Calendar setup
+    - Review and create
+
+    Also allows management of existing seasons.
     """
     session = g.db_session
-    
+
     # Get all active seasons
     pub_league_seasons = session.query(Season).filter_by(league_type='Pub League').all()
     ecs_fc_seasons = session.query(Season).filter_by(league_type='ECS FC').all()
-    
+
     # Get current seasons
     current_pub_season = session.query(Season).filter_by(
         league_type='Pub League', is_current=True
@@ -813,13 +822,13 @@ def schedule_manager():
     current_ecs_season = session.query(Season).filter_by(
         league_type='ECS FC', is_current=True
     ).first()
-    
-    return render_template('auto_schedule_manager_flowbite.html',
+
+    return render_template('admin_panel/league_management/season_builder/index_flowbite.html',
                          pub_league_seasons=pub_league_seasons,
                          ecs_fc_seasons=ecs_fc_seasons,
                          current_pub_season=current_pub_season,
                          current_ecs_season=current_ecs_season,
-                         title='Auto Schedule Manager (NEW)')
+                         title='Season Builder')
 
 
 @auto_schedule_bp.route('/league/<int:league_id>')
@@ -875,6 +884,13 @@ def create_season_wizard():
         league_type = data['league_type']
         set_as_current = data.get('set_as_current', False)
         season_start_date = datetime.strptime(data['season_start_date'], '%Y-%m-%d').date()
+
+        # Extract division-specific week configurations from new payload format
+        premier_week_configs = data.get('premier_week_configs', [])
+        classic_week_configs = data.get('classic_week_configs', [])
+        ecs_fc_week_configs = data.get('ecs_fc_week_configs', [])
+
+        # Legacy support: also check for old week_configs format
         week_configs = data.get('week_configs', [])
         
         # Check if season already exists
@@ -1029,35 +1045,37 @@ def create_season_wizard():
                 return jsonify({'error': f'Season rollover failed: {str(e)}. Season creation aborted to prevent data corruption.'}), 500
         
         # Create placeholder teams based on user selection
+        # Classic teams get A, B, C, D first, then Premier continues with E, F, G, H, etc.
         created_teams = []
-        
+
         if league_type == 'Pub League':
-            # Create Premier Division teams
-            premier_team_count = int(data.get('premier_teams', 8))
+            # Create Classic Division teams FIRST (Team A, B, C, D)
+            classic_team_count = int(data.get('classic_teams', 4))
             team_letter_offset = 0  # Start from A
-            
-            for i in range(premier_team_count):
-                team_letter = chr(65 + team_letter_offset + i)  # A, B, C, etc.
+
+            for i in range(classic_team_count):
+                team_letter = chr(65 + team_letter_offset + i)  # A, B, C, D
                 team_name = f"Team {team_letter}"
-                
+
+                team = Team(name=team_name, league_id=classic_league.id)
+                session.add(team)
+                session.flush()  # Get team ID
+                created_teams.append(team.id)
+                logger.info(f"Created Classic team: {team_name} (ID: {team.id})")
+
+            # Create Premier Division teams - continue from where Classic left off
+            premier_team_count = int(data.get('premier_teams', 8))
+            team_letter_offset = classic_team_count  # Continue after Classic teams
+
+            for i in range(premier_team_count):
+                team_letter = chr(65 + team_letter_offset + i)  # E, F, G, H, etc.
+                team_name = f"Team {team_letter}"
+
                 team = Team(name=team_name, league_id=premier_league.id)
                 session.add(team)
                 session.flush()  # Get team ID
                 created_teams.append(team.id)
                 logger.info(f"Created Premier team: {team_name} (ID: {team.id})")
-            
-            # Create Classic Division teams - continue from where Premier left off
-            classic_team_count = int(data.get('classic_teams', 4))
-            team_letter_offset = premier_team_count  # Continue after Premier teams
-            
-            for i in range(classic_team_count):
-                team_letter = chr(65 + team_letter_offset + i)  # Continue from where Premier ended
-                team_name = f"Team {team_letter}"
-                
-                team = Team(name=team_name, league_id=classic_league.id)
-                session.add(team)
-                session.flush()  # Get team ID
-                created_teams.append(team.id)
                 
         elif league_type == 'ECS FC':
             # Create ECS FC teams
@@ -1074,12 +1092,15 @@ def create_season_wizard():
         session.commit()
         
         # Process week configurations from wizard data - store raw data for per-league processing
-        logger.info(f"Processing {len(week_configs)} week configurations from wizard")
-        if week_configs:
-            for week_data in week_configs:
-                logger.info(f"  Week {week_data['week_number']}: {week_data['date']} - Type: {week_data['type']} - Division: {week_data.get('division', 'None')}")
-        else:
-            logger.info("No week configurations provided from wizard")
+        # New format uses division-specific arrays (premier_week_configs, classic_week_configs)
+        # Legacy format uses week_configs with division field
+        has_division_configs = bool(premier_week_configs or classic_week_configs or ecs_fc_week_configs)
+        logger.info(f"Processing week configurations from wizard:")
+        logger.info(f"  Premier configs: {len(premier_week_configs)}")
+        logger.info(f"  Classic configs: {len(classic_week_configs)}")
+        logger.info(f"  ECS FC configs: {len(ecs_fc_week_configs)}")
+        logger.info(f"  Legacy configs: {len(week_configs)}")
+        logger.info(f"  Using {'new division-specific' if has_division_configs else 'legacy'} format")
         
         # Auto-generate schedule for each league
         leagues_to_schedule = []
@@ -1112,52 +1133,81 @@ def create_season_wizard():
                 
                 # Create league-specific week configurations from raw week_configs data
                 league_week_configs = []
-                if week_configs:
-                    # Determine expected division for this league
-                    league_division_map = {
-                        'Premier': 'premier',
-                        'Classic': 'classic', 
-                        'ECS FC': 'ecs_fc'
-                    }
-                    expected_division = league_division_map.get(league.name)
-                    
-                    logger.info(f"=== CREATING WEEKS for {league.name} (ID: {league.id}) ===")
-                    logger.info(f"Expected division: {expected_division}")
-                    
-                    # Filter week_configs for this specific division
+
+                # Determine which week configs to use for this league
+                league_division_map = {
+                    'Premier': 'premier',
+                    'Classic': 'classic',
+                    'ECS FC': 'ecs_fc'
+                }
+                expected_division = league_division_map.get(league.name)
+
+                logger.info(f"=== CREATING WEEKS for {league.name} (ID: {league.id}) ===")
+                logger.info(f"Expected division: {expected_division}")
+
+                # Use new division-specific configs if available, otherwise fall back to legacy format
+                division_weeks = []
+                if expected_division == 'premier' and premier_week_configs:
+                    division_weeks = premier_week_configs
+                    logger.info(f"Using premier_week_configs: {len(division_weeks)} weeks")
+                elif expected_division == 'classic' and classic_week_configs:
+                    division_weeks = classic_week_configs
+                    logger.info(f"Using classic_week_configs: {len(division_weeks)} weeks")
+                elif expected_division == 'ecs_fc' and ecs_fc_week_configs:
+                    division_weeks = ecs_fc_week_configs
+                    logger.info(f"Using ecs_fc_week_configs: {len(division_weeks)} weeks")
+                elif week_configs:
+                    # Legacy format: filter by division field
                     division_weeks = [w for w in week_configs if w.get('division') == expected_division]
-                    logger.info(f"Found {len(division_weeks)} weeks for division {expected_division}")
-                    
-                    # Get season configuration for practice session info
-                    season_config = session.query(SeasonConfiguration).filter_by(league_id=league.id).first()
-                    practice_weeks = []
-                    practice_game_number = 1
-                    
-                    if season_config and season_config.has_practice_sessions:
-                        practice_weeks = season_config.get_practice_weeks_list()
-                        practice_game_number = season_config.practice_game_number
-                        logger.info(f"Practice sessions enabled for {league.name}: weeks {practice_weeks}, game {practice_game_number}")
-                    
-                    # Create WeekConfiguration objects for this league
+                    logger.info(f"Using legacy week_configs: {len(division_weeks)} weeks for {expected_division}")
+
+                # Get season configuration for practice session info
+                season_config = session.query(SeasonConfiguration).filter_by(league_id=league.id).first()
+                practice_weeks = []
+                practice_game_number = 1
+
+                if season_config and season_config.has_practice_sessions:
+                    practice_weeks = season_config.get_practice_weeks_list()
+                    practice_game_number = season_config.practice_game_number
+                    logger.info(f"Practice sessions enabled for {league.name}: weeks {practice_weeks}, game {practice_game_number}")
+
+                # Create WeekConfiguration objects for this league
+                if division_weeks:
                     for week_data in division_weeks:
+                        week_number = week_data['week_number']
+                        week_type = week_data['type']
+
+                        # Compute week date from season start date and week number
+                        # New format may not have 'date' field, so we calculate it
+                        if 'date' in week_data and week_data['date']:
+                            week_date = datetime.strptime(week_data['date'], '%Y-%m-%d').date()
+                        else:
+                            # Calculate date: week 1 = season_start_date, week 2 = +7 days, etc.
+                            week_date = season_start_date + timedelta(weeks=week_number - 1)
+
                         # Check if this week should have practice sessions
-                        has_practice = week_data['week_number'] in practice_weeks
-                        
+                        has_practice = week_number in practice_weeks
+
+                        # Determine special week flags based on type
+                        is_playoff = (week_type == 'PLAYOFF')
+                        is_special = (week_type in ['TST', 'FUN', 'BYE', 'PRACTICE'])
+                        has_practice_flag = (week_type == 'PRACTICE') or has_practice
+
                         # Create WeekConfiguration for this specific league
                         league_week_config = WeekConfiguration(
                             league_id=league.id,
-                            week_date=datetime.strptime(week_data['date'], '%Y-%m-%d').date(),
-                            week_type=week_data['type'],
-                            week_order=week_data['week_number'],
-                            is_playoff_week=(week_data['type'] == 'PLAYOFF'),
-                            playoff_round=1 if week_data['type'] == 'PLAYOFF' else None,
-                            has_practice_session=has_practice,
-                            practice_game_number=practice_game_number if has_practice else None
+                            week_date=week_date,
+                            week_type=week_type,
+                            week_order=week_number,
+                            is_playoff_week=is_playoff,
+                            playoff_round=1 if is_playoff else None,
+                            has_practice_session=has_practice_flag,
+                            practice_game_number=practice_game_number if has_practice_flag else None
                         )
                         session.add(league_week_config)
                         league_week_configs.append(league_week_config)
-                        logger.info(f"  ✓ CREATED WeekConfiguration: League {league.name} (ID: {league.id}), Week {league_week_config.week_order}, Type: {league_week_config.week_type}" + 
-                                   (f" (Practice: Game {practice_game_number})" if has_practice else ""))
+                        logger.info(f"  ✓ CREATED WeekConfiguration: League {league.name} (ID: {league.id}), Week {week_number}, Date: {week_date}, Type: {week_type}" +
+                                   (f" (Practice: Game {practice_game_number})" if has_practice_flag else ""))
                 
                 # Generator already created at start of loop - don't recreate it here
                 
@@ -1776,38 +1826,55 @@ def swap_teams(league_id: int):
 def set_active_season():
     """
     Set a season as the active/current season for its league type.
+
+    When switching to a season, automatically restores player-team memberships
+    from PlayerTeamSeason history so players are on their correct teams for that season.
     """
+    from app.season_routes import restore_season_memberships
+
     session = g.db_session
-    
+
     try:
         data = request.get_json()
         season_id = data.get('season_id')
-        league_type = data.get('league_type')
-        
+        league_type = data.get('league_type') or data.get('season_type')  # Accept both keys
+
         if not season_id or not league_type:
             return jsonify({'error': 'Season ID and league type are required'}), 400
-        
+
         # Get the season to set as active
         new_active_season = session.query(Season).filter_by(id=season_id).first()
         if not new_active_season:
             return jsonify({'error': 'Season not found'}), 404
-        
+
         if new_active_season.league_type != league_type:
             return jsonify({'error': 'Season league type mismatch'}), 400
-        
+
         # Set all other seasons of this type as not current
         session.query(Season).filter_by(league_type=league_type).update({'is_current': False})
-        
+
         # Set the selected season as current
         new_active_season.is_current = True
-        
+
+        # Restore player-team memberships from PlayerTeamSeason history
+        # This ensures players are on their correct teams when switching between seasons
+        restore_result = {'restored': 0, 'message': 'No restoration needed'}
+        try:
+            restore_result = restore_season_memberships(session, new_active_season)
+            logger.info(f"Season membership restoration: {restore_result}")
+        except Exception as e:
+            logger.error(f"Failed to restore season memberships: {e}")
+            # Don't fail the whole operation - just log the error
+            restore_result = {'restored': 0, 'message': f'Restoration failed: {str(e)}'}
+
         session.commit()
-        
+
         return jsonify({
             'success': True,
-            'message': f'"{new_active_season.name}" is now the current {league_type} season'
+            'message': f'"{new_active_season.name}" is now the current {league_type} season',
+            'restoration': restore_result
         })
-        
+
     except Exception as e:
         logger.error(f"Error setting active season: {e}")
         session.rollback()

@@ -5,7 +5,6 @@
 
 {% block head %}
 {{ super() }}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" />
 {% endblock %}
 
 {% block main_content %}
@@ -115,14 +114,16 @@
                         <h6 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-4">Profile Picture</h6>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="text-center">
-                                <img id="current-profile-image" src="/static/img/default_player.png" alt="Profile Picture"
+                                <img id="waitlistPreview" src="/static/img/default_player.png" alt="Profile Picture"
                                      class="w-24 h-24 rounded-full mx-auto mb-3 object-cover border-2 border-gray-200 dark:border-gray-600">
-                                <button type="button" id="upload-photo-btn"
+                                <input type="file" id="waitlistFileInput" accept="image/*" class="hidden">
+                                <canvas id="waitlistCanvas" class="hidden"></canvas>
+                                <button type="button" id="waitlistSelectBtn"
                                         class="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                     <i class="ti ti-camera"></i>
                                     Upload Photo
                                 </button>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Optional: Add a profile picture</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Optional: Auto-cropped to square</p>
                             </div>
                             <div class="flex items-start gap-3 p-4 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800">
                                 <i class="ti ti-info-circle text-lg flex-shrink-0 mt-0.5"></i>
@@ -130,9 +131,9 @@
                                     <h6 class="font-semibold mb-1">Photo Guidelines</h6>
                                     <ul class="list-disc list-inside space-y-0.5 text-xs">
                                         <li>Use a clear, recent photo of yourself</li>
-                                        <li>Photos will be cropped to a square format</li>
-                                        <li>Supported formats: JPG, PNG, GIF</li>
-                                        <li>Maximum file size: 10MB</li>
+                                        <li>Photos will be auto-cropped to square</li>
+                                        <li>Supported formats: JPG, PNG, WEBP</li>
+                                        <li>Maximum file size: 5MB</li>
                                     </ul>
                                 </div>
                             </div>
@@ -356,48 +357,6 @@
     </div>
 </div>
 
-<!-- Profile Image Modal -->
-{% call modal('profileImageModal', 'Upload and Crop Profile Picture', size='xl') %}
-    <div class="mb-4">
-        <input type="file" id="imageInput" accept="image/*"
-               class="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-ecs-green file:text-white hover:file:bg-ecs-green/90">
-        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">Supported formats: JPG, PNG, GIF. Maximum size: 10MB</p>
-    </div>
-    <div id="imageEditor" class="hidden">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="md:col-span-2">
-                <canvas id="imageCanvas" class="max-w-full border border-gray-200 dark:border-gray-600 rounded-lg"></canvas>
-            </div>
-            <div>
-                <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Crop Size:</label>
-                    <input type="range" id="cropSize" min="100" max="300" value="200"
-                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer dark:bg-gray-700">
-                    <span id="cropSizeValue" class="text-sm text-gray-500 dark:text-gray-400">200px</span>
-                </div>
-                <div class="mb-4">
-                    <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Preview:</p>
-                    <canvas id="previewCanvas" width="150" height="150" class="border border-gray-200 dark:border-gray-600 rounded-lg"></canvas>
-                </div>
-                <div class="text-xs text-gray-500 dark:text-gray-400">
-                    <p>Click and drag to position the crop area</p>
-                    <p>Use the slider to adjust size</p>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Custom Footer -->
-    <div class="flex flex-col sm:flex-row-reverse gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
-        <button type="button" id="applyCropBtn" disabled
-                class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 disabled:opacity-50 disabled:cursor-not-allowed">
-            Apply Changes
-        </button>
-        <button type="button" id="cancel-modal-btn" data-modal-hide="profileImageModal"
-                class="w-full sm:w-auto inline-flex justify-center items-center px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">
-            Cancel
-        </button>
-    </div>
-{% endcall %}
 {% endblock %}
 
 {% block custom_js %}
@@ -406,19 +365,55 @@
 document.addEventListener('DOMContentLoaded', function() {
     const termsCheckbox = document.getElementById('terms-agreement-waitlist');
     const submitBtn = document.getElementById('complete-waitlist-btn');
-    const uploadBtn = document.getElementById('upload-photo-btn');
 
     // Enable submit button when terms are checked
     termsCheckbox.addEventListener('change', function() {
         submitBtn.disabled = !this.checked;
     });
 
-    // Set up modal trigger using Flowbite data attributes
-    if (uploadBtn) {
-        uploadBtn.setAttribute('data-modal-target', 'profileImageModal');
-        uploadBtn.setAttribute('data-modal-toggle', 'profileImageModal');
+    // Simple image upload with drag to position
+    const fileInput = document.getElementById('waitlistFileInput');
+    const preview = document.getElementById('waitlistPreview');
+    const canvas = document.getElementById('waitlistCanvas');
+    const imageData = document.getElementById('cropped_image_data_main');
+    const selectBtn = document.getElementById('waitlistSelectBtn');
+
+    if (selectBtn && fileInput) {
+        selectBtn.addEventListener('click', () => fileInput.click());
+    }
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File too large. Maximum size is 5MB.');
+                fileInput.value = '';
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    preview.src = event.target.result;
+                    // Crop to square center and resize to 300x300
+                    const size = Math.min(img.width, img.height);
+                    const x = (img.width - size) / 2;
+                    const y = (img.height - size) / 2;
+                    canvas.width = 300;
+                    canvas.height = 300;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, x, y, size, size, 0, 0, 300, 300);
+                    imageData.value = canvas.toDataURL('image/png');
+                    selectBtn.innerHTML = '<i class="ti ti-check"></i>Photo Selected';
+                    selectBtn.classList.remove('border-gray-300', 'dark:border-gray-600', 'text-gray-700', 'dark:text-gray-300');
+                    selectBtn.classList.add('border-green-500', 'text-green-600', 'dark:text-green-400');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
     }
 });
 </script>
-<script src="{{ url_for('static', filename='custom_js/waitlist-discord-cropper.js') }}"></script>
 {% endblock %}

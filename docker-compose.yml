@@ -83,6 +83,7 @@ services:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
       - CELERY_WORKER=1
+      - REDIS_MAX_CONNECTIONS=20
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_data:/tmp/celery
@@ -123,6 +124,7 @@ services:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
       - CELERY_WORKER=1
+      - REDIS_MAX_CONNECTIONS=20
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_live_data:/tmp/celery_live
@@ -157,6 +159,7 @@ services:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
       - CELERY_WORKER=1
+      - REDIS_MAX_CONNECTIONS=20
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_live_data:/tmp/celery_live
@@ -192,6 +195,7 @@ services:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
       - CELERY_WORKER=1  # Prevent Flask initialization in worker
+      - REDIS_MAX_CONNECTIONS=20
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_enterprise_data:/tmp/celery_enterprise
@@ -227,6 +231,7 @@ services:
     environment:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
+      - REDIS_MAX_CONNECTIONS=30
     volumes:
       - ./Discord-Bot-WebUI:/app
       - realtime_logs:/app/logs
@@ -252,49 +257,6 @@ services:
         reservations:
           memory: 256M
 
-  pass-converter:
-    build:
-      context: ./Discord-Bot-WebUI/pass-converter
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      - GOOGLE_WALLET_ISSUER_ID=${GOOGLE_WALLET_ISSUER_ID}
-      - GOOGLE_STORAGE_BUCKET=${GOOGLE_STORAGE_BUCKET}
-      - PASS_CONVERTER_AUTH_SECRET=${PASS_CONVERTER_AUTH_SECRET:-ecs-pass-converter-internal-secret}
-      - PUBLIC_URL=https://portal.ecsfc.com/pass-converter
-    volumes:
-      - ./Discord-Bot-WebUI/app/wallet_pass/certs/google-service-account.json:/app/credentials/google-service-account.json:ro
-      - pass_converter_data:/app/data
-    healthcheck:
-      # Google pass-converter doesn't have a root endpoint, check if Node process is running and port is open
-      test: ["CMD-SHELL", "node -e \"const net = require('net'); const s = net.createConnection(3000, 'localhost', () => { s.end(); process.exit(0); }); s.on('error', () => process.exit(1));\""]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 15s
-    labels:
-      - "traefik.enable=true"
-      # Only expose the image endpoint publicly (read-only, for Google to fetch images)
-      # pass-converter serves images at /image/:name, so we match /pass-converter/image
-      - "traefik.http.routers.pass-converter-images.rule=Host(`portal.ecsfc.com`) && PathPrefix(`/pass-converter/image`)"
-      - "traefik.http.routers.pass-converter-images.entrypoints=websecure"
-      - "traefik.http.routers.pass-converter-images.tls=true"
-      - "traefik.http.routers.pass-converter-images.tls.certresolver=myresolver"
-      - "traefik.http.routers.pass-converter-images.priority=100"
-      - "traefik.http.routers.pass-converter-images.service=pass-converter"
-      # Strip the /pass-converter prefix before forwarding
-      - "traefik.http.middlewares.pass-converter-strip.stripprefix.prefixes=/pass-converter"
-      - "traefik.http.routers.pass-converter-images.middlewares=pass-converter-strip"
-      - "traefik.http.services.pass-converter.loadbalancer.server.port=3000"
-    networks:
-      - web
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-        reservations:
-          memory: 128M
-
   celery-beat:
     build:
       context: ./Discord-Bot-WebUI
@@ -310,6 +272,7 @@ services:
       - PYTHONPATH=/app
       - REDIS_URL=redis://redis:6379/0
       - CELERY_WORKER=1
+      - REDIS_MAX_CONNECTIONS=10
     volumes:
       - ./Discord-Bot-WebUI:/app
       - celery_beat_data:/tmp/celerybeat
@@ -342,7 +305,8 @@ services:
       - 8.8.8.8
       - 8.8.4.4
     command: >
-      sh -c "npm install && npm run build &&
+      sh -c "chmod +x node_modules/.bin/* node_modules/@esbuild/*/bin/* 2>/dev/null;
+      npm run build &&
       gunicorn
       --worker-class eventlet
       --workers 1
@@ -365,6 +329,7 @@ services:
       - PYTHONPATH=/app
       - FLASK_DEBUG=${FLASK_DEBUG:-0}
       - REDIS_URL=redis://redis:6379/0
+      - REDIS_MAX_CONNECTIONS=150
     env_file:
       - .env
     volumes:
@@ -379,7 +344,7 @@ services:
       - "traefik.http.routers.webui.entrypoints=web"
       # Main webui secure router (HTTPS, rate limited)
       - "traefik.http.routers.webui-secure.entrypoints=websecure"
-      - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`) && !PathPrefix(`/socket.io`) && !PathPrefix(`/pass-converter/image`)"
+      - "traefik.http.routers.webui-secure.rule=Host(`portal.ecsfc.com`) && !PathPrefix(`/socket.io`)"
       - "traefik.http.routers.webui-secure.tls=true"
       - "traefik.http.routers.webui-secure.tls.certresolver=myresolver"
       - "traefik.http.routers.webui-secure.priority=10"
@@ -425,7 +390,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 1G
+          memory: 2.5G
 
   flower:
     image: mher/flower
@@ -471,6 +436,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
       - BOT_RESTART_ATTEMPT=0  # Track restart attempts
+      - REDIS_MAX_CONNECTIONS=30
     volumes:
       - .:/app
     depends_on:
@@ -511,5 +477,4 @@ volumes:
   celery_beat_data:
   celery_enterprise_data:
   realtime_logs:
-  pass_converter_data:
   flower_data:  # Persist Flower task history

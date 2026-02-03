@@ -71,6 +71,9 @@ class UnifiedRedisManager:
                 redis_port = int(os.getenv('REDIS_PORT', '6379'))
                 redis_db = int(os.getenv('REDIS_DB', '0'))
                 redis_url = os.getenv('REDIS_URL')
+                # Pool size should handle concurrent eventlet greenlets
+                # Default 100 for webui (handles burst traffic), workers can use less
+                max_pool_connections = int(os.getenv('REDIS_MAX_CONNECTIONS', '100'))
                 
                 logger.info(f"Initializing unified Redis connection pool to {redis_host}:{redis_port}/{redis_db}")
                 
@@ -84,7 +87,7 @@ class UnifiedRedisManager:
                         socket_keepalive=True,
                         socket_keepalive_options={},      # Empty for compatibility
                         health_check_interval=60,         # Less frequent health checks
-                        max_connections=25,               # Increased to handle session load
+                        max_connections=max_pool_connections,
                         retry_on_timeout=True,            # Enable retries
                     )
                 else:
@@ -98,7 +101,7 @@ class UnifiedRedisManager:
                         socket_keepalive=True,
                         socket_keepalive_options={},      # Empty for compatibility
                         health_check_interval=60,         # Less frequent health checks
-                        max_connections=25,               # Increased to handle session load
+                        max_connections=max_pool_connections,
                         retry_on_timeout=True,            # Enable retries
                     )
                 
@@ -146,7 +149,7 @@ class UnifiedRedisManager:
                             raise ping_e
                         time.sleep(0.1)  # Brief wait before retry
                 
-                logger.info("Unified Redis connection pool initialized with RESP3 + client-side caching (max 1000 keys, 5min TTL)")
+                logger.info(f"Unified Redis connection pool initialized with RESP3 + client-side caching (pool: {max_pool_connections} connections, cache: 1000 keys)")
                 break
                 
             except Exception as e:

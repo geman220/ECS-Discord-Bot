@@ -46,7 +46,8 @@ import './handlers/substitute-pool.js';      // Substitute pool management
 import './handlers/referee-management.js';   // Referee assignments
 
 // Admin & Configuration
-import './handlers/season-wizard.js';        // Season creation, auto-scheduling
+import './handlers/season-wizard.js';        // Season creation, auto-scheduling (legacy)
+import './handlers/season-builder.js';       // Season builder wizard with division-specific weeks
 import './handlers/pass-studio.js';          // Wallet pass design
 import './handlers/security-actions.js';     // IP banning, security monitoring
 import './handlers/calendar-actions.js';     // Calendar subscriptions
@@ -106,6 +107,9 @@ import './handlers/admin-league-management.js';  // Seasons, teams, playoff assi
 
 // Admin Panel - Cache Management
 import './handlers/admin-cache.js';              // Draft cache stats, cache warming
+
+// Admin Panel - Discord Onboarding
+import './handlers/admin-discord-onboarding.js'; // Onboarding retry contact, refresh
 
 // Admin Panel - Role Management
 import './handlers/admin-roles-handlers.js';     // Role CRUD, assignment, permissions

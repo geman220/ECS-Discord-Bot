@@ -187,70 +187,51 @@
                     <h5 class="font-semibold text-gray-900 dark:text-white">Profile Picture</h5>
                 </div>
                 <div class="p-4">
-                    <div class="flex flex-col md:flex-row gap-6 items-center">
-                        <!-- Left: Preview / Cropper Area -->
-                        <div class="flex-shrink-0">
-                            <!-- Profile Picture Preview (shown initially and after crop) -->
-                            <div id="profilePicturePreview" class="flex flex-col items-center">
+                    <!-- Step 1: Select file -->
+                    <div id="onboardingStep1">
+                        <div class="flex flex-col md:flex-row gap-6 items-center">
+                            <div class="flex-shrink-0">
                                 <div class="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700">
                                     <img src="{{ player.profile_picture_url if player and player.profile_picture_url else url_for('static', filename='img/default_player.png') }}"
-                                         alt="Profile Picture"
-                                         class="w-full h-full object-cover"
-                                         id="currentProfilePicture">
+                                         alt="Profile Picture" class="w-full h-full object-cover">
                                 </div>
                             </div>
-
-                            <!-- Cropper Interface (hidden initially) -->
-                            <div id="cropperInterface" class="hidden flex flex-col items-center w-full">
-                                <div class="relative w-full max-w-[288px] aspect-square rounded-xl overflow-hidden border-2 border-ecs-green dark:border-ecs-gold bg-gray-100 dark:bg-gray-700">
-                                    <img id="onboardingCropperImage" src="" alt="Image to crop" class="max-w-full">
-                                </div>
-                                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-                                    <i class="ti ti-info-circle mr-1"></i>Drag to move, scroll to zoom
-                                </p>
-                            </div>
-                        </div>
-
-                        <!-- Right: Instructions / Controls -->
-                        <div class="flex-1">
-                            <!-- Upload Instructions (shown initially) -->
-                            <div id="uploadInstructions">
+                            <div class="flex-1">
                                 <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                     Upload a clear photo of yourself. A good profile picture helps teammates and coaches recognize you.
                                 </p>
-                                <div class="space-y-3">
-                                    {{ onboarding_form.profile_picture(class="hidden", id="image", accept="image/*") }}
-                                    <input type="hidden" name="cropped_image_data" id="cropped_image_data">
-
-                                    <button type="button"
-                                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors"
-                                            data-action="trigger-file-input"
-                                            data-target="image">
-                                        <i class="ti ti-upload"></i>Select Image
-                                    </button>
-                                    <p class="text-xs text-gray-500 dark:text-gray-400 text-center">PNG, JPG, or WEBP (max 5MB)</p>
-                                </div>
-                            </div>
-
-                            <!-- Cropper Controls (hidden initially) -->
-                            <div id="cropperControls" class="hidden">
-                                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                                    Adjust your photo below. Drag to reposition and scroll to zoom.
-                                </p>
-                                <div class="space-y-3">
-                                    <button type="button"
-                                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors"
-                                            data-action="crop-save-profile-image">
-                                        <i class="ti ti-check"></i>Save Photo
-                                    </button>
-                                    <button type="button"
-                                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                                            data-action="reset-image-selection">
-                                        <i class="ti ti-photo"></i>Choose Different
-                                    </button>
-                                </div>
+                                <input type="file" accept="image/*" id="onboardingFileInput" class="hidden">
+                                <input type="hidden" name="cropped_image_data" id="onboardingImageData">
+                                <canvas id="onboardingCanvas" class="hidden"></canvas>
+                                <button type="button" id="onboardingSelectBtn"
+                                        class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors">
+                                    <i class="ti ti-upload"></i>Select Image
+                                </button>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">PNG, JPG, or WEBP (max 5MB)</p>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Step 2: Position image -->
+                    <div id="onboardingStep2" class="hidden">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-3">Drag to position, use buttons to zoom</p>
+                        <div class="flex justify-center mb-4">
+                            <div id="onboardingCropArea" class="relative w-48 h-48 rounded-full overflow-hidden border-4 border-ecs-green bg-gray-900 cursor-move" style="touch-action: none;">
+                                <img id="onboardingDragImage" src="" class="absolute max-w-none" style="pointer-events: none;" alt="Drag to position">
+                            </div>
+                        </div>
+                        <div class="flex justify-center gap-2">
+                            <button type="button" id="onboardingZoomOut" class="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                            </button>
+                            <button type="button" id="onboardingZoomIn" class="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                            </button>
+                            <button type="button" id="onboardingReselect" class="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                Change
+                            </button>
+                        </div>
+                        <p class="text-xs text-green-600 dark:text-green-400 text-center mt-3"><i class="ti ti-check mr-1"></i>Image ready</p>
                     </div>
                 </div>
             </div>
@@ -355,7 +336,110 @@
 
 {% block custom_js %}
 {{ super() }}
-<script src="{{ url_for('static', filename='custom_js/simple-cropper.js') }}" type="module"></script>
+<script>
+(function() {
+    const fileInput = document.getElementById('onboardingFileInput');
+    const step1 = document.getElementById('onboardingStep1');
+    const step2 = document.getElementById('onboardingStep2');
+    const cropArea = document.getElementById('onboardingCropArea');
+    const dragImage = document.getElementById('onboardingDragImage');
+    const canvas = document.getElementById('onboardingCanvas');
+    const imageData = document.getElementById('onboardingImageData');
+    const selectBtn = document.getElementById('onboardingSelectBtn');
+    const zoomIn = document.getElementById('onboardingZoomIn');
+    const zoomOut = document.getElementById('onboardingZoomOut');
+    const reselect = document.getElementById('onboardingReselect');
+
+    if (!fileInput || !selectBtn) return;
+
+    let imgX = 0, imgY = 0, scale = 1, imgWidth = 0, imgHeight = 0;
+    let isDragging = false, startX = 0, startY = 0;
+    const cropSize = 192;
+
+    function updateImagePosition() {
+        dragImage.style.transform = `translate(${imgX}px, ${imgY}px) scale(${scale})`;
+        dragImage.style.transformOrigin = '0 0';
+        updateCanvas();
+    }
+
+    function updateCanvas() {
+        canvas.width = 300;
+        canvas.height = 300;
+        const ctx = canvas.getContext('2d');
+        const sourceX = -imgX / scale;
+        const sourceY = -imgY / scale;
+        const sourceSize = cropSize / scale;
+        ctx.drawImage(dragImage, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 300, 300);
+        imageData.value = canvas.toDataURL('image/png');
+    }
+
+    selectBtn.addEventListener('click', () => fileInput.click());
+
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File too large. Maximum size is 5MB.');
+            fileInput.value = '';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            dragImage.onload = function() {
+                imgWidth = dragImage.naturalWidth;
+                imgHeight = dragImage.naturalHeight;
+                const minScale = cropSize / Math.min(imgWidth, imgHeight);
+                scale = minScale * 1.2;
+                imgX = (cropSize - imgWidth * scale) / 2;
+                imgY = (cropSize - imgHeight * scale) / 2;
+                updateImagePosition();
+                step1.classList.add('hidden');
+                step2.classList.remove('hidden');
+            };
+            dragImage.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    function handleDragStart(e) {
+        isDragging = true;
+        const pos = e.touches ? e.touches[0] : e;
+        startX = pos.clientX - imgX;
+        startY = pos.clientY - imgY;
+    }
+    function handleDragMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const pos = e.touches ? e.touches[0] : e;
+        imgX = pos.clientX - startX;
+        imgY = pos.clientY - startY;
+        updateImagePosition();
+    }
+    function handleDragEnd() { isDragging = false; }
+
+    if (cropArea) {
+        cropArea.addEventListener('mousedown', handleDragStart);
+        cropArea.addEventListener('touchstart', handleDragStart);
+        document.addEventListener('mousemove', handleDragMove);
+        document.addEventListener('touchmove', handleDragMove, { passive: false });
+        document.addEventListener('mouseup', handleDragEnd);
+        document.addEventListener('touchend', handleDragEnd);
+    }
+
+    if (zoomIn) zoomIn.addEventListener('click', function() { scale *= 1.2; updateImagePosition(); });
+    if (zoomOut) zoomOut.addEventListener('click', function() {
+        scale /= 1.2;
+        const minScale = cropSize / Math.min(imgWidth, imgHeight);
+        if (scale < minScale) scale = minScale;
+        updateImagePosition();
+    });
+    if (reselect) reselect.addEventListener('click', function() {
+        step2.classList.add('hidden');
+        step1.classList.remove('hidden');
+        fileInput.value = '';
+    });
+})();
+</script>
 {% if needs_discord_join %}
 <script>
 window.ECS_DISCORD_INVITE_LINK = '{{ discord_invite_link }}';

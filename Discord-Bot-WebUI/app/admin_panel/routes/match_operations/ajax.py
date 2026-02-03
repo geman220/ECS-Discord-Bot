@@ -158,8 +158,14 @@ def toggle_league_status():
 @role_required(['Global Admin', 'Pub League Admin'])
 @transactional
 def set_current_season():
-    """Set a season as current."""
+    """
+    Set a season as current.
+
+    When switching to a season, automatically restores player-team memberships
+    from PlayerTeamSeason history so players are on their correct teams for that season.
+    """
     from app.models import Season
+    from app.season_routes import restore_season_memberships
 
     season_id = request.form.get('season_id')
 
@@ -173,13 +179,23 @@ def set_current_season():
     season = Season.query.get_or_404(season_id)
     season.is_current = True
 
+    # Restore player-team memberships from PlayerTeamSeason history
+    # This ensures players are on their correct teams when switching between seasons
+    restore_result = {'restored': 0, 'message': 'No restoration needed'}
+    try:
+        restore_result = restore_season_memberships(db.session, season)
+        logger.info(f"Season membership restoration: {restore_result}")
+    except Exception as e:
+        logger.error(f"Failed to restore season memberships: {e}")
+        restore_result = {'restored': 0, 'message': f'Restoration failed: {str(e)}'}
+
     # Log the action
     AdminAuditLog.log_action(
         user_id=current_user.id,
         action='set_current_season',
         resource_type='match_operations',
         resource_id=str(season_id),
-        new_value=f'Set {season.name} as current season',
+        new_value=f'Set {season.name} as current season (restored {restore_result.get("restored", 0)} team assignments)',
         ip_address=request.remote_addr,
         user_agent=request.headers.get('User-Agent')
     )
@@ -187,7 +203,8 @@ def set_current_season():
     return jsonify({
         'success': True,
         'message': f'Season "{season.name}" set as current season',
-        'season_name': season.name
+        'season_name': season.name,
+        'restoration': restore_result
     })
 
 

@@ -560,6 +560,71 @@ class DraftCacheService:
                 return False
 
     @staticmethod
+    def clear_all_league_caches(league_name: str = None) -> int:
+        """
+        Clear ALL draft caches for a specific league or all leagues.
+
+        This should be called after season rollover to ensure fresh data.
+
+        Args:
+            league_name: Specific league name to clear, or None for all leagues
+
+        Returns:
+            Number of cache keys deleted
+        """
+        logger.info(f"🗑️ Clearing all draft caches for: {league_name or 'ALL LEAGUES'}")
+
+        with DraftCacheService._redis_connection_safe() as redis_conn:
+            if not redis_conn:
+                logger.warning("Redis unavailable - cannot clear caches")
+                return 0
+
+            try:
+                keys_to_delete = []
+
+                if league_name:
+                    # Clear caches for specific league
+                    patterns = [
+                        f"draft:players:{league_name}*",
+                        f"draft:analytics:{league_name}*",
+                        f"draft:teams:{league_name}*",
+                        f"draft:availability:{league_name}*"
+                    ]
+                else:
+                    # Clear ALL draft caches
+                    patterns = [
+                        "draft:players:*",
+                        "draft:analytics:*",
+                        "draft:teams:*",
+                        "draft:availability:*"
+                    ]
+
+                for pattern in patterns:
+                    try:
+                        for key in redis_conn.scan_iter(match=pattern, count=100):
+                            keys_to_delete.append(key)
+                    except Exception as e:
+                        logger.warning(f"Error scanning pattern {pattern}: {e}")
+
+                deleted_count = 0
+                if keys_to_delete:
+                    # Delete in batches
+                    batch_size = 50
+                    for i in range(0, len(keys_to_delete), batch_size):
+                        batch = keys_to_delete[i:i + batch_size]
+                        try:
+                            deleted_count += redis_conn.delete(*batch)
+                        except Exception as e:
+                            logger.warning(f"Error deleting batch: {e}")
+
+                logger.info(f"🗑️ Cleared {deleted_count} draft cache keys for {league_name or 'all leagues'}")
+                return deleted_count
+
+            except Exception as e:
+                logger.error(f"Error clearing league caches: {e}")
+                return 0
+
+    @staticmethod
     def get_cache_stats() -> Dict[str, Any]:
         """Get comprehensive cache statistics including active draft status."""
         base_stats = {

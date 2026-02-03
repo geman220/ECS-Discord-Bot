@@ -131,17 +131,21 @@ export function handleDropOnTeam(playerId, teamId, dropZone) {
         return;
     }
 
-    // Get player name for display
+    // Get player name for display (Tailwind uses font-bold, font-semibold, font-medium)
     const playerCard = document.querySelector(`[data-player-id="${playerId}"]`);
     const playerName = playerCard ?
-        (playerCard.querySelector('.fw-bold')?.textContent ||
-         playerCard.querySelector('.fw-semibold')?.textContent ||
+        (playerCard.getAttribute('data-player-name') ||
+         playerCard.querySelector('.font-bold')?.textContent?.trim() ||
+         playerCard.querySelector('.font-semibold')?.textContent?.trim() ||
+         playerCard.querySelector('.font-medium')?.textContent?.trim() ||
          'Player') : 'Player';
 
-    // Get team name
-    const teamAccordion = dropZone.closest('.accordion-item');
-    const teamName = teamAccordion ?
-        teamAccordion.querySelector('.fw-bold')?.textContent || `Team ${teamId}` :
+    // Get team name - look for details/summary structure or data attribute
+    const teamDetails = dropZone.closest('details');
+    const teamSummary = teamDetails?.querySelector('summary');
+    const teamName = teamDetails?.dataset?.teamName ||
+        teamSummary?.querySelector('.font-semibold')?.textContent?.trim() ||
+        teamSummary?.querySelector('.font-bold')?.textContent?.trim() ||
         `Team ${teamId}`;
 
     const leagueName = getLeagueName();

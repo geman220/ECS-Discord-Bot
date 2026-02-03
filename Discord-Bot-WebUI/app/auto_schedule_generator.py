@@ -181,8 +181,58 @@ class AutoScheduleGenerator:
         
     def generate_round_robin_pairings(self) -> List[List[Tuple[int, int]]]:
         """
-        Generate back-to-back double round-robin pairings with proper constraint validation.
-        
+        Generate back-to-back round-robin pairings with proper constraint validation.
+
+        Supports both 4-team and 8-team leagues:
+        - 4 teams: Back-to-back with repeating round-robins
+        - 8 teams: Double round-robin with full constraints
+
+        Returns:
+            List of weeks, where each week contains a list of (home_team_id, away_team_id) tuples
+        """
+        if self.num_teams == 4:
+            return self._generate_4_team_pairings()
+        elif self.num_teams == 8:
+            return self._generate_8_team_pairings()
+        else:
+            raise ValueError(f"Scheduling requires 4 or 8 teams, got {self.num_teams}")
+
+    def _generate_4_team_pairings(self) -> List[List[Tuple[int, int]]]:
+        """
+        Generate back-to-back pairings for 4 teams.
+
+        Each week, each team plays 2 games (4 total matches per week).
+        Uses a rotating pattern to ensure variety.
+        """
+        team_ids = [team.id for team in self.teams]
+        A, B, C, D = team_ids[0], team_ids[1], team_ids[2], team_ids[3]
+
+        # Define 3-week rotation pattern (covers all matchups twice = double round-robin)
+        # Each week: 4 matches where each team plays twice
+        base_pattern = [
+            # Week pattern 1: A-B, C-D, A-C, B-D
+            [(A, B), (C, D), (A, C), (B, D)],
+            # Week pattern 2: A-D, B-C, B-A, D-C
+            [(A, D), (B, C), (B, A), (D, C)],
+            # Week pattern 3: C-A, D-B, D-A, C-B
+            [(C, A), (D, B), (D, A), (C, B)],
+        ]
+
+        weekly_schedules = []
+        for week in range(self.weeks_count):
+            pattern_idx = week % len(base_pattern)
+            week_matches = base_pattern[pattern_idx].copy()
+            weekly_schedules.append(week_matches)
+            logger.info(f"Generated week {week + 1} matches: {len(week_matches)} games")
+            for i, (home, away) in enumerate(week_matches):
+                logger.info(f"  Match {i + 1}: Team {home} vs Team {away}")
+
+        return weekly_schedules
+
+    def _generate_8_team_pairings(self) -> List[List[Tuple[int, int]]]:
+        """
+        Generate back-to-back double round-robin pairings for 8 teams.
+
         Implements the 8-team, 7-Sundays, double round-robin specification:
         - C1: Each unordered pair appears exactly twice (once home/away, once reversed)
         - C2: Each team plays 2 games per Sunday in same window (back-to-back)
@@ -190,12 +240,10 @@ class AutoScheduleGenerator:
         - C4: Each team: 7 home, 7 away games total
         - C5: Each team: 7 North, 7 South field assignments total
         - C6: Each team: 3 or 4 early-pairs and 4 or 3 late-pairs
-        
+
         Returns:
             List of weeks, where each week contains a list of (home_team_id, away_team_id) tuples
         """
-        if self.num_teams != 8:
-            raise ValueError("Double round-robin scheduling requires exactly 8 teams")
         
         team_ids = [team.id for team in self.teams]
         weekly_schedules = []
@@ -706,6 +754,61 @@ class AutoScheduleGenerator:
                 else:
                     logger.warning(f"  → Unknown league type for MIXED week: {self.league.name}")
                 
+            elif week_type == 'PRACTICE':
+                logger.info(f"  → Generating PRACTICE week templates for week {week_order}")
+                # PRACTICE weeks: Practice session at first time slot, then real matches
+                if regular_week_index < len(weekly_pairings):
+                    week_matches = weekly_pairings[regular_week_index]
+                    regular_week_index += 1
+
+                    time_slots = self._generate_time_slots()
+
+                    # First, generate practice sessions for both fields at first time slot
+                    practice_time = time_slots[0] if time_slots else self.start_time
+
+                    # Create PRACTICE entries for both fields
+                    for field_idx, field in enumerate(self.fields[:2]):  # North and South
+                        template = ScheduleTemplate(
+                            league_id=self.league_id,
+                            week_number=week_order,
+                            home_team_id=self.teams[0].id,  # Placeholder
+                            away_team_id=self.teams[0].id,  # Same = special event
+                            scheduled_date=week_date,
+                            scheduled_time=practice_time,
+                            field_name=field,
+                            match_order=field_idx + 1,
+                            week_type='PRACTICE',
+                            is_special_week=True,
+                            is_practice_game=True
+                        )
+                        templates.append(template)
+
+                    # Then generate regular matches at second time slot
+                    match_time = time_slots[1] if len(time_slots) > 1 else time_slots[0]
+
+                    # For practice weeks, schedule matches at second time slot
+                    match_order = 3  # After the 2 practice entries
+                    for i, (home_id, away_id) in enumerate(week_matches[:2]):  # 2 matches for 4 teams
+                        field_name = self.fields[i % len(self.fields)]
+                        template = ScheduleTemplate(
+                            league_id=self.league_id,
+                            week_number=week_order,
+                            home_team_id=home_id,
+                            away_team_id=away_id,
+                            scheduled_date=week_date,
+                            scheduled_time=match_time,
+                            field_name=field_name,
+                            match_order=match_order + i,
+                            week_type='REGULAR',  # Real matches have REGULAR type, even in practice weeks
+                            is_special_week=False,
+                            is_practice_game=False  # These are real matches, just in a practice week
+                        )
+                        templates.append(template)
+
+                    logger.info(f"  → Added 2 practice slots + {min(2, len(week_matches))} matches for PRACTICE week")
+                else:
+                    logger.warning(f"  → No more pairings available for PRACTICE week {week_order}")
+
             elif week_type in ['FUN', 'TST', 'BYE', 'BONUS']:
                 logger.info(f"  → Generating special week templates for {week_type} week {week_order}")
                 # Generate special week matches
@@ -909,57 +1012,101 @@ class AutoScheduleGenerator:
         
         return time_slots
     
-    def _assign_matches_to_fields(self, matches: List[Tuple[int, int]], 
+    def _assign_matches_to_fields(self, matches: List[Tuple[int, int]],
                                  time_slots: List[time]) -> List[Tuple[int, int, time, str, int]]:
         """
-        Assign matches to time slots and fields according to Premier League specification.
-        
+        Assign matches to time slots and fields.
+
+        Supports both Premier (8 teams, 8 matches, 4 time slots) and Classic (4 teams, 4 matches, 2 time slots).
+
         Premier League pattern (8 teams, 4 time slots):
         08:20 - Slot 1: North & South (concurrent)
         09:30 - Slot 2: North & South (back-to-back with slot 1)
-        10:40 - Slot 3: North & South (concurrent)  
+        10:40 - Slot 3: North & South (concurrent)
         11:50 - Slot 4: North & South (back-to-back with slot 3)
-        
+
+        Classic League pattern (4 teams, 2 time slots):
+        13:10 - Slot 1: North & South (concurrent)
+        14:20 - Slot 2: North & South (back-to-back with slot 1)
+
         Args:
-            matches: List of 8 (home_team_id, away_team_id) tuples from the validated schedule
-            time_slots: List of 4 time objects [08:20, 09:30, 10:40, 11:50]
-            
+            matches: List of (home_team_id, away_team_id) tuples
+            time_slots: List of time objects
+
         Returns:
             List of (home_team_id, away_team_id, time, field, match_order) tuples
         """
-        if len(matches) != 8 or len(time_slots) != 4:
-            logger.error(f"Expected 8 matches and 4 time slots, got {len(matches)} matches and {len(time_slots)} slots")
-            return []
-        
         assignments = []
-        
-        # Premier League field assignment pattern:
-        # Slot 1 (08:20): matches[0] -> North, matches[1] -> South
-        # Slot 2 (09:30): matches[2] -> North, matches[3] -> South  
-        # Slot 3 (10:40): matches[4] -> North, matches[5] -> South
-        # Slot 4 (11:50): matches[6] -> North, matches[7] -> South
-        
-        field_pattern = ["North", "South"]
-        
-        for i in range(0, 8, 2):
-            time_slot_index = i // 2  # 0,1,2,3 for the 4 time slots
-            current_time = time_slots[time_slot_index]
-            
-            # Assign first match to North field
-            if i < len(matches):
-                home_team_1, away_team_1 = matches[i]
-                assignments.append((home_team_1, away_team_1, current_time, "North", time_slot_index + 1))
-            
-            # Assign second match to South field
-            if i + 1 < len(matches):
-                home_team_2, away_team_2 = matches[i + 1]
-                assignments.append((home_team_2, away_team_2, current_time, "South", time_slot_index + 1))
-        
-        logger.info(f"Assigned {len(assignments)} Premier League matches:")
-        for assignment in assignments:
-            home, away, time_slot, field, order = assignment
-            logger.info(f"  {time_slot} {field}: Team {home} vs Team {away}")
-        
+
+        # Handle Classic League (4 matches, 2 time slots)
+        if len(matches) == 4 and len(time_slots) == 2:
+            logger.info(f"Using Classic League assignment pattern (4 matches, 2 time slots)")
+            # Classic League field assignment pattern:
+            # Slot 1 (13:10): matches[0] -> North, matches[1] -> South
+            # Slot 2 (14:20): matches[2] -> North, matches[3] -> South
+
+            for i in range(0, 4, 2):
+                time_slot_index = i // 2  # 0,1 for the 2 time slots
+                current_time = time_slots[time_slot_index]
+
+                # Assign first match to North field
+                if i < len(matches):
+                    home_team_1, away_team_1 = matches[i]
+                    assignments.append((home_team_1, away_team_1, current_time, "North", time_slot_index + 1))
+
+                # Assign second match to South field
+                if i + 1 < len(matches):
+                    home_team_2, away_team_2 = matches[i + 1]
+                    assignments.append((home_team_2, away_team_2, current_time, "South", time_slot_index + 1))
+
+            logger.info(f"Assigned {len(assignments)} Classic League matches:")
+            for assignment in assignments:
+                home, away, time_slot, field, order = assignment
+                logger.info(f"  {time_slot} {field}: Team {home} vs Team {away}")
+
+            return assignments
+
+        # Handle Premier League (8 matches, 4 time slots)
+        if len(matches) == 8 and len(time_slots) == 4:
+            logger.info(f"Using Premier League assignment pattern (8 matches, 4 time slots)")
+            # Premier League field assignment pattern:
+            # Slot 1 (08:20): matches[0] -> North, matches[1] -> South
+            # Slot 2 (09:30): matches[2] -> North, matches[3] -> South
+            # Slot 3 (10:40): matches[4] -> North, matches[5] -> South
+            # Slot 4 (11:50): matches[6] -> North, matches[7] -> South
+
+            for i in range(0, 8, 2):
+                time_slot_index = i // 2  # 0,1,2,3 for the 4 time slots
+                current_time = time_slots[time_slot_index]
+
+                # Assign first match to North field
+                if i < len(matches):
+                    home_team_1, away_team_1 = matches[i]
+                    assignments.append((home_team_1, away_team_1, current_time, "North", time_slot_index + 1))
+
+                # Assign second match to South field
+                if i + 1 < len(matches):
+                    home_team_2, away_team_2 = matches[i + 1]
+                    assignments.append((home_team_2, away_team_2, current_time, "South", time_slot_index + 1))
+
+            logger.info(f"Assigned {len(assignments)} Premier League matches:")
+            for assignment in assignments:
+                home, away, time_slot, field, order = assignment
+                logger.info(f"  {time_slot} {field}: Team {home} vs Team {away}")
+
+            return assignments
+
+        # Fallback: generic assignment for other configurations
+        logger.warning(f"Using fallback assignment pattern ({len(matches)} matches, {len(time_slots)} time slots)")
+        match_order = 1
+        for i, (home_id, away_id) in enumerate(matches):
+            time_slot_index = i // 2  # 2 matches per time slot
+            if time_slot_index < len(time_slots):
+                current_time = time_slots[time_slot_index]
+                field = "North" if i % 2 == 0 else "South"
+                assignments.append((home_id, away_id, current_time, field, match_order))
+                match_order += 1
+
         return assignments
     
     def _get_balanced_field(self, home_team_id: int, away_team_id: int) -> str:

@@ -11,6 +11,40 @@ import { setupImageErrorHandlers } from './image-handlers.js';
 import { confirmDraftPlayer } from './draft-confirmation.js';
 
 /**
+ * Build position preference grid HTML
+ * @param {string} favoritePosition - Player's preferred position
+ * @param {string} otherPositions - Comma-separated list of other positions
+ * @returns {string} HTML for position grid
+ */
+function buildPositionGrid(favoritePosition, otherPositions) {
+    const allPositions = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward'];
+    const favPos = (favoritePosition || '').toLowerCase();
+    const otherPosArray = otherPositions
+        ? otherPositions.split(',').map(p => p.trim().toLowerCase())
+        : [];
+
+    return allPositions.map(pos => {
+        const posLower = pos.toLowerCase();
+        const isPreferred = favPos.includes(posLower) || posLower.includes(favPos);
+        const isWilling = otherPosArray.some(op => op.includes(posLower) || posLower.includes(op));
+
+        let classes, icon;
+        if (isPreferred) {
+            classes = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-2 border-green-500';
+            icon = '<i class="ti ti-star-filled ml-1 text-green-500"></i>';
+        } else if (isWilling) {
+            classes = 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border border-orange-400';
+            icon = '';
+        } else {
+            classes = 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300';
+            icon = '';
+        }
+
+        return `<div class="p-2 rounded text-center text-xs font-medium ${classes}">${pos}${icon}</div>`;
+    }).join('');
+}
+
+/**
  * Open player profile modal
  * @param {string} playerId
  */
@@ -98,30 +132,27 @@ export function displayPlayerProfile(data, playerId) {
                 </div>
             </div>
 
+            <!-- Position Preferences Grid -->
+            <div class="mb-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h5 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+                    <i class="ti ti-layout-grid mr-2"></i>Position Preferences
+                </h5>
+                <div class="grid grid-cols-4 gap-2">
+                    ${buildPositionGrid(data.favorite_position, data.other_positions)}
+                </div>
+                <div class="flex items-center justify-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-green-500"></span> Preferred</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-orange-500"></span> Willing</span>
+                    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded bg-red-500"></span> Unavailable</span>
+                </div>
+            </div>
+
             <!-- Playing Information Section -->
             <div class="mb-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <h5 class="text-sm font-semibold text-gray-900 dark:text-white mb-3">
                     <i class="ti ti-info-circle mr-2"></i>Playing Information
                 </h5>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <div class="text-sm">
-                            <span class="font-medium text-gray-700 dark:text-gray-300">Preferred Position:</span>
-                            <span class="px-2 py-0.5 text-xs font-medium bg-ecs-green text-white rounded ml-1">${formatPosition(data.favorite_position) || 'Any'}</span>
-                        </div>
-                        ${data.other_positions ? `
-                        <div class="text-sm">
-                            <span class="font-medium text-gray-700 dark:text-gray-300">Other Positions:</span>
-                            <span class="text-gray-900 dark:text-white ml-1">${Array.isArray(data.other_positions) ? data.other_positions.map(pos => formatPosition(pos)).join(', ') : data.other_positions}</span>
-                        </div>
-                        ` : ''}
-                        ${data.positions_to_avoid ? `
-                        <div class="text-sm">
-                            <span class="font-medium text-gray-700 dark:text-gray-300">Positions to Avoid:</span>
-                            <span class="text-gray-900 dark:text-white ml-1">${data.positions_to_avoid}</span>
-                        </div>
-                        ` : ''}
-                    </div>
                     <div class="space-y-2">
                         ${data.goal_frequency ? `
                         <div class="text-sm">
@@ -133,6 +164,14 @@ export function displayPlayerProfile(data, playerId) {
                         <div class="text-sm">
                             <span class="font-medium text-gray-700 dark:text-gray-300">Expected Availability:</span>
                             <span class="text-gray-900 dark:text-white ml-1">${data.expected_availability}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div class="space-y-2">
+                        ${data.positions_to_avoid ? `
+                        <div class="text-sm">
+                            <span class="font-medium text-gray-700 dark:text-gray-300">Positions to Avoid:</span>
+                            <span class="text-gray-900 dark:text-white ml-1">${data.positions_to_avoid}</span>
                         </div>
                         ` : ''}
                     </div>

@@ -168,8 +168,7 @@ def index():
             'draft_predictions/index_flowbite.html',
             current_season=current_season,
             leagues=league_options,
-            is_admin='Global Admin' in [r.name for r in current_user.roles] or
-                     'Pub League Admin' in [r.name for r in current_user.roles]
+            is_admin=current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin')
         )
 
     except Exception as e:

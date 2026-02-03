@@ -53,14 +53,54 @@ def get_user_ecs_fc_team_ids(session, user_id: int) -> list:
 
 
 def is_coach_for_team(session, user_id: int, team_id: int) -> bool:
-    """Check if user is a coach for the specified team."""
+    """
+    Check if user is a coach for the specified team.
+
+    Returns True if:
+    - User has player_teams.is_coach == True for this team, OR
+    - User has "ECS FC Coach" role AND is on the team AND team is an ECS FC team
+    """
     from app.models import player_teams
     from sqlalchemy import and_
+
+    # Get user with roles
+    user = session.query(User).options(
+        joinedload(User.roles)
+    ).filter(User.id == user_id).first()
+
+    if not user:
+        return False
 
     player = session.query(Player).filter_by(user_id=user_id).first()
     if not player:
         return False
 
+    # Check if user has ECS FC Coach role
+    has_ecs_fc_coach_role = False
+    if user.roles:
+        has_ecs_fc_coach_role = any(role.name == 'ECS FC Coach' for role in user.roles)
+
+    # If user has ECS FC Coach role, check if they're on the team and it's an ECS FC team
+    if has_ecs_fc_coach_role:
+        # Check if player is on this team
+        team_membership = session.execute(
+            player_teams.select().where(
+                and_(
+                    player_teams.c.player_id == player.id,
+                    player_teams.c.team_id == team_id
+                )
+            )
+        ).fetchone()
+
+        if team_membership:
+            # Verify it's an ECS FC team
+            team = session.query(Team).options(
+                joinedload(Team.league)
+            ).filter(Team.id == team_id).first()
+            if team and team.league and 'ECS FC' in team.league.name:
+                return True
+
+    # Otherwise, check player_teams.is_coach for this specific team
     coach_check = session.execute(
         player_teams.select().where(
             and_(
@@ -1003,9 +1043,12 @@ def get_coach_ecs_fc_teams():
         ).filter(User.id == current_user_id).first()
 
         is_admin = False
+        has_ecs_fc_coach_role = False
         if user and user.roles:
             admin_roles = ['Global Admin', 'Pub League Admin', 'Admin']
             is_admin = any(role.name in admin_roles for role in user.roles)
+            # Check if user has ECS FC Coach role
+            has_ecs_fc_coach_role = any(role.name == 'ECS FC Coach' for role in user.roles)
 
         # If admin, return ALL ECS FC teams
         if is_admin:
@@ -1037,26 +1080,41 @@ def get_coach_ecs_fc_teams():
             return jsonify({"teams": [], "count": 0}), 200
 
         # Get teams where user is coach and team is ECS FC
+        # If user has "ECS FC Coach" role, include all their ECS FC teams
+        # Otherwise, only include teams where player_teams.is_coach == True
         coach_teams = []
         for team in player.teams:
-            # Check if coach for this team
-            coach_check = session.execute(
-                player_teams.select().where(
-                    and_(
-                        player_teams.c.player_id == player.id,
-                        player_teams.c.team_id == team.id,
-                        player_teams.c.is_coach == True
-                    )
-                )
-            ).fetchone()
+            # Skip non-ECS FC teams
+            if not team.league or 'ECS FC' not in team.league.name:
+                continue
 
-            if coach_check and team.league and 'ECS FC' in team.league.name:
+            # If user has ECS FC Coach role, include all their ECS FC teams
+            if has_ecs_fc_coach_role:
                 coach_teams.append({
                     "id": team.id,
                     "name": team.name,
                     "league_id": team.league_id,
                     "league_name": team.league.name,
                 })
+            else:
+                # Otherwise check player_teams.is_coach for this specific team
+                coach_check = session.execute(
+                    player_teams.select().where(
+                        and_(
+                            player_teams.c.player_id == player.id,
+                            player_teams.c.team_id == team.id,
+                            player_teams.c.is_coach == True
+                        )
+                    )
+                ).fetchone()
+
+                if coach_check:
+                    coach_teams.append({
+                        "id": team.id,
+                        "name": team.name,
+                        "league_id": team.league_id,
+                        "league_name": team.league.name,
+                    })
 
         return jsonify({
             "teams": coach_teams,

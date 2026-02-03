@@ -70,20 +70,45 @@ export function showDraftTeamSelection(playerId, playerName, existingTeams = '')
     teamSelect.innerHTML = '<option value="">Choose a team...</option>';
 
     // Get all teams and their player counts
+    // DEBUG: FIXED VERSION - uses closest() not parentElement - 2026-02-02
+    console.log('[draft-confirmation] FIXED VERSION LOADED - using closest()');
     document.querySelectorAll('[id^="teamCount"]').forEach(badge => {
         const teamId = badge.id.replace('teamCount', '');
-        const teamName = badge.parentElement.querySelector('.fw-bold').textContent;
-        const playerCount = badge.textContent.replace(' players', '');
+        // Find team name using closest() to traverse up DOM tree
+        const summary = badge.closest('summary');
+        const details = badge.closest('details');
+        let teamName = 'Unknown Team';
+
+        if (summary) {
+            const nameSpan = summary.querySelector('.font-semibold');
+            if (nameSpan) {
+                teamName = nameSpan.textContent.trim();
+            }
+        } else if (details) {
+            teamName = details.dataset.teamName || `Team ${teamId}`;
+        }
+
+        const playerCount = badge.textContent.trim();
 
         const option = document.createElement('option');
         option.value = teamId;
-        option.textContent = `${teamName} (${playerCount})`;
+        option.textContent = `${teamName} (${playerCount} players)`;
         teamSelect.appendChild(option);
     });
 
-    // Set up the confirm button
-    const confirmBtn = document.getElementById('confirmDraftBtn');
-    confirmBtn.onclick = function() {
+    // Set up the confirm button - find it within the modal form
+    const form = document.getElementById('draftConfirmForm');
+    const confirmBtn = form?.querySelector('button[type="submit"]') || document.getElementById('confirmDraftBtn');
+    if (!confirmBtn) {
+        console.error('[draft-confirmation] Submit button not found in modal');
+        return;
+    }
+
+    // Prevent form submission and handle via socket instead
+    form?.addEventListener('submit', (e) => e.preventDefault());
+
+    confirmBtn.onclick = function(e) {
+        e.preventDefault();
         const selectedTeamId = teamSelect.value;
         if (!selectedTeamId) {
             if (typeof window.Swal !== 'undefined') {

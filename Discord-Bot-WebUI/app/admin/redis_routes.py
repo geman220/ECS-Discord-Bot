@@ -249,17 +249,72 @@ def warm_draft_cache(league_name: str):
     """Manually warm draft cache for a specific league."""
     try:
         from app.draft_cache_service import DraftCacheService
-        
+
         # Check current cache status
         cache_status = DraftCacheService.warm_cache_for_league(league_name)
-        
+
         return jsonify({
             'success': True,
             'message': f'Cache warming initiated for {league_name}',
             'cache_status': cache_status,
             'note': 'Cache will be populated on next draft page visit'
         })
-    
+
     except Exception as e:
         logger.error(f"Error warming draft cache for {league_name}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@redis_bp.route('/clear-draft-cache', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def clear_draft_cache():
+    """Clear all draft caches or for a specific league."""
+    try:
+        from flask import request
+        from app.draft_cache_service import DraftCacheService
+
+        league_name = request.args.get('league')
+
+        if league_name:
+            deleted = DraftCacheService.clear_all_league_caches(league_name)
+            message = f'Cleared {deleted} cache keys for {league_name}'
+        else:
+            # Clear all draft caches
+            total_deleted = 0
+            for league in ['Premier', 'Classic', 'ECS FC']:
+                total_deleted += DraftCacheService.clear_all_league_caches(league)
+            deleted = total_deleted
+            message = f'Cleared {deleted} cache keys for all leagues'
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'keys_deleted': deleted
+        })
+
+    except Exception as e:
+        logger.error(f"Error clearing draft cache: {e}")
+        return jsonify({'error': str(e)}), 500
+
+
+@redis_bp.route('/clear-draft-cache/<league_name>', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def clear_draft_cache_for_league(league_name: str):
+    """Clear draft cache for a specific league."""
+    try:
+        from app.draft_cache_service import DraftCacheService
+
+        deleted = DraftCacheService.clear_all_league_caches(league_name)
+
+        return jsonify({
+            'success': True,
+            'message': f'Cleared {deleted} cache keys for {league_name}',
+            'keys_deleted': deleted,
+            'league': league_name
+        })
+
+    except Exception as e:
+        logger.error(f"Error clearing draft cache for {league_name}: {e}")
         return jsonify({'error': str(e)}), 500

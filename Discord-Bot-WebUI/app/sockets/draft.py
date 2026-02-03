@@ -253,7 +253,7 @@ def handle_draft_player_enhanced(data):
             with managed_session() as session:
                 player = session.query(Player).filter(Player.id == player_id).first()
 
-                # Success response with full player data
+                # Success response with full player data including all position fields
                 response_data = {
                     'success': True,
                     'player': {
@@ -263,6 +263,8 @@ def handle_draft_player_enhanced(data):
                         'profile_picture_medium': getattr(player, 'profile_picture_medium', None) or player.profile_picture_url or '/static/img/default_player.png',
                         'profile_picture_webp': getattr(player, 'profile_picture_webp', None) or player.profile_picture_url or '/static/img/default_player.png',
                         'favorite_position': player.favorite_position or 'Any',
+                        'other_positions': player.other_positions or '',
+                        'positions_not_to_play': player.positions_not_to_play or '',
                         'is_ref': player.is_ref,
                         'career_goals': player.career_stats[0].goals if player.career_stats else 0,
                         'career_assists': player.career_stats[0].assists if player.career_stats else 0,
@@ -278,7 +280,8 @@ def handle_draft_player_enhanced(data):
                         ),
                         'league_experience_seasons': 0,
                         'attendance_estimate': 75,
-                        'experience_level': 'New Player'
+                        'experience_level': 'New Player',
+                        'prev_draft_position': None  # New draft, no previous position yet
                     },
                     'team_id': team_id,
                     'team_name': team_name,
@@ -588,6 +591,8 @@ def handle_remove_player_enhanced(data):
                         'profile_picture_medium': getattr(player, 'profile_picture_medium', None) or player.profile_picture_url or '/static/img/default_player.png',
                         'profile_picture_webp': getattr(player, 'profile_picture_webp', None) or player.profile_picture_url or '/static/img/default_player.png',
                         'favorite_position': player.favorite_position or 'Any',
+                        'other_positions': player.other_positions or '',
+                        'positions_not_to_play': player.positions_not_to_play or '',
                         'career_goals': player.career_stats[0].goals if player.career_stats else 0,
                         'career_assists': player.career_stats[0].assists if player.career_stats else 0,
                         'career_yellow_cards': player.career_stats[0].yellow_cards if player.career_stats else 0,
@@ -595,7 +600,8 @@ def handle_remove_player_enhanced(data):
                         'league_experience_seasons': 0,
                         'attendance_estimate': None,  # No historical data for fallback case
                         'experience_level': 'New Player',
-                        'expected_weeks_available': player.expected_weeks_available or 'All weeks'
+                        'expected_weeks_available': player.expected_weeks_available or 'All weeks',
+                        'prev_draft_position': None
                     }
 
                 # Commit the transaction

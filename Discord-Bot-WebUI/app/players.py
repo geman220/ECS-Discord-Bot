@@ -428,6 +428,32 @@ def player_profile(player_id):
                 return handle_coach_status_update(player, user)
             elif can_edit_stats and 'update_ref_status' in request.form:
                 return handle_ref_status_update(player, user)
+            elif 'update_picture' in request.form:
+                # Handle profile picture upload
+                cropped_image_data = request.form.get('cropped_image_data')
+                if cropped_image_data and cropped_image_data.startswith('data:image/'):
+                    try:
+                        image_url = save_cropped_profile_picture(cropped_image_data, player_id)
+                        player.profile_picture_url = image_url
+                        player.updated_at = datetime.utcnow()
+                        session.add(player)
+                        session.commit()
+
+                        # Trigger image optimization asynchronously
+                        try:
+                            from app.image_cache_service import handle_player_image_update
+                            handle_player_image_update(player_id)
+                            logger.info(f"Queued image optimization for player {player_id}")
+                        except Exception as e:
+                            logger.warning(f"Failed to queue image optimization: {e}")
+
+                        show_success('Profile picture updated successfully.')
+                    except Exception as e:
+                        logger.error(f"Failed to save profile picture for player {player_id}: {e}")
+                        show_error('Error uploading profile picture. Please try again.')
+                else:
+                    show_error('No image data provided. Please select and crop an image.')
+                return redirect(url_for('players.player_profile', player_id=player_id))
             elif form.validate_on_submit() and 'update_profile' in request.form:
                 if can_edit_profile:
                     return handle_profile_update(form, player, user)

@@ -1,0 +1,885 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Season Builder{% endblock %}
+{% block panel_description %}Create and manage seasons for Pub League and ECS FC{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">League Management</span>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Season Builder</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-6">
+    <!-- Action Toggle -->
+    <div class="flex flex-wrap gap-3">
+        <button type="button" id="showCreateBtn" class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90 transition-colors">
+            <i class="ti ti-plus"></i> Create New Season
+        </button>
+        <button type="button" id="showManageBtn" class="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+            <i class="ti ti-list"></i> Manage Existing Seasons
+        </button>
+    </div>
+
+    <!-- Create Season Wizard -->
+    <div id="createWizardSection" class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <!-- Wizard Header with Progress -->
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                        <i class="ti ti-wand text-ecs-green"></i> Season Builder Wizard
+                    </h2>
+                    <p class="text-gray-500 dark:text-gray-400 mt-1">Follow the steps below to create a complete season</p>
+                </div>
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    <span id="stepCounter" class="font-medium text-ecs-green">Step 1</span> of 5
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="relative">
+                <div class="overflow-hidden h-2 text-xs flex rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div id="progressBar" class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-ecs-green transition-all duration-300" style="width: 20%"></div>
+                </div>
+                <!-- Step Labels -->
+                <div class="flex justify-between mt-3">
+                    <div class="wizard-step-label text-center flex-1" data-step="1">
+                        <div class="wizard-step-dot w-8 h-8 mx-auto mb-1 rounded-full bg-ecs-green text-white flex items-center justify-center text-sm font-medium transition-all">
+                            <i class="ti ti-file-description text-sm"></i>
+                        </div>
+                        <span class="text-xs font-medium text-ecs-green">Basics</span>
+                    </div>
+                    <div class="wizard-step-label text-center flex-1" data-step="2">
+                        <div class="wizard-step-dot w-8 h-8 mx-auto mb-1 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400 flex items-center justify-center text-sm font-medium transition-all">
+                            <i class="ti ti-users text-sm"></i>
+                        </div>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Teams</span>
+                    </div>
+                    <div class="wizard-step-label text-center flex-1" data-step="3">
+                        <div class="wizard-step-dot w-8 h-8 mx-auto mb-1 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400 flex items-center justify-center text-sm font-medium transition-all">
+                            <i class="ti ti-list-tree text-sm"></i>
+                        </div>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Schedule</span>
+                    </div>
+                    <div class="wizard-step-label text-center flex-1" data-step="4">
+                        <div class="wizard-step-dot w-8 h-8 mx-auto mb-1 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400 flex items-center justify-center text-sm font-medium transition-all">
+                            <i class="ti ti-clock text-sm"></i>
+                        </div>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Time & Fields</span>
+                    </div>
+                    <div class="wizard-step-label text-center flex-1" data-step="5">
+                        <div class="wizard-step-dot w-8 h-8 mx-auto mb-1 rounded-full bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-400 flex items-center justify-center text-sm font-medium transition-all">
+                            <i class="ti ti-check text-sm"></i>
+                        </div>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Review</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wizard Content -->
+        <div class="p-6">
+            <!-- Step 1: Basics -->
+            <div class="wizard-step" data-step="1">
+                <div class="max-w-2xl mx-auto">
+                    <div class="text-center mb-8">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-ecs-green/10 rounded-full flex items-center justify-center">
+                            <i class="ti ti-file-description text-3xl text-ecs-green"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Let's start with the basics</h3>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2">Name your season and choose the league type</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <label for="seasonName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Season Name <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" id="seasonName" placeholder="e.g., 2025 Spring" required
+                                   class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green text-lg">
+                            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Choose a descriptive name like "2025 Spring" or "Fall 2025"</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                League Type <span class="text-red-500">*</span>
+                            </label>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <label class="league-type-option relative flex cursor-pointer rounded-lg border-2 border-ecs-green bg-ecs-green/5 p-4 hover:border-ecs-green transition-colors" data-value="Pub League" data-action="sb-select-league-type">
+                                    <input type="radio" name="leagueType" value="Pub League" class="sr-only" checked>
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 bg-ecs-green/10 rounded-full flex items-center justify-center">
+                                            <i class="ti ti-trophy text-xl text-ecs-green"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-gray-900 dark:text-white">Pub League</p>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Premier + Classic divisions</p>
+                                        </div>
+                                    </div>
+                                    <div class="check-icon absolute top-3 right-3">
+                                        <i class="ti ti-circle-check text-xl text-ecs-green"></i>
+                                    </div>
+                                </label>
+                                <label class="league-type-option relative flex cursor-pointer rounded-lg border-2 border-gray-200 dark:border-gray-600 p-4 hover:border-blue-500 transition-colors" data-value="ECS FC" data-action="sb-select-league-type">
+                                    <input type="radio" name="leagueType" value="ECS FC" class="sr-only">
+                                    <div class="flex items-center gap-4">
+                                        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                                            <i class="ti ti-shield text-xl text-blue-500"></i>
+                                        </div>
+                                        <div>
+                                            <p class="font-semibold text-gray-900 dark:text-white">ECS FC</p>
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Single league</p>
+                                        </div>
+                                    </div>
+                                    <div class="check-icon absolute top-3 right-3 hidden">
+                                        <i class="ti ti-circle-check text-xl text-blue-500"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                            <label class="flex items-start gap-3 cursor-pointer">
+                                <input type="checkbox" id="setAsCurrent" checked
+                                       class="mt-1 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">Set as current season</p>
+                                    <p class="text-sm text-blue-600 dark:text-blue-400 mt-1">
+                                        <i class="ti ti-info-circle"></i>
+                                        This will perform a season rollover, moving player team history from the previous season
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Teams -->
+            <div class="wizard-step hidden" data-step="2">
+                <div class="max-w-2xl mx-auto">
+                    <div class="text-center mb-8">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                            <i class="ti ti-users text-3xl text-purple-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Set up your teams</h3>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2">Choose how many teams for each division</p>
+                    </div>
+
+                    <!-- Pub League Teams -->
+                    <div id="pubLeagueTeamsSection" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-gradient-to-br from-ecs-green/5 to-ecs-green/10 border border-ecs-green/20 rounded-xl p-6">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 bg-ecs-green rounded-full flex items-center justify-center">
+                                        <i class="ti ti-trophy text-white"></i>
+                                    </div>
+                                    <h4 class="font-semibold text-gray-900 dark:text-white">Premier Division</h4>
+                                </div>
+                                <label for="premierTeamCount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Number of Teams</label>
+                                <select id="premierTeamCount" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                    <option value="6">6 Teams</option>
+                                    <option value="8" selected>8 Teams (Recommended)</option>
+                                    <option value="10">10 Teams</option>
+                                    <option value="12">12 Teams</option>
+                                </select>
+                                <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                                    <i class="ti ti-info-circle"></i> Higher skill division
+                                </p>
+                            </div>
+
+                            <div class="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-900/10 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                        <i class="ti ti-shield text-white"></i>
+                                    </div>
+                                    <h4 class="font-semibold text-gray-900 dark:text-white">Classic Division</h4>
+                                </div>
+                                <label for="classicTeamCount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Number of Teams</label>
+                                <select id="classicTeamCount" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="4" selected>4 Teams (Recommended)</option>
+                                    <option value="6">6 Teams</option>
+                                    <option value="8">8 Teams</option>
+                                </select>
+                                <p class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                                    <i class="ti ti-info-circle"></i> Development division
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ECS FC Teams -->
+                    <div id="ecsFcTeamsSection" class="hidden">
+                        <div class="max-w-md mx-auto bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-900/20 dark:to-green-900/10 border border-green-200 dark:border-green-800 rounded-xl p-6">
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                                    <i class="ti ti-users text-white"></i>
+                                </div>
+                                <h4 class="font-semibold text-gray-900 dark:text-white">ECS FC Teams</h4>
+                            </div>
+                            <label for="ecsFcTeamCount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Number of Teams</label>
+                            <select id="ecsFcTeamCount" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-green-500 focus:ring-green-500">
+                                <option value="4">4 Teams</option>
+                                <option value="6">6 Teams</option>
+                                <option value="8" selected>8 Teams (Recommended)</option>
+                                <option value="10">10 Teams</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Team Creation Info -->
+                    <div class="mt-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                        <h5 class="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                            <i class="ti ti-info-circle text-ecs-green"></i> What happens next
+                        </h5>
+                        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                            <li><i class="ti ti-check text-green-500 mr-2"></i>Placeholder teams created (Team A, Team B, etc.)</li>
+                            <li><i class="ti ti-check text-green-500 mr-2"></i>Discord channels created for each team</li>
+                            <li><i class="ti ti-check text-green-500 mr-2"></i>Discord roles and permissions set up</li>
+                            <li><i class="ti ti-check text-green-500 mr-2"></i>Teams can be renamed later</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Schedule (Combined Date + Week Types) -->
+            <div class="wizard-step hidden" data-step="3">
+                <div class="max-w-6xl mx-auto">
+                    <div class="text-center mb-8">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
+                            <i class="ti ti-list-tree text-3xl text-yellow-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Configure your schedule</h3>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2">Set the start date and configure week types for each division</p>
+                    </div>
+
+                    <!-- Date Picker Section -->
+                    <div class="max-w-md mx-auto mb-8">
+                        <label for="seasonStartDate" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Season Start Date <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" id="seasonStartDate" required
+                               class="w-full px-4 py-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green text-lg"
+                               data-on-change="sb-change-start-date">
+                        <p class="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                            <i class="ti ti-info-circle"></i> Select the Sunday for the first week of matches
+                        </p>
+                    </div>
+
+                    <!-- Pub League Week Builders (Side by Side) -->
+                    <div id="pubLeagueWeekBuilders" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Premier Division Week Builder -->
+                        <div id="premierWeekBuilder" class="bg-white dark:bg-gray-800 border border-ecs-green/30 rounded-xl">
+                            <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-ecs-green/5">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <span class="w-8 h-8 bg-ecs-green rounded-full flex items-center justify-center">
+                                            <i class="ti ti-trophy text-white text-sm"></i>
+                                        </span>
+                                        Premier Division
+                                    </h4>
+                                    <div class="flex gap-2">
+                                        <div class="relative">
+                                            <button type="button" class="text-sm px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 inline-flex items-center gap-1"
+                                                    id="premierTemplateDropdownBtn" data-dropdown-toggle="premierTemplateDropdown">
+                                                <i class="ti ti-template"></i> Template
+                                                <i class="ti ti-chevron-down text-xs"></i>
+                                            </button>
+                                            <div id="premierTemplateDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10">
+                                                <ul class="py-1">
+                                                    <li><button type="button" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="sb-apply-template" data-division="premier" data-template="standard">Standard (11 weeks)</button></li>
+                                                    <li><button type="button" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="sb-apply-template" data-division="premier" data-template="compact">Compact (9 weeks)</button></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                    Types: REGULAR, TST, FUN, BYE, PLAYOFF
+                                </p>
+                            </div>
+                            <div class="p-4 space-y-2 week-cards-container max-h-96 overflow-y-auto">
+                                <!-- Week cards populated by JS -->
+                            </div>
+                            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                                <button type="button" class="w-full py-2 text-sm text-ecs-green hover:bg-ecs-green/10 rounded-lg border-2 border-dashed border-ecs-green/30 hover:border-ecs-green/50 transition-colors flex items-center justify-center gap-2"
+                                        data-action="sb-add-week" data-division="premier">
+                                    <i class="ti ti-plus"></i> Add Week
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Classic Division Week Builder -->
+                        <div id="classicWeekBuilder" class="bg-white dark:bg-gray-800 border border-blue-300/30 rounded-xl">
+                            <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                        <span class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                            <i class="ti ti-shield text-white text-sm"></i>
+                                        </span>
+                                        Classic Division
+                                    </h4>
+                                    <div class="flex gap-2">
+                                        <div class="relative">
+                                            <button type="button" class="text-sm px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 inline-flex items-center gap-1"
+                                                    id="classicTemplateDropdownBtn" data-dropdown-toggle="classicTemplateDropdown">
+                                                <i class="ti ti-template"></i> Template
+                                                <i class="ti ti-chevron-down text-xs"></i>
+                                            </button>
+                                            <div id="classicTemplateDropdown" class="hidden absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10">
+                                                <ul class="py-1">
+                                                    <li><button type="button" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="sb-apply-template" data-division="classic" data-template="standard">Standard (11 weeks)</button></li>
+                                                    <li><button type="button" class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="sb-apply-template" data-division="classic" data-template="compact">Compact (9 weeks)</button></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                    Types: REGULAR, PRACTICE, TST*, FUN*, BYE, PLAYOFF <span class="text-purple-500">(*shared)</span>
+                                </p>
+                            </div>
+                            <div class="p-4 space-y-2 week-cards-container max-h-96 overflow-y-auto">
+                                <!-- Week cards populated by JS -->
+                            </div>
+                            <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                                <button type="button" class="w-full py-2 text-sm text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg border-2 border-dashed border-blue-300/50 hover:border-blue-500/50 transition-colors flex items-center justify-center gap-2"
+                                        data-action="sb-add-week" data-division="classic">
+                                    <i class="ti ti-plus"></i> Add Week
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ECS FC Week Builder (Hidden by default) -->
+                    <div id="ecsFcWeekBuilder" class="hidden max-w-xl mx-auto bg-white dark:bg-gray-800 border border-green-300/30 rounded-xl">
+                        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-green-50 dark:bg-green-900/20">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                    <span class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                                        <i class="ti ti-shield text-white text-sm"></i>
+                                    </span>
+                                    ECS FC Schedule
+                                </h4>
+                                <div class="flex gap-2">
+                                    <button type="button" class="text-sm px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600"
+                                            data-action="sb-apply-template" data-division="ecs_fc" data-template="standard">
+                                        <i class="ti ti-template"></i> Standard Template
+                                    </button>
+                                </div>
+                            </div>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                Types: REGULAR, BYE, PLAYOFF
+                            </p>
+                        </div>
+                        <div class="p-4 space-y-2 week-cards-container max-h-96 overflow-y-auto">
+                            <!-- Week cards populated by JS -->
+                        </div>
+                        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
+                            <button type="button" class="w-full py-2 text-sm text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg border-2 border-dashed border-green-300/50 hover:border-green-500/50 transition-colors flex items-center justify-center gap-2"
+                                    data-action="sb-add-week" data-division="ecs_fc">
+                                <i class="ti ti-plus"></i> Add Week
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Week Type Legend -->
+                    <div class="mt-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                        <h5 class="font-medium text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                            <i class="ti ti-info-circle text-gray-500"></i> Week Type Legend
+                        </h5>
+                        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="w-4 h-4 rounded bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800"></span>
+                                <span class="text-gray-600 dark:text-gray-400">REGULAR - Normal matches</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-4 h-4 rounded bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800"></span>
+                                <span class="text-gray-600 dark:text-gray-400">TST - Tournament week</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-4 h-4 rounded bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800"></span>
+                                <span class="text-gray-600 dark:text-gray-400">FUN - Fun activities</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-4 h-4 rounded bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600"></span>
+                                <span class="text-gray-600 dark:text-gray-400">BYE - No matches</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-4 h-4 rounded bg-cyan-100 dark:bg-cyan-900/30 border border-cyan-200 dark:border-cyan-800"></span>
+                                <span class="text-gray-600 dark:text-gray-400">PRACTICE - Practice session + matches</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="w-4 h-4 rounded bg-purple-100 dark:bg-purple-900/30 border border-purple-200 dark:border-purple-800"></span>
+                                <span class="text-gray-600 dark:text-gray-400">PLAYOFF - Playoffs</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Preview -->
+                    <div id="calendarPreview" class="mt-6 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4">Season Calendar Preview</h4>
+                        <div id="calendarPreviewContent" class="text-center text-gray-500 dark:text-gray-400 py-8">
+                            <i class="ti ti-calendar-plus text-4xl mb-2"></i>
+                            <p>Select a start date above to see your season calendar</p>
+                        </div>
+                    </div>
+
+                    <!-- Info Box -->
+                    <div class="mt-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                        <h5 class="font-medium text-gray-900 dark:text-white mb-2 flex items-center gap-2">
+                            <i class="ti ti-info-circle text-blue-500"></i> What gets created
+                        </h5>
+                        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                            <li><i class="ti ti-check text-green-500 mr-2"></i><strong>Matches:</strong> Round-robin matchups with balanced home/away assignments</li>
+                            <li><i class="ti ti-check text-green-500 mr-2"></i><strong>Time Slots:</strong> Matches assigned to configured times with field rotation</li>
+                            <li><i class="ti ti-check text-green-500 mr-2"></i><strong>Special Weeks:</strong> TST, FUN, PRACTICE, BYE weeks as configured</li>
+                            <li><i class="ti ti-check text-green-500 mr-2"></i><strong>Playoffs:</strong> Placeholder slots for playoff matchups</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: Time & Fields -->
+            <div class="wizard-step hidden" data-step="4">
+                <div class="max-w-3xl mx-auto">
+                    <div class="text-center mb-8">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-orange-100 dark:bg-orange-900/30 rounded-full flex items-center justify-center">
+                            <i class="ti ti-clock text-3xl text-orange-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Set up times and fields</h3>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2">Configure match times, durations, and playing fields</p>
+                    </div>
+
+                    <div class="space-y-6">
+                        <!-- Time Configuration -->
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+                            <h4 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <i class="ti ti-clock text-blue-500"></i> Match Times
+                            </h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <div>
+                                    <label for="premierStartTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Premier Start</label>
+                                    <input type="time" id="premierStartTime" value="08:20" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                </div>
+                                <div>
+                                    <label for="classicStartTime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Classic Start</label>
+                                    <input type="time" id="classicStartTime" value="13:10" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-blue-500 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label for="matchDuration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Match (min)</label>
+                                    <input type="number" id="matchDuration" value="70" min="30" max="120" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                </div>
+                                <div>
+                                    <label for="breakDuration" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Break (min)</label>
+                                    <input type="number" id="breakDuration" value="10" min="0" max="30" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <label class="flex items-center gap-3 cursor-pointer">
+                                    <input type="checkbox" id="enableTimeRotation" checked class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                                    <div>
+                                        <p class="font-medium text-gray-900 dark:text-white">Enable Time Slot Rotation</p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Balance teams between time slots for fairness</p>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Fields Configuration -->
+                        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+                            <h4 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                                <i class="ti ti-map-pin text-green-500"></i> Playing Fields
+                            </h4>
+                            <div id="fieldConfigurations" class="space-y-3">
+                                <div class="field-item flex items-center gap-3">
+                                    <input type="text" value="North" class="field-name-input flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="Field name">
+                                    <button type="button" class="remove-field-btn p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-50" data-action="sb-remove-field" disabled>
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                </div>
+                                <div class="field-item flex items-center gap-3">
+                                    <input type="text" value="South" class="field-name-input flex-1 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white" placeholder="Field name">
+                                    <button type="button" class="remove-field-btn p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg disabled:opacity-50" data-action="sb-remove-field" disabled>
+                                        <i class="ti ti-x"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="mt-3 inline-flex items-center gap-1 px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700" data-action="sb-add-field">
+                                <i class="ti ti-plus"></i> Add Field
+                            </button>
+                        </div>
+
+                        <!-- Info Box -->
+                        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                            <p class="text-sm text-blue-700 dark:text-blue-300">
+                                <i class="ti ti-info-circle mr-1"></i>
+                                <strong>Tip:</strong> With 2 fields and 70-minute matches + 10-minute breaks, you can run 4-5 time slots per session.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Review & Create -->
+            <div class="wizard-step hidden" data-step="5">
+                <div class="max-w-3xl mx-auto">
+                    <div class="text-center mb-8">
+                        <div class="w-16 h-16 mx-auto mb-4 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                            <i class="ti ti-check text-3xl text-green-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">Review and create</h3>
+                        <p class="text-gray-500 dark:text-gray-400 mt-2">Make sure everything looks good before creating your season</p>
+                    </div>
+
+                    <div id="seasonSummary" class="space-y-4">
+                        <!-- Summary will be populated by JavaScript -->
+                    </div>
+
+                    <!-- Discord Preview -->
+                    <div class="mt-6 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-6">
+                        <h4 class="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                            <i class="ti ti-brand-discord text-indigo-500"></i> Discord Resources to be Created
+                        </h4>
+                        <div id="discordPreview" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Discord preview populated by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Final Warning -->
+                    <div class="mt-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                        <p class="text-sm text-amber-700 dark:text-amber-300 flex items-start gap-2">
+                            <i class="ti ti-alert-triangle flex-shrink-0 mt-0.5"></i>
+                            <span>
+                                <strong>Ready to create?</strong> This will create teams, Discord channels/roles, and schedule entries.
+                                You can modify team names and schedules later, but deleting requires removing all related data.
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wizard Footer -->
+        <div class="flex justify-between items-center p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 rounded-b-lg">
+            <button type="button" id="prevStepBtn" class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700 invisible" data-action="sb-prev-step">
+                <i class="ti ti-chevron-left"></i> Previous
+            </button>
+            <div class="flex items-center gap-3">
+                <button type="button" id="nextStepBtn" class="inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 focus:ring-4 focus:outline-none focus:ring-ecs-green/50" data-action="sb-next-step">
+                    Next <i class="ti ti-chevron-right"></i>
+                </button>
+                <button type="button" id="createSeasonBtn" class="hidden inline-flex items-center gap-2 px-6 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-500/50" data-action="sb-create-season">
+                    <i class="ti ti-rocket"></i> Create Season
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Manage Seasons Section -->
+    <div id="manageSeasonsSection" class="hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-6">Manage Existing Seasons</h2>
+
+            <!-- Season Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% for season in pub_league_seasons %}
+                <div class="bg-white dark:bg-gray-800 rounded-xl border-2 {{ 'border-ecs-green' if season.is_current else 'border-gray-200 dark:border-gray-700' }} p-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                {{ season.name }}
+                                {% if season.is_current %}
+                                <span class="px-2 py-0.5 text-xs bg-ecs-green text-white rounded-full">Current</span>
+                                {% endif %}
+                            </h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Pub League</p>
+                        </div>
+                        <span class="px-2 py-1 text-xs bg-ecs-green/10 text-ecs-green rounded">{{ season.leagues|length }} leagues</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}"
+                           class="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
+                            <i class="ti ti-calendar-event"></i> View
+                        </a>
+                        {% if not season.is_current %}
+                        <button type="button" class="js-set-active inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50"
+                                data-season-id="{{ season.id }}" data-season-type="Pub League">
+                            <i class="ti ti-star"></i> Set Current
+                        </button>
+                        {% endif %}
+                        <button type="button" class="js-delete-season inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50"
+                                data-season-id="{{ season.id }}" data-season-name="{{ season.name }}">
+                            <i class="ti ti-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% for season in ecs_fc_seasons %}
+                <div class="bg-white dark:bg-gray-800 rounded-xl border-2 {{ 'border-blue-500' if season.is_current else 'border-gray-200 dark:border-gray-700' }} p-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                {{ season.name }}
+                                {% if season.is_current %}
+                                <span class="px-2 py-0.5 text-xs bg-blue-500 text-white rounded-full">Current</span>
+                                {% endif %}
+                            </h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">ECS FC</p>
+                        </div>
+                        <span class="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">{{ season.leagues|length }} leagues</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <a href="{{ url_for('auto_schedule.view_seasonal_schedule', season_id=season.id) }}"
+                           class="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
+                            <i class="ti ti-calendar-event"></i> View
+                        </a>
+                        {% if not season.is_current %}
+                        <button type="button" class="js-set-active inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-lg hover:bg-green-200 dark:hover:bg-green-900/50"
+                                data-season-id="{{ season.id }}" data-season-type="ECS FC">
+                            <i class="ti ti-star"></i> Set Current
+                        </button>
+                        {% endif %}
+                        <button type="button" class="js-delete-season inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50"
+                                data-season-id="{{ season.id }}" data-season-name="{{ season.name }}">
+                            <i class="ti ti-trash"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+
+                {% if not pub_league_seasons and not ecs_fc_seasons %}
+                <div class="col-span-full text-center py-12">
+                    <i class="ti ti-calendar-off text-4xl text-gray-400 mb-3"></i>
+                    <p class="text-gray-500 dark:text-gray-400">No seasons found. Create your first season above!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = () => document.documentElement.classList.contains('dark');
+
+    // Debug: Check if EventDelegation is loaded and season builder handler is registered
+    console.log('[SeasonBuilder Page] EventDelegation loaded:', typeof window.EventDelegation !== 'undefined');
+    if (window.EventDelegation) {
+        // Enable debug mode for detailed logging
+        window.EventDelegation.enableDebug();
+        console.log('[SeasonBuilder Page] Registered actions:', window.EventDelegation.getRegisteredActions().filter(a => a.startsWith('sb-')));
+        console.log('[SeasonBuilder Page] sb-next-step registered:', window.EventDelegation.isRegistered('sb-next-step'));
+        console.log('[SeasonBuilder Page] Total handlers registered:', window.EventDelegation.getStats().registeredActions);
+    }
+    console.log('[SeasonBuilder Page] SeasonBuilderState:', typeof window.SeasonBuilderState !== 'undefined' ? window.SeasonBuilderState : 'NOT LOADED');
+    console.log('[SeasonBuilder Page] SeasonBuilderHelpers:', typeof window.SeasonBuilderHelpers !== 'undefined' ? 'LOADED' : 'NOT LOADED');
+
+    // Debug: Add direct click listener to Next button as fallback
+    const nextBtn = document.getElementById('nextStepBtn');
+    const prevBtn = document.getElementById('prevStepBtn');
+    const createBtn = document.getElementById('createSeasonBtn');
+
+    if (nextBtn) {
+        console.log('[SeasonBuilder Page] Next button found:', nextBtn);
+        console.log('[SeasonBuilder Page] Next button data-action:', nextBtn.dataset.action);
+
+        // Add fallback click handler if EventDelegation handler isn't working
+        nextBtn.addEventListener('click', function(e) {
+            console.log('[SeasonBuilder Page] Next button clicked directly');
+
+            // Check if SeasonBuilderHelpers exists (from season-builder.js)
+            if (typeof window.SeasonBuilderHelpers === 'undefined') {
+                console.error('[SeasonBuilder Page] SeasonBuilderHelpers not found! Module may not have loaded.');
+
+                // Try basic fallback navigation
+                if (typeof window.SeasonBuilderState !== 'undefined') {
+                    console.log('[SeasonBuilder Page] Using direct state manipulation');
+                    window.SeasonBuilderState.currentStep++;
+                    // Manual step update
+                    document.querySelectorAll('.wizard-step').forEach(step => {
+                        const stepNum = parseInt(step.dataset.step);
+                        step.classList.toggle('hidden', stepNum !== window.SeasonBuilderState.currentStep);
+                    });
+                }
+                return;
+            }
+
+            // If the event delegation handler should have handled this, do nothing
+            // The event delegation runs on the same event, so we don't need to duplicate
+            if (window.EventDelegation && window.EventDelegation.isRegistered('sb-next-step')) {
+                console.log('[SeasonBuilder Page] sb-next-step is registered, EventDelegation should handle it');
+                // Let EventDelegation handle it
+                return;
+            }
+
+            // Otherwise, call helpers directly as fallback
+            console.log('[SeasonBuilder Page] Calling helpers directly as fallback');
+            window.SeasonBuilderHelpers.syncStateFromDOM();
+            if (window.SeasonBuilderHelpers.validateStep(window.SeasonBuilderState.currentStep)) {
+                if (window.SeasonBuilderState.currentStep < 5) {
+                    window.SeasonBuilderState.currentStep++;
+                    window.SeasonBuilderHelpers.updateWizardUI();
+                }
+            }
+        });
+    } else {
+        console.error('[SeasonBuilder Page] Next button NOT found!');
+    }
+
+    // Also add fallback for Previous button
+    if (prevBtn) {
+        prevBtn.addEventListener('click', function(e) {
+            console.log('[SeasonBuilder Page] Prev button clicked directly');
+            if (window.EventDelegation && window.EventDelegation.isRegistered('sb-prev-step')) {
+                return; // Let EventDelegation handle it
+            }
+            if (typeof window.SeasonBuilderHelpers !== 'undefined' && typeof window.SeasonBuilderState !== 'undefined') {
+                window.SeasonBuilderHelpers.syncStateFromDOM();
+                if (window.SeasonBuilderState.currentStep > 1) {
+                    window.SeasonBuilderState.currentStep--;
+                    window.SeasonBuilderHelpers.updateWizardUI();
+                }
+            }
+        });
+    }
+
+    // Section switching
+    const showCreateBtn = document.getElementById('showCreateBtn');
+    const showManageBtn = document.getElementById('showManageBtn');
+    const createSection = document.getElementById('createWizardSection');
+    const manageSection = document.getElementById('manageSeasonsSection');
+
+    showCreateBtn?.addEventListener('click', function() {
+        createSection.classList.remove('hidden');
+        manageSection.classList.add('hidden');
+        showCreateBtn.classList.add('bg-ecs-green', 'text-white');
+        showCreateBtn.classList.remove('border', 'border-gray-300', 'text-gray-700');
+        showManageBtn.classList.remove('bg-ecs-green', 'text-white');
+        showManageBtn.classList.add('border', 'border-gray-300', 'text-gray-700', 'dark:border-gray-600', 'dark:text-gray-300');
+    });
+
+    showManageBtn?.addEventListener('click', function() {
+        manageSection.classList.remove('hidden');
+        createSection.classList.add('hidden');
+        showManageBtn.classList.add('bg-ecs-green', 'text-white');
+        showManageBtn.classList.remove('border', 'border-gray-300', 'text-gray-700', 'dark:border-gray-600', 'dark:text-gray-300');
+        showCreateBtn.classList.remove('bg-ecs-green', 'text-white');
+        showCreateBtn.classList.add('border', 'border-gray-300', 'text-gray-700', 'dark:border-gray-600', 'dark:text-gray-300');
+    });
+
+    // Template dropdown toggle (simple version)
+    document.querySelectorAll('[data-dropdown-toggle]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const dropdownId = this.getAttribute('data-dropdown-toggle');
+            const dropdown = document.getElementById(dropdownId);
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+            }
+        });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function() {
+        document.querySelectorAll('[id$="TemplateDropdown"]').forEach(dropdown => {
+            dropdown.classList.add('hidden');
+        });
+    });
+
+    // Set active season
+    document.querySelectorAll('.js-set-active').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const seasonId = this.dataset.seasonId;
+            const seasonType = this.dataset.seasonType;
+
+            try {
+                const response = await fetch('{{ url_for("auto_schedule.set_active_season") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ season_id: seasonId, season_type: seasonType })
+                });
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Season set as current.',
+                        background: isDark() ? '#1f2937' : '#ffffff',
+                        color: isDark() ? '#f3f4f6' : '#111827',
+                        confirmButtonColor: '#1a472a'
+                    }).then(() => window.location.reload());
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to set season as current.',
+                    background: isDark() ? '#1f2937' : '#ffffff',
+                    color: isDark() ? '#f3f4f6' : '#111827',
+                    confirmButtonColor: '#1a472a'
+                });
+            }
+        });
+    });
+
+    // Delete season
+    document.querySelectorAll('.js-delete-season').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const seasonId = this.dataset.seasonId;
+            const seasonName = this.dataset.seasonName;
+
+            const result = await Swal.fire({
+                title: `Delete ${seasonName}?`,
+                text: 'This will delete all teams, schedules, and Discord resources. This cannot be undone!',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, delete it!',
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827'
+            });
+
+            if (result.isConfirmed) {
+                try {
+                    const response = await fetch(`/admin-panel/league-management/seasons/api/${seasonId}/delete`, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                    });
+
+                    if (response.ok) {
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Failed to delete season.',
+                        background: isDark() ? '#1f2937' : '#ffffff',
+                        color: isDark() ? '#f3f4f6' : '#111827'
+                    });
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

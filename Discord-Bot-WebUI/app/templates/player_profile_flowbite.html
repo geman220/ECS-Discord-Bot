@@ -1014,18 +1014,200 @@
     </div>
 </div>
 
-<!-- Profile Image Modal -->
-{% call modal_form('profileImageModal', 'Update Profile Picture', action=url_for('players.player_profile', player_id=player.id), submit_text='Upload', loading_text='Uploading...', enctype='multipart/form-data') %}
-<input type="hidden" name="update_picture" value="1">
-<div class="flex justify-center mb-4">
-    <div class="w-32 h-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-600">
-        <img id="imagePreview" src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" class="w-full h-full object-cover" alt="Preview">
+<!-- Profile Image Modal - Drag to Position -->
+<div id="profileImageModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Update Profile Picture</h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="profileImageModal">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal Body -->
+            <form id="profilePictureForm" action="{{ url_for('players.player_profile', player_id=player.id) }}" method="POST" class="p-4 md:p-5">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="update_picture" value="1">
+                <input type="hidden" name="cropped_image_data" id="profileImageData">
+
+                <!-- Step 1: Select file (shown initially) -->
+                <div id="profileStep1">
+                    <div class="flex justify-center mb-4">
+                        <div class="w-32 h-32 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-600 border-4 border-gray-200 dark:border-gray-500">
+                            <img src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}" class="w-full h-full object-cover" alt="Current">
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Choose Image</label>
+                        <input type="file" accept="image/*" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600" id="profileFileInput">
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">PNG, JPG or WEBP (MAX. 5MB)</p>
+                    </div>
+                </div>
+
+                <!-- Step 2: Position image (hidden initially) -->
+                <div id="profileStep2" class="hidden">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 text-center mb-3">Drag image to position</p>
+                    <!-- Crop area with circular mask -->
+                    <div class="flex justify-center mb-4">
+                        <div id="profileCropArea" class="relative w-64 h-64 rounded-full overflow-hidden border-4 border-ecs-green bg-gray-900 cursor-move" style="touch-action: none;">
+                            <img id="profileDragImage" src="" class="absolute max-w-none" style="pointer-events: none;" alt="Drag to position">
+                        </div>
+                    </div>
+                    <div class="flex justify-center gap-2 mb-4">
+                        <button type="button" id="profileZoomOut" class="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                        </button>
+                        <button type="button" id="profileZoomIn" class="p-2 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        </button>
+                        <button type="button" id="profileReselect" class="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            Change Image
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Hidden canvas -->
+                <canvas id="profileCanvas" class="hidden"></canvas>
+
+                <!-- Actions -->
+                <div class="flex items-center justify-end gap-3 pt-4 border-t dark:border-gray-600">
+                    <button type="button" data-modal-hide="profileImageModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                        Cancel
+                    </button>
+                    <button type="submit" id="profileUploadBtn" disabled class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-dark focus:ring-4 focus:ring-ecs-green/50 disabled:opacity-50 disabled:cursor-not-allowed">
+                        Upload
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
-<label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Choose Image</label>
-<input type="file" name="profile_picture" accept="image/*" class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" id="profilePictureInput">
-<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">PNG, JPG or WEBP (MAX. 2MB)</p>
-{% endcall %}
+
+<script>
+(function() {
+    const fileInput = document.getElementById('profileFileInput');
+    const step1 = document.getElementById('profileStep1');
+    const step2 = document.getElementById('profileStep2');
+    const cropArea = document.getElementById('profileCropArea');
+    const dragImage = document.getElementById('profileDragImage');
+    const canvas = document.getElementById('profileCanvas');
+    const imageData = document.getElementById('profileImageData');
+    const uploadBtn = document.getElementById('profileUploadBtn');
+    const zoomIn = document.getElementById('profileZoomIn');
+    const zoomOut = document.getElementById('profileZoomOut');
+    const reselect = document.getElementById('profileReselect');
+    const form = document.getElementById('profilePictureForm');
+
+    if (!fileInput) return;
+
+    let imgX = 0, imgY = 0, scale = 1, imgWidth = 0, imgHeight = 0;
+    let isDragging = false, startX = 0, startY = 0;
+    const cropSize = 256; // Size of crop area
+
+    function updateImagePosition() {
+        dragImage.style.transform = `translate(${imgX}px, ${imgY}px) scale(${scale})`;
+        dragImage.style.transformOrigin = '0 0';
+        updateCanvas();
+    }
+
+    function updateCanvas() {
+        canvas.width = 300;
+        canvas.height = 300;
+        const ctx = canvas.getContext('2d');
+        // Calculate what portion of the image is visible
+        const sourceX = -imgX / scale;
+        const sourceY = -imgY / scale;
+        const sourceSize = cropSize / scale;
+        ctx.drawImage(dragImage, sourceX, sourceY, sourceSize, sourceSize, 0, 0, 300, 300);
+        imageData.value = canvas.toDataURL('image/png');
+    }
+
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File too large. Maximum size is 5MB.');
+            fileInput.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            dragImage.onload = function() {
+                imgWidth = dragImage.naturalWidth;
+                imgHeight = dragImage.naturalHeight;
+                // Scale to fit, minimum dimension = crop area
+                const minScale = cropSize / Math.min(imgWidth, imgHeight);
+                scale = minScale * 1.2; // Start slightly zoomed
+                // Center the image
+                imgX = (cropSize - imgWidth * scale) / 2;
+                imgY = (cropSize - imgHeight * scale) / 2;
+                updateImagePosition();
+                step1.classList.add('hidden');
+                step2.classList.remove('hidden');
+                uploadBtn.disabled = false;
+            };
+            dragImage.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Drag handlers
+    function handleDragStart(e) {
+        isDragging = true;
+        const pos = e.touches ? e.touches[0] : e;
+        startX = pos.clientX - imgX;
+        startY = pos.clientY - imgY;
+    }
+    function handleDragMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+        const pos = e.touches ? e.touches[0] : e;
+        imgX = pos.clientX - startX;
+        imgY = pos.clientY - startY;
+        updateImagePosition();
+    }
+    function handleDragEnd() { isDragging = false; }
+
+    cropArea.addEventListener('mousedown', handleDragStart);
+    cropArea.addEventListener('touchstart', handleDragStart);
+    document.addEventListener('mousemove', handleDragMove);
+    document.addEventListener('touchmove', handleDragMove, { passive: false });
+    document.addEventListener('mouseup', handleDragEnd);
+    document.addEventListener('touchend', handleDragEnd);
+
+    // Zoom
+    zoomIn.addEventListener('click', function() {
+        scale *= 1.2;
+        updateImagePosition();
+    });
+    zoomOut.addEventListener('click', function() {
+        scale /= 1.2;
+        const minScale = cropSize / Math.min(imgWidth, imgHeight);
+        if (scale < minScale) scale = minScale;
+        updateImagePosition();
+    });
+
+    // Reselect
+    reselect.addEventListener('click', function() {
+        step2.classList.add('hidden');
+        step1.classList.remove('hidden');
+        uploadBtn.disabled = true;
+        fileInput.value = '';
+    });
+
+    form.addEventListener('submit', function(e) {
+        if (!imageData.value) {
+            e.preventDefault();
+            alert('Please select an image first.');
+        }
+    });
+})();
+</script>
 
 <!-- Contact Player Modal -->
 {% if is_admin or 'Pub League Coach' in user_roles %}

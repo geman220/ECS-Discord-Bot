@@ -15,11 +15,11 @@ export function updateTeamCount(teamId) {
     const teamCountBadge = document.getElementById(`teamCount${teamId}`);
 
     if (teamSection && teamCountBadge) {
-        // Count ONLY the player card elements, not buttons inside them
-        const playerCount = teamSection.querySelectorAll('.draft-team-player-card').length;
-        teamCountBadge.textContent = `${playerCount} players`;
+        // Count direct children with data-player-id (the player cards, not buttons inside)
+        const playerCount = teamSection.querySelectorAll(':scope > [data-player-id]').length;
+        teamCountBadge.textContent = playerCount;
 
-        console.log(`Updated team ${teamId} count to ${playerCount} players`);
+        console.log(`[team-management] Updated team ${teamId} count to ${playerCount}`);
     }
 }
 

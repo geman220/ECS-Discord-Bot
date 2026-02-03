@@ -28,6 +28,53 @@ from app.services.discord_role_sync_service import sync_role_assignment, sync_ro
 logger = logging.getLogger(__name__)
 
 
+def sync_ecs_fc_coach_status(user, is_adding_role: bool):
+    """
+    Sync ECS FC Coach role to player_teams.is_coach flag.
+
+    When "ECS FC Coach" role is assigned, set is_coach=True for all
+    the user's ECS FC teams. When removed, set is_coach=False.
+
+    Args:
+        user: User object with player relationship loaded
+        is_adding_role: True if adding the role, False if removing
+    """
+    from app.models.players import player_teams, Team
+    from app.models.core import League
+    from sqlalchemy import and_, text
+
+    if not user.player:
+        logger.info(f"User {user.id} has no player profile, skipping ECS FC coach sync")
+        return
+
+    player = user.player
+
+    # Find all ECS FC teams the player is on
+    ecs_fc_team_ids = db.session.query(player_teams.c.team_id).join(
+        Team, Team.id == player_teams.c.team_id
+    ).join(
+        League, League.id == Team.league_id
+    ).filter(
+        player_teams.c.player_id == player.id,
+        League.name.contains('ECS FC')
+    ).all()
+
+    ecs_fc_team_ids = [t[0] for t in ecs_fc_team_ids]
+
+    if not ecs_fc_team_ids:
+        logger.info(f"Player {player.id} is not on any ECS FC teams, skipping coach sync")
+        return
+
+    # Update is_coach for all ECS FC teams
+    for team_id in ecs_fc_team_ids:
+        db.session.execute(
+            text("UPDATE player_teams SET is_coach = :is_coach WHERE player_id = :player_id AND team_id = :team_id"),
+            {"is_coach": is_adding_role, "player_id": player.id, "team_id": team_id}
+        )
+
+    logger.info(f"Updated is_coach={is_adding_role} for player {player.id} on ECS FC teams: {ecs_fc_team_ids}")
+
+
 @admin_panel_bp.route('/users/roles')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -159,6 +206,22 @@ def assign_user_roles():
                 logger.info(f"Removed Discord role {role.name} from user {user.username}")
             except Exception as e:
                 logger.error(f"Failed to remove Discord role {role.name}: {e}")
+
+    # Sync ECS FC Coach role to player_teams.is_coach
+    ecs_fc_coach_added = any(role.name == 'ECS FC Coach' for role in roles_added)
+    ecs_fc_coach_removed = any(role.name == 'ECS FC Coach' for role in roles_removed)
+
+    if ecs_fc_coach_added:
+        try:
+            sync_ecs_fc_coach_status(user, is_adding_role=True)
+        except Exception as e:
+            logger.error(f"Failed to sync ECS FC Coach status for user {user.id}: {e}")
+
+    if ecs_fc_coach_removed:
+        try:
+            sync_ecs_fc_coach_status(user, is_adding_role=False)
+        except Exception as e:
+            logger.error(f"Failed to remove ECS FC Coach status for user {user.id}: {e}")
 
     # Trigger Discord role sync if player has Discord ID (for team-based roles)
     if user.player and user.player.discord_id:
@@ -344,6 +407,14 @@ def assign_user_role():
                     logger.info(f"Removed Discord role mapping for {role.name} from user {user.username}")
             except Exception as e:
                 logger.error(f"Failed to sync Discord role mapping: {e}")
+
+        # Sync ECS FC Coach role to player_teams.is_coach
+        if role.name == 'ECS FC Coach':
+            try:
+                sync_ecs_fc_coach_status(user, is_adding_role=(action == 'add'))
+                db.session.commit()  # Commit the player_teams update
+            except Exception as e:
+                logger.error(f"Failed to sync ECS FC Coach status for user {user.id}: {e}")
 
         # Trigger Discord role sync if player has Discord ID (for team-based roles)
         if user.player and user.player.discord_id:

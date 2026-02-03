@@ -442,29 +442,29 @@ class LeagueManagementService:
             premier_league = next((l for l in leagues if l.name == 'Premier'), None)
             classic_league = next((l for l in leagues if l.name == 'Classic'), None)
 
-            # Create premier teams
-            premier_teams = wizard_data.get('premier_teams', [])
-            if not premier_teams:
-                # Generate default names
-                premier_count = wizard_data.get('premier_team_count', 8)
-                premier_teams = [f'Team {chr(65 + i)}' for i in range(premier_count)]
-
-            for team_name in premier_teams:
-                if premier_league:
-                    team = Team(name=team_name, league_id=premier_league.id)
-                    self.session.add(team)
-                    teams_created += 1
-                    self._queue_discord_team_creation(team)
-
-            # Create classic teams
+            # Create Classic teams FIRST (A, B, C, D)
             classic_teams = wizard_data.get('classic_teams', [])
+            classic_count = wizard_data.get('classic_team_count', 4)
             if not classic_teams:
-                classic_count = wizard_data.get('classic_team_count', 4)
                 classic_teams = [f'Team {chr(65 + i)}' for i in range(classic_count)]
 
             for team_name in classic_teams:
                 if classic_league:
                     team = Team(name=team_name, league_id=classic_league.id)
+                    self.session.add(team)
+                    teams_created += 1
+                    self._queue_discord_team_creation(team)
+
+            # Create Premier teams SECOND (E, F, G, H, etc. - continuing from Classic)
+            premier_teams = wizard_data.get('premier_teams', [])
+            if not premier_teams:
+                premier_count = wizard_data.get('premier_team_count', 8)
+                # Start from where Classic left off
+                premier_teams = [f'Team {chr(65 + classic_count + i)}' for i in range(premier_count)]
+
+            for team_name in premier_teams:
+                if premier_league:
+                    team = Team(name=team_name, league_id=premier_league.id)
                     self.session.add(team)
                     teams_created += 1
                     self._queue_discord_team_creation(team)
@@ -639,28 +639,206 @@ class LeagueManagementService:
             return False
 
     def delete_season(self, season_id: int, user_id: int) -> Tuple[bool, str]:
-        """Delete season with comprehensive cleanup."""
+        """Delete season with comprehensive cleanup of all FK dependencies."""
         from app.models import Season, League, Team
+        from sqlalchemy import text
 
         season = Season.query.get(season_id)
         if not season:
             return False, 'Season not found'
 
+        season_name = season.name
+
+        # If still marked as current, unset it (caller should have handled this)
         if season.is_current:
-            return False, 'Cannot delete current season'
+            season.is_current = False
+            self.session.flush()
 
         try:
             # Queue Discord cleanup for teams
             leagues = League.query.filter_by(season_id=season_id).all()
+            league_ids = [l.id for l in leagues]
+
             for league in leagues:
                 for team in league.teams:
                     self._queue_discord_team_cleanup(team)
 
-            # Delete will cascade to leagues and teams
-            self.session.delete(season)
+            if league_ids:
+                # Get all team IDs for these leagues
+                team_ids_result = self.session.execute(
+                    text("SELECT id FROM team WHERE league_id = ANY(:league_ids)"),
+                    {"league_ids": league_ids}
+                ).fetchall()
+                team_ids = [r[0] for r in team_ids_result]
 
-            logger.info(f"Season {season.name} deleted by user {user_id}")
-            return True, f'Season "{season.name}" deleted successfully'
+                if team_ids:
+                    # Delete team-dependent records
+                    team_tables = [
+                        "active_match_reporters",
+                        "draft_order_history",
+                        "ecs_fc_matches",
+                        "ecs_fc_player_events",
+                        "ecs_fc_schedule_templates",
+                        "ecs_fc_sub_requests",
+                        "league_poll_discord_messages",
+                        "match_events",
+                        "match_lineups",
+                        "player_event",
+                        "player_shifts",
+                        "player_team_history",
+                        "player_team_season",
+                        "player_teams",
+                        "standings",
+                        "sub_requests",
+                        "substitute_requests",
+                        "temporary_sub_assignments",
+                    ]
+                    for table in team_tables:
+                        try:
+                            self.session.execute(
+                                text(f"DELETE FROM {table} WHERE team_id = ANY(:team_ids)"),
+                                {"team_ids": team_ids}
+                            )
+                        except Exception:
+                            pass  # Table might not exist or have different schema
+
+                    # Delete matches (home and away teams)
+                    try:
+                        self.session.execute(
+                            text("DELETE FROM matches WHERE home_team_id = ANY(:team_ids) OR away_team_id = ANY(:team_ids)"),
+                            {"team_ids": team_ids}
+                        )
+                    except Exception:
+                        pass
+
+                    # Delete schedule (team_id and opponent)
+                    try:
+                        self.session.execute(
+                            text("DELETE FROM schedule WHERE team_id = ANY(:team_ids) OR opponent = ANY(:team_ids)"),
+                            {"team_ids": team_ids}
+                        )
+                    except Exception:
+                        pass
+
+                    # Delete schedule_templates (home and away teams)
+                    try:
+                        self.session.execute(
+                            text("DELETE FROM schedule_templates WHERE home_team_id = ANY(:team_ids) OR away_team_id = ANY(:team_ids)"),
+                            {"team_ids": team_ids}
+                        )
+                    except Exception:
+                        pass
+
+                    # Update player FKs to NULL instead of delete
+                    try:
+                        self.session.execute(
+                            text("UPDATE player SET team_id = NULL, primary_team_id = NULL WHERE team_id = ANY(:team_ids) OR primary_team_id = ANY(:team_ids)"),
+                            {"team_ids": team_ids}
+                        )
+                    except Exception:
+                        pass
+
+                # Delete league-dependent records
+                league_tables = [
+                    "auto_schedule_configs",
+                    "draft_order_history",
+                    "league_events",
+                    "player_league",
+                    "player_order_history",
+                    "player_season_stats",
+                    "season_configurations",
+                    "substitute_pool_history",
+                    "substitute_pools",
+                    "week_configurations",
+                    "schedule_templates",
+                ]
+                for table in league_tables:
+                    try:
+                        self.session.execute(
+                            text(f"DELETE FROM {table} WHERE league_id = ANY(:league_ids)"),
+                            {"league_ids": league_ids}
+                        )
+                    except Exception:
+                        pass
+
+                # Update player league FKs to NULL
+                try:
+                    self.session.execute(
+                        text("UPDATE player SET league_id = NULL, primary_league_id = NULL WHERE league_id = ANY(:league_ids) OR primary_league_id = ANY(:league_ids)"),
+                        {"league_ids": league_ids}
+                    )
+                except Exception:
+                    pass
+
+                # Update users league FK to NULL
+                try:
+                    self.session.execute(
+                        text("UPDATE users SET league_id = NULL WHERE league_id = ANY(:league_ids)"),
+                        {"league_ids": league_ids}
+                    )
+                except Exception:
+                    pass
+
+                # Delete teams
+                try:
+                    self.session.execute(
+                        text("DELETE FROM team WHERE league_id = ANY(:league_ids)"),
+                        {"league_ids": league_ids}
+                    )
+                except Exception:
+                    pass
+
+            # Delete season-dependent records
+            season_tables = [
+                "draft_order_history",
+                "draft_seasons",
+                "league_events",
+                "player_order_history",
+                "player_season_stats",
+                "player_stat_audit",
+                "player_team_season",
+                "pub_league_order",
+                "schedule",
+                "standings",
+                "stat_change_logs",
+                "store_orders",
+                "wallet_pass",
+            ]
+            for table in season_tables:
+                try:
+                    self.session.execute(
+                        text(f"DELETE FROM {table} WHERE season_id = :season_id"),
+                        {"season_id": season_id}
+                    )
+                except Exception:
+                    pass
+
+            # Update nullable season FKs
+            try:
+                self.session.execute(
+                    text("UPDATE player_attendance_stats SET current_season_id = NULL WHERE current_season_id = :season_id"),
+                    {"season_id": season_id}
+                )
+            except Exception:
+                pass
+
+            # Delete leagues
+            try:
+                self.session.execute(
+                    text("DELETE FROM league WHERE season_id = :season_id"),
+                    {"season_id": season_id}
+                )
+            except Exception:
+                pass
+
+            # Finally delete the season
+            self.session.execute(
+                text("DELETE FROM season WHERE id = :season_id"),
+                {"season_id": season_id}
+            )
+
+            logger.info(f"Season {season_name} deleted by user {user_id}")
+            return True, f'Season "{season_name}" deleted successfully'
         except Exception as e:
             logger.error(f"Error deleting season: {e}")
             return False, f'Failed to delete season: {str(e)}'

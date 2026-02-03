@@ -546,38 +546,45 @@ class DraftService:
             raise
 
     @staticmethod
-    def get_enhanced_player_data(players: List[Player], current_season_id: Optional[int] = None) -> List[Dict]:
+    def get_enhanced_player_data(players: List[Player], current_season_id: Optional[int] = None, current_league_id: Optional[int] = None) -> List[Dict]:
         """Get enhanced player data with comprehensive stats and profile info - OPTIMIZED."""
         if not players:
             return []
-        
+
         player_ids = [p.id for p in players]
         start_time = datetime.now()
         logger.debug(f"Processing {len(player_ids)} players for enhanced data")
-        
+
         # Batch load all supporting data - removed parallel execution due to Flask context issues
         attendance_start = datetime.now()
         attendance_data = AttendanceService.get_attendance_stats(player_ids)
         logger.debug(f"Attendance data loaded in {(datetime.now() - attendance_start).total_seconds():.2f}s")
-        
+
         history_start = datetime.now()
         team_history_data = DraftService._batch_load_team_history(player_ids)
         logger.debug(f"Team history loaded in {(datetime.now() - history_start).total_seconds():.2f}s")
-        
+
         image_start = datetime.now()
         image_data = ImageCacheService.get_player_image_data(player_ids)
         logger.debug(f"Image data loaded in {(datetime.now() - image_start).total_seconds():.2f}s")
-        
+
+        # Load previous season draft positions if league_id is provided
+        draft_position_start = datetime.now()
+        prev_draft_positions = {}
+        if current_league_id:
+            prev_draft_positions = DraftService._batch_load_previous_draft_positions(player_ids, current_league_id)
+            logger.debug(f"Previous draft positions loaded in {(datetime.now() - draft_position_start).total_seconds():.2f}s")
+
         # Log performance for debugging (reduced verbosity)
         if len(player_ids) <= 5:
             for pid, data in image_data.items():
                 logger.debug(f"Player {pid} image optimized: {data.get('is_optimized', False)}")
         else:
             logger.debug(f"Image data loaded for {len(image_data)} players")
-        
+
         # Build enhanced player data using optimized approach
         enhanced_players = []
-        
+
         # Pre-calculate season stats lookup if needed
         season_stats_lookup = {}
         if current_season_id:
@@ -586,7 +593,7 @@ class DraftService:
                     (s for s in player.season_stats if s.season_id == current_season_id),
                     None
                 )
-        
+
         # Process players in optimized batch
         for player in players:
             # Get cached data
@@ -594,6 +601,7 @@ class DraftService:
             teams_played_on = team_history_data.get(player.id, 0)
             player_images = image_data.get(player.id, {})
             season_stats = season_stats_lookup.get(player.id) if current_season_id else None
+            prev_draft_position = prev_draft_positions.get(player.id)
             
             # Build image URLs efficiently
             original_url = player.profile_picture_url or '/static/img/default_player.png'
@@ -609,6 +617,7 @@ class DraftService:
                 'player_notes': player.player_notes or '',
                 'favorite_position': player.favorite_position or 'Any',
                 'other_positions': player.other_positions or '',
+                'positions_not_to_play': player.positions_not_to_play or '',
                 'expected_weeks_available': player.expected_weeks_available,
                 'unavailable_dates': player.unavailable_dates or '',
                 'jersey_number': player.jersey_number,
@@ -641,11 +650,14 @@ class DraftService:
                 # League experience
                 'league_experience_seasons': teams_played_on,
                 'experience_level': 'Veteran' if teams_played_on >= 3 else 'Experienced' if teams_played_on >= 1 else 'New Player',
-                
+
+                # Previous season draft position (None = not drafted previously)
+                'prev_draft_position': prev_draft_position,
+
                 # Team info - optimized list comprehension
                 'current_teams': [{'id': t.id, 'name': t.name} for t in player.teams],
                 'primary_team_id': player.primary_team_id,
-                
+
                 # Attendance metrics - preserve None for no historical data
                 'rsvp_response_rate': player_stats.get('response_rate', None),
                 'attendance_estimate': player_stats.get('adjusted_attendance_rate', None),  # None indicates no historical data
@@ -751,9 +763,80 @@ class DraftService:
                 result[player_id] = 0
         
         logger.debug(f"Team history counts for players {player_ids[:5]}{'...' if len(player_ids) > 5 else ''}: {[(pid, result.get(pid, 0)) for pid in player_ids[:5]]}")
-        
+
         return result
-    
+
+    @staticmethod
+    def _batch_load_previous_draft_positions(player_ids: List[int], current_league_id: int) -> Dict[int, Optional[int]]:
+        """
+        Batch load previous season's draft positions for players.
+
+        Returns a dict mapping player_id -> draft_position (or None if not drafted previously).
+        """
+        session = g.db_session
+        result = {}
+
+        try:
+            # Get the current league to find its name and season
+            current_league = session.query(League).get(current_league_id)
+            if not current_league:
+                logger.warning(f"League {current_league_id} not found")
+                return {pid: None for pid in player_ids}
+
+            current_season = current_league.season
+            league_name = current_league.name
+
+            # Find the previous season of the same league type
+            previous_season = (
+                session.query(Season)
+                .filter(
+                    Season.league_type == current_season.league_type,
+                    Season.id < current_season.id
+                )
+                .order_by(desc(Season.id))
+                .first()
+            )
+
+            if not previous_season:
+                logger.debug(f"No previous season found for {current_season.league_type}")
+                return {pid: None for pid in player_ids}
+
+            # Find the league with the same name in the previous season
+            previous_league = session.query(League).filter(
+                League.season_id == previous_season.id,
+                League.name == league_name
+            ).first()
+
+            if not previous_league:
+                logger.debug(f"No previous {league_name} league found in season {previous_season.name}")
+                return {pid: None for pid in player_ids}
+
+            logger.debug(f"Loading draft positions from {previous_season.name} - {previous_league.name}")
+
+            # Get draft positions for all players from the previous season's league
+            draft_records = (
+                session.query(DraftOrderHistory.player_id, DraftOrderHistory.draft_position)
+                .filter(
+                    DraftOrderHistory.season_id == previous_season.id,
+                    DraftOrderHistory.league_id == previous_league.id,
+                    DraftOrderHistory.player_id.in_(player_ids)
+                )
+                .all()
+            )
+
+            result = {record.player_id: record.draft_position for record in draft_records}
+            logger.debug(f"Found {len(result)} previous draft positions")
+
+        except Exception as e:
+            logger.warning(f"Error loading previous draft positions: {e}")
+
+        # Fill in None for players without previous draft records
+        for player_id in player_ids:
+            if player_id not in result:
+                result[player_id] = None
+
+        return result
+
     @staticmethod
     def _calculate_league_experience(player: Player, current_season_id: Optional[int] = None) -> Dict:
         """Calculate player's experience within this specific league/division."""
@@ -983,19 +1066,21 @@ def draft_league(league_name: str):
     # If cache miss, process data and cache results
     if available_players is None or drafted_players is None:
         logger.debug(f"Cache miss for {db_league_name} - processing enhanced data")
-        
+
         # Process enhanced data sequentially (parallel execution removed due to Flask context issues)
         if available_players is None:
             available_players = DraftService.get_enhanced_player_data(
                 available_players_raw,
-                current_league.season_id
+                current_league.season_id,
+                current_league.id  # Pass league_id for previous draft position lookup
             )
             DraftCacheService.set_enhanced_players_cache(db_league_name, 'available', available_players)
-        
+
         if drafted_players is None:
             drafted_players = DraftService.get_enhanced_player_data(
                 drafted_players_raw,
-                current_league.season_id
+                current_league.season_id,
+                current_league.id  # Pass league_id for previous draft position lookup
             )
             DraftCacheService.set_enhanced_players_cache(db_league_name, 'drafted', drafted_players)
     else:
@@ -1006,7 +1091,8 @@ def draft_league(league_name: str):
     if is_ecs_fc and ecs_fc_multi_team_players_raw:
         ecs_fc_multi_team_players = DraftService.get_enhanced_player_data(
             ecs_fc_multi_team_players_raw,
-            current_league.season_id
+            current_league.season_id,
+            current_league.id  # Pass league_id for previous draft position lookup
         )
         # Add existing team names to enhanced data
         for enhanced, raw in zip(ecs_fc_multi_team_players, ecs_fc_multi_team_players_raw):
@@ -1144,12 +1230,14 @@ def draft_league_pitch_view(league_name: str):
     # Process enhanced player data
     available_players = DraftService.get_enhanced_player_data(
         available_players_raw,
-        current_league.season_id
+        current_league.season_id,
+        current_league.id  # Pass league_id for previous draft position lookup
     )
-    
+
     drafted_players = DraftService.get_enhanced_player_data(
         drafted_players_raw,
-        current_league.season_id
+        current_league.season_id,
+        current_league.id  # Pass league_id for previous draft position lookup
     )
     
     # Organize drafted players by team with positions (with deduplication)
@@ -1293,7 +1381,8 @@ def get_players_api(league_name: str):
     
     players = DraftService.get_enhanced_player_data(
         query.all(),
-        current_league.season_id
+        current_league.season_id,
+        current_league.id  # Pass league_id for previous draft position lookup
     )
     
     return jsonify({

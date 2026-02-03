@@ -137,13 +137,31 @@ class PitchViewSystem {
         // Search functionality
         const searchInput = document.getElementById('playerSearchPitch');
         if (searchInput) {
-            searchInput.addEventListener('input', this.handleSearch.bind(this));
+            searchInput.addEventListener('input', this.filterPitchPlayers.bind(this));
         }
 
         // Position filter
         const positionFilter = document.getElementById('positionFilterPitch');
         if (positionFilter) {
-            positionFilter.addEventListener('change', this.handlePositionFilter.bind(this));
+            positionFilter.addEventListener('change', this.filterPitchPlayers.bind(this));
+        }
+
+        // Sort by
+        const sortBy = document.getElementById('sortByPitch');
+        if (sortBy) {
+            sortBy.addEventListener('change', this.filterPitchPlayers.bind(this));
+        }
+
+        // Attendance filter
+        const attendanceFilter = document.getElementById('attendanceFilterPitch');
+        if (attendanceFilter) {
+            attendanceFilter.addEventListener('change', this.filterPitchPlayers.bind(this));
+        }
+
+        // Goals filter
+        const goalsFilter = document.getElementById('goalsFilterPitch');
+        if (goalsFilter) {
+            goalsFilter.addEventListener('change', this.filterPitchPlayers.bind(this));
         }
 
         // Team tab switching
@@ -233,50 +251,123 @@ class PitchViewSystem {
         this.updateAvailablePlayerCount();
     }
 
-    handleSearch(event) {
-        const searchTerm = event.target.value.toLowerCase();
+    /**
+     * Filter and sort players in the pitch view with all criteria
+     */
+    filterPitchPlayers() {
+        const searchTerm = document.getElementById('playerSearchPitch')?.value.toLowerCase() || '';
+        const positionFilter = document.getElementById('positionFilterPitch')?.value.toLowerCase() || '';
+        const sortBy = document.getElementById('sortByPitch')?.value || 'name';
+        const attendanceFilter = document.getElementById('attendanceFilterPitch')?.value || '';
+        const goalsFilter = document.getElementById('goalsFilterPitch')?.value || '';
+
         const playerItems = document.querySelectorAll('#availablePlayersList .player-item');
         let visibleCount = 0;
+        let filteredPlayers = [];
 
         playerItems.forEach(item => {
             const playerName = item.getAttribute('data-player-name') || '';
-            const isVisible = !searchTerm || playerName.includes(searchTerm);
+            const playerPosition = item.getAttribute('data-position') || '';
+            const attendance = parseFloat(item.getAttribute('data-attendance'));
+            const goals = parseInt(item.getAttribute('data-goals')) || 0;
+            const experience = parseInt(item.getAttribute('data-experience')) || 0;
 
-            // Use CSS classes instead of inline styles
-            if (isVisible) {
-                item.classList.remove('hidden');
-                item.classList.add('flex');
-                visibleCount++;
-            } else {
-                item.classList.remove('flex');
-                item.classList.add('hidden');
+            // Check search term match
+            const matchesSearch = !searchTerm || playerName.includes(searchTerm);
+
+            // Check position filter match
+            const matchesPosition = !positionFilter || playerPosition.includes(positionFilter);
+
+            // Check attendance filter match
+            let matchesAttendance = true;
+            if (attendanceFilter) {
+                if (attendanceFilter === '80-100') {
+                    matchesAttendance = !isNaN(attendance) && attendance >= 80;
+                } else if (attendanceFilter === '60-79') {
+                    matchesAttendance = !isNaN(attendance) && attendance >= 60 && attendance < 80;
+                } else if (attendanceFilter === '0-59') {
+                    matchesAttendance = !isNaN(attendance) && attendance >= 0 && attendance < 60;
+                }
             }
+
+            // Check goals filter match
+            let matchesGoals = true;
+            if (goalsFilter) {
+                if (goalsFilter === '10+') matchesGoals = goals >= 10;
+                else if (goalsFilter === '5-9') matchesGoals = goals >= 5 && goals < 10;
+                else if (goalsFilter === '1-4') matchesGoals = goals >= 1 && goals < 5;
+                else if (goalsFilter === '0') matchesGoals = goals === 0;
+            }
+
+            const isVisible = matchesSearch && matchesPosition && matchesAttendance && matchesGoals;
+
+            if (isVisible) {
+                visibleCount++;
+                filteredPlayers.push({
+                    element: item,
+                    name: playerName,
+                    attendance: isNaN(attendance) ? -1 : attendance,
+                    goals: goals,
+                    experience: experience
+                });
+            }
+
+            // Hide all initially
+            item.classList.remove('flex');
+            item.classList.add('hidden');
+        });
+
+        // Sort the filtered players
+        this.sortPitchPlayers(filteredPlayers, sortBy);
+
+        // Show filtered and sorted players
+        filteredPlayers.forEach(player => {
+            player.element.classList.remove('hidden');
+            player.element.classList.add('flex');
         });
 
         this.updateAvailablePlayerCount(visibleCount);
     }
 
-    handlePositionFilter(event) {
-        const selectedPosition = event.target.value.toLowerCase();
-        const playerItems = document.querySelectorAll('#availablePlayersList .player-item');
-        let visibleCount = 0;
+    /**
+     * Sort pitch view players
+     * @param {Array} players
+     * @param {string} sortBy
+     */
+    sortPitchPlayers(players, sortBy) {
+        const container = document.getElementById('availablePlayersList');
+        if (!container) return;
 
-        playerItems.forEach(item => {
-            const playerPosition = item.getAttribute('data-position') || '';
-            const isVisible = !selectedPosition || playerPosition.includes(selectedPosition);
-
-            // Use CSS classes instead of inline styles
-            if (isVisible) {
-                item.classList.remove('hidden');
-                item.classList.add('flex');
-                visibleCount++;
-            } else {
-                item.classList.remove('flex');
-                item.classList.add('hidden');
+        players.sort((a, b) => {
+            switch (sortBy) {
+                case 'experience':
+                    return b.experience - a.experience;
+                case 'attendance':
+                    if (a.attendance === -1 && b.attendance === -1) return 0;
+                    if (a.attendance === -1) return 1;
+                    if (b.attendance === -1) return -1;
+                    return b.attendance - a.attendance;
+                case 'goals':
+                    return b.goals - a.goals;
+                case 'name':
+                default:
+                    return a.name.localeCompare(b.name);
             }
         });
 
-        this.updateAvailablePlayerCount(visibleCount);
+        // Reorder elements in the DOM
+        players.forEach(player => {
+            container.appendChild(player.element);
+        });
+    }
+
+    // Legacy methods - kept for backwards compatibility but redirect to unified filter
+    handleSearch(event) {
+        this.filterPitchPlayers();
+    }
+
+    handlePositionFilter(event) {
+        this.filterPitchPlayers();
     }
 
     populateExistingPlayers() {
@@ -497,8 +588,11 @@ class PitchViewSystem {
     handlePositionDrop(event, position, teamId) {
         event.preventDefault();
 
-        const zone = event.currentTarget;
-        zone.classList.remove('drag-over');
+        // Find the actual drop zone element (event.currentTarget is document in delegated events)
+        const zone = event.target?.closest ? event.target.closest('.js-position-drop-zone') : null;
+        if (zone) {
+            zone.classList.remove('drag-over');
+        }
 
         const playerId = event.dataTransfer.getData('text/plain');
         const isPositioned = event.dataTransfer.getData('positioned') === 'true';
@@ -509,7 +603,8 @@ class PitchViewSystem {
         }
 
         // Soft warning for position capacity (doesn't block)
-        const currentPlayers = zone.querySelector('.position-players').children.length;
+        const positionPlayersContainer = zone?.querySelector('.position-players') || document.getElementById(`position-${position}-${teamId}`);
+        const currentPlayers = positionPlayersContainer?.children.length || 0;
         const recommended = this.getRecommendedMax(position);
 
         if (currentPlayers >= recommended) {
@@ -646,7 +741,12 @@ class PitchViewSystem {
             return;
         }
 
-        const playerName = playerItem.querySelector('.player-name').textContent;
+        // Get player name from data attribute or find in DOM
+        // Template uses data-player-name (lowercase) or font-medium span for display name
+        const playerName = playerItem.getAttribute('data-player-name') ||
+                           playerItem.querySelector('.font-medium')?.textContent?.trim() ||
+                           playerItem.querySelector('[class*="font-medium"]')?.textContent?.trim() ||
+                           'Unknown Player';
 
         // First, draft the player to the team via the regular draft system
         if (this.socket && this.isConnected) {
@@ -946,25 +1046,28 @@ window.initializePitchView = initializePitchView;
 let _moduleInitialized = false;
 
 function initWithGuard() {
-    if (_moduleInitialized) return;
-    _moduleInitialized = true;
-
     // Read config from window global (set by template before module loads)
     const config = window.PitchViewConfig || {};
     const { leagueName, teams, draftedPlayers } = config;
 
     if (leagueName && teams) {
+        // Only mark as initialized if we actually initialize
+        if (_moduleInitialized) {
+            console.log('🏟️ [InitSystem] Pitch view already initialized');
+            return;
+        }
+        _moduleInitialized = true;
         console.log('🏟️ [InitSystem] Initializing pitch view for league:', leagueName);
         initializePitchView(leagueName, teams, draftedPlayers || {});
     } else {
-        // Pitch view not needed on this page (no config provided)
-        console.log('🏟️ [InitSystem] Pitch view skipped - no PitchViewConfig');
+        // No config yet - don't mark as initialized, allow later call
+        console.log('🏟️ [InitSystem] Pitch view deferred - no PitchViewConfig yet');
     }
 }
 
 window.InitSystem.register('pitch-view', initWithGuard, {
     priority: 40,
-    reinitializable: false,
+    reinitializable: true,  // Allow re-running when config becomes available
     description: 'Pitch view system for visual team formation'
 });
 

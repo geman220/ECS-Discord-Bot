@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 
 # =============================================================================
-# Dashboard Routes
+# Dashboard Routes (Redirects to Admin Panel)
 # =============================================================================
 
 @admin_panel_bp.route('/league-management')
@@ -40,468 +40,16 @@ logger = logging.getLogger(__name__)
 @role_required(['Global Admin', 'Pub League Admin'])
 def league_management_dashboard():
     """
-    League Management Hub Dashboard.
+    League Management Hub - Redirects to Admin Panel dashboard.
 
-    Provides an overview of all league types, current seasons, and quick stats.
-    This is the central entry point for all league management operations.
+    The League Management functionality is now accessed through the Admin Panel
+    dashboard, which contains a dedicated League Management card with links to:
+    - Create New Season (Auto Schedule)
+    - Teams management
+    - Seasons management
+    - Pub League Orders
     """
-    try:
-        from app.models import Season, League, Team, Match, Schedule, Player
-        from app.services.league_management_service import LeagueManagementService
-
-        # Log access
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='access_league_management_hub',
-            resource_type='league_management',
-            resource_id='dashboard',
-            new_value='Accessed League Management Hub dashboard',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        # Initialize service and get dashboard stats
-        service = LeagueManagementService(db.session)
-        stats = service.get_dashboard_stats()
-
-        return render_template(
-            'admin_panel/league_management/dashboard_flowbite.html',
-            stats=stats,
-            page_title='League Management Hub'
-        )
-
-    except ImportError as e:
-        logger.warning(f"Service import error, falling back to basic stats: {e}")
-        # Fallback to basic stats without service
-        return _render_dashboard_fallback()
-    except Exception as e:
-        logger.error(f"Error loading league management dashboard: {e}", exc_info=True)
-        flash('League Management Hub temporarily unavailable. Please try again.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
-
-
-def _render_dashboard_fallback():
-    """Fallback dashboard rendering without service layer."""
-    from app.models import Season, League, Team, Match, Schedule
-
-    # Get Pub League stats
-    pub_league_season = Season.query.filter_by(
-        is_current=True,
-        league_type='Pub League'
-    ).first()
-
-    # Get ECS FC stats
-    ecs_fc_season = Season.query.filter_by(
-        is_current=True,
-        league_type='ECS FC'
-    ).first()
-
-    # Calculate basic statistics
-    stats = {
-        'pub_league': {
-            'current_season': pub_league_season,
-            'teams_count': 0,
-            'matches_total': 0,
-            'matches_played': 0,
-            'matches_upcoming': 0,
-        },
-        'ecs_fc': {
-            'current_season': ecs_fc_season,
-            'teams_count': 0,
-            'matches_total': 0,
-            'matches_played': 0,
-            'matches_upcoming': 0,
-        },
-        'total_seasons': Season.query.count(),
-        'total_teams': Team.query.count(),
-        'total_matches': Match.query.count(),
-        'recent_activity': []
-    }
-
-    if pub_league_season:
-        pub_league_ids = [l.id for l in League.query.filter_by(season_id=pub_league_season.id).all()]
-        if pub_league_ids:
-            stats['pub_league']['teams_count'] = Team.query.filter(
-                Team.league_id.in_(pub_league_ids)
-            ).count()
-
-    if ecs_fc_season:
-        ecs_fc_league_ids = [l.id for l in League.query.filter_by(season_id=ecs_fc_season.id).all()]
-        if ecs_fc_league_ids:
-            stats['ecs_fc']['teams_count'] = Team.query.filter(
-                Team.league_id.in_(ecs_fc_league_ids)
-            ).count()
-
-    return render_template(
-        'admin_panel/league_management/dashboard_flowbite.html',
-        stats=stats,
-        page_title='League Management Hub'
-    )
-
-
-@admin_panel_bp.route('/league-management/api/dashboard-stats')
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def league_management_dashboard_stats():
-    """
-    API endpoint for dashboard statistics (AJAX refresh).
-
-    Returns JSON stats for real-time dashboard updates.
-    """
-    try:
-        from app.services.league_management_service import LeagueManagementService
-
-        service = LeagueManagementService(db.session)
-        stats = service.get_dashboard_stats()
-
-        return jsonify({
-            'success': True,
-            'stats': stats,
-            'timestamp': datetime.utcnow().isoformat()
-        })
-
-    except Exception as e:
-        logger.error(f"Error fetching dashboard stats: {e}")
-        return jsonify({
-            'success': False,
-            'message': 'Failed to load statistics'
-        }), 500
-
-
-# =============================================================================
-# Season Wizard Routes
-# =============================================================================
-
-@admin_panel_bp.route('/league-management/wizard')
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def season_wizard():
-    """
-    Unified Season Creation Wizard.
-
-    Multi-step wizard for creating new seasons with:
-    - Step 1: Season type and basic info
-    - Step 2: Team configuration
-    - Step 3: Schedule configuration
-    - Step 4: Discord preview
-    - Step 5: Review and create
-    """
-    try:
-        from app.models import Season, League
-
-        # Log access
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='access_season_wizard',
-            resource_type='league_management',
-            resource_id='wizard',
-            new_value='Accessed Season Creation Wizard',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        # Get existing seasons for reference (ordered by id since Season has no created_at)
-        existing_seasons = Season.query.order_by(Season.id.desc()).limit(10).all()
-
-        # Get current seasons for rollover options
-        current_pub_league = Season.query.filter_by(
-            is_current=True,
-            league_type='Pub League'
-        ).first()
-
-        current_ecs_fc = Season.query.filter_by(
-            is_current=True,
-            league_type='ECS FC'
-        ).first()
-
-        return render_template(
-            'admin_panel/league_management/season_wizard/wizard_flowbite.html',
-            existing_seasons=existing_seasons,
-            current_pub_league=current_pub_league,
-            current_ecs_fc=current_ecs_fc,
-            page_title='Create New Season'
-        )
-
-    except Exception as e:
-        logger.error(f"Error loading season wizard: {e}", exc_info=True)
-        flash('Season wizard temporarily unavailable.', 'error')
-        return redirect(url_for('admin_panel.league_management_dashboard'))
-
-
-@admin_panel_bp.route('/league-management/wizard/api/validate-step', methods=['POST'])
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def wizard_validate_step():
-    """
-    Validate wizard step data before proceeding.
-
-    Returns validation result for the current step.
-    """
-    try:
-        data = request.get_json()
-        step = data.get('step')
-        step_data = data.get('data', {})
-
-        validation_result = _validate_wizard_step(step, step_data)
-
-        return jsonify(validation_result)
-
-    except Exception as e:
-        logger.error(f"Error validating wizard step: {e}")
-        return jsonify({
-            'valid': False,
-            'errors': ['An error occurred during validation']
-        }), 500
-
-
-def _validate_wizard_step(step: int, data: dict) -> dict:
-    """Validate data for a specific wizard step."""
-    from app.models import Season
-    from app.services.league_management_service import validate_team_name_for_discord
-
-    errors = []
-    warnings = []
-
-    if step == 1:  # Basic info
-        if not data.get('league_type'):
-            errors.append('League type is required')
-        elif data['league_type'] not in ['Pub League', 'ECS FC']:
-            errors.append('Invalid league type')
-
-        if not data.get('season_name'):
-            errors.append('Season name is required')
-        elif len(data['season_name']) < 3:
-            errors.append('Season name must be at least 3 characters')
-        else:
-            # Check for duplicate
-            existing = Season.query.filter(
-                func.lower(Season.name) == data['season_name'].lower(),
-                Season.league_type == data.get('league_type')
-            ).first()
-            if existing:
-                errors.append(f'A season with this name already exists for {data["league_type"]}')
-
-        if data.get('set_as_current'):
-            current = Season.query.filter_by(
-                is_current=True,
-                league_type=data.get('league_type')
-            ).first()
-            if current:
-                warnings.append(f'This will replace "{current.name}" as the current season and trigger a rollover')
-
-    elif step == 2:  # Team configuration
-        if data.get('league_type') == 'Pub League':
-            premier_count = data.get('premier_team_count', 8)
-            classic_count = data.get('classic_team_count', 4)
-
-            if not isinstance(premier_count, int) or premier_count < 2:
-                errors.append('Premier division requires at least 2 teams')
-            if not isinstance(classic_count, int) or classic_count < 2:
-                errors.append('Classic division requires at least 2 teams')
-
-            # Validate custom team names for Discord compatibility
-            premier_teams = data.get('premier_teams', [])
-            for team_name in premier_teams:
-                is_valid, team_errors = validate_team_name_for_discord(team_name)
-                if not is_valid:
-                    for err in team_errors:
-                        errors.append(f'Premier team "{team_name}": {err}')
-
-            classic_teams = data.get('classic_teams', [])
-            for team_name in classic_teams:
-                is_valid, team_errors = validate_team_name_for_discord(team_name)
-                if not is_valid:
-                    for err in team_errors:
-                        errors.append(f'Classic team "{team_name}": {err}')
-
-        else:  # ECS FC
-            team_count = data.get('team_count', 8)
-            if not isinstance(team_count, int) or team_count < 2:
-                errors.append('At least 2 teams are required')
-
-            # Validate custom team names for Discord compatibility
-            teams = data.get('teams', [])
-            for team_name in teams:
-                is_valid, team_errors = validate_team_name_for_discord(team_name)
-                if not is_valid:
-                    for err in team_errors:
-                        errors.append(f'Team "{team_name}": {err}')
-
-    elif step == 3:  # Schedule configuration
-        if not data.get('regular_weeks') or data['regular_weeks'] < 1:
-            errors.append('At least 1 regular season week is required')
-
-        if not data.get('start_date'):
-            errors.append('Season start date is required')
-
-    elif step == 4:  # Discord preview
-        # No validation required, just preview
-        pass
-
-    elif step == 5:  # Review
-        # Final validation before submission
-        pass
-
-    return {
-        'valid': len(errors) == 0,
-        'errors': errors,
-        'warnings': warnings
-    }
-
-
-@admin_panel_bp.route('/league-management/wizard/api/preview-discord', methods=['POST'])
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def wizard_preview_discord():
-    """
-    Generate Discord resource preview without creating.
-
-    Shows what channels and roles will be created.
-    """
-    try:
-        data = request.get_json()
-
-        preview = _generate_discord_preview(data)
-
-        return jsonify({
-            'success': True,
-            'preview': preview
-        })
-
-    except Exception as e:
-        logger.error(f"Error generating Discord preview: {e}")
-        return jsonify({
-            'success': False,
-            'message': 'Failed to generate preview'
-        }), 500
-
-
-def _generate_discord_preview(data: dict) -> dict:
-    """Generate a preview of Discord resources to be created."""
-    preview = {
-        'categories': [],
-        'channels': [],
-        'roles': [],
-        'estimated_api_calls': 0
-    }
-
-    league_type = data.get('league_type', 'Pub League')
-    teams = data.get('teams', [])
-
-    if league_type == 'Pub League':
-        # Premier division
-        premier_teams = data.get('premier_teams', [])
-        if premier_teams:
-            preview['categories'].append('ECS FC PL Premier')
-            for team_name in premier_teams:
-                preview['channels'].append({
-                    'name': team_name,
-                    'category': 'ECS FC PL Premier'
-                })
-                preview['roles'].append(f'ECS-FC-PL-{team_name.upper().replace(" ", "-")}-Player')
-                preview['roles'].append(f'ECS-FC-PL-{team_name.upper().replace(" ", "-")}-Coach')
-
-        # Classic division
-        classic_teams = data.get('classic_teams', [])
-        if classic_teams:
-            preview['categories'].append('ECS FC PL Classic')
-            for team_name in classic_teams:
-                preview['channels'].append({
-                    'name': team_name,
-                    'category': 'ECS FC PL Classic'
-                })
-                preview['roles'].append(f'ECS-FC-PL-{team_name.upper().replace(" ", "-")}-Player')
-                preview['roles'].append(f'ECS-FC-PL-{team_name.upper().replace(" ", "-")}-Coach')
-    else:
-        # ECS FC
-        preview['categories'].append('ECS FC')
-        for team_name in teams:
-            preview['channels'].append({
-                'name': team_name,
-                'category': 'ECS FC'
-            })
-            preview['roles'].append(f'ECS-FC-{team_name.upper().replace(" ", "-")}-Player')
-            preview['roles'].append(f'ECS-FC-{team_name.upper().replace(" ", "-")}-Coach')
-
-    # Estimate API calls: 1 per category + 1 per channel + 1 per role + permissions
-    preview['estimated_api_calls'] = (
-        len(preview['categories']) +
-        len(preview['channels']) * 2 +  # Create + permissions
-        len(preview['roles'])
-    )
-
-    return preview
-
-
-@admin_panel_bp.route('/league-management/wizard/api/create-season', methods=['POST'])
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-@transactional
-def wizard_create_season():
-    """
-    Create season from wizard data (final submit).
-
-    Handles complete season creation including:
-    - Season and league records
-    - Team creation
-    - Schedule configuration
-    - Discord resource queuing
-    """
-    try:
-        from app.services.league_management_service import LeagueManagementService
-
-        data = request.get_json()
-
-        # Log the action
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='create_season_wizard',
-            resource_type='league_management',
-            resource_id='wizard',
-            new_value=f'Creating season: {data.get("season_name")} ({data.get("league_type")})',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-
-        service = LeagueManagementService(db.session)
-        success, message, season = service.create_season_from_wizard(
-            wizard_data=data,
-            user_id=current_user.id
-        )
-
-        if success:
-            # Commit the transaction before queuing Discord tasks
-            # The @transactional decorator will commit, but we need to ensure
-            # teams exist before Celery workers try to access them
-            db.session.flush()
-
-            # Queue Discord creation tasks after data is committed
-            # This ensures teams exist in DB when Celery workers run
-            discord_tasks_queued = service.queue_pending_discord_tasks()
-
-            response_message = message
-            if discord_tasks_queued > 0:
-                response_message += f' ({discord_tasks_queued} Discord tasks queued)'
-
-            return jsonify({
-                'success': True,
-                'message': response_message,
-                'season_id': season.id if season else None,
-                'discord_tasks_queued': discord_tasks_queued,
-                'redirect_url': url_for('admin_panel.league_management_dashboard')
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': message
-            }), 400
-
-    except ImportError as e:
-        logger.error(f"Service import error: {e}")
-        return jsonify({
-            'success': False,
-            'message': 'Season creation service not available. Please try the legacy wizard.'
-        }), 500
+    return redirect(url_for('admin_panel.dashboard'))
 
 
 # =============================================================================
@@ -884,9 +432,13 @@ def league_management_rollover_preview(season_id):
 def league_management_set_current_season(season_id):
     """
     Set season as current (with optional rollover).
+
+    When switching to a season, automatically restores player-team memberships
+    from PlayerTeamSeason history so players are on their correct teams for that season.
     """
     from app.models import Season
     from app.services.league_management_service import LeagueManagementService
+    from app.season_routes import restore_season_memberships
 
     data = request.get_json() or {}
     perform_rollover = data.get('perform_rollover', False)
@@ -927,9 +479,21 @@ def league_management_set_current_season(season_id):
     # Set new current
     season.is_current = True
 
+    # Restore player-team memberships from PlayerTeamSeason history
+    # This ensures players are on their correct teams when switching between seasons
+    restore_result = {'restored': 0, 'message': 'No restoration needed'}
+    try:
+        restore_result = restore_season_memberships(db.session, season)
+        logger.info(f"Season membership restoration: {restore_result}")
+    except Exception as e:
+        logger.error(f"Failed to restore season memberships: {e}")
+        # Don't fail the whole operation - just log the error
+        restore_result = {'restored': 0, 'message': f'Restoration failed: {str(e)}'}
+
     return jsonify({
         'success': True,
-        'message': f'{season.name} is now the current season'
+        'message': f'{season.name} is now the current season',
+        'restoration': restore_result
     })
 
 
@@ -946,11 +510,21 @@ def league_management_delete_season(season_id):
 
     season = Season.query.get_or_404(season_id)
 
+    # If deleting current season, try to set another season as current first
     if season.is_current:
-        return jsonify({
-            'success': False,
-            'message': 'Cannot delete current season. Set another season as current first.'
-        }), 400
+        # Find another season of the same type to set as current
+        other_season = Season.query.filter(
+            Season.id != season_id,
+            Season.league_type == season.league_type
+        ).order_by(Season.id.desc()).first()
+
+        if other_season:
+            other_season.is_current = True
+            logger.info(f"Setting {other_season.name} as current before deleting {season.name}")
+
+        # Unset current on the season being deleted
+        season.is_current = False
+        db.session.flush()
 
     # Log action
     AdminAuditLog.log_action(

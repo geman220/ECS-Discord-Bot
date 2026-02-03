@@ -135,20 +135,22 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
         # Step 2: Update league associations
         old_leagues = session.query(League).filter_by(season_id=old_season.id).all()
         new_leagues = session.query(League).filter_by(season_id=new_season.id).all()
+        old_league_ids = [l.id for l in old_leagues]
 
-        # Create a mapping from old league names to new league IDs.
+        # Create a mapping from old league IDs to new league IDs (by name)
         league_mapping = {
-            old_league.name: next((nl.id for nl in new_leagues if nl.name == old_league.name), None)
+            old_league.id: next((nl.id for nl in new_leagues if nl.name == old_league.name), None)
             for old_league in old_leagues
         }
 
-        # Update players' league associations - migrate ALL players (active and inactive)
+        logger.info(f"League mapping: {league_mapping}")
+
+        # Update players' primary league associations - migrate ALL players (active and inactive)
         # This ensures inactive players are already in the correct league if they return later
         # The draft system filters on is_current_player anyway, so inactive players won't appear
         updated_players = 0
-        updated_inactive = 0
         for old_league in old_leagues:
-            new_league_id = league_mapping.get(old_league.name)
+            new_league_id = league_mapping.get(old_league.id)
             if new_league_id:
                 logger.info(f"Migrating ALL players from {old_league.name} (ID: {old_league.id}) to new league (ID: {new_league_id})")
 
@@ -166,56 +168,104 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
 
         logger.info(f"Updated league associations for {updated_players} total players (active + inactive)")
 
-        # Step 3: Get all players who were in the old season for cleanup
-        old_season_player_ids = session.query(Player.id).join(
-            player_teams, Player.id == player_teams.c.player_id
-        ).join(
-            Team, player_teams.c.team_id == Team.id
-        ).join(
+        # Step 2b: SAFETY - Also migrate any players from ANY old Pub League seasons
+        # This catches players that might have been in leagues from seasons other than old_season
+        # (e.g., if database was restored from a different environment)
+        for new_league in new_leagues:
+            # Find all old leagues with the same name across ALL old Pub League seasons
+            all_old_same_name_leagues = session.query(League).join(Season).filter(
+                Season.league_type == 'Pub League',
+                Season.id != new_season.id,
+                League.name == new_league.name
+            ).all()
+
+            for old_league in all_old_same_name_leagues:
+                if old_league.id not in old_league_ids:  # Skip if already handled above
+                    orphan_updates = session.query(Player).filter(
+                        (Player.league_id == old_league.id) | (Player.primary_league_id == old_league.id)
+                    ).update({
+                        'league_id': new_league.id,
+                        'primary_league_id': new_league.id,
+                    }, synchronize_session=False)
+
+                    if orphan_updates > 0:
+                        logger.info(f"SAFETY: Migrated {orphan_updates} orphaned players from old {old_league.name} (ID: {old_league.id}, Season: {old_league.season_id}) to new league (ID: {new_league.id})")
+                        updated_players += orphan_updates
+
+        # Step 3: Update secondary league assignments (player_league) to new season
+        # Instead of deleting, we update old league IDs to new league IDs
+        logger.info("Updating secondary league assignments to new season...")
+        updated_secondary = 0
+        for old_league_id, new_league_id in league_mapping.items():
+            if new_league_id:
+                result = session.execute(
+                    player_league.update().where(
+                        player_league.c.league_id == old_league_id
+                    ).values(league_id=new_league_id)
+                )
+                updated_secondary += result.rowcount
+        logger.info(f"Updated {updated_secondary} secondary league assignments to new season")
+
+        # Step 3b: SAFETY - Also migrate secondary league assignments from ANY old Pub League seasons
+        # This catches players who have secondary/tertiary Pub League associations from other seasons
+        for new_league in new_leagues:
+            all_old_same_name_leagues = session.query(League).join(Season).filter(
+                Season.league_type == 'Pub League',
+                Season.id != new_season.id,
+                League.name == new_league.name
+            ).all()
+
+            for old_league in all_old_same_name_leagues:
+                if old_league.id not in old_league_ids:  # Skip if already handled above
+                    result = session.execute(
+                        player_league.update().where(
+                            player_league.c.league_id == old_league.id
+                        ).values(league_id=new_league.id)
+                    )
+                    if result.rowcount > 0:
+                        logger.info(f"SAFETY: Migrated {result.rowcount} secondary league assignments from old {old_league.name} (ID: {old_league.id}) to new league (ID: {new_league.id})")
+                        updated_secondary += result.rowcount
+
+        # Step 4: Get teams from the OLD season only (not ECS FC or other seasons)
+        old_season_team_ids = session.query(Team.id).join(
             League, Team.league_id == League.id
         ).filter(
             League.season_id == old_season.id
-        ).distinct().all()
+        ).all()
+        old_season_team_ids = [tid[0] for tid in old_season_team_ids]
+        logger.info(f"Found {len(old_season_team_ids)} teams in old season")
 
-        old_season_player_ids = [pid[0] for pid in old_season_player_ids]
-        logger.info(f"Found {len(old_season_player_ids)} players in old season to clean up")
-
-        if old_season_player_ids:
-            # Step 4: Clear all team assignments (clean slate for new season)
-            logger.info("Clearing current team assignments...")
+        # Step 5: Clear ONLY team assignments for teams in the OLD season
+        # This preserves ECS FC team memberships and teams from other seasons
+        if old_season_team_ids:
+            logger.info("Clearing team assignments for OLD season teams only...")
             deleted_teams = session.execute(
                 player_teams.delete().where(
-                    player_teams.c.player_id.in_(old_season_player_ids)
+                    player_teams.c.team_id.in_(old_season_team_ids)
                 )
             ).rowcount
-            logger.info(f"Removed {deleted_teams} team assignments")
+            logger.info(f"Removed {deleted_teams} team assignments (old season only)")
 
-            # Step 5: Clear secondary league assignments
-            logger.info("Clearing secondary league assignments...")
-            deleted_leagues = session.execute(
-                player_league.delete().where(
-                    player_league.c.player_id.in_(old_season_player_ids)
-                )
-            ).rowcount
-            logger.info(f"Removed {deleted_leagues} secondary league assignments")
-
-            # Step 6: Reset primary team assignments to NULL
-            logger.info("Resetting primary team assignments...")
-            reset_primary = session.query(Player).filter(
-                Player.id.in_(old_season_player_ids)
-            ).update({
-                'primary_team_id': None
-            }, synchronize_session=False)
-            logger.info(f"Reset primary team for {reset_primary} players")
+        # Step 6: Reset primary_team_id ONLY if it pointed to a team in the old season
+        logger.info("Resetting primary team assignments for old season teams...")
+        reset_primary = session.query(Player).filter(
+            Player.primary_team_id.in_(old_season_team_ids)
+        ).update({
+            'primary_team_id': None
+        }, synchronize_session=False)
+        logger.info(f"Reset primary team for {reset_primary} players")
 
         # Step 7: Create fresh season stats records for new season
         logger.info("Creating fresh season stats records...")
         from app.models.stats import PlayerSeasonStats
 
-        # Get all players who should have season stats in the new season
+        # Get all players who are now in the new season's leagues
+        # (their primary_league_id was just updated to new league IDs)
+        new_league_ids = [l.id for l in new_leagues]
         all_active_players = session.query(Player).filter(
-            Player.id.in_(old_season_player_ids)
-        ).all() if old_season_player_ids else []
+            Player.primary_league_id.in_(new_league_ids),
+            Player.is_current_player == True
+        ).all() if new_league_ids else []
 
         new_season_stats = []
         for player in all_active_players:
@@ -246,6 +296,21 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
         if discord_role_removals:
             logger.info(f"Queuing Discord role removal for {len(discord_role_removals)} player-team assignments...")
             _queue_discord_role_removals(discord_role_removals)
+
+        # Step 9: Clear ALL draft caches to ensure fresh data after rollover
+        # This is critical - without this, the draft page may show stale cached data
+        logger.info("Clearing all draft caches after rollover...")
+        try:
+            from app.draft_cache_service import DraftCacheService
+            # Clear caches for all Pub League divisions
+            DraftCacheService.clear_all_league_caches('Premier')
+            DraftCacheService.clear_all_league_caches('Classic')
+            # Also clear ECS FC in case of cross-league effects
+            DraftCacheService.clear_all_league_caches('ECS FC')
+            logger.info("Draft caches cleared successfully")
+        except Exception as cache_err:
+            logger.warning(f"Could not clear draft caches: {cache_err}")
+            # Don't fail rollover if cache clear fails
 
         logger.info(f"Rollover completed successfully: {old_season.name} → {new_season.name}")
         return True
@@ -291,6 +356,151 @@ def _queue_discord_role_removals(role_removals: list) -> int:
         logger.error(f"Error queuing Discord role removals: {e}")
 
     return queued
+
+
+def restore_season_memberships(session, target_season: Season) -> dict:
+    """
+    Restore player-team memberships from PlayerTeamSeason history when switching to a season.
+
+    This allows switching between seasons with players automatically assigned to their
+    correct teams for that season. IMPORTANT: This only affects teams/leagues in the
+    target season's league type - ECS FC memberships are preserved when switching
+    Pub League seasons and vice versa.
+
+    Args:
+        session: Database session.
+        target_season (Season): The season to restore memberships for.
+
+    Returns:
+        dict: Summary of restoration with counts.
+    """
+    try:
+        logger.info(f"Restoring player-team memberships for season: {target_season.name} ({target_season.league_type})")
+
+        # Get all PlayerTeamSeason records for the target season
+        season_assignments = session.query(PlayerTeamSeason).filter_by(
+            season_id=target_season.id
+        ).all()
+
+        if not season_assignments:
+            logger.info(f"No PlayerTeamSeason records found for {target_season.name} - this may be a new season")
+            return {
+                'success': True,
+                'restored': 0,
+                'cleared': 0,
+                'message': 'No historical team assignments found for this season'
+            }
+
+        logger.info(f"Found {len(season_assignments)} historical team assignments to restore")
+
+        # Get all leagues in the target season
+        target_leagues = session.query(League).filter_by(season_id=target_season.id).all()
+        target_league_ids = [league.id for league in target_leagues]
+
+        # Get all teams in those leagues (ONLY these teams will be affected)
+        target_teams = session.query(Team).filter(Team.league_id.in_(target_league_ids)).all()
+        target_team_ids = [team.id for team in target_teams]
+
+        # Get unique player IDs from the assignments
+        player_ids = list(set([a.player_id for a in season_assignments]))
+
+        # Step 1: Clear ONLY player_teams associations for teams in the TARGET season
+        # This preserves ECS FC team memberships when restoring Pub League seasons
+        logger.info(f"Clearing team assignments ONLY for teams in target season ({len(target_team_ids)} teams)...")
+
+        cleared_count = session.execute(
+            player_teams.delete().where(
+                player_teams.c.player_id.in_(player_ids),
+                player_teams.c.team_id.in_(target_team_ids)
+            )
+        ).rowcount
+        logger.info(f"Cleared {cleared_count} existing team assignments (target season only)")
+
+        # Step 2: Update secondary league associations - only for leagues in target season
+        # Don't delete - update to point to correct leagues
+        logger.info("Updating secondary league associations for target season leagues...")
+        for target_league in target_leagues:
+            # Find any other seasons of the same league type with same league name
+            # and update player_league entries
+            same_name_leagues = session.query(League).join(Season).filter(
+                League.name == target_league.name,
+                Season.league_type == target_season.league_type,
+                League.id != target_league.id
+            ).all()
+
+            for old_league in same_name_leagues:
+                session.execute(
+                    player_league.update().where(
+                        player_league.c.player_id.in_(player_ids),
+                        player_league.c.league_id == old_league.id
+                    ).values(league_id=target_league.id)
+                )
+
+        # Step 3: Restore player_teams associations from PlayerTeamSeason records
+        restored_count = 0
+        league_updates = {}
+
+        for assignment in season_assignments:
+            # Only restore if the team still exists and is in the target season
+            team = session.query(Team).get(assignment.team_id)
+            if not team or team.league_id not in target_league_ids:
+                logger.warning(f"Skipping assignment: team {assignment.team_id} not found in target season")
+                continue
+
+            # Insert into player_teams
+            try:
+                session.execute(
+                    player_teams.insert().values(
+                        player_id=assignment.player_id,
+                        team_id=assignment.team_id,
+                        is_coach=False,  # Default - could be enhanced to store coach status
+                        position='bench'
+                    )
+                )
+                restored_count += 1
+
+                # Track league for this player (use first team's league as primary)
+                if assignment.player_id not in league_updates:
+                    league_updates[assignment.player_id] = team.league_id
+
+            except Exception as e:
+                # May fail if already exists (duplicate) - that's OK
+                logger.debug(f"Could not insert player_team for player {assignment.player_id}, team {assignment.team_id}: {e}")
+
+        logger.info(f"Restored {restored_count} team assignments")
+
+        # Step 4: Update player league associations and primary team
+        # Only update primary_league_id if it matches the target season's league type
+        for player_id, league_id in league_updates.items():
+            player = session.query(Player).get(player_id)
+            if player:
+                # Update primary league to target season's league
+                player.league_id = league_id
+                player.primary_league_id = league_id
+
+                # Set primary_team_id to first team in this season
+                player_assignment = next(
+                    (a for a in season_assignments if a.player_id == player_id),
+                    None
+                )
+                if player_assignment:
+                    player.primary_team_id = player_assignment.team_id
+
+        logger.info(f"Updated league associations for {len(league_updates)} players")
+
+        session.flush()
+
+        return {
+            'success': True,
+            'restored': restored_count,
+            'cleared': cleared_count,
+            'players_updated': len(league_updates),
+            'message': f'Restored {restored_count} team assignments for {len(league_updates)} players'
+        }
+
+    except Exception as e:
+        logger.error(f"Error restoring season memberships: {e}")
+        raise
 
 
 def create_pub_league_season(session, season_name: str) -> Optional[Season]:

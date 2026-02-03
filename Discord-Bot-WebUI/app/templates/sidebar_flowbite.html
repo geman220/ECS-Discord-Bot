@@ -76,35 +76,6 @@
             </div>
 
             <ul class="space-y-1">
-                {% if can_view_season_management %}
-                <!-- League Management -->
-                <li>
-                    <button type="button" class="flex items-center w-full p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group" aria-controls="dropdown-league" data-collapse-toggle="dropdown-league">
-                        <i class="ti ti-tournament w-5 h-5 text-gray-500 dark:text-gray-400"></i>
-                        <span class="flex-1 ml-3 text-left whitespace-nowrap">League Management</span>
-                        <span class="ml-2 px-1.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 rounded">NEW</span>
-                        <i class="ti ti-chevron-down w-4 h-4"></i>
-                    </button>
-                    <ul id="dropdown-league" class="hidden py-2 space-y-1">
-                        <li>
-                            <a href="{{ url_for('admin_panel.league_management_dashboard') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">League Hub</a>
-                        </li>
-                        <li>
-                            <a href="{{ url_for('admin_panel.season_wizard') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">Season Wizard</a>
-                        </li>
-                        <li>
-                            <a href="{{ url_for('admin_panel.league_management_teams') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">Teams</a>
-                        </li>
-                        <li>
-                            <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">Seasons</a>
-                        </li>
-                        <li>
-                            <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="flex items-center w-full p-2 pl-11 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700">Pub League Orders</a>
-                        </li>
-                    </ul>
-                </li>
-                {% endif %}
-
                 {% if can_view_draft %}
                 <!-- Draft -->
                 <li>

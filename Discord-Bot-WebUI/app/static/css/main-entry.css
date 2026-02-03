@@ -133,7 +133,7 @@
 /* ============================================================================
    6. FEATURES - Feature-Specific Styles
    ============================================================================ */
-@import './features/draft.css' layer(features);
+/* draft.css REMOVED - Draft page now uses Tailwind/Flowbite exclusively */
 @import './features/pitch-view.css' layer(features);
 @import './features/player-profile.css' layer(features);
 @import './features/playoff-bracket.css' layer(features);
@@ -207,7 +207,7 @@
 @import './pages/admin/playoff-generator.css' layer(pages);
 @import './pages/admin/redis-stats.css' layer(pages);
 @import './pages/admin/rsvp-status.css' layer(pages);
-@import './pages/admin/season-wizard.css' layer(pages);
+/* season-wizard.css removed - replaced by season-builder.js (no dedicated CSS needed) */
 @import './pages/admin/security-dashboard.css' layer(pages);
 @import './pages/admin/substitute-pool.css' layer(pages);
 @import './pages/admin/sync-review.css' layer(pages);

@@ -209,6 +209,40 @@
         </div>
         {% endcall %}
 
+        <!-- League Management -->
+        {% call card(title="League Management", subtitle="Manage seasons, teams, and schedules") %}
+        <div class="space-y-2">
+            <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-wand text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Season Builder</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.league_management_teams') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-users-group text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Teams</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-trophy text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Seasons</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+            <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-receipt text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">Pub League Orders</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
+        </div>
+        {% endcall %}
+
         <!-- Mobile Features -->
         {% call card(title="Mobile Features", subtitle="Mobile app and wallet management") %}
         <div class="space-y-2">

@@ -91,7 +91,12 @@ def install_error_handlers(app):
             }), status_code
 
         # Return HTML for browser requests
-        return render_template("500_flowbite.html"), 500
+        # Try to render template, fallback to plain text if session unavailable (Redis down)
+        try:
+            return render_template("500_flowbite.html"), 500
+        except Exception:
+            # Session unavailable (Redis down) - return minimal response
+            return "Internal Server Error", 500, {'Content-Type': 'text/plain'}
 
     @app.errorhandler(401)
     def unauthorized(error):

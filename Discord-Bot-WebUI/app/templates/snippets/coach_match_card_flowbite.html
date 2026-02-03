@@ -90,7 +90,7 @@
                     {% if match.is_ecs_fc %}
                     <button class="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors js-request-sub"
                             data-action="request-sub" data-match-id="{{ match.id }}" data-league-type="{{ match.league_type }}"
-                            data-team-id="{{ match.team_id if hasattr(match, 'team_id') else (match.home_team_id if match.home_team_id else match.away_team_id) }}">
+                            data-team-id="{{ match.team_id|default(match.home_team_id if match.home_team_id else match.away_team_id) }}">
                         <i class="ti ti-user-plus"></i>Request Sub
                     </button>
                     {% else %}

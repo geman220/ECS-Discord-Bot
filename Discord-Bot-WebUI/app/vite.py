@@ -74,11 +74,10 @@ def init_app(app):
             'vite_production_mode': lambda: current_app.config.get('VITE_PRODUCTION_MODE', False),
         }
 
-    # Clear manifest cache on each request in debug mode
-    if app.debug:
-        @app.before_request
-        def clear_vite_cache():
-            get_manifest.cache_clear()
+    # Clear manifest cache on each request (always, not just debug mode)
+    @app.before_request
+    def clear_vite_cache():
+        get_manifest.cache_clear()
 
 
 @lru_cache(maxsize=1)

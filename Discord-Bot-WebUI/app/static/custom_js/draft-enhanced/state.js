@@ -36,10 +36,26 @@ export function formatPosition(position) {
 
 /**
  * Get league name from the page
+ * Checks multiple sources: PitchViewConfig, DraftConfig, script attribute, draftSystemInstance
  * @returns {string}
  */
 export function getLeagueName() {
+    // Check PitchViewConfig first (pitch view page)
+    if (window.PitchViewConfig && window.PitchViewConfig.leagueName) {
+        return window.PitchViewConfig.leagueName;
+    }
+    // Check DraftConfig (list view page)
+    if (window.DraftConfig && window.DraftConfig.leagueName) {
+        return window.DraftConfig.leagueName;
+    }
+    // Legacy: script data attribute
     const leagueNameScript = document.querySelector('script[data-league-name]');
-    return leagueNameScript ? leagueNameScript.getAttribute('data-league-name') :
-           (window.draftSystemInstance ? window.draftSystemInstance.leagueName : '');
+    if (leagueNameScript) {
+        return leagueNameScript.getAttribute('data-league-name');
+    }
+    // Fallback: draftSystemInstance
+    if (window.draftSystemInstance && window.draftSystemInstance.leagueName) {
+        return window.draftSystemInstance.leagueName;
+    }
+    return '';
 }

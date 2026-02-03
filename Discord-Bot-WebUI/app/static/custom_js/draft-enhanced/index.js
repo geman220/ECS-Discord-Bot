@@ -21,7 +21,8 @@ import {
     handlePlayerRemovedEvent,
     handleDraftError,
     getSocket,
-    isSocketConnected
+    isSocketConnected,
+    updateDraftedCount
 } from './socket-handler.js';
 
 // Team management
@@ -35,7 +36,14 @@ import {
     setupLiveSearch,
     filterPlayers,
     sortPlayers,
-    updateAvailablePlayerCount
+    updateAvailablePlayerCount,
+    PaginationState,
+    paginatePlayers,
+    nextPage,
+    prevPage,
+    changePageSize,
+    clearFilters,
+    normalizePosition
 } from './search-filter.js';
 
 // Image handlers
@@ -95,14 +103,16 @@ function initDraftEnhanced() {
     // Update team counts on page load
     updateAllTeamCounts();
 
-    // Setup live search functionality
+    // Note: Filter setup and initial filtering are now handled by event delegation
+    // in event-delegation/handlers/draft-system.js. The setupLiveSearch() function
+    // is kept for backwards compatibility but no longer adds duplicate event listeners.
     setupLiveSearch();
 
-    // Set initial available player count
-    const initialCount = document.querySelectorAll('#available-players .player-card').length;
-    updateAvailablePlayerCount(initialCount);
+    // Note: filterPlayers() call removed - handled by draft-system.js initDraftFilters()
+    // Note: updateAvailablePlayerCount() call removed - handled by draft-system.js
 
-    // Setup event delegation for buttons
+    // Setup event delegation for buttons (legacy class-based handlers)
+    // Note: New data-action handlers are in draft-system.js
     setupEventDelegation();
 
     // Setup image error handlers using delegation
@@ -125,6 +135,7 @@ export {
     handleDraftError,
     getSocket,
     isSocketConnected,
+    updateDraftedCount,
 
     // Team management
     updateTeamCount,
@@ -135,6 +146,13 @@ export {
     filterPlayers,
     sortPlayers,
     updateAvailablePlayerCount,
+    PaginationState,
+    paginatePlayers,
+    nextPage,
+    prevPage,
+    changePageSize,
+    clearFilters,
+    normalizePosition,
 
     // Image handlers
     setupImageErrorHandlers,

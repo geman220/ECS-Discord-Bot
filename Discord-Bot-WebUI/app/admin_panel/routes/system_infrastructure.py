@@ -1327,14 +1327,15 @@ def redis_delete_key():
         }), 500
 
 
-@admin_panel_bp.route('/system/draft-cache/clear', methods=['POST'])
+@admin_panel_bp.route('/system/draft-cache/clear', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def draft_cache_clear():
     """
     Clear draft cache entries.
 
-    Accepts JSON with optional 'cache_key' field:
+    GET: Clears all draft cache entries (easy browser access)
+    POST: Accepts JSON with optional 'cache_key' field:
     - If provided: Clear only the specified cache entry
     - If not provided: Clear all draft cache entries
     """
@@ -1342,8 +1343,12 @@ def draft_cache_clear():
         from app.utils.safe_redis import get_safe_redis
         from app.draft_cache_service import DraftCacheService
 
-        data = request.get_json() or {}
-        cache_key = data.get('cache_key')
+        # For GET requests, just clear everything
+        # For POST, check for specific cache_key
+        cache_key = None
+        if request.method == 'POST':
+            data = request.get_json(silent=True) or {}
+            cache_key = data.get('cache_key')
 
         redis_client = get_safe_redis()
 
@@ -1410,4 +1415,312 @@ def draft_cache_clear():
         return jsonify({
             'success': False,
             'error': f'Failed to clear draft cache: {str(e)}'
+        }), 500
+
+
+@admin_panel_bp.route('/system/draft-fix-orphaned-players', methods=['GET', 'POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def draft_fix_orphaned_players():
+    """
+    Fix orphaned players that are still in old Pub League seasons.
+
+    This migrates players from old seasons to the current season's leagues
+    based on their existing league name (Premier -> new Premier, Classic -> new Classic).
+    """
+    try:
+        from app.models import Season, League, Player
+        from sqlalchemy import func
+
+        session = g.db_session
+
+        # Get current Pub League season
+        current_season = session.query(Season).filter_by(
+            league_type='Pub League',
+            is_current=True
+        ).first()
+
+        if not current_season:
+            return jsonify({
+                'success': False,
+                'error': 'No current Pub League season found'
+            }), 400
+
+        # Get new leagues
+        new_premier = session.query(League).filter_by(
+            season_id=current_season.id,
+            name='Premier'
+        ).first()
+
+        new_classic = session.query(League).filter_by(
+            season_id=current_season.id,
+            name='Classic'
+        ).first()
+
+        if not new_premier or not new_classic:
+            return jsonify({
+                'success': False,
+                'error': 'Could not find Premier and/or Classic leagues in current season'
+            }), 400
+
+        migrated_counts = {
+            'premier_primary': 0,
+            'classic_primary': 0,
+            'premier_secondary': 0,
+            'classic_secondary': 0,
+            'total': 0
+        }
+
+        # Get all old Pub League Premier leagues (from any old season)
+        old_premier_leagues = session.query(League).join(Season).filter(
+            Season.league_type == 'Pub League',
+            Season.id != current_season.id,
+            League.name == 'Premier'
+        ).all()
+        old_premier_ids = [l.id for l in old_premier_leagues]
+
+        # Get all old Pub League Classic leagues (from any old season)
+        old_classic_leagues = session.query(League).join(Season).filter(
+            Season.league_type == 'Pub League',
+            Season.id != current_season.id,
+            League.name == 'Classic'
+        ).all()
+        old_classic_ids = [l.id for l in old_classic_leagues]
+
+        # Migrate PRIMARY league associations
+        # Only migrate if their PRIMARY league is an old Pub League (not ECS FC)
+        if old_premier_ids:
+            premier_primary_updates = session.query(Player).filter(
+                Player.primary_league_id.in_(old_premier_ids)
+            ).update({
+                'primary_league_id': new_premier.id,
+                'league_id': new_premier.id
+            }, synchronize_session=False)
+            migrated_counts['premier_primary'] = premier_primary_updates
+
+        if old_classic_ids:
+            classic_primary_updates = session.query(Player).filter(
+                Player.primary_league_id.in_(old_classic_ids)
+            ).update({
+                'primary_league_id': new_classic.id,
+                'league_id': new_classic.id
+            }, synchronize_session=False)
+            migrated_counts['classic_primary'] = classic_primary_updates
+
+        # Migrate SECONDARY/TERTIARY league associations (player_league table)
+        # This handles players whose PRIMARY is ECS FC but SECONDARY is Pub League
+        from app.models.players import player_league
+
+        if old_premier_ids:
+            for old_id in old_premier_ids:
+                result = session.execute(
+                    player_league.update().where(
+                        player_league.c.league_id == old_id
+                    ).values(league_id=new_premier.id)
+                )
+                migrated_counts['premier_secondary'] += result.rowcount
+
+        if old_classic_ids:
+            for old_id in old_classic_ids:
+                result = session.execute(
+                    player_league.update().where(
+                        player_league.c.league_id == old_id
+                    ).values(league_id=new_classic.id)
+                )
+                migrated_counts['classic_secondary'] += result.rowcount
+
+        migrated_counts['total'] = (
+            migrated_counts['premier_primary'] +
+            migrated_counts['classic_primary'] +
+            migrated_counts['premier_secondary'] +
+            migrated_counts['classic_secondary']
+        )
+
+        session.commit()
+
+        # Log the action
+        log_message = (
+            f"Migrated {migrated_counts['total']} associations: "
+            f"Primary: {migrated_counts['premier_primary']} Premier, {migrated_counts['classic_primary']} Classic; "
+            f"Secondary: {migrated_counts['premier_secondary']} Premier, {migrated_counts['classic_secondary']} Classic"
+        )
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='fix_orphaned_players',
+            resource_type='system',
+            resource_id='draft',
+            new_value=log_message,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"Fixed orphaned players: {migrated_counts}")
+
+        # Also clear draft cache after migration
+        try:
+            from app.draft_cache_service import DraftCacheService
+            DraftCacheService.clear_all_league_caches('Premier')
+            DraftCacheService.clear_all_league_caches('Classic')
+        except Exception as cache_err:
+            logger.warning(f"Could not clear draft cache: {cache_err}")
+
+        return jsonify({
+            'success': True,
+            'message': f"Migrated {migrated_counts['total']} players to current season",
+            'migrated': migrated_counts,
+            'new_leagues': {
+                'premier_id': new_premier.id,
+                'classic_id': new_classic.id
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error fixing orphaned players: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@admin_panel_bp.route('/system/draft-diagnostic')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def draft_diagnostic():
+    """
+    Diagnostic endpoint to check draft data state.
+
+    Returns information about leagues, players, and team assignments
+    to help debug draft issues like "0 available, 0 drafted".
+    """
+    try:
+        from app.models import Season, League, Team, Player, player_league
+        from app.models.players import player_teams
+        from sqlalchemy import func
+
+        session = g.db_session
+
+        # Get current Pub League season
+        current_pub_league = session.query(Season).filter_by(
+            league_type='Pub League',
+            is_current=True
+        ).first()
+
+        # Get current ECS FC season
+        current_ecs_fc = session.query(Season).filter_by(
+            league_type='ECS FC',
+            is_current=True
+        ).first()
+
+        diagnostic_data = {
+            'timestamp': datetime.now().isoformat(),
+            'current_seasons': {},
+            'leagues': {},
+            'player_counts': {},
+            'team_counts': {},
+            'issues': []
+        }
+
+        # Check Pub League season
+        if current_pub_league:
+            diagnostic_data['current_seasons']['pub_league'] = {
+                'id': current_pub_league.id,
+                'name': current_pub_league.name
+            }
+
+            # Get leagues for this season
+            for league in session.query(League).filter_by(season_id=current_pub_league.id).all():
+                league_info = {
+                    'id': league.id,
+                    'name': league.name,
+                    'season_id': league.season_id
+                }
+
+                # Count players with this as primary league
+                primary_count = session.query(func.count(Player.id)).filter(
+                    Player.primary_league_id == league.id,
+                    Player.is_current_player == True
+                ).scalar()
+
+                # Count players with this in secondary leagues
+                secondary_count = session.query(func.count(player_league.c.player_id)).filter(
+                    player_league.c.league_id == league.id
+                ).scalar()
+
+                # Get teams for this league
+                teams = session.query(Team).filter_by(league_id=league.id).all()
+                team_info = []
+                for team in teams:
+                    # Count players on this team
+                    team_player_count = session.query(func.count(player_teams.c.player_id)).filter(
+                        player_teams.c.team_id == team.id
+                    ).scalar()
+                    team_info.append({
+                        'id': team.id,
+                        'name': team.name,
+                        'player_count': team_player_count
+                    })
+
+                league_info['primary_players'] = primary_count
+                league_info['secondary_players'] = secondary_count
+                league_info['teams'] = team_info
+                league_info['total_team_players'] = sum(t['player_count'] for t in team_info)
+
+                diagnostic_data['leagues'][league.name] = league_info
+
+                # Check for issues
+                if primary_count == 0 and secondary_count == 0:
+                    diagnostic_data['issues'].append(
+                        f"No players in {league.name} league (ID: {league.id})"
+                    )
+
+        else:
+            diagnostic_data['issues'].append("No current Pub League season found")
+
+        # Get overall player counts
+        total_active = session.query(func.count(Player.id)).filter(
+            Player.is_current_player == True
+        ).scalar()
+
+        players_with_league = session.query(func.count(Player.id)).filter(
+            Player.is_current_player == True,
+            Player.primary_league_id.isnot(None)
+        ).scalar()
+
+        players_with_team = session.query(func.count(func.distinct(player_teams.c.player_id))).scalar()
+
+        diagnostic_data['player_counts'] = {
+            'total_active': total_active,
+            'with_primary_league': players_with_league,
+            'with_team_assignment': players_with_team,
+            'without_league': total_active - players_with_league
+        }
+
+        # Check for orphaned players (in old leagues)
+        if current_pub_league:
+            old_league_players = session.query(func.count(Player.id)).join(
+                League, Player.primary_league_id == League.id
+            ).join(
+                Season, League.season_id == Season.id
+            ).filter(
+                Season.league_type == 'Pub League',
+                Season.id != current_pub_league.id,
+                Player.is_current_player == True
+            ).scalar()
+
+            if old_league_players > 0:
+                diagnostic_data['issues'].append(
+                    f"{old_league_players} active players still in old Pub League seasons"
+                )
+                diagnostic_data['player_counts']['in_old_seasons'] = old_league_players
+
+        return jsonify({
+            'success': True,
+            'diagnostic': diagnostic_data
+        })
+
+    except Exception as e:
+        logger.error(f"Error in draft diagnostic: {e}", exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
         }), 500

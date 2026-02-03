@@ -98,7 +98,8 @@ import './profile-wizard.js';
 import './profile-verification.js';
 
 // Match and draft
-import './draft-system.js';
+// NOTE: OLD draft-system.js REMOVED - conflicts with custom_js/draft-enhanced module
+// The new modular system in custom_js/draft-enhanced/ handles all draft functionality
 import './draft-history.js';
 import './pitch-view.js';
 
@@ -186,7 +187,7 @@ import '../custom_js/user-approval-management.js';
 import '../custom_js/calendar-subscription.js';
 import '../custom_js/check-duplicate.js';
 import '../custom_js/coach-dashboard.js';
-import '../custom_js/cropper.js';
+// cropper.js REMOVED - Replaced with inline HTML5 drag-to-position in templates
 // design-system-override.js REMOVED - Patches design-system.js which is no longer used
 import '../custom_js/draft-enhanced.js';
 import '../custom_js/draft-predictions.js';
@@ -209,7 +210,7 @@ import '../custom_js/schedule-management.js';
 import '../custom_js/scheduled-message-validation.js';
 import '../custom_js/settings-tabs.js';
 import '../custom_js/settings.js';
-import '../custom_js/simple-cropper.js';
+// simple-cropper.js REMOVED - Replaced with inline HTML5 drag-to-position in templates
 import '../custom_js/substitute-pool-management.js';
 import '../custom_js/substitute-request-management.js';
 import '../custom_js/team-detail.js';
@@ -223,7 +224,7 @@ import '../custom_js/waitlist-login-register.js';
 import '../custom_js/waitlist-register-authenticated.js';
 import '../custom_js/waitlist-register.js';
 import '../custom_js/waitlist-carousel.js';
-import '../custom_js/waitlist-discord-cropper.js';
+// waitlist-discord-cropper.js REMOVED - Replaced with inline HTML5 in template
 import '../custom_js/wallet-pass-info.js';
 import '../custom_js/auto-schedule-config.js';
 import '../custom_js/ecs-fc-match.js';
@@ -238,7 +239,7 @@ import '../custom_js/sync-review.js';
 import '../custom_js/admin-seasons-management.js';
 import '../custom_js/admin-teams-management.js';
 import '../custom_js/admin-league-history.js';
-import '../custom_js/admin-season-wizard.js';
+// admin-season-wizard.js removed - replaced by event-delegation/handlers/season-builder.js
 import '../custom_js/admin-match-operations.js';
 import '../custom_js/admin-ispy-management.js';
 import '../custom_js/admin-ecs-fc-match.js';
