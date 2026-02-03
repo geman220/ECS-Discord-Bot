@@ -25,6 +25,8 @@ import logging
 from datetime import datetime
 from flask import Blueprint, jsonify, request, render_template
 from flask_login import login_required, current_user
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 from app.core import db
 from app.models import DirectMessage, MessagingPermission, MessagingSettings, User, Role
 from app.sockets.presence import PresenceManager
@@ -141,6 +143,7 @@ def get_conversations():
     Get list of conversations for current user.
 
     Returns conversations grouped by user with the most recent message.
+    Uses bulk queries to avoid N+1 query performance issues.
     """
     try:
         limit = min(int(request.args.get('limit', 20)), 50)
@@ -148,21 +151,41 @@ def get_conversations():
         # Get conversations
         messages = DirectMessage.get_conversations_for_user(current_user.id, limit=limit)
 
+        # Collect all other user IDs to batch load
+        other_user_ids = set()
+        for msg in messages:
+            other_id = msg.recipient_id if msg.sender_id == current_user.id else msg.sender_id
+            other_user_ids.add(other_id)
+
+        if not other_user_ids:
+            return jsonify({'success': True, 'conversations': []})
+
+        # Bulk load users with relationships (single query instead of N queries)
+        users = User.query.options(
+            joinedload(User.player),
+            joinedload(User.roles)
+        ).filter(User.id.in_(other_user_ids)).all()
+        users_by_id = {u.id: u for u in users}
+
+        # Bulk get unread counts (single query instead of N queries)
+        unread_counts = db.session.query(
+            DirectMessage.sender_id,
+            func.count(DirectMessage.id)
+        ).filter(
+            DirectMessage.sender_id.in_(other_user_ids),
+            DirectMessage.recipient_id == current_user.id,
+            DirectMessage.is_read == False
+        ).group_by(DirectMessage.sender_id).all()
+        unread_by_sender = dict(unread_counts)
+
+        # Build response using pre-fetched data
         conversations = []
         for msg in messages:
-            # Determine the other user in the conversation
-            other_user_id = msg.recipient_id if msg.sender_id == current_user.id else msg.sender_id
-            other_user = User.query.get(other_user_id)
+            other_id = msg.recipient_id if msg.sender_id == current_user.id else msg.sender_id
+            other_user = users_by_id.get(other_id)
 
             if not other_user:
                 continue
-
-            # Count unread messages from this user
-            unread_count = DirectMessage.query.filter_by(
-                sender_id=other_user_id,
-                recipient_id=current_user.id,
-                is_read=False
-            ).count()
 
             conversations.append({
                 'user': _user_to_dict(other_user),
@@ -172,7 +195,7 @@ def get_conversations():
                     'time_ago': _time_ago(msg.created_at),
                     'created_at': (msg.created_at.isoformat() + 'Z') if msg.created_at else None
                 },
-                'unread_count': unread_count
+                'unread_count': unread_by_sender.get(other_id, 0)
             })
 
         return jsonify({

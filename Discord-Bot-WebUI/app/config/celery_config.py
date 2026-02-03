@@ -68,6 +68,7 @@ class CeleryConfig:
         'app.tasks.emergency_recovery',
         'app.tasks.tasks_notification_reminders',  # Unified notification system reminders
         'app.tasks.tasks_push_notifications',  # Push notification campaigns
+        'app.tasks.tasks_api_logging',  # Async API request logging
     )
 
     # Task Settings - Industry Best Practices

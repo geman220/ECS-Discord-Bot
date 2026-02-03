@@ -85,27 +85,24 @@ def init_api_logger(app):
             ip_address = request.remote_addr
             user_agent = request.headers.get('User-Agent', '')
 
-            # Log the request
-            from app.models.api_logs import APIRequestLog
-            from app.core import db
+            # Queue async logging via Celery to prevent connection pool exhaustion
+            from datetime import datetime
+            from app.tasks.tasks_api_logging import log_api_request_async
 
-            APIRequestLog.log_request(
-                endpoint_path=request.path,
-                method=request.method,
-                status_code=response.status_code,
-                response_time_ms=response_time_ms,
-                user_id=user_id,
-                ip_address=ip_address,
-                user_agent=user_agent
-            )
-
-            # Commit the log entry
             try:
-                db.session.commit()
+                log_api_request_async.delay(
+                    endpoint_path=request.path,
+                    method=request.method,
+                    status_code=response.status_code,
+                    response_time_ms=response_time_ms,
+                    user_id=user_id,
+                    ip_address=ip_address,
+                    user_agent=user_agent,
+                    timestamp_iso=datetime.utcnow().isoformat()
+                )
                 _log_count_this_minute += 1
-            except Exception as commit_error:
-                db.session.rollback()
-                logger.debug(f"Failed to commit API log: {commit_error}")
+            except Exception as queue_error:
+                logger.debug(f"Failed to queue API log: {queue_error}")
 
         except Exception as e:
             # Don't let logging errors affect the response

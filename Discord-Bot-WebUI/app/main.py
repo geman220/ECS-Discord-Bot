@@ -644,8 +644,11 @@ def index():
         # Get only current season teams for the player (both Pub League AND ECS FC)
         user_teams = []
         if player:
-            # Get ALL current seasons (both Pub League and ECS FC)
-            current_seasons = Season.query.filter_by(is_current=True).all()
+            # Get ALL current seasons with eager-loaded leagues to prevent N+1 queries
+            from sqlalchemy.orm import selectinload
+            current_seasons = Season.query.options(
+                selectinload(Season.leagues)
+            ).filter_by(is_current=True).all()
             if current_seasons:
                 for current_season in current_seasons:
                     # Query teams through PlayerTeamSeason for current season only

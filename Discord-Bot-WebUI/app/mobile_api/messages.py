@@ -161,6 +161,8 @@ def get_conversations():
 
     Returns:
         JSON with conversations list
+
+    Uses bulk queries to avoid N+1 query performance issues.
     """
     current_user_id = int(get_jwt_identity())
     limit = min(int(request.args.get('limit', 20)), 50)
@@ -173,20 +175,43 @@ def get_conversations():
         # Get conversations
         messages = DirectMessage.get_conversations_for_user(current_user_id, limit=limit)
 
+        # Collect all other user IDs to batch load
+        other_user_ids = set()
+        for msg in messages:
+            other_id = msg.recipient_id if msg.sender_id == current_user_id else msg.sender_id
+            other_user_ids.add(other_id)
+
+        if not other_user_ids:
+            return jsonify({'conversations': [], 'total': 0}), 200
+
+        # Bulk load users with relationships (single query instead of N queries)
+        from sqlalchemy.orm import joinedload
+        users = session_db.query(User).options(
+            joinedload(User.player),
+            joinedload(User.roles)
+        ).filter(User.id.in_(other_user_ids)).all()
+        users_by_id = {u.id: u for u in users}
+
+        # Bulk get unread counts (single query instead of N queries)
+        from sqlalchemy import func
+        unread_counts = session_db.query(
+            DirectMessage.sender_id,
+            func.count(DirectMessage.id)
+        ).filter(
+            DirectMessage.sender_id.in_(other_user_ids),
+            DirectMessage.recipient_id == current_user_id,
+            DirectMessage.is_read == False
+        ).group_by(DirectMessage.sender_id).all()
+        unread_by_sender = dict(unread_counts)
+
+        # Build response using pre-fetched data
         conversations = []
         for msg in messages:
-            other_user_id = msg.recipient_id if msg.sender_id == current_user_id else msg.sender_id
-            other_user = session_db.query(User).get(other_user_id)
+            other_id = msg.recipient_id if msg.sender_id == current_user_id else msg.sender_id
+            other_user = users_by_id.get(other_id)
 
             if not other_user:
                 continue
-
-            # Count unread messages from this user
-            unread_count = session_db.query(DirectMessage).filter_by(
-                sender_id=other_user_id,
-                recipient_id=current_user_id,
-                is_read=False
-            ).count()
 
             conversations.append({
                 'user': _user_to_dict(other_user, session_db),
@@ -195,7 +220,7 @@ def get_conversations():
                     'sent_by_me': msg.sender_id == current_user_id,
                     'created_at': (msg.created_at.isoformat() + 'Z') if msg.created_at else None
                 },
-                'unread_count': unread_count
+                'unread_count': unread_by_sender.get(other_id, 0)
             })
 
         return jsonify({
