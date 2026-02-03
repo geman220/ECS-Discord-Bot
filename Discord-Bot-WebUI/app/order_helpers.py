@@ -100,6 +100,9 @@ def determine_league(product_name, current_seasons, session=None):
     """
     Determine the league based on the product name and current seasons.
 
+    Uses dynamic lookup via SeasonSyncService to get CURRENT SEASON league IDs
+    instead of hardcoded IDs that may point to old seasons.
+
     Args:
         product_name (str): The product name.
         current_seasons (list): List of current Season objects.
@@ -108,40 +111,46 @@ def determine_league(product_name, current_seasons, session=None):
     Returns:
         League: The League object if determined, or None otherwise.
     """
+    from app.services.season_sync_service import SeasonSyncService
+
     if session is None:
         # When not in a request context, use the global session.
         session = g.db_session
     product_name = product_name.upper().strip()
     logger.debug(f"Determining league for product name: '{product_name}'")
 
-    # Handle ECS FC products
+    # Handle ECS FC products - use dynamic lookup for current season
     if product_name.startswith("ECS FC"):
-        league_id = 14
-        ecs_fc_league = session.query(League).get(league_id)
+        ecs_fc_league = SeasonSyncService.get_current_league_by_name(session, 'ECS FC', 'ECS FC')
         if ecs_fc_league:
-            logger.debug(f"Product '{product_name}' mapped to ECS FC league '{ecs_fc_league.name}' with id={league_id}.")
+            logger.debug(f"Product '{product_name}' mapped to ECS FC league '{ecs_fc_league.name}' with id={ecs_fc_league.id}.")
             return ecs_fc_league
         else:
-            logger.error(f"ECS FC League with id={league_id} not found in the database.")
+            logger.error(f"Current season ECS FC League not found in the database.")
             return None
 
     # Handle ECS Pub League products (check for both "ECS PUB LEAGUE" and "PUB LEAGUE" patterns)
     elif "ECS PUB LEAGUE" in product_name or "PUB LEAGUE" in product_name:
         if "PREMIER DIVISION" in product_name or "PREMIER" in product_name:
-            league_id = 10  # Premier Division
+            # Use dynamic lookup for current season Premier league
+            pub_league = SeasonSyncService.get_current_league_by_name(session, 'Premier', 'Pub League')
+            if pub_league:
+                logger.debug(f"Product '{product_name}' mapped to current season Premier league with id={pub_league.id}.")
+                return pub_league
+            else:
+                logger.error(f"Current season Premier league not found in the database.")
+                return None
         elif "CLASSIC DIVISION" in product_name or "CLASSIC" in product_name:
-            league_id = 11  # Classic Division
+            # Use dynamic lookup for current season Classic league
+            pub_league = SeasonSyncService.get_current_league_by_name(session, 'Classic', 'Pub League')
+            if pub_league:
+                logger.debug(f"Product '{product_name}' mapped to current season Classic league with id={pub_league.id}.")
+                return pub_league
+            else:
+                logger.error(f"Current season Classic league not found in the database.")
+                return None
         else:
             logger.error(f"Unknown division in product name: '{product_name}'.")
-            return None
-
-        logger.debug(f"Product '{product_name}' identified as Division ID {league_id}, assigning league_id={league_id}.")
-        pub_league = session.query(League).get(league_id)
-        if pub_league:
-            logger.debug(f"Product '{product_name}' mapped to Pub League '{pub_league.name}' with id={league_id}.")
-            return pub_league
-        else:
-            logger.error(f"Pub League with id={league_id} not found in the database.")
             return None
 
     logger.warning(f"Could not determine league type from product name: '{product_name}'")
@@ -151,47 +160,57 @@ def determine_league(product_name, current_seasons, session=None):
 def determine_league_cached(product_name, current_seasons, league_cache):
     """
     Optimized version of determine_league that uses cached league objects.
-    
+
+    The league_cache should contain leagues from CURRENT SEASONS only.
+    This function looks up leagues by name from the cache instead of using
+    hardcoded IDs.
+
     Args:
         product_name (str): The product name.
         current_seasons (list): List of current Season objects.
         league_cache (dict): Dictionary mapping league_id to League objects.
-        
+            Should contain only leagues from current seasons.
+
     Returns:
         League: The League object if determined, or None otherwise.
     """
     product_name = product_name.upper().strip()
-    # Reduced logging for performance during bulk operations
-    # logger.debug(f"Determining league for product name: '{product_name}'")
+
+    # Build a name-to-league mapping from the cache for efficient lookup
+    # This ensures we use current season leagues even if the cache has mixed seasons
+    league_by_name = {}
+    for league in league_cache.values():
+        # Only include leagues from current seasons
+        if league.season and league.season.is_current:
+            league_by_name[league.name.upper()] = league
 
     # Handle ECS FC products
     if product_name.startswith("ECS FC"):
-        league_id = 14
-        ecs_fc_league = league_cache.get(league_id)
+        ecs_fc_league = league_by_name.get('ECS FC')
         if ecs_fc_league:
-            # logger.debug(f"Product '{product_name}' mapped to ECS FC league '{ecs_fc_league.name}' with id={league_id}.")
             return ecs_fc_league
         else:
-            logger.error(f"ECS FC League with id={league_id} not found in the cache.")
+            logger.error(f"Current season ECS FC League not found in the cache.")
             return None
 
     # Handle ECS Pub League products (check for both "ECS PUB LEAGUE" and "PUB LEAGUE" patterns)
     elif "ECS PUB LEAGUE" in product_name or "PUB LEAGUE" in product_name:
         if "PREMIER DIVISION" in product_name or "PREMIER" in product_name:
-            league_id = 10  # Premier Division
+            pub_league = league_by_name.get('PREMIER')
+            if pub_league:
+                return pub_league
+            else:
+                logger.error(f"Current season Premier league not found in the cache.")
+                return None
         elif "CLASSIC DIVISION" in product_name or "CLASSIC" in product_name:
-            league_id = 11  # Classic Division
+            pub_league = league_by_name.get('CLASSIC')
+            if pub_league:
+                return pub_league
+            else:
+                logger.error(f"Current season Classic league not found in the cache.")
+                return None
         else:
             logger.error(f"Unknown division in product name: '{product_name}'.")
-            return None
-
-        # logger.debug(f"Product '{product_name}' identified as Division ID {league_id}, assigning league_id={league_id}.")
-        pub_league = league_cache.get(league_id)
-        if pub_league:
-            # logger.debug(f"Product '{product_name}' mapped to Pub League '{pub_league.name}' with id={league_id}.")
-            return pub_league
-        else:
-            logger.error(f"Pub League with id={league_id} not found in the cache.")
             return None
 
     logger.warning(f"Could not determine league type from product name: '{product_name}'")

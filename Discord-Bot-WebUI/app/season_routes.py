@@ -312,6 +312,32 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
             logger.warning(f"Could not clear draft caches: {cache_err}")
             # Don't fail rollover if cache clear fails
 
+        # Step 10: Verify no orphaned players remain in old season leagues
+        # This is a safety check that uses SeasonSyncService to find and auto-fix any stragglers
+        logger.info("Verifying no orphaned players in old season leagues...")
+        try:
+            from app.services.season_sync_service import SeasonSyncService
+
+            stale_players = SeasonSyncService.find_stale_players(session, new_season.league_type)
+            if stale_players:
+                logger.warning(f"Rollover left {len(stale_players)} orphaned players - auto-fixing...")
+                fixed_count = 0
+                for player in stale_players:
+                    try:
+                        if SeasonSyncService.sync_player_to_current_season(session, player):
+                            fixed_count += 1
+                    except Exception as sync_err:
+                        logger.error(f"Could not sync orphaned player {player.id}: {sync_err}")
+
+                if fixed_count > 0:
+                    session.commit()
+                    logger.info(f"Auto-fixed {fixed_count} orphaned players after rollover")
+            else:
+                logger.info("No orphaned players found - all players are in the new season")
+        except Exception as orphan_err:
+            logger.warning(f"Could not verify orphaned players: {orphan_err}")
+            # Don't fail rollover if orphan check fails
+
         logger.info(f"Rollover completed successfully: {old_season.name} → {new_season.name}")
         return True
 

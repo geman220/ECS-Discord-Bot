@@ -739,8 +739,11 @@ def activate_user_comprehensive(user_id):
     Quick activate user via AJAX from comprehensive management.
 
     Uses pessimistic locking to prevent concurrent modifications.
+    Also invalidates draft cache so player appears immediately in draft pool.
     """
     try:
+        league_name_for_cache = None
+
         with lock_user_for_role_update(user_id, session=db.session) as user:
             old_status = user.is_active
 
@@ -749,6 +752,10 @@ def activate_user_comprehensive(user_id):
             # Also set player as current
             if user.player:
                 user.player.is_current_player = True
+
+                # Get league name for cache invalidation
+                if user.player.primary_league:
+                    league_name_for_cache = user.player.primary_league.name
 
             # Queue Discord role sync for AFTER transaction commits
             if user.player and user.player.discord_id:
@@ -771,6 +778,15 @@ def activate_user_comprehensive(user_id):
 
         # Execute deferred Discord operations AFTER transaction commits
         execute_deferred_discord()
+
+        # Invalidate draft cache so player appears immediately
+        if league_name_for_cache:
+            try:
+                from app.draft_cache_service import DraftCacheService
+                DraftCacheService.clear_all_league_caches(league_name_for_cache.lower())
+                logger.info(f"Cleared draft cache for {league_name_for_cache} after activating user {user_id}")
+            except Exception as e:
+                logger.warning(f"Could not clear draft cache: {e}")
 
         return jsonify({'success': True, 'message': f'User {username} activated successfully'})
 
@@ -970,3 +986,158 @@ def bulk_update_users():
     except Exception as e:
         logger.error(f"Error bulk updating users: {e}")
         return jsonify({'success': False, 'message': 'Error updating users'})
+
+
+@admin_panel_bp.route('/admin/repair-season-assignments', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+@transactional
+def repair_season_assignments():
+    """
+    Bulk fix all active players with stale (old season) league assignments.
+
+    This endpoint finds players whose primary_league_id points to a non-current
+    season league and updates them to the equivalent current season league.
+
+    For example:
+    - Player has primary_league_id = 11 (2024 Fall Classic)
+    - This updates them to primary_league_id = 25 (2026 Spring Classic)
+
+    Returns:
+        JSON with counts of found/fixed/failed players
+    """
+    from app.services.season_sync_service import SeasonSyncService
+
+    try:
+        # Find all stale players (active players in old season leagues)
+        stale_players = SeasonSyncService.find_all_stale_players(db.session)
+
+        result = {
+            'found': len(stale_players),
+            'fixed': 0,
+            'failed': 0,
+            'players': []
+        }
+
+        for player in stale_players:
+            try:
+                old_league_id = player.primary_league_id
+                if SeasonSyncService.sync_player_to_current_season(db.session, player):
+                    result['fixed'] += 1
+                    result['players'].append({
+                        'id': player.id,
+                        'name': player.name,
+                        'old_league_id': old_league_id,
+                        'new_league_id': player.primary_league_id,
+                        'status': 'fixed'
+                    })
+            except Exception as e:
+                result['failed'] += 1
+                result['players'].append({
+                    'id': player.id,
+                    'name': player.name,
+                    'status': 'failed',
+                    'error': str(e)
+                })
+                logger.error(f"Failed to sync player {player.id}: {e}")
+
+        db.session.commit()
+
+        # Clear all draft caches after bulk repair
+        try:
+            from app.draft_cache_service import DraftCacheService
+            DraftCacheService.clear_all_league_caches('classic')
+            DraftCacheService.clear_all_league_caches('premier')
+            DraftCacheService.clear_all_league_caches('ecs fc')
+            logger.info("Cleared all draft caches after season assignment repair")
+        except Exception as e:
+            logger.warning(f"Could not clear draft caches: {e}")
+
+        # Log the admin action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='repair_season_assignments',
+            resource_type='player_management',
+            resource_id='bulk',
+            new_value=f"Found {result['found']}, fixed {result['fixed']}, failed {result['failed']}",
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        logger.info(f"Season assignment repair: found {result['found']}, fixed {result['fixed']}, failed {result['failed']}")
+
+        return jsonify({
+            'success': True,
+            'message': f"Repaired {result['fixed']} of {result['found']} stale player assignments",
+            **result
+        })
+
+    except Exception as e:
+        logger.error(f"Error repairing season assignments: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error repairing season assignments: {str(e)}'
+        }), 500
+
+
+@admin_panel_bp.route('/admin/check-stale-players', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def check_stale_players():
+    """
+    Check for active players with stale (old season) league assignments.
+
+    This is a read-only diagnostic endpoint that returns information about
+    players who need their league assignments repaired.
+
+    Returns:
+        JSON with list of stale players and their current/expected leagues
+    """
+    from app.services.season_sync_service import SeasonSyncService
+
+    try:
+        stale_players = SeasonSyncService.find_all_stale_players(db.session)
+
+        players_info = []
+        for player in stale_players:
+            current_league = player.primary_league
+            expected_league = None
+
+            # Find the expected current season league
+            if current_league and current_league.season:
+                expected_league = SeasonSyncService.get_current_league_by_name(
+                    db.session,
+                    current_league.name,
+                    current_league.season.league_type
+                )
+
+            players_info.append({
+                'id': player.id,
+                'name': player.name,
+                'is_current_player': player.is_current_player,
+                'current_league': {
+                    'id': current_league.id if current_league else None,
+                    'name': current_league.name if current_league else None,
+                    'season': current_league.season.name if current_league and current_league.season else None,
+                    'is_current_season': current_league.season.is_current if current_league and current_league.season else None
+                } if current_league else None,
+                'expected_league': {
+                    'id': expected_league.id if expected_league else None,
+                    'name': expected_league.name if expected_league else None,
+                    'season': expected_league.season.name if expected_league and expected_league.season else None
+                } if expected_league else None
+            })
+
+        return jsonify({
+            'success': True,
+            'stale_count': len(stale_players),
+            'players': players_info
+        })
+
+    except Exception as e:
+        logger.error(f"Error checking stale players: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error checking stale players: {str(e)}'
+        }), 500

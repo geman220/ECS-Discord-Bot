@@ -165,6 +165,32 @@ def bulk_approve_users():
                     # Clear waitlist timestamp
                     user.waitlist_joined_at = None
 
+                    # Assign player to current season league based on league_type
+                    if user.player:
+                        from app.services.season_sync_service import SeasonSyncService
+
+                        # Map league_type to league name and type
+                        league_type_mapping = {
+                            'classic': ('Classic', 'Pub League'),
+                            'premier': ('Premier', 'Pub League'),
+                            'ecs-fc': ('ECS FC', 'ECS FC'),
+                            'sub-classic': ('Classic', 'Pub League'),
+                            'sub-premier': ('Premier', 'Pub League'),
+                            'sub-ecs-fc': ('ECS FC', 'ECS FC'),
+                        }
+
+                        mapping = league_type_mapping.get(default_league)
+                        if mapping:
+                            league_name, season_league_type = mapping
+                            current_league = SeasonSyncService.get_current_league_by_name(
+                                db.session, league_name, season_league_type
+                            )
+                            if current_league:
+                                user.player.primary_league_id = current_league.id
+                                user.player.league_id = current_league.id
+                                user.player.is_current_player = True
+                                logger.info(f"Bulk approval: assigned player {user.player.id} to league {current_league.id}")
+
                     # Commit this user's changes
                     db.session.commit()
 
@@ -194,6 +220,21 @@ def bulk_approve_users():
 
         # Execute all queued Discord operations
         discord_queue.execute_all()
+
+        # Clear draft cache so newly approved players appear immediately
+        if results['approved']:
+            try:
+                from app.draft_cache_service import DraftCacheService
+                # Map league type to league name for cache clearing
+                league_name_map = {
+                    'classic': 'classic', 'premier': 'premier', 'ecs-fc': 'ecs fc',
+                    'sub-classic': 'classic', 'sub-premier': 'premier', 'sub-ecs-fc': 'ecs fc'
+                }
+                cache_league = league_name_map.get(default_league, default_league)
+                DraftCacheService.clear_all_league_caches(cache_league)
+                logger.info(f"Cleared draft cache for {cache_league} after bulk approval")
+            except Exception as e:
+                logger.warning(f"Could not clear draft cache after bulk approval: {e}")
 
         # Log the bulk action
         AdminAuditLog.log_action(

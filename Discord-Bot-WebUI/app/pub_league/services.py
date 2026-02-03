@@ -40,11 +40,10 @@ DIVISION_ROLES = {
     'Premier': 'pl-premier',
 }
 
-# Division to league ID mapping
-DIVISION_LEAGUE_IDS = {
-    'Classic': 11,
-    'Premier': 10,
-}
+# REMOVED: Hardcoded division to league ID mapping
+# Previously: DIVISION_LEAGUE_IDS = {'Classic': 11, 'Premier': 10}
+# This caused players to be assigned to old season leagues.
+# Now using dynamic lookup via SeasonSyncService.get_current_league_id_for_division()
 
 
 class PubLeagueOrderService:
@@ -404,8 +403,9 @@ class PlayerActivationService:
 
         1. Set player.is_current_player = True
         2. Update player.jersey_size if provided (from conflict resolution)
-        3. Update player.league_id based on division
+        3. Update player.league_id based on division (using current season lookup)
         4. Sync roles (Flask + Discord) via RoleSyncService
+        5. Invalidate draft cache to ensure player appears immediately
 
         Args:
             player: Player to activate
@@ -413,6 +413,8 @@ class PlayerActivationService:
             division: 'Classic' or 'Premier'
             jersey_size: Optional jersey size to update
         """
+        from app.services.season_sync_service import SeasonSyncService
+
         session = getattr(g, 'db_session', db.session)
 
         # 1. Set is_current_player
@@ -422,17 +424,29 @@ class PlayerActivationService:
         if jersey_size:
             player.jersey_size = jersey_size
 
-        # 3. Update league assignment
-        league_id = DIVISION_LEAGUE_IDS.get(division)
-        if league_id:
-            player.league_id = league_id
-            player.primary_league_id = league_id
+        # 3. Update league assignment using DYNAMIC current season lookup
+        # This replaces the old hardcoded DIVISION_LEAGUE_IDS mapping
+        current_league = SeasonSyncService.get_current_league_by_name(session, division)
+        if current_league:
+            player.league_id = current_league.id
+            player.primary_league_id = current_league.id
+            logger.info(f"Assigned player {player.id} to current season league {current_league.id} ({division})")
+        else:
+            logger.warning(f"Could not find current season league for division '{division}'")
 
         session.commit()
 
         # 4. Sync roles (only if user exists and is approved)
         if user and hasattr(user, 'is_approved') and user.is_approved:
             RoleSyncService.sync_league_role(user, player, division)
+
+        # 5. Invalidate draft cache so player appears immediately
+        try:
+            from app.draft_cache_service import DraftCacheService
+            DraftCacheService.clear_all_league_caches(division.lower())
+            logger.info(f"Cleared draft cache for {division} after activating player {player.id}")
+        except Exception as e:
+            logger.warning(f"Could not clear draft cache after player activation: {e}")
 
         logger.info(f"Activated player {player.id} for {division} division")
 

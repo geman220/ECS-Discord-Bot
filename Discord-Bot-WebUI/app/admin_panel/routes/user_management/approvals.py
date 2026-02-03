@@ -265,6 +265,41 @@ def approve_user(user_id: int):
             # Clear waitlist timestamp - user now has a spot
             user.waitlist_joined_at = None
 
+            # Assign player to current season league based on league_type
+            if user.player and league_type:
+                from app.services.season_sync_service import SeasonSyncService
+
+                # Map league_type to league name and type
+                league_type_mapping = {
+                    'classic': ('Classic', 'Pub League'),
+                    'premier': ('Premier', 'Pub League'),
+                    'ecs-fc': ('ECS FC', 'ECS FC'),
+                    'sub-classic': ('Classic', 'Pub League'),
+                    'sub-premier': ('Premier', 'Pub League'),
+                    'sub-ecs-fc': ('ECS FC', 'ECS FC'),
+                }
+
+                mapping = league_type_mapping.get(league_type)
+                if mapping:
+                    league_name, season_league_type = mapping
+                    current_league = SeasonSyncService.get_current_league_by_name(
+                        db.session, league_name, season_league_type
+                    )
+                    if current_league:
+                        user.player.primary_league_id = current_league.id
+                        user.player.league_id = current_league.id
+                        user.player.is_current_player = True
+                        logger.info(f"Assigned player {user.player.id} to current season league {current_league.id} ({league_name})")
+
+                        # Clear draft cache so player appears immediately
+                        try:
+                            from app.draft_cache_service import DraftCacheService
+                            DraftCacheService.clear_all_league_caches(league_name.lower())
+                        except Exception as e:
+                            logger.warning(f"Could not clear draft cache: {e}")
+                    else:
+                        logger.warning(f"Could not find current season league for type '{league_type}'")
+
             db.session.add(user)
             db.session.flush()
 
