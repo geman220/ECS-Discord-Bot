@@ -148,15 +148,46 @@ class RateLimitedPool(QueuePool):
 
     def _do_get(self):
         """
-        Override the pool's _do_get to track active connections.
+        Override the pool's _do_get to track active connections with fail-fast
+        circuit breaker when pool is under pressure.
+
+        When pool utilization exceeds 90%, reduces timeout to 1 second to fail fast
+        instead of waiting the full timeout. This prevents thundering herd cascades
+        where many requests pile up waiting, then all fail simultaneously.
 
         NOTE: Rate limiting (time.sleep) was removed because it blocks the eventlet
         event loop, causing slowdowns under load. The pool_size and max_overflow
         settings already provide adequate protection against connection storms.
 
         :return: A database connection from the underlying pool.
+        :raises TimeoutError: If pool is under pressure and fast timeout expires.
         """
         self._check_transactions()
+
+        # Check pool pressure and use fail-fast timeout if needed
+        checked_out = len(self._active_connections)
+        total_capacity = self.size() + self._max_overflow
+
+        # If pool is >90% utilized, use short timeout to fail fast
+        if total_capacity > 0 and checked_out >= total_capacity * 0.9:
+            import queue
+            from sqlalchemy import exc
+            try:
+                # Try to get connection with very short timeout (1 second)
+                conn = self._pool.get(block=True, timeout=1.0)
+                # Capture stack trace at checkout if debugging is enabled.
+                stack = self._get_stack_info(depth=20) if DEBUG_POOL else "<stack omitted>"
+                self._active_connections[id(conn)] = (time.time(), stack, None)
+                return conn
+            except queue.Empty:
+                logger.warning(
+                    f"Pool under pressure ({checked_out}/{total_capacity} connections), "
+                    f"failing fast to prevent cascade"
+                )
+                raise exc.TimeoutError(
+                    f"Connection pool under pressure ({checked_out}/{total_capacity}), "
+                    f"failing fast. Consider reducing connection hold time."
+                )
 
         conn = super()._do_get()
         # Capture stack trace at checkout if debugging is enabled.

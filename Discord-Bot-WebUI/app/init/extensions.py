@@ -84,14 +84,29 @@ def init_extensions(app, db):
         """
         Load user for Flask-Login with efficient session management.
 
-        Uses optimized query session to minimize connection holding time.
+        Uses request-level caching to prevent repeated DB queries within
+        the same request, plus optimized query session for minimal connection time.
         """
         if not user_id:
             return None
 
+        # Check request-level cache first to avoid redundant DB queries
+        from flask import g, has_request_context
+        cache_key = f'_loaded_user_{user_id}'
+        if has_request_context():
+            cached_user = getattr(g, cache_key, None)
+            if cached_user is not None:
+                return cached_user
+
         try:
             from app.utils.efficient_session_manager import EfficientQuery
-            return EfficientQuery.get_user_for_auth(user_id)
+            user = EfficientQuery.get_user_for_auth(user_id)
+
+            # Cache in request context for subsequent calls
+            if has_request_context() and user is not None:
+                setattr(g, cache_key, user)
+
+            return user
         except Exception as e:
             logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
             return None

@@ -484,10 +484,14 @@ class ImageCacheService:
             logger.error(f"Error cleaning up expired cache: {e}")
 
 
-def handle_player_image_update(player_id: int, force_refresh: bool = True):
+def handle_player_image_update(player_id: int, force_refresh: bool = True) -> bool:
     """
     Event handler to be called when a player's profile picture changes.
-    Queues the image for optimization.
+    Queues the image for async optimization - NEVER blocks the request.
+
+    Returns:
+        True if async optimization was queued successfully
+        False if async optimization failed (image will be queued for later)
     """
     try:
         player = Player.query.get(player_id)
@@ -497,12 +501,18 @@ def handle_player_image_update(player_id: int, force_refresh: bool = True):
                 from app.tasks.tasks_image_optimization import queue_image_optimization
                 if queue_image_optimization(player_id, force_refresh=force_refresh):
                     logger.info(f"Queued async image optimization for player {player_id} (force_refresh={force_refresh})")
-                    return
+                    return True
             except ImportError:
-                logger.debug("Celery not available, using synchronous optimization")
-            
-            # Fallback to synchronous optimization
+                logger.debug("Celery not available for image optimization")
+            except Exception as e:
+                logger.warning(f"Could not queue image optimization for player {player_id}: {e}")
+
+            # Queue for later optimization instead of blocking synchronously
+            # The image will be optimized on next cache access or background task
             ImageCacheService._queue_for_optimization(player_id, player.profile_picture_url)
-            ImageCacheService.optimize_player_image(player_id, force_refresh=force_refresh)
+            logger.info(f"Queued player {player_id} image for later optimization (async unavailable)")
+            return False
+        return False
     except Exception as e:
         logger.error(f"Failed to handle image update for player {player_id}: {e}")
+        return False

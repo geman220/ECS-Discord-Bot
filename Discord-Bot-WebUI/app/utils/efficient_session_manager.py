@@ -13,7 +13,7 @@ class UserAuthData:
     Lightweight user data structure for authentication without SQLAlchemy relationships.
     This avoids DetachedInstanceError while providing all needed auth data.
     """
-    def __init__(self, id, username, is_active, roles, player_id=None, player_name=None, 
+    def __init__(self, id, username, is_active, roles, player_id=None, player_name=None,
                  has_completed_onboarding=False, has_skipped_profile_creation=False):
         self.id = id
         self.username = username
@@ -25,16 +25,46 @@ class UserAuthData:
         self.player_name = player_name
         self.has_completed_onboarding = has_completed_onboarding
         self.has_skipped_profile_creation = has_skipped_profile_creation
-    
+
     def has_role(self, role_name):
         return role_name.lower() in [r.lower() for r in self.roles]
-    
+
     def has_permission(self, permission_name):
         # For now, simplified permission check
         return self.has_role('admin') or self.has_role('global admin')
-    
+
     def get_id(self):
         return str(self.id)
+
+    def to_json(self) -> str:
+        """Serialize to JSON string for Redis caching."""
+        import json
+        return json.dumps({
+            'id': self.id,
+            'username': self.username,
+            'is_active': self.is_active,
+            'roles': self.roles,
+            'player_id': self.player_id,
+            'player_name': self.player_name,
+            'has_completed_onboarding': self.has_completed_onboarding,
+            'has_skipped_profile_creation': self.has_skipped_profile_creation
+        })
+
+    @classmethod
+    def from_json(cls, json_str: str) -> 'UserAuthData':
+        """Deserialize from JSON string (Redis cache)."""
+        import json
+        data = json.loads(json_str)
+        return cls(
+            id=data['id'],
+            username=data['username'],
+            is_active=data['is_active'],
+            roles=data['roles'],
+            player_id=data.get('player_id'),
+            player_name=data.get('player_name'),
+            has_completed_onboarding=data.get('has_completed_onboarding', False),
+            has_skipped_profile_creation=data.get('has_skipped_profile_creation', False)
+        )
 
 
 class MatchData:
@@ -115,29 +145,95 @@ class EfficientQuery:
     """
     Helper class for common query patterns with optimal session usage.
     """
-    
+
+    # Redis cache TTL for user auth data (seconds)
+    USER_CACHE_TTL = 60
+
+    @staticmethod
+    def _get_redis_service():
+        """Get Redis service, returning None if unavailable."""
+        try:
+            from app.services.redis_connection_service import get_redis_service
+            return get_redis_service()
+        except Exception:
+            return None
+
+    @staticmethod
+    def _get_user_from_redis(user_id) -> 'UserAuthData | None':
+        """Try to get cached user from Redis."""
+        redis = EfficientQuery._get_redis_service()
+        if not redis:
+            return None
+
+        cache_key = f"user_auth:{user_id}"
+        try:
+            cached = redis.get(cache_key)
+            if cached:
+                return UserAuthData.from_json(cached)
+        except Exception as e:
+            logger.debug(f"Redis cache miss for user {user_id}: {e}")
+        return None
+
+    @staticmethod
+    def _cache_user_in_redis(user_id, user_data: 'UserAuthData') -> None:
+        """Cache user auth data in Redis with TTL."""
+        redis = EfficientQuery._get_redis_service()
+        if not redis or not user_data:
+            return
+
+        cache_key = f"user_auth:{user_id}"
+        try:
+            redis.setex(cache_key, EfficientQuery.USER_CACHE_TTL, user_data.to_json())
+        except Exception as e:
+            # Don't fail if caching fails - just log and continue
+            logger.debug(f"Failed to cache user {user_id} in Redis: {e}")
+
+    @staticmethod
+    def invalidate_user_cache(user_id) -> None:
+        """Invalidate cached user data (call when user is updated)."""
+        redis = EfficientQuery._get_redis_service()
+        if not redis:
+            return
+
+        cache_key = f"user_auth:{user_id}"
+        try:
+            redis.execute_command('DELETE', cache_key)
+        except Exception as e:
+            logger.debug(f"Failed to invalidate user cache for {user_id}: {e}")
+
     @staticmethod
     def get_user_for_auth(user_id):
         """
         Optimized user loading for authentication.
         Returns a lightweight user object with only essential data loaded.
+
+        Caching layers (checked in order):
+        1. Redis cache (60s TTL) - fastest, cross-request
+        2. Database query with request session or managed session
+
         Uses Flask request session when available to prevent session conflicts.
         """
         from app.models import User, Role, Player
         from sqlalchemy.orm import selectinload
         from flask import g, has_request_context
-        
+
+        # Check Redis cache first (fastest path)
+        cached_user = EfficientQuery._get_user_from_redis(user_id)
+        if cached_user is not None:
+            return cached_user
+
         # Use Flask's request session if available to prevent session conflicts
+        user_data = None
         if has_request_context() and hasattr(g, 'db_session'):
             session = g.db_session
             user = session.query(User).options(
                 selectinload(User.roles),
                 selectinload(User.player)
             ).get(int(user_id))
-            
+
             if user:
                 # Create a minimal data structure to avoid DetachedInstanceError
-                return UserAuthData(
+                user_data = UserAuthData(
                     id=user.id,
                     username=user.username,
                     is_active=user.is_active,
@@ -147,7 +243,6 @@ class EfficientQuery:
                     has_completed_onboarding=user.has_completed_onboarding,
                     has_skipped_profile_creation=user.has_skipped_profile_creation
                 )
-            return None
         else:
             # Fallback to managed_session for non-request contexts (like Celery)
             with query_session() as session:
@@ -155,10 +250,10 @@ class EfficientQuery:
                     selectinload(User.roles),
                     selectinload(User.player)
                 ).get(int(user_id))
-                
+
                 if user:
                     # Create a minimal data structure instead of detaching
-                    return UserAuthData(
+                    user_data = UserAuthData(
                         id=user.id,
                         username=user.username,
                         is_active=user.is_active,
@@ -168,7 +263,12 @@ class EfficientQuery:
                         has_completed_onboarding=user.has_completed_onboarding,
                         has_skipped_profile_creation=user.has_skipped_profile_creation
                     )
-                return None
+
+        # Cache in Redis for future requests
+        if user_data:
+            EfficientQuery._cache_user_in_redis(user_id, user_data)
+
+        return user_data
     
     @staticmethod
     def get_player_profile(player_id):
