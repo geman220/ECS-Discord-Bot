@@ -288,6 +288,42 @@ def _init_teardown_handlers(app):
 
     @app.teardown_appcontext
     def teardown_appcontext(exception):
-        # DO NOT cleanup Redis connections here - this runs after every request!
-        # Only cleanup database sessions here if needed.
-        pass
+        """
+        Clean up database session at the end of each request.
+
+        This is CRITICAL to prevent idle transactions from accumulating
+        and holding locks on database rows.
+        """
+        # Clean up g.db_session (created by SessionLocal in before_request)
+        if hasattr(g, 'db_session') and g.db_session is not None:
+            try:
+                if exception:
+                    # If there was an exception, rollback any uncommitted changes
+                    g.db_session.rollback()
+                    logger.debug("Rolled back g.db_session due to exception")
+                else:
+                    # No exception - commit if there are pending changes
+                    # Note: Most routes should already commit via @transactional,
+                    # but this catches any stragglers
+                    try:
+                        g.db_session.commit()
+                    except Exception as commit_error:
+                        logger.warning(f"Commit failed in teardown, rolling back: {commit_error}")
+                        g.db_session.rollback()
+            except Exception as e:
+                logger.warning(f"Error during session cleanup: {e}")
+            finally:
+                try:
+                    g.db_session.close()
+                    logger.debug("Closed g.db_session")
+                except Exception as close_error:
+                    logger.warning(f"Error closing session: {close_error}")
+                g.db_session = None
+
+        # Also ensure Flask-SQLAlchemy's scoped session is cleaned up
+        # (This should happen automatically, but being explicit doesn't hurt)
+        try:
+            from app.core import db
+            db.session.remove()
+        except Exception:
+            pass
