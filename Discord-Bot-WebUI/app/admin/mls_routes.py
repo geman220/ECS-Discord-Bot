@@ -1,15 +1,34 @@
 # app/admin/mls_routes.py
 
 """
-MLS Match Management Routes
+[DEPRECATED - Use app/admin_panel/routes/mls_management.py instead]
 
-This module contains routes for MLS match scheduling, thread creation,
-and live reporting management.
+MLS Match Management Routes (Legacy)
+
+WARNING: This module is deprecated and should NOT be used for new features.
+The new implementation is in app/admin_panel/routes/mls_management.py which provides:
+- Modern Flowbite UI templates
+- Event delegation pattern for JavaScript
+- Enhanced task monitoring with pause/resume
+- Match editing and manual creation
+- Configurable settings via MLS settings page
+- Better error visibility and debugging tools
+
+This legacy module uses the old admin blueprint and Bootstrap templates.
+It is kept for backwards compatibility but will be removed in a future release.
 """
 
+import warnings
 import logging
 from datetime import datetime, timedelta
 from flask import render_template, request, jsonify, redirect, url_for, g
+
+# Runtime deprecation warning
+warnings.warn(
+    "app.admin.mls_routes is deprecated. Use app.admin_panel.routes.mls_management instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 from flask_login import login_required
 from app.decorators import role_required
 from app.models import MLSMatch

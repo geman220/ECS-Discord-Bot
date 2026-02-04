@@ -54,6 +54,41 @@
     </div>
 </div>
 
+<!-- Failed Tasks Alert Banner -->
+{% if stats.failed_tasks > 0 %}
+<div class="p-4 mb-6 text-red-800 border border-red-300 rounded-lg bg-red-50 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800" role="alert">
+    <div class="flex items-center">
+        <i class="ti ti-alert-triangle text-xl mr-3"></i>
+        <h3 class="text-lg font-medium">{{ stats.failed_tasks }} Failed Task{{ 's' if stats.failed_tasks != 1 else '' }} Require{{ '' if stats.failed_tasks != 1 else 's' }} Attention</h3>
+    </div>
+    <div class="mt-2 mb-4 text-sm">
+        {% if failed_tasks %}
+        <p class="mb-2">Recent failures:</p>
+        <ul class="mt-1.5 list-disc list-inside space-y-1">
+            {% for task in failed_tasks %}
+            <li>
+                <span class="font-medium">{{ task.task_type }}</span> for match #{{ task.match_id }}
+                {% if task.last_error %}
+                    - {{ task.last_error[:80] }}{% if task.last_error|length > 80 %}...{% endif %}
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>Tasks have failed and may need to be retried or investigated.</p>
+        {% endif %}
+    </div>
+    <div class="flex gap-2">
+        <a href="{{ url_for('admin_panel.mls_task_monitoring') }}?state=failed" class="text-white bg-red-800 hover:bg-red-900 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800">
+            <i class="ti ti-eye mr-1"></i>View Failed Tasks
+        </a>
+        <button type="button" class="text-red-800 bg-transparent border border-red-800 hover:bg-red-900 hover:text-white focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-xs px-3 py-1.5 dark:hover:bg-red-600 dark:border-red-600 dark:text-red-500 dark:hover:text-white dark:focus:ring-red-800" data-dismiss-target="[role='alert']" aria-label="Dismiss">
+            Dismiss
+        </button>
+    </div>
+</div>
+{% endif %}
+
 <!-- Quick Actions -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">

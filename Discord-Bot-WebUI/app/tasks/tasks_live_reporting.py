@@ -25,10 +25,18 @@ Tasks leverage async HTTP calls to ESPN and Discord APIs, and update the live
 reporting status on MLSMatch objects.
 """
 
+import warnings
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 import asyncio
+
+# Runtime deprecation warning
+warnings.warn(
+    "tasks_live_reporting is deprecated. Use tasks_robust_live_reporting instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 from flask import current_app, g
 from sqlalchemy.exc import SQLAlchemyError
 from app.core import socketio

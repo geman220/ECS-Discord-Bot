@@ -24,6 +24,7 @@ class TaskState(str, Enum):
     COMPLETED = 'completed'
     FAILED = 'failed'
     EXPIRED = 'expired'
+    PAUSED = 'paused'
 
 
 class ScheduledTask(db.Model):
@@ -50,6 +51,7 @@ class ScheduledTask(db.Model):
     state = db.Column(db.String(20), nullable=False, default=TaskState.SCHEDULED, index=True)
     retry_count = db.Column(db.Integer, default=0)
     last_error = db.Column(db.Text)
+    paused_celery_task_id = db.Column(db.String(100))  # Store original task ID when paused
 
     # Metadata
     created_at = db.Column(db.DateTime(timezone=True), default=datetime.utcnow)
@@ -127,6 +129,25 @@ class ScheduledTask(db.Model):
     def mark_expired(self):
         """Mark task as expired (scheduled time passed without execution)."""
         self.state = TaskState.EXPIRED
+
+    def mark_paused(self):
+        """
+        Mark task as paused.
+        Stores the current celery task ID so it can be revoked,
+        and preserves the scheduled time for potential resume.
+        """
+        self.paused_celery_task_id = self.celery_task_id
+        self.celery_task_id = None
+        self.state = TaskState.PAUSED
+
+    def mark_resumed(self, new_celery_task_id):
+        """
+        Mark task as resumed (back to scheduled).
+        Sets a new celery task ID for the rescheduled task.
+        """
+        self.celery_task_id = new_celery_task_id
+        self.paused_celery_task_id = None
+        self.state = TaskState.SCHEDULED
 
     def to_dict(self):
         """Convert to dictionary for JSON serialization."""

@@ -1,0 +1,234 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}MLS Settings{% endblock %}
+{% block panel_description %}Configure MLS match scheduling and live reporting settings{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mls_overview') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white">MLS Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Settings</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<form id="mls-settings-form">
+    <!-- Scheduling Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-calendar-event mr-2"></i>Scheduling Settings
+            </h5>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Configure when match threads and live reporting are scheduled</p>
+        </div>
+        <div class="p-5 space-y-6">
+            <div>
+                <label for="thread_creation_hours" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Thread Creation (hours before match)
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number" id="thread_creation_hours" name="mls_thread_creation_hours_before"
+                           value="{{ settings.thread_creation_hours_before }}"
+                           min="1" max="168"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">hours before kickoff (1-168)</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-info-circle mr-1"></i>Discord match thread will be created this many hours before the match starts
+                </p>
+            </div>
+
+            <div>
+                <label for="live_reporting_minutes" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Live Reporting Start (minutes before match)
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number" id="live_reporting_minutes" name="mls_live_reporting_minutes_before"
+                           value="{{ settings.live_reporting_minutes_before }}"
+                           min="0" max="60"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">minutes before kickoff (0-60)</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-info-circle mr-1"></i>Live reporting will begin this many minutes before the scheduled kickoff
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Reporting Settings -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-broadcast mr-2"></i>Live Reporting Settings
+            </h5>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Configure live reporting behavior and timeouts</p>
+        </div>
+        <div class="p-5 space-y-6">
+            <div>
+                <label for="reporting_timeout" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Match Timeout (hours)
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number" id="reporting_timeout" name="mls_live_reporting_timeout_hours"
+                           value="{{ settings.live_reporting_timeout_hours }}"
+                           min="1" max="6"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">hours (1-6)</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-info-circle mr-1"></i>Fallback timeout if ESPN doesn't report match as final (matches typically last 2 hours)
+                </p>
+            </div>
+
+            <div>
+                <label for="max_session_duration" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Maximum Session Duration (hours)
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number" id="max_session_duration" name="mls_max_session_duration_hours"
+                           value="{{ settings.max_session_duration_hours }}"
+                           min="2" max="8"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">hours (2-8)</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-info-circle mr-1"></i>Maximum time a live reporting session can run before being marked as stale
+                </p>
+            </div>
+
+            <div>
+                <label for="no_update_timeout" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    No Update Timeout (minutes)
+                </label>
+                <div class="flex items-center gap-3">
+                    <input type="number" id="no_update_timeout" name="mls_no_update_timeout_minutes"
+                           value="{{ settings.no_update_timeout_minutes }}"
+                           min="10" max="120"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-32 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">minutes (10-120)</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-info-circle mr-1"></i>Session will be marked stale if no updates received within this time
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Competitions Reference -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-trophy mr-2"></i>Supported Competitions
+            </h5>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">ESPN competition codes currently supported</p>
+        </div>
+        <div class="p-5">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {% for code, name in competition_mappings.items() %}
+                <div class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <span class="inline-flex items-center justify-center w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full mr-3">
+                        <i class="ti ti-tournament text-blue-600 dark:text-blue-400"></i>
+                    </span>
+                    <div>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ name }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ code }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex items-center justify-between">
+        <a href="{{ url_for('admin_panel.mls_overview') }}" class="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Overview
+        </a>
+        <button type="submit" id="save-settings-btn" class="px-5 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+            <i class="ti ti-device-floppy mr-2"></i>Save Settings
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('mls-settings-form');
+    const saveBtn = document.getElementById('save-settings-btn');
+
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const originalText = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="ti ti-loader mr-2 spin"></i>Saving...';
+        saveBtn.disabled = true;
+
+        // Collect form data
+        const formData = new FormData(form);
+        const data = {};
+        formData.forEach((value, key) => {
+            data[key] = value;
+        });
+
+        try {
+            const response = await fetch('{{ url_for("admin_panel.mls_settings_update") }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrf_token]')?.value || ''
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Show success toast
+                if (window.showToast) {
+                    window.showToast(result.message, 'success');
+                } else {
+                    alert(result.message);
+                }
+
+                // Show warnings if any errors
+                if (result.errors && result.errors.length > 0) {
+                    if (window.showToast) {
+                        window.showToast('Warnings: ' + result.errors.join('; '), 'warning');
+                    }
+                }
+            } else {
+                if (window.showToast) {
+                    window.showToast(result.error || 'Failed to save settings', 'error');
+                } else {
+                    alert(result.error || 'Failed to save settings');
+                }
+            }
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            if (window.showToast) {
+                window.showToast('Network error: ' + error.message, 'error');
+            } else {
+                alert('Network error: ' + error.message);
+            }
+        } finally {
+            saveBtn.innerHTML = originalText;
+            saveBtn.disabled = false;
+        }
+    });
+});
+</script>
+<style>
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+{% endblock %}

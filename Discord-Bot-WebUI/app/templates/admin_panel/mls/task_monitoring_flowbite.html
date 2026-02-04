@@ -189,6 +189,10 @@
                             <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">
                                 <i class="ti ti-clock-off mr-1"></i>Expired
                             </span>
+                            {% elif task.state == 'paused' %}
+                            <span class="px-2.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded dark:bg-purple-900 dark:text-purple-300">
+                                <i class="ti ti-player-pause mr-1"></i>Paused
+                            </span>
                             {% else %}
                             <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">{{ task.state }}</span>
                             {% endif %}
@@ -202,9 +206,18 @@
                         </td>
                         <td class="px-4 py-3">
                             {% if task.last_error %}
-                            <span class="text-xs text-red-600 dark:text-red-400" title="{{ task.last_error }}">
+                            <button type="button" class="text-xs text-red-600 dark:text-red-400 hover:underline cursor-pointer text-left"
+                                    data-modal-target="errorDetailModal"
+                                    data-modal-toggle="errorDetailModal"
+                                    data-action="show-error-detail"
+                                    data-task-id="{{ task.id }}"
+                                    data-task-type="{{ task.task_type }}"
+                                    data-match-name="{{ task.match.opponent if task.match else 'Unknown' }}"
+                                    data-error="{{ task.last_error }}"
+                                    data-updated-at="{{ task.updated_at }}"
+                                    title="Click to view full error">
                                 {{ task.last_error | truncate(40, True, '...') }}
-                            </span>
+                            </button>
                             {% else %}
                             <span class="text-gray-400">-</span>
                             {% endif %}
@@ -216,7 +229,17 @@
                                     <i class="ti ti-reload"></i>
                                 </button>
                                 {% endif %}
-                                {% if task.state in ['scheduled', 'failed'] %}
+                                {% if task.state == 'scheduled' %}
+                                <button onclick="pauseTask({{ task.id }})" class="p-1.5 text-purple-600 hover:bg-purple-100 rounded dark:text-purple-400 dark:hover:bg-gray-700" title="Pause Task">
+                                    <i class="ti ti-player-pause"></i>
+                                </button>
+                                {% endif %}
+                                {% if task.state == 'paused' %}
+                                <button onclick="resumeTask({{ task.id }})" class="p-1.5 text-green-600 hover:bg-green-100 rounded dark:text-green-400 dark:hover:bg-gray-700" title="Resume Task">
+                                    <i class="ti ti-player-play"></i>
+                                </button>
+                                {% endif %}
+                                {% if task.state in ['scheduled', 'failed', 'paused'] %}
                                 <button onclick="expireTask({{ task.id }})" class="p-1.5 text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700" title="Expire Task">
                                     <i class="ti ti-clock-off"></i>
                                 </button>
@@ -243,9 +266,58 @@
     </div>
 </div>
 
+<!-- Error Detail Modal -->
+<div id="errorDetailModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-alert-circle text-red-500 mr-2"></i>Error Details
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="errorDetailModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Task ID</span>
+                        <p class="text-gray-900 dark:text-white font-mono" id="errorTaskId">-</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Task Type</span>
+                        <p class="text-gray-900 dark:text-white" id="errorTaskType">-</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Match</span>
+                        <p class="text-gray-900 dark:text-white" id="errorMatchName">-</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Timestamp</span>
+                        <p class="text-gray-900 dark:text-white" id="errorTimestamp">-</p>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Full Error Message</span>
+                    <pre class="mt-2 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200 overflow-x-auto whitespace-pre-wrap break-words max-h-64 overflow-y-auto" id="errorFullMessage">-</pre>
+                </div>
+            </div>
+            <div class="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-600 gap-2">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700" data-modal-hide="errorDetailModal">
+                    Close
+                </button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700" id="errorRetryBtn">
+                    <i class="ti ti-reload mr-1"></i>Retry Task
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
 let autoRefresh = true;
 let refreshInterval;
+let currentErrorTaskId = null;
 
 function toggleAutoRefresh() {
     autoRefresh = !autoRefresh;
@@ -275,7 +347,7 @@ function stopAutoRefresh() {
 
 function retryTask(taskId) {
     const isDark = document.documentElement.classList.contains('dark');
-    fetch(`/admin-panel/mls/tasks/${taskId}/retry`, {
+    fetch(`/admin-panel/mls/task/${taskId}/retry`, {
         method: 'POST',
         headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
     })
@@ -303,7 +375,7 @@ function expireTask(taskId) {
         color: isDark ? '#f3f4f6' : '#111827'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch(`/admin-panel/mls/tasks/${taskId}/expire`, {
+            fetch(`/admin-panel/mls/task/${taskId}/expire`, {
                 method: 'POST',
                 headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
             })
@@ -314,6 +386,83 @@ function expireTask(taskId) {
         }
     });
 }
+
+function pauseTask(taskId) {
+    const isDark = document.documentElement.classList.contains('dark');
+    Swal.fire({
+        title: 'Pause Task?',
+        text: 'This will pause the scheduled task. You can resume it later.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Pause',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/admin-panel/mls/task/${taskId}/pause`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.fire({
+                    title: data.success ? 'Paused' : 'Error',
+                    text: data.message || (data.success ? 'Task paused successfully' : 'Failed to pause task'),
+                    icon: data.success ? 'success' : 'error',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => { if (data.success) location.reload(); });
+            });
+        }
+    });
+}
+
+function resumeTask(taskId) {
+    const isDark = document.documentElement.classList.contains('dark');
+    fetch(`/admin-panel/mls/task/${taskId}/resume`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+    })
+    .then(response => response.json())
+    .then(data => {
+        Swal.fire({
+            title: data.success ? 'Resumed' : 'Error',
+            text: data.message || (data.success ? 'Task resumed successfully' : 'Failed to resume task'),
+            icon: data.success ? 'success' : 'error',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        }).then(() => { if (data.success) location.reload(); });
+    });
+}
+
+// Error detail modal handler
+document.addEventListener('click', function(e) {
+    const target = e.target.closest('[data-action="show-error-detail"]');
+    if (target) {
+        currentErrorTaskId = target.dataset.taskId;
+        document.getElementById('errorTaskId').textContent = '#' + target.dataset.taskId;
+        document.getElementById('errorTaskType').textContent = target.dataset.taskType === 'thread_creation' ? 'Thread Creation' :
+            target.dataset.taskType === 'live_reporting_start' ? 'Live Reporting Start' : target.dataset.taskType;
+        document.getElementById('errorMatchName').textContent = target.dataset.matchName;
+        document.getElementById('errorTimestamp').textContent = target.dataset.updatedAt ? target.dataset.updatedAt.replace('T', ' ').replace('Z', '') : '-';
+        document.getElementById('errorFullMessage').textContent = target.dataset.error || 'No error message available';
+    }
+});
+
+// Error modal retry button
+document.getElementById('errorRetryBtn')?.addEventListener('click', function() {
+    if (currentErrorTaskId) {
+        // Close the modal
+        const modal = document.getElementById('errorDetailModal');
+        if (modal._flowbiteModal) modal._flowbiteModal.hide();
+        else {
+            const closeBtn = modal.querySelector('[data-modal-hide]');
+            if (closeBtn) closeBtn.click();
+        }
+        // Retry the task
+        retryTask(currentErrorTaskId);
+    }
+});
 
 // Start auto-refresh on load
 startAutoRefresh();

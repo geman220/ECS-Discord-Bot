@@ -1,17 +1,38 @@
 # app/tasks/tasks_live_reporting_v2.py
 
 """
-Live Reporting Tasks V2 - Real-Time Match Updates
+[DEPRECATED - Use tasks_robust_live_reporting.py instead]
 
+Live Reporting Tasks V2 - Real-Time Match Updates (Legacy Fallback)
+
+WARNING: This module is deprecated and serves only as a fallback.
+The primary implementation is in app/tasks/tasks_robust_live_reporting.py which provides:
+- Database-backed persistence via ScheduledTask model
+- Better session health monitoring via LiveReportingSession
+- Configurable timeouts via AdminConfig settings
+- Integration with the new match_scheduler.py
+
+This V2 module may still be invoked as a fallback for legacy sessions,
+but all new sessions should use the robust implementation.
+
+Original description:
 Optimized for real-time live match reporting with efficient ESPN API polling.
 Checks every 10-30 seconds during live matches for near real-time updates.
 """
 
+import warnings
 import logging
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import time
 import pytz
+
+# Runtime deprecation warning
+warnings.warn(
+    "tasks_live_reporting_v2 is deprecated. Use tasks_robust_live_reporting instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from app.decorators import celery_task
 from app.utils.task_session_manager import task_session

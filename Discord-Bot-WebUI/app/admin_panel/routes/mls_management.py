@@ -73,6 +73,7 @@ def get_status_display(status):
 @role_required(['Global Admin', 'Discord Admin', 'Pub League Admin'])
 def mls_overview():
     """MLS match management overview dashboard."""
+    from app.models import ScheduledTask, TaskState
     session = g.db_session
     try:
         now = datetime.now(pytz.UTC)
@@ -84,6 +85,16 @@ def mls_overview():
         finished_matches = session.query(MLSMatch).filter(
             MLSMatch.live_reporting_status.in_([MatchStatus.COMPLETED, MatchStatus.STOPPED])
         ).count()
+
+        # Get failed tasks count for alert banner
+        failed_tasks_count = session.query(ScheduledTask).filter(
+            ScheduledTask.state == TaskState.FAILED.value
+        ).count()
+
+        # Get recent failed tasks for the alert (last 5)
+        recent_failed_tasks = session.query(ScheduledTask).filter(
+            ScheduledTask.state == TaskState.FAILED.value
+        ).order_by(ScheduledTask.updated_at.desc()).limit(5).all()
 
         # Get recent and upcoming matches for quick view
         recent_cutoff = now - timedelta(days=3)
@@ -104,12 +115,14 @@ def mls_overview():
             'total_matches': total_matches,
             'upcoming_matches': upcoming_matches,
             'live_matches': live_matches,
-            'finished_matches': finished_matches
+            'finished_matches': finished_matches,
+            'failed_tasks': failed_tasks_count
         }
 
         return render_template('admin_panel/mls/overview_flowbite.html',
                              stats=stats,
                              matches=visible_matches,
+                             failed_tasks=recent_failed_tasks,
                              competition_mappings=COMPETITION_MAPPINGS)
     except Exception as e:
         logger.error(f"Error loading MLS overview: {e}")
@@ -1247,6 +1260,163 @@ def task_expire(task_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@admin_panel_bp.route('/mls/task/<int:task_id>/pause', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def task_pause(task_id):
+    """Pause a scheduled task by revoking its Celery task."""
+    from app.models import ScheduledTask, TaskState
+    from app.celery_config import celery
+
+    session = g.db_session
+
+    try:
+        task = session.query(ScheduledTask).get(task_id)
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+
+        # Only scheduled tasks can be paused
+        if task.state != TaskState.SCHEDULED.value:
+            return jsonify({
+                'success': False,
+                'error': f'Cannot pause task in state: {task.state}. Only scheduled tasks can be paused.'
+            }), 400
+
+        # Revoke the Celery task if it exists
+        if task.celery_task_id:
+            try:
+                celery.control.revoke(task.celery_task_id, terminate=False)
+                logger.info(f"Revoked Celery task {task.celery_task_id} for pausing")
+            except Exception as revoke_error:
+                logger.warning(f"Could not revoke Celery task {task.celery_task_id}: {revoke_error}")
+
+        # Mark task as paused (stores original celery_task_id)
+        task.mark_paused()
+        session.commit()
+
+        # Log action
+        AdminAuditLog.log_action(
+            session,
+            current_user.id,
+            'task_pause',
+            f"Paused task {task_id} for match {task.match_id}",
+            {'task_id': task_id, 'task_type': task.task_type, 'match_id': task.match_id}
+        )
+
+        logger.info(f"Task {task_id} paused by {current_user.username}")
+
+        return jsonify({
+            'success': True,
+            'message': 'Task paused successfully'
+        })
+
+    except Exception as e:
+        logger.error(f"Error pausing task {task_id}: {e}", exc_info=True)
+        session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/mls/task/<int:task_id>/resume', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def task_resume(task_id):
+    """Resume a paused task by rescheduling it with Celery."""
+    from app.models import ScheduledTask, TaskState, TaskType
+    from app.tasks.match_scheduler import (
+        create_mls_match_thread_task,
+        start_mls_live_reporting_task
+    )
+
+    session = g.db_session
+
+    try:
+        task = session.query(ScheduledTask).get(task_id)
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+
+        # Only paused tasks can be resumed
+        if task.state != TaskState.PAUSED.value:
+            return jsonify({
+                'success': False,
+                'error': f'Cannot resume task in state: {task.state}. Only paused tasks can be resumed.'
+            }), 400
+
+        now = datetime.now(pytz.UTC)
+        scheduled_time = task.scheduled_time
+
+        # Determine if scheduled time has passed
+        if scheduled_time.tzinfo is None:
+            scheduled_time = pytz.UTC.localize(scheduled_time)
+
+        time_passed = now >= scheduled_time
+
+        # Schedule the task based on type
+        if task.task_type == TaskType.THREAD_CREATION.value:
+            if time_passed:
+                # Execute immediately
+                celery_task = create_mls_match_thread_task.apply_async(args=[task.match_id])
+            else:
+                # Schedule for original time
+                celery_task = create_mls_match_thread_task.apply_async(
+                    args=[task.match_id],
+                    eta=scheduled_time
+                )
+        elif task.task_type == TaskType.LIVE_REPORTING_START.value:
+            if time_passed:
+                # Execute immediately
+                celery_task = start_mls_live_reporting_task.apply_async(args=[task.match_id])
+            else:
+                # Schedule for original time
+                celery_task = start_mls_live_reporting_task.apply_async(
+                    args=[task.match_id],
+                    eta=scheduled_time
+                )
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Unknown task type: {task.task_type}'
+            }), 400
+
+        # Mark task as resumed with new Celery task ID
+        task.mark_resumed(celery_task.id)
+        session.commit()
+
+        # Build message based on timing
+        if time_passed:
+            message = f'Task resumed and executing immediately (scheduled time passed)'
+        else:
+            message = f'Task resumed and scheduled for {scheduled_time.strftime("%Y-%m-%d %H:%M %Z")}'
+
+        # Log action
+        AdminAuditLog.log_action(
+            session,
+            current_user.id,
+            'task_resume',
+            f"Resumed task {task_id} for match {task.match_id}",
+            {
+                'task_id': task_id,
+                'task_type': task.task_type,
+                'match_id': task.match_id,
+                'immediate': time_passed,
+                'new_celery_task_id': celery_task.id
+            }
+        )
+
+        logger.info(f"Task {task_id} resumed by {current_user.username}, new Celery ID: {celery_task.id}")
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'celery_task_id': celery_task.id,
+            'immediate': time_passed
+        })
+
+    except Exception as e:
+        logger.error(f"Error resuming task {task_id}: {e}", exc_info=True)
+        session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @admin_panel_bp.route('/mls/match/<int:match_id>/debug')
 @login_required
 @role_required(['Global Admin', 'Discord Admin'])
@@ -1514,3 +1684,126 @@ def mls_cancel_task():
             'success': False,
             'error': f'Failed to cancel task: {str(e)}'
         }), 500
+
+
+# -----------------------------------------------------------
+# MLS Settings Routes
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/mls/settings')
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_settings():
+    """MLS settings configuration page."""
+    from app.models.admin_config import AdminConfig
+
+    session = g.db_session
+
+    # Get all MLS-related settings
+    settings = {
+        'thread_creation_hours_before': AdminConfig.get_value(
+            session, 'mls_thread_creation_hours_before', '48'
+        ),
+        'live_reporting_minutes_before': AdminConfig.get_value(
+            session, 'mls_live_reporting_minutes_before', '5'
+        ),
+        'live_reporting_timeout_hours': AdminConfig.get_value(
+            session, 'mls_live_reporting_timeout_hours', '3'
+        ),
+        'max_session_duration_hours': AdminConfig.get_value(
+            session, 'mls_max_session_duration_hours', '4'
+        ),
+        'no_update_timeout_minutes': AdminConfig.get_value(
+            session, 'mls_no_update_timeout_minutes', '30'
+        )
+    }
+
+    return render_template(
+        'admin_panel/mls/settings_flowbite.html',
+        settings=settings,
+        competition_mappings=COMPETITION_MAPPINGS
+    )
+
+
+@admin_panel_bp.route('/mls/settings/update', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_settings_update():
+    """Update MLS configuration settings."""
+    from app.models.admin_config import AdminConfig
+
+    session = g.db_session
+
+    try:
+        data = request.get_json() or {}
+
+        # Define valid settings and their validation rules
+        valid_settings = {
+            'mls_thread_creation_hours_before': {'min': 1, 'max': 168, 'type': 'integer'},  # 1h to 7 days
+            'mls_live_reporting_minutes_before': {'min': 0, 'max': 60, 'type': 'integer'},  # 0 to 60 min
+            'mls_live_reporting_timeout_hours': {'min': 1, 'max': 6, 'type': 'integer'},    # 1 to 6 hours
+            'mls_max_session_duration_hours': {'min': 2, 'max': 8, 'type': 'integer'},      # 2 to 8 hours
+            'mls_no_update_timeout_minutes': {'min': 10, 'max': 120, 'type': 'integer'}     # 10 to 120 min
+        }
+
+        updated_settings = []
+        errors = []
+
+        for key, value in data.items():
+            if key not in valid_settings:
+                errors.append(f"Unknown setting: {key}")
+                continue
+
+            rules = valid_settings[key]
+
+            # Type validation
+            try:
+                if rules['type'] == 'integer':
+                    value = int(value)
+            except (ValueError, TypeError):
+                errors.append(f"Invalid value for {key}: must be a number")
+                continue
+
+            # Range validation
+            if value < rules['min'] or value > rules['max']:
+                errors.append(f"Invalid value for {key}: must be between {rules['min']} and {rules['max']}")
+                continue
+
+            # Update the setting
+            AdminConfig.set_value(session, key, str(value), category='mls', data_type='integer')
+            updated_settings.append(key)
+
+        if errors and not updated_settings:
+            return jsonify({
+                'success': False,
+                'error': '; '.join(errors)
+            }), 400
+
+        session.commit()
+
+        # Log action
+        AdminAuditLog.log_action(
+            session,
+            current_user.id,
+            'mls_settings_update',
+            f"Updated MLS settings: {', '.join(updated_settings)}",
+            {'settings': data, 'updated': updated_settings, 'errors': errors}
+        )
+
+        logger.info(f"MLS settings updated by {current_user.username}: {updated_settings}")
+
+        message = f"Updated {len(updated_settings)} setting(s)"
+        if errors:
+            message += f" ({len(errors)} error(s))"
+
+        return jsonify({
+            'success': True,
+            'message': message,
+            'updated': updated_settings,
+            'errors': errors
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating MLS settings: {e}", exc_info=True)
+        session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
