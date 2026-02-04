@@ -27,7 +27,7 @@ from app.models import (
     League, Player, Team, Season, PlayerSeasonStats, PlayerCareerStats,
     Match, PlayerEvent, player_teams, player_league, Availability,
     PlayerTeamHistory, Schedule, PlayerAttendanceStats, PlayerImageCache,
-    DraftOrderHistory
+    DraftOrderHistory, PlayerTeamSeason
 )
 from app.attendance_service import AttendanceService
 from app.image_cache_service import ImageCacheService
@@ -1451,7 +1451,16 @@ def api_draft_player():
         team.players.append(player)
         player.primary_team_id = team_id
         logger.info(f"Set {player.name}'s primary team to {team.name} (ID: {team_id})")
-        
+
+        # Create PlayerTeamSeason record for current season
+        player_team_season = PlayerTeamSeason(
+            player_id=player_id,
+            team_id=team_id,
+            season_id=league.season_id
+        )
+        session.add(player_team_season)
+        logger.info(f"Created PlayerTeamSeason record for {player.name} to {team.name} in season {league.season_id}")
+
         # Record the draft pick in history
         try:
             draft_position = DraftService.record_draft_pick(

@@ -23,7 +23,7 @@ try:
 except ImportError:
     PANDAS_AVAILABLE = False
 
-from app.models import User, Role, Player, League, Season, Team, user_roles
+from app.models import User, Role, Player, League, Season, Team, user_roles, PlayerTeamSeason
 from app.forms import EditUserForm, CreateUserForm, FilterUsersForm
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.tasks.player_sync import sync_players_with_woocommerce
@@ -459,6 +459,15 @@ def create_user():
                     session.flush()  # Ensure player has an ID
                     add_player_to_team(player, team, session)
                     player.primary_team_id = team.id
+
+                    # Create PlayerTeamSeason record for current season
+                    if team.league and team.league.season_id:
+                        player_team_season = PlayerTeamSeason(
+                            player_id=player.id,
+                            team_id=team.id,
+                            season_id=team.league.season_id
+                        )
+                        session.add(player_team_season)
 
             session.add(player)
 

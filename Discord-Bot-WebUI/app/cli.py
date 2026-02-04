@@ -363,3 +363,91 @@ def add_user_roles_constraint():
         db.session.rollback()
         click.echo(f"Error adding constraint: {e}")
         raise
+
+
+@click.command()
+@click.option('--dry-run', is_flag=True, help='Preview changes without updating database')
+@with_appcontext
+def sync_profile_pictures(dry_run):
+    """
+    Sync profile pictures from filesystem to database.
+
+    Scans the profile_pictures directory, parses player IDs from filenames,
+    and updates profile_picture_url for players whose pictures exist on disk
+    but aren't recorded in the database.
+    """
+    import os
+    import re
+    from app.core import db
+    from app.models import Player
+
+    click.echo("Scanning profile pictures directory...")
+
+    # Path to profile pictures
+    profile_pics_dir = os.path.join(current_app.root_path, 'static/img/uploads/profile_pictures')
+
+    if not os.path.exists(profile_pics_dir):
+        click.echo(f"Profile pictures directory not found: {profile_pics_dir}")
+        return
+
+    # Get all PNG files
+    files = [f for f in os.listdir(profile_pics_dir) if f.endswith('.png')]
+    click.echo(f"Found {len(files)} image files")
+
+    # Pattern to extract player ID from filename (last number before .png)
+    # Handles: Name_Name_123.png, name_123.png, etc.
+    pattern = re.compile(r'_(\d+)\.png$')
+
+    updated_count = 0
+    skipped_count = 0
+    not_found_count = 0
+    already_set_count = 0
+
+    for filename in sorted(files):
+        match = pattern.search(filename)
+        if not match:
+            click.echo(f"  Skipping (can't parse ID): {filename}")
+            skipped_count += 1
+            continue
+
+        player_id = int(match.group(1))
+        relative_url = f"/static/img/uploads/profile_pictures/{filename}"
+
+        player = db.session.query(Player).get(player_id)
+        if not player:
+            click.echo(f"  Player ID {player_id} not found in database (file: {filename})")
+            not_found_count += 1
+            continue
+
+        # Check if already set correctly
+        if player.profile_picture_url == relative_url:
+            already_set_count += 1
+            continue
+
+        # Check if set to something different or NULL
+        if player.profile_picture_url and player.profile_picture_url != relative_url:
+            click.echo(f"  {player.name} (ID {player_id}): DB has different URL")
+            click.echo(f"    DB:   {player.profile_picture_url}")
+            click.echo(f"    File: {relative_url}")
+
+        click.echo(f"  Updating: {player.name} (ID {player_id}) -> {filename}")
+
+        if not dry_run:
+            player.profile_picture_url = relative_url
+            updated_count += 1
+        else:
+            updated_count += 1
+
+    if not dry_run and updated_count > 0:
+        db.session.commit()
+        click.echo(f"\nCommitted {updated_count} updates to database")
+
+    click.echo(f"\n--- Summary ---")
+    click.echo(f"Files scanned: {len(files)}")
+    click.echo(f"Already correct: {already_set_count}")
+    click.echo(f"{'Would update' if dry_run else 'Updated'}: {updated_count}")
+    click.echo(f"Player not found: {not_found_count}")
+    click.echo(f"Skipped (bad format): {skipped_count}")
+
+    if dry_run:
+        click.echo("\n(Dry run - no changes made. Remove --dry-run to apply.)")

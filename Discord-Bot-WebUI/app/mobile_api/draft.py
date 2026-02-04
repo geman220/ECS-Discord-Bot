@@ -23,7 +23,7 @@ from app.decorators import jwt_role_required
 from app.core.session_manager import managed_session
 from app.models import (
     User, Player, Team, League, Season,
-    player_teams, player_league, DraftOrderHistory
+    player_teams, player_league, DraftOrderHistory, PlayerTeamSeason
 )
 from app.draft_enhanced import DraftService
 from app.draft_cache_service import DraftCacheService
@@ -495,6 +495,15 @@ def draft_player(league_name: str):
         # Add player to team
         team.players.append(player)
         player.primary_team_id = team_id
+
+        # Create PlayerTeamSeason record for current season
+        player_team_season = PlayerTeamSeason(
+            player_id=player_id,
+            team_id=team_id,
+            season_id=league.season_id
+        )
+        session.add(player_team_season)
+        logger.info(f"Created PlayerTeamSeason record for {player.name} to {team.name} in season {league.season_id}")
 
         # Record draft pick
         try:

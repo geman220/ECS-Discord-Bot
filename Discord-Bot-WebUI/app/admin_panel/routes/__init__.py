@@ -81,6 +81,9 @@ def register_all_routes(admin_panel_bp):
     # Phase 8: Quick Profiles (Tryout Players)
     from . import quick_profiles
 
+    # Phase 9: Coach Dashboard (Admin view of all team dashboards)
+    from . import coach_dashboard
+
     # All routes are automatically registered when modules are imported
     # due to the @admin_panel_bp.route decorators
     pass

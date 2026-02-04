@@ -110,9 +110,9 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
         
         profile_path = f"/static/img/uploads/profile_pictures/{filename}"
 
-        player.profile_picture = profile_path
+        player.profile_picture_url = profile_path
         logger.info(f"Profile picture saved for player {player_id}: {filename}")
-        return player.profile_picture
+        return profile_path
 
     except ValueError as e:
         logger.warning(f"Image validation failed for player {player_id}: {str(e)}")

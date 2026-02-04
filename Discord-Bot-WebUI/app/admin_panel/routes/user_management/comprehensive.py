@@ -23,7 +23,7 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.models.core import User, Role, League
 from app.models import Player, Team, Season
-from app.models.players import PlayerTeamHistory
+from app.models.players import PlayerTeamHistory, PlayerTeamSeason
 from app.models.ecs_fc import is_ecs_fc_team
 from app.decorators import role_required
 from app.utils.db_utils import transactional
@@ -483,7 +483,15 @@ def edit_user_comprehensive(user_id):
                                 is_coach=user.player.is_coach
                             )
                             db.session.add(team_history)
-                            logger.info(f"Added player {user.player.id} to team {team_id} (with history record)")
+                            # Create PlayerTeamSeason record for current season
+                            if team_to_add.league and team_to_add.league.season_id:
+                                player_team_season = PlayerTeamSeason(
+                                    player_id=user.player.id,
+                                    team_id=team_id,
+                                    season_id=team_to_add.league.season_id
+                                )
+                                db.session.add(player_team_season)
+                            logger.info(f"Added player {user.player.id} to team {team_id} (with history and season records)")
 
             # Update roles - including auto league-to-role mapping
             if role_ids:
