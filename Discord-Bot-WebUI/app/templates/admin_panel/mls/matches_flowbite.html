@@ -26,6 +26,9 @@
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Match Management</h5>
             <div class="flex flex-wrap gap-2">
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600" data-modal-target="createMatchModal" data-modal-toggle="createMatchModal">
+                    <i class="ti ti-plus mr-2"></i>Create Match
+                </button>
                 <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600" data-action="fetch-espn">
                     <i class="ti ti-download mr-2"></i>Fetch ESPN
                 </button>
@@ -106,6 +109,9 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex flex-wrap gap-1">
+                            <button type="button" class="p-2 text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg js-edit-match" data-modal-target="editMatchModal" data-modal-toggle="editMatchModal" data-action="edit-match" data-match-id="{{ match.id }}" data-opponent="{{ match.opponent }}" data-date-time="{{ match.date_time.isoformat() }}" data-venue="{{ match.venue or '' }}" data-competition="{{ match.competition or 'usa.1' }}" data-is-home="{{ 'true' if match.is_home_game else 'false' }}" title="Edit Match">
+                                <i class="ti ti-edit"></i>
+                            </button>
                             <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg js-schedule-match" data-action="mls-schedule-match" data-match-id="{{ match.id }}" title="Schedule Tasks">
                                 <i class="ti ti-calendar-event"></i>
                             </button>
@@ -207,6 +213,105 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Create Match Modal -->
+<div id="createMatchModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <button type="button" class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="createMatchModal">
+                <i class="ti ti-x text-xl"></i>
+            </button>
+            <div class="px-6 py-6 lg:px-8">
+                <h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">Create New Match</h3>
+                <form id="createMatchForm" class="space-y-4">
+                    <div>
+                        <label for="create-opponent" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Opponent *</label>
+                        <input type="text" id="create-opponent" name="opponent" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., LA Galaxy" required>
+                    </div>
+                    <div>
+                        <label for="create-date-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date & Time (UTC) *</label>
+                        <input type="datetime-local" id="create-date-time" name="date_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required>
+                    </div>
+                    <div>
+                        <label for="create-venue" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Venue</label>
+                        <input type="text" id="create-venue" name="venue" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Lumen Field">
+                    </div>
+                    <div>
+                        <label for="create-competition" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Competition</label>
+                        <select id="create-competition" name="competition" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                            {% for name, code in competition_mappings.items() %}
+                            <option value="{{ code }}" {% if code == 'usa.1' %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                            <option value="friendly">Friendly</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="create-is-home" name="is_home_game" type="checkbox" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="create-is-home" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Home Game</label>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="create-auto-schedule" name="auto_schedule" type="checkbox" checked class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="create-auto-schedule" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Auto-schedule thread & live reporting</label>
+                    </div>
+                    <button type="submit" class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        <i class="ti ti-plus mr-2"></i>Create Match
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Match Modal -->
+<div id="editMatchModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <button type="button" class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="editMatchModal">
+                <i class="ti ti-x text-xl"></i>
+            </button>
+            <div class="px-6 py-6 lg:px-8">
+                <h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">Edit Match</h3>
+                <form id="editMatchForm" class="space-y-4">
+                    <input type="hidden" id="edit-match-id" name="match_id">
+                    <div>
+                        <label for="edit-opponent" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Opponent</label>
+                        <input type="text" id="edit-opponent" name="opponent" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="edit-date-time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date & Time (UTC)</label>
+                        <input type="datetime-local" id="edit-date-time" name="date_time" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="edit-venue" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Venue</label>
+                        <input type="text" id="edit-venue" name="venue" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                    </div>
+                    <div>
+                        <label for="edit-competition" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Competition</label>
+                        <select id="edit-competition" name="competition" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white">
+                            {% for name, code in competition_mappings.items() %}
+                            <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                            <option value="friendly">Friendly</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center">
+                        <input id="edit-is-home" name="is_home_game" type="checkbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                        <label for="edit-is-home" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Home Game</label>
+                    </div>
+                    <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-sm text-yellow-800 dark:text-yellow-200">
+                        <i class="ti ti-alert-triangle mr-1"></i>
+                        Changing the date/time will reschedule any pending tasks.
+                    </div>
+                    <button type="submit" class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                        <i class="ti ti-check mr-2"></i>Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}

@@ -367,6 +367,42 @@ class AdminConfig(db.Model):
                 'description': 'WooCommerce product slug for Classic Division (e.g., "2026-spring-ecs-pub-league-classic-division"). Leave empty to use auto-generated pattern.',
                 'category': 'pub_league',
                 'data_type': 'string'
+            },
+            # MLS Match Management Settings
+            {
+                'key': 'mls_thread_creation_hours_before',
+                'value': '48',
+                'description': 'Hours before match kickoff to create Discord thread (default: 48)',
+                'category': 'mls',
+                'data_type': 'integer'
+            },
+            {
+                'key': 'mls_live_reporting_minutes_before',
+                'value': '5',
+                'description': 'Minutes before match kickoff to start live reporting (default: 5)',
+                'category': 'mls',
+                'data_type': 'integer'
+            },
+            {
+                'key': 'mls_live_reporting_timeout_hours',
+                'value': '3',
+                'description': 'Maximum hours a live reporting session can run before auto-stop (default: 3)',
+                'category': 'mls',
+                'data_type': 'integer'
+            },
+            {
+                'key': 'mls_max_session_duration_hours',
+                'value': '4',
+                'description': 'Maximum hours before a stale session is deactivated (default: 4)',
+                'category': 'mls',
+                'data_type': 'integer'
+            },
+            {
+                'key': 'mls_no_update_timeout_minutes',
+                'value': '30',
+                'description': 'Minutes without updates before deactivating session (default: 30)',
+                'category': 'mls',
+                'data_type': 'integer'
             }
         ]
 

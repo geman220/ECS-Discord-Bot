@@ -22,6 +22,55 @@ from app.utils.sync_ai_client import get_sync_ai_client
 logger = logging.getLogger(__name__)
 
 
+# Constants for error recovery
+MAX_CONSECUTIVE_ESPN_FAILURES = 3
+MAX_SESSION_DURATION_HOURS = 3
+
+
+def is_match_ended(status: str, session_started_at: datetime = None) -> bool:
+    """
+    Detect if a match has ended with multiple fallbacks.
+
+    ESPN returns inconsistent status strings, so we normalize and check multiple patterns.
+    Also includes a timeout fallback if ESPN never sends final status.
+
+    Args:
+        status: The status string from ESPN API
+        session_started_at: When the session started (for timeout fallback)
+
+    Returns:
+        True if the match has ended, False otherwise
+    """
+    if not status:
+        return False
+
+    # Normalize and check status - handle ESPN's inconsistent naming
+    status_upper = str(status).upper().strip()
+
+    # List of indicators that a match has ended
+    final_indicators = [
+        'FINAL', 'FULL TIME', 'FULL-TIME', 'FULLTIME', 'FT',
+        'END', 'ENDED', 'COMPLETED', 'FINISHED',
+        'CANCELLED', 'CANCELED', 'POSTPONED', 'ABANDONED',
+        'STATUS_FINAL', 'STATUS_FULL_TIME'
+    ]
+
+    # Check if any indicator is present in the status
+    for indicator in final_indicators:
+        if indicator in status_upper:
+            logger.info(f"Match ended: status '{status}' contains '{indicator}'")
+            return True
+
+    # Fallback: max duration timeout (3 hours from session start)
+    if session_started_at:
+        duration = datetime.utcnow() - session_started_at
+        if duration > timedelta(hours=MAX_SESSION_DURATION_HOURS):
+            logger.warning(f"Session exceeded {MAX_SESSION_DURATION_HOURS}h duration, forcing end (duration: {duration})")
+            return True
+
+    return False
+
+
 @celery_task(
     name='app.tasks.tasks_live_reporting_v2.process_all_active_sessions_v2',
     queue='live_reporting',
@@ -306,15 +355,35 @@ def _process_single_session_realtime(session, session_obj: LiveReportingSession,
 
         if not match_data or match_data.get('status') == 'UNAVAILABLE':
             logger.warning(f"No match data available for {match_id}")
-            # Increment error count but don't fail completely
+            # Track consecutive ESPN failures for error recovery
+            session_obj.consecutive_failures = (session_obj.consecutive_failures or 0) + 1
             session_obj.error_count = (session_obj.error_count or 0) + 1
-            session_obj.last_error = "ESPN API unavailable"
+            session_obj.last_error = f"ESPN API unavailable (attempt {session_obj.consecutive_failures}/{MAX_CONSECUTIVE_ESPN_FAILURES})"
+
+            # Deactivate after too many consecutive failures
+            if session_obj.consecutive_failures >= MAX_CONSECUTIVE_ESPN_FAILURES:
+                logger.error(f"Session {session_obj.id}: {MAX_CONSECUTIVE_ESPN_FAILURES} consecutive ESPN failures, deactivating")
+                session_obj.is_active = False
+                session_obj.ended_at = datetime.utcnow()
+                session_obj.last_error = f"Deactivated: ESPN API unavailable after {MAX_CONSECUTIVE_ESPN_FAILURES} consecutive failures"
+                return {
+                    'session_id': session_obj.id,
+                    'match_id': match_id,
+                    'success': False,
+                    'error': f'ESPN API unavailable - deactivated after {MAX_CONSECUTIVE_ESPN_FAILURES} failures',
+                    'is_live': False,
+                    'deactivated': True,
+                    'reason': 'ESPN API failures'
+                }
+
             return {
                 'session_id': session_obj.id,
                 'match_id': match_id,
                 'success': False,
                 'error': 'ESPN API unavailable',
-                'is_live': False
+                'is_live': False,
+                'should_retry': True,
+                'consecutive_failures': session_obj.consecutive_failures
             }
 
         current_status = match_data.get('status', 'UNKNOWN')
@@ -341,10 +410,11 @@ def _process_single_session_realtime(session, session_obj: LiveReportingSession,
         session_obj.update_count = (session_obj.update_count or 0) + 1
         session_obj.last_update_at = datetime.utcnow()
         session_obj.error_count = 0  # Reset error count on success
+        session_obj.consecutive_failures = 0  # Reset consecutive failures on success
         session_obj.last_error = None
 
-        # Check if match ended
-        match_ended = current_status in ['FINAL', 'COMPLETED', 'CANCELLED', 'POSTPONED']
+        # Check if match ended using robust detection
+        match_ended = is_match_ended(current_status, session_obj.started_at)
         if match_ended and session_obj.is_active:
             from app.models import MLSMatch
             from app.models.match_status import MatchStatus

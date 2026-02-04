@@ -46,6 +46,7 @@ class LiveReportingSession(db.Model):
     # Operational data
     update_count = db.Column(db.Integer, default=0, nullable=False)
     error_count = db.Column(db.Integer, default=0, nullable=False)
+    consecutive_failures = db.Column(db.Integer, default=0, nullable=False)  # For ESPN API error recovery
     last_error = db.Column(db.Text, nullable=True)
     
     @property
@@ -85,6 +86,7 @@ class LiveReportingSession(db.Model):
             'last_score': self.last_score,
             'update_count': self.update_count,
             'error_count': self.error_count,
+            'consecutive_failures': self.consecutive_failures,
             'last_error': self.last_error
         }
     

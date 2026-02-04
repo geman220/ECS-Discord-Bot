@@ -109,7 +109,7 @@ window.EventDelegation.register('mls-schedule-match', function(element, e) {
     element.innerHTML = '<i class="ti ti-loader spin"></i>';
     element.disabled = true;
 
-    fetch(`/admin-panel/mls/schedule-match/${matchId}`, { method: 'POST' })
+    fetch(`/admin-panel/mls/schedule/${matchId}`, { method: 'POST' })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -295,7 +295,7 @@ window.EventDelegation.register('resync-match', function(element, e) {
                 element.innerHTML = '<i class="ti ti-loader spin"></i>';
                 element.disabled = true;
 
-                fetch(`/admin-panel/mls/resync-match/${matchId}`, { method: 'POST' })
+                fetch(`/admin-panel/mls/match/${matchId}/resync`, { method: 'POST' })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -322,6 +322,42 @@ window.EventDelegation.register('resync-match', function(element, e) {
                     });
             }
         });
+    }
+});
+
+/**
+ * Edit Match
+ * Populates the edit match modal with data - Flowbite handles modal show/hide via data-modal-toggle
+ */
+window.EventDelegation.register('edit-match', function(element, e) {
+    // Don't prevent default - let Flowbite handle the modal toggle
+
+    const matchId = element.dataset.matchId;
+    const opponent = element.dataset.opponent;
+    const dateTime = element.dataset.dateTime;
+    const venue = element.dataset.venue;
+    const competition = element.dataset.competition;
+    const isHome = element.dataset.isHome === 'true';
+
+    if (!matchId) {
+        console.error('[edit-match] Missing match ID');
+        return;
+    }
+
+    // Populate form fields - modal is shown by Flowbite via data-modal-toggle
+    document.getElementById('edit-match-id').value = matchId;
+    document.getElementById('edit-opponent').value = opponent || '';
+    document.getElementById('edit-venue').value = venue || '';
+    document.getElementById('edit-competition').value = competition || 'usa.1';
+    document.getElementById('edit-is-home').checked = isHome;
+
+    // Format date-time for input (remove timezone info)
+    if (dateTime) {
+        const dt = new Date(dateTime);
+        const localDateTime = new Date(dt.getTime() - (dt.getTimezoneOffset() * 60000))
+            .toISOString()
+            .slice(0, 16);
+        document.getElementById('edit-date-time').value = localDateTime;
     }
 });
 
@@ -354,7 +390,7 @@ window.EventDelegation.register('remove-match', function(element, e) {
                 element.innerHTML = '<i class="ti ti-loader spin"></i>';
                 element.disabled = true;
 
-                fetch(`/admin-panel/mls/remove-match/${matchId}`, { method: 'POST' })
+                fetch(`/admin-panel/mls/remove/${matchId}`, { method: 'POST' })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
@@ -392,7 +428,7 @@ window.EventDelegation.register('refresh-match-statuses', function(element, e) {
     element.innerHTML = '<i class="ti ti-loader spin me-2"></i>';
     element.disabled = true;
 
-    fetch('/admin-panel/mls/match-statuses-api')
+    fetch('/admin-panel/mls/api/statuses')
         .then(response => response.json())
         .then(data => {
             if (data.statuses) {
@@ -543,7 +579,7 @@ window.EventDelegation.register('expire-task', function(element, e) {
         }).then((result) => {
             if (result.isConfirmed) {
                 const originalText = element.innerHTML;
-                element.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>';
+                element.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full spin"></span>';
                 element.disabled = true;
 
                 fetch(`/admin-panel/mls/task/${taskId}/expire`, {
@@ -641,5 +677,146 @@ window.EventDelegation.register('mls-view-task-logs', function(element, e) {
 });
 
 // ============================================================================
+// MATCH CREATE/EDIT FORM HANDLERS
+// ============================================================================
+
+/**
+ * Helper function to hide a Flowbite modal
+ */
+function hideFlowbiteModal(modalId) {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        // Use Flowbite's modal instance if available
+        if (modal._flowbiteModal) {
+            modal._flowbiteModal.hide();
+        } else {
+            // Fallback: click the close button
+            const closeBtn = modal.querySelector('[data-modal-hide]');
+            if (closeBtn) {
+                closeBtn.click();
+            } else {
+                // Last resort: manually hide
+                modal.classList.add('hidden');
+                modal.setAttribute('aria-hidden', 'true');
+            }
+        }
+    }
+}
+
+/**
+ * Initialize Create Match Form
+ * Sets up the create match form submission handler
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const createForm = document.getElementById('createMatchForm');
+    if (createForm) {
+        createForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const submitBtn = createForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="ti ti-loader spin mr-2"></i>Creating...';
+            submitBtn.disabled = true;
+
+            const formData = {
+                opponent: document.getElementById('create-opponent').value,
+                date_time: document.getElementById('create-date-time').value,
+                venue: document.getElementById('create-venue').value,
+                competition: document.getElementById('create-competition').value,
+                is_home_game: document.getElementById('create-is-home').checked,
+                auto_schedule: document.getElementById('create-auto-schedule').checked
+            };
+
+            fetch('/admin-panel/mls/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (typeof window.AdminPanel !== 'undefined') {
+                        window.AdminPanel.showMobileToast(data.message, 'success');
+                    }
+                    // Hide modal using Flowbite pattern
+                    hideFlowbiteModal('createMatchModal');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(data.error || 'Failed to create match');
+                }
+            })
+            .catch(error => {
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+                } else if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', error.message, 'error');
+                }
+            })
+            .finally(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+    }
+
+    const editForm = document.getElementById('editMatchForm');
+    if (editForm) {
+        editForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const matchId = document.getElementById('edit-match-id').value;
+            const submitBtn = editForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="ti ti-loader spin mr-2"></i>Saving...';
+            submitBtn.disabled = true;
+
+            const formData = {
+                opponent: document.getElementById('edit-opponent').value,
+                date_time: document.getElementById('edit-date-time').value,
+                venue: document.getElementById('edit-venue').value,
+                competition: document.getElementById('edit-competition').value,
+                is_home_game: document.getElementById('edit-is-home').checked
+            };
+
+            fetch(`/admin-panel/mls/edit/${matchId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let message = data.message;
+                    if (data.tasks_rescheduled) {
+                        message += ' Tasks were rescheduled.';
+                    }
+                    if (typeof window.AdminPanel !== 'undefined') {
+                        window.AdminPanel.showMobileToast(message, 'success');
+                    }
+                    // Hide modal using Flowbite pattern
+                    hideFlowbiteModal('editMatchModal');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(data.error || 'Failed to update match');
+                }
+            })
+            .catch(error => {
+                if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
+                } else if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', error.message, 'error');
+                }
+            })
+            .finally(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+    }
+});
 
 // Handlers loaded

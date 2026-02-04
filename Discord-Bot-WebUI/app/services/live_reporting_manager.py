@@ -24,6 +24,60 @@ from app.tasks.tasks_live_reporting_v2 import process_single_match_v2
 logger = logging.getLogger(__name__)
 
 
+# Session health constants (defaults, can be overridden by AdminConfig)
+DEFAULT_MAX_SESSION_DURATION_HOURS = 4  # Maximum time a session can run
+DEFAULT_NO_UPDATE_TIMEOUT_MINUTES = 30  # Deactivate if no updates for this long
+NEVER_STARTED_TIMEOUT_MINUTES = 60  # Deactivate if never received first update
+
+
+def get_session_timeout_config():
+    """Get session timeout configuration from AdminConfig or use defaults."""
+    try:
+        from app.models.admin_config import AdminConfig
+        max_duration = AdminConfig.get_setting('mls_max_session_duration_hours', DEFAULT_MAX_SESSION_DURATION_HOURS)
+        no_update_timeout = AdminConfig.get_setting('mls_no_update_timeout_minutes', DEFAULT_NO_UPDATE_TIMEOUT_MINUTES)
+        return max_duration, no_update_timeout
+    except Exception as e:
+        logger.warning(f"Could not load session timeout config, using defaults: {e}")
+        return DEFAULT_MAX_SESSION_DURATION_HOURS, DEFAULT_NO_UPDATE_TIMEOUT_MINUTES
+
+
+class SessionHealthStatus:
+    """Session health check results"""
+    HEALTHY = "HEALTHY"
+    STALE_NEVER_UPDATED = "STALE_NEVER_UPDATED"
+    STALE_NO_RECENT_UPDATES = "STALE_NO_RECENT_UPDATES"
+    TIMEOUT_MAX_DURATION = "TIMEOUT_MAX_DURATION"
+
+
+def check_session_health(session) -> str:
+    """
+    Check the health of a live reporting session.
+
+    Returns one of the SessionHealthStatus values indicating the session's state.
+    """
+    now = datetime.utcnow()
+
+    # Get configurable timeouts
+    max_duration_hours, no_update_minutes = get_session_timeout_config()
+
+    # Never received first update
+    if not session.last_update:
+        age = now - session.started_at
+        if age > timedelta(minutes=NEVER_STARTED_TIMEOUT_MINUTES):
+            return SessionHealthStatus.STALE_NEVER_UPDATED
+    else:
+        # No updates for too long
+        if (now - session.last_update) > timedelta(minutes=no_update_minutes):
+            return SessionHealthStatus.STALE_NO_RECENT_UPDATES
+
+    # Max duration exceeded
+    if session.started_at and (now - session.started_at) > timedelta(hours=max_duration_hours):
+        return SessionHealthStatus.TIMEOUT_MAX_DURATION
+
+    return SessionHealthStatus.HEALTHY
+
+
 class CircuitState(Enum):
     """Circuit breaker states"""
     CLOSED = "closed"      # Normal operation
@@ -259,16 +313,32 @@ class LiveReportingManager:
             
             logger.info(f"Processing {len(active_sessions)} active sessions")
             
+            # Get configurable timeouts for logging
+            max_duration_hours, no_update_minutes = get_session_timeout_config()
+
             for session in active_sessions:
-                # Check if session is stale (no updates in 2 hours)
-                if (session.last_update and 
-                    datetime.utcnow() - session.last_update > timedelta(hours=2)):
-                    logger.warning(f"Deactivating stale session: {session.match_id}")
-                    session.deactivate(db.session, "Session stale - no updates in 2 hours")
+                # Check session health using comprehensive health checks
+                health_status = check_session_health(session)
+
+                if health_status == SessionHealthStatus.STALE_NEVER_UPDATED:
+                    logger.warning(f"Deactivating session {session.match_id}: never received updates after {NEVER_STARTED_TIMEOUT_MINUTES}min")
+                    session.deactivate(db.session, f"Session stale - never received updates after {NEVER_STARTED_TIMEOUT_MINUTES} minutes")
                     db.session.commit()
                     continue
-                
-                # Schedule processing
+
+                if health_status == SessionHealthStatus.STALE_NO_RECENT_UPDATES:
+                    logger.warning(f"Deactivating session {session.match_id}: no updates for {no_update_minutes}min")
+                    session.deactivate(db.session, f"Session stale - no updates for {no_update_minutes} minutes")
+                    db.session.commit()
+                    continue
+
+                if health_status == SessionHealthStatus.TIMEOUT_MAX_DURATION:
+                    logger.warning(f"Deactivating session {session.match_id}: exceeded max duration of {max_duration_hours}h")
+                    session.deactivate(db.session, f"Session timeout - exceeded maximum duration of {max_duration_hours} hours")
+                    db.session.commit()
+                    continue
+
+                # Schedule processing for healthy sessions
                 scheduled = self.schedule_match_processing(session)
                 if scheduled:
                     stats['scheduled_tasks'] += 1

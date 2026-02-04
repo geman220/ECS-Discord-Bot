@@ -185,12 +185,14 @@
             <div class="p-6 space-y-3">
                 {% if feedback.status != 'Closed' %}
                 <form action="{{ url_for('admin_panel.close_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Close this feedback?">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-500/50">
                         <i class="ti ti-check mr-2"></i>Close Feedback
                     </button>
                 </form>
                 {% endif %}
                 <form action="{{ url_for('admin_panel.delete_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Delete this feedback? This cannot be undone.">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-red-600 bg-transparent border border-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 focus:ring-4 focus:ring-red-500/50">
                         <i class="ti ti-trash mr-2"></i>Delete Feedback
                     </button>

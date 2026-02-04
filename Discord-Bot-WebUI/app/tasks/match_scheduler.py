@@ -51,6 +51,11 @@ def schedule_upcoming_matches(self, session):
             scheduled_threads = 0
             scheduled_live = 0
 
+            # Get configurable timing values from AdminConfig
+            from app.models.admin_config import AdminConfig
+            thread_creation_hours = AdminConfig.get_setting('mls_thread_creation_hours_before', 48)
+            live_reporting_minutes = AdminConfig.get_setting('mls_live_reporting_minutes_before', 5)
+
             for match in upcoming_matches:
                 try:
                     # Ensure match.date_time is timezone-aware
@@ -58,8 +63,8 @@ def schedule_upcoming_matches(self, session):
                     if match_dt.tzinfo is None:
                         match_dt = match_dt.replace(tzinfo=timezone.utc)
 
-                    # Schedule thread creation (48 hours before)
-                    thread_time = match_dt - timedelta(hours=48)
+                    # Schedule thread creation (configurable hours before, default 48)
+                    thread_time = match_dt - timedelta(hours=thread_creation_hours)
 
                     if not match.thread_created:
                         # Check if task already exists in database
@@ -106,8 +111,8 @@ def schedule_upcoming_matches(self, session):
                                 scheduled_threads += 1
                                 logger.info(f"Immediately creating thread for match {match.id} (overdue by {now - thread_time}), task_id={celery_task.id}")
 
-                    # Schedule live reporting start (5 minutes before)
-                    live_start_time = match_dt - timedelta(minutes=5)
+                    # Schedule live reporting start (configurable minutes before, default 5)
+                    live_start_time = match_dt - timedelta(minutes=live_reporting_minutes)
 
                     # Check if task already exists in database
                     existing_reporting_task = ScheduledTask.find_existing_task(
@@ -413,10 +418,20 @@ def start_mls_live_reporting_task(self, session, match_id: int) -> Dict[str, Any
                 "message": "Session already active"
             }
 
+        # CRITICAL FIX: Get thread_id from match record - don't create session without it
+        thread_id = match.discord_thread_id
+        if not thread_id:
+            logger.error(f"Cannot start live reporting for match {match.id}: no Discord thread created")
+            return {
+                "success": False,
+                "match_id": match_id,
+                "error": "No Discord thread created for this match. Create thread first."
+            }
+
         # Create live reporting session for MLS match
         live_session = LiveReportingSession(
             match_id=str(match.match_id),  # Use ESPN match_id as string
-            thread_id="",  # Will be set when thread is found
+            thread_id=str(thread_id),  # Use actual thread ID from match
             competition=match.competition or 'MLS',
             is_active=True,
             started_at=datetime.utcnow(),
@@ -430,7 +445,7 @@ def start_mls_live_reporting_task(self, session, match_id: int) -> Dict[str, Any
 
         # Notify real-time service of new session
         from app.services.realtime_bridge_service import notify_session_started
-        bridge_result = notify_session_started(live_session.id, str(match.match_id), "")
+        bridge_result = notify_session_started(live_session.id, str(match.match_id), str(thread_id))
 
         logger.info(f"Started MLS live reporting session {live_session.id} for match {match.match_id}")
 

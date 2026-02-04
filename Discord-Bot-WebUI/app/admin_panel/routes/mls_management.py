@@ -634,6 +634,268 @@ def mls_fetch_espn():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@admin_panel_bp.route('/mls/create', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_create_match():
+    """Manually create a new match (for non-ESPN competitions like friendlies)."""
+    session = g.db_session
+
+    try:
+        import re
+
+        def simple_slugify(text, max_length=30):
+            """Simple slugify function - converts text to lowercase with hyphens."""
+            text = str(text).lower().strip()
+            text = re.sub(r'[^\w\s-]', '', text)
+            text = re.sub(r'[\s_-]+', '-', text)
+            text = re.sub(r'^-+|-+$', '', text)
+            return text[:max_length]
+
+        data = request.get_json() or {}
+
+        # Validate required fields
+        if not data.get('opponent'):
+            return jsonify({'success': False, 'error': 'Opponent name is required'}), 400
+        if not data.get('date_time'):
+            return jsonify({'success': False, 'error': 'Date/time is required'}), 400
+
+        # Parse date/time
+        try:
+            match_date_time = datetime.fromisoformat(data['date_time'].replace('Z', '+00:00'))
+            if match_date_time.tzinfo is None:
+                match_date_time = pytz.UTC.localize(match_date_time)
+        except ValueError as e:
+            return jsonify({'success': False, 'error': f'Invalid date format: {e}'}), 400
+
+        # Generate unique match_id for manual matches
+        opponent_slug = simple_slugify(data['opponent'], max_length=30)
+        timestamp = int(match_date_time.timestamp())
+        match_id = f"manual_{timestamp}_{opponent_slug}"
+
+        # Check if match_id already exists
+        existing = session.query(MLSMatch).filter_by(match_id=match_id).first()
+        if existing:
+            return jsonify({'success': False, 'error': 'A match with this opponent at this time already exists'}), 400
+
+        # Get optional fields
+        is_home_game = data.get('is_home_game', True)
+        venue = data.get('venue', '')
+        competition = data.get('competition', 'usa.1')
+
+        # Create the match
+        new_match = MLSMatch(
+            match_id=match_id,
+            opponent=data['opponent'],
+            date_time=match_date_time,
+            is_home_game=is_home_game,
+            venue=venue,
+            competition=competition,
+            thread_created=False,
+            live_reporting_status=MatchStatus.PENDING
+        )
+
+        session.add(new_match)
+        session.commit()
+
+        # Auto-schedule tasks if requested (default: true)
+        auto_schedule = data.get('auto_schedule', True)
+        tasks_scheduled = False
+
+        if auto_schedule and match_date_time > datetime.now(pytz.UTC):
+            try:
+                from app.match_scheduler import MatchScheduler
+                scheduler = MatchScheduler()
+                scheduler.schedule_match_tasks(new_match.id, force=False)
+                tasks_scheduled = True
+            except Exception as sched_e:
+                logger.error(f"Error scheduling tasks for new match: {sched_e}")
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='mls_match_create',
+            resource_type='mls_match',
+            resource_id=str(new_match.id),
+            new_value=f'Created manual match vs {data["opponent"]} at {match_date_time}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        home_team = 'Seattle Sounders FC' if is_home_game else data['opponent']
+        away_team = data['opponent'] if is_home_game else 'Seattle Sounders FC'
+
+        return jsonify({
+            'success': True,
+            'message': f'Match {home_team} vs {away_team} created',
+            'match_id': new_match.id,
+            'espn_match_id': match_id,
+            'tasks_scheduled': tasks_scheduled
+        })
+
+    except Exception as e:
+        logger.error(f"Error creating manual match: {e}")
+        session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/mls/edit/<int:match_id>', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_edit_match(match_id):
+    """Edit an existing match's details (date/time, venue, competition)."""
+    session = g.db_session
+
+    match = session.query(MLSMatch).get(match_id)
+    if not match:
+        return jsonify({'success': False, 'error': 'Match not found'}), 404
+
+    try:
+        data = request.get_json() or {}
+
+        old_date_time = match.date_time
+        changes_made = []
+
+        # Update date/time if provided
+        if 'date_time' in data and data['date_time']:
+            try:
+                new_date_time = datetime.fromisoformat(data['date_time'].replace('Z', '+00:00'))
+                if new_date_time.tzinfo is None:
+                    new_date_time = pytz.UTC.localize(new_date_time)
+                match.date_time = new_date_time
+                changes_made.append(f"Date/time: {old_date_time} → {new_date_time}")
+            except ValueError as e:
+                return jsonify({'success': False, 'error': f'Invalid date format: {e}'}), 400
+
+        # Update venue if provided
+        if 'venue' in data:
+            old_venue = match.venue
+            match.venue = data['venue'] or None
+            if old_venue != match.venue:
+                changes_made.append(f"Venue: {old_venue} → {match.venue}")
+
+        # Update competition if provided
+        if 'competition' in data:
+            old_competition = match.competition
+            match.competition = data['competition'] or 'usa.1'
+            if old_competition != match.competition:
+                changes_made.append(f"Competition: {old_competition} → {match.competition}")
+
+        # Update opponent if provided (for manual matches)
+        if 'opponent' in data and data['opponent']:
+            old_opponent = match.opponent
+            match.opponent = data['opponent']
+            if old_opponent != match.opponent:
+                changes_made.append(f"Opponent: {old_opponent} → {match.opponent}")
+
+        # Update home/away if provided
+        if 'is_home_game' in data:
+            old_is_home = match.is_home_game
+            match.is_home_game = bool(data['is_home_game'])
+            if old_is_home != match.is_home_game:
+                changes_made.append(f"Home game: {old_is_home} → {match.is_home_game}")
+
+        session.commit()
+
+        # Reschedule tasks if date/time changed and not already past
+        tasks_rescheduled = False
+        if old_date_time != match.date_time and match.date_time > datetime.now(pytz.UTC):
+            try:
+                from app.models import ScheduledTask, TaskType, TaskState
+                from app.models.admin_config import AdminConfig
+                from app.core import celery
+                from app.tasks.match_scheduler import create_mls_match_thread_task, start_mls_live_reporting_task
+
+                # Get configurable timing
+                thread_creation_hours = AdminConfig.get_setting('mls_thread_creation_hours_before', 48)
+                live_reporting_minutes = AdminConfig.get_setting('mls_live_reporting_minutes_before', 5)
+
+                now = datetime.now(pytz.UTC)
+                match_dt = match.date_time
+                if match_dt.tzinfo is None:
+                    match_dt = pytz.UTC.localize(match_dt)
+
+                # Reschedule thread creation task
+                thread_time = match_dt - timedelta(hours=thread_creation_hours)
+                thread_task = ScheduledTask.find_existing_task(session, match.id, TaskType.THREAD_CREATION)
+
+                if thread_task and thread_task.state == TaskState.SCHEDULED:
+                    # Revoke old task
+                    try:
+                        celery.control.revoke(thread_task.celery_task_id, terminate=True)
+                    except Exception:
+                        pass
+
+                    # Create new scheduled task
+                    if thread_time > now and not match.thread_created:
+                        new_celery_task = create_mls_match_thread_task.apply_async(
+                            args=[match.id],
+                            eta=thread_time,
+                            expires=thread_time + timedelta(hours=2)
+                        )
+                        thread_task.celery_task_id = new_celery_task.id
+                        thread_task.scheduled_time = thread_time
+                        changes_made.append(f"Thread task rescheduled for {thread_time}")
+                        tasks_rescheduled = True
+
+                # Reschedule live reporting task
+                live_start_time = match_dt - timedelta(minutes=live_reporting_minutes)
+                reporting_task = ScheduledTask.find_existing_task(session, match.id, TaskType.LIVE_REPORTING_START)
+
+                if reporting_task and reporting_task.state == TaskState.SCHEDULED:
+                    # Revoke old task
+                    try:
+                        celery.control.revoke(reporting_task.celery_task_id, terminate=True)
+                    except Exception:
+                        pass
+
+                    # Create new scheduled task
+                    if live_start_time > now:
+                        new_celery_task = start_mls_live_reporting_task.apply_async(
+                            args=[match.id],
+                            eta=live_start_time,
+                            expires=live_start_time + timedelta(minutes=30)
+                        )
+                        reporting_task.celery_task_id = new_celery_task.id
+                        reporting_task.scheduled_time = live_start_time
+                        changes_made.append(f"Live reporting task rescheduled for {live_start_time}")
+                        tasks_rescheduled = True
+
+                session.commit()
+
+            except Exception as e:
+                logger.error(f"Error rescheduling tasks for match {match_id}: {e}")
+                # Don't fail the edit, just note the error
+                changes_made.append(f"Warning: Could not reschedule tasks: {e}")
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='mls_match_edit',
+            resource_type='mls_match',
+            resource_id=str(match_id),
+            old_value=str({'date_time': str(old_date_time)}),
+            new_value=str({'changes': changes_made}),
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        home_team = 'Seattle Sounders FC' if match.is_home_game else match.opponent
+        away_team = match.opponent if match.is_home_game else 'Seattle Sounders FC'
+
+        return jsonify({
+            'success': True,
+            'message': f'Match {home_team} vs {away_team} updated',
+            'changes': changes_made,
+            'tasks_rescheduled': tasks_rescheduled
+        })
+
+    except Exception as e:
+        logger.error(f"Error editing match {match_id}: {e}")
+        session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @admin_panel_bp.route('/mls/remove/<int:match_id>', methods=['POST', 'DELETE'])
 @login_required
 @role_required(['Global Admin', 'Discord Admin'])
