@@ -41,8 +41,10 @@ class SubRequest(db.Model):
     fulfilled_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     
     # Define relationships
-    match = db.relationship('Match', backref=db.backref('sub_requests', lazy='dynamic'))
-    team = db.relationship('Team', backref=db.backref('sub_requests', lazy='dynamic'))
+    # passive_deletes=True tells SQLAlchemy to trust the database's ON DELETE CASCADE
+    # instead of trying to set match_id=None in Python (which violates NOT NULL constraint)
+    match = db.relationship('Match', backref=db.backref('sub_requests', lazy='dynamic', passive_deletes=True), passive_deletes=True)
+    team = db.relationship('Team', backref=db.backref('sub_requests', lazy='dynamic', passive_deletes=True), passive_deletes=True)
     requester = db.relationship('User', foreign_keys=[requested_by], backref=db.backref('requested_subs', lazy='dynamic'))
     fulfiller = db.relationship('User', foreign_keys=[fulfilled_by], backref=db.backref('fulfilled_sub_requests', lazy='dynamic'))
     
@@ -123,9 +125,9 @@ class LeaguePollResponse(db.Model):
     response = db.Column(db.String(10), nullable=False)  # 'yes', 'no', 'maybe'
     responded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     
-    # Relationships
-    poll = db.relationship('LeaguePoll', back_populates='responses')
-    player = db.relationship('Player', backref=db.backref('poll_responses', lazy='dynamic'))
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    poll = db.relationship('LeaguePoll', back_populates='responses', passive_deletes=True)
+    player = db.relationship('Player', backref=db.backref('poll_responses', lazy='dynamic', passive_deletes=True), passive_deletes=True)
     
     __table_args__ = (
         db.UniqueConstraint('poll_id', 'player_id', name='uq_poll_player_response'),
@@ -147,9 +149,9 @@ class LeaguePollDiscordMessage(db.Model):
     sent_at = db.Column(db.DateTime, nullable=True)
     send_error = db.Column(db.Text, nullable=True)
     
-    # Relationships
-    poll = db.relationship('LeaguePoll', back_populates='discord_messages')
-    team = db.relationship('Team', backref=db.backref('poll_messages', lazy='dynamic'))
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    poll = db.relationship('LeaguePoll', back_populates='discord_messages', passive_deletes=True)
+    team = db.relationship('Team', backref=db.backref('poll_messages', lazy='dynamic', passive_deletes=True), passive_deletes=True)
     
     def __repr__(self):
         return f"<LeaguePollDiscordMessage: Poll {self.poll_id}, Team {self.team_id}, Channel {self.channel_id}>"
@@ -171,11 +173,11 @@ class DraftOrderHistory(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
-    # Relationships
-    season = db.relationship('Season', backref=db.backref('draft_orders', lazy='dynamic'))
-    league = db.relationship('League', backref=db.backref('draft_orders', lazy='dynamic'))
-    player = db.relationship('Player', backref=db.backref('draft_history', lazy='dynamic'))
-    team = db.relationship('Team', backref=db.backref('draft_picks', lazy='dynamic'))
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    season = db.relationship('Season', backref=db.backref('draft_orders', lazy='dynamic', passive_deletes=True), passive_deletes=True)
+    league = db.relationship('League', backref=db.backref('draft_orders', lazy='dynamic', passive_deletes=True), passive_deletes=True)
+    player = db.relationship('Player', backref=db.backref('draft_history', lazy='dynamic', passive_deletes=True), passive_deletes=True)
+    team = db.relationship('Team', backref=db.backref('draft_picks', lazy='dynamic', passive_deletes=True), passive_deletes=True)
     drafter = db.relationship('User', backref=db.backref('draft_picks_made', lazy='dynamic'))
     
     __table_args__ = (
@@ -239,8 +241,8 @@ class MessageTemplate(db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     updated_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     
-    # Relationships
-    category = db.relationship('MessageCategory', back_populates='templates')
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    category = db.relationship('MessageCategory', back_populates='templates', passive_deletes=True)
     creator = db.relationship('User', foreign_keys=[created_by], backref='created_message_templates')
     updater = db.relationship('User', foreign_keys=[updated_by], backref='updated_message_templates')
     

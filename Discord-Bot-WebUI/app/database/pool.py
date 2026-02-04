@@ -239,9 +239,15 @@ class RateLimitedPool(QueuePool):
             if dbapi_conn and not dbapi_conn.closed:
                 # Force rollback to clear any pending transactions
                 dbapi_conn.rollback()
-                # Reset connection state for PgBouncer
+                # Reset connection state for PgBouncer (only if rollback succeeded)
+                # DISCARD ALL cannot run inside a transaction, so only call reset after clean rollback
                 if hasattr(dbapi_conn, 'reset'):
-                    dbapi_conn.reset()
+                    try:
+                        dbapi_conn.reset()
+                    except Exception as reset_err:
+                        # reset() failed (likely still in transaction), invalidate the connection
+                        logger.warning(f"Connection {conn_id} reset failed, invalidating: {reset_err}")
+                        con_record.invalidate()
         except Exception as e:
             logger.error(f"Error during connection {conn_id} rollback: {e}", exc_info=True)
             # Mark connection as invalid to force recreation

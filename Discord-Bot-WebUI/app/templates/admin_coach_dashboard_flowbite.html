@@ -5,37 +5,50 @@
 {% block main_content %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
-    <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 text-white">
+    <div class="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 rounded-xl p-6 text-white">
         <h2 class="text-2xl font-bold flex items-center gap-2 mb-2">
-            <i class="ti ti-dashboard"></i>Coach Dashboard
+            <i class="ti ti-shield-check"></i>Admin Team Management
         </h2>
-        {% if coached_teams %}
-        <p class="text-white/80">
-            Managing
-            {% for team in coached_teams %}
-            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/20 ml-1">{{ team.name }}</span>{% if not loop.last %},{% endif %}
-            {% endfor %}
-        </p>
-        {% else %}
-        <p class="text-white/80">Team statistics, player roster, and match reporting</p>
-        {% endif %}
+        <p class="text-white/80">Manage RSVP, subs, and match reporting for all teams</p>
     </div>
 
-    {% if no_coach_access %}
-    <!-- Not Coaching Message -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-blue-200 dark:border-blue-800">
-        <div class="p-8 text-center">
-            <i class="ti ti-info-circle text-5xl text-blue-500 mb-4"></i>
-            <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Not Currently Coaching</h5>
-            <p class="text-gray-500 dark:text-gray-400">
-                You are not currently assigned as a coach for any teams.<br>
-                This dashboard is available for coaches to view team stats and report matches.
-            </p>
+    <!-- League Filter Tabs -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+        <div class="flex flex-wrap gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+            <a href="{{ url_for('teams.admin_coach_dashboard', league='all') }}"
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if league_filter == 'all' %}bg-ecs-green text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600{% endif %}">
+                All Leagues
+            </a>
+            <a href="{{ url_for('teams.admin_coach_dashboard', league='premier') }}"
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if league_filter == 'premier' %}bg-green-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600{% endif %}">
+                Premier
+            </a>
+            <a href="{{ url_for('teams.admin_coach_dashboard', league='classic') }}"
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if league_filter == 'classic' %}bg-amber-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600{% endif %}">
+                Classic
+            </a>
+            <a href="{{ url_for('teams.admin_coach_dashboard', league='ecs') }}"
+               class="px-4 py-2 rounded-lg text-sm font-medium transition-colors {% if league_filter == 'ecs' %}bg-cyan-600 text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600{% endif %}">
+                ECS FC
+            </a>
+        </div>
+
+        <!-- Team Tabs -->
+        <div class="p-4">
+            <div class="flex flex-wrap gap-2 mb-4">
+                {% for team in all_teams %}
+                <a href="{{ url_for('teams.admin_coach_dashboard', team_id=team.id, league=league_filter) }}"
+                   class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors {% if selected_team and selected_team.id == team.id %}bg-ecs-green text-white{% else %}bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600{% endif %}">
+                    {{ team.name }}
+                </a>
+                {% endfor %}
+            </div>
         </div>
     </div>
-    {% else %}
 
-    {% for team in coached_teams %}
+    {% if selected_team %}
+    <!-- Selected Team Dashboard -->
+    {% set team = selected_team %}
     {% set stats = team_stats.get(team.id) %}
 
     <!-- Team Header -->
@@ -43,7 +56,7 @@
         <h4 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <i class="ti ti-users"></i>{{ team.name }}
         </h4>
-        {% if stats.league_type %}
+        {% if stats and stats.league_type %}
         {% if stats.league_type == 'ECS FC' %}
         <span class="px-2 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400">{{ stats.league_type }}</span>
         {% elif stats.league_type == 'Premier' %}
@@ -216,7 +229,6 @@
         </div>
     </div>
     {% endif %}
-    {% endfor %}
 
     <!-- Match Reporting Section -->
     <h4 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
@@ -291,18 +303,57 @@
     </div>
     {% endif %}
 
-    {% if not current_matches and not future_matches and not past_matches %}
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
-        <i class="ti ti-calendar-off text-5xl text-gray-400 mb-4"></i>
-        <h6 class="text-gray-500 dark:text-gray-400">No Matches Scheduled</h6>
-    </div>
-    {% endif %}
-
     {# Include RSVP modals for all matches #}
     {% for match in todays_matches + needs_reporting + upcoming_matches + past_matches %}
         {% include 'snippets/coach_match_rsvp.html' %}
     {% endfor %}
 
+    {% else %}
+    <!-- No Team Selected -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+        <i class="ti ti-info-circle text-5xl text-blue-500 mb-4"></i>
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Teams Available</h5>
+        <p class="text-gray-500 dark:text-gray-400">
+            No teams found matching your filter criteria.
+        </p>
+    </div>
+    {% endif %}
+
+    {% if pending_sub_requests %}
+    <!-- Pending Sub Requests Section -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border-2 border-cyan-200 dark:border-cyan-800">
+        <div class="px-4 py-3 bg-cyan-50 dark:bg-cyan-900/30 border-b border-cyan-200 dark:border-cyan-800 flex items-center justify-between">
+            <h6 class="font-medium text-cyan-800 dark:text-cyan-200 flex items-center gap-2">
+                <i class="ti ti-user-plus"></i>Pending Sub Requests (All Teams)
+            </h6>
+            <span class="px-2 py-0.5 text-xs rounded bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400">{{ pending_sub_requests|length }}</span>
+        </div>
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for sub_req in pending_sub_requests %}
+            <div class="p-4 flex justify-between items-center">
+                <div>
+                    <span class="font-medium text-gray-900 dark:text-white">
+                        {% if sub_req.team %}{{ sub_req.team.name }}{% else %}Unknown Team{% endif %}
+                    </span>
+                    <span class="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                        {% if sub_req.match %}
+                        Match on {{ sub_req.match.date.strftime('%b %d') if sub_req.match.date else 'TBD' }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">
+                        {{ sub_req.substitutes_needed if sub_req.substitutes_needed else 1 }} needed
+                    </span>
+                    <a href="{{ url_for('teams.admin_coach_dashboard', team_id=sub_req.team_id) }}"
+                       class="px-3 py-1 text-xs rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors">
+                        View
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     {% endif %}
 </div>
 {% endblock %}
@@ -322,6 +373,42 @@ document.querySelectorAll('[data-collapse-toggle]').forEach(button => {
                 icon.classList.toggle('rotate-180');
             }
         }
+    });
+});
+
+// Send reminder button handlers
+document.querySelectorAll('.js-send-reminder').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const matchId = this.dataset.matchId;
+        const originalHtml = this.innerHTML;
+
+        this.innerHTML = '<svg class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+        this.disabled = true;
+
+        fetch('/teams/coach/api/match/' + matchId + '/remind', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            body: JSON.stringify({ only_non_responders: true })
+        })
+        .then(res => res.json())
+        .then(data => {
+            this.innerHTML = originalHtml;
+            this.disabled = false;
+
+            if (data.success) {
+                alert(data.message);
+            } else {
+                alert('Error: ' + (data.error || 'Failed to send reminder'));
+            }
+        })
+        .catch(err => {
+            this.innerHTML = originalHtml;
+            this.disabled = false;
+            alert('Failed to send reminder');
+        });
     });
 });
 </script>

@@ -266,8 +266,8 @@ class SecurityMiddleware:
                 severity=severity,
                 description=description,
                 user_agent=request.headers.get('User-Agent', 'Unknown'),
-                path=request.path,
-                method=request.method
+                request_path=request.path,
+                request_method=request.method
             )
             logger.info(f"Stored security event: {event_type} for {ip}")
         except Exception as e:

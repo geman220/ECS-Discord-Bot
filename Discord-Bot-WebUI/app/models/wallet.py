@@ -409,7 +409,8 @@ class WalletPassDevice(db.Model):
     registered_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    wallet_pass = db.relationship('WalletPass', back_populates='device_registrations')
+    # passive_deletes=True trusts DB's ON DELETE CASCADE
+    wallet_pass = db.relationship('WalletPass', back_populates='device_registrations', passive_deletes=True)
 
     __table_args__ = (
         db.UniqueConstraint('wallet_pass_id', 'device_library_id', name='uq_pass_device'),
@@ -454,7 +455,8 @@ class WalletPassCheckin(db.Model):
     validation_message = db.Column(db.String(200), nullable=True)
     notes = db.Column(db.Text, nullable=True)
 
-    wallet_pass = db.relationship('WalletPass', back_populates='checkins')
+    # passive_deletes=True trusts DB's ON DELETE CASCADE
+    wallet_pass = db.relationship('WalletPass', back_populates='checkins', passive_deletes=True)
     checked_by = db.relationship('User')
 
     def __repr__(self):
@@ -543,8 +545,8 @@ def create_pub_league_pass(player, season, woo_order_id=None):
     if not pass_type:
         raise ValueError("Pub League pass type not configured")
 
-    valid_from = season.start_date if season.start_date else datetime.utcnow()
-    valid_until = season.end_date if season.end_date else (datetime.utcnow() + timedelta(days=120))
+    valid_from = getattr(season, 'start_date', None) or datetime.utcnow()
+    valid_until = getattr(season, 'end_date', None) or (datetime.utcnow() + timedelta(days=120))
     valid_until = valid_until + timedelta(days=pass_type.grace_period_days)
 
     team_name = None

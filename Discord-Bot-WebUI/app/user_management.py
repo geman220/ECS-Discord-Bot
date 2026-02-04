@@ -437,19 +437,27 @@ def create_user():
             session.add(user)
             session.flush()
 
+            # Check if user has a coach role assigned
+            has_coach_role = any(role.name in ['Pub League Coach', 'ECS FC Coach'] for role in roles)
+
             player = Player(
                 user_id=user.id,
                 league_id=form.league_id.data,
                 primary_league_id=form.league_id.data,
                 is_current_player=form.is_current_player.data,
-                is_sub=has_sub_role  # Set is_sub flag based on SUB role
+                is_sub=has_sub_role,  # Set is_sub flag based on SUB role
+                is_coach=has_coach_role  # Set is_coach flag based on coach role
             )
 
             # Assign team to the player if provided
             if form.team_id.data:
                 team = session.query(Team).get(form.team_id.data)
                 if team:
-                    player.teams.append(team)
+                    # Use add_player_to_team helper to preserve coach status
+                    from app.models.players import add_player_to_team
+                    session.add(player)
+                    session.flush()  # Ensure player has an ID
+                    add_player_to_team(player, team, session)
                     player.primary_team_id = team.id
 
             session.add(player)

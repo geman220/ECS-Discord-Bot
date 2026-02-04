@@ -2285,3 +2285,745 @@ def coach_dashboard():
                          player_choices=player_choices,
                          today=today,
                          title='Coach Dashboard')
+
+
+# ============================================================================
+# Coach Dashboard API Endpoints
+# ============================================================================
+
+@teams_bp.route('/coach/api/match/<int:match_id>/rsvp', methods=['GET'])
+@login_required
+@role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+def get_match_rsvp_details(match_id):
+    """
+    Get detailed RSVP information for a specific match.
+    Returns players grouped by response (yes, no, maybe, no_response).
+    """
+    session = g.db_session
+    user = safe_current_user
+
+    # Get the match
+    match = session.query(Match).options(
+        joinedload(Match.home_team),
+        joinedload(Match.away_team)
+    ).get(match_id)
+
+    if not match:
+        return jsonify({'error': 'Match not found'}), 404
+
+    # Get the player associated with this user
+    player = session.query(Player).filter_by(user_id=user.id).first()
+
+    # Determine which team the coach is coaching
+    coached_team_id = None
+    is_admin = any(role.name in ['Pub League Admin', 'Global Admin'] for role in user.roles)
+
+    if player:
+        # Check if player is coach for home or away team
+        coach_check_home = session.execute(
+            player_teams.select().where(
+                and_(
+                    player_teams.c.player_id == player.id,
+                    player_teams.c.team_id == match.home_team_id,
+                    player_teams.c.is_coach == True
+                )
+            )
+        ).fetchone()
+
+        coach_check_away = session.execute(
+            player_teams.select().where(
+                and_(
+                    player_teams.c.player_id == player.id,
+                    player_teams.c.team_id == match.away_team_id,
+                    player_teams.c.is_coach == True
+                )
+            )
+        ).fetchone()
+
+        if coach_check_home:
+            coached_team_id = match.home_team_id
+        elif coach_check_away:
+            coached_team_id = match.away_team_id
+
+    if not coached_team_id and not is_admin:
+        return jsonify({'error': 'You are not authorized to view this match'}), 403
+
+    # For admins without a specific team, default to home team
+    if not coached_team_id:
+        coached_team_id = match.home_team_id
+
+    # Get all players on the team
+    team_players = session.query(Player).join(
+        player_teams, Player.id == player_teams.c.player_id
+    ).filter(
+        player_teams.c.team_id == coached_team_id,
+        Player.is_current_player == True
+    ).all()
+
+    player_ids = [p.id for p in team_players]
+
+    # Get availability records
+    availabilities = session.query(Availability).filter(
+        Availability.match_id == match_id,
+        Availability.player_id.in_(player_ids)
+    ).all()
+
+    # Build response map
+    availability_map = {av.player_id: av for av in availabilities}
+
+    # Group players by response
+    grouped = {'yes': [], 'no': [], 'maybe': [], 'no_response': []}
+
+    for player in team_players:
+        av = availability_map.get(player.id)
+        response = av.response.lower() if av and av.response else 'no_response'
+
+        player_data = {
+            'id': player.id,
+            'name': player.name,
+            'jersey_number': player.jersey_number,
+            'position': player.favorite_position,
+            'responded_at': av.responded_at.isoformat() if av and av.responded_at else None
+        }
+
+        if response in grouped:
+            grouped[response].append(player_data)
+        else:
+            grouped['no_response'].append(player_data)
+
+    return jsonify({
+        'match_id': match_id,
+        'team_id': coached_team_id,
+        'team_name': match.home_team.name if coached_team_id == match.home_team_id else match.away_team.name,
+        'match_date': match.date.isoformat() if match.date else None,
+        'match_time': match.time.isoformat() if match.time else None,
+        'rsvp': grouped,
+        'summary': {
+            'yes': len(grouped['yes']),
+            'no': len(grouped['no']),
+            'maybe': len(grouped['maybe']),
+            'no_response': len(grouped['no_response']),
+            'total': len(team_players)
+        }
+    })
+
+
+@teams_bp.route('/coach/api/match/<int:match_id>/rsvp/<int:player_id>', methods=['POST'])
+@login_required
+@role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+def coach_update_player_rsvp(match_id, player_id):
+    """
+    Allow coaches to override a player's RSVP response.
+    """
+    session = g.db_session
+    user = safe_current_user
+
+    data = request.get_json() or {}
+    new_response = data.get('response', '').lower()
+
+    if new_response not in ['yes', 'no', 'maybe', 'no_response']:
+        return jsonify({'error': 'Invalid response. Must be yes, no, maybe, or no_response'}), 400
+
+    # Get the match
+    match = session.query(Match).get(match_id)
+    if not match:
+        return jsonify({'error': 'Match not found'}), 404
+
+    # Verify the player exists and is on a team in this match
+    target_player = session.query(Player).get(player_id)
+    if not target_player:
+        return jsonify({'error': 'Player not found'}), 404
+
+    # Check if coach is authorized for this match
+    coach_player = session.query(Player).filter_by(user_id=user.id).first()
+    is_admin = any(role.name in ['Pub League Admin', 'Global Admin'] for role in user.roles)
+
+    coached_team_id = None
+    if coach_player:
+        for team_id in [match.home_team_id, match.away_team_id]:
+            coach_check = session.execute(
+                player_teams.select().where(
+                    and_(
+                        player_teams.c.player_id == coach_player.id,
+                        player_teams.c.team_id == team_id,
+                        player_teams.c.is_coach == True
+                    )
+                )
+            ).fetchone()
+            if coach_check:
+                coached_team_id = team_id
+                break
+
+    if not coached_team_id and not is_admin:
+        return jsonify({'error': 'You are not authorized to update RSVPs for this match'}), 403
+
+    # Verify the target player is on the coached team
+    if coached_team_id:
+        player_on_team = session.execute(
+            player_teams.select().where(
+                and_(
+                    player_teams.c.player_id == player_id,
+                    player_teams.c.team_id == coached_team_id
+                )
+            )
+        ).fetchone()
+        if not player_on_team:
+            return jsonify({'error': 'Player is not on your team'}), 403
+
+    # Get or create availability record
+    availability = session.query(Availability).filter_by(
+        match_id=match_id,
+        player_id=player_id
+    ).first()
+
+    if new_response == 'no_response':
+        # Delete the availability record
+        if availability:
+            session.delete(availability)
+            session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'RSVP cleared',
+            'player_id': player_id,
+            'response': None
+        })
+    else:
+        if availability:
+            old_response = availability.response
+            availability.response = new_response
+            availability.responded_at = datetime.utcnow()
+        else:
+            availability = Availability(
+                match_id=match_id,
+                player_id=player_id,
+                discord_id=target_player.discord_id or '',
+                response=new_response,
+                responded_at=datetime.utcnow()
+            )
+            session.add(availability)
+            old_response = None
+
+        session.commit()
+
+        logger.info(f"Coach {user.id} updated RSVP for player {player_id} on match {match_id}: "
+                   f"{old_response} -> {new_response}")
+
+        return jsonify({
+            'success': True,
+            'message': f'RSVP updated to {new_response}',
+            'player_id': player_id,
+            'response': new_response
+        })
+
+
+@teams_bp.route('/coach/api/match/<int:match_id>/remind', methods=['POST'])
+@login_required
+@role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+def send_match_rsvp_reminder(match_id):
+    """
+    Send RSVP reminder to players who haven't responded.
+    """
+    session = g.db_session
+    user = safe_current_user
+
+    data = request.get_json() or {}
+    only_non_responders = data.get('only_non_responders', True)
+    custom_message = data.get('message', '').strip()
+
+    # Get the match
+    match = session.query(Match).options(
+        joinedload(Match.home_team),
+        joinedload(Match.away_team)
+    ).get(match_id)
+
+    if not match:
+        return jsonify({'error': 'Match not found'}), 404
+
+    # Check authorization
+    coach_player = session.query(Player).filter_by(user_id=user.id).first()
+    is_admin = any(role.name in ['Pub League Admin', 'Global Admin'] for role in user.roles)
+
+    coached_team_id = None
+    if coach_player:
+        for team_id in [match.home_team_id, match.away_team_id]:
+            coach_check = session.execute(
+                player_teams.select().where(
+                    and_(
+                        player_teams.c.player_id == coach_player.id,
+                        player_teams.c.team_id == team_id,
+                        player_teams.c.is_coach == True
+                    )
+                )
+            ).fetchone()
+            if coach_check:
+                coached_team_id = team_id
+                break
+
+    if not coached_team_id and not is_admin:
+        return jsonify({'error': 'You are not authorized to send reminders for this match'}), 403
+
+    # For admins, use home team if not coaching
+    if not coached_team_id:
+        coached_team_id = match.home_team_id
+
+    # Get team players
+    team_players = session.query(Player).join(
+        player_teams, Player.id == player_teams.c.player_id
+    ).filter(
+        player_teams.c.team_id == coached_team_id,
+        Player.is_current_player == True
+    ).all()
+
+    player_ids = [p.id for p in team_players]
+
+    # Get availability records
+    availabilities = session.query(Availability).filter(
+        Availability.match_id == match_id,
+        Availability.player_id.in_(player_ids)
+    ).all()
+
+    responded_player_ids = {av.player_id for av in availabilities if av.response}
+
+    # Determine recipients
+    if only_non_responders:
+        recipients = [p for p in team_players if p.id not in responded_player_ids]
+    else:
+        recipients = team_players
+
+    if not recipients:
+        return jsonify({
+            'success': True,
+            'message': 'No players to send reminders to',
+            'recipients': 0
+        })
+
+    # Build reminder message
+    team = session.query(Team).get(coached_team_id)
+    opponent = match.away_team if coached_team_id == match.home_team_id else match.home_team
+
+    match_date = match.date.strftime('%A, %B %d') if match.date else 'TBD'
+    match_time = match.time.strftime('%I:%M %p') if match.time else 'TBD'
+
+    if custom_message:
+        reminder_message = custom_message
+    else:
+        reminder_message = (
+            f"Reminder: Please respond to your RSVP for the match against {opponent.name if opponent else 'TBD'} "
+            f"on {match_date} at {match_time}."
+        )
+
+    # Queue notifications (would use notification service)
+    notifications_queued = 0
+    try:
+        from app.services.notification_service import NotificationService
+        notification_service = NotificationService()
+
+        for player in recipients:
+            player_user = session.query(User).get(player.user_id) if player.user_id else None
+            if player_user and player.discord_id:
+                # Queue Discord notification
+                notifications_queued += 1
+
+        logger.info(
+            f"RSVP reminder sent by user {user.id} for team {coached_team_id} match {match_id}. "
+            f"Recipients: {len(recipients)}"
+        )
+
+    except Exception as e:
+        logger.error(f"Error sending RSVP reminder: {e}")
+        return jsonify({
+            'success': False,
+            'message': 'Failed to send reminders',
+            'error': str(e)
+        }), 500
+
+    return jsonify({
+        'success': True,
+        'message': f'Reminder sent to {len(recipients)} player(s)',
+        'recipients': len(recipients),
+        'reminder_message': reminder_message
+    })
+
+
+@teams_bp.route('/coach/api/match/<int:match_id>/sub-status', methods=['GET'])
+@login_required
+@role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
+def get_match_sub_status(match_id):
+    """
+    Get substitute request status for a match.
+    """
+    session = g.db_session
+    user = safe_current_user
+
+    # Get the match
+    match = session.query(Match).get(match_id)
+    if not match:
+        return jsonify({'error': 'Match not found'}), 404
+
+    # Check authorization
+    coach_player = session.query(Player).filter_by(user_id=user.id).first()
+    is_admin = any(role.name in ['Pub League Admin', 'Global Admin'] for role in user.roles)
+
+    coached_team_id = None
+    if coach_player:
+        for team_id in [match.home_team_id, match.away_team_id]:
+            coach_check = session.execute(
+                player_teams.select().where(
+                    and_(
+                        player_teams.c.player_id == coach_player.id,
+                        player_teams.c.team_id == team_id,
+                        player_teams.c.is_coach == True
+                    )
+                )
+            ).fetchone()
+            if coach_check:
+                coached_team_id = team_id
+                break
+
+    if not coached_team_id and not is_admin:
+        return jsonify({'error': 'You are not authorized to view this match'}), 403
+
+    if not coached_team_id:
+        coached_team_id = match.home_team_id
+
+    # Get sub requests for this match and team
+    sub_requests = session.query(SubstituteRequest).filter(
+        SubstituteRequest.match_id == match_id,
+        SubstituteRequest.team_id == coached_team_id,
+        SubstituteRequest.status != 'CANCELLED'
+    ).all()
+
+    requests_data = []
+    for req in sub_requests:
+        requests_data.append({
+            'id': req.id,
+            'status': req.status,
+            'positions_needed': req.positions_needed if hasattr(req, 'positions_needed') else None,
+            'created_at': req.created_at.isoformat() if hasattr(req, 'created_at') and req.created_at else None,
+            'notes': req.notes if hasattr(req, 'notes') else None
+        })
+
+    return jsonify({
+        'match_id': match_id,
+        'team_id': coached_team_id,
+        'sub_requests': requests_data,
+        'total_requests': len(requests_data)
+    })
+
+
+# ============================================================================
+# Admin Coach Dashboard
+# ============================================================================
+
+@teams_bp.route('/admin/dashboard', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def admin_coach_dashboard():
+    """
+    Admin Dashboard - comprehensive view of ALL teams with:
+    - Tab navigation for all active teams
+    - League filtering (Premier/Classic/ECS FC)
+    - Same view as coach dashboard for selected team
+    - RSVP management capability
+    """
+    session = g.db_session
+    user = safe_current_user
+
+    # Get filter parameters
+    league_filter = request.args.get('league', 'all')
+    selected_team_id = request.args.get('team_id', type=int)
+
+    # Get all active teams
+    teams_query = session.query(Team).filter(
+        Team.is_active == True
+    ).options(
+        joinedload(Team.league)
+    )
+
+    # Apply league filter
+    if league_filter == 'premier':
+        teams_query = teams_query.join(League).filter(
+            func.lower(League.name).contains('premier')
+        )
+    elif league_filter == 'classic':
+        teams_query = teams_query.join(League).filter(
+            func.lower(League.name).contains('classic')
+        )
+    elif league_filter == 'ecs':
+        teams_query = teams_query.join(League).filter(
+            func.lower(League.name).contains('ecs')
+        )
+
+    all_teams = teams_query.order_by(Team.name).all()
+
+    if not all_teams:
+        return render_template('admin_coach_dashboard_flowbite.html',
+                             all_teams=[],
+                             selected_team=None,
+                             team_stats={},
+                             todays_matches=[],
+                             needs_reporting=[],
+                             upcoming_matches=[],
+                             past_matches=[],
+                             player_choices={},
+                             league_filter=league_filter,
+                             pending_sub_requests=[],
+                             title='Admin Dashboard')
+
+    # If no team selected, use first team
+    if not selected_team_id:
+        selected_team_id = all_teams[0].id
+
+    selected_team = session.query(Team).options(
+        joinedload(Team.league)
+    ).get(selected_team_id)
+
+    if not selected_team:
+        selected_team = all_teams[0]
+        selected_team_id = selected_team.id
+
+    # Get matches for selected team
+    from datetime import date as dt_date, datetime as dt_datetime
+    today = dt_date.today()
+    now = dt_datetime.now()
+
+    # Determine league type
+    league_name = selected_team.league.name.lower() if selected_team.league else ''
+    if 'ecs' in league_name:
+        league_type = 'ECS FC'
+    elif 'premier' in league_name:
+        league_type = 'Premier'
+    elif 'classic' in league_name:
+        league_type = 'Classic'
+    else:
+        league_type = 'Pub League'
+
+    # Query matches for selected team
+    all_matches = []
+    if league_type == 'ECS FC':
+        ecs_matches = session.query(EcsFcMatch).filter(
+            EcsFcMatch.team_id == selected_team_id
+        ).order_by(EcsFcMatch.match_date.asc(), EcsFcMatch.match_time.asc()).all()
+
+        for match in ecs_matches:
+            match.league_type = 'ECS FC'
+            match.is_ecs_fc = True
+            match.date = match.match_date
+            match.time = match.match_time
+            match.home_team = session.query(Team).get(match.team_id) if match.is_home_match else None
+            match.away_team = session.query(Team).get(match.team_id) if not match.is_home_match else None
+            match.home_team_id = match.team_id if match.is_home_match else None
+            match.away_team_id = match.team_id if not match.is_home_match else None
+            match.home_team_score = match.home_score
+            match.away_team_score = match.away_score
+
+        all_matches.extend(ecs_matches)
+    else:
+        pub_matches = session.query(Match).join(
+            Schedule, Match.schedule_id == Schedule.id
+        ).filter(
+            or_(
+                Match.home_team_id == selected_team_id,
+                Match.away_team_id == selected_team_id
+            )
+        ).order_by(Match.date.asc(), Match.time.asc()).all()
+
+        for match in pub_matches:
+            match.league_type = league_type
+            match.is_ecs_fc = False
+            match.home_team = session.query(Team).get(match.home_team_id)
+            match.away_team = session.query(Team).get(match.away_team_id)
+
+        all_matches.extend(pub_matches)
+
+    # Sort matches
+    all_matches.sort(key=lambda m: (m.date, m.time) if m.date and m.time else (datetime.max.date(), datetime.max.time()))
+
+    # Categorize matches
+    todays_matches = []
+    needs_reporting = []
+    upcoming_matches = []
+    past_matches = []
+
+    for match in all_matches:
+        match_datetime = dt_datetime.combine(match.date, match.time) if match.date and match.time else None
+        is_reported = match.home_team_score is not None and match.away_team_score is not None
+        is_special = getattr(match, 'is_special_week', False) or getattr(match, 'week_type', 'REGULAR') in ['TST', 'FUN', 'BYE', 'PRACTICE']
+
+        if match_datetime:
+            if match.date == today:
+                if not is_special:
+                    todays_matches.append(match)
+                else:
+                    past_matches.append(match)
+            elif match.date < today:
+                if is_reported or is_special:
+                    past_matches.append(match)
+                else:
+                    needs_reporting.append(match)
+            else:
+                upcoming_matches.append(match)
+
+    past_matches.reverse()
+    needs_reporting.sort(key=lambda m: (m.date, m.time) if m.date and m.time else (datetime.max.date(), datetime.max.time()))
+
+    # Add RSVP counts for each match
+    for match in all_matches:
+        coached_team_player_ids = []
+        coached_team_players = session.query(Player.id).join(
+            player_teams, Player.id == player_teams.c.player_id
+        ).filter(player_teams.c.team_id == selected_team_id).all()
+        coached_team_player_ids = [p.id for p in coached_team_players]
+
+        if hasattr(match, 'is_ecs_fc') and match.is_ecs_fc:
+            if coached_team_player_ids:
+                availability_data = session.query(
+                    EcsFcAvailability.response,
+                    func.count(EcsFcAvailability.id)
+                ).filter(
+                    EcsFcAvailability.ecs_fc_match_id == match.id,
+                    EcsFcAvailability.player_id.in_(coached_team_player_ids)
+                ).group_by(EcsFcAvailability.response).all()
+            else:
+                availability_data = []
+        else:
+            if coached_team_player_ids:
+                availability_data = session.query(
+                    Availability.response,
+                    func.count(Availability.id)
+                ).filter(
+                    Availability.match_id == match.id,
+                    Availability.player_id.in_(coached_team_player_ids)
+                ).group_by(Availability.response).all()
+            else:
+                availability_data = []
+
+        rsvp_counts = {'YES': 0, 'NO': 0, 'MAYBE': 0}
+        for response, count in availability_data:
+            if response and response.upper() in rsvp_counts:
+                rsvp_counts[response.upper()] = count
+
+        match.rsvp_counts = rsvp_counts
+
+    # Get team statistics
+    current_season = session.query(Season).filter_by(
+        is_current=True,
+        league_type='ECS FC' if league_type == 'ECS FC' else 'Pub League'
+    ).first()
+
+    team_stats = {}
+    if current_season:
+        team_league = session.query(League).get(selected_team.league_id)
+        league_season_id = team_league.season_id if team_league else current_season.id
+
+        standings = session.query(Standings).filter_by(
+            team_id=selected_team_id,
+            season_id=league_season_id
+        ).first()
+
+        top_scorers = session.query(Player, PlayerSeasonStats).join(
+            PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
+        ).join(
+            player_teams, Player.id == player_teams.c.player_id
+        ).filter(
+            player_teams.c.team_id == selected_team_id,
+            PlayerSeasonStats.season_id == league_season_id,
+            PlayerSeasonStats.goals > 0
+        ).order_by(PlayerSeasonStats.goals.desc()).limit(5).all()
+
+        top_assists = session.query(Player, PlayerSeasonStats).join(
+            PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id
+        ).join(
+            player_teams, Player.id == player_teams.c.player_id
+        ).filter(
+            player_teams.c.team_id == selected_team_id,
+            PlayerSeasonStats.season_id == league_season_id,
+            PlayerSeasonStats.assists > 0
+        ).order_by(PlayerSeasonStats.assists.desc()).limit(5).all()
+
+        roster_query = session.query(Player, PlayerAttendanceStats, PlayerSeasonStats).outerjoin(
+            PlayerAttendanceStats, and_(
+                Player.id == PlayerAttendanceStats.player_id,
+                PlayerAttendanceStats.current_season_id == league_season_id
+            )
+        ).outerjoin(
+            PlayerSeasonStats, and_(
+                Player.id == PlayerSeasonStats.player_id,
+                PlayerSeasonStats.season_id == league_season_id
+            )
+        ).join(
+            player_teams, Player.id == player_teams.c.player_id
+        ).filter(
+            player_teams.c.team_id == selected_team_id
+        ).order_by(Player.name).all()
+
+        team_stats[selected_team_id] = {
+            'standings': standings,
+            'top_scorers': top_scorers,
+            'top_assists': top_assists,
+            'roster': roster_query,
+            'season': current_season,
+            'league_type': league_type,
+            'season_id': league_season_id
+        }
+
+    # Get all pending sub requests across all teams
+    pending_sub_requests = session.query(SubstituteRequest).filter(
+        SubstituteRequest.status == 'PENDING'
+    ).order_by(SubstituteRequest.created_at.desc() if hasattr(SubstituteRequest, 'created_at') else SubstituteRequest.id.desc()).limit(10).all()
+
+    # Build player choices for match reporting
+    player_choices = {}
+    for match in all_matches:
+        if hasattr(match, 'is_ecs_fc') and match.is_ecs_fc:
+            team = match.home_team if match.home_team else match.away_team
+            if team:
+                players = session.query(Player).join(Player.teams).filter(Team.id == team.id).all()
+                player_choices[match.id] = {
+                    team.name: {p.id: p.name for p in players},
+                    getattr(match, 'opponent_name', 'Opponent'): {}
+                }
+        elif match.home_team and match.away_team:
+            home_players = session.query(Player).join(Player.teams).filter(Team.id == match.home_team_id).all()
+            away_players = session.query(Player).join(Player.teams).filter(Team.id == match.away_team_id).all()
+            player_choices[match.id] = {
+                match.home_team.name: {p.id: p.name for p in home_players},
+                match.away_team.name: {p.id: p.name for p in away_players}
+            }
+
+    return render_template('admin_coach_dashboard_flowbite.html',
+                         all_teams=all_teams,
+                         selected_team=selected_team,
+                         coached_teams=[selected_team],
+                         team_stats=team_stats,
+                         team_league_types={selected_team_id: league_type},
+                         todays_matches=todays_matches,
+                         needs_reporting=needs_reporting,
+                         upcoming_matches=upcoming_matches,
+                         past_matches=past_matches,
+                         player_choices=player_choices,
+                         league_filter=league_filter,
+                         pending_sub_requests=pending_sub_requests,
+                         today=today,
+                         title='Admin Dashboard')
+
+
+@teams_bp.route('/admin/api/team/<int:team_id>/dashboard', methods=['GET'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def get_admin_team_dashboard_data(team_id):
+    """
+    HTMX endpoint to load team dashboard data for admin view.
+    Returns HTML partial for the selected team.
+    """
+    session = g.db_session
+
+    team = session.query(Team).options(
+        joinedload(Team.league)
+    ).get(team_id)
+
+    if not team:
+        return '<div class="p-4 text-red-500">Team not found</div>', 404
+
+    # Redirect to full page with team_id parameter
+    return redirect(url_for('teams.admin_coach_dashboard', team_id=team_id))

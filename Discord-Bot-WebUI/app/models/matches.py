@@ -211,9 +211,10 @@ class TemporarySubAssignment(db.Model):
     substitute_assignment_id = db.Column(db.Integer, db.ForeignKey('substitute_assignments.id'), nullable=True)
 
     # Define relationships
-    match = db.relationship('Match', backref=db.backref('temp_sub_assignments', lazy='dynamic'))
-    player = db.relationship('Player', backref=db.backref('temp_sub_assignments', lazy='dynamic'))
-    team = db.relationship('Team', backref=db.backref('temp_sub_assignments', lazy='dynamic'))
+    # passive_deletes=True tells SQLAlchemy to trust DB's ON DELETE CASCADE
+    match = db.relationship('Match', backref=db.backref('temp_sub_assignments', lazy='dynamic', passive_deletes=True), passive_deletes=True)
+    player = db.relationship('Player', backref=db.backref('temp_sub_assignments', lazy='dynamic', passive_deletes=True), passive_deletes=True)
+    team = db.relationship('Team', backref=db.backref('temp_sub_assignments', lazy='dynamic', passive_deletes=True), passive_deletes=True)
     assigner = db.relationship('User', backref=db.backref('assigned_subs', lazy='dynamic'))
     substitute_request = db.relationship('SubstituteRequest', backref=db.backref('temp_assignments', lazy='dynamic'))
     substitute_assignment = db.relationship('SubstituteAssignment', backref=db.backref('temp_assignment', uselist=False))

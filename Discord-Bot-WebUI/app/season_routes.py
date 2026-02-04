@@ -473,13 +473,17 @@ def restore_season_memberships(session, target_season: Season) -> dict:
                 logger.warning(f"Skipping assignment: team {assignment.team_id} not found in target season")
                 continue
 
-            # Insert into player_teams
+            # Insert into player_teams, preserving coach status from Player model
             try:
+                # Get the player's coach status
+                player = session.query(Player).get(assignment.player_id)
+                is_coach = player.is_coach if player else False
+
                 session.execute(
                     player_teams.insert().values(
                         player_id=assignment.player_id,
                         team_id=assignment.team_id,
-                        is_coach=False,  # Default - could be enhanced to store coach status
+                        is_coach=is_coach,  # Preserve coach status from Player model
                         position='bench'
                     )
                 )

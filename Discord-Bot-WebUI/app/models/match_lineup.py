@@ -81,13 +81,16 @@ class MatchLineup(db.Model):
     version = db.Column(db.Integer, default=1, nullable=False)
 
     # Relationships
+    # passive_deletes=True tells SQLAlchemy to trust DB's ON DELETE CASCADE
     match = db.relationship(
         'Match',
-        backref=db.backref('lineups', lazy='dynamic', cascade='all, delete-orphan')
+        backref=db.backref('lineups', lazy='dynamic', cascade='all, delete-orphan', passive_deletes=True),
+        passive_deletes=True
     )
     team = db.relationship(
         'Team',
-        backref=db.backref('match_lineups', lazy='dynamic')
+        backref=db.backref('match_lineups', lazy='dynamic', passive_deletes=True),
+        passive_deletes=True
     )
     creator = db.relationship(
         'User',

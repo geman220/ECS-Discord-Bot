@@ -83,9 +83,9 @@ class StoreOrder(db.Model):
     processed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id'), nullable=True)  # Track which season this order is for
     
-    # Relationships
-    item = db.relationship('StoreItem', back_populates='orders')
-    orderer = db.relationship('User', foreign_keys=[ordered_by], backref=db.backref('store_orders', lazy='dynamic'))
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    item = db.relationship('StoreItem', back_populates='orders', passive_deletes=True)
+    orderer = db.relationship('User', foreign_keys=[ordered_by], backref=db.backref('store_orders', lazy='dynamic', passive_deletes=True), passive_deletes=True)
     processor = db.relationship('User', foreign_keys=[processed_by], backref=db.backref('processed_orders', lazy='dynamic'))
     season = db.relationship('Season', backref=db.backref('store_orders', lazy='dynamic'))
     

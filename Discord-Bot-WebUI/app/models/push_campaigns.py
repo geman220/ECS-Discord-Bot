@@ -166,9 +166,9 @@ class NotificationGroupMember(db.Model):
     added_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     added_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
 
-    # Relationships
-    group = db.relationship('NotificationGroup', back_populates='members')
-    user = db.relationship('User', foreign_keys=[user_id], backref='notification_group_memberships')
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    group = db.relationship('NotificationGroup', back_populates='members', passive_deletes=True)
+    user = db.relationship('User', foreign_keys=[user_id], backref=db.backref('notification_group_memberships', passive_deletes=True), passive_deletes=True)
     added_by_user = db.relationship('User', foreign_keys=[added_by])
 
     # Unique constraint

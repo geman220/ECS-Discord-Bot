@@ -47,7 +47,8 @@ class PlayerSeasonStats(db.Model):
     yellow_cards = db.Column(db.Integer, default=0, nullable=False)
     red_cards = db.Column(db.Integer, default=0, nullable=False)
 
-    player = db.relationship('Player', back_populates='season_stats')
+    # passive_deletes=True trusts DB's ON DELETE CASCADE
+    player = db.relationship('Player', back_populates='season_stats', passive_deletes=True)
     season = db.relationship('Season', back_populates='player_stats')
     league = db.relationship('League', backref='player_season_stats')
     teams = db.relationship(
@@ -111,7 +112,8 @@ class PlayerCareerStats(db.Model):
     yellow_cards = db.Column(db.Integer, default=0, nullable=False)
     red_cards = db.Column(db.Integer, default=0, nullable=False)
 
-    player = db.relationship('Player', back_populates='career_stats')
+    # passive_deletes=True trusts DB's ON DELETE CASCADE
+    player = db.relationship('Player', back_populates='career_stats', passive_deletes=True)
 
     @classmethod 
     def get_stats_by_team(cls, team_id):
@@ -192,8 +194,9 @@ class StatChangeLog(db.Model):
     season_id = db.Column(db.Integer, db.ForeignKey('season.id', ondelete='CASCADE'), nullable=True)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    player = db.relationship('Player', back_populates='stat_change_logs')
-    user = db.relationship('User', back_populates='stat_change_logs')
+    # passive_deletes=True trusts DB's ON DELETE CASCADE
+    player = db.relationship('Player', back_populates='stat_change_logs', passive_deletes=True)
+    user = db.relationship('User', back_populates='stat_change_logs', passive_deletes=True)
     season = db.relationship('Season', back_populates='stat_change_logs')
 
 
@@ -228,8 +231,8 @@ class PlayerAttendanceStats(db.Model):
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_match_date = db.Column(db.DateTime, nullable=True)
     
-    # Relationships
-    player = db.relationship('Player', back_populates='attendance_stats')
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    player = db.relationship('Player', back_populates='attendance_stats', passive_deletes=True)
     season = db.relationship('Season')
     
     @classmethod
@@ -392,9 +395,10 @@ class PlayerStatAudit(db.Model):
     changed_by = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
-    player = db.relationship('Player', back_populates='stat_audits')
+    # passive_deletes=True trusts DB's ON DELETE CASCADE
+    player = db.relationship('Player', back_populates='stat_audits', passive_deletes=True)
     season = db.relationship('Season', back_populates='stat_audits')
-    user = db.relationship('User', back_populates='stat_audits')
+    user = db.relationship('User', back_populates='stat_audits', passive_deletes=True)
 
 
 # Listen for goal difference updates

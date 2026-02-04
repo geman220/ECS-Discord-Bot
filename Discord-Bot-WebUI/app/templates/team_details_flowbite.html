@@ -73,7 +73,7 @@
                     <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Team Members</h2>
                     <div class="flex gap-2">
                         {% if has_role('Global Admin') or has_role('Pub League Admin') %}
-                        <button type="button" id="assign-discord-btn" data-team-id="{{ team.id }}"
+                        <button type="button" id="assign-discord-btn" data-action="assign-discord-roles" data-team-id="{{ team.id }}"
                                 class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-[#5865F2] text-white hover:bg-[#4752c4] transition-colors">
                             <i class="ti ti-brand-discord"></i>
                             <span class="hidden sm:inline">Assign Roles</span>

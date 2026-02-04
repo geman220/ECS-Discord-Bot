@@ -52,6 +52,20 @@
                     <span class="px-2 py-0.5 text-xs rounded bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400">✗ {{ match.rsvp_counts.NO }}</span>
                     <span class="px-2 py-0.5 text-xs rounded bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400">? {{ match.rsvp_counts.MAYBE }}</span>
                 </div>
+                <div class="flex gap-1 mt-2">
+                    <button type="button"
+                            class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/50 transition-colors js-view-rsvps"
+                            data-match-id="{{ match.id }}"
+                            data-modal-target="rsvpModal-{{ match.id }}"
+                            data-modal-toggle="rsvpModal-{{ match.id }}">
+                        <i class="ti ti-eye"></i>View
+                    </button>
+                    <button type="button"
+                            class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-colors js-send-reminder"
+                            data-match-id="{{ match.id }}">
+                        <i class="ti ti-bell"></i>Remind
+                    </button>
+                </div>
             </div>
             {% endif %}
 

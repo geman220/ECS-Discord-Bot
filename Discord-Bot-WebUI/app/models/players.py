@@ -157,7 +157,8 @@ class PlayerOrderHistory(db.Model):
     profile_count = db.Column(db.Integer, default=1, nullable=False)
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp(), nullable=False)
 
-    player = db.relationship('Player', back_populates='order_history')
+    # passive_deletes=True trusts DB's ON DELETE CASCADE
+    player = db.relationship('Player', back_populates='order_history', passive_deletes=True)
     season = db.relationship('Season', backref='order_histories', lazy=True)
     league = db.relationship('League', backref='order_histories', lazy=True)
 
@@ -538,9 +539,10 @@ class PlayerTeamSeason(db.Model):
     team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
     season_id = db.Column(db.Integer, db.ForeignKey('season.id', ondelete='CASCADE'), nullable=False)
 
-    player = db.relationship('Player', back_populates='season_assignments')
-    team = db.relationship('Team', back_populates='season_assignments')
-    season = db.relationship('Season', back_populates='player_assignments')
+    # passive_deletes=True trusts DB's ON DELETE CASCADE
+    player = db.relationship('Player', back_populates='season_assignments', passive_deletes=True)
+    team = db.relationship('Team', back_populates='season_assignments', passive_deletes=True)
+    season = db.relationship('Season', back_populates='player_assignments', passive_deletes=True)
 
     def __repr__(self):
         return f'<PlayerTeamSeason player={self.player_id} team={self.team_id} season={self.season_id}>'
@@ -589,8 +591,8 @@ class PlayerImageCache(db.Model):
     is_optimized = db.Column(db.Boolean, default=False)
     optimization_level = db.Column(db.Integer, default=1)  # 1=basic, 2=medium, 3=aggressive
     
-    # Relationships
-    player = db.relationship('Player', back_populates='image_cache')
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    player = db.relationship('Player', back_populates='image_cache', passive_deletes=True)
     
     def to_dict(self):
         return {
@@ -602,6 +604,61 @@ class PlayerImageCache(db.Model):
             'file_size': self.file_size,
             'cache_status': self.cache_status
         }
+
+
+def add_player_to_team(player, team, session, position='bench'):
+    """
+    Add player to team, preserving coach status from Player.is_coach.
+
+    This function ensures that when a player is added to a team, their coach
+    status is properly reflected in the player_teams association table. This
+    prevents the bug where player_teams.is_coach defaults to FALSE even when
+    Player.is_coach is TRUE.
+
+    Args:
+        player: Player object to add to the team
+        team: Team object to add the player to
+        session: Database session for executing the insert
+        position: Player position on the team (default: 'bench')
+
+    Returns:
+        True if the player was added, False if already on the team
+    """
+    from sqlalchemy import insert
+    from sqlalchemy.exc import IntegrityError
+
+    # Check if player is already on the team
+    existing = session.execute(
+        player_teams.select().where(
+            player_teams.c.player_id == player.id,
+            player_teams.c.team_id == team.id
+        )
+    ).fetchone()
+
+    if existing:
+        # Player already on team - update coach status if needed
+        if existing.is_coach != player.is_coach:
+            session.execute(
+                player_teams.update().where(
+                    player_teams.c.player_id == player.id,
+                    player_teams.c.team_id == team.id
+                ).values(is_coach=player.is_coach)
+            )
+        return False
+
+    try:
+        session.execute(
+            insert(player_teams).values(
+                player_id=player.id,
+                team_id=team.id,
+                is_coach=player.is_coach,  # Preserve coach status from Player model
+                position=position
+            )
+        )
+        return True
+    except IntegrityError:
+        # Race condition - player was added by another transaction
+        return False
 
 
 class PlayerAdminNote(db.Model):
@@ -621,8 +678,8 @@ class PlayerAdminNote(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
 
-    # Relationships
-    player = db.relationship('Player', back_populates='admin_notes')
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    player = db.relationship('Player', back_populates='admin_notes', passive_deletes=True)
     author = db.relationship('User', foreign_keys=[author_id])
 
     def to_dict(self, include_author=True):

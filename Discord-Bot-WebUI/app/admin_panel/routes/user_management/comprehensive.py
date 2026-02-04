@@ -472,7 +472,9 @@ def edit_user_comprehensive(user_id):
                     if team_id not in current_team_ids:
                         team_to_add = Team.query.get(team_id)
                         if team_to_add and team_to_add not in user.player.teams:
-                            user.player.teams.append(team_to_add)
+                            # Use add_player_to_team helper to preserve coach status
+                            from app.models.players import add_player_to_team
+                            add_player_to_team(user.player, team_to_add, db.session)
                             # Create PlayerTeamHistory record
                             team_history = PlayerTeamHistory(
                                 player_id=user.player.id,

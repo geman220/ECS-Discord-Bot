@@ -1,0 +1,271 @@
+{# Coach Match RSVP Modal Component #}
+{# This snippet creates a modal for viewing and managing RSVP responses for a match #}
+
+<!-- RSVP Modal -->
+<div id="rsvpModal-{{ match.id }}" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative p-4 w-full max-w-2xl max-h-full">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <!-- Modal header -->
+            <div class="flex items-center justify-between p-4 md:p-5 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-users"></i>
+                    RSVP Details
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="rsvpModal-{{ match.id }}">
+                    <svg class="w-3 h-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
+                    </svg>
+                    <span class="sr-only">Close modal</span>
+                </button>
+            </div>
+            <!-- Modal body -->
+            <div class="p-4 md:p-5">
+                <!-- Match info -->
+                <div class="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <div class="flex justify-between items-center text-sm">
+                        <span class="font-medium text-gray-900 dark:text-white">
+                            {{ match.home_team.name if match.home_team else 'Home' }} vs {{ match.away_team.name if match.away_team else 'Away' }}
+                        </span>
+                        <span class="text-gray-500 dark:text-gray-400">
+                            {{ match.date.strftime('%b %d') if match.date else 'TBD' }} @ {{ match.time.strftime('%I:%M %p') if match.time else 'TBD' }}
+                        </span>
+                    </div>
+                </div>
+
+                <!-- RSVP lists container - populated via HTMX/JS -->
+                <div id="rsvpContent-{{ match.id }}" class="space-y-4">
+                    <!-- Loading state -->
+                    <div class="rsvp-loading flex items-center justify-center py-8">
+                        <svg class="animate-spin h-8 w-8 text-ecs-green" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="ml-2 text-gray-500">Loading RSVPs...</span>
+                    </div>
+
+                    <!-- RSVP data will be loaded here -->
+                    <div class="rsvp-data hidden">
+                        <!-- Available (Yes) -->
+                        <div class="mb-4">
+                            <h4 class="flex items-center gap-2 text-sm font-medium text-green-600 dark:text-green-400 mb-2">
+                                <i class="ti ti-check-circle"></i>
+                                Available (<span class="rsvp-yes-count">0</span>)
+                            </h4>
+                            <div class="rsvp-yes-list grid grid-cols-2 gap-2">
+                                <!-- Player items will be inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Maybe -->
+                        <div class="mb-4">
+                            <h4 class="flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-400 mb-2">
+                                <i class="ti ti-help-circle"></i>
+                                Maybe (<span class="rsvp-maybe-count">0</span>)
+                            </h4>
+                            <div class="rsvp-maybe-list grid grid-cols-2 gap-2">
+                                <!-- Player items will be inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- Not Available (No) -->
+                        <div class="mb-4">
+                            <h4 class="flex items-center gap-2 text-sm font-medium text-red-600 dark:text-red-400 mb-2">
+                                <i class="ti ti-x-circle"></i>
+                                Not Available (<span class="rsvp-no-count">0</span>)
+                            </h4>
+                            <div class="rsvp-no-list grid grid-cols-2 gap-2">
+                                <!-- Player items will be inserted here -->
+                            </div>
+                        </div>
+
+                        <!-- No Response -->
+                        <div class="mb-4">
+                            <h4 class="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                <i class="ti ti-clock"></i>
+                                No Response (<span class="rsvp-pending-count">0</span>)
+                            </h4>
+                            <div class="rsvp-pending-list grid grid-cols-2 gap-2">
+                                <!-- Player items will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex gap-2 mt-4 pt-4 border-t dark:border-gray-600">
+                    <button type="button"
+                            class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white font-medium hover:bg-purple-700 transition-colors js-send-reminder-modal"
+                            data-match-id="{{ match.id }}">
+                        <i class="ti ti-bell"></i>
+                        Send Reminder to Non-Responders
+                    </button>
+                    <button type="button" class="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors" data-modal-hide="rsvpModal-{{ match.id }}">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    // Initialize RSVP modal for match {{ match.id }}
+    const matchId = {{ match.id }};
+    const modal = document.getElementById('rsvpModal-' + matchId);
+    const contentContainer = document.getElementById('rsvpContent-' + matchId);
+
+    // Load RSVP data when modal is shown
+    const viewButtons = document.querySelectorAll('[data-modal-toggle="rsvpModal-' + matchId + '"]');
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            loadRsvpData(matchId, contentContainer);
+        });
+    });
+
+    // Send reminder button handler
+    const reminderBtns = modal.querySelectorAll('.js-send-reminder-modal');
+    reminderBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            sendReminder(matchId, this);
+        });
+    });
+
+    function loadRsvpData(matchId, container) {
+        const loadingEl = container.querySelector('.rsvp-loading');
+        const dataEl = container.querySelector('.rsvp-data');
+
+        loadingEl.classList.remove('hidden');
+        dataEl.classList.add('hidden');
+
+        fetch('/teams/coach/api/match/' + matchId + '/rsvp')
+            .then(response => response.json())
+            .then(data => {
+                loadingEl.classList.add('hidden');
+                dataEl.classList.remove('hidden');
+
+                // Update counts
+                container.querySelector('.rsvp-yes-count').textContent = data.summary.yes;
+                container.querySelector('.rsvp-no-count').textContent = data.summary.no;
+                container.querySelector('.rsvp-maybe-count').textContent = data.summary.maybe;
+                container.querySelector('.rsvp-pending-count').textContent = data.summary.no_response;
+
+                // Populate lists
+                populateList(container.querySelector('.rsvp-yes-list'), data.rsvp.yes, 'yes', matchId);
+                populateList(container.querySelector('.rsvp-no-list'), data.rsvp.no, 'no', matchId);
+                populateList(container.querySelector('.rsvp-maybe-list'), data.rsvp.maybe, 'maybe', matchId);
+                populateList(container.querySelector('.rsvp-pending-list'), data.rsvp.no_response, 'no_response', matchId);
+            })
+            .catch(error => {
+                loadingEl.innerHTML = '<div class="text-red-500">Error loading RSVPs</div>';
+                console.error('Error loading RSVPs:', error);
+            });
+    }
+
+    function populateList(container, players, response, matchId) {
+        container.innerHTML = '';
+
+        if (players.length === 0) {
+            container.innerHTML = '<span class="text-sm text-gray-400 col-span-2">None</span>';
+            return;
+        }
+
+        players.forEach(player => {
+            const item = document.createElement('div');
+            item.className = 'flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg';
+            item.innerHTML = `
+                <span class="text-sm font-medium text-gray-900 dark:text-white">
+                    ${player.name}
+                    ${player.jersey_number ? `<span class="text-gray-400">#${player.jersey_number}</span>` : ''}
+                </span>
+                <div class="flex gap-1">
+                    <button type="button" class="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900/50 js-set-rsvp" data-response="yes" data-player-id="${player.id}" title="Set to Yes">
+                        <i class="ti ti-check text-green-600"></i>
+                    </button>
+                    <button type="button" class="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-900/50 js-set-rsvp" data-response="maybe" data-player-id="${player.id}" title="Set to Maybe">
+                        <i class="ti ti-help text-amber-600"></i>
+                    </button>
+                    <button type="button" class="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/50 js-set-rsvp" data-response="no" data-player-id="${player.id}" title="Set to No">
+                        <i class="ti ti-x text-red-600"></i>
+                    </button>
+                </div>
+            `;
+
+            // Add click handlers for RSVP override buttons
+            item.querySelectorAll('.js-set-rsvp').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    updatePlayerRsvp(matchId, this.dataset.playerId, this.dataset.response, item);
+                });
+            });
+
+            container.appendChild(item);
+        });
+    }
+
+    function updatePlayerRsvp(matchId, playerId, response, itemElement) {
+        fetch('/teams/coach/api/match/' + matchId + '/rsvp/' + playerId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            body: JSON.stringify({ response: response })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                // Reload the RSVP data to refresh the lists
+                loadRsvpData(matchId, contentContainer);
+
+                // Show success toast if available
+                if (window.showToast) {
+                    window.showToast('RSVP updated successfully', 'success');
+                }
+            } else {
+                alert('Error: ' + (data.error || 'Failed to update RSVP'));
+            }
+        })
+        .catch(error => {
+            console.error('Error updating RSVP:', error);
+            alert('Failed to update RSVP');
+        });
+    }
+
+    function sendReminder(matchId, button) {
+        const originalText = button.innerHTML;
+        button.innerHTML = '<svg class="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Sending...';
+        button.disabled = true;
+
+        fetch('/teams/coach/api/match/' + matchId + '/remind', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            body: JSON.stringify({ only_non_responders: true })
+        })
+        .then(res => res.json())
+        .then(data => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+
+            if (data.success) {
+                if (window.showToast) {
+                    window.showToast(data.message, 'success');
+                } else {
+                    alert(data.message);
+                }
+            } else {
+                alert('Error: ' + (data.error || 'Failed to send reminders'));
+            }
+        })
+        .catch(error => {
+            button.innerHTML = originalText;
+            button.disabled = false;
+            console.error('Error sending reminder:', error);
+            alert('Failed to send reminder');
+        });
+    }
+})();
+</script>

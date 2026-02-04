@@ -194,8 +194,8 @@ class PubLeagueOrderLineItem(db.Model):
     assigned_at = db.Column(db.DateTime, nullable=True)
     pass_created_at = db.Column(db.DateTime, nullable=True)
 
-    # Relationships
-    order = db.relationship('PubLeagueOrder', back_populates='line_items')
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    order = db.relationship('PubLeagueOrder', back_populates='line_items', passive_deletes=True)
     assigned_player = db.relationship('Player', foreign_keys=[assigned_player_id])
     assigned_user = db.relationship('User', foreign_keys=[assigned_user_id])
     wallet_pass = db.relationship('WalletPass')
@@ -303,8 +303,8 @@ class PubLeagueOrderClaim(db.Model):
     email_sent_at = db.Column(db.DateTime, nullable=True)
     reminder_sent_at = db.Column(db.DateTime, nullable=True)
 
-    # Relationships
-    order = db.relationship('PubLeagueOrder')
+    # Relationships - passive_deletes=True trusts DB's ON DELETE CASCADE
+    order = db.relationship('PubLeagueOrder', passive_deletes=True)
     line_item = db.relationship(
         'PubLeagueOrderLineItem',
         foreign_keys=[line_item_id],
