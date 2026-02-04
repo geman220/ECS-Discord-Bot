@@ -260,6 +260,8 @@ class Season(db.Model):
     name = db.Column(db.String(100), nullable=False)
     league_type = db.Column(db.String(50), nullable=False)
     is_current = db.Column(db.Boolean, default=False, nullable=False)
+    start_date = db.Column(db.Date, nullable=True)
+    end_date = db.Column(db.Date, nullable=True)
     leagues = db.relationship('League', back_populates='season', lazy=True)
     player_stats = db.relationship('PlayerSeasonStats', back_populates='season', lazy=True, cascade="all, delete-orphan")
     stat_change_logs = db.relationship('StatChangeLog', back_populates='season', cascade='all, delete-orphan')
@@ -276,6 +278,8 @@ class Season(db.Model):
             'name': self.name,
             'league_type': self.league_type,
             'is_current': self.is_current,
+            'start_date': self.start_date.isoformat() if self.start_date else None,
+            'end_date': self.end_date.isoformat() if self.end_date else None,
         }
 
     def __repr__(self):

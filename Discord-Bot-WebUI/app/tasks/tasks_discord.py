@@ -66,47 +66,47 @@ def get_current_season_teams(session, player):
     """
     Get current season teams for a player using PlayerTeamSeason records.
     Falls back to direct team relationships if no current season records exist.
-    
+
     Args:
         session: Database session
         player: Player object
-        
+
     Returns:
         List of current season team dictionaries with id, name, and league_name
     """
     try:
-        # First, try to get current season
-        current_season = session.query(Season).filter_by(is_current=True).first()
-        
-        if current_season:
-            # Query teams through PlayerTeamSeason for current season only
+        # Get ALL current seasons (Pub League AND ECS FC can both be current)
+        current_seasons = session.query(Season).filter_by(is_current=True).all()
+
+        if current_seasons:
+            current_season_ids = [s.id for s in current_seasons]
+
+            # Query teams through PlayerTeamSeason for ALL current seasons
             current_season_teams = session.query(Team).join(
                 PlayerTeamSeason, Team.id == PlayerTeamSeason.team_id
             ).filter(
                 PlayerTeamSeason.player_id == player.id,
-                PlayerTeamSeason.season_id == current_season.id
+                PlayerTeamSeason.season_id.in_(current_season_ids)
             ).all()
-            
+
             if current_season_teams:
-                return [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
+                return [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None}
                         for team in current_season_teams]
-        
-        # Fallback: Filter teams by leagues from current seasons
-        # This handles cases where PlayerTeamSeason records haven't been created yet
-        current_seasons = session.query(Season).filter_by(is_current=True).all()
-        if current_seasons:
+
+            # Fallback: Filter teams by leagues from current seasons
+            # This handles cases where PlayerTeamSeason records haven't been created yet
             current_season_league_ids = [league.id for season in current_seasons for league in season.leagues]
-            current_teams = [team for team in player.teams 
+            current_teams = [team for team in player.teams
                             if team.league_id in current_season_league_ids]
-            
+
             if current_teams:
-                return [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None} 
+                return [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None}
                         for team in current_teams]
-        
+
         # Final fallback: return empty list to avoid assigning old roles
         logger.warning(f"No current season teams found for player {player.id}, returning empty list to avoid old roles")
         return []
-        
+
     except Exception as e:
         logger.error(f"Error getting current season teams for player {player.id}: {e}")
         return []
@@ -569,7 +569,7 @@ async def _execute_assign_roles_async(data):
     
     expected_roles = []
     
-    # Add team roles
+    # Add team roles for channel access (same role for both players and coaches)
     for team in teams_to_process:
         if team and team.get('league_name') in ['Premier', 'Classic', 'ECS FC']:
             expected_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
