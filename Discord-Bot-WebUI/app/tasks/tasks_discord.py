@@ -77,9 +77,11 @@ def get_current_season_teams(session, player):
     try:
         # Get ALL current seasons (Pub League AND ECS FC can both be current)
         current_seasons = session.query(Season).filter_by(is_current=True).all()
+        logger.info(f"[DEBUG] Player {player.id}: Found {len(current_seasons)} current seasons: {[(s.id, s.name, s.league_type) for s in current_seasons]}")
 
         if current_seasons:
             current_season_ids = [s.id for s in current_seasons]
+            logger.info(f"[DEBUG] Player {player.id}: Current season IDs: {current_season_ids}")
 
             # Query teams through PlayerTeamSeason for ALL current seasons
             current_season_teams = session.query(Team).join(
@@ -89,19 +91,26 @@ def get_current_season_teams(session, player):
                 PlayerTeamSeason.season_id.in_(current_season_ids)
             ).all()
 
+            logger.info(f"[DEBUG] Player {player.id}: Found {len(current_season_teams)} teams via PlayerTeamSeason: {[(t.id, t.name, t.league.name if t.league else None) for t in current_season_teams]}")
+
             if current_season_teams:
-                return [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None}
+                result = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None}
                         for team in current_season_teams]
+                logger.info(f"[DEBUG] Player {player.id}: Returning teams: {result}")
+                return result
 
             # Fallback: Filter teams by leagues from current seasons
             # This handles cases where PlayerTeamSeason records haven't been created yet
             current_season_league_ids = [league.id for season in current_seasons for league in season.leagues]
+            logger.info(f"[DEBUG] Player {player.id}: Fallback - current season league IDs: {current_season_league_ids}")
             current_teams = [team for team in player.teams
                             if team.league_id in current_season_league_ids]
 
             if current_teams:
-                return [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None}
+                result = [{'id': team.id, 'name': team.name, 'league_name': team.league.name if team.league else None}
                         for team in current_teams]
+                logger.info(f"[DEBUG] Player {player.id}: Fallback returning teams: {result}")
+                return result
 
         # Final fallback: return empty list to avoid assigning old roles
         logger.warning(f"No current season teams found for player {player.id}, returning empty list to avoid old roles")
@@ -566,13 +575,22 @@ async def _execute_assign_roles_async(data):
     # Use the same role calculation logic but only for target team if specified
     target_team = data.get('target_team')
     teams_to_process = [target_team] if target_team else data.get('teams', [])
-    
+
+    player_id = data.get('player_id')
+    logger.info(f"[DEBUG] Player {player_id}: _execute_assign_roles_async called")
+    logger.info(f"[DEBUG] Player {player_id}: target_team={target_team}")
+    logger.info(f"[DEBUG] Player {player_id}: teams_to_process={teams_to_process}")
+
     expected_roles = []
-    
+
     # Add team roles for channel access (same role for both players and coaches)
     for team in teams_to_process:
         if team and team.get('league_name') in ['Premier', 'Classic', 'ECS FC']:
-            expected_roles.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
+            role_name = f"ECS-FC-PL-{normalize_name(team['name'])}-Player"
+            expected_roles.append(role_name)
+            logger.info(f"[DEBUG] Player {player_id}: Adding team role '{role_name}' for team {team.get('name')} (league: {team.get('league_name')})")
+        else:
+            logger.info(f"[DEBUG] Player {player_id}: Skipping team {team} - league_name not in ['Premier', 'Classic', 'ECS FC']")
     
     # Add league division roles if processing all teams (based on Flask user roles)
     if not target_team:

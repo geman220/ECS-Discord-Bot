@@ -9,7 +9,7 @@ using a prefork pool and a dedicated 'player_sync' queue.
 
 import sys
 import signal
-from celery_worker_base import celery_app as celery, logger
+from celery_worker_base_prefork import celery_app as celery, logger
 
 
 def graceful_shutdown_handler(signum, frame):

@@ -13,7 +13,7 @@ import gc
 import signal
 import psutil
 import os
-from celery_worker_base import celery_app as celery, logger
+from celery_worker_base_prefork import celery_app as celery, logger
 
 # Graceful shutdown flag
 _shutdown_requested = False
