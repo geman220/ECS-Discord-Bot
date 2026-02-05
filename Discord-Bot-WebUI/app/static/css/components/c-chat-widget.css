@@ -37,7 +37,7 @@
   --cw-bg-hover: var(--color-translucent-light, rgba(255, 255, 255, 0.1));
   --cw-text: var(--color-text-primary, var(--color-secondary-200, #e2e8f0));
   --cw-text-secondary: var(--color-text-secondary, var(--color-secondary-400, #94a3b8));
-  --cw-accent: var(--color-primary, #7c3aed);
+  --cw-accent: #7c3aed; /* Purple - fixed accent, not inheriting from theme primary */
   --cw-accent-hover: var(--color-primary-hover, #6d28d9);
   --cw-border: var(--color-border, rgba(255, 255, 255, 0.1));
   --cw-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
