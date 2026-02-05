@@ -84,6 +84,9 @@ def register_all_routes(admin_panel_bp):
     # Phase 9: Coach Dashboard (Admin view of all team dashboards)
     from . import coach_dashboard
 
+    # Phase 10: I-Spy Game Management
+    from . import ispy_management
+
     # All routes are automatically registered when modules are imported
     # due to the @admin_panel_bp.route decorators
     pass
