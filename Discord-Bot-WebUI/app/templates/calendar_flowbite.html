@@ -906,8 +906,7 @@
 
 <div class="flex items-center">
     <input type="checkbox" id="importNotifyDiscord"
-           class="w-4 h-4 text-ecs-green border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600"
-           onchange="document.getElementById('discordModeContainer').classList.toggle('hidden', !this.checked)">
+           class="w-4 h-4 text-ecs-green border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
     <label for="importNotifyDiscord" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
         Post announcements to Discord
     </label>
@@ -1007,41 +1006,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const isReferee = {{ 'true' if is_referee else 'false' }};
     const canEditRefereeMatches = {{ 'true' if can_edit_referee_matches else 'false' }};
     const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-
-    // Set initial active state on the correct view button
-    const viewButtons = document.querySelectorAll('[data-view]');
-    viewButtons.forEach(btn => {
-        btn.classList.remove('bg-ecs-green', 'text-white', 'border-ecs-green', 'dark:bg-green-600', 'dark:border-green-600', 'dark:hover:bg-green-700');
-        btn.classList.add('text-gray-900', 'bg-white', 'border-gray-200', 'hover:bg-gray-100', 'hover:text-ecs-green', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white', 'dark:hover:bg-gray-600');
-        if (btn.dataset.view === currentView) {
-            btn.classList.remove('text-gray-900', 'bg-white', 'border-gray-200', 'hover:bg-gray-100', 'hover:text-ecs-green', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white', 'dark:hover:bg-gray-600');
-            btn.classList.add('bg-ecs-green', 'text-white', 'border-ecs-green', 'dark:bg-green-600', 'dark:border-green-600', 'dark:hover:bg-green-700');
-        }
-    });
     let refereeAssignedMatches = [];
+
+    // View toggle buttons - using event delegation for robustness
+    const viewButtons = document.querySelectorAll('[data-view]');
+
+    // Helper function to update view button styling
+    function updateViewButtonStyles(activeView) {
+        viewButtons.forEach(btn => {
+            const isActive = btn.dataset.view === activeView;
+            btn.classList.toggle('bg-ecs-green', isActive);
+            btn.classList.toggle('text-white', isActive);
+            btn.classList.toggle('border-ecs-green', isActive);
+            btn.classList.toggle('dark:bg-green-600', isActive);
+            btn.classList.toggle('dark:border-green-600', isActive);
+            btn.classList.toggle('text-gray-900', !isActive);
+            btn.classList.toggle('bg-white', !isActive);
+            btn.classList.toggle('border-gray-200', !isActive);
+            btn.classList.toggle('dark:bg-gray-700', !isActive);
+            btn.classList.toggle('dark:border-gray-600', !isActive);
+            btn.classList.toggle('dark:text-white', !isActive);
+        });
+    }
+
+    // Set initial view button state
+    updateViewButtonStyles(currentView);
+
+    // View toggle click handlers
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentView = this.dataset.view;
+            updateViewButtonStyles(currentView);
+            renderSchedule();
+        });
+    });
 
     // Set default year for CSV import to current year
     const importYearInput = document.getElementById('importYear');
     if (importYearInput) {
         importYearInput.value = new Date().getFullYear();
     }
-
-    // View toggle buttons
-    const viewButtons = document.querySelectorAll('[data-view]');
-    viewButtons.forEach(btn => {
-        btn.addEventListener('click', function() {
-            // Update active button styling
-            viewButtons.forEach(b => {
-                b.classList.remove('bg-ecs-green', 'text-white', 'border-ecs-green', 'dark:bg-green-600', 'dark:border-green-600', 'dark:hover:bg-green-700');
-                b.classList.add('text-gray-900', 'bg-white', 'border-gray-200', 'hover:bg-gray-100', 'hover:text-ecs-green', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white', 'dark:hover:bg-gray-600');
-            });
-            this.classList.remove('text-gray-900', 'bg-white', 'border-gray-200', 'hover:bg-gray-100', 'hover:text-ecs-green', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white', 'dark:hover:bg-gray-600');
-            this.classList.add('bg-ecs-green', 'text-white', 'border-ecs-green', 'dark:bg-green-600', 'dark:border-green-600', 'dark:hover:bg-green-700');
-
-            currentView = this.dataset.view;
-            renderSchedule();
-        });
-    });
 
     // Toggle assignment mode
     const toggleAssignmentMode = document.getElementById('toggleAssignmentMode');
@@ -1061,16 +1065,16 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Navigation buttons
-    document.getElementById('calendar-prevBtn').addEventListener('click', () => navigateDate(-1));
-    document.getElementById('calendar-nextBtn').addEventListener('click', () => navigateDate(1));
-    document.getElementById('todayBtn').addEventListener('click', () => {
+    // Navigation buttons with null safety
+    document.getElementById('calendar-prevBtn')?.addEventListener('click', () => navigateDate(-1));
+    document.getElementById('calendar-nextBtn')?.addEventListener('click', () => navigateDate(1));
+    document.getElementById('todayBtn')?.addEventListener('click', () => {
         currentDate = new Date();
         updateDateDisplay();
         renderSchedule();
     });
-    document.getElementById('keyboardHelpBtn').addEventListener('click', () => showKeyboardShortcuts());
-    document.getElementById('nextEventBtn').addEventListener('click', () => jumpToNextEvent());
+    document.getElementById('keyboardHelpBtn')?.addEventListener('click', () => showKeyboardShortcuts());
+    document.getElementById('nextEventBtn')?.addEventListener('click', () => jumpToNextEvent());
 
     function jumpToNextEvent() {
         if (allEvents.length === 0) {
@@ -1108,6 +1112,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateDateDisplay() {
         const dateDisplay = document.getElementById('currentDateDisplay');
+        if (!dateDisplay) return;
+
         if (currentView === 'day') {
             dateDisplay.textContent = currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
         } else if (currentView === 'week') {
@@ -1119,7 +1125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (currentView === 'month') {
             dateDisplay.textContent = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         } else {
-            dateDisplay.textContent = 'All Matches';
+            dateDisplay.textContent = 'Upcoming Matches';
         }
     }
 
@@ -1171,83 +1177,157 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Load events using the unified visibility-filtered API
-    async function loadScheduleEvents() {
-        try {
-            const response = await fetch('/api/calendar/events');
-            if (!response.ok) throw new Error('Failed to fetch events.');
-            const events = await response.json();
-
-            // Transform events from new API format to our internal format
-            allEvents = events.map(event => {
+    // Transform events from API format to internal format
+    function transformEvents(events, apiType) {
+        return events.map(event => {
+            try {
                 const extProps = event.extendedProps || {};
-                const eventType = extProps.type || 'match';
 
-                // Determine division from extendedProps or color
-                let division = extProps.division || '';
-                if (eventType === 'ecs_fc_match') {
+                // Determine event type
+                let eventType = extProps.type || event.type || 'match';
+
+                // Determine division
+                let division = extProps.division || event.division || '';
+                if (eventType === 'ecs_fc_match' || eventType === 'ecs_fc') {
                     division = 'ECS FC';
-                } else if (eventType === 'league_event') {
-                    division = extProps.eventType || 'other';
                 }
 
-                // Extract team names from title or extendedProps
+                // Extract team names
                 let homeTeam = extProps.homeTeamName || '';
                 let awayTeam = extProps.awayTeamName || '';
-                if (!homeTeam && event.title && event.title.includes(' vs ')) {
+
+                // Fallback to parsing teams or title
+                if (!homeTeam && event.teams && event.teams.includes(' vs ')) {
+                    const parts = event.teams.split(' vs ');
+                    homeTeam = parts[0] || '';
+                    awayTeam = parts[1] || '';
+                } else if (!homeTeam && event.title && event.title.includes(' vs ')) {
                     const parts = event.title.split(' vs ');
-                    homeTeam = parts[0];
+                    homeTeam = parts[0] || '';
                     awayTeam = parts[1] || '';
                 }
+
+                // Get ref info
+                const refName = extProps.refName || event.ref || null;
+
+                // Parse date/time
+                const startDate = event.start ? new Date(event.start) : new Date();
+                const timeStr = event.start
+                    ? startDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
+                    : '';
 
                 return {
                     ...event,
                     id: extProps.matchId || extProps.eventId || event.id,
                     type: eventType,
-                    date: new Date(event.start),
+                    date: startDate,
                     homeTeam: homeTeam,
                     awayTeam: awayTeam,
-                    teams: homeTeam && awayTeam ? `${homeTeam} vs ${awayTeam}` : event.title,
-                    location: extProps.location || '',
-                    time: new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}),
+                    teams: homeTeam && awayTeam ? `${homeTeam} vs ${awayTeam}` : (event.teams || event.title || ''),
+                    location: extProps.location || event.location || (event.description ? event.description.replace('Location: ', '') : ''),
+                    time: timeStr,
                     division: division,
-                    ref: extProps.refName || (extProps.refId ? 'Assigned' : 'Unassigned'),
-                    eventType: extProps.eventType,
-                    description: extProps.description || ''
+                    ref: refName || 'Unassigned',
+                    eventType: extProps.eventType || event.eventType,
+                    description: extProps.description || event.description || ''
                 };
-            });
+            } catch (err) {
+                console.warn('Error transforming event:', event, err);
+                return {
+                    ...event,
+                    id: event.id,
+                    type: 'match',
+                    date: new Date(),
+                    homeTeam: '',
+                    awayTeam: '',
+                    teams: event.title || '',
+                    location: '',
+                    time: '',
+                    division: '',
+                    ref: 'Unassigned',
+                    eventType: '',
+                    description: ''
+                };
+            }
+        });
+    }
 
-            // Calculate stats for display
-            const matchEvents = allEvents.filter(e => e.type === 'match');
-            const assignedRefs = matchEvents.filter(e => e.extendedProps?.refId).length;
-            updateQuickStats({
-                totalMatches: matchEvents.length,
-                assignedRefs: assignedRefs,
-                unassignedMatches: matchEvents.length - assignedRefs
-            });
+    // Load events - try new API first, fall back to legacy if needed
+    async function loadScheduleEvents() {
+        try {
+            // Try the new visibility-filtered API first
+            let response = await fetch('/api/calendar/events');
+            let data;
 
+            if (response.ok) {
+                data = await response.json();
+                // New API returns an array directly
+                const events = Array.isArray(data) ? data : [];
+                allEvents = transformEvents(events, 'new');
+            } else {
+                // Fall back to legacy API (may have role restrictions)
+                console.warn('New calendar API failed, trying legacy...');
+                response = await fetch('/calendar/events');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch events');
+                }
+                data = await response.json();
+                // Legacy API returns {events: [...], stats: {...}}
+                const events = data.events || [];
+                allEvents = transformEvents(events, 'legacy');
+                // Use stats from legacy API
+                if (data.stats) {
+                    updateQuickStats(data.stats);
+                }
+                if (data.referee_assigned_matches) {
+                    refereeAssignedMatches = data.referee_assigned_matches;
+                }
+            }
+
+            // Calculate stats if using new API
+            if (Array.isArray(data)) {
+                const matchEvents = allEvents.filter(e => e.type === 'match');
+                const assignedRefs = matchEvents.filter(e => e.ref && e.ref !== 'Unassigned').length;
+                updateQuickStats({
+                    totalMatches: matchEvents.length,
+                    assignedRefs: assignedRefs,
+                    unassignedMatches: matchEvents.length - assignedRefs
+                });
+            }
+
+            // Jump to first future event if no events today
             if (allEvents.length > 0) {
                 const today = new Date();
-                const hasEventsToday = allEvents.some(event => new Date(event.start).toDateString() === today.toDateString());
+                today.setHours(0, 0, 0, 0);
+                const hasEventsToday = allEvents.some(event => {
+                    if (!event.start) return false;
+                    const eventDate = new Date(event.start);
+                    eventDate.setHours(0, 0, 0, 0);
+                    return eventDate.getTime() === today.getTime();
+                });
                 if (!hasEventsToday) {
-                    const futureEvents = allEvents.filter(event => new Date(event.start) > today).sort((a, b) => new Date(a.start) - new Date(b.start));
-                    if (futureEvents.length > 0) currentDate = new Date(futureEvents[0].start);
+                    const futureEvents = allEvents
+                        .filter(event => event.start && new Date(event.start) > today)
+                        .sort((a, b) => new Date(a.start) - new Date(b.start));
+                    if (futureEvents.length > 0) {
+                        currentDate = new Date(futureEvents[0].start);
+                    }
                 }
             }
             renderSchedule();
-            return events;
+            return allEvents;
         } catch (error) {
             console.error('Error loading events:', error);
-            document.getElementById('scheduleContent').innerHTML = `
+            setElementHtml('scheduleContent', `
                 <div class="empty-state">
                     <i class="ti ti-alert-triangle empty-state-icon text-red-500"></i>
                     <h5 class="empty-state-text text-red-500">Failed to load schedule</h5>
                     <p class="empty-state-subtext">There was a problem retrieving the match data</p>
-                    <button class="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400" onclick="location.reload()">
+                    <button class="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400 calendar-retry-btn">
                         <i class="ti ti-refresh mr-2"></i> Try Again
                     </button>
                 </div>
-            `;
+            `);
             throw error;
         }
     }
@@ -1351,6 +1431,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderSchedule(searchTerm = '') {
         const scheduleContent = document.getElementById('scheduleContent');
+        if (!scheduleContent) return;
+
         updateDateDisplay();
         currentViewEvents = filterEventsByView();
         if (searchTerm) {
@@ -1434,6 +1516,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderDayView() {
         const scheduleContent = document.getElementById('scheduleContent');
+        if (!scheduleContent) return;
+
         const sortedEvents = [...currentViewEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
         const timeSlots = {};
         sortedEvents.forEach(event => {
@@ -1457,6 +1541,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderWeekView() {
         const scheduleContent = document.getElementById('scheduleContent');
+        if (!scheduleContent) return;
+
         const weekStart = new Date(currentDate);
         weekStart.setDate(currentDate.getDate() - currentDate.getDay());
         const weekDays = [];
@@ -1493,6 +1579,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderMonthView() {
         const scheduleContent = document.getElementById('scheduleContent');
+        if (!scheduleContent) return;
+
         const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
         const startingDayOfWeek = firstDay.getDay();
         const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -1575,10 +1663,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dayNumber = dayElement.querySelector('.day-number').textContent;
                 currentDate.setDate(parseInt(dayNumber));
                 currentView = 'day';
-                viewButtons.forEach(btn => {
-                    btn.classList.remove('bg-ecs-green', 'text-white');
-                    if (btn.dataset.view === 'day') btn.classList.add('bg-ecs-green', 'text-white');
-                });
+                updateViewButtonStyles('day');
                 renderSchedule();
             });
         });
@@ -1586,6 +1671,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderListView() {
         const scheduleContent = document.getElementById('scheduleContent');
+        if (!scheduleContent) return;
+
         const sortedEvents = [...currentViewEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
         const eventsByDate = {};
         sortedEvents.forEach(event => {
@@ -1795,116 +1882,162 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    function showMatchDetailsModal(event) {
-        document.getElementById('detailHomeTeam').textContent = event.homeTeam;
-        document.getElementById('detailAwayTeam').textContent = event.awayTeam;
-        document.getElementById('detailMatchDate').textContent = event.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-        document.getElementById('detailMatchTime').textContent = event.time;
-        document.getElementById('detailMatchLocation').textContent = event.location;
-        document.getElementById('detailMatchDivision').textContent = event.division;
-        document.getElementById('detailMatchReferee').textContent = event.ref;
-
-        const openAssignRefBtn = document.getElementById('openAssignRefBtn');
-        const openAssignRefBtnTop = document.getElementById('openAssignRefBtnTop');
-        if (openAssignRefBtn) {
-            openAssignRefBtn.onclick = function() {
-                window.ModalManager.hide('matchDetailsModal');
-                setTimeout(() => showAssignRefModal(event), 300);
-            };
-        }
-        if (openAssignRefBtnTop) {
-            openAssignRefBtnTop.onclick = function() {
-                window.ModalManager.hide('matchDetailsModal');
-                setTimeout(() => showAssignRefModal(event), 300);
-            };
-        }
-        window.ModalManager.show('matchDetailsModal');
+    // Helper for safe element text/value setting
+    function setElementText(id, text) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = text ?? '';
     }
 
-    function showLeagueEventDetailsModal(event) {
-        // Event type configuration
-        const eventTypeConfig = {
-            party: { icon: 'ti-confetti', label: 'Party/Social', color: '#9c27b0' },
-            tournament: { icon: 'ti-trophy', label: 'Tournament', color: '#ffc107' },
-            meeting: { icon: 'ti-users', label: 'Meeting', color: '#2196f3' },
-            plop: { icon: 'ti-ball-football', label: 'PLOP', color: '#4caf50' },
-            fundraiser: { icon: 'ti-coin', label: 'Fundraiser', color: '#ff5722' },
-            social: { icon: 'ti-heart', label: 'Social Event', color: '#e91e63' },
-            other: { icon: 'ti-calendar-event', label: 'Event', color: '#607d8b' }
+    function setElementValue(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.value = value ?? '';
+    }
+
+    function setElementStyle(id, property, value) {
+        const el = document.getElementById(id);
+        if (el) el.style[property] = value;
+    }
+
+    function setElementHtml(id, html) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html ?? '';
+    }
+
+    function showMatchDetailsModal(event) {
+        setElementText('detailHomeTeam', event.homeTeam);
+        setElementText('detailAwayTeam', event.awayTeam);
+        setElementText('detailMatchDate', event.date?.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) || '');
+        setElementText('detailMatchTime', event.time);
+        setElementText('detailMatchLocation', event.location);
+        setElementText('detailMatchDivision', event.division);
+        setElementText('detailMatchReferee', event.ref);
+
+        // Store event data for ref assignment - use data attribute to avoid closure issues
+        const openAssignRefBtn = document.getElementById('openAssignRefBtn');
+        const openAssignRefBtnTop = document.getElementById('openAssignRefBtnTop');
+
+        // Handler function that reads from stored event data
+        const handleAssignRef = () => {
+            window.ModalManager?.hide('matchDetailsModal');
+            setTimeout(() => showAssignRefModal(window._currentMatchEvent), 300);
         };
 
-        const eventType = event.eventType || event.extendedProps?.eventType || 'other';
-        const config = eventTypeConfig[eventType] || eventTypeConfig.other;
+        // Store the current event for the handler
+        window._currentMatchEvent = event;
 
-        // Set modal title (using macro-generated title element)
-        document.getElementById('leagueEventDetailsModal-title').textContent = 'Event Details';
+        // Remove old listeners and add new ones (clone technique for cleanup)
+        if (openAssignRefBtn) {
+            const newBtn = openAssignRefBtn.cloneNode(true);
+            openAssignRefBtn.parentNode?.replaceChild(newBtn, openAssignRefBtn);
+            newBtn.addEventListener('click', handleAssignRef);
+        }
+        if (openAssignRefBtnTop) {
+            const newBtn = openAssignRefBtnTop.cloneNode(true);
+            openAssignRefBtnTop.parentNode?.replaceChild(newBtn, openAssignRefBtnTop);
+            newBtn.addEventListener('click', handleAssignRef);
+        }
+        window.ModalManager?.show('matchDetailsModal');
+    }
+
+    // Shared event type configuration
+    const EVENT_TYPE_CONFIG = {
+        party: { icon: 'ti-confetti', label: 'Party/Social', color: '#9c27b0' },
+        tournament: { icon: 'ti-trophy', label: 'Tournament', color: '#ffc107' },
+        meeting: { icon: 'ti-users', label: 'Meeting', color: '#2196f3' },
+        plop: { icon: 'ti-ball-football', label: 'PLOP', color: '#4caf50' },
+        fundraiser: { icon: 'ti-coin', label: 'Fundraiser', color: '#ff5722' },
+        social: { icon: 'ti-heart', label: 'Social Event', color: '#e91e63' },
+        other: { icon: 'ti-calendar-event', label: 'Event', color: '#607d8b' }
+    };
+
+    function showLeagueEventDetailsModal(event) {
+        const eventType = event.eventType || event.extendedProps?.eventType || 'other';
+        const config = EVENT_TYPE_CONFIG[eventType] || EVENT_TYPE_CONFIG.other;
+
+        // Set modal title
+        setElementText('leagueEventDetailsModal-title', 'Event Details');
 
         // Set event type badge
         const typeBadge = document.getElementById('leagueEventDetailTypeBadge');
-        typeBadge.textContent = config.label;
-        typeBadge.style.backgroundColor = config.color;
+        if (typeBadge) {
+            typeBadge.textContent = config.label;
+            typeBadge.style.backgroundColor = config.color;
+        }
 
         // Set event name
-        document.getElementById('leagueEventDetailName').textContent = event.title || 'Event';
+        setElementText('leagueEventDetailName', event.title || 'Event');
 
         // Set description if present
         const descEl = document.getElementById('leagueEventDetailDescription');
         const description = event.description || event.extendedProps?.description;
-        if (description) {
-            descEl.textContent = description;
-            descEl.classList.remove('hidden');
-        } else {
-            descEl.classList.add('hidden');
+        if (descEl) {
+            if (description) {
+                descEl.textContent = description;
+                descEl.classList.remove('hidden');
+            } else {
+                descEl.classList.add('hidden');
+            }
         }
 
         // Set date and time
-        const eventDate = event.date || new Date(event.start);
-        document.getElementById('leagueEventDetailDate').textContent = eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-        document.getElementById('leagueEventDetailTime').textContent = event.time || eventDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+        const eventDate = event.date || (event.start ? new Date(event.start) : new Date());
+        setElementText('leagueEventDetailDate', eventDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }));
+        setElementText('leagueEventDetailTime', event.time || eventDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}));
 
         // Set end time if present
         const endTimeContainer = document.getElementById('leagueEventDetailEndTimeContainer');
-        if (event.end || event.endTime) {
-            const endDate = event.end ? new Date(event.end) : null;
-            const endTimeStr = event.endTime || (endDate ? endDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '');
-            if (endTimeStr) {
-                document.getElementById('leagueEventDetailEndTime').textContent = endTimeStr;
-                endTimeContainer.classList.remove('hidden');
+        if (endTimeContainer) {
+            if (event.end || event.endTime) {
+                const endDate = event.end ? new Date(event.end) : null;
+                const endTimeStr = event.endTime || (endDate ? endDate.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) : '');
+                if (endTimeStr) {
+                    setElementText('leagueEventDetailEndTime', endTimeStr);
+                    endTimeContainer.classList.remove('hidden');
+                } else {
+                    endTimeContainer.classList.add('hidden');
+                }
             } else {
                 endTimeContainer.classList.add('hidden');
             }
-        } else {
-            endTimeContainer.classList.add('hidden');
         }
 
         // Set location if present
         const locationContainer = document.getElementById('leagueEventDetailLocationContainer');
         const location = event.location || event.extendedProps?.location;
-        if (location) {
-            document.getElementById('leagueEventDetailLocation').textContent = location;
-            locationContainer.classList.remove('hidden');
-        } else {
-            locationContainer.classList.add('hidden');
+        if (locationContainer) {
+            if (location) {
+                setElementText('leagueEventDetailLocation', location);
+                locationContainer.classList.remove('hidden');
+            } else {
+                locationContainer.classList.add('hidden');
+            }
         }
 
-        // Set up edit button
+        // Store event data for handlers
+        window._currentLeagueEvent = event;
+
+        // Set up edit button with proper event listener
         const editBtn = document.getElementById('editLeagueEventBtn');
         if (editBtn) {
-            editBtn.onclick = function() {
-                window.ModalManager.hide('leagueEventDetailsModal');
+            const newEditBtn = editBtn.cloneNode(true);
+            editBtn.parentNode?.replaceChild(newEditBtn, editBtn);
+            newEditBtn.addEventListener('click', () => {
+                window.ModalManager?.hide('leagueEventDetailsModal');
                 setTimeout(() => {
                     if (typeof openLeagueEventModal === 'function') {
-                        openLeagueEventModal(event);
+                        openLeagueEventModal(window._currentLeagueEvent);
                     }
                 }, 300);
-            };
+            });
         }
 
-        // Set up delete button
+        // Set up delete button with proper event listener
         const deleteBtn = document.getElementById('deleteLeagueEventBtn');
         if (deleteBtn) {
-            deleteBtn.onclick = async function() {
-                const eventId = event.id?.toString().replace('event-', '') || '';
+            const newDeleteBtn = deleteBtn.cloneNode(true);
+            deleteBtn.parentNode?.replaceChild(newDeleteBtn, deleteBtn);
+            newDeleteBtn.addEventListener('click', async () => {
+                const eventId = window._currentLeagueEvent?.id?.toString().replace('event-', '') || '';
                 if (!eventId) {
                     if (window.showToast) window.showToast('Cannot delete: event ID not found', 'error');
                     return;
@@ -1935,48 +2068,53 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (window.showToast) window.showToast('Event deleted successfully', 'success');
                     window.refreshCalendar?.();
                 } catch (error) {
-                    console.error('Delete error:', error);
                     if (window.showToast) window.showToast('Failed to delete event', 'error');
                 }
-            };
+            });
         }
 
         window.ModalManager.show('leagueEventDetailsModal');
     }
 
     function showAssignRefModal(event) {
-        document.getElementById('matchId').value = event.id;
-        document.getElementById('homeTeam').textContent = event.homeTeam;
-        document.getElementById('awayTeam').textContent = event.awayTeam;
-        document.getElementById('matchDateTime').textContent = `${event.date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })} at ${event.time}`;
-        document.getElementById('matchLocation').textContent = event.location;
-        document.getElementById('matchDivision').textContent = event.division;
+        setElementValue('matchId', event.id);
+        setElementText('homeTeam', event.homeTeam);
+        setElementText('awayTeam', event.awayTeam);
+
+        const dateStr = event.date?.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) || '';
+        setElementText('matchDateTime', `${dateStr} at ${event.time || ''}`);
+        setElementText('matchLocation', event.location);
+        setElementText('matchDivision', event.division);
 
         if (event.ref !== 'Unassigned') {
-            document.getElementById('currentRefereeSection').style.display = 'block';
-            document.getElementById('currentRefereeName').textContent = event.ref;
-            document.getElementById('removeRefButton').style.display = 'inline-flex';
+            setElementStyle('currentRefereeSection', 'display', 'block');
+            setElementText('currentRefereeName', event.ref);
+            setElementStyle('removeRefButton', 'display', 'inline-flex');
         } else {
-            document.getElementById('currentRefereeSection').style.display = 'none';
-            document.getElementById('removeRefButton').style.display = 'none';
+            setElementStyle('currentRefereeSection', 'display', 'none');
+            setElementStyle('removeRefButton', 'display', 'none');
         }
 
         fetchRefereesForMatch(event.id);
-        document.getElementById('assignRefFeedback').innerHTML = '';
+        setElementHtml('assignRefFeedback', '');
         window.ModalManager.show('assignRefModal');
     }
 
     async function fetchRefereesForMatch(matchId) {
+        const refSelect = document.getElementById('refSelect');
+        const assignRefButton = document.getElementById('assignRefButton');
+
         try {
             const response = await fetch(`/calendar/refs?match_id=${matchId}`);
             if (!response.ok) throw new Error('Failed to fetch referees.');
             const referees = await response.json();
-            const refSelect = document.getElementById('refSelect');
+
+            if (!refSelect) return;
             refSelect.innerHTML = '<option value="" selected disabled>Choose a referee</option>';
 
             if (referees.length === 0) {
                 refSelect.innerHTML += '<option value="" disabled>No eligible referees available</option>';
-                document.getElementById('assignRefButton').disabled = true;
+                if (assignRefButton) assignRefButton.disabled = true;
                 displayModalFeedback('assignRefFeedback', 'No eligible referees available for this match.', 'warning');
             } else {
                 referees.sort((a, b) => a.matches_assigned_in_week - b.matches_assigned_in_week);
@@ -1997,7 +2135,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (availableGroup.children.length > 0) refSelect.appendChild(availableGroup);
                 if (assignedGroup.children.length > 0) refSelect.appendChild(assignedGroup);
                 refSelect.disabled = false;
-                document.getElementById('assignRefButton').disabled = false;
+                if (assignRefButton) assignRefButton.disabled = false;
             }
         } catch (error) {
             console.error('Error fetching referees:', error);
@@ -2005,10 +2143,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.getElementById('assignRefForm').addEventListener('submit', async function(e) {
+    document.getElementById('assignRefForm')?.addEventListener('submit', async function(e) {
         e.preventDefault();
-        const matchId = document.getElementById('matchId').value;
-        const refId = document.getElementById('refSelect').value;
+        const matchId = document.getElementById('matchId')?.value;
+        const refId = document.getElementById('refSelect')?.value;
         if (!refId) {
             displayModalFeedback('assignRefFeedback', 'Please select a referee.', 'warning');
             return;
@@ -2034,8 +2172,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    document.getElementById('removeRefButton').addEventListener('click', async function() {
-        const matchId = document.getElementById('matchId').value;
+    document.getElementById('removeRefButton')?.addEventListener('click', async function() {
+        const matchId = document.getElementById('matchId')?.value;
         if (typeof Swal !== 'undefined') {
             const result = await Swal.fire({
                 title: 'Remove Referee?',
@@ -2074,6 +2212,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displayModalFeedback(elementId, message, type) {
         const feedbackEl = document.getElementById(elementId);
+        if (!feedbackEl) return;
+
         const colors = {
             success: 'text-green-800 bg-green-50 dark:bg-green-900/20 dark:text-green-400',
             error: 'text-red-800 bg-red-50 dark:bg-red-900/20 dark:text-red-400',
@@ -2108,14 +2248,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error('Failed to fetch assignments.');
             const data = await response.json();
             renderRefereeAssignments(data.assignments);
-            document.getElementById('myAssignmentsCount').textContent = data.total_assignments;
+            setElementText('myAssignmentsCount', data.total_assignments);
         } catch (error) {
-            document.getElementById('myAssignmentsList').innerHTML = `<div class="flex flex-col items-center justify-center py-6"><i class="ti ti-alert-triangle text-2xl text-red-500 mb-2"></i><p class="text-red-500 text-sm">Failed to load assignments</p></div>`;
+            setElementHtml('myAssignmentsList', `<div class="flex flex-col items-center justify-center py-6"><i class="ti ti-alert-triangle text-2xl text-red-500 mb-2"></i><p class="text-red-500 text-sm">Failed to load assignments</p></div>`);
         }
     }
 
     function renderRefereeAssignments(assignments) {
         const assignmentsList = document.getElementById('myAssignmentsList');
+        if (!assignmentsList) return;
+
         if (assignments.length === 0) {
             assignmentsList.innerHTML = `<div class="flex flex-col items-center justify-center py-6"><div class="w-12 h-12 rounded-full bg-ecs-green/10 flex items-center justify-center mb-2"><i class="ti ti-calendar-off text-xl text-ecs-green"></i></div><h6 class="text-gray-500 mb-1">No Assignments Yet</h6><p class="text-gray-400 text-sm">You don't have any upcoming referee assignments</p></div>`;
             return;
@@ -2136,17 +2278,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             renderAvailabilityStatus(data.is_available, data.referee_name);
         } catch (error) {
-            document.getElementById('availabilityStatus').innerHTML = `<i class="ti ti-alert-triangle text-2xl text-red-500 mb-2"></i><p class="text-red-500">Failed to load status</p>`;
+            setElementHtml('availabilityStatus', `<i class="ti ti-alert-triangle text-2xl text-red-500 mb-2"></i><p class="text-red-500">Failed to load status</p>`);
         }
     }
 
     function renderAvailabilityStatus(isAvailable, refereeName) {
         const statusEl = document.getElementById('availabilityStatus');
-        const toggleBtn = document.getElementById('toggleAvailabilityBtn');
+        let toggleBtn = document.getElementById('toggleAvailabilityBtn');
+        if (!statusEl || !toggleBtn) return;
+
         statusEl.innerHTML = `<div class="w-16 h-16 rounded-full ${isAvailable ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-700'} flex items-center justify-center mx-auto mb-2"><i class="ti ti-${isAvailable ? 'check' : 'x'} text-2xl ${isAvailable ? 'text-green-500' : 'text-gray-500'}"></i></div><h6 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">You are ${isAvailable ? 'Available' : 'Unavailable'}</h6><p class="text-gray-500 dark:text-gray-400 text-sm">for referee assignments</p>`;
+
+        // Clone button to remove any old event listeners
+        const newToggleBtn = toggleBtn.cloneNode(true);
+        toggleBtn.parentNode?.replaceChild(newToggleBtn, toggleBtn);
+        toggleBtn = newToggleBtn;
+
         toggleBtn.disabled = false;
         toggleBtn.innerHTML = `<i class="ti ti-toggle-${isAvailable ? 'right' : 'left'} mr-2"></i>${isAvailable ? 'Set Unavailable' : 'Set Available'}`;
-        toggleBtn.onclick = async function() {
+        toggleBtn.addEventListener('click', async function() {
             this.disabled = true;
             this.innerHTML = '<i class="ti ti-loader animate-spin mr-2"></i> Updating...';
             try {
@@ -2160,7 +2310,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.disabled = false;
                 this.innerHTML = `<i class="ti ti-toggle-${isAvailable ? 'right' : 'left'} mr-2"></i>${isAvailable ? 'Set Unavailable' : 'Set Available'}`;
             }
-        };
+        });
     }
 
     function toggleAssignmentModeUI(enabled) {
@@ -2181,9 +2331,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const helper = document.createElement('div');
         helper.id = 'assignmentHelper';
         helper.className = 'assignment-helper';
-        helper.innerHTML = `<div class="flex items-center justify-between mb-2"><h6 class="font-semibold text-ecs-green dark:text-green-400 flex items-center"><i class="ti ti-info-circle mr-2"></i>Assignment Mode Active</h6><button type="button" class="p-1 text-gray-400 hover:text-gray-600" onclick="document.getElementById('toggleAssignmentMode').click()"><i class="ti ti-x"></i></button></div><p class="text-sm text-gray-600 dark:text-gray-400 mb-2">1. Click a referee in the sidebar<br>2. Click any unassigned match to assign<br>3. Unassigned matches are highlighted</p><div class="text-sm text-gray-500"><span id="unassignedCount">0</span> unassigned matches</div>`;
+        helper.innerHTML = `
+            <div class="flex items-center justify-between mb-2">
+                <h6 class="font-semibold text-ecs-green dark:text-green-400 flex items-center">
+                    <i class="ti ti-info-circle mr-2"></i>Assignment Mode Active
+                </h6>
+                <button type="button" class="exit-assignment-mode-btn p-1 text-gray-400 hover:text-gray-600">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                1. Click a referee in the sidebar<br>
+                2. Click any unassigned match to assign<br>
+                3. Unassigned matches are highlighted
+            </p>
+            <div class="text-sm text-gray-500"><span id="unassignedCount">0</span> unassigned matches</div>
+        `;
         const scheduleContent = document.getElementById('scheduleContent');
-        scheduleContent.insertBefore(helper, scheduleContent.firstChild);
+        if (scheduleContent) {
+            scheduleContent.insertBefore(helper, scheduleContent.firstChild);
+            // Attach event listener after element is in DOM
+            helper.querySelector('.exit-assignment-mode-btn')?.addEventListener('click', () => {
+                document.getElementById('toggleAssignmentMode')?.click();
+            });
+        }
         updateUnassignedCount();
     }
 
@@ -2206,7 +2377,7 @@ document.addEventListener('DOMContentLoaded', () => {
         switch(e.key) {
             case 'ArrowLeft': e.preventDefault(); navigateDate(-1); break;
             case 'ArrowRight': e.preventDefault(); navigateDate(1); break;
-            case 't': case 'T': e.preventDefault(); document.getElementById('todayBtn').click(); break;
+            case 't': case 'T': e.preventDefault(); document.getElementById('todayBtn')?.click(); break;
             case 'n': case 'N': e.preventDefault(); jumpToNextEvent(); break;
             case 'd': case 'D': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setView('day'); } break;
             case 'w': case 'W': if (!e.ctrlKey && !e.metaKey) { e.preventDefault(); setView('week'); } break;
@@ -2218,14 +2389,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setView(view) {
         currentView = view;
-        viewButtons.forEach(btn => {
-            btn.classList.remove('bg-ecs-green', 'text-white', 'border-ecs-green');
-            btn.classList.add('text-gray-900', 'bg-white', 'border-gray-200');
-            if (btn.dataset.view === view) {
-                btn.classList.remove('text-gray-900', 'bg-white', 'border-gray-200');
-                btn.classList.add('bg-ecs-green', 'text-white', 'border-ecs-green');
-            }
-        });
+        updateViewButtonStyles(view);
         renderSchedule();
     }
 
@@ -2269,16 +2433,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('filterSelectAllDivisions')?.addEventListener('click', () => {
-        document.getElementById('filterDivPremier').checked = true;
-        document.getElementById('filterDivClassic').checked = true;
-        document.getElementById('filterDivEcsFc').checked = true;
+        const premier = document.getElementById('filterDivPremier');
+        const classic = document.getElementById('filterDivClassic');
+        const ecsFc = document.getElementById('filterDivEcsFc');
+        if (premier) premier.checked = true;
+        if (classic) classic.checked = true;
+        if (ecsFc) ecsFc.checked = true;
         renderSchedule();
     });
 
     document.getElementById('filterClearAllDivisions')?.addEventListener('click', () => {
-        document.getElementById('filterDivPremier').checked = false;
-        document.getElementById('filterDivClassic').checked = false;
-        document.getElementById('filterDivEcsFc').checked = false;
+        const premier = document.getElementById('filterDivPremier');
+        const classic = document.getElementById('filterDivClassic');
+        const ecsFc = document.getElementById('filterDivEcsFc');
+        if (premier) premier.checked = false;
+        if (classic) classic.checked = false;
+        if (ecsFc) ecsFc.checked = false;
         renderSchedule();
     });
 
@@ -2294,17 +2464,39 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('filterResetBtn')?.addEventListener('click', () => {
-        document.getElementById('filterShowMatches').checked = true;
-        document.getElementById('filterShowLeagueEvents').checked = true;
-        document.getElementById('filterDivPremier').checked = true;
-        document.getElementById('filterDivClassic').checked = true;
-        document.getElementById('filterDivEcsFc').checked = true;
+        const showMatches = document.getElementById('filterShowMatches');
+        const showLeagueEvents = document.getElementById('filterShowLeagueEvents');
+        const premier = document.getElementById('filterDivPremier');
+        const classic = document.getElementById('filterDivClassic');
+        const ecsFc = document.getElementById('filterDivEcsFc');
+
+        if (showMatches) showMatches.checked = true;
+        if (showLeagueEvents) showLeagueEvents.checked = true;
+        if (premier) premier.checked = true;
+        if (classic) classic.checked = true;
+        if (ecsFc) ecsFc.checked = true;
+
         // Reset event type filters
         document.querySelectorAll('.filter-event-type').forEach(cb => cb.checked = true);
         // Show event type filters section
         const eventTypeFilters = document.getElementById('leagueEventTypeFilters');
         if (eventTypeFilters) eventTypeFilters.style.display = 'block';
         renderSchedule();
+    });
+
+    // Event delegation for dynamically added retry buttons
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.calendar-retry-btn')) {
+            location.reload();
+        }
+    });
+
+    // Import notify Discord toggle (handles discord mode container visibility)
+    document.getElementById('importNotifyDiscord')?.addEventListener('change', function() {
+        const discordModeContainer = document.getElementById('discordModeContainer');
+        if (discordModeContainer) {
+            discordModeContainer.classList.toggle('hidden', !this.checked);
+        }
     });
 
     // Mobile sidebar toggle
@@ -2369,40 +2561,50 @@ document.addEventListener('DOMContentLoaded', () => {
         // Open modal function
         function openLeagueEventModal(eventData = null) {
             const form = document.getElementById('leagueEventForm');
+            if (!form) return;
             form.reset();
-            document.getElementById('eventId').value = '';
-            document.getElementById('leagueEventModal-title').textContent = eventData ? 'Edit League Event' : 'Create League Event';
-            document.getElementById('saveEventBtn').innerHTML = eventData ? '<i class="ti ti-check mr-2"></i> Save Changes' : '<i class="ti ti-check mr-2"></i> Create Event';
-            document.getElementById('deleteEventBtn').classList.toggle('hidden', !eventData);
-            document.getElementById('recurringSection').classList.toggle('hidden', !!eventData);
-            document.getElementById('recurringOptions').classList.add('hidden');
+
+            setElementValue('eventId', '');
+            setElementText('leagueEventModal-title', eventData ? 'Edit League Event' : 'Create League Event');
+            setElementHtml('saveEventBtn', eventData ? '<i class="ti ti-check mr-2"></i> Save Changes' : '<i class="ti ti-check mr-2"></i> Create Event');
+
+            const deleteBtn = document.getElementById('deleteEventBtn');
+            const recurringSection = document.getElementById('recurringSection');
+            const recurringOptions = document.getElementById('recurringOptions');
+            if (deleteBtn) deleteBtn.classList.toggle('hidden', !eventData);
+            if (recurringSection) recurringSection.classList.toggle('hidden', !!eventData);
+            if (recurringOptions) recurringOptions.classList.add('hidden');
 
             // Reset reminder settings to defaults
-            document.getElementById('eventSendReminder').checked = true;
-            document.getElementById('eventReminderDays').value = '2';
-            document.getElementById('reminderDaysSection').classList.remove('opacity-50', 'pointer-events-none');
+            const sendReminderEl = document.getElementById('eventSendReminder');
+            const reminderDaysEl = document.getElementById('eventReminderDays');
+            const reminderDaysSection = document.getElementById('reminderDaysSection');
+            if (sendReminderEl) sendReminderEl.checked = true;
+            if (reminderDaysEl) reminderDaysEl.value = '2';
+            if (reminderDaysSection) reminderDaysSection.classList.remove('opacity-50', 'pointer-events-none');
 
             if (eventData) {
-                document.getElementById('eventId').value = eventData.id?.replace('event-', '') || '';
-                document.getElementById('eventTitle').value = eventData.title || '';
-                document.getElementById('eventType').value = eventData.eventType || eventData.extendedProps?.eventType || 'other';
-                document.getElementById('eventLocation').value = eventData.location || eventData.extendedProps?.location || '';
-                document.getElementById('eventDescription').value = eventData.description || eventData.extendedProps?.description || '';
-                document.getElementById('eventAllDay').checked = eventData.allDay || false;
-                if (eventData.start) {
-                    document.getElementById('eventStartDate').value = formatDateTimeLocal(eventData.start);
-                }
-                if (eventData.end) {
-                    document.getElementById('eventEndDate').value = formatDateTimeLocal(eventData.end);
-                }
+                setElementValue('eventId', eventData.id?.replace('event-', '') || '');
+                setElementValue('eventTitle', eventData.title || '');
+                setElementValue('eventType', eventData.eventType || eventData.extendedProps?.eventType || 'other');
+                setElementValue('eventLocation', eventData.location || eventData.extendedProps?.location || '');
+                setElementValue('eventDescription', eventData.description || eventData.extendedProps?.description || '');
+
+                const allDayEl = document.getElementById('eventAllDay');
+                if (allDayEl) allDayEl.checked = eventData.allDay || false;
+
+                if (eventData.start) setElementValue('eventStartDate', formatDateTimeLocal(eventData.start));
+                if (eventData.end) setElementValue('eventEndDate', formatDateTimeLocal(eventData.end));
 
                 // Load reminder settings from event data (via extendedProps or direct)
                 const sendReminder = eventData.send_reminder ?? eventData.extendedProps?.send_reminder ?? true;
                 const reminderDays = eventData.reminder_days_before ?? eventData.extendedProps?.reminder_days_before ?? 2;
-                document.getElementById('eventSendReminder').checked = sendReminder;
-                document.getElementById('eventReminderDays').value = String(reminderDays);
-                document.getElementById('reminderDaysSection').classList.toggle('opacity-50', !sendReminder);
-                document.getElementById('reminderDaysSection').classList.toggle('pointer-events-none', !sendReminder);
+                if (sendReminderEl) sendReminderEl.checked = sendReminder;
+                if (reminderDaysEl) reminderDaysEl.value = String(reminderDays);
+                if (reminderDaysSection) {
+                    reminderDaysSection.classList.toggle('opacity-50', !sendReminder);
+                    reminderDaysSection.classList.toggle('pointer-events-none', !sendReminder);
+                }
             }
 
             if (flowbiteModal) flowbiteModal.show();
@@ -2479,33 +2681,43 @@ document.addEventListener('DOMContentLoaded', () => {
             return dates;
         }
 
+        // Helper to safely get element value
+        function getElementValue(id) {
+            return document.getElementById(id)?.value ?? '';
+        }
+
+        function getElementChecked(id) {
+            return document.getElementById(id)?.checked ?? false;
+        }
+
         // Save event handler
         document.getElementById('saveEventBtn')?.addEventListener('click', async function() {
             const form = document.getElementById('leagueEventForm');
+            if (!form) return;
             if (!form.checkValidity()) { form.reportValidity(); return; }
 
-            const eventId = document.getElementById('eventId').value;
+            const eventId = getElementValue('eventId');
             const isEdit = !!eventId;
-            const isRecurring = document.getElementById('eventRecurring')?.checked && !isEdit;
+            const isRecurring = getElementChecked('eventRecurring') && !isEdit;
 
             const baseEventData = {
-                title: document.getElementById('eventTitle').value,
-                event_type: document.getElementById('eventType').value,
-                location: document.getElementById('eventLocation').value || null,
-                description: document.getElementById('eventDescription').value || null,
-                is_all_day: document.getElementById('eventAllDay').checked,
-                notify_discord: document.getElementById('eventNotifyDiscord').checked,
-                send_reminder: document.getElementById('eventSendReminder').checked,
-                reminder_days_before: parseInt(document.getElementById('eventReminderDays').value) || 2
+                title: getElementValue('eventTitle'),
+                event_type: getElementValue('eventType'),
+                location: getElementValue('eventLocation') || null,
+                description: getElementValue('eventDescription') || null,
+                is_all_day: getElementChecked('eventAllDay'),
+                notify_discord: getElementChecked('eventNotifyDiscord'),
+                send_reminder: getElementChecked('eventSendReminder'),
+                reminder_days_before: parseInt(getElementValue('eventReminderDays')) || 2
             };
 
             try {
                 if (isRecurring) {
                     const dates = generateRecurringDates({
-                        pattern: document.getElementById('recurrencePattern').value,
-                        dayOfWeek: document.getElementById('recurrenceDay').value,
-                        time: document.getElementById('recurrenceTime').value,
-                        endDate: document.getElementById('recurrenceEndDate').value || null
+                        pattern: getElementValue('recurrencePattern'),
+                        dayOfWeek: getElementValue('recurrenceDay'),
+                        time: getElementValue('recurrenceTime'),
+                        endDate: getElementValue('recurrenceEndDate') || null
                     });
 
                     if (dates.length === 0) {
@@ -2517,10 +2729,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     let successCount = 0;
                     const wantsDiscord = baseEventData.notify_discord;
-                    const patternLabel = { weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly' }[document.getElementById('recurrencePattern').value];
+                    const recurrencePatternValue = getElementValue('recurrencePattern');
+                    const patternLabel = { weekly: 'Weekly', biweekly: 'Every 2 weeks', monthly: 'Monthly' }[recurrencePatternValue];
                     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                    const dayName = dayNames[parseInt(document.getElementById('recurrenceDay').value, 10)];
-                    const timeStr = document.getElementById('recurrenceTime').value;
+                    const dayName = dayNames[parseInt(getElementValue('recurrenceDay'), 10)];
+                    const timeStr = getElementValue('recurrenceTime');
 
                     for (let i = 0; i < dates.length; i++) {
                         const date = dates[i];
@@ -2553,8 +2766,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     const eventData = {
                         ...baseEventData,
-                        start_datetime: document.getElementById('eventStartDate').value,
-                        end_datetime: document.getElementById('eventEndDate').value || null
+                        start_datetime: getElementValue('eventStartDate'),
+                        end_datetime: getElementValue('eventEndDate') || null
                     };
 
                     const url = isEdit ? `/api/calendar/league-events/${eventId}` : '/api/calendar/league-events';
@@ -2579,7 +2792,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Delete event handler
         document.getElementById('deleteEventBtn')?.addEventListener('click', async function() {
-            const eventId = document.getElementById('eventId').value;
+            const eventId = getElementValue('eventId');
             if (!eventId || !confirm('Delete this event?')) return;
 
             try {
@@ -2614,10 +2827,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Open import modal
         importBtn.addEventListener('click', () => {
             // Reset state
-            document.getElementById('importCsvFile').value = '';
-            document.getElementById('importPreviewArea').classList.add('hidden');
-            document.getElementById('importResultArea').classList.add('hidden');
-            document.getElementById('confirmImportBtn').disabled = true;
+            const csvFileInput = document.getElementById('importCsvFile');
+            const previewArea = document.getElementById('importPreviewArea');
+            const resultArea = document.getElementById('importResultArea');
+            const confirmBtn = document.getElementById('confirmImportBtn');
+
+            if (csvFileInput) csvFileInput.value = '';
+            if (previewArea) previewArea.classList.add('hidden');
+            if (resultArea) resultArea.classList.add('hidden');
+            if (confirmBtn) confirmBtn.disabled = true;
             previewData = null;
             window.ModalManager.show('importEventsModal');
         });
@@ -2625,7 +2843,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Preview button
         document.getElementById('previewImportBtn')?.addEventListener('click', async () => {
             const fileInput = document.getElementById('importCsvFile');
-            const file = fileInput.files[0];
+            const file = fileInput?.files?.[0];
 
             if (!file) {
                 if (window.showToast) window.showToast('Please select a CSV file', 'warning');
@@ -2634,9 +2852,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('year', document.getElementById('importYear').value);
-            formData.append('event_type', document.getElementById('importEventType').value);
-            formData.append('notify_discord', document.getElementById('importNotifyDiscord').checked);
+            formData.append('year', getElementValue('importYear'));
+            formData.append('event_type', getElementValue('importEventType'));
+            formData.append('notify_discord', getElementChecked('importNotifyDiscord'));
             formData.append('preview', 'true');
 
             try {
@@ -2667,6 +2885,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const previewContent = document.getElementById('importPreviewContent');
             const previewErrors = document.getElementById('importPreviewErrors');
             const confirmBtn = document.getElementById('confirmImportBtn');
+
+            if (!previewArea || !previewContent) return;
 
             // Build preview table
             let html = `
@@ -2705,22 +2925,24 @@ document.addEventListener('DOMContentLoaded', () => {
             previewArea.classList.remove('hidden');
 
             // Show errors if any
-            if (data.errors && data.errors.length > 0) {
-                previewErrors.innerHTML = '<strong>Warnings:</strong><ul class="list-disc list-inside mt-1">' +
-                    data.errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
-                previewErrors.classList.remove('hidden');
-            } else {
-                previewErrors.classList.add('hidden');
+            if (previewErrors) {
+                if (data.errors && data.errors.length > 0) {
+                    previewErrors.innerHTML = '<strong>Warnings:</strong><ul class="list-disc list-inside mt-1">' +
+                        data.errors.map(e => `<li>${e}</li>`).join('') + '</ul>';
+                    previewErrors.classList.remove('hidden');
+                } else {
+                    previewErrors.classList.add('hidden');
+                }
             }
 
             // Enable confirm button if there are events to import
-            confirmBtn.disabled = data.events_count === 0;
+            if (confirmBtn) confirmBtn.disabled = data.events_count === 0;
         }
 
         // Confirm import
         document.getElementById('confirmImportBtn')?.addEventListener('click', async () => {
             const fileInput = document.getElementById('importCsvFile');
-            const file = fileInput.files[0];
+            const file = fileInput?.files?.[0];
 
             if (!file) {
                 if (window.showToast) window.showToast('Please select a CSV file', 'warning');
@@ -2728,14 +2950,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const confirmBtn = document.getElementById('confirmImportBtn');
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '<i class="ti ti-loader animate-spin mr-2"></i> Importing...';
+            if (confirmBtn) {
+                confirmBtn.disabled = true;
+                confirmBtn.innerHTML = '<i class="ti ti-loader animate-spin mr-2"></i> Importing...';
+            }
 
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('year', document.getElementById('importYear').value);
-            formData.append('event_type', document.getElementById('importEventType').value);
-            formData.append('notify_discord', document.getElementById('importNotifyDiscord').checked);
+            formData.append('year', getElementValue('importYear'));
+            formData.append('event_type', getElementValue('importEventType'));
+            formData.append('notify_discord', getElementChecked('importNotifyDiscord'));
 
             // Get discord mode (summary or individual)
             const discordModeRadio = document.querySelector('input[name="discordMode"]:checked');
@@ -2780,7 +3004,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
 
                 resultArea.classList.remove('hidden');
-                document.getElementById('importPreviewArea').classList.add('hidden');
+                document.getElementById('importPreviewArea')?.classList.add('hidden');
 
                 // Refresh calendar
                 window.refreshCalendar?.();

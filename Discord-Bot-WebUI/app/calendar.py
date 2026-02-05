@@ -21,7 +21,7 @@ from flask_login import login_required
 from sqlalchemy.orm import aliased, joinedload
 from flask_login import current_user
 
-from app.models import Match, Team, Season, Player, player_teams
+from app.models import Match, Team, Season, Player, player_teams, League
 from app.models.calendar import LeagueEvent
 from app.models.ecs_fc import EcsFcMatch
 from app.decorators import role_required
@@ -59,10 +59,12 @@ def get_schedule():
         home_team = aliased(Team)
         away_team = aliased(Team)
         ref_player = aliased(Player)
+        home_league = aliased(League)
 
         matches = (session_db.query(Match)
                    .join(home_team, Match.home_team_id == home_team.id)
                    .join(away_team, Match.away_team_id == away_team.id)
+                   .join(home_league, home_team.league_id == home_league.id)
                    .outerjoin(ref_player, Match.ref_id == ref_player.id)
                    .with_entities(
                        Match.id,
@@ -71,7 +73,7 @@ def get_schedule():
                        Match.location,
                        home_team.name.label('home_team_name'),
                        away_team.name.label('away_team_name'),
-                       home_team.league_id.label('home_league_id'),
+                       home_league.name.label('home_league_name'),
                        ref_player.name.label('ref_name')
                    )
                    .filter(home_team.league_id.in_(league_ids))
@@ -86,8 +88,8 @@ def get_schedule():
         assigned_refs = 0
 
         for match in matches:
-            # Determine division based on league ID (example logic)
-            division = 'Premier' if match.home_league_id == 10 else 'Classic'
+            # Determine division from league name
+            division = match.home_league_name or 'Classic'
             start_datetime = datetime.combine(match.date, match.time)
             ref_name = match.ref_name if match.ref_name else 'Unassigned'
 
@@ -483,11 +485,13 @@ def my_assignments():
         # Aliases for join queries
         home_team = aliased(Team)
         away_team = aliased(Team)
-        
+        home_league = aliased(League)
+
         # Get matches assigned to this referee
         matches = (session_db.query(Match)
                    .join(home_team, Match.home_team_id == home_team.id)
                    .join(away_team, Match.away_team_id == away_team.id)
+                   .join(home_league, home_team.league_id == home_league.id)
                    .filter(Match.ref_id == player.id)
                    .filter(home_team.league_id.in_(league_ids))
                    .with_entities(
@@ -497,14 +501,14 @@ def my_assignments():
                        Match.location,
                        home_team.name.label('home_team_name'),
                        away_team.name.label('away_team_name'),
-                       home_team.league_id.label('home_league_id')
+                       home_league.name.label('home_league_name')
                    )
                    .order_by(Match.date, Match.time)
                    .all())
-        
+
         assignments = []
         for match in matches:
-            division = 'Premier' if match.home_league_id == 10 else 'Classic'
+            division = match.home_league_name or 'Classic'
             start_datetime = datetime.combine(match.date, match.time)
             
             assignments.append({
