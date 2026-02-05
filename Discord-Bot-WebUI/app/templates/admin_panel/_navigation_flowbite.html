@@ -190,18 +190,15 @@
                             <i class="ti ti-list-check text-gray-400"></i>Task Monitoring
                         </a>
                         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Live Reporting Admin</div>
-                        <a href="{{ url_for('admin_live.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-broadcast text-gray-400"></i>Reporting Dashboard
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Live Reporting</div>
+                        <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-broadcast text-gray-400"></i>Dashboard
                         </a>
-                        <a href="{{ url_for('admin_live.schedule_season') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-calendar-event text-gray-400"></i>Schedule Season
+                        <a href="{{ url_for('admin_panel.mls_sessions') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-player-play text-gray-400"></i>Sessions
                         </a>
-                        <a href="{{ url_for('admin_live.matches') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-ball-football text-gray-400"></i>Reporting Matches
-                        </a>
-                        <a href="{{ url_for('admin_live.sessions') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-player-play text-gray-400"></i>Active Sessions
+                        <a href="{{ url_for('admin_panel.mls_settings') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-settings text-gray-400"></i>Settings
                         </a>
                     </div>
                 </div>
@@ -369,6 +366,9 @@
                         </a>
                         <a href="{{ url_for('admin_panel.campaigns_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-broadcast text-gray-400"></i>Campaigns
+                        </a>
+                        <a href="{{ url_for('admin_panel.email_broadcasts_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-mail-forward text-gray-400"></i>Email Broadcasts
                         </a>
                         <a href="{{ url_for('admin_panel.notification_groups_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-users-group text-gray-400"></i>Notification Groups

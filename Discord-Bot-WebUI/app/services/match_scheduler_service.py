@@ -308,8 +308,8 @@ def start_live_reporting_task(self, match_id: int, session) -> Dict[str, Any]:
             thread_id=match.discord_thread_id,
             competition=match.schedule.season.league.name if match.schedule and match.schedule.season and match.schedule.season.league else 'eng.1',
             is_active=True,
-            created_at=datetime.utcnow(),
-            last_update_at=datetime.utcnow(),
+            started_at=datetime.utcnow(),
+            last_update=datetime.utcnow(),
             update_count=0,
             error_count=0
         )

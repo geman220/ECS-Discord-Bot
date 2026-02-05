@@ -300,8 +300,8 @@ def _should_process_realtime(session_obj: LiveReportingSession) -> bool:
     # Always process if match is live
     if session_obj.last_status in ['IN_PLAY', 'HALFTIME']:
         # Rate limit: don't update same session more than every 10 seconds
-        if session_obj.last_update_at:
-            seconds_since_update = (now - session_obj.last_update_at).total_seconds()
+        if session_obj.last_update:
+            seconds_since_update = (now - session_obj.last_update).total_seconds()
             return seconds_since_update >= 10
         return True
 
@@ -310,8 +310,8 @@ def _should_process_realtime(session_obj: LiveReportingSession) -> bool:
         time_to_match = (session_obj.match.date - now).total_seconds()
         if 0 <= time_to_match <= 1800:  # 30 minutes
             # Less frequent updates for pre-match (every 5 minutes)
-            if session_obj.last_update_at:
-                seconds_since_update = (now - session_obj.last_update_at).total_seconds()
+            if session_obj.last_update:
+                seconds_since_update = (now - session_obj.last_update).total_seconds()
                 return seconds_since_update >= 300
             return True
 
@@ -320,8 +320,8 @@ def _should_process_realtime(session_obj: LiveReportingSession) -> bool:
         return False
 
     # Process scheduled matches at least every 15 minutes to check status
-    if session_obj.last_update_at:
-        seconds_since_update = (now - session_obj.last_update_at).total_seconds()
+    if session_obj.last_update:
+        seconds_since_update = (now - session_obj.last_update).total_seconds()
         return seconds_since_update >= 900  # 15 minutes
 
     return True  # Process if never updated
@@ -429,7 +429,7 @@ def _process_single_session_realtime(session, session_obj: LiveReportingSession,
         session_obj.last_status = current_status
         session_obj.last_score = f"{match_data.get('home_score', 0)}-{match_data.get('away_score', 0)}"
         session_obj.update_count = (session_obj.update_count or 0) + 1
-        session_obj.last_update_at = datetime.utcnow()
+        session_obj.last_update = datetime.utcnow()
         session_obj.error_count = 0  # Reset error count on success
         session_obj.consecutive_failures = 0  # Reset consecutive failures on success
         session_obj.last_error = None

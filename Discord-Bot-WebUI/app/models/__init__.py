@@ -160,6 +160,10 @@ from .quick_profile import (
     QuickProfile, QuickProfileStatus
 )
 
+from .email_campaigns import (
+    EmailCampaign, EmailCampaignRecipient
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -271,5 +275,8 @@ __all__ = [
     'PubLeagueOrderStatus', 'PubLeagueLineItemStatus', 'PubLeagueClaimStatus',
 
     # Quick profile models (for tryout players)
-    'QuickProfile', 'QuickProfileStatus'
+    'QuickProfile', 'QuickProfileStatus',
+
+    # Email campaign models
+    'EmailCampaign', 'EmailCampaignRecipient',
 ]

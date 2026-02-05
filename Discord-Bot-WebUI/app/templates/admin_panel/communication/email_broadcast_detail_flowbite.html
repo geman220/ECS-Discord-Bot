@@ -1,0 +1,201 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Campaign: {{ campaign.name }}{% endblock %}
+{% block panel_description %}{{ campaign.filter_description or 'Email broadcast campaign details' }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.email_broadcasts_list') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Email Broadcasts</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ campaign.name }}</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div data-page="email-broadcast-detail" data-campaign-id="{{ campaign.id }}">
+
+<!-- Campaign Info Card -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">{{ campaign.name }}</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Subject: {{ campaign.subject }}</p>
+            <div class="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                <span><i class="ti ti-calendar mr-1"></i>{{ campaign.created_at.strftime('%b %d, %Y %I:%M %p') if campaign.created_at else '-' }}</span>
+                <span><i class="ti ti-user mr-1"></i>{{ campaign.created_by.username if campaign.created_by else 'Unknown' }}</span>
+                <span>
+                    <i class="ti ti-mail mr-1"></i>
+                    {% if campaign.send_mode == 'bcc_batch' %}BCC Batch ({{ campaign.bcc_batch_size }}){% else %}Individual{% endif %}
+                </span>
+                {% if campaign.force_send %}
+                <span class="text-yellow-600 dark:text-yellow-400"><i class="ti ti-alert-triangle mr-1"></i>Force Send</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <!-- Status Badge -->
+            {% if campaign.status == 'draft' %}
+            <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Draft</span>
+            {% elif campaign.status == 'sending' %}
+            <span class="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                <i class="ti ti-loader animate-spin text-xs mr-1"></i>Sending
+            </span>
+            {% elif campaign.status == 'sent' %}
+            <span class="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Sent</span>
+            {% elif campaign.status == 'partially_sent' %}
+            <span class="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Partially Sent</span>
+            {% elif campaign.status == 'failed' %}
+            <span class="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Failed</span>
+            {% elif campaign.status == 'cancelled' %}
+            <span class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Cancelled</span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Progress Bar (visible during sending) -->
+{% if campaign.status == 'sending' %}
+<div id="progressSection" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+    <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Send Progress</h3>
+    <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700 mb-2">
+        <div id="progressBar" class="bg-ecs-green h-4 rounded-full transition-all duration-500"
+             style="width: {{ ((campaign.sent_count + campaign.failed_count) / campaign.total_recipients * 100) if campaign.total_recipients > 0 else 0 }}%"></div>
+    </div>
+    <p id="progressText" class="text-sm text-gray-500 dark:text-gray-400">
+        {{ campaign.sent_count + campaign.failed_count }} / {{ campaign.total_recipients }} processed
+    </p>
+</div>
+{% endif %}
+
+<!-- Stats Cards -->
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+        <div id="statTotal" class="text-2xl font-bold text-gray-900 dark:text-white">{{ campaign.total_recipients }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Total</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+        <div id="statSent" class="text-2xl font-bold text-green-600 dark:text-green-400">{{ campaign.sent_count }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Sent</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+        <div id="statFailed" class="text-2xl font-bold text-red-600 dark:text-red-400">{{ campaign.failed_count }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Failed</div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 text-center">
+        {% set skipped = campaign.total_recipients - campaign.sent_count - campaign.failed_count %}
+        <div id="statPending" class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{ skipped if skipped > 0 else 0 }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">{{ 'Pending' if campaign.status == 'sending' else 'Skipped' }}</div>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="flex flex-wrap items-center gap-3 mb-6">
+    {% if campaign.status == 'draft' %}
+    <button type="button" data-action="email-send-campaign" data-campaign-id="{{ campaign.id }}"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-ecs-green text-white rounded-lg hover:bg-green-700 transition-colors">
+        <i class="ti ti-send"></i> Send Now
+    </button>
+    {% endif %}
+    {% if campaign.status == 'sending' %}
+    <button type="button" data-action="email-cancel-campaign" data-campaign-id="{{ campaign.id }}"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+        <i class="ti ti-player-stop"></i> Cancel Send
+    </button>
+    {% endif %}
+    <button type="button" data-action="email-duplicate-campaign" data-campaign-id="{{ campaign.id }}"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+        <i class="ti ti-copy"></i> Duplicate
+    </button>
+    {% if campaign.status in ('draft', 'cancelled', 'failed') %}
+    <button type="button" data-action="email-delete-campaign" data-campaign-id="{{ campaign.id }}"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300">
+        <i class="ti ti-trash"></i> Delete
+    </button>
+    {% endif %}
+</div>
+
+<!-- Email Preview -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Email Preview</h3>
+    </div>
+    <div class="p-6">
+        <iframe id="emailPreviewFrame" class="w-full border border-gray-200 dark:border-gray-700 rounded-lg bg-white"
+                style="min-height: 300px;" sandbox="allow-same-origin"></iframe>
+    </div>
+</div>
+
+<!-- Recipients Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Recipients ({{ recipients|length }})</h3>
+    </div>
+    <div class="overflow-x-auto" style="max-height: 500px; overflow-y: auto;">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
+                <tr>
+                    <th class="px-6 py-3">Name</th>
+                    <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3">Error</th>
+                    <th class="px-6 py-3">Sent At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in recipients %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                    <td class="px-6 py-3 font-medium text-gray-900 dark:text-white">{{ r.recipient_name or '-' }}</td>
+                    <td class="px-6 py-3">
+                        {% if r.status == 'sent' %}
+                        <span class="text-green-600 dark:text-green-400"><i class="ti ti-check"></i> Sent</span>
+                        {% elif r.status == 'failed' %}
+                        <span class="text-red-600 dark:text-red-400"><i class="ti ti-x"></i> Failed</span>
+                        {% elif r.status == 'skipped' %}
+                        <span class="text-gray-500"><i class="ti ti-minus"></i> Skipped</span>
+                        {% else %}
+                        <span class="text-gray-400"><i class="ti ti-clock"></i> Pending</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-3 text-xs text-red-500">{{ r.error_message or '' }}</td>
+                    <td class="px-6 py-3 whitespace-nowrap text-xs">{{ r.sent_at.strftime('%b %d %I:%M %p') if r.sent_at else '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+
+<script>
+// Inject email body into preview iframe
+document.addEventListener('DOMContentLoaded', function() {
+    const iframe = document.getElementById('emailPreviewFrame');
+    if (iframe) {
+        const body = {{ campaign.body_html|tojson }};
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(body);
+        doc.close();
+        // Auto-resize
+        setTimeout(function() {
+            try {
+                iframe.style.height = Math.max(300, doc.body.scrollHeight + 40) + 'px';
+            } catch(e) {}
+        }, 200);
+    }
+});
+</script>
+{% endblock %}

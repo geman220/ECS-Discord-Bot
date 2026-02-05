@@ -435,7 +435,7 @@ def start_mls_live_reporting_task(self, session, match_id: int) -> Dict[str, Any
             competition=match.competition or 'MLS',
             is_active=True,
             started_at=datetime.utcnow(),
-            last_update_at=datetime.utcnow(),
+            last_update=datetime.utcnow(),
             update_count=0,
             error_count=0
         )

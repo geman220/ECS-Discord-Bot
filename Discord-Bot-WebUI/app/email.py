@@ -14,6 +14,7 @@ import logging
 import base64
 import traceback
 from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from flask import Blueprint
 from google.oauth2 import service_account
@@ -87,5 +88,68 @@ def send_email(to, subject, body):
         return sent_message
     except Exception as error:
         logging.error(f"An error occurred while sending the email: {error}")
+        traceback.print_exc()
+        return None
+
+
+def send_email_bcc(bcc_list, subject, body):
+    """
+    Sends an HTML email to multiple recipients using BCC via the Gmail API.
+
+    The 'To' header is set to undisclosed-recipients and all actual addresses
+    go in the BCC header so recipients cannot see each other.
+
+    Parameters:
+        bcc_list (list): List of email addresses for BCC.
+        subject (str): The subject of the email.
+        body (str): The HTML body content of the email.
+
+    Returns:
+        dict or None: The sent message data on success, or None if an error occurred.
+    """
+    if not bcc_list:
+        logging.warning("send_email_bcc called with empty bcc_list")
+        return None
+
+    SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+
+    credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+    if not credentials_path:
+        logging.error("GOOGLE_APPLICATION_CREDENTIALS is not set or is empty.")
+        return None
+
+    if not os.path.exists(credentials_path):
+        logging.error(f"Service account JSON file not found at {credentials_path}")
+        return None
+
+    try:
+        delegated_credentials = service_account.Credentials.from_service_account_file(
+            credentials_path, scopes=SCOPES, subject='donotreply@weareecs.com'
+        )
+    except Exception as e:
+        logging.error(f"Failed to load credentials: {e}")
+        traceback.print_exc()
+        return None
+
+    try:
+        service = build('gmail', 'v1', credentials=delegated_credentials)
+    except Exception as e:
+        logging.error(f"Failed to build Gmail service: {e}")
+        traceback.print_exc()
+        return None
+
+    try:
+        message = MIMEText(body, "html")
+        message['to'] = 'undisclosed-recipients:;'
+        message['from'] = 'donotreply@weareecs.com'
+        message['bcc'] = ', '.join(bcc_list)
+        message['subject'] = subject
+        raw = base64.urlsafe_b64encode(message.as_bytes()).decode()
+        message_body = {'raw': raw}
+        sent_message = service.users().messages().send(userId="me", body=message_body).execute()
+        logging.debug(f"BCC email sent successfully to {len(bcc_list)} recipients, Message Id: {sent_message['id']}")
+        return sent_message
+    except Exception as error:
+        logging.error(f"An error occurred while sending BCC email: {error}")
         traceback.print_exc()
         return None

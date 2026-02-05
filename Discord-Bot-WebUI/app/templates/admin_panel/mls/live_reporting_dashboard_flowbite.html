@@ -308,6 +308,145 @@
     </div>
 </div>
 {% endif %}
+
+<!-- Service Controls -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    <!-- Quick Actions -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-tools text-gray-500 dark:text-gray-400"></i>
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Service Controls</h5>
+            </div>
+        </div>
+        <div class="p-5">
+            <div class="flex flex-wrap gap-3">
+                <button type="button" id="force-sync-btn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-600 rounded-lg transition-colors">
+                    <i class="ti ti-refresh mr-2"></i>Force Sync
+                </button>
+                <button type="button" id="health-check-btn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg transition-colors">
+                    <i class="ti ti-heartbeat mr-2"></i>Health Check
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation Links -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-link text-gray-500 dark:text-gray-400"></i>
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Quick Links</h5>
+            </div>
+        </div>
+        <div class="p-5">
+            <div class="flex flex-wrap gap-3">
+                <a href="{{ url_for('admin_panel.mls_sessions') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                    <i class="ti ti-list mr-2"></i>View All Sessions
+                </a>
+                <a href="{{ url_for('admin_panel.mls_settings') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                    <i class="ti ti-settings mr-2"></i>Settings
+                </a>
+                <a href="{{ url_for('admin_panel.mls_matches') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+                    <i class="ti ti-ball-football mr-2"></i>All Matches
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Service Status (Collapsible) -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <button type="button" class="w-full flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700" id="toggle-service-details" aria-expanded="false">
+        <div class="flex items-center gap-2">
+            <i class="ti ti-activity text-gray-500 dark:text-gray-400"></i>
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Detailed Service Status</h5>
+        </div>
+        <i class="ti ti-chevron-down text-gray-500 dark:text-gray-400 transition-transform" id="toggle-icon"></i>
+    </button>
+    <div id="service-details-content" class="hidden">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 p-5">
+            <!-- Health Details -->
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2">
+                        <i class="ti ti-activity text-gray-500 dark:text-gray-400"></i>
+                        <h6 class="font-semibold text-gray-900 dark:text-white">Health Details</h6>
+                    </div>
+                </div>
+                <div class="p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Service Running</span>
+                        <span class="{% if realtime_health.is_running %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %} font-medium">
+                            {{ 'Yes' if realtime_health.is_running else 'No' }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Health Status</span>
+                        <span class="px-2 py-1 text-xs font-medium rounded
+                            {% if realtime_health.health == 'healthy' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                            {% elif realtime_health.health == 'degraded' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400
+                            {% else %}bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                            {{ realtime_health.health|default('unknown')|title }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Heartbeat Age</span>
+                        <span class="text-gray-900 dark:text-white font-medium">
+                            {% if realtime_health.heartbeat_age_seconds %}{{ realtime_health.heartbeat_age_seconds }} seconds{% else %}N/A{% endif %}
+                        </span>
+                    </div>
+                    {% if realtime_health.last_check %}
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Last Check</span>
+                        <span class="text-gray-900 dark:text-white font-medium">{{ realtime_health.last_check }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Coordination Details -->
+            <div class="border border-gray-200 dark:border-gray-700 rounded-lg">
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2">
+                        <i class="ti ti-topology-ring-3 text-gray-500 dark:text-gray-400"></i>
+                        <h6 class="font-semibold text-gray-900 dark:text-white">Coordination Details</h6>
+                    </div>
+                </div>
+                <div class="p-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Coordination Status</span>
+                        <span class="px-2 py-1 text-xs font-medium rounded
+                            {% if coordination_status.coordination_status == 'healthy' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                            {% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400{% endif %}">
+                            {{ coordination_status.coordination_status|default('unknown')|title }}
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Database Sessions</span>
+                        <span class="text-gray-900 dark:text-white font-medium">{{ coordination_status.database_sessions or 0 }}</span>
+                    </div>
+                    {% if coordination_status.timestamp %}
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Timestamp</span>
+                        <span class="text-gray-900 dark:text-white font-medium">{{ coordination_status.timestamp }}</span>
+                    </div>
+                    {% endif %}
+                    {% if coordination_status.realtime_service %}
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-400">Real-time Service Health</span>
+                        <span class="px-2 py-1 text-xs font-medium rounded
+                            {% if coordination_status.realtime_service.health == 'healthy' %}bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400
+                            {% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400{% endif %}">
+                            {{ coordination_status.realtime_service.health|default('unknown')|title }}
+                        </span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -412,7 +551,7 @@ async function stopSession(sessionId) {
     if (!confirm('Stop this reporting session?')) return;
 
     try {
-        const response = await fetch(`/admin/live-reporting/api/session/${sessionId}/stop`, {
+        const response = await fetch(`{{ url_for('admin_panel.mls_stop_session', session_id=0) }}`.replace('/0/', `/${sessionId}/`), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -431,5 +570,114 @@ async function stopSession(sessionId) {
         Swal.fire('Error', 'Failed to stop session', 'error');
     }
 }
+
+// Toggle service details
+document.getElementById('toggle-service-details')?.addEventListener('click', function() {
+    const content = document.getElementById('service-details-content');
+    const icon = document.getElementById('toggle-icon');
+    const expanded = this.getAttribute('aria-expanded') === 'true';
+    this.setAttribute('aria-expanded', !expanded);
+    content.classList.toggle('hidden');
+    icon.style.transform = expanded ? '' : 'rotate(180deg)';
+});
+
+// Force sync
+document.getElementById('force-sync-btn')?.addEventListener('click', function() {
+    const btn = this;
+    const isDark = document.documentElement.classList.contains('dark');
+
+    Swal.fire({
+        title: 'Force Synchronization?',
+        text: 'This will force sync between the database and real-time service.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, sync it',
+        confirmButtonColor: '#1a472a',
+        background: isDark ? '#1f2937' : '#ffffff',
+        color: isDark ? '#f3f4f6' : '#111827'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Syncing...';
+
+            fetch('{{ url_for("admin_panel.mls_force_sync") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrfToken }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success !== false) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: data.message || 'Synchronization complete',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Sync failed',
+                        background: isDark ? '#1f2937' : '#ffffff',
+                        color: isDark ? '#f3f4f6' : '#111827'
+                    });
+                }
+            })
+            .catch(() => {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to sync',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ti ti-refresh mr-2"></i>Force Sync';
+            });
+        }
+    });
+});
+
+// Health check
+document.getElementById('health-check-btn')?.addEventListener('click', function() {
+    const btn = this;
+    const isDark = document.documentElement.classList.contains('dark');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Checking...';
+
+    fetch('{{ url_for("admin_panel.mls_api_health") }}')
+        .then(res => res.json())
+        .then(data => {
+            Swal.fire({
+                icon: data.health === 'healthy' ? 'success' : 'warning',
+                title: 'Health Check Result',
+                html: `
+                    <div class="text-left">
+                        <p><strong>Status:</strong> ${data.health || 'Unknown'}</p>
+                        <p><strong>Running:</strong> ${data.is_running ? 'Yes' : 'No'}</p>
+                        <p><strong>Heartbeat:</strong> ${data.heartbeat_age_seconds ? data.heartbeat_age_seconds + 's ago' : 'N/A'}</p>
+                    </div>
+                `,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        })
+        .catch(() => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Health check failed',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        })
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="ti ti-heartbeat mr-2"></i>Health Check';
+        });
+});
 </script>
 {% endblock %}

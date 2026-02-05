@@ -467,7 +467,7 @@ class RealtimeReportingService:
             with task_session() as session:
                 live_session = session.query(LiveReportingSession).filter_by(id=session_id).first()
                 if live_session:
-                    live_session.last_update_at = datetime.utcnow()
+                    live_session.last_update = datetime.utcnow()
                     live_session.update_count += 1
                     session.commit()
         except Exception as e:
@@ -480,7 +480,7 @@ class RealtimeReportingService:
                 live_session = session.query(LiveReportingSession).filter_by(id=session_id).first()
                 if live_session:
                     live_session.error_count += 1
-                    live_session.last_update_at = datetime.utcnow()
+                    live_session.last_update = datetime.utcnow()
 
                     # Deactivate session if too many errors
                     if live_session.error_count >= 5:

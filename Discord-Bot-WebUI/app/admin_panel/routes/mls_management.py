@@ -26,6 +26,7 @@ from app.tasks.tasks_live_reporting import (
     schedule_all_mls_threads_task,
     schedule_mls_thread_task
 )
+from app.services.realtime_bridge_service import realtime_bridge, check_realtime_health, get_coordination_status
 from app.utils.task_monitor import get_task_info
 
 logger = logging.getLogger(__name__)
@@ -1460,7 +1461,7 @@ def match_debug(match_id):
                 'exists': live_session is not None,
                 'is_active': live_session.is_active if live_session else False,
                 'started_at': live_session.started_at.isoformat() if live_session and live_session.started_at else None,
-                'last_update': live_session.last_update_at.isoformat() if live_session and live_session.last_update_at else None,
+                'last_update': live_session.last_update.isoformat() if live_session and live_session.last_update else None,
                 'update_count': live_session.update_count if live_session else 0,
                 'error_count': live_session.error_count if live_session else 0,
                 'last_error': live_session.last_error if live_session else None
@@ -1807,3 +1808,143 @@ def mls_settings_update():
         logger.error(f"Error updating MLS settings: {e}", exc_info=True)
         session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# -----------------------------------------------------------
+# Session Management Routes
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/mls/sessions')
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_sessions():
+    """List live reporting sessions with status filter."""
+    from app.models import LiveReportingSession
+    from app.utils.task_session_manager import task_session
+
+    status_filter = request.args.get('status', 'all')
+
+    try:
+        with task_session() as session:
+            query = session.query(LiveReportingSession)
+
+            if status_filter == 'active':
+                query = query.filter_by(is_active=True)
+            elif status_filter == 'inactive':
+                query = query.filter_by(is_active=False)
+
+            sessions_list = query.order_by(LiveReportingSession.started_at.desc()).limit(50).all()
+
+            return render_template(
+                'admin_panel/mls/sessions_flowbite.html',
+                sessions=sessions_list,
+                status_filter=status_filter
+            )
+
+    except Exception as e:
+        logger.error(f"Error loading sessions: {e}", exc_info=True)
+        return render_template('admin_panel/500_flowbite.html', error=str(e)), 500
+
+
+@admin_panel_bp.route('/mls/api/session/<int:session_id>/stop', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_stop_session(session_id):
+    """Stop an active live reporting session."""
+    from app.models import LiveReportingSession
+    from app.services.realtime_bridge_service import notify_session_stopped
+    from app.utils.task_session_manager import task_session
+
+    try:
+        with task_session() as session:
+            live_session = session.query(LiveReportingSession).filter_by(id=session_id).first()
+            if not live_session:
+                return jsonify({'success': False, 'error': 'Session not found'}), 404
+
+            if not live_session.is_active:
+                return jsonify({'success': False, 'error': 'Session is not active'}), 400
+
+            live_session.is_active = False
+            live_session.ended_at = datetime.utcnow()
+            session.commit()
+
+            notify_session_stopped(live_session.id, live_session.match_id, "Manual stop via admin panel")
+
+            AdminAuditLog.log_action(
+                session,
+                current_user.id,
+                'mls_session_stop',
+                f"Stopped live reporting session {session_id} for match {live_session.match_id}",
+                {'session_id': session_id, 'match_id': live_session.match_id}
+            )
+
+            return jsonify({
+                'success': True,
+                'message': f'Stopped session {session_id}',
+                'session_id': session_id
+            })
+
+    except Exception as e:
+        logger.error(f"Error stopping session {session_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# -----------------------------------------------------------
+# Service Control Routes
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/mls/api/force-sync', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_force_sync():
+    """Force synchronization between database and real-time service."""
+    try:
+        result = realtime_bridge.force_session_sync()
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error forcing sync: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/mls/api/send-command', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_send_command():
+    """Send commands to real-time service."""
+    try:
+        data = request.get_json()
+        command = data.get('command')
+        params = data.get('params', {})
+
+        if not command:
+            return jsonify({'success': False, 'error': 'Command is required'}), 400
+
+        result = realtime_bridge.send_realtime_command(command, params)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Error sending command: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/mls/api/health')
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_api_health():
+    """API endpoint for health status."""
+    try:
+        health = check_realtime_health()
+        return jsonify(health)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/mls/api/coordination')
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_api_coordination():
+    """API endpoint for coordination status."""
+    try:
+        status = get_coordination_status()
+        return jsonify(status)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

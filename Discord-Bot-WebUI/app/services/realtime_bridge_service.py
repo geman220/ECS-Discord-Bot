@@ -187,7 +187,7 @@ class RealtimeBridgeService:
                         'thread_id': live_session.thread_id,
                         'competition': live_session.competition,
                         'last_status': live_session.last_status,
-                        'last_update_at': live_session.last_update_at.isoformat() if live_session.last_update_at else None,
+                        'last_update_at': live_session.last_update.isoformat() if live_session.last_update else None,
                         'update_count': live_session.update_count or 0,
                         'error_count': live_session.error_count or 0
                     })

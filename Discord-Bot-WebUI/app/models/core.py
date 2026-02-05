@@ -16,6 +16,7 @@ import pyotp
 from datetime import datetime
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import extract
 from sqlalchemy.ext.hybrid import hybrid_property
 
 from app.core import db
@@ -262,6 +263,16 @@ class Season(db.Model):
     is_current = db.Column(db.Boolean, default=False, nullable=False)
     start_date = db.Column(db.Date, nullable=True)
     end_date = db.Column(db.Date, nullable=True)
+
+    @hybrid_property
+    def year(self):
+        """Derive year from start_date."""
+        return self.start_date.year if self.start_date else None
+
+    @year.expression
+    def year(cls):
+        return extract('year', cls.start_date)
+
     leagues = db.relationship('League', back_populates='season', lazy=True)
     player_stats = db.relationship('PlayerSeasonStats', back_populates='season', lazy=True, cascade="all, delete-orphan")
     stat_change_logs = db.relationship('StatChangeLog', back_populates='season', cascade='all, delete-orphan')

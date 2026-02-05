@@ -106,39 +106,30 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-6 py-3">Category</th>
-                    <th scope="col" class="px-6 py-3">Description</th>
-                    <th scope="col" class="px-6 py-3">Color</th>
-                    <th scope="col" class="px-6 py-3">Points</th>
+                    <th scope="col" class="px-6 py-3">Key</th>
                     <th scope="col" class="px-6 py-3">Shots</th>
+                    <th scope="col" class="px-6 py-3">Approved</th>
                     <th scope="col" class="px-6 py-3">Status</th>
                     <th scope="col" class="px-6 py-3">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for category in categories %}
-                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" data-status="{{ 'active' if category.is_active else 'inactive' }}">
                     <td class="px-6 py-4">
-                        <div class="flex items-center gap-3">
-                            <div class="flex items-center justify-center w-10 h-10 rounded-lg" style="background-color: {{ category.color or '#1a472a' }}20;">
-                                <i class="ti ti-{{ category.icon or 'eye' }} text-lg" style="color: {{ category.color or '#1a472a' }};"></i>
-                            </div>
-                            <span class="font-medium text-gray-900 dark:text-white">{{ category.name }}</span>
+                        <div>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ category.display_name }}</span>
+                            <span class="block text-xs text-gray-400 dark:text-gray-500">{{ category.key }}</span>
                         </div>
                     </td>
                     <td class="px-6 py-4">
-                        <p class="truncate max-w-xs text-gray-600 dark:text-gray-400">{{ category.description or 'No description' }}</p>
+                        <code class="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-xs font-mono text-gray-700 dark:text-gray-300">{{ category.key }}</code>
                     </td>
                     <td class="px-6 py-4">
-                        <div class="flex items-center gap-2">
-                            <div class="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600" style="background-color: {{ category.color or '#1a472a' }};"></div>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ category.color or '#1a472a' }}</span>
-                        </div>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ category_stats[category.id].total_shots }}</span>
                     </td>
                     <td class="px-6 py-4">
-                        <span class="font-medium text-gray-900 dark:text-white">{{ category.points_value or 10 }}</span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="font-medium text-gray-900 dark:text-white">{{ category.shots_count or 0 }}</span>
+                        <span class="font-medium text-gray-900 dark:text-white">{{ category_stats[category.id].approved_shots }}</span>
                     </td>
                     <td class="px-6 py-4">
                         {% if category.is_active %}
@@ -155,13 +146,10 @@
                     </td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-1">
-                            <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" title="Edit" data-action="edit-category" data-id="{{ category.id }}">
-                                <i class="ti ti-edit"></i>
-                            </button>
-                            <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg" title="Toggle Status" data-action="toggle-category" data-id="{{ category.id }}">
+                            <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg" title="Toggle Status" data-action="toggle-category" data-id="{{ category.id }}" data-name="{{ category.display_name }}">
                                 <i class="ti ti-{% if category.is_active %}eye-off{% else %}eye{% endif %}"></i>
                             </button>
-                            <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" title="Delete" data-action="delete-category" data-id="{{ category.id }}">
+                            <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" title="Delete" data-action="delete-category" data-id="{{ category.id }}" data-name="{{ category.display_name }}">
                                 <i class="ti ti-trash"></i>
                             </button>
                         </div>
@@ -188,86 +176,17 @@
 <!-- Create Category Modal -->
 {% call modal_form('createCategoryModal', 'Create New Category', form_id='createCategoryForm', submit_text='Create Category', loading_text='Creating...') %}
     <div>
-        <label for="categoryName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category Name <span class="text-red-500">*</span></label>
-        <input type="text" id="categoryName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <label for="categoryDisplayName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Display Name <span class="text-red-500">*</span></label>
+        <input type="text" id="categoryDisplayName" name="display_name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="e.g. Stadium Exterior">
     </div>
     <div>
-        <label for="categoryDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-        <textarea id="categoryDescription" name="description" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="Describe what players should look for..."></textarea>
-    </div>
-    <div class="grid grid-cols-2 gap-4">
-        <div>
-            <label for="categoryColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
-            <div class="flex items-center gap-2">
-                <input type="color" id="categoryColor" name="color" value="#1a472a" class="w-12 h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer">
-                <input type="text" id="categoryColorText" value="#1a472a" class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white font-mono">
-            </div>
-        </div>
-        <div>
-            <label for="categoryPoints" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Points Value</label>
-            <input type="number" id="categoryPoints" name="points_value" value="10" min="1" max="100" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        </div>
-    </div>
-    <div>
-        <label for="categoryIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
-        <select id="categoryIcon" name="icon" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-            <option value="eye">Eye</option>
-            <option value="camera">Camera</option>
-            <option value="target">Target</option>
-            <option value="search">Search</option>
-            <option value="focus">Focus</option>
-            <option value="flag">Flag</option>
-            <option value="star">Star</option>
-            <option value="heart">Heart</option>
-            <option value="trophy">Trophy</option>
-            <option value="ball-football">Football</option>
-        </select>
+        <label for="categoryKey" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Key</label>
+        <input type="text" id="categoryKey" name="key" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white font-mono text-sm focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" placeholder="auto-generated from display name" maxlength="20">
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Leave blank to auto-generate from display name. Max 20 characters, lowercase.</p>
     </div>
     <div class="flex items-center">
         <input type="checkbox" id="categoryIsActive" name="is_active" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
         <label for="categoryIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Active category</label>
-    </div>
-{% endcall %}
-
-<!-- Edit Category Modal -->
-{% call modal_form('editCategoryModal', 'Edit Category', form_id='editCategoryForm', submit_text='Save Changes', loading_text='Saving...') %}
-    <input type="hidden" id="editCategoryId" name="id">
-    <div>
-        <label for="editCategoryName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category Name <span class="text-red-500">*</span></label>
-        <input type="text" id="editCategoryName" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-    </div>
-    <div>
-        <label for="editCategoryDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
-        <textarea id="editCategoryDescription" name="description" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"></textarea>
-    </div>
-    <div class="grid grid-cols-2 gap-4">
-        <div>
-            <label for="editCategoryColor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Color</label>
-            <input type="color" id="editCategoryColor" name="color" class="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 cursor-pointer">
-        </div>
-        <div>
-            <label for="editCategoryPoints" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Points Value</label>
-            <input type="number" id="editCategoryPoints" name="points_value" min="1" max="100" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-        </div>
-    </div>
-    <div>
-        <label for="editCategoryIcon" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Icon</label>
-        <select id="editCategoryIcon" name="icon" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-            <option value="eye">Eye</option>
-            <option value="camera">Camera</option>
-            <option value="target">Target</option>
-            <option value="search">Search</option>
-            <option value="focus">Focus</option>
-            <option value="flag">Flag</option>
-            <option value="star">Star</option>
-            <option value="heart">Heart</option>
-            <option value="trophy">Trophy</option>
-            <option value="ball-football">Football</option>
-        </select>
-    </div>
-    <div class="flex items-center">
-        <input type="checkbox" id="editCategoryIsActive" name="is_active" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-        <label for="editCategoryIsActive" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Active category</label>
     </div>
 {% endcall %}
 {% endblock %}
@@ -277,37 +196,80 @@
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
 
-    // Color picker sync
-    document.getElementById('categoryColor')?.addEventListener('input', function() {
-        document.getElementById('categoryColorText').value = this.value;
-    });
-    document.getElementById('categoryColorText')?.addEventListener('input', function() {
-        if (/^#[0-9A-Fa-f]{6}$/.test(this.value)) {
-            document.getElementById('categoryColor').value = this.value;
-        }
-    });
-
     // Search functionality
     document.getElementById('searchCategories')?.addEventListener('input', function() {
         const search = this.value.toLowerCase();
-        document.querySelectorAll('tbody tr').forEach(row => {
-            const name = row.querySelector('td:first-child')?.textContent.toLowerCase() || '';
-            row.style.display = name.includes(search) ? '' : 'none';
-        });
+        const statusFilter = document.getElementById('filterStatus')?.value || '';
+        filterRows(search, statusFilter);
     });
 
     // Filter by status
     document.getElementById('filterStatus')?.addEventListener('change', function() {
-        const status = this.value;
+        const search = document.getElementById('searchCategories')?.value.toLowerCase() || '';
+        const statusFilter = this.value;
+        filterRows(search, statusFilter);
+    });
+
+    function filterRows(search, statusFilter) {
         document.querySelectorAll('tbody tr').forEach(row => {
-            const isActive = row.querySelector('.bg-green-100') !== null;
-            if (!status) {
-                row.style.display = '';
-            } else if (status === 'active') {
-                row.style.display = isActive ? '' : 'none';
-            } else {
-                row.style.display = isActive ? 'none' : '';
-            }
+            const text = row.textContent.toLowerCase();
+            const rowStatus = row.dataset.status;
+            const matchesSearch = !search || text.includes(search);
+            const matchesStatus = !statusFilter || rowStatus === statusFilter;
+            row.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
+        });
+    }
+
+    // Toggle category status
+    document.querySelectorAll('[data-action="toggle-category"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const name = this.dataset.name;
+            Swal.fire({
+                title: 'Toggle Category Status?',
+                text: `Toggle the status of "${name}"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, Toggle',
+                confirmButtonColor: '#1a472a',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`{{ url_for('admin_panel.toggle_ispy_category', category_id=0) }}`.replace('/0/', `/${id}/`), {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                    }).then(r => r.json()).then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Updated',
+                                text: data.message,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false,
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => window.location.reload());
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.message || 'Failed to toggle category',
+                                icon: 'error',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    }).catch(() => {
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'An unexpected error occurred',
+                            icon: 'error',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    });
+                }
+            });
         });
     });
 
@@ -315,9 +277,10 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-action="delete-category"]').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
+            const name = this.dataset.name;
             Swal.fire({
                 title: 'Delete Category?',
-                text: 'This action cannot be undone.',
+                text: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Yes, Delete',
@@ -326,35 +289,75 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`{{ url_for('admin_panel.ispy_delete_category', category_id=0) }}`.replace('0', id), {
+                    fetch(`{{ url_for('admin_panel.delete_ispy_category', category_id=0) }}`.replace('/0/', `/${id}/`), {
                         method: 'DELETE',
                         headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
-                    }).then(() => window.location.reload());
+                    }).then(r => r.json()).then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: 'Deleted',
+                                text: data.message,
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false,
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => window.location.reload());
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.message || 'Failed to delete category',
+                                icon: 'error',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    }).catch(() => {
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'An unexpected error occurred',
+                            icon: 'error',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                    });
                 }
             });
         });
     });
 
-    // Toggle category status
-    document.querySelectorAll('[data-action="toggle-category"]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = this.dataset.id;
-            fetch(`{{ url_for('admin_panel.ispy_toggle_category', category_id=0) }}`.replace('0', id), {
-                method: 'POST',
-                headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
-            }).then(() => window.location.reload());
-        });
-    });
-
-    // Form submissions
+    // Create category form submission
     document.getElementById('createCategoryForm')?.addEventListener('submit', async function(e) {
         e.preventDefault();
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        const loadingText = submitBtn.dataset.loadingText || 'Creating...';
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = loadingText;
+
         const formData = new FormData(this);
-        const data = Object.fromEntries(formData);
-        data.is_active = formData.has('is_active');
+        const data = {
+            display_name: formData.get('display_name')?.trim() || '',
+            key: formData.get('key')?.trim() || '',
+            is_active: formData.has('is_active')
+        };
+
+        if (!data.display_name) {
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Display name is required.',
+                icon: 'warning',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+            return;
+        }
 
         try {
-            const response = await fetch("{{ url_for('admin_panel.ispy_create_category') }}", {
+            const response = await fetch("{{ url_for('admin_panel.create_ispy_category') }}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -362,9 +365,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify(data)
             });
-            if (response.ok) window.location.reload();
+            const result = await response.json();
+            if (result.success) {
+                Swal.fire({
+                    title: 'Created',
+                    text: result.message,
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false,
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                }).then(() => window.location.reload());
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: result.message || 'Failed to create category',
+                    icon: 'error',
+                    background: isDark ? '#1f2937' : '#ffffff',
+                    color: isDark ? '#f3f4f6' : '#111827'
+                });
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
         } catch (error) {
             console.error('Error:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'An unexpected error occurred',
+                icon: 'error',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
         }
     });
 });

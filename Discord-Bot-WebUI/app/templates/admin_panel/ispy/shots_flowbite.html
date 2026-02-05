@@ -1,7 +1,5 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
-{# Note: viewShotModal uses a custom two-column layout with image viewer,
-   which doesn't fit the standard modal_info pattern. Kept as custom implementation. #}
 
 {% block admin_title %}I-Spy Shots{% endblock %}
 {% block panel_description %}Review and manage I-Spy photo submissions{% endblock %}
@@ -31,25 +29,15 @@
             </h5>
             <p class="text-sm text-gray-500 dark:text-gray-400">Review and moderate photo submissions</p>
         </div>
-        <div class="flex items-center gap-3">
-            {% if pending_count > 0 %}
-            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
-                <i class="ti ti-clock mr-1"></i>{{ pending_count }} pending review
-            </span>
-            {% endif %}
-            <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" id="exportShots">
-                <i class="ti ti-download mr-1"></i>Export
-            </button>
-        </div>
     </div>
 </div>
 
 <!-- Shot Stats -->
-<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.total_shots }}</p>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ shot_stats.total_shots }}</p>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Total Shots</p>
             </div>
             <div class="p-3 bg-ecs-green/10 rounded-full">
@@ -60,18 +48,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.pending_shots }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Pending</p>
-            </div>
-            <div class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
-                <i class="ti ti-clock text-2xl text-yellow-600 dark:text-yellow-400"></i>
-            </div>
-        </div>
-    </div>
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between">
-            <div>
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.approved_shots }}</p>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ shot_stats.approved_shots }}</p>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Approved</p>
             </div>
             <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
@@ -82,231 +59,124 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.rejected_shots }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Rejected</p>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ shot_stats.disallowed_shots }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Disallowed</p>
             </div>
             <div class="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
-                <i class="ti ti-x text-2xl text-red-600 dark:text-red-400"></i>
+                <i class="ti ti-ban text-2xl text-red-600 dark:text-red-400"></i>
             </div>
         </div>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 border border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div>
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.approval_rate }}%</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Approval Rate</p>
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ shot_stats.avg_points|round(1) }}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Avg Points</p>
             </div>
             <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                <i class="ti ti-percentage text-2xl text-blue-600 dark:text-blue-400"></i>
+                <i class="ti ti-star text-2xl text-blue-600 dark:text-blue-400"></i>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Filters & View Toggle -->
+<!-- Filters Bar -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-6">
-    <div class="p-4 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap items-center gap-3">
-            <div class="relative">
-                <input type="text" id="searchShots" placeholder="Search by player..." class="w-64 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 pl-10 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-            </div>
-            <select id="filterStatus" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                <option value="">All Status</option>
-                <option value="pending" {% if filter_status == 'pending' %}selected{% endif %}>Pending</option>
-                <option value="approved" {% if filter_status == 'approved' %}selected{% endif %}>Approved</option>
-                <option value="rejected" {% if filter_status == 'rejected' %}selected{% endif %}>Rejected</option>
-            </select>
-            <select id="filterCategory" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                <option value="">All Categories</option>
-                {% for category in categories %}
-                <option value="{{ category.id }}" {% if filter_category == category.id %}selected{% endif %}>{{ category.name }}</option>
-                {% endfor %}
-            </select>
-            <select id="filterSeason" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
-                <option value="">All Seasons</option>
-                {% for season in seasons %}
-                <option value="{{ season.id }}" {% if filter_season == season.id %}selected{% endif %}>{{ season.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="inline-flex rounded-lg shadow-sm" role="group">
-            <button type="button" class="px-3 py-2 text-sm font-medium rounded-l-lg border {% if view_mode == 'grid' %}bg-ecs-green text-white border-ecs-green{% else %}bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600{% endif %}" data-view="grid">
-                <i class="ti ti-grid-dots"></i>
-            </button>
-            <button type="button" class="px-3 py-2 text-sm font-medium rounded-r-lg border-t border-r border-b {% if view_mode == 'list' %}bg-ecs-green text-white border-ecs-green{% else %}bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600{% endif %}" data-view="list">
-                <i class="ti ti-list"></i>
-            </button>
-        </div>
+    <div class="p-4 flex flex-wrap items-center gap-3">
+        <select id="filterStatus" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">All Status</option>
+            <option value="approved" {% if current_status == 'approved' %}selected{% endif %}>Approved</option>
+            <option value="disallowed" {% if current_status == 'disallowed' %}selected{% endif %}>Disallowed</option>
+        </select>
+        <select id="filterCategory" class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+            <option value="{{ category.id }}" {% if current_category == category.id %}selected{% endif %}>{{ category.display_name }}</option>
+            {% endfor %}
+        </select>
     </div>
 </div>
 
-{% if shots %}
-<!-- Grid View -->
-<div id="gridView" class="{% if view_mode == 'list' %}hidden{% endif %}">
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
-        {% for shot in shots %}
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden group">
-            <div class="relative aspect-square bg-gray-100 dark:bg-gray-700">
-                {% if shot.image_url %}
-                <img src="{{ shot.image_url }}" alt="Shot by {{ shot.player.name }}" class="w-full h-full object-cover cursor-pointer" data-action="view-shot" data-id="{{ shot.id }}">
-                {% else %}
-                <div class="flex items-center justify-center w-full h-full">
-                    <i class="ti ti-photo-off text-4xl text-gray-400 dark:text-gray-600"></i>
-                </div>
-                {% endif %}
-                <!-- Status badge -->
-                <div class="absolute top-2 right-2">
-                    {% if shot.status == 'pending' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
-                        Pending
-                    </span>
-                    {% elif shot.status == 'approved' %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                        Approved
-                    </span>
-                    {% else %}
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
-                        Rejected
-                    </span>
-                    {% endif %}
-                </div>
-                <!-- Quick actions overlay -->
-                {% if shot.status == 'pending' %}
-                <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button type="button" class="p-2 bg-green-500 text-white rounded-full hover:bg-green-600" title="Approve" data-action="approve-shot" data-id="{{ shot.id }}">
-                        <i class="ti ti-check"></i>
-                    </button>
-                    <button type="button" class="p-2 bg-red-500 text-white rounded-full hover:bg-red-600" title="Reject" data-action="reject-shot" data-id="{{ shot.id }}">
-                        <i class="ti ti-x"></i>
-                    </button>
-                </div>
-                {% endif %}
-            </div>
-            <div class="p-3">
-                <div class="flex items-center gap-2 mb-1">
-                    <div class="w-3 h-3 rounded-full" style="background-color: {{ shot.category.color or '#1a472a' }};"></div>
-                    <span class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ shot.category.name }}</span>
-                </div>
-                <p class="font-medium text-sm text-gray-900 dark:text-white truncate">{{ shot.player.name }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ shot.submitted_at.strftime('%b %d, %H:%M') }}</p>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
-
-<!-- List View -->
-<div id="listView" class="{% if view_mode != 'list' %}hidden{% endif %}">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                    <tr>
-                        <th scope="col" class="px-6 py-3">Photo</th>
-                        <th scope="col" class="px-6 py-3">Player</th>
-                        <th scope="col" class="px-6 py-3">Category</th>
-                        <th scope="col" class="px-6 py-3">Points</th>
-                        <th scope="col" class="px-6 py-3">Status</th>
-                        <th scope="col" class="px-6 py-3">Submitted</th>
-                        <th scope="col" class="px-6 py-3">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for shot in shots %}
-                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="px-6 py-4">
-                            <div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 cursor-pointer" data-action="view-shot" data-id="{{ shot.id }}">
-                                {% if shot.image_url %}
-                                <img src="{{ shot.image_url }}" alt="Shot" class="w-full h-full object-cover">
-                                {% else %}
-                                <div class="flex items-center justify-center w-full h-full">
-                                    <i class="ti ti-photo-off text-gray-400 dark:text-gray-600"></i>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                {% if shot.player.avatar_url %}
-                                <img class="w-8 h-8 rounded-full" src="{{ shot.player.avatar_url }}" alt="{{ shot.player.name }}">
-                                {% else %}
-                                <div class="w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center">
-                                    <span class="text-xs font-medium text-ecs-green">{{ shot.player.name[0]|upper }}</span>
-                                </div>
-                                {% endif %}
-                                <span class="font-medium text-gray-900 dark:text-white">{{ shot.player.name }}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-2">
-                                <div class="w-3 h-3 rounded-full" style="background-color: {{ shot.category.color or '#1a472a' }};"></div>
-                                <span>{{ shot.category.name }}</span>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <span class="font-medium text-gray-900 dark:text-white">{{ shot.points_awarded or shot.category.points_value }}</span>
-                        </td>
-                        <td class="px-6 py-4">
-                            {% if shot.status == 'pending' %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
-                                <i class="ti ti-clock mr-1"></i>Pending
-                            </span>
-                            {% elif shot.status == 'approved' %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                                <i class="ti ti-check mr-1"></i>Approved
-                            </span>
-                            {% else %}
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
-                                <i class="ti ti-x mr-1"></i>Rejected
-                            </span>
+{% if shots.items %}
+<!-- Shots Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">ID</th>
+                    <th scope="col" class="px-6 py-3">Author</th>
+                    <th scope="col" class="px-6 py-3">Category</th>
+                    <th scope="col" class="px-6 py-3">Location</th>
+                    <th scope="col" class="px-6 py-3">Points</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Submitted</th>
+                    <th scope="col" class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for shot in shots.items %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">
+                        <span class="font-medium text-gray-900 dark:text-white">#{{ shot.id }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ shot.author_discord_id }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-gray-900 dark:text-white">{{ shot.category.display_name if shot.category else 'N/A' }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="truncate max-w-[200px] block text-gray-600 dark:text-gray-400">{{ shot.location or '-' }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ shot.total_points }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if shot.status == 'approved' %}
+                        {{ badge("Approved", variant="success") }}
+                        {% elif shot.status == 'disallowed' %}
+                        {{ badge("Disallowed", variant="danger") }}
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                        {{ shot.submitted_at.strftime('%Y-%m-%d %H:%M') if shot.submitted_at else '-' }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-1">
+                            {% if shot.status == 'approved' %}
+                            <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" title="Disallow" data-action="disallow-shot" data-id="{{ shot.id }}">
+                                <i class="ti ti-ban"></i>
+                            </button>
                             {% endif %}
-                        </td>
-                        <td class="px-6 py-4 text-xs text-gray-500 dark:text-gray-400">
-                            {{ shot.submitted_at.strftime('%Y-%m-%d %H:%M') }}
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-1">
-                                {% if shot.status == 'pending' %}
-                                <button type="button" class="p-2 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg" title="Approve" data-action="approve-shot" data-id="{{ shot.id }}">
-                                    <i class="ti ti-check"></i>
-                                </button>
-                                <button type="button" class="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg" title="Reject" data-action="reject-shot" data-id="{{ shot.id }}">
-                                    <i class="ti ti-x"></i>
-                                </button>
-                                {% endif %}
-                                <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" title="View Details" data-action="view-shot" data-id="{{ shot.id }}">
-                                    <i class="ti ti-eye"></i>
-                                </button>
-                                <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg" title="Delete" data-action="delete-shot" data-id="{{ shot.id }}">
-                                    <i class="ti ti-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                            <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg" title="Delete" data-action="delete-shot" data-id="{{ shot.id }}">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
 
 <!-- Pagination -->
-{% if pagination and pagination.pages > 1 %}
+{% if shots.pages > 1 %}
 <div class="mt-6 flex items-center justify-between">
     <p class="text-sm text-gray-700 dark:text-gray-400">
-        Showing <span class="font-medium">{{ ((pagination.page - 1) * pagination.per_page) + 1 }}</span>
-        to <span class="font-medium">{{ [pagination.page * pagination.per_page, pagination.total] | min }}</span>
-        of <span class="font-medium">{{ pagination.total }}</span> shots
+        Showing <span class="font-medium">{{ ((shots.page - 1) * shots.per_page) + 1 }}</span>
+        to <span class="font-medium">{{ [shots.page * shots.per_page, shots.total] | min }}</span>
+        of <span class="font-medium">{{ shots.total }}</span> shots
     </p>
     <div class="flex gap-2">
-        {% if pagination.has_prev %}
-        <a href="?page={{ pagination.prev_num }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+        {% if shots.has_prev %}
+        <a href="{{ url_for('admin_panel.ispy_shots', page=shots.prev_num, status=current_status or '', category=current_category or '') }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
             <i class="ti ti-chevron-left mr-1"></i>Previous
         </a>
         {% endif %}
-        {% if pagination.has_next %}
-        <a href="?page={{ pagination.next_num }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+        {% if shots.has_next %}
+        <a href="{{ url_for('admin_panel.ispy_shots', page=shots.next_num, status=current_status or '', category=current_category or '') }}" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
             Next<i class="ti ti-chevron-right ml-1"></i>
         </a>
         {% endif %}
@@ -315,94 +185,24 @@
 {% endif %}
 
 {% else %}
+<!-- Empty State -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
-    <div class="text-center py-12">
-        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
-            <i class="ti ti-camera-off text-3xl text-gray-400 dark:text-gray-500"></i>
-        </div>
-        <h5 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Shots Found</h5>
-        <p class="text-gray-500 dark:text-gray-400">No photo submissions match your current filters.</p>
-    </div>
+    {{ empty_state(
+        title="No Shots Found",
+        description="No photo submissions match your current filters.",
+        icon="camera-off"
+    ) }}
 </div>
 {% endif %}
-
-<!-- View Shot Modal -->
-<div id="viewShotModal" tabindex="-1" aria-hidden="true" class="hidden fixed inset-0 z-50 overflow-y-auto overflow-x-hidden">
-    <div class="fixed inset-0 bg-gray-900/80"></div>
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="relative w-full max-w-4xl">
-            <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
-                <button type="button" class="absolute top-4 right-4 z-10 text-white bg-black/50 hover:bg-black/70 rounded-full p-2" data-modal-hide="viewShotModal">
-                    <i class="ti ti-x text-lg"></i>
-                </button>
-                <div class="grid grid-cols-1 md:grid-cols-2">
-                    <div class="bg-gray-900 flex items-center justify-center p-4">
-                        <img id="modalShotImage" src="" alt="Shot" class="max-w-full max-h-[70vh] object-contain">
-                    </div>
-                    <div class="p-6">
-                        <h3 id="modalPlayerName" class="text-xl font-semibold text-gray-900 dark:text-white mb-4"></h3>
-                        <div class="space-y-4">
-                            <div>
-                                <label class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Category</label>
-                                <p id="modalCategory" class="font-medium text-gray-900 dark:text-white"></p>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Points</label>
-                                <p id="modalPoints" class="font-medium text-gray-900 dark:text-white"></p>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Submitted</label>
-                                <p id="modalSubmittedAt" class="font-medium text-gray-900 dark:text-white"></p>
-                            </div>
-                            <div>
-                                <label class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</label>
-                                <p id="modalStatus" class="font-medium"></p>
-                            </div>
-                            <div id="modalNotes" class="hidden">
-                                <label class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider">Notes</label>
-                                <p id="modalNotesText" class="font-medium text-gray-900 dark:text-white"></p>
-                            </div>
-                        </div>
-                        <div id="modalActions" class="flex gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                            <button type="button" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700" id="modalApprove">
-                                <i class="ti ti-check mr-1"></i>Approve
-                            </button>
-                            <button type="button" class="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700" id="modalReject">
-                                <i class="ti ti-x mr-1"></i>Reject
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
-    let currentShotId = null;
 
-    // View toggle
-    document.querySelectorAll('[data-view]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const view = this.dataset.view;
-            document.querySelectorAll('[data-view]').forEach(b => {
-                b.classList.remove('bg-ecs-green', 'text-white', 'border-ecs-green');
-                b.classList.add('bg-white', 'text-gray-700', 'border-gray-300', 'dark:bg-gray-700', 'dark:text-gray-300', 'dark:border-gray-600');
-            });
-            this.classList.remove('bg-white', 'text-gray-700', 'border-gray-300', 'dark:bg-gray-700', 'dark:text-gray-300', 'dark:border-gray-600');
-            this.classList.add('bg-ecs-green', 'text-white', 'border-ecs-green');
-
-            document.getElementById('gridView').classList.toggle('hidden', view !== 'grid');
-            document.getElementById('listView').classList.toggle('hidden', view !== 'list');
-        });
-    });
-
-    // Filter changes
-    ['filterStatus', 'filterCategory', 'filterSeason'].forEach(id => {
+    // Filter changes reload page with URL params
+    ['filterStatus', 'filterCategory'].forEach(id => {
         document.getElementById(id)?.addEventListener('change', function() {
             applyFilters();
         });
@@ -411,8 +211,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function applyFilters() {
         const status = document.getElementById('filterStatus').value;
         const category = document.getElementById('filterCategory').value;
-        const season = document.getElementById('filterSeason').value;
         const url = new URL(window.location.href);
+
+        url.searchParams.delete('page');
 
         if (status) url.searchParams.set('status', status);
         else url.searchParams.delete('status');
@@ -420,91 +221,60 @@ document.addEventListener('DOMContentLoaded', function() {
         if (category) url.searchParams.set('category', category);
         else url.searchParams.delete('category');
 
-        if (season) url.searchParams.set('season', season);
-        else url.searchParams.delete('season');
-
         window.location.href = url.toString();
     }
 
-    // View shot modal
-    document.querySelectorAll('[data-action="view-shot"]').forEach(el => {
-        el.addEventListener('click', function() {
-            currentShotId = this.dataset.id;
-            // In a real implementation, you would fetch shot details via API
-            // For now, we'll show the modal with placeholder data
-            document.getElementById('viewShotModal').classList.remove('hidden');
-        });
-    });
-
-    document.querySelectorAll('[data-modal-hide="viewShotModal"]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.getElementById('viewShotModal').classList.add('hidden');
-        });
-    });
-
-    // Approve shot
-    document.querySelectorAll('[data-action="approve-shot"]').forEach(btn => {
+    // Disallow shot with Swal reason input
+    document.querySelectorAll('[data-action="disallow-shot"]').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
             const id = this.dataset.id;
-            approveShot(id);
+            Swal.fire({
+                title: 'Disallow Shot',
+                input: 'text',
+                inputLabel: 'Reason for disallowing',
+                inputPlaceholder: 'Enter reason...',
+                showCancelButton: true,
+                confirmButtonText: 'Disallow',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`{{ url_for('admin_panel.disallow_ispy_shot', shot_id=0) }}`.replace('0', id), {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({ reason: result.value || '' })
+                    }).then(response => {
+                        if (response.ok) {
+                            Swal.fire({
+                                title: 'Disallowed',
+                                text: 'The shot has been disallowed.',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false,
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => window.location.reload());
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: 'Failed to disallow shot.',
+                                icon: 'error',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    });
+                }
+            });
         });
     });
 
-    document.getElementById('modalApprove')?.addEventListener('click', function() {
-        if (currentShotId) approveShot(currentShotId);
-    });
-
-    function approveShot(id) {
-        fetch(`{{ url_for('admin_panel.ispy_approve_shot', shot_id=0) }}`.replace('0', id), {
-            method: 'POST',
-            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
-        }).then(response => {
-            if (response.ok) window.location.reload();
-        });
-    }
-
-    // Reject shot
-    document.querySelectorAll('[data-action="reject-shot"]').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const id = this.dataset.id;
-            rejectShot(id);
-        });
-    });
-
-    document.getElementById('modalReject')?.addEventListener('click', function() {
-        if (currentShotId) rejectShot(currentShotId);
-    });
-
-    function rejectShot(id) {
-        Swal.fire({
-            title: 'Reject Shot',
-            input: 'text',
-            inputLabel: 'Reason for rejection (optional)',
-            inputPlaceholder: 'Enter rejection reason...',
-            showCancelButton: true,
-            confirmButtonText: 'Reject',
-            confirmButtonColor: '#dc2626',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch(`{{ url_for('admin_panel.ispy_reject_shot', shot_id=0) }}`.replace('0', id), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ reason: result.value || '' })
-                }).then(response => {
-                    if (response.ok) window.location.reload();
-                });
-            }
-        });
-    }
-
-    // Delete shot
+    // Delete shot with Swal confirmation
     document.querySelectorAll('[data-action="delete-shot"]').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -520,18 +290,33 @@ document.addEventListener('DOMContentLoaded', function() {
                 color: isDark ? '#f3f4f6' : '#111827'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    fetch(`{{ url_for('admin_panel.ispy_delete_shot', shot_id=0) }}`.replace('0', id), {
+                    fetch(`{{ url_for('admin_panel.delete_ispy_shot', shot_id=0) }}`.replace('0', id), {
                         method: 'DELETE',
                         headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
-                    }).then(() => window.location.reload());
+                    }).then(response => {
+                        if (response.ok) {
+                            Swal.fire({
+                                title: 'Deleted',
+                                text: 'The shot has been deleted.',
+                                icon: 'success',
+                                timer: 1500,
+                                showConfirmButton: false,
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => window.location.reload());
+                        } else {
+                            Swal.fire({
+                                title: 'Error',
+                                text: 'Failed to delete shot.',
+                                icon: 'error',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                        }
+                    });
                 }
             });
         });
-    });
-
-    // Export
-    document.getElementById('exportShots')?.addEventListener('click', function() {
-        window.location.href = "{{ url_for('admin_panel.ispy_export_shots') }}";
     });
 });
 </script>

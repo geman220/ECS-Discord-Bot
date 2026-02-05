@@ -158,10 +158,10 @@
                         <span class="font-medium text-yellow-600 dark:text-yellow-400">{{ live_session.error_count }}</span>
                     </div>
                     {% endif %}
-                    {% if live_session.last_update_at %}
+                    {% if live_session.last_update %}
                     <div class="flex justify-between py-2">
                         <span class="text-gray-500 dark:text-gray-400">Last Update</span>
-                        <span class="text-sm text-gray-900 dark:text-white">{{ live_session.last_update_at.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
+                        <span class="text-sm text-gray-900 dark:text-white">{{ live_session.last_update.strftime('%Y-%m-%d %H:%M:%S UTC') }}</span>
                     </div>
                     {% endif %}
                 </div>

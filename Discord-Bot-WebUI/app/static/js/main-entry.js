@@ -124,6 +124,7 @@ import './admin/message-categories.js';
 import './admin/message-template-detail.js';
 import './admin/push-campaigns.js';
 import './admin/scheduled-messages.js';
+import './admin/email-broadcasts.js';
 
 // Match operations
 import './match-operations/match-reports.js';

@@ -1,0 +1,258 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Compose Email Broadcast{% endblock %}
+{% block panel_description %}Create and send a bulk email campaign{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.email_broadcasts_list') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Email Broadcasts</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Compose</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tox-tinymce { border-radius: 0.5rem !important; }
+    .dark .tox-tinymce { border-color: #374151 !important; }
+    .dark .tox .tox-toolbar__primary,
+    .dark .tox .tox-toolbar__overflow,
+    .dark .tox .tox-edit-area__iframe,
+    .dark .tox .tox-statusbar,
+    .dark .tox .tox-menubar { background-color: #1f2937 !important; color: #d1d5db !important; }
+    .dark .tox .tox-tbtn { color: #d1d5db !important; }
+    .dark .tox .tox-tbtn:hover { background-color: #374151 !important; }
+</style>
+{% endblock %}
+
+{% block panel_content %}
+<div data-page="email-broadcasts-compose">
+
+<form id="emailBroadcastForm" class="space-y-6">
+
+    <!-- Section 1: Campaign Info -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <i class="ti ti-mail text-ecs-green mr-2"></i>Campaign Details
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label for="campaignName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Campaign Name</label>
+                <input type="text" id="campaignName" name="name"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       placeholder="e.g. Spring Season Kickoff" required>
+            </div>
+            <div>
+                <label for="campaignSubject" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email Subject</label>
+                <input type="text" id="campaignSubject" name="subject"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       placeholder="e.g. Important Update from ECS FC" required>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Recipient Filters -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-users text-ecs-green mr-2"></i>Recipients
+            </h3>
+            <span id="recipientCount" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium">
+                0 recipients
+            </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+                <label for="filterType" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Filter Type</label>
+                <select id="filterType" name="filter_type" data-on-change="email-filter-change"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="all_active">All Active Users</option>
+                    <option value="pub_league_current">Pub League Pass Holders</option>
+                    <option value="ecs_members">ECS Members (Active Membership)</option>
+                    <option value="by_team">By Team</option>
+                    <option value="by_league">By League</option>
+                    <option value="by_role">By System Role</option>
+                    <option value="by_discord_role">By Discord Role</option>
+                </select>
+            </div>
+
+            <!-- Sub-filters (shown/hidden by JS) -->
+            <div id="subFilterTeam" class="hidden">
+                <label for="filterTeamId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Team</label>
+                <select id="filterTeamId" name="team_id"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Select a team</option>
+                    {% for team in teams %}
+                    <option value="{{ team.id }}">{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="subFilterLeague" class="hidden">
+                <label for="filterLeagueId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">League</label>
+                <select id="filterLeagueId" name="league_id"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Select a league</option>
+                    {% for league in leagues %}
+                    <option value="{{ league.id }}">{{ league.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="subFilterSeason" class="hidden">
+                <label for="filterSeasonId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Season (optional)</label>
+                <select id="filterSeasonId" name="season_id"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Current Season</option>
+                    {% for season in seasons %}
+                    <option value="{{ season.id }}">{{ season.name }} ({{ season.league_type }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="subFilterRole" class="hidden">
+                <label for="filterRoleName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Role</label>
+                <select id="filterRoleName" name="role_name"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="">Select a role</option>
+                    {% for role in roles %}
+                    <option value="{{ role.name }}">{{ role.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div id="subFilterDiscordRole" class="hidden">
+                <label for="filterDiscordRole" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Discord Role Name</label>
+                <input type="text" id="filterDiscordRole" name="discord_role"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       placeholder="e.g. ECS Member">
+            </div>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="button" data-action="email-preview-recipients"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                <i class="ti ti-eye"></i> Preview Recipients
+            </button>
+        </div>
+    </div>
+
+    <!-- Section 3: Send Options -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <i class="ti ti-settings text-ecs-green mr-2"></i>Send Options
+        </h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Mode</label>
+                <div class="space-y-2">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="send_mode" value="bcc_batch" checked
+                               data-on-change="email-send-mode-toggle"
+                               class="w-4 h-4 text-ecs-green focus:ring-ecs-green">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">BCC Batch (faster, non-personalized)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="radio" name="send_mode" value="individual"
+                               data-on-change="email-send-mode-toggle"
+                               class="w-4 h-4 text-ecs-green focus:ring-ecs-green">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Individual (personalized with tokens)</span>
+                    </label>
+                </div>
+            </div>
+
+            <div>
+                <label class="flex items-center gap-2 cursor-pointer mb-2">
+                    <input type="checkbox" id="forceSend" name="force_send" value="1"
+                           data-on-change="email-force-send-toggle"
+                           class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded">
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">Force Send</span>
+                </label>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                    Bypasses email notification preferences. Use sparingly.
+                </p>
+            </div>
+
+            <div>
+                <label for="bccBatchSize" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">BCC Batch Size</label>
+                <input type="number" id="bccBatchSize" name="bcc_batch_size" value="50" min="1" max="100"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 100 per batch (Gmail limit)</p>
+            </div>
+        </div>
+
+        <!-- Recipient count warning -->
+        <div id="recipientWarning" class="hidden mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <div class="flex items-center gap-2 text-yellow-800 dark:text-yellow-300 text-sm">
+                <i class="ti ti-alert-triangle"></i>
+                <span id="recipientWarningText">Warning: Large recipient count. Gmail allows ~500 sends/day.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 4: Email Body -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                <i class="ti ti-file-text text-ecs-green mr-2"></i>Email Content
+            </h3>
+        </div>
+
+        <!-- Token help (shown only for individual mode) -->
+        <div id="tokenHelp" class="hidden mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p class="text-sm text-blue-800 dark:text-blue-300 font-medium mb-1">Available Personalization Tokens:</p>
+            <div class="flex flex-wrap gap-2 text-xs">
+                <code class="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 rounded">{name}</code>
+                <code class="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 rounded">{first_name}</code>
+                <code class="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 rounded">{team}</code>
+                <code class="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 rounded">{league}</code>
+                <code class="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 rounded">{season}</code>
+            </div>
+        </div>
+
+        <textarea id="emailBody" name="body_html"></textarea>
+    </div>
+
+    <!-- Section 5: Actions -->
+    <div class="flex flex-wrap items-center gap-3">
+        <button type="button" data-action="email-send-test"
+                class="inline-flex items-center gap-2 px-4 py-2.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+            <i class="ti ti-test-pipe"></i> Send Test to Me
+        </button>
+        <button type="button" data-action="email-save-draft"
+                class="inline-flex items-center gap-2 px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+            <i class="ti ti-device-floppy"></i> Save as Draft
+        </button>
+        <button type="button" data-action="email-send-campaign"
+                class="inline-flex items-center gap-2 px-4 py-2.5 text-sm bg-ecs-green text-white rounded-lg hover:bg-green-700 transition-colors">
+            <i class="ti ti-send"></i> Create &amp; Send Now
+        </button>
+        <a href="{{ url_for('admin_panel.email_broadcasts_list') }}"
+           class="inline-flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+            Cancel
+        </a>
+    </div>
+
+</form>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='vendor/tinymce/tinymce.min.js') }}"></script>
+{% endblock %}

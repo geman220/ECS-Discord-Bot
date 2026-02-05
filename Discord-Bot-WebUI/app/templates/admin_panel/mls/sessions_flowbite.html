@@ -1,0 +1,380 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
+
+{% block admin_title %}Live Reporting Sessions{% endblock %}
+{% block panel_description %}View and manage live reporting sessions{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mls_overview') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">MLS Management</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Live Reporting</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Sessions</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+    <h4 class="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-broadcast text-ecs-green"></i>Live Reporting Sessions
+    </h4>
+    <div class="flex items-center gap-3">
+        <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
+            <i class="ti ti-arrow-left mr-2"></i>Back to Dashboard
+        </a>
+        <button type="button" id="refresh-btn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green hover:bg-ecs-green/90 rounded-lg transition-colors">
+            <i class="ti ti-refresh mr-2"></i>Refresh
+        </button>
+    </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-6">
+    <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="flex flex-wrap -mb-px" role="tablist">
+            <a href="{{ url_for('admin_panel.mls_sessions', status='all') }}"
+               class="inline-flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors
+                      {% if status_filter == 'all' %}border-ecs-green text-ecs-green dark:border-ecs-gold dark:text-ecs-gold
+                      {% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300{% endif %}">
+                <i class="ti ti-list"></i>All Sessions
+            </a>
+            <a href="{{ url_for('admin_panel.mls_sessions', status='active') }}"
+               class="inline-flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors
+                      {% if status_filter == 'active' %}border-ecs-green text-ecs-green dark:border-ecs-gold dark:text-ecs-gold
+                      {% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300{% endif %}">
+                <i class="ti ti-player-play"></i>Active
+                <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                    {% set active_count = sessions|selectattr('is_active')|list|length %}
+                    {{ active_count }}
+                </span>
+            </a>
+            <a href="{{ url_for('admin_panel.mls_sessions', status='inactive') }}"
+               class="inline-flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors
+                      {% if status_filter == 'inactive' %}border-ecs-green text-ecs-green dark:border-ecs-gold dark:text-ecs-gold
+                      {% else %}border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300{% endif %}">
+                <i class="ti ti-player-stop"></i>Inactive
+            </a>
+        </nav>
+    </div>
+</div>
+
+<!-- Sessions Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 mb-6">
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex items-center gap-2">
+            <i class="ti ti-table text-gray-500 dark:text-gray-400"></i>
+            <h5 class="font-semibold text-gray-900 dark:text-white">
+                {% if status_filter == 'active' %}Active Sessions{% elif status_filter == 'inactive' %}Inactive Sessions{% else %}All Sessions{% endif %}
+            </h5>
+            <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">
+                {{ sessions|length }} total
+            </span>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        {% if sessions %}
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th class="px-6 py-3">Session ID</th>
+                    <th class="px-6 py-3">Match ID</th>
+                    <th class="px-6 py-3">Competition</th>
+                    <th class="px-6 py-3">Status</th>
+                    <th class="px-6 py-3">Last Status</th>
+                    <th class="px-6 py-3">Updates</th>
+                    <th class="px-6 py-3">Started</th>
+                    <th class="px-6 py-3">Ended</th>
+                    <th class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in sessions %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                        #{{ session.id }}
+                    </td>
+                    <td class="px-6 py-4">
+                        {{ session.match_id or 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4">
+                        {{ session.competition or 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if session.is_active %}
+                        <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full">
+                            <span class="w-2 h-2 mr-1 bg-green-500 rounded-full animate-pulse"></span>
+                            Active
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300 rounded-full">
+                            <span class="w-2 h-2 mr-1 bg-gray-500 rounded-full"></span>
+                            Inactive
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ session.last_status or 'No status' }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <span class="font-medium text-gray-900 dark:text-white">{{ session.update_count or 0 }}</span>
+                            {% if session.error_count and session.error_count > 0 %}
+                            <span class="px-1.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded">
+                                {{ session.error_count }} errors
+                            </span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {{ session.started_at.strftime('%Y-%m-%d %H:%M') if session.started_at else 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                        {{ session.ended_at.strftime('%Y-%m-%d %H:%M') if session.ended_at else '-' }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            {% if session.is_active %}
+                            <button type="button" class="stop-session-btn inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 rounded-lg transition-colors" data-session-id="{{ session.id }}">
+                                <i class="ti ti-player-stop mr-1"></i>Stop
+                            </button>
+                            {% else %}
+                            <button type="button" class="view-session-btn inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors" data-session-id="{{ session.id }}">
+                                <i class="ti ti-eye mr-1"></i>View
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-12 text-center">
+            <i class="ti ti-broadcast-off text-5xl text-gray-400 dark:text-gray-600 mb-4"></i>
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Sessions Found</h3>
+            <p class="text-gray-500 dark:text-gray-400">
+                {% if status_filter == 'active' %}
+                There are no active live reporting sessions at the moment.
+                {% elif status_filter == 'inactive' %}
+                There are no inactive sessions to display.
+                {% else %}
+                No live reporting sessions have been created yet.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Session Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                <i class="ti ti-player-play text-2xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Active Sessions</p>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    {{ sessions|selectattr('is_active')|list|length }}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <i class="ti ti-chart-bar text-2xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Updates</p>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    {% set total_updates = namespace(count=0) %}
+                    {% for session in sessions %}
+                        {% set total_updates.count = total_updates.count + (session.update_count or 0) %}
+                    {% endfor %}
+                    {{ total_updates.count }}
+                </h3>
+            </div>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-5">
+        <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                <i class="ti ti-alert-triangle text-2xl text-red-600 dark:text-red-400"></i>
+            </div>
+            <div>
+                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Total Errors</p>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">
+                    {% set total_errors = namespace(count=0) %}
+                    {% for session in sessions %}
+                        {% set total_errors.count = total_errors.count + (session.error_count or 0) %}
+                    {% endfor %}
+                    {{ total_errors.count }}
+                </h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Session Detail Modal -->
+{% call modal_info(id="session-modal", title="Session Details", size="md") %}
+<div id="session-detail-content">
+</div>
+{% endcall %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    const modalEl = document.getElementById('session-modal');
+    const sessionContent = document.getElementById('session-detail-content');
+
+    let sessionModal = null;
+    if (modalEl && typeof Modal !== 'undefined') {
+        sessionModal = new Modal(modalEl, { closable: true });
+    }
+
+    document.getElementById('refresh-btn')?.addEventListener('click', function() {
+        this.disabled = true;
+        this.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-2"></i>Refreshing...';
+        location.reload();
+    });
+
+    document.querySelectorAll('.stop-session-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sessionId = this.dataset.sessionId;
+            const button = this;
+
+            Swal.fire({
+                title: 'Stop Session?',
+                text: `Are you sure you want to stop session #${sessionId}?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, stop it',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: '#dc2626',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    button.disabled = true;
+                    button.innerHTML = '<i class="ti ti-loader-2 animate-spin mr-1"></i>Stopping...';
+
+                    fetch(`{{ url_for('admin_panel.mls_stop_session', session_id=0) }}`.replace('/0/', `/${sessionId}/`), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Session Stopped',
+                                text: data.message || 'Session stopped successfully',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: data.error || 'Failed to stop session',
+                                background: isDark ? '#1f2937' : '#ffffff',
+                                color: isDark ? '#f3f4f6' : '#111827'
+                            });
+                            button.disabled = false;
+                            button.innerHTML = '<i class="ti ti-player-stop mr-1"></i>Stop';
+                        }
+                    })
+                    .catch(err => {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Failed to stop session',
+                            background: isDark ? '#1f2937' : '#ffffff',
+                            color: isDark ? '#f3f4f6' : '#111827'
+                        });
+                        button.disabled = false;
+                        button.innerHTML = '<i class="ti ti-player-stop mr-1"></i>Stop';
+                    });
+                }
+            });
+        });
+    });
+
+    document.querySelectorAll('.view-session-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sessionId = this.dataset.sessionId;
+            const row = this.closest('tr');
+            const matchId = row.cells[1].textContent.trim();
+            const competition = row.cells[2].textContent.trim();
+            const lastStatus = row.cells[4].textContent.trim();
+            const updates = row.cells[5].textContent.trim();
+            const started = row.cells[6].textContent.trim();
+            const ended = row.cells[7].textContent.trim();
+
+            sessionContent.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Session ID</label>
+                            <p class="text-gray-900 dark:text-white font-medium">#${sessionId}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Match ID</label>
+                            <p class="text-gray-900 dark:text-white">${matchId}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Competition</label>
+                        <p class="text-gray-900 dark:text-white">${competition}</p>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Started</label>
+                            <p class="text-gray-900 dark:text-white">${started}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Ended</label>
+                            <p class="text-gray-900 dark:text-white">${ended}</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Last Status</label>
+                        <p class="text-gray-900 dark:text-white">${lastStatus}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Updates</label>
+                        <p class="text-gray-900 dark:text-white">${updates}</p>
+                    </div>
+                </div>
+            `;
+            if (sessionModal) {
+                sessionModal.show();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
