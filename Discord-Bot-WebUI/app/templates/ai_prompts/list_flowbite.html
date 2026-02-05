@@ -1,12 +1,25 @@
-{% extends "base_flowbite.html" %}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, empty_state %}
 
-{% block title %}AI Prompt Configurations{% endblock %}
+{% block admin_title %}AI Prompt Configurations{% endblock %}
+{% block panel_description %}Manage AI prompts for live match commentary{% endblock %}
 
-{% block page_title %}AI Prompt Configurations{% endblock %}
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Live Reporting</span>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">AI Prompt Configurations</span>
+    </div>
+</li>
+{% endblock %}
 
-{% block main_content %}
-<div class="space-y-6">
+{% block panel_content %}
     <!-- Header Card -->
     {% call card() %}
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -152,10 +165,9 @@
         </table>
     </div>
     {% endcall %}
-</div>
 {% endblock %}
 
-{% block custom_js %}
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Filter functionality

@@ -1,42 +1,31 @@
-{% extends "base_flowbite.html" %}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge %}
 
-{% block title %}View AI Prompt - {{ prompt.name }}{% endblock %}
+{% block admin_title %}View AI Prompt - {{ prompt.name }}{% endblock %}
+{% block panel_description %}AI prompt configuration details{% endblock %}
 
-{% block page_title %}{{ prompt.name }}{% endblock %}
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Live Reporting</span>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('ai_prompts.list_prompts') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">AI Prompts</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ prompt.name }}</span>
+    </div>
+</li>
+{% endblock %}
 
-{% block main_content %}
-<div class="space-y-6">
-    <!-- Breadcrumb -->
-    <nav class="flex" aria-label="Breadcrumb">
-        <ol class="inline-flex items-center space-x-1 md:space-x-3">
-            <li class="inline-flex items-center">
-                <a href="{{ url_for('main.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">
-                    <i class="ti ti-home w-4 h-4 mr-2"></i>
-                    Admin
-                </a>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-                    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Live Reporting</span>
-                </div>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-                    <a href="{{ url_for('ai_prompts.list_prompts') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">AI Prompts</a>
-                </div>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-                    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ prompt.name }}</span>
-                </div>
-            </li>
-        </ol>
-    </nav>
-
+{% block panel_content %}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Content (2/3 width) -->
         <div class="lg:col-span-2 space-y-6">
@@ -272,10 +261,9 @@
             {% endcall %}
         </div>
     </div>
-</div>
 {% endblock %}
 
-{% block custom_js %}
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');

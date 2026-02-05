@@ -1,42 +1,31 @@
-{% extends "base_flowbite.html" %}
+{% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, input, select, textarea %}
 
-{% block title %}{{ 'Edit' if prompt else 'Create' }} AI Prompt{% endblock %}
+{% block admin_title %}{{ 'Edit' if prompt else 'Create' }} AI Prompt{% endblock %}
+{% block panel_description %}Configure AI prompt settings for match commentary{% endblock %}
 
-{% block page_title %}{{ 'Edit' if prompt else 'Create' }} AI Prompt{% endblock %}
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Live Reporting</span>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('ai_prompts.list_prompts') }}" class="ml-1 text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">AI Prompts</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ 'Edit Prompt' if prompt else 'Create Prompt' }}</span>
+    </div>
+</li>
+{% endblock %}
 
-{% block main_content %}
-<div class="space-y-6">
-    <!-- Breadcrumb -->
-    <nav class="flex" aria-label="Breadcrumb">
-        <ol class="inline-flex items-center space-x-1 md:space-x-3">
-            <li class="inline-flex items-center">
-                <a href="{{ url_for('main.index') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">
-                    <i class="ti ti-home w-4 h-4 mr-2"></i>
-                    Admin
-                </a>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-                    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Live Reporting</span>
-                </div>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-                    <a href="{{ url_for('ai_prompts.list_prompts') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">AI Prompts</a>
-                </div>
-            </li>
-            <li>
-                <div class="flex items-center">
-                    <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-                    <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ 'Edit Prompt' if prompt else 'Create Prompt' }}</span>
-                </div>
-            </li>
-        </ol>
-    </nav>
-
+{% block panel_content %}
     <form method="POST" action="{{ url_for('ai_prompts.create_prompt') if not prompt else url_for('ai_prompts.edit_prompt', prompt_id=prompt.id) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
@@ -292,10 +281,9 @@
             </div>
         </div>
     </form>
-</div>
 {% endblock %}
 
-{% block custom_js %}
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Temperature slider

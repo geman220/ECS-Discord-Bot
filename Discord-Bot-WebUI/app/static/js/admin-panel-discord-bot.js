@@ -23,10 +23,11 @@ import { EventDelegation } from './event-delegation/core.js';
 // Configuration
 const CONFIG = {
     get botApiUrl() {
-        return (window.__BOT_API_URL__ || 'http://localhost:5001/api') + '/bot';
+        const base = (window.__BOT_API_URL__ || '/admin-panel/bot-api/').replace(/\/+$/, '');
+        return base + '/bot';
     },
     get botApiBase() {
-        return window.__BOT_API_URL__ || 'http://localhost:5001/api';
+        return (window.__BOT_API_URL__ || '/admin-panel/bot-api/').replace(/\/+$/, '');
     },
     recentLogs: null, // Will be populated from template
     commands: null, // Will be populated from template

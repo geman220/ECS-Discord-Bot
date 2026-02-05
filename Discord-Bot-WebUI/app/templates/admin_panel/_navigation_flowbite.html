@@ -189,6 +189,20 @@
                         <a href="{{ url_for('admin_panel.mls_task_monitoring') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-list-check text-gray-400"></i>Task Monitoring
                         </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Live Reporting Admin</div>
+                        <a href="{{ url_for('admin_live.dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-broadcast text-gray-400"></i>Reporting Dashboard
+                        </a>
+                        <a href="{{ url_for('admin_live.schedule_season') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-calendar-event text-gray-400"></i>Schedule Season
+                        </a>
+                        <a href="{{ url_for('admin_live.matches') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-ball-football text-gray-400"></i>Reporting Matches
+                        </a>
+                        <a href="{{ url_for('admin_live.sessions') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-player-play text-gray-400"></i>Active Sessions
+                        </a>
                     </div>
                 </div>
             </li>
@@ -314,6 +328,14 @@
                         </a>
                         <a href="{{ url_for('admin_panel.store_analytics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-chart-bar text-gray-400"></i>Store Analytics
+                        </a>
+                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Engagement</div>
+                        <a href="{{ url_for('admin_panel.ispy_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-eye text-gray-400"></i>I-Spy Management
+                        </a>
+                        <a href="{{ url_for('admin_panel.ispy_analytics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-chart-dots text-gray-400"></i>I-Spy Analytics
                         </a>
                     </div>
                 </div>

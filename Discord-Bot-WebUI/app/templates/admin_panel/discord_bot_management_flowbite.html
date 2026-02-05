@@ -350,7 +350,7 @@
 
 {% block extra_js %}
 <script>
-window.__BOT_API_URL__ = {{ (bot_api_url ~ '/api') | tojson }};
+window.__BOT_API_URL__ = {{ url_for('admin_panel.bot_api_proxy', path='') | tojson }};
 window.__BOT_RECENT_LOGS__ = {{ recent_logs | tojson }};
 window.__BOT_COMMANDS__ = {{ commands | tojson }};
 window.__BOT_COMMAND_USAGE__ = {{ command_usage | tojson }};

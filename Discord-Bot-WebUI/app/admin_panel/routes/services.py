@@ -16,8 +16,9 @@ This module contains routes for utility and service management:
 
 import os
 import logging
+import requests as http_requests
 from datetime import datetime, timedelta
-from flask import render_template, request, jsonify, flash, redirect, url_for, current_app
+from flask import render_template, request, jsonify, flash, redirect, url_for, current_app, Response
 from flask_login import login_required, current_user
 from sqlalchemy import func
 
@@ -1053,6 +1054,39 @@ def discord_bot_management():
                              bot_online=False,
                              bot_api_url=bot_api_url,
                              discord_client_id=discord_client_id)
+
+
+# Bot API Proxy - prevents mixed content errors (HTTPS page -> HTTP bot API)
+@admin_panel_bp.route('/bot-api/<path:path>', methods=['GET', 'POST', 'PUT', 'DELETE'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def bot_api_proxy(path):
+    """Proxy requests to the bot REST API to avoid mixed content blocking."""
+    bot_api_url = os.getenv('BOT_API_URL', 'http://localhost:5001')
+    target_url = f"{bot_api_url}/api/{path}"
+
+    try:
+        # Forward the request with same method, headers, and body
+        headers = {'Content-Type': 'application/json'}
+        resp = http_requests.request(
+            method=request.method,
+            url=target_url,
+            headers=headers,
+            json=request.get_json(silent=True) if request.is_json else None,
+            timeout=15
+        )
+        return Response(
+            resp.content,
+            status=resp.status_code,
+            content_type=resp.headers.get('Content-Type', 'application/json')
+        )
+    except http_requests.exceptions.ConnectionError:
+        return jsonify({'success': False, 'message': 'Bot API is not reachable'}), 502
+    except http_requests.exceptions.Timeout:
+        return jsonify({'success': False, 'message': 'Bot API request timed out'}), 504
+    except Exception as e:
+        logger.error(f"Bot API proxy error: {e}")
+        return jsonify({'success': False, 'message': 'Proxy error'}), 500
 
 
 # Playoff Management
