@@ -38,6 +38,9 @@ const ADMIN_BASE = '/admin-panel';
    FILTER & PREVIEW
    ======================================================================== */
 
+// Track selected users for specific_users filter
+const _selectedUsers = new Map(); // id -> name
+
 function getFilterCriteria() {
     const filterType = document.getElementById('filterType')?.value || 'all_active';
     const criteria = { type: filterType };
@@ -52,6 +55,8 @@ function getFilterCriteria() {
         criteria.role_name = document.getElementById('filterRoleName')?.value || '';
     } else if (filterType === 'by_discord_role') {
         criteria.discord_role = document.getElementById('filterDiscordRole')?.value || '';
+    } else if (filterType === 'specific_users') {
+        criteria.user_ids = Array.from(_selectedUsers.keys());
     }
 
     return criteria;
@@ -61,7 +66,7 @@ function updateSubFilters() {
     const filterType = document.getElementById('filterType')?.value || '';
 
     // Hide all sub-filters
-    ['subFilterTeam', 'subFilterLeague', 'subFilterSeason', 'subFilterRole', 'subFilterDiscordRole']
+    ['subFilterTeam', 'subFilterLeague', 'subFilterSeason', 'subFilterRole', 'subFilterDiscordRole', 'subFilterSpecificUsers']
         .forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
@@ -78,12 +83,26 @@ function updateSubFilters() {
         document.getElementById('subFilterRole')?.classList.remove('hidden');
     } else if (filterType === 'by_discord_role') {
         document.getElementById('subFilterDiscordRole')?.classList.remove('hidden');
+    } else if (filterType === 'specific_users') {
+        document.getElementById('subFilterSpecificUsers')?.classList.remove('hidden');
     }
 }
 
 async function fetchRecipientCount() {
     const criteria = getFilterCriteria();
     const forceSend = document.getElementById('forceSend')?.checked || false;
+
+    // For specific_users, skip the API call and show count from selected users
+    if (criteria.type === 'specific_users') {
+        const count = _selectedUsers.size;
+        const countEl = document.getElementById('recipientCount');
+        if (countEl) {
+            countEl.textContent = `${count} recipient${count !== 1 ? 's' : ''}`;
+        }
+        const warningEl = document.getElementById('recipientWarning');
+        if (warningEl) warningEl.classList.add('hidden');
+        return { success: true, count, recipients: Array.from(_selectedUsers.entries()).map(([id, name]) => ({ user_id: id, name })) };
+    }
 
     const params = new URLSearchParams({ ...criteria, force_send: forceSend });
 
@@ -167,6 +186,73 @@ function handleForceSendToggle(element) {
         });
     }
     fetchRecipientCount();
+}
+
+/* ========================================================================
+   USER SEARCH (Specific Users filter)
+   ======================================================================== */
+
+function renderSelectedUsers() {
+    const container = document.getElementById('selectedUsersContainer');
+    if (!container) return;
+    container.innerHTML = '';
+
+    _selectedUsers.forEach((name, id) => {
+        const chip = document.createElement('span');
+        chip.className = 'inline-flex items-center gap-1 px-3 py-1 bg-ecs-green/10 text-ecs-green border border-ecs-green/30 rounded-full text-sm';
+        chip.innerHTML = `${escapeHtml(name)} <button type="button" data-remove-user="${id}" class="ml-1 hover:text-red-500 font-bold">&times;</button>`;
+        container.appendChild(chip);
+    });
+
+    fetchRecipientCount();
+}
+
+function addSelectedUser(id, name) {
+    if (_selectedUsers.has(id)) return;
+    _selectedUsers.set(id, name);
+    renderSelectedUsers();
+    // Clear search
+    const input = document.getElementById('userSearchInput');
+    if (input) input.value = '';
+    const results = document.getElementById('userSearchResults');
+    if (results) results.classList.add('hidden');
+}
+
+function removeSelectedUser(id) {
+    _selectedUsers.delete(id);
+    renderSelectedUsers();
+}
+
+let _searchTimeout = null;
+
+async function handleUserSearch(query) {
+    const resultsEl = document.getElementById('userSearchResults');
+    if (!resultsEl) return;
+
+    if (query.length < 2) {
+        resultsEl.classList.add('hidden');
+        return;
+    }
+
+    try {
+        const resp = await fetch(`${ADMIN_BASE}/api/email-broadcasts/search-users?q=${encodeURIComponent(query)}`);
+        const data = await resp.json();
+
+        if (!data.success || !data.users.length) {
+            resultsEl.innerHTML = '<div class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">No users found</div>';
+            resultsEl.classList.remove('hidden');
+            return;
+        }
+
+        resultsEl.innerHTML = data.users
+            .filter(u => !_selectedUsers.has(u.id))
+            .map(u => `<button type="button" data-add-user-id="${u.id}" data-add-user-name="${escapeHtml(u.name)}" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">${escapeHtml(u.name)}</button>`)
+            .join('') || '<div class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">All matching users already selected</div>';
+
+        resultsEl.classList.remove('hidden');
+    } catch (e) {
+        console.error('User search failed:', e);
+    }
 }
 
 function getEditorContent() {
@@ -566,6 +652,40 @@ function initEmailBroadcasts() {
                 timeout = setTimeout(fetchRecipientCount, 500);
             });
         }
+
+        // User search input for specific_users filter
+        const userSearchInput = document.getElementById('userSearchInput');
+        if (userSearchInput) {
+            userSearchInput.addEventListener('input', () => {
+                clearTimeout(_searchTimeout);
+                _searchTimeout = setTimeout(() => handleUserSearch(userSearchInput.value.trim()), 300);
+            });
+        }
+
+        // Delegated click for search result items and remove chips
+        const recipientSection = document.querySelector('#subFilterSpecificUsers');
+        if (recipientSection) {
+            recipientSection.addEventListener('click', (e) => {
+                const addBtn = e.target.closest('[data-add-user-id]');
+                if (addBtn) {
+                    addSelectedUser(parseInt(addBtn.dataset.addUserId, 10), addBtn.dataset.addUserName);
+                    return;
+                }
+                const removeBtn = e.target.closest('[data-remove-user]');
+                if (removeBtn) {
+                    removeSelectedUser(parseInt(removeBtn.dataset.removeUser, 10));
+                }
+            });
+        }
+
+        // Close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            const resultsEl = document.getElementById('userSearchResults');
+            const searchInput = document.getElementById('userSearchInput');
+            if (resultsEl && !resultsEl.contains(e.target) && e.target !== searchInput) {
+                resultsEl.classList.add('hidden');
+            }
+        });
     }
 
     if (detailPage) {

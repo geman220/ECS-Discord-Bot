@@ -10,6 +10,7 @@ personalizing content, and tracking progress.
 import logging
 from datetime import datetime
 
+from sqlalchemy import select
 from sqlalchemy.orm import joinedload
 
 from app.core import db
@@ -37,6 +38,11 @@ class EmailBroadcastService:
             list[dict]: List of {'user_id': int, 'name': str} dicts.
         """
         filter_type = filter_criteria.get('type', 'all_active')
+
+        # specific_users bypasses the base query filters - it targets exact user IDs
+        if filter_type == 'specific_users':
+            return self._resolve_specific_users(session, filter_criteria, force_send)
+
         base_query = session.query(User.id, User.username).filter(
             User.is_active == True,
             User.is_approved == True,
@@ -61,11 +67,9 @@ class EmailBroadcastService:
             if season_id:
                 sub = sub.filter(WalletPass.season_id == int(season_id))
             else:
-                # Current season
-                current_seasons = session.query(Season.id).filter(Season.is_current == True).subquery()
-                sub = sub.filter(WalletPass.season_id.in_(current_seasons))
-            sub = sub.subquery()
-            users = base_query.filter(User.id.in_(sub)).all()
+                current_season_ids = select(Season.id).where(Season.is_current == True).scalar_subquery()
+                sub = sub.filter(WalletPass.season_id.in_(current_season_ids))
+            users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'ecs_members':
             sub = session.query(WalletPass.user_id).join(
@@ -74,8 +78,8 @@ class EmailBroadcastService:
                 WalletPassType.code == 'ecs_membership',
                 WalletPass.status == 'active',
                 WalletPass.user_id.isnot(None),
-            ).subquery()
-            users = base_query.filter(User.id.in_(sub)).all()
+            )
+            users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'by_team':
             team_id = int(filter_criteria['team_id'])
@@ -85,8 +89,8 @@ class EmailBroadcastService:
                 player_teams.c.team_id == team_id,
                 Player.is_current_player == True,
                 Player.user_id.isnot(None),
-            ).subquery()
-            users = base_query.filter(User.id.in_(sub)).all()
+            )
+            users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'by_league':
             league_id = int(filter_criteria['league_id'])
@@ -94,15 +98,15 @@ class EmailBroadcastService:
                 Player.primary_league_id == league_id,
                 Player.is_current_player == True,
                 Player.user_id.isnot(None),
-            ).subquery()
-            users = base_query.filter(User.id.in_(sub)).all()
+            )
+            users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'by_role':
             role_name = filter_criteria['role_name']
             sub = session.query(user_roles.c.user_id).join(
                 Role, user_roles.c.role_id == Role.id
-            ).filter(Role.name == role_name).subquery()
-            users = base_query.filter(User.id.in_(sub)).all()
+            ).filter(Role.name == role_name)
+            users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'by_discord_role':
             discord_role = filter_criteria['discord_role']
@@ -129,6 +133,26 @@ class EmailBroadcastService:
             logger.warning(f"Unknown filter type: {filter_type}")
             users = []
 
+        return [{'user_id': u.id, 'name': u.username} for u in users]
+
+    def _resolve_specific_users(self, session, filter_criteria, force_send):
+        """Resolve specific users by user_id list."""
+        user_ids = filter_criteria.get('user_ids', [])
+        if not user_ids:
+            return []
+
+        # Ensure ints
+        user_ids = [int(uid) for uid in user_ids]
+
+        query = session.query(User.id, User.username).filter(
+            User.id.in_(user_ids),
+            User.encrypted_email.isnot(None),
+        )
+
+        if not force_send:
+            query = query.filter(User.email_notifications == True)
+
+        users = query.all()
         return [{'user_id': u.id, 'name': u.username} for u in users]
 
     def create_campaign(self, session, data, created_by_id):
@@ -282,6 +306,18 @@ class EmailBroadcastService:
             return f'Role: {filter_criteria.get("role_name", "Unknown")}'
         elif filter_type == 'by_discord_role':
             return f'Discord role: {filter_criteria.get("discord_role", "Unknown")}'
+        elif filter_type == 'specific_users':
+            user_ids = filter_criteria.get('user_ids', [])
+            count = len(user_ids)
+            if count <= 3:
+                # Look up names
+                names = []
+                for uid in user_ids:
+                    user = session.query(User.username).filter(User.id == int(uid)).first()
+                    if user:
+                        names.append(user.username)
+                return f'Specific users: {", ".join(names)}'
+            return f'Specific users ({count} selected)'
         return 'Custom filter'
 
 

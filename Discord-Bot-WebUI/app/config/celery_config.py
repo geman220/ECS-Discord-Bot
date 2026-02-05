@@ -69,6 +69,7 @@ class CeleryConfig:
         'app.tasks.tasks_notification_reminders',  # Unified notification system reminders
         'app.tasks.tasks_push_notifications',  # Push notification campaigns
         'app.tasks.tasks_api_logging',  # Async API request logging
+        'app.tasks.tasks_email_broadcast',  # Email broadcast campaigns
     )
 
     # Task Settings - Industry Best Practices

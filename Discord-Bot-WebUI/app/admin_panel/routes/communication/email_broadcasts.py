@@ -8,7 +8,7 @@ CRUD + send operations for bulk email campaigns.
 
 import logging
 from datetime import datetime
-from flask import render_template, request, jsonify, flash, redirect, url_for, g
+from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
 
 from app.admin_panel import admin_panel_bp
@@ -321,6 +321,12 @@ def email_broadcast_preview_recipients():
             if val:
                 filter_criteria[key] = val
 
+        # Handle specific_users filter - user_ids passed as comma-separated string
+        if filter_type == 'specific_users':
+            user_ids_str = request.args.get('user_ids', '')
+            if user_ids_str:
+                filter_criteria['user_ids'] = [int(uid) for uid in user_ids_str.split(',') if uid.strip()]
+
         force_send = request.args.get('force_send', 'false').lower() == 'true'
 
         session = db.session
@@ -353,6 +359,32 @@ def email_broadcast_status(campaign_id):
 
     except Exception as e:
         logger.error(f"Error getting campaign status: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/api/email-broadcasts/search-users')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def email_broadcast_search_users():
+    """Search users by name for specific_users filter (AJAX)."""
+    try:
+        q = (request.args.get('q') or '').strip()
+        if len(q) < 2:
+            return jsonify({'success': True, 'users': []})
+
+        users = User.query.filter(
+            User.is_active == True,
+            User.username.ilike(f'%{q}%'),
+            User.encrypted_email.isnot(None),
+        ).order_by(User.username).limit(20).all()
+
+        return jsonify({
+            'success': True,
+            'users': [{'id': u.id, 'name': u.username} for u in users],
+        })
+
+    except Exception as e:
+        logger.error(f"Error searching users: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 

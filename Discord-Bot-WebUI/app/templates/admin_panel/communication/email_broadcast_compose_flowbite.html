@@ -87,6 +87,7 @@
                     <option value="by_league">By League</option>
                     <option value="by_role">By System Role</option>
                     <option value="by_discord_role">By Discord Role</option>
+                    <option value="specific_users">Specific Users</option>
                 </select>
             </div>
 
@@ -140,6 +141,17 @@
                 <input type="text" id="filterDiscordRole" name="discord_role"
                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                        placeholder="e.g. ECS Member">
+            </div>
+
+            <div id="subFilterSpecificUsers" class="hidden md:col-span-2">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Users</label>
+                <div class="relative">
+                    <input type="text" id="userSearchInput"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                           placeholder="Type a name to search (min 2 characters)..." autocomplete="off">
+                    <div id="userSearchResults" class="hidden absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"></div>
+                </div>
+                <div id="selectedUsersContainer" class="flex flex-wrap gap-2 mt-3"></div>
             </div>
         </div>
 
