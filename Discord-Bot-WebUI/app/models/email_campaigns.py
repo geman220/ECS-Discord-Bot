@@ -30,7 +30,7 @@ class EmailCampaign(db.Model):
     # Send configuration
     send_mode = db.Column(db.String(20), nullable=False, default='bcc_batch')  # bcc_batch | individual
     force_send = db.Column(db.Boolean, default=False, nullable=False)
-    bcc_batch_size = db.Column(db.Integer, default=50, nullable=False)
+    bcc_batch_size = db.Column(db.Integer, default=100, nullable=False)
 
     # Recipient filter
     filter_criteria = db.Column(db.JSON, nullable=False)  # e.g. {"type": "by_team", "team_id": 5}

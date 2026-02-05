@@ -46,13 +46,14 @@ function getFilterCriteria() {
     const criteria = { type: filterType };
 
     if (filterType === 'by_team') {
-        criteria.team_id = document.getElementById('filterTeamId')?.value || '';
+        const checked = document.querySelectorAll('input[name="team_ids"]:checked');
+        criteria.team_ids = Array.from(checked).map(cb => cb.value);
     } else if (filterType === 'by_league') {
-        criteria.league_id = document.getElementById('filterLeagueId')?.value || '';
-    } else if (filterType === 'pub_league_current') {
-        criteria.season_id = document.getElementById('filterSeasonId')?.value || '';
+        const checked = document.querySelectorAll('input[name="league_ids"]:checked');
+        criteria.league_ids = Array.from(checked).map(cb => cb.value);
     } else if (filterType === 'by_role') {
-        criteria.role_name = document.getElementById('filterRoleName')?.value || '';
+        const checked = document.querySelectorAll('input[name="role_names"]:checked');
+        criteria.role_names = Array.from(checked).map(cb => cb.value);
     } else if (filterType === 'by_discord_role') {
         criteria.discord_role = document.getElementById('filterDiscordRole')?.value || '';
     } else if (filterType === 'specific_users') {
@@ -66,7 +67,7 @@ function updateSubFilters() {
     const filterType = document.getElementById('filterType')?.value || '';
 
     // Hide all sub-filters
-    ['subFilterTeam', 'subFilterLeague', 'subFilterSeason', 'subFilterRole', 'subFilterDiscordRole', 'subFilterSpecificUsers']
+    ['subFilterTeam', 'subFilterLeague', 'subFilterRole', 'subFilterDiscordRole', 'subFilterSpecificUsers']
         .forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
@@ -77,8 +78,6 @@ function updateSubFilters() {
         document.getElementById('subFilterTeam')?.classList.remove('hidden');
     } else if (filterType === 'by_league') {
         document.getElementById('subFilterLeague')?.classList.remove('hidden');
-    } else if (filterType === 'pub_league_current') {
-        document.getElementById('subFilterSeason')?.classList.remove('hidden');
     } else if (filterType === 'by_role') {
         document.getElementById('subFilterRole')?.classList.remove('hidden');
     } else if (filterType === 'by_discord_role') {
@@ -104,7 +103,18 @@ async function fetchRecipientCount() {
         return { success: true, count, recipients: Array.from(_selectedUsers.entries()).map(([id, name]) => ({ user_id: id, name })) };
     }
 
-    const params = new URLSearchParams({ ...criteria, force_send: forceSend });
+    // Build params, serializing arrays as comma-separated values
+    const params = new URLSearchParams();
+    params.set('type', criteria.type);
+    params.set('force_send', forceSend);
+    for (const [key, val] of Object.entries(criteria)) {
+        if (key === 'type') continue;
+        if (Array.isArray(val)) {
+            if (val.length) params.set(key, val.join(','));
+        } else if (val) {
+            params.set(key, val);
+        }
+    }
 
     try {
         const resp = await fetch(`${ADMIN_BASE}/api/email-broadcasts/preview-recipients?${params}`);
@@ -274,7 +284,7 @@ function collectFormData() {
         filter_criteria: getFilterCriteria(),
         send_mode: document.querySelector('input[name="send_mode"]:checked')?.value || 'bcc_batch',
         force_send: document.getElementById('forceSend')?.checked || false,
-        bcc_batch_size: parseInt(document.getElementById('bccBatchSize')?.value || '50', 10),
+        bcc_batch_size: parseInt(document.getElementById('bccBatchSize')?.value || '100', 10),
     };
 }
 
@@ -717,13 +727,6 @@ function initEmailBroadcasts() {
         // Load template dropdown
         loadTemplateDropdown();
 
-        // Listen for sub-filter changes to update count
-        ['filterTeamId', 'filterLeagueId', 'filterSeasonId', 'filterRoleName', 'filterDiscordRole'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.addEventListener('change', fetchRecipientCount);
-            }
-        });
         // Discord role input uses keyup with debounce
         const discordRoleInput = document.getElementById('filterDiscordRole');
         if (discordRoleInput) {
@@ -784,6 +787,7 @@ function initEmailBroadcasts() {
    ======================================================================== */
 
 window.EventDelegation.register('email-filter-change', handleFilterChange, { preventDefault: true });
+window.EventDelegation.register('email-subfilter-change', () => fetchRecipientCount(), { preventDefault: false });
 window.EventDelegation.register('email-preview-recipients', handlePreviewRecipients, { preventDefault: true });
 window.EventDelegation.register('email-send-mode-toggle', handleSendModeToggle, { preventDefault: false });
 window.EventDelegation.register('email-force-send-toggle', handleForceSendToggle, { preventDefault: false });

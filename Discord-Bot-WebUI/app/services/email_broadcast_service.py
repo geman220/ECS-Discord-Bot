@@ -15,7 +15,7 @@ from sqlalchemy.orm import joinedload
 
 from app.core import db
 from app.models.core import User, Role, Season, League, user_roles
-from app.models.players import Player, Team, player_teams
+from app.models.players import Player, Team, player_teams, PlayerTeamSeason
 from app.models.wallet import WalletPass, WalletPassType
 from app.models.email_campaigns import EmailCampaign, EmailCampaignRecipient
 
@@ -55,20 +55,16 @@ class EmailBroadcastService:
         if filter_type == 'all_active':
             users = base_query.all()
 
-        elif filter_type == 'pub_league_current':
-            season_id = filter_criteria.get('season_id')
-            sub = session.query(WalletPass.user_id).join(
-                WalletPassType, WalletPass.pass_type_id == WalletPassType.id
+        elif filter_type == 'current_season_players':
+            # All players assigned to a team in any current season
+            sub = session.query(Player.user_id).join(
+                PlayerTeamSeason, Player.id == PlayerTeamSeason.player_id
+            ).join(
+                Season, PlayerTeamSeason.season_id == Season.id
             ).filter(
-                WalletPassType.code == 'pub_league',
-                WalletPass.status == 'active',
-                WalletPass.user_id.isnot(None),
-            )
-            if season_id:
-                sub = sub.filter(WalletPass.season_id == int(season_id))
-            else:
-                current_season_ids = select(Season.id).where(Season.is_current == True).scalar_subquery()
-                sub = sub.filter(WalletPass.season_id.in_(current_season_ids))
+                Season.is_current == True,
+                Player.user_id.isnot(None),
+            ).distinct()
             users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'ecs_members':
@@ -82,31 +78,51 @@ class EmailBroadcastService:
             users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'by_team':
-            team_id = int(filter_criteria['team_id'])
-            sub = session.query(Player.user_id).join(
-                player_teams, Player.id == player_teams.c.player_id
-            ).filter(
-                player_teams.c.team_id == team_id,
-                Player.is_current_player == True,
-                Player.user_id.isnot(None),
-            )
-            users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
+            # Multi-select: team_ids (array) with backwards compat for team_id (single)
+            team_ids = filter_criteria.get('team_ids', [])
+            if not team_ids and filter_criteria.get('team_id'):
+                team_ids = [filter_criteria['team_id']]
+            team_ids = [int(tid) for tid in team_ids]
+            if not team_ids:
+                users = []
+            else:
+                sub = session.query(Player.user_id).join(
+                    player_teams, Player.id == player_teams.c.player_id
+                ).filter(
+                    player_teams.c.team_id.in_(team_ids),
+                    Player.is_current_player == True,
+                    Player.user_id.isnot(None),
+                )
+                users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'by_league':
-            league_id = int(filter_criteria['league_id'])
-            sub = session.query(Player.user_id).filter(
-                Player.primary_league_id == league_id,
-                Player.is_current_player == True,
-                Player.user_id.isnot(None),
-            )
-            users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
+            # Multi-select: league_ids (array) with backwards compat for league_id (single)
+            league_ids = filter_criteria.get('league_ids', [])
+            if not league_ids and filter_criteria.get('league_id'):
+                league_ids = [filter_criteria['league_id']]
+            league_ids = [int(lid) for lid in league_ids]
+            if not league_ids:
+                users = []
+            else:
+                sub = session.query(Player.user_id).filter(
+                    Player.primary_league_id.in_(league_ids),
+                    Player.is_current_player == True,
+                    Player.user_id.isnot(None),
+                )
+                users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'by_role':
-            role_name = filter_criteria['role_name']
-            sub = session.query(user_roles.c.user_id).join(
-                Role, user_roles.c.role_id == Role.id
-            ).filter(Role.name == role_name)
-            users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
+            # Multi-select: role_names (array) with backwards compat for role_name (single)
+            role_names = filter_criteria.get('role_names', [])
+            if not role_names and filter_criteria.get('role_name'):
+                role_names = [filter_criteria['role_name']]
+            if not role_names:
+                users = []
+            else:
+                sub = session.query(user_roles.c.user_id).join(
+                    Role, user_roles.c.role_id == Role.id
+                ).filter(Role.name.in_(role_names))
+                users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'by_discord_role':
             discord_role = filter_criteria['discord_role']
@@ -180,7 +196,7 @@ class EmailBroadcastService:
             template_id=data.get('template_id'),
             send_mode=data.get('send_mode', 'bcc_batch'),
             force_send=force_send,
-            bcc_batch_size=data.get('bcc_batch_size', 50),
+            bcc_batch_size=data.get('bcc_batch_size', 100),
             filter_criteria=filter_criteria,
             filter_description=data.get('filter_description', ''),
             status='draft',
@@ -283,35 +299,51 @@ class EmailBroadcastService:
 
         if filter_type == 'all_active':
             return 'All active users'
-        elif filter_type == 'pub_league_current':
-            season_id = filter_criteria.get('season_id')
-            if season_id:
-                season = session.query(Season).get(int(season_id))
-                return f'Pub League pass holders - {season.name}' if season else 'Pub League pass holders'
-            return 'Pub League pass holders (current season)'
+        elif filter_type == 'current_season_players':
+            return 'Current season players (all teams)'
         elif filter_type == 'ecs_members':
             return 'ECS members (active membership)'
         elif filter_type == 'by_team':
-            team_id = filter_criteria.get('team_id')
-            if team_id:
-                team = session.query(Team).get(int(team_id))
-                return f'Team: {team.name}' if team else f'Team ID {team_id}'
+            team_ids = filter_criteria.get('team_ids', [])
+            if not team_ids and filter_criteria.get('team_id'):
+                team_ids = [filter_criteria['team_id']]
+            if team_ids:
+                names = []
+                for tid in team_ids:
+                    team = session.query(Team).get(int(tid))
+                    if team:
+                        names.append(team.name)
+                if len(names) <= 3:
+                    return f'Teams: {", ".join(names)}'
+                return f'Teams: {", ".join(names[:2])} +{len(names) - 2} more'
             return 'By team'
         elif filter_type == 'by_league':
-            league_id = filter_criteria.get('league_id')
-            if league_id:
-                league = session.query(League).get(int(league_id))
-                return f'League: {league.name}' if league else f'League ID {league_id}'
+            league_ids = filter_criteria.get('league_ids', [])
+            if not league_ids and filter_criteria.get('league_id'):
+                league_ids = [filter_criteria['league_id']]
+            if league_ids:
+                names = []
+                for lid in league_ids:
+                    league = session.query(League).get(int(lid))
+                    if league:
+                        names.append(league.name)
+                if len(names) <= 3:
+                    return f'Leagues: {", ".join(names)}'
+                return f'Leagues: {", ".join(names[:2])} +{len(names) - 2} more'
             return 'By league'
         elif filter_type == 'by_role':
-            return f'Role: {filter_criteria.get("role_name", "Unknown")}'
+            role_names = filter_criteria.get('role_names', [])
+            if not role_names and filter_criteria.get('role_name'):
+                role_names = [filter_criteria['role_name']]
+            if role_names:
+                return f'Roles: {", ".join(role_names)}'
+            return 'By role'
         elif filter_type == 'by_discord_role':
             return f'Discord role: {filter_criteria.get("discord_role", "Unknown")}'
         elif filter_type == 'specific_users':
             user_ids = filter_criteria.get('user_ids', [])
             count = len(user_ids)
             if count <= 3:
-                # Look up names
                 names = []
                 for uid in user_ids:
                     user = session.query(User.username).filter(User.id == int(uid)).first()

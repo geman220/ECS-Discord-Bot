@@ -81,7 +81,7 @@
                 <select id="filterType" name="filter_type" data-on-change="email-filter-change"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="all_active">All Active Users</option>
-                    <option value="pub_league_current">Pub League Pass Holders</option>
+                    <option value="current_season_players">Current Season Players</option>
                     <option value="ecs_members">ECS Members (Active Membership)</option>
                     <option value="by_team">By Team</option>
                     <option value="by_league">By League</option>
@@ -92,48 +92,43 @@
             </div>
 
             <!-- Sub-filters (shown/hidden by JS) -->
-            <div id="subFilterTeam" class="hidden">
-                <label for="filterTeamId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Team</label>
-                <select id="filterTeamId" name="team_id"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="">Select a team</option>
+            <div id="subFilterTeam" class="hidden md:col-span-2">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Teams <span class="text-xs text-gray-500 font-normal">(select one or more)</span></label>
+                <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700 space-y-1">
                     {% for team in teams %}
-                    <option value="{{ team.id }}">{{ team.name }}</option>
+                    <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" name="team_ids" value="{{ team.id }}" data-on-change="email-subfilter-change"
+                               class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+                        {{ team.name }}
+                    </label>
                     {% endfor %}
-                </select>
+                </div>
             </div>
 
-            <div id="subFilterLeague" class="hidden">
-                <label for="filterLeagueId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">League</label>
-                <select id="filterLeagueId" name="league_id"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="">Select a league</option>
+            <div id="subFilterLeague" class="hidden md:col-span-2">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Leagues <span class="text-xs text-gray-500 font-normal">(select one or more)</span></label>
+                <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700 space-y-1">
                     {% for league in leagues %}
-                    <option value="{{ league.id }}">{{ league.name }}</option>
+                    <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" name="league_ids" value="{{ league.id }}" data-on-change="email-subfilter-change"
+                               class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+                        {{ league.name }}
+                    </label>
                     {% endfor %}
-                </select>
+                </div>
             </div>
 
-            <div id="subFilterSeason" class="hidden">
-                <label for="filterSeasonId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Season (optional)</label>
-                <select id="filterSeasonId" name="season_id"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="">Current Season</option>
-                    {% for season in seasons %}
-                    <option value="{{ season.id }}">{{ season.name }} ({{ season.league_type }})</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div id="subFilterRole" class="hidden">
-                <label for="filterRoleName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Role</label>
-                <select id="filterRoleName" name="role_name"
-                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="">Select a role</option>
+            <div id="subFilterRole" class="hidden md:col-span-2">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Roles <span class="text-xs text-gray-500 font-normal">(select one or more)</span></label>
+                <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700 space-y-1">
                     {% for role in roles %}
-                    <option value="{{ role.name }}">{{ role.name }}</option>
+                    <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
+                        <input type="checkbox" name="role_names" value="{{ role.name }}" data-on-change="email-subfilter-change"
+                               class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+                        {{ role.name }}
+                    </label>
                     {% endfor %}
-                </select>
+                </div>
             </div>
 
             <div id="subFilterDiscordRole" class="hidden">
@@ -234,7 +229,7 @@
 
             <div>
                 <label for="bccBatchSize" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">BCC Batch Size</label>
-                <input type="number" id="bccBatchSize" name="bcc_batch_size" value="50" min="1" max="100"
+                <input type="number" id="bccBatchSize" name="bcc_batch_size" value="100" min="1" max="100"
                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 100 per batch (Gmail limit)</p>
             </div>

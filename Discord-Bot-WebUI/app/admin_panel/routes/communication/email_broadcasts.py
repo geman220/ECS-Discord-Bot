@@ -15,7 +15,7 @@ from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models import (
     Team, League, Season, Role,
-    EmailCampaign, EmailCampaignRecipient, EmailTemplate, User,
+    EmailCampaign, EmailCampaignRecipient, EmailTemplate, User, PlayerTeamSeason,
 )
 from app.decorators import role_required
 from app.services.email_broadcast_service import email_broadcast_service
@@ -74,16 +74,24 @@ def email_broadcasts_list():
 def email_broadcast_compose():
     """Compose a new email broadcast."""
     try:
-        teams = Team.query.order_by(Team.name).all()
-        leagues = League.query.order_by(League.name).all()
-        seasons = Season.query.order_by(Season.id.desc()).all()
+        # Only show current-season teams and leagues
+        teams = Team.query.join(League, Team.league_id == League.id).join(
+            Season, League.season_id == Season.id
+        ).filter(
+            Season.is_current == True,
+            Team.is_active == True,
+        ).order_by(Team.name).all()
+
+        leagues = League.query.join(
+            Season, League.season_id == Season.id
+        ).filter(Season.is_current == True).order_by(League.name).all()
+
         roles = Role.query.order_by(Role.name).all()
 
         return render_template(
             'admin_panel/communication/email_broadcast_compose_flowbite.html',
             teams=teams,
             leagues=leagues,
-            seasons=seasons,
             roles=roles,
             page_title='Compose Email Broadcast',
         )
@@ -162,7 +170,7 @@ def email_broadcast_create():
             'template_id': template_id,
             'send_mode': data.get('send_mode', 'bcc_batch'),
             'force_send': bool(data.get('force_send', False)),
-            'bcc_batch_size': int(data.get('bcc_batch_size', 50)),
+            'bcc_batch_size': int(data.get('bcc_batch_size', 100)),
             'filter_criteria': filter_criteria,
             'filter_description': filter_desc,
         }
@@ -327,8 +335,14 @@ def email_broadcast_preview_recipients():
         filter_type = request.args.get('type', 'all_active')
         filter_criteria = {'type': filter_type}
 
-        # Collect optional sub-filter params
-        for key in ('team_id', 'league_id', 'season_id', 'role_name', 'discord_role'):
+        # Multi-select arrays (comma-separated)
+        for key in ('team_ids', 'league_ids', 'role_names'):
+            val = request.args.get(key, '')
+            if val:
+                filter_criteria[key] = [v.strip() for v in val.split(',') if v.strip()]
+
+        # Single-value params
+        for key in ('discord_role',):
             val = request.args.get(key)
             if val:
                 filter_criteria[key] = val

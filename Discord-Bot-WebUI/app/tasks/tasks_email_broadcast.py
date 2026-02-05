@@ -108,7 +108,7 @@ def send_email_broadcast(self, session, campaign_id):
 
 def _send_bcc_batch(session, campaign, wrapper_html):
     """Send campaign using BCC batches."""
-    batch_size = campaign.bcc_batch_size or 50
+    batch_size = campaign.bcc_batch_size or 100
     recipients = session.query(EmailCampaignRecipient).filter_by(
         campaign_id=campaign.id, status='pending'
     ).all()
