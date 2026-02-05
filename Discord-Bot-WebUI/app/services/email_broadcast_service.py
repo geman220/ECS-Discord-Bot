@@ -177,6 +177,7 @@ class EmailBroadcastService:
             name=data['name'],
             subject=data['subject'],
             body_html=data['body_html'],
+            template_id=data.get('template_id'),
             send_mode=data.get('send_mode', 'bcc_batch'),
             force_send=force_send,
             bcc_batch_size=data.get('bcc_batch_size', 50),

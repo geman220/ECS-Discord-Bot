@@ -160,6 +160,10 @@ from .quick_profile import (
     QuickProfile, QuickProfileStatus
 )
 
+from .email_templates import (
+    EmailTemplate
+)
+
 from .email_campaigns import (
     EmailCampaign, EmailCampaignRecipient
 )
@@ -276,6 +280,9 @@ __all__ = [
 
     # Quick profile models (for tryout players)
     'QuickProfile', 'QuickProfileStatus',
+
+    # Email template models
+    'EmailTemplate',
 
     # Email campaign models
     'EmailCampaign', 'EmailCampaignRecipient',

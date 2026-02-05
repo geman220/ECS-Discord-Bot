@@ -265,10 +265,12 @@ function getEditorContent() {
 }
 
 function collectFormData() {
+    const templateId = document.getElementById('templateSelect')?.value;
     return {
         name: document.getElementById('campaignName')?.value?.trim() || '',
         subject: document.getElementById('campaignSubject')?.value?.trim() || '',
         body_html: getEditorContent(),
+        template_id: templateId ? parseInt(templateId, 10) : null,
         filter_criteria: getFilterCriteria(),
         send_mode: document.querySelector('input[name="send_mode"]:checked')?.value || 'bcc_batch',
         force_send: document.getElementById('forceSend')?.checked || false,
@@ -405,11 +407,15 @@ async function handleSendTest() {
         return;
     }
 
+    const templateId = document.getElementById('templateSelect')?.value;
+    const payload = { subject, body_html };
+    if (templateId) payload.template_id = parseInt(templateId, 10);
+
     try {
         const resp = await fetch(`${ADMIN_BASE}/api/email-broadcasts/send-test`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
-            body: JSON.stringify({ subject, body_html }),
+            body: JSON.stringify(payload),
         });
         const result = await resp.json();
 
@@ -479,6 +485,56 @@ async function handleDuplicateCampaign(element) {
         }
     } catch (e) {
         window.Swal.fire('Error', 'Network error', 'error');
+    }
+}
+
+async function handlePreviewTemplate() {
+    const body_html = getEditorContent();
+    const subject = document.getElementById('campaignSubject')?.value?.trim() || 'Sample Subject';
+    const templateId = document.getElementById('templateSelect')?.value;
+
+    if (!body_html) {
+        window.Swal.fire('No Content', 'Write some email content first to preview with a template.', 'warning');
+        return;
+    }
+
+    function showPreviewIframe(title, html) {
+        window.Swal.fire({
+            title,
+            html: '<iframe id="swalPreviewFrame" class="w-full rounded-lg border border-gray-200 dark:border-gray-700" style="height:400px;"></iframe>',
+            width: 700,
+            showConfirmButton: true,
+            confirmButtonColor: '#1a472a',
+            didOpen: () => {
+                const frame = document.getElementById('swalPreviewFrame');
+                const doc = frame.contentDocument || frame.contentWindow.document;
+                doc.open();
+                doc.write(html);
+                doc.close();
+            },
+        });
+    }
+
+    if (!templateId) {
+        showPreviewIframe('Email Preview (No Template)', body_html);
+        return;
+    }
+
+    try {
+        const resp = await fetch(`${ADMIN_BASE}/api/email-broadcasts/preview-with-template`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            body: JSON.stringify({ subject, body_html, template_id: parseInt(templateId, 10) }),
+        });
+        const data = await resp.json();
+
+        if (data.success) {
+            showPreviewIframe('Email Preview', data.html);
+        } else {
+            window.Swal.fire('Error', data.error || 'Failed to generate preview', 'error');
+        }
+    } catch (e) {
+        window.Swal.fire('Error', 'Network error generating preview', 'error');
     }
 }
 
@@ -614,6 +670,28 @@ function initTinyMCE() {
    INITIALIZATION
    ======================================================================== */
 
+async function loadTemplateDropdown() {
+    const select = document.getElementById('templateSelect');
+    if (!select) return;
+
+    try {
+        const resp = await fetch(`${ADMIN_BASE}/api/email-templates/list`);
+        const data = await resp.json();
+
+        if (!data.success || !data.templates) return;
+
+        data.templates.forEach(t => {
+            const option = document.createElement('option');
+            option.value = t.id;
+            option.textContent = t.name + (t.is_default ? ' (Default)' : '');
+            if (t.is_default) option.selected = true;
+            select.appendChild(option);
+        });
+    } catch (e) {
+        console.error('Failed to load email templates:', e);
+    }
+}
+
 let _initialized = false;
 
 function initEmailBroadcasts() {
@@ -635,6 +713,9 @@ function initEmailBroadcasts() {
         // Initial filter state
         updateSubFilters();
         fetchRecipientCount();
+
+        // Load template dropdown
+        loadTemplateDropdown();
 
         // Listen for sub-filter changes to update count
         ['filterTeamId', 'filterLeagueId', 'filterSeasonId', 'filterRoleName', 'filterDiscordRole'].forEach(id => {
@@ -712,6 +793,7 @@ window.EventDelegation.register('email-send-test', handleSendTest, { preventDefa
 window.EventDelegation.register('email-cancel-campaign', handleCancelCampaign, { preventDefault: true });
 window.EventDelegation.register('email-duplicate-campaign', handleDuplicateCampaign, { preventDefault: true });
 window.EventDelegation.register('email-delete-campaign', handleDeleteCampaign, { preventDefault: true });
+window.EventDelegation.register('email-preview-template', handlePreviewTemplate, { preventDefault: true });
 
 /* ========================================================================
    REGISTER WITH INITSYSTEM

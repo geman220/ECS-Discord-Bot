@@ -1,0 +1,113 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}{{ 'Edit Template' if template else 'New Template' }}{% endblock %}
+{% block panel_description %}{{ 'Edit an email wrapper template' if template else 'Create a new email wrapper template' }}{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.email_templates_list') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Email Templates</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ 'Edit' if template else 'New' }}</span>
+    </div>
+</li>
+{% endblock %}
+
+
+{% block panel_content %}
+<div data-page="email-template-editor"
+     {% if template %}data-template-id="{{ template.id }}"{% endif %}>
+
+    <!-- Template Info -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            <i class="ti ti-template text-ecs-green mr-2"></i>Template Details
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label for="templateName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Template Name</label>
+                <input type="text" id="templateName"
+                       value="{{ template.name if template else '' }}"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       placeholder="e.g. Standard, Minimal, Announcement" required>
+            </div>
+            <div>
+                <label for="templateDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description (optional)</label>
+                <input type="text" id="templateDescription"
+                       value="{{ template.description if template and template.description else '' }}"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                       placeholder="Short description of the template">
+            </div>
+        </div>
+    </div>
+
+    <!-- Editor + Preview -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- HTML Editor -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col">
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-code text-ecs-green mr-1"></i>HTML Source
+                </h3>
+                <div class="flex items-center gap-2">
+                    <button type="button" data-action="email-tpl-insert-content"
+                            class="px-2.5 py-1 text-xs bg-ecs-green/10 text-ecs-green border border-ecs-green/30 rounded hover:bg-ecs-green/20 transition-colors">
+                        Insert {content}
+                    </button>
+                    <button type="button" data-action="email-tpl-insert-subject"
+                            class="px-2.5 py-1 text-xs bg-blue-50 text-blue-600 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 transition-colors">
+                        Insert {subject}
+                    </button>
+                </div>
+            </div>
+            <textarea id="templateHtmlContent"
+                      class="flex-1 w-full p-4 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200 border-0 focus:ring-0 focus:outline-none font-mono text-xs leading-relaxed resize-none"
+                      style="min-height: 500px; tab-size: 4;"
+                      placeholder="Paste or write your HTML email template here...">{{ template.html_content if template else '<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>{subject}</title>\n    <style>\n        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }\n        .wrapper { width: 100%; padding: 20px 0; }\n        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; }\n        .content { padding: 30px; }\n    </style>\n</head>\n<body>\n    <div class=\"wrapper\">\n        <div class=\"container\">\n            <div class=\"content\">\n                {content}\n            </div>\n        </div>\n    </div>\n</body>\n</html>' }}</textarea>
+        </div>
+
+        <!-- Live Preview -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col">
+            <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-eye text-ecs-green mr-1"></i>Live Preview
+                </h3>
+            </div>
+            <div class="flex-1 p-2" style="min-height: 500px;">
+                <iframe id="templatePreviewFrame" class="w-full h-full rounded border-0 bg-white" style="min-height: 490px;"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex flex-wrap items-center gap-3">
+        <button type="button" data-action="email-tpl-save"
+                class="inline-flex items-center gap-2 px-4 py-2.5 text-sm bg-ecs-green text-white rounded-lg hover:bg-green-700 transition-colors">
+            <i class="ti ti-device-floppy"></i> Save Template
+        </button>
+        {% if template %}
+        <button type="button" data-action="email-tpl-delete"
+                data-template-id="{{ template.id }}"
+                class="inline-flex items-center gap-2 px-4 py-2.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
+            <i class="ti ti-trash"></i> Delete
+        </button>
+        {% endif %}
+        <a href="{{ url_for('admin_panel.email_templates_list') }}"
+           class="inline-flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+            Back to List
+        </a>
+    </div>
+
+</div>
+{% endblock %}

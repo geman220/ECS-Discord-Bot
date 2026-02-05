@@ -44,5 +44,6 @@ def register_communication_routes():
         league_settings,  # League-specific settings for Discord bot
         sms_analytics,  # SMS cost tracking & analytics dashboard
         email_broadcasts,  # Bulk email campaign management
+        email_templates,  # Email wrapper template management
         ajax,
     )

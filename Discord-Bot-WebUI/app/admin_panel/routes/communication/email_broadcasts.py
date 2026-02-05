@@ -15,7 +15,7 @@ from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models import (
     Team, League, Season, Role,
-    EmailCampaign, EmailCampaignRecipient, User,
+    EmailCampaign, EmailCampaignRecipient, EmailTemplate, User,
 )
 from app.decorators import role_required
 from app.services.email_broadcast_service import email_broadcast_service
@@ -145,10 +145,21 @@ def email_broadcast_create():
         session = db.session
         filter_desc = email_broadcast_service.build_filter_description(session, filter_criteria)
 
+        # Validate template_id if provided
+        template_id = data.get('template_id')
+        if template_id:
+            template = EmailTemplate.query.get(int(template_id))
+            if not template or template.is_deleted:
+                return jsonify({'success': False, 'error': 'Selected template not found'}), 400
+            template_id = template.id
+        else:
+            template_id = None
+
         campaign_data = {
             'name': name,
             'subject': subject,
             'body_html': body_html,
+            'template_id': template_id,
             'send_mode': data.get('send_mode', 'bcc_batch'),
             'force_send': bool(data.get('force_send', False)),
             'bcc_batch_size': int(data.get('bcc_batch_size', 50)),
@@ -258,6 +269,7 @@ def email_broadcast_duplicate(campaign_id):
             'name': f'{original.name} (Copy)',
             'subject': original.subject,
             'body_html': original.body_html,
+            'template_id': original.template_id,
             'send_mode': original.send_mode,
             'force_send': original.force_send,
             'bcc_batch_size': original.bcc_batch_size,
@@ -414,15 +426,15 @@ def email_broadcast_send_test():
             session, f'[TEST] {subject}', body_html, current_user.id
         )
 
-        # Wrap in email template
-        try:
-            from flask import render_template
-            wrapped = render_template(
-                'emails/broadcast_wrapper.html',
-                campaign_body=p_body,
-                subject=p_subject,
-            )
-        except Exception:
+        # Wrap with template if provided
+        template_id = data.get('template_id')
+        if template_id:
+            template = EmailTemplate.query.get(int(template_id))
+            if template and not template.is_deleted:
+                wrapped = template.render(p_body, p_subject)
+            else:
+                wrapped = p_body
+        else:
             wrapped = p_body
 
         from app.email import send_email
@@ -435,4 +447,37 @@ def email_broadcast_send_test():
 
     except Exception as e:
         logger.error(f"Error sending test email: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/api/email-broadcasts/preview-with-template', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def email_broadcast_preview_with_template():
+    """Preview email body rendered inside a template wrapper (AJAX)."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        body_html = (data.get('body_html') or '').strip()
+        subject = (data.get('subject') or '').strip() or 'Sample Subject'
+        template_id = data.get('template_id')
+
+        if not body_html:
+            return jsonify({'success': False, 'error': 'Email body is required'}), 400
+
+        if not template_id:
+            # No template - return raw body
+            return jsonify({'success': True, 'html': body_html})
+
+        template = EmailTemplate.query.get(int(template_id))
+        if not template or template.is_deleted:
+            return jsonify({'success': False, 'error': 'Template not found'}), 404
+
+        rendered = template.render(body_html, subject)
+        return jsonify({'success': True, 'html': rendered})
+
+    except Exception as e:
+        logger.error(f"Error previewing with template: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500

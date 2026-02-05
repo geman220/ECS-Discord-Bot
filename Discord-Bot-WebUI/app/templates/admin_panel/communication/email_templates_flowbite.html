@@ -1,0 +1,113 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Email Templates{% endblock %}
+{% block panel_description %}Manage reusable HTML wrapper templates for email broadcasts{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.communication_hub') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Communication</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Email Templates</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div data-page="email-templates">
+
+<!-- Header -->
+<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+        Templates wrap your email content in a styled HTML layout. Use <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">{content}</code> and <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">{subject}</code> tokens.
+    </p>
+    <a href="{{ url_for('admin_panel.email_template_new') }}"
+       class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-green-700 transition-colors">
+        <i class="ti ti-plus"></i> Create Template
+    </a>
+</div>
+
+<!-- Templates Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th class="px-6 py-3">Name</th>
+                    <th class="px-6 py-3">Description</th>
+                    <th class="px-6 py-3">Default</th>
+                    <th class="px-6 py-3">Created</th>
+                    <th class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for template in templates %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">
+                        {{ template.name }}
+                    </td>
+                    <td class="px-6 py-4 max-w-xs truncate">
+                        {{ template.description or '—' }}
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if template.is_default %}
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Default</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {{ template.created_at.strftime('%b %d, %Y') if template.created_at else '—' }}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <a href="{{ url_for('admin_panel.email_template_edit', template_id=template.id) }}"
+                               class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                               title="Edit">
+                                <i class="ti ti-edit"></i>
+                            </a>
+                            <button type="button"
+                                    data-action="email-tpl-duplicate"
+                                    data-template-id="{{ template.id }}"
+                                    class="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-300"
+                                    title="Duplicate">
+                                <i class="ti ti-copy"></i>
+                            </button>
+                            {% if not template.is_default %}
+                            <button type="button"
+                                    data-action="email-tpl-set-default"
+                                    data-template-id="{{ template.id }}"
+                                    class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-300"
+                                    title="Set as Default">
+                                <i class="ti ti-star"></i>
+                            </button>
+                            {% endif %}
+                            <button type="button"
+                                    data-action="email-tpl-delete"
+                                    data-template-id="{{ template.id }}"
+                                    class="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"
+                                    title="Delete">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="px-6 py-12 text-center text-gray-400">
+                        <i class="ti ti-template text-4xl mb-2 block"></i>
+                        No templates found.
+                        <a href="{{ url_for('admin_panel.email_template_new') }}" class="text-ecs-green hover:underline ml-1">Create one</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>
+{% endblock %}

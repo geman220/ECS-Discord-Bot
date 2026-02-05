@@ -1702,20 +1702,20 @@ def mls_settings():
 
     # Get all MLS-related settings
     settings = {
-        'thread_creation_hours_before': AdminConfig.get_value(
-            session, 'mls_thread_creation_hours_before', '48'
+        'thread_creation_hours_before': AdminConfig.get_setting(
+            'mls_thread_creation_hours_before', '48'
         ),
-        'live_reporting_minutes_before': AdminConfig.get_value(
-            session, 'mls_live_reporting_minutes_before', '5'
+        'live_reporting_minutes_before': AdminConfig.get_setting(
+            'mls_live_reporting_minutes_before', '5'
         ),
-        'live_reporting_timeout_hours': AdminConfig.get_value(
-            session, 'mls_live_reporting_timeout_hours', '3'
+        'live_reporting_timeout_hours': AdminConfig.get_setting(
+            'mls_live_reporting_timeout_hours', '3'
         ),
-        'max_session_duration_hours': AdminConfig.get_value(
-            session, 'mls_max_session_duration_hours', '4'
+        'max_session_duration_hours': AdminConfig.get_setting(
+            'mls_max_session_duration_hours', '4'
         ),
-        'no_update_timeout_minutes': AdminConfig.get_value(
-            session, 'mls_no_update_timeout_minutes', '30'
+        'no_update_timeout_minutes': AdminConfig.get_setting(
+            'mls_no_update_timeout_minutes', '30'
         )
     }
 
@@ -1771,7 +1771,7 @@ def mls_settings_update():
                 continue
 
             # Update the setting
-            AdminConfig.set_value(session, key, str(value), category='mls', data_type='integer')
+            AdminConfig.set_setting(key, str(value), category='mls', data_type='integer', user_id=current_user.id)
             updated_settings.append(key)
 
         if errors and not updated_settings:
@@ -1784,11 +1784,12 @@ def mls_settings_update():
 
         # Log action
         AdminAuditLog.log_action(
-            session,
-            current_user.id,
-            'mls_settings_update',
-            f"Updated MLS settings: {', '.join(updated_settings)}",
-            {'settings': data, 'updated': updated_settings, 'errors': errors}
+            user_id=current_user.id,
+            action='mls_settings_update',
+            resource_type='mls',
+            resource_id='settings',
+            new_value=f"Updated MLS settings: {', '.join(updated_settings)}",
+            ip_address=request.remote_addr
         )
 
         logger.info(f"MLS settings updated by {current_user.username}: {updated_settings}")
@@ -1818,11 +1819,17 @@ def mls_settings_update():
 @login_required
 @role_required(['Global Admin', 'Discord Admin'])
 def mls_sessions():
-    """List live reporting sessions with status filter."""
+    """List live reporting sessions with status filter and date range."""
     from app.models import LiveReportingSession
     from app.utils.task_session_manager import task_session
 
     status_filter = request.args.get('status', 'all')
+    days = request.args.get('days', '30')  # Default to last 30 days
+
+    try:
+        days_int = int(days) if days != 'all' else None
+    except (ValueError, TypeError):
+        days_int = 30
 
     try:
         with task_session() as session:
@@ -1833,12 +1840,18 @@ def mls_sessions():
             elif status_filter == 'inactive':
                 query = query.filter_by(is_active=False)
 
+            # Apply date filter unless showing all time
+            if days_int is not None:
+                cutoff = datetime.utcnow() - timedelta(days=days_int)
+                query = query.filter(LiveReportingSession.started_at >= cutoff)
+
             sessions_list = query.order_by(LiveReportingSession.started_at.desc()).limit(50).all()
 
             return render_template(
                 'admin_panel/mls/sessions_flowbite.html',
                 sessions=sessions_list,
-                status_filter=status_filter
+                status_filter=status_filter,
+                days=days
             )
 
     except Exception as e:
@@ -1871,11 +1884,12 @@ def mls_stop_session(session_id):
             notify_session_stopped(live_session.id, live_session.match_id, "Manual stop via admin panel")
 
             AdminAuditLog.log_action(
-                session,
-                current_user.id,
-                'mls_session_stop',
-                f"Stopped live reporting session {session_id} for match {live_session.match_id}",
-                {'session_id': session_id, 'match_id': live_session.match_id}
+                user_id=current_user.id,
+                action='mls_session_stop',
+                resource_type='mls',
+                resource_id=str(session_id),
+                new_value=f"Stopped live reporting session {session_id} for match {live_session.match_id}",
+                ip_address=request.remote_addr
             )
 
             return jsonify({

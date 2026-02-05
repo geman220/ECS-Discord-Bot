@@ -57,17 +57,15 @@ def send_email_broadcast(self, session, campaign_id):
     campaign.celery_task_id = self.request.id
     session.commit()
 
-    try:
-        # Render the wrapper template
-        from flask import render_template
-        wrapper_html = render_template(
-            'emails/broadcast_wrapper.html',
-            campaign_body=campaign.body_html,
-            subject=campaign.subject,
-        )
-    except Exception as e:
-        logger.error(f"Failed to render email wrapper: {e}")
-        wrapper_html = campaign.body_html  # Fallback to raw body
+    # Render using template if one is assigned, otherwise use raw body
+    if campaign.template_id and campaign.template:
+        try:
+            wrapper_html = campaign.template.render(campaign.body_html, campaign.subject)
+        except Exception as e:
+            logger.error(f"Failed to render email template: {e}")
+            wrapper_html = campaign.body_html
+    else:
+        wrapper_html = campaign.body_html
 
     try:
         if campaign.send_mode == 'bcc_batch':
@@ -205,15 +203,13 @@ def _send_individual(session, campaign, wrapper_html):
             session, campaign.subject, campaign.body_html, recipient.user_id
         )
 
-        # Re-wrap personalized body
-        try:
-            from flask import render_template
-            personalized_html = render_template(
-                'emails/broadcast_wrapper.html',
-                campaign_body=p_body,
-                subject=p_subject,
-            )
-        except Exception:
+        # Re-wrap personalized body with template if assigned
+        if campaign.template_id and campaign.template:
+            try:
+                personalized_html = campaign.template.render(p_body, p_subject)
+            except Exception:
+                personalized_html = p_body
+        else:
             personalized_html = p_body
 
         result = send_email(user.email, p_subject, personalized_html)

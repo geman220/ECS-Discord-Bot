@@ -23,6 +23,10 @@ class EmailCampaign(db.Model):
     subject = db.Column(db.String(500), nullable=False)
     body_html = db.Column(db.Text, nullable=False)
 
+    # Template wrapper
+    template_id = db.Column(db.Integer, db.ForeignKey('email_templates.id'), nullable=True)
+    template = db.relationship('EmailTemplate', back_populates='campaigns')
+
     # Send configuration
     send_mode = db.Column(db.String(20), nullable=False, default='bcc_batch')  # bcc_batch | individual
     force_send = db.Column(db.Boolean, default=False, nullable=False)
@@ -60,6 +64,8 @@ class EmailCampaign(db.Model):
             'id': self.id,
             'name': self.name,
             'subject': self.subject,
+            'template_id': self.template_id,
+            'template_name': self.template.name if self.template else None,
             'send_mode': self.send_mode,
             'force_send': self.force_send,
             'bcc_batch_size': self.bcc_batch_size,
