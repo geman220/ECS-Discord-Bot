@@ -101,6 +101,39 @@
 
     .match-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
     .match-info-item { display: flex; align-items: center; gap: 0.5rem; }
+
+    /* Mobile optimizations */
+    @media (max-width: 640px) {
+        .list-schedule { gap: 1rem; }
+        .date-group { padding-left: 0.75rem; }
+        .date-header { font-size: 0.875rem; }
+        .match-item { padding: 0.75rem; }
+        .match-teams { flex-direction: column; gap: 0.25rem; }
+        .match-teams .vs { font-size: 0.75rem; }
+        .match-info-grid { grid-template-columns: 1fr; gap: 0.5rem; }
+        .empty-state { padding: 2rem 1rem; }
+        .empty-state-icon { font-size: 2rem; }
+        .empty-state-text { font-size: 1rem; }
+
+        /* More compact month view on mobile */
+        .month-day { min-height: 60px; padding: 0.25rem; }
+        .month-event { padding: 0.125rem 0.25rem; font-size: 0.625rem; }
+        .month-event-title { font-size: 0.625rem; }
+        .day-number { font-size: 0.75rem; }
+        .event-count-badge { font-size: 0.5rem; padding: 0.0625rem 0.25rem; }
+
+        /* Better touch targets */
+        .month-more-events { padding: 0.5rem; }
+    }
+
+    /* Mobile sidebar overlay */
+    #calendarSidebar.fixed {
+        animation: slideIn 0.2s ease-out;
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
 </style>
 {% endblock %}
 
@@ -199,34 +232,42 @@
         <!-- Main Content Column -->
         <div class="lg:col-span-2 xl:col-span-3">
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-4 border-b border-gray-200 dark:border-gray-700">
-                    <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Match Schedule</h5>
-                    <div class="flex flex-wrap items-center gap-3">
-                        <!-- Search -->
-                        <div class="relative">
-                            <input type="text" id="matchSearchInput" placeholder="Search matches..." class="w-48 px-4 py-2 pl-10 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
+                <div class="flex flex-col gap-3 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <!-- Title row with mobile sidebar toggle -->
+                    <div class="flex items-center justify-between">
+                        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Match Schedule</h5>
+                        <!-- Mobile sidebar toggle -->
+                        <button type="button" id="toggleSidebarBtn" class="lg:hidden p-2 text-gray-500 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600" title="Show filters">
+                            <i class="ti ti-filter text-lg"></i>
+                        </button>
+                    </div>
+                    <!-- Controls row -->
+                    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <!-- Search - full width on mobile -->
+                        <div class="relative w-full sm:w-auto order-last sm:order-first">
+                            <input type="text" id="matchSearchInput" placeholder="Search matches..." class="w-full sm:w-48 px-4 py-2 pl-10 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-green-500 dark:focus:border-green-500">
                             <i class="ti ti-search absolute left-3 top-2.5 text-gray-500 dark:text-gray-400"></i>
                         </div>
 
-                        <!-- View Toggle -->
-                        <div class="inline-flex rounded-lg shadow-sm" role="group">
-                            <button type="button" data-view="day" id="viewDayBtn" class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Day</button>
-                            <button type="button" data-view="week" id="viewWeekBtn" class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Week</button>
-                            <button type="button" data-view="month" id="viewMonthBtn" class="px-3 py-2 text-sm font-medium text-white bg-ecs-green border border-ecs-green hover:bg-green-800 focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-green-600 dark:border-green-600 dark:hover:bg-green-700">Month</button>
-                            <button type="button" data-view="list" id="viewListBtn" class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">List</button>
+                        <!-- View Toggle - more compact on mobile -->
+                        <div class="inline-flex rounded-lg shadow-sm flex-shrink-0" role="group">
+                            <button type="button" data-view="day" id="viewDayBtn" class="hidden sm:inline-flex px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-l-lg hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Day</button>
+                            <button type="button" data-view="week" id="viewWeekBtn" class="hidden sm:inline-flex px-3 py-2 text-sm font-medium text-gray-900 bg-white border-t border-b border-gray-200 hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">Week</button>
+                            <button type="button" data-view="month" id="viewMonthBtn" class="px-3 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 sm:border-t sm:border-b sm:border-l-0 sm:border-r-0 rounded-l-lg sm:rounded-none hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600"><i class="ti ti-calendar sm:hidden"></i><span class="hidden sm:inline">Month</span></button>
+                            <button type="button" data-view="list" id="viewListBtn" class="px-3 py-2 text-sm font-medium text-white bg-ecs-green border border-ecs-green rounded-r-lg hover:bg-green-800 focus:z-10 focus:ring-2 focus:ring-ecs-green dark:bg-green-600 dark:border-green-600 dark:hover:bg-green-700"><i class="ti ti-list sm:hidden"></i><span class="hidden sm:inline">List</span></button>
                         </div>
 
-                        <!-- Keyboard Help -->
-                        <button type="button" id="keyboardHelpBtn" title="Keyboard shortcuts (?)" class="p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
+                        <!-- Keyboard Help - hidden on mobile -->
+                        <button type="button" id="keyboardHelpBtn" title="Keyboard shortcuts (?)" class="hidden sm:block p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700">
                             <i class="ti ti-keyboard text-lg"></i>
                         </button>
                     </div>
                 </div>
 
-                <div class="p-4">
-                    <!-- Navigation -->
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center gap-2">
+                <div class="p-3 sm:p-4">
+                    <!-- Navigation - stacked on very small screens -->
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4">
+                        <div class="flex items-center gap-2 order-2 sm:order-first">
                             <button type="button" id="calendar-prevBtn" title="Previous" class="p-2 text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600">
                                 <i class="ti ti-chevron-left"></i>
                             </button>
@@ -234,10 +275,10 @@
                                 Today
                             </button>
                         </div>
-                        <h5 id="currentDateDisplay" class="text-lg font-semibold text-gray-900 dark:text-white">Sunday, April 7, 2024</h5>
-                        <div class="flex items-center gap-2">
-                            <button type="button" id="nextEventBtn" title="Jump to next scheduled event" class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 dark:bg-gray-700 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-gray-600">
-                                <i class="ti ti-calendar-event mr-1"></i>Next
+                        <h5 id="currentDateDisplay" class="text-base sm:text-lg font-semibold text-gray-900 dark:text-white text-center order-first sm:order-none">Sunday, April 7, 2024</h5>
+                        <div class="flex items-center gap-2 order-2">
+                            <button type="button" id="nextEventBtn" title="Jump to next scheduled event" class="inline-flex items-center px-2 sm:px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 dark:bg-gray-700 dark:border-blue-500 dark:text-blue-400 dark:hover:bg-gray-600">
+                                <i class="ti ti-calendar-event sm:mr-1"></i><span class="hidden sm:inline">Next</span>
                             </button>
                             <button type="button" id="calendar-nextBtn" title="Next" class="p-2 text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600">
                                 <i class="ti ti-chevron-right"></i>
@@ -250,17 +291,17 @@
                         <div class="flex flex-col items-center justify-center py-12">
                             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-ecs-green mb-4"></div>
                             <h6 class="text-ecs-green dark:text-green-400 font-medium mb-1">Loading schedule...</h6>
-                            <p class="text-gray-500 dark:text-gray-400 text-sm">Retrieving match data and referee assignments</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-sm">Retrieving match data</p>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Sidebar -->
-        <div class="space-y-6">
-            <!-- Mini Calendar Card -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+        <!-- Sidebar - hidden on mobile by default, toggled via button -->
+        <div id="calendarSidebar" class="hidden lg:block space-y-6">
+            <!-- Mini Calendar Card - hidden on mobile since we use list view -->
+            <div class="hidden lg:block bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
                 <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-ecs-green/10 dark:bg-green-900/30">
                         <i class="ti ti-calendar text-ecs-green dark:text-green-400"></i>
@@ -274,11 +315,17 @@
 
             <!-- Calendar Filters Card -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-                <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
-                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30">
-                        <i class="ti ti-filter text-blue-600 dark:text-blue-400"></i>
+                <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                            <i class="ti ti-filter text-blue-600 dark:text-blue-400"></i>
+                        </div>
+                        <h5 class="font-semibold text-gray-900 dark:text-white">Filters</h5>
                     </div>
-                    <h5 class="font-semibold text-gray-900 dark:text-white">Filters</h5>
+                    <!-- Close button for mobile -->
+                    <button type="button" id="closeSidebarBtn" class="lg:hidden p-2 text-gray-500 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700">
+                        <i class="ti ti-x text-lg"></i>
+                    </button>
                 </div>
                 <div class="p-4 space-y-4">
                     <!-- Event Type Filters -->
@@ -946,16 +993,31 @@ document.addEventListener('keydown', function(e) {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Mobile detection - use list view by default on small screens
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+
     // State variables
     let isAssignmentMode = false;
     let allEvents = [];
     let currentViewEvents = [];
-    let currentView = 'month';
+    let currentView = isMobile ? 'list' : 'month';  // Default to list on mobile for better readability
     let currentDate = new Date();
     const canAssignReferee = {{ 'true' if can_assign_referee else 'false' }};
+    const canViewReferees = {{ 'true' if can_view_available_referees else 'false' }};
     const isReferee = {{ 'true' if is_referee else 'false' }};
     const canEditRefereeMatches = {{ 'true' if can_edit_referee_matches else 'false' }};
     const _csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    // Set initial active state on the correct view button
+    const viewButtons = document.querySelectorAll('[data-view]');
+    viewButtons.forEach(btn => {
+        btn.classList.remove('bg-ecs-green', 'text-white', 'border-ecs-green', 'dark:bg-green-600', 'dark:border-green-600', 'dark:hover:bg-green-700');
+        btn.classList.add('text-gray-900', 'bg-white', 'border-gray-200', 'hover:bg-gray-100', 'hover:text-ecs-green', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white', 'dark:hover:bg-gray-600');
+        if (btn.dataset.view === currentView) {
+            btn.classList.remove('text-gray-900', 'bg-white', 'border-gray-200', 'hover:bg-gray-100', 'hover:text-ecs-green', 'dark:bg-gray-700', 'dark:border-gray-600', 'dark:text-white', 'dark:hover:bg-gray-600');
+            btn.classList.add('bg-ecs-green', 'text-white', 'border-ecs-green', 'dark:bg-green-600', 'dark:border-green-600', 'dark:hover:bg-green-700');
+        }
+    });
     let refereeAssignedMatches = [];
 
     // Set default year for CSV import to current year
@@ -1093,7 +1155,11 @@ document.addEventListener('DOMContentLoaded', () => {
         refreshButton.addEventListener('click', function() {
             this.disabled = true;
             this.innerHTML = '<i class="ti ti-loader animate-spin mr-2"></i> Refreshing';
-            Promise.all([loadScheduleEvents(), fetchAvailableReferees()]).then(() => {
+            const refreshPromises = [loadScheduleEvents()];
+            if (canViewReferees) {
+                refreshPromises.push(fetchAvailableReferees());
+            }
+            Promise.all(refreshPromises).then(() => {
                 this.disabled = false;
                 this.innerHTML = '<i class="ti ti-refresh mr-2"></i> Refresh';
                 showToast('success', 'Schedule refreshed successfully');
@@ -1105,23 +1171,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Load events
+    // Load events using the unified visibility-filtered API
     async function loadScheduleEvents() {
         try {
-            const response = await fetch('/calendar/events');
+            const response = await fetch('/api/calendar/events');
             if (!response.ok) throw new Error('Failed to fetch events.');
-            const data = await response.json();
-            allEvents = data.events.map(event => ({
-                ...event,
-                type: event.type || 'match',
-                date: new Date(event.start),
-                homeTeam: event.teams ? event.teams.split(' vs ')[0] : event.title,
-                awayTeam: event.teams ? event.teams.split(' vs ')[1] : '',
-                location: event.description ? event.description.replace('Location: ', '') : event.location || '',
-                time: new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})
-            }));
-            updateQuickStats(data.stats);
-            if (data.referee_assigned_matches) refereeAssignedMatches = data.referee_assigned_matches;
+            const events = await response.json();
+
+            // Transform events from new API format to our internal format
+            allEvents = events.map(event => {
+                const extProps = event.extendedProps || {};
+                const eventType = extProps.type || 'match';
+
+                // Determine division from extendedProps or color
+                let division = extProps.division || '';
+                if (eventType === 'ecs_fc_match') {
+                    division = 'ECS FC';
+                } else if (eventType === 'league_event') {
+                    division = extProps.eventType || 'other';
+                }
+
+                // Extract team names from title or extendedProps
+                let homeTeam = extProps.homeTeamName || '';
+                let awayTeam = extProps.awayTeamName || '';
+                if (!homeTeam && event.title && event.title.includes(' vs ')) {
+                    const parts = event.title.split(' vs ');
+                    homeTeam = parts[0];
+                    awayTeam = parts[1] || '';
+                }
+
+                return {
+                    ...event,
+                    id: extProps.matchId || extProps.eventId || event.id,
+                    type: eventType,
+                    date: new Date(event.start),
+                    homeTeam: homeTeam,
+                    awayTeam: awayTeam,
+                    teams: homeTeam && awayTeam ? `${homeTeam} vs ${awayTeam}` : event.title,
+                    location: extProps.location || '',
+                    time: new Date(event.start).toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}),
+                    division: division,
+                    ref: extProps.refName || (extProps.refId ? 'Assigned' : 'Unassigned'),
+                    eventType: extProps.eventType,
+                    description: extProps.description || ''
+                };
+            });
+
+            // Calculate stats for display
+            const matchEvents = allEvents.filter(e => e.type === 'match');
+            const assignedRefs = matchEvents.filter(e => e.extendedProps?.refId).length;
+            updateQuickStats({
+                totalMatches: matchEvents.length,
+                assignedRefs: assignedRefs,
+                unassignedMatches: matchEvents.length - assignedRefs
+            });
+
             if (allEvents.length > 0) {
                 const today = new Date();
                 const hasEventsToday = allEvents.some(event => new Date(event.start).toDateString() === today.toDateString());
@@ -1131,7 +1235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             renderSchedule();
-            return data;
+            return events;
         } catch (error) {
             console.error('Error loading events:', error);
             document.getElementById('scheduleContent').innerHTML = `
@@ -2203,9 +2307,30 @@ document.addEventListener('DOMContentLoaded', () => {
         renderSchedule();
     });
 
+    // Mobile sidebar toggle
+    const toggleSidebarBtn = document.getElementById('toggleSidebarBtn');
+    const closeSidebarBtn = document.getElementById('closeSidebarBtn');
+    const calendarSidebar = document.getElementById('calendarSidebar');
+
+    if (toggleSidebarBtn && calendarSidebar) {
+        toggleSidebarBtn.addEventListener('click', () => {
+            calendarSidebar.classList.remove('hidden');
+            calendarSidebar.classList.add('fixed', 'inset-0', 'z-50', 'bg-white', 'dark:bg-gray-800', 'p-4', 'overflow-y-auto');
+        });
+    }
+
+    if (closeSidebarBtn && calendarSidebar) {
+        closeSidebarBtn.addEventListener('click', () => {
+            calendarSidebar.classList.add('hidden');
+            calendarSidebar.classList.remove('fixed', 'inset-0', 'z-50', 'bg-white', 'dark:bg-gray-800', 'p-4', 'overflow-y-auto');
+        });
+    }
+
     // Initialize
     loadScheduleEvents();
-    fetchAvailableReferees();
+    if (canViewReferees) {
+        fetchAvailableReferees();
+    }
     if (isReferee) {
         loadRefereeAssignments();
         loadRefereeAvailabilityStatus();
@@ -2214,7 +2339,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Expose refreshCalendar globally
     window.refreshCalendar = function() {
         loadScheduleEvents();
-        fetchAvailableReferees();
+        if (canViewReferees) {
+            fetchAvailableReferees();
+        }
     };
 
     // League Event Modal Handlers (using inline modal, not JS module)

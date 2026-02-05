@@ -682,7 +682,8 @@ def calendar_view():
 
     This route is accessible to both authenticated and unauthenticated users:
     - Unauthenticated users see a public read-only calendar with league events only
-    - Authenticated users with proper roles see the full calendar with all features
+    - Authenticated users with teams see their team's matches
+    - Authenticated users with admin/coach/ref roles see additional features
     """
     session_db = g.db_session
 
@@ -703,12 +704,17 @@ def calendar_view():
         from app.utils.user_helpers import safe_current_user
         user_roles = [role.name for role in safe_current_user.roles] if hasattr(safe_current_user, 'roles') else []
 
-    # Check if user has required roles for full calendar access
-    required_roles = ['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Coach']
-    has_calendar_role = any(role in required_roles for role in user_roles)
+    # Check if user has special roles for full calendar access
+    special_roles = ['Pub League Admin', 'Global Admin', 'Pub League Ref', 'Pub League Coach']
+    has_special_role = any(role in special_roles for role in user_roles)
 
-    if not has_calendar_role:
-        # User is authenticated but doesn't have calendar roles - show public view
+    # Check if user is a player with team associations (regular players can see their matches)
+    player = session_db.query(Player).filter_by(user_id=current_user.id).first()
+    has_team = player and player.teams and len(player.teams) > 0
+
+    # Users need either a special role OR be a player with teams to see the full calendar
+    if not has_special_role and not has_team:
+        # User is authenticated but has no teams and no special roles - show public view
         return render_template('calendar_public_flowbite.html',
                              title='ECS Pub League Calendar',
                              is_public=True,
@@ -721,20 +727,24 @@ def calendar_view():
         is_referee = 'Pub League Ref' in user_roles
     else:
         # When not impersonating, check the actual player record
-        player = session_db.query(Player).filter_by(user_id=current_user.id, is_ref=True).first()
-        is_referee = player is not None
+        is_referee = player is not None and player.is_ref
 
     # Pub League Admin and Global Admin have full calendar access
     # Pub League Coaches and Refs have limited access
     is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
+    is_coach = any(role in ['Pub League Coach', 'ECS FC Coach'] for role in user_roles)
     can_assign_referee = is_admin
     can_view_schedule_stats = is_admin
     can_view_available_referees = is_admin
     can_edit_events = is_admin  # Only admins can create/edit league events
 
+    # Determine if this is a regular player (not admin, coach, or ref)
+    is_regular_player = has_team and not is_admin and not is_coach and not is_referee
+
     return render_template('calendar_flowbite.html',
                          title='Pub League Calendar',
                          is_referee=is_referee,
+                         is_regular_player=is_regular_player,
                          can_assign_referee=can_assign_referee,
                          can_view_schedule_stats=can_view_schedule_stats,
                          can_view_available_referees=can_view_available_referees,
