@@ -1,5 +1,6 @@
 # discord bot_rest_api.py - Refactored main application file
 
+import os
 from fastapi import FastAPI
 from shared_states import get_bot_instance, set_bot_instance, bot_ready, bot_state
 import logging
@@ -11,8 +12,7 @@ from api.utils.api_client import startup_event, shutdown_event
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# FIX THIS AFTER TESTING
-TEAM_ID = '9726'
+TEAM_ID = os.environ.get('ECS_TEAM_ID', '9726')
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -128,8 +128,8 @@ async def bot_stats():
             "command_usage": {
                 "commands_today": commands_today,
                 "commands_this_week": sum(command_stats.get(str((today - timedelta(days=i))), 0) for i in range(7)),
-                "most_used_command": "verify",  # Would need actual tracking
-                "avg_response_time": "250ms"  # Would need actual measurement
+                "most_used_command": bot_state.get_most_used_command() or "N/A",
+                "avg_response_time": f"{bot_state.get_avg_response_time()}ms" if bot_state.get_avg_response_time() is not None else "N/A"
             }
         }
     except Exception as e:
@@ -150,7 +150,22 @@ async def bot_commands():
     try:
         bot = get_bot_instance()
         commands = []
-        
+        saved_perms = getattr(bot_state, 'command_permissions', {})
+
+        def _permission_label(cmd_name):
+            """Derive a human-readable permission level from saved permissions."""
+            perms = saved_perms.get(cmd_name)
+            if not perms:
+                return "Public"
+            roles = perms.get("roles", [])
+            if not roles or "@everyone" in roles or "User" in roles:
+                return "Public"
+            if "Global Admin" in roles and len(roles) == 1:
+                return "Admin"
+            if any(r in roles for r in ("Global Admin", "Moderator")) and "Coach" not in roles:
+                return "Moderator"
+            return "Restricted"
+
         # Only try to get real commands if bot is available and ready
         if bot and bot.is_ready():
             # Get application commands (slash commands)
@@ -161,9 +176,9 @@ async def bot_commands():
                         "name": cmd.name,
                         "description": cmd.description or "No description",
                         "category": "Slash Commands",
-                        "permission_level": "Public"  # Would need actual permission check
+                        "permission_level": _permission_label(cmd.name)
                     })
-            
+
             # Get text commands (if using commands extension)
             if hasattr(bot, 'commands'):
                 for cmd in bot.commands:
@@ -171,25 +186,27 @@ async def bot_commands():
                         "name": cmd.name,
                         "description": cmd.help or "No description",
                         "category": cmd.cog_name or "General",
-                        "permission_level": "Public"  # Would need actual permission check
+                        "permission_level": _permission_label(cmd.name)
                     })
-        
+
         # If no commands found, provide known commands from the codebase
         if not commands:
             known_commands = [
-                {"name": "verify", "description": "Verify ECS membership", "category": "Membership", "permission_level": "Public"},
-                {"name": "nextmatch", "description": "Get next match information", "category": "Matches", "permission_level": "Public"},
-                {"name": "record", "description": "Get team record", "category": "Statistics", "permission_level": "Public"},
-                {"name": "lookup", "description": "Look up player information", "category": "Players", "permission_level": "Public"},
-                {"name": "rsvp", "description": "RSVP to matches", "category": "Matches", "permission_level": "Public"},
-                {"name": "schedule", "description": "View match schedule", "category": "Matches", "permission_level": "Public"},
-                {"name": "standings", "description": "View league standings", "category": "Statistics", "permission_level": "Public"},
-                {"name": "admin", "description": "Admin commands", "category": "Administration", "permission_level": "Admin"},
-                {"name": "clear", "description": "Clear chat messages", "category": "Moderation", "permission_level": "Moderator"},
-                {"name": "poll", "description": "Create polls", "category": "Utilities", "permission_level": "Public"}
+                {"name": "verify", "description": "Verify ECS membership", "category": "Membership"},
+                {"name": "nextmatch", "description": "Get next match information", "category": "Matches"},
+                {"name": "record", "description": "Get team record", "category": "Statistics"},
+                {"name": "lookup", "description": "Look up player information", "category": "Players"},
+                {"name": "rsvp", "description": "RSVP to matches", "category": "Matches"},
+                {"name": "schedule", "description": "View match schedule", "category": "Matches"},
+                {"name": "standings", "description": "View league standings", "category": "Statistics"},
+                {"name": "admin", "description": "Admin commands", "category": "Administration"},
+                {"name": "clear", "description": "Clear chat messages", "category": "Moderation"},
+                {"name": "poll", "description": "Create polls", "category": "Utilities"}
             ]
+            for cmd in known_commands:
+                cmd["permission_level"] = _permission_label(cmd["name"])
             commands = known_commands
-        
+
         return {"commands": commands}
     except Exception as e:
         logger.error(f"Error getting bot commands: {e}")
@@ -311,16 +328,30 @@ async def bot_logs():
 # Enhanced bot control endpoints
 @app.post("/api/bot/restart")
 async def restart_bot():
-    """Restart the Discord bot."""
+    """Restart the Discord bot by closing the connection.
+
+    Requires the bot process to be managed by a process manager
+    (e.g. systemd, supervisord, Docker restart policy) that will
+    automatically restart the process after it exits.
+    """
     try:
         bot = get_bot_instance()
-        if bot:
-            # Log restart attempt
-            _log_bot_activity("Bot restart requested via API")
-            
-            # Schedule restart (this would need proper implementation)
-            return {"success": True, "message": "Bot restart initiated"}
-        return {"success": False, "message": "Bot not available"}
+        if not bot:
+            return {"success": False, "message": "Bot not available"}
+
+        _log_bot_activity("Bot restart requested via admin panel")
+
+        async def _do_restart():
+            """Close bot after a brief delay so the HTTP response is sent first."""
+            import asyncio
+            await asyncio.sleep(1)
+            await bot.close()
+
+        # Schedule the close so this response returns before the process exits
+        import asyncio
+        asyncio.get_event_loop().create_task(_do_restart())
+
+        return {"success": True, "message": "Bot restart initiated. The bot will reconnect automatically if managed by a process manager."}
     except Exception as e:
         logger.error(f"Error restarting bot: {e}")
         return {"success": False, "message": str(e)}
@@ -428,11 +459,26 @@ async def update_bot_config(config_data: dict):
                 logger.error(f"Error updating bot activity: {e}")
         
         _log_bot_activity("Bot configuration updated via admin panel")
+        bot_state._save_persisted_state()
         return {"success": True, "message": "Configuration updated successfully"}
         
     except Exception as e:
         logger.error(f"Error updating bot config: {e}")
         return {"success": False, "error": str(e)}
+
+@app.post("/api/bot/sync-commands")
+async def sync_commands():
+    """Sync slash commands with Discord."""
+    try:
+        bot = get_bot_instance()
+        if not bot or not bot.is_ready():
+            return {"success": False, "message": "Bot is not ready"}
+        synced = await bot.tree.sync()
+        _log_bot_activity(f"Synced {len(synced)} slash commands via admin panel")
+        return {"success": True, "message": f"Successfully synced {len(synced)} commands", "commands_synced": len(synced)}
+    except Exception as e:
+        logger.error(f"Error syncing commands: {e}")
+        return {"success": False, "message": str(e)}
 
 def _log_bot_activity(message: str, level: str = "INFO"):
     """Add a log entry to bot state."""
@@ -508,6 +554,7 @@ async def update_command_permissions(data: dict):
         }
 
         _log_bot_activity(f"Command permissions updated: {command} - roles: {roles}")
+        bot_state._save_persisted_state()
 
         return {"success": True, "message": f"Permissions updated for /{command}"}
     except Exception as e:
@@ -570,10 +617,48 @@ async def create_custom_command(data: dict):
         bot_state.custom_commands.append(new_command)
 
         _log_bot_activity(f"Custom command created: /{name}")
+        bot_state._save_persisted_state()
 
         return {"success": True, "message": f"Custom command /{name} created", "command": new_command}
     except Exception as e:
         logger.error(f"Error creating custom command: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@app.put("/api/custom-commands/{command_name}")
+async def update_custom_command(command_name: str, data: dict):
+    """Update an existing custom command."""
+    try:
+        if not hasattr(bot_state, 'custom_commands'):
+            return {"success": False, "error": "Command not found"}
+
+        # Find existing command
+        cmd_index = None
+        for i, cmd in enumerate(bot_state.custom_commands):
+            if cmd.get("name") == command_name:
+                cmd_index = i
+                break
+
+        if cmd_index is None:
+            return {"success": False, "error": f"Command /{command_name} not found"}
+
+        # Update fields
+        existing = bot_state.custom_commands[cmd_index]
+        if "description" in data:
+            existing["description"] = data["description"]
+        if "type" in data:
+            existing["type"] = data["type"]
+        if "response" in data:
+            existing["response"] = data["response"]
+        if "enabled" in data:
+            existing["enabled"] = data["enabled"]
+
+        _log_bot_activity(f"Custom command updated: /{command_name}")
+        bot_state._save_persisted_state()
+
+        return {"success": True, "message": f"Custom command /{command_name} updated", "command": existing}
+    except Exception as e:
+        logger.error(f"Error updating custom command: {e}")
         return {"success": False, "error": str(e)}
 
 
@@ -594,6 +679,7 @@ async def delete_custom_command(command_name: str):
             return {"success": False, "error": f"Command /{command_name} not found"}
 
         _log_bot_activity(f"Custom command deleted: /{command_name}")
+        bot_state._save_persisted_state()
 
         return {"success": True, "message": f"Custom command /{command_name} deleted"}
     except Exception as e:
@@ -672,6 +758,7 @@ async def update_guild_settings(guild_id: str, data: dict):
                 bot_state.guild_settings[guild_id][field] = data[field]
 
         _log_bot_activity(f"Guild settings updated for {guild_id}")
+        bot_state._save_persisted_state()
 
         return {"success": True, "message": "Guild settings updated successfully"}
     except Exception as e:

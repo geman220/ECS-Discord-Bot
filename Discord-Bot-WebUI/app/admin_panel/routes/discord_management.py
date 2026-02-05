@@ -14,7 +14,7 @@ import logging
 from datetime import datetime
 from flask import render_template, request, jsonify, g, redirect, url_for
 from flask_login import login_required, current_user
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, contains_eager
 
 from .. import admin_panel_bp
 from app.decorators import role_required
@@ -92,6 +92,10 @@ def discord_players():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         status_filter = request.args.get('status', 'not_in_server')
+        search_query = request.args.get('search', '').strip()
+        team_filter = request.args.get('team', None, type=int)
+        sort_by = request.args.get('sort', 'last_checked')
+        sort_dir = request.args.get('sort_dir', 'asc')
 
         per_page = max(10, min(per_page, 100))
 
@@ -99,13 +103,18 @@ def discord_players():
         current_seasons = session.query(Season).filter(Season.is_current == True).all()
         current_season_ids = [season.id for season in current_seasons]
 
+        # Get current teams for filter dropdown
+        current_teams = session.query(Team).join(Team.league).join(League.season).filter(
+            Season.is_current == True
+        ).order_by(Team.name).all()
+
         # Base query for players with Discord IDs
         base_query = session.query(Player).options(
             joinedload(Player.teams).joinedload(Team.league).joinedload(League.season),
             joinedload(Player.user)
         ).filter(Player.discord_id.isnot(None))
 
-        # Get all players for statistics
+        # Get all players for statistics (before search/team filter)
         all_players = base_query.all()
 
         # Build current teams mapping
@@ -147,11 +156,43 @@ def discord_players():
 
         current_section = section_titles.get(status_filter, 'All Players with Discord')
 
-        # Order and paginate
-        filtered_query = filtered_query.order_by(
-            Player.discord_last_checked.nulls_first(),
-            Player.discord_last_checked.asc()
-        )
+        # Apply search filter
+        if search_query:
+            search_pattern = f'%{search_query}%'
+            filtered_query = filtered_query.outerjoin(Player.user).options(
+                contains_eager(Player.user)
+            ).filter(
+                (Player.name.ilike(search_pattern)) |
+                (Player.discord_id.ilike(search_pattern)) |
+                (Player.discord_username.ilike(search_pattern)) |
+                (User.username.ilike(search_pattern))
+            )
+
+        # Apply team filter
+        if team_filter:
+            filtered_query = filtered_query.filter(
+                Player.teams.any(Team.id == team_filter)
+            )
+
+        # Apply sorting
+        if sort_by == 'name':
+            order_col = Player.name.asc() if sort_dir == 'asc' else Player.name.desc()
+            filtered_query = filtered_query.order_by(order_col)
+        elif sort_by == 'status':
+            order_col = Player.discord_in_server.asc() if sort_dir == 'asc' else Player.discord_in_server.desc()
+            filtered_query = filtered_query.order_by(order_col)
+        else:
+            # Default: last_checked
+            if sort_dir == 'desc':
+                filtered_query = filtered_query.order_by(
+                    Player.discord_last_checked.nulls_last(),
+                    Player.discord_last_checked.desc()
+                )
+            else:
+                filtered_query = filtered_query.order_by(
+                    Player.discord_last_checked.nulls_first(),
+                    Player.discord_last_checked.asc()
+                )
 
         # Manual pagination
         total = filtered_query.count()
@@ -176,7 +217,12 @@ def discord_players():
                              status_filter=status_filter,
                              current_section=current_section,
                              per_page=per_page,
-                             player_current_teams=player_current_teams)
+                             player_current_teams=player_current_teams,
+                             search_query=search_query,
+                             team_filter=team_filter,
+                             sort_by=sort_by,
+                             sort_dir=sort_dir,
+                             current_teams=current_teams)
 
     except Exception as e:
         logger.error(f"Error loading Discord players page: {e}")
@@ -190,6 +236,11 @@ def discord_players():
                              current_section='Players Not In Discord Server',
                              per_page=20,
                              player_current_teams={},
+                             search_query='',
+                             team_filter=None,
+                             sort_by='last_checked',
+                             sort_dir='asc',
+                             current_teams=[],
                              error=str(e))
 
 
@@ -453,12 +504,10 @@ def discord_refresh_unknown_status():
 @role_required(['Global Admin', 'Pub League Admin'])
 def discord_onboarding():
     """Discord onboarding overview and management - shows all onboarding status."""
+    session = g.db_session
     try:
-        from sqlalchemy.orm import joinedload
-        from app.models import User, Player
-
         # Get all users with their onboarding/verification status using ORM
-        users = db.session.query(User).options(
+        users = session.query(User).options(
             joinedload(User.player),
             joinedload(User.roles)
         ).order_by(User.created_at.desc()).limit(100).all()
@@ -513,12 +562,10 @@ def discord_onboarding():
 @role_required(['Global Admin', 'Pub League Admin'])
 def discord_onboarding_api():
     """API endpoint for onboarding status overview."""
+    session = g.db_session
     try:
-        from sqlalchemy.orm import joinedload
-        from app.models import User, Player
-
         # Get all users with their onboarding/verification status using ORM
-        users = db.session.query(User).options(
+        users = session.query(User).options(
             joinedload(User.player),
             joinedload(User.roles)
         ).order_by(User.created_at.desc()).limit(100).all()

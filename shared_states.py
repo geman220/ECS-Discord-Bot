@@ -1,6 +1,8 @@
 # shared_states.py
 
 import asyncio
+import json
+import os
 import discord
 from discord.ext import commands
 import logging
@@ -10,6 +12,9 @@ logger = logging.getLogger(__name__)
 
 # Initialize bot_ready event
 bot_ready = asyncio.Event()
+
+# Persistence file path (next to this module)
+PERSIST_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bot_admin_state.json')
 
 from datetime import datetime, timedelta
 
@@ -30,6 +35,59 @@ class BotState:
         self.message_stats = {}
         # Track member join activity
         self.member_activity = {}
+        # Track per-command usage counts {command_name: count}
+        self.command_usage_by_name = {}
+        # Track command response times (rolling window)
+        self.response_times = []
+
+        # Restore persisted admin state (custom commands, permissions, etc.)
+        self._load_persisted_state()
+
+    def _load_persisted_state(self):
+        """Load persisted admin state from JSON file if it exists."""
+        try:
+            if os.path.exists(PERSIST_FILE):
+                with open(PERSIST_FILE, 'r') as f:
+                    data = json.load(f)
+                if isinstance(data.get('custom_commands'), list):
+                    self.custom_commands = data['custom_commands']
+                if isinstance(data.get('command_permissions'), dict):
+                    self.command_permissions = data['command_permissions']
+                if isinstance(data.get('guild_settings'), dict):
+                    self.guild_settings = data['guild_settings']
+                if isinstance(data.get('bot_config'), dict):
+                    cfg = data['bot_config']
+                    for key in ('default_role', 'activity_type', 'activity_text',
+                                'auto_moderation', 'command_logging', 'welcome_messages'):
+                        if key in cfg:
+                            setattr(self, key, cfg[key])
+                logger.info(f"Loaded persisted admin state from {PERSIST_FILE}")
+        except Exception as e:
+            logger.warning(f"Could not load persisted admin state: {e}")
+
+    def _save_persisted_state(self):
+        """Save admin state to JSON file (atomic write)."""
+        try:
+            data = {
+                'custom_commands': getattr(self, 'custom_commands', []),
+                'command_permissions': getattr(self, 'command_permissions', {}),
+                'guild_settings': getattr(self, 'guild_settings', {}),
+                'bot_config': {
+                    'default_role': getattr(self, 'default_role', ''),
+                    'activity_type': getattr(self, 'activity_type', 'playing'),
+                    'activity_text': getattr(self, 'activity_text', 'ECS FC League'),
+                    'auto_moderation': getattr(self, 'auto_moderation', True),
+                    'command_logging': getattr(self, 'command_logging', True),
+                    'welcome_messages': getattr(self, 'welcome_messages', True),
+                }
+            }
+            tmp_path = PERSIST_FILE + '.tmp'
+            with open(tmp_path, 'w') as f:
+                json.dump(data, f, indent=2)
+            os.replace(tmp_path, PERSIST_FILE)
+            logger.debug("Persisted admin state saved")
+        except Exception as e:
+            logger.error(f"Could not save persisted admin state: {e}")
 
     def add_managed_message_id(self, message_id, match_date=None, team_id=None):
         """
@@ -188,20 +246,43 @@ class BotState:
         return len(to_remove)
 
     def track_command_usage(self, command_name=None):
-        """Track command usage by date."""
+        """Track command usage by date and per-command name."""
         try:
             today = datetime.utcnow().date()
             date_key = str(today)
-            
+
             # Increment daily command count
             self.command_stats[date_key] = self.command_stats.get(date_key, 0) + 1
-            
-            # Log command usage
+
+            # Track per-command usage
             if command_name:
+                self.command_usage_by_name[command_name] = self.command_usage_by_name.get(command_name, 0) + 1
                 self.log_activity(f"Command executed: /{command_name}")
                 logger.debug(f"Command '{command_name}' executed. Daily total: {self.command_stats[date_key]}")
         except Exception as e:
             logger.error(f"Error tracking command usage: {e}")
+
+    def track_response_time(self, duration_ms):
+        """Track a command response time in milliseconds."""
+        try:
+            self.response_times.append(duration_ms)
+            # Keep only the last 200 measurements
+            if len(self.response_times) > 200:
+                self.response_times = self.response_times[-200:]
+        except Exception as e:
+            logger.error(f"Error tracking response time: {e}")
+
+    def get_most_used_command(self):
+        """Return the most-used command name, or None."""
+        if not self.command_usage_by_name:
+            return None
+        return max(self.command_usage_by_name, key=self.command_usage_by_name.get)
+
+    def get_avg_response_time(self):
+        """Return average response time in ms, or None."""
+        if not self.response_times:
+            return None
+        return round(sum(self.response_times) / len(self.response_times))
 
     def track_message_activity(self, guild_id=None):
         """Track message activity by hour."""

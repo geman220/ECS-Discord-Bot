@@ -350,6 +350,123 @@ window.EventDelegation.register('submit-discord-dm', function(element, e) {
     });
 });
 
+// PLAYERS PAGE ACTIONS
+// ============================================================================
+
+/**
+ * Update Player Roles Action
+ * Triggers a role update for a specific player
+ */
+window.EventDelegation.register('update-player-roles', function(element, e) {
+    e.preventDefault();
+
+    const playerId = element.dataset.playerId;
+    const playerName = element.dataset.playerName || 'this player';
+
+    if (!playerId) {
+        console.error('[update-player-roles] Missing player ID');
+        return;
+    }
+
+    const originalHtml = element.innerHTML;
+    element.innerHTML = '<i class="ti ti-loader animate-spin"></i>';
+    element.disabled = true;
+
+    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+
+    fetch(`/admin-panel/discord/roles/update-player/${playerId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
+                    icon: 'success',
+                    title: 'Roles Updated',
+                    text: `Roles updated successfully for ${playerName}`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        } else {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: data.error || 'Failed to update roles'
+                });
+            }
+        }
+    })
+    .catch(error => {
+        if (typeof window.Swal !== 'undefined') {
+            window.Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Error updating roles: ' + error.message
+            });
+        }
+    })
+    .finally(() => {
+        element.innerHTML = originalHtml;
+        element.disabled = false;
+    });
+});
+
+/**
+ * Player Search Debounce (input event)
+ * Debounced search - updates URL search param after 500ms of inactivity
+ */
+let _playerSearchTimer = null;
+window.EventDelegation.register('player-search-debounce', function(element, e) {
+    clearTimeout(_playerSearchTimer);
+    _playerSearchTimer = setTimeout(() => {
+        const url = new URL(window.location);
+        const value = element.value.trim();
+        if (value) {
+            url.searchParams.set('search', value);
+        } else {
+            url.searchParams.delete('search');
+        }
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    }, 500);
+});
+
+/**
+ * Player Team Filter (change event)
+ * Filters players by team selection
+ */
+window.EventDelegation.register('player-team-filter', function(element, e) {
+    const url = new URL(window.location);
+    const value = element.value;
+    if (value) {
+        url.searchParams.set('team', value);
+    } else {
+        url.searchParams.delete('team');
+    }
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+});
+
+/**
+ * Player Sort Change (change event)
+ * Changes sort column and direction
+ */
+window.EventDelegation.register('player-sort-change', function(element, e) {
+    const url = new URL(window.location);
+    const [sort, dir] = element.value.split(':');
+    url.searchParams.set('sort', sort);
+    url.searchParams.set('sort_dir', dir || 'asc');
+    url.searchParams.set('page', '1');
+    window.location.href = url.toString();
+});
+
 // ============================================================================
 
 // Handlers loaded

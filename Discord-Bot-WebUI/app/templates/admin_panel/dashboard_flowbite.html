@@ -206,6 +206,13 @@
                 </div>
                 <i class="ti ti-chevron-right text-gray-400"></i>
             </a>
+            <a href="{{ url_for('ai_prompts.list_prompts') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <div class="flex items-center gap-3">
+                    <i class="ti ti-brain text-gray-400 group-hover:text-ecs-green"></i>
+                    <span class="text-gray-700 dark:text-gray-300">AI Commentary Config</span>
+                </div>
+                <i class="ti ti-chevron-right text-gray-400"></i>
+            </a>
         </div>
         {% endcall %}
 

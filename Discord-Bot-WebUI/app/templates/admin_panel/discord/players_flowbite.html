@@ -63,33 +63,61 @@
 <!-- Filter Controls -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="p-5">
-        <div class="flex flex-wrap items-center justify-between gap-4">
+        <!-- Status filter row -->
+        <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
             <div class="flex flex-wrap gap-2">
-                <a href="{{ url_for('admin_panel.discord_players', status='not_in_server', per_page=per_page) }}"
+                <a href="{{ url_for('admin_panel.discord_players', status='not_in_server', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
                    class="px-4 py-2 text-sm font-medium rounded-lg {% if status_filter == 'not_in_server' %}text-white bg-red-600{% else %}text-red-600 bg-red-50 border border-red-200 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800{% endif %}">
                     Not In Server
                 </a>
-                <a href="{{ url_for('admin_panel.discord_players', status='unknown', per_page=per_page) }}"
+                <a href="{{ url_for('admin_panel.discord_players', status='unknown', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
                    class="px-4 py-2 text-sm font-medium rounded-lg {% if status_filter == 'unknown' %}text-white bg-yellow-500{% else %}text-yellow-600 bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800{% endif %}">
                     Unknown
                 </a>
-                <a href="{{ url_for('admin_panel.discord_players', status='in_server', per_page=per_page) }}"
+                <a href="{{ url_for('admin_panel.discord_players', status='in_server', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
                    class="px-4 py-2 text-sm font-medium rounded-lg {% if status_filter == 'in_server' %}text-white bg-green-600{% else %}text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800{% endif %}">
                     In Server
                 </a>
-                <a href="{{ url_for('admin_panel.discord_players', status='all', per_page=per_page) }}"
+                <a href="{{ url_for('admin_panel.discord_players', status='all', per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}"
                    class="px-4 py-2 text-sm font-medium rounded-lg {% if status_filter == 'all' %}text-white bg-blue-600{% else %}text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800{% endif %}">
                     All
                 </a>
             </div>
             <div>
-                <select id="per-page-select" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <select data-on-change="change-per-page" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="10" {{ 'selected' if per_page == 10 }}>10 per page</option>
                     <option value="20" {{ 'selected' if per_page == 20 }}>20 per page</option>
                     <option value="50" {{ 'selected' if per_page == 50 }}>50 per page</option>
                     <option value="100" {{ 'selected' if per_page == 100 }}>100 per page</option>
                 </select>
             </div>
+        </div>
+        <!-- Search, Team filter, Sort row -->
+        <div class="flex flex-wrap items-center gap-3">
+            <div class="relative flex-1 min-w-[200px]">
+                <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                    <i class="ti ti-search text-gray-400"></i>
+                </div>
+                <input type="text"
+                       data-action="player-search-debounce"
+                       data-on-input="player-search-debounce"
+                       value="{{ search_query }}"
+                       placeholder="Search by name, Discord ID, or username..."
+                       class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
+            </div>
+            <select data-action="player-team-filter" data-on-change="player-team-filter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="">All Teams</option>
+                {% for team in current_teams %}
+                <option value="{{ team.id }}" {{ 'selected' if team_filter == team.id }}>{{ team.name }}</option>
+                {% endfor %}
+            </select>
+            <select data-action="player-sort-change" data-on-change="player-sort-change" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="last_checked:asc" {{ 'selected' if sort_by == 'last_checked' and sort_dir == 'asc' }}>Last Checked (oldest first)</option>
+                <option value="last_checked:desc" {{ 'selected' if sort_by == 'last_checked' and sort_dir == 'desc' }}>Last Checked (newest first)</option>
+                <option value="name:asc" {{ 'selected' if sort_by == 'name' and sort_dir == 'asc' }}>Name (A-Z)</option>
+                <option value="name:desc" {{ 'selected' if sort_by == 'name' and sort_dir == 'desc' }}>Name (Z-A)</option>
+                <option value="status:asc" {{ 'selected' if sort_by == 'status' and sort_dir == 'asc' }}>Status</option>
+            </select>
         </div>
     </div>
 </div>
@@ -160,7 +188,12 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-3">
-                        <button type="button" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg js-update-roles" data-action="update-player-roles" data-player-id="{{ player.id }}" title="Update Roles">
+                        <button type="button"
+                                class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg"
+                                data-action="update-player-roles"
+                                data-player-id="{{ player.id }}"
+                                data-player-name="{{ player.name }}"
+                                title="Update Roles">
                             <i class="ti ti-refresh"></i>
                         </button>
                     </td>
@@ -175,7 +208,7 @@
             <ul class="flex items-center -space-x-px h-8 text-sm">
                 {% if pagination.has_prev %}
                 <li>
-                    <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=pagination.prev_num, per_page=per_page) }}" class="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                    <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=pagination.prev_num, per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}" class="flex items-center justify-center px-3 h-8 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
                         <i class="ti ti-chevron-left"></i>
                     </a>
                 </li>
@@ -183,13 +216,13 @@
                 {% for p in range(1, pagination.pages + 1) %}
                     {% if p >= pagination.page - 2 and p <= pagination.page + 2 %}
                 <li>
-                    <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=p, per_page=per_page) }}" class="flex items-center justify-center px-3 h-8 leading-tight {% if p == pagination.page %}text-blue-600 bg-blue-50 border border-blue-300 dark:border-gray-700 dark:bg-gray-700 dark:text-white{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}">{{ p }}</a>
+                    <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=p, per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}" class="flex items-center justify-center px-3 h-8 leading-tight {% if p == pagination.page %}text-blue-600 bg-blue-50 border border-blue-300 dark:border-gray-700 dark:bg-gray-700 dark:text-white{% else %}text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white{% endif %}">{{ p }}</a>
                 </li>
                     {% endif %}
                 {% endfor %}
                 {% if pagination.has_next %}
                 <li>
-                    <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=pagination.next_num, per_page=per_page) }}" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+                    <a href="{{ url_for('admin_panel.discord_players', status=status_filter, page=pagination.next_num, per_page=per_page, search=search_query, team=team_filter, sort=sort_by, sort_dir=sort_dir) }}" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
                         <i class="ti ti-chevron-right"></i>
                     </a>
                 </li>
@@ -208,74 +241,4 @@
     </div>
     {% endif %}
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const isDark = document.documentElement.classList.contains('dark');
-
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('[data-action="update-player-roles"]');
-        if (btn && btn.classList.contains('js-update-roles')) {
-            const playerId = btn.dataset.playerId;
-            updatePlayerRoles(playerId, btn);
-        }
-    });
-
-    document.getElementById('per-page-select').addEventListener('change', function() {
-        const perPage = this.value;
-        window.location.href = `{{ url_for('admin_panel.discord_players', status=status_filter) }}&per_page=${perPage}`;
-    });
-
-    function updatePlayerRoles(playerId, btn) {
-        btn.innerHTML = '<i class="ti ti-loader animate-spin"></i>';
-        btn.disabled = true;
-
-        fetch(`{{ url_for('admin_panel.discord_update_player_roles', player_id=0) }}`.replace('0', playerId), { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Success',
-                        text: 'Roles updated successfully',
-                        timer: 2000,
-                        showConfirmButton: false,
-                        background: isDark ? '#1f2937' : '#ffffff',
-                        color: isDark ? '#f3f4f6' : '#111827'
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Error: ' + data.error,
-                        background: isDark ? '#1f2937' : '#ffffff',
-                        color: isDark ? '#f3f4f6' : '#111827'
-                    });
-                }
-            })
-            .catch(error => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Error updating roles',
-                    background: isDark ? '#1f2937' : '#ffffff',
-                    color: isDark ? '#f3f4f6' : '#111827'
-                });
-            })
-            .finally(() => {
-                btn.innerHTML = '<i class="ti ti-refresh"></i>';
-                btn.disabled = false;
-            });
-    }
-});
-</script>
-<style>
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-.animate-spin { animation: spin 1s linear infinite; }
-</style>
 {% endblock %}

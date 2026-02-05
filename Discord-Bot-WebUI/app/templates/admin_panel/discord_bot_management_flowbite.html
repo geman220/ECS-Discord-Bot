@@ -20,12 +20,25 @@
 {% endblock %}
 
 {% block panel_content %}
+<div data-page="admin-discord-bot">
+
+{% if not bot_online %}
+<div class="p-4 mb-6 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-800">
+    <div class="flex items-center">
+        <i class="ti ti-alert-triangle text-xl text-yellow-600 dark:text-yellow-400 mr-3"></i>
+        <div class="text-yellow-700 dark:text-yellow-300">
+            <strong>Bot API Offline</strong> - Live operations are unavailable. Cached data shown where available.
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Status Cards -->
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
     <div class="bg-{{ 'green' if stats.bot_status == 'online' else 'red' }}-50 dark:bg-{{ 'green' if stats.bot_status == 'online' else 'red' }}-900/30 rounded-lg shadow p-5">
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-2xl font-bold text-{{ 'green' if stats.bot_status == 'online' else 'red' }}-600 dark:text-{{ 'green' if stats.bot_status == 'online' else 'red' }}-400">{{ stats.bot_status.title() }}</h3>
+                <h3 data-stat-id="bot-status" class="text-2xl font-bold text-{{ 'green' if stats.bot_status == 'online' else 'red' }}-600 dark:text-{{ 'green' if stats.bot_status == 'online' else 'red' }}-400">{{ stats.bot_status.title() }}</h3>
                 <span class="text-sm text-{{ 'green' if stats.bot_status == 'online' else 'red' }}-700 dark:text-{{ 'green' if stats.bot_status == 'online' else 'red' }}-300">Bot Status</span>
             </div>
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-{{ 'green' if stats.bot_status == 'online' else 'red' }}-100 dark:bg-{{ 'green' if stats.bot_status == 'online' else 'red' }}-900/50">
@@ -36,7 +49,7 @@
     <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.guilds_connected or 0 }}</h3>
+                <h3 data-stat-id="guild-count" class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.guilds_connected or 0 }}</h3>
                 <span class="text-sm text-cyan-700 dark:text-cyan-300">Connected Guilds</span>
             </div>
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-cyan-100 dark:bg-cyan-900/50">
@@ -47,7 +60,7 @@
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.commands_today or 0 }}</h3>
+                <h3 data-stat-id="commands-today" class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.commands_today or 0 }}</h3>
                 <span class="text-sm text-blue-700 dark:text-blue-300">Commands Today</span>
             </div>
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50">
@@ -58,7 +71,7 @@
     <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg shadow p-5">
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.uptime or '0%' }}</h3>
+                <h3 data-stat-id="uptime" class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.uptime or '0s' }}</h3>
                 <span class="text-sm text-yellow-700 dark:text-yellow-300">Uptime</span>
             </div>
             <div class="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50">
@@ -66,6 +79,9 @@
             </div>
         </div>
     </div>
+</div>
+<div class="mb-6 text-right">
+    <span data-stat-id="last-updated" class="text-xs text-gray-400 dark:text-gray-500">Live updates every 30s</span>
 </div>
 
 <!-- Control & Commands -->
@@ -77,7 +93,7 @@
                 <i class="ti ti-settings mr-2 text-yellow-500"></i>Bot Control
             </h5>
             <span class="flex items-center">
-                <span class="w-2 h-2 rounded-full {{ 'bg-green-500' if stats.bot_status == 'online' else 'bg-red-500' }} mr-2"></span>
+                <span data-stat-dot class="w-2 h-2 rounded-full {{ 'bg-green-500' if stats.bot_status == 'online' else 'bg-red-500' }} mr-2"></span>
                 <span class="text-sm text-gray-500 dark:text-gray-400">{{ stats.bot_status.title() }}</span>
             </span>
         </div>
@@ -96,7 +112,7 @@
                         <i class="ti ti-heart text-xl text-gray-500 dark:text-gray-400 mr-3"></i>
                         <span class="text-gray-900 dark:text-white">Health Check</span>
                     </div>
-                    <span class="w-2 h-2 rounded-full {{ 'bg-green-500' if stats.bot_status == 'online' else 'bg-red-500' }}"></span>
+                    <span data-stat-dot class="w-2 h-2 rounded-full {{ 'bg-green-500' if stats.bot_status == 'online' else 'bg-red-500' }}"></span>
                 </button>
                 <button class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700" data-action="view-bot-logs">
                     <div class="flex items-center">
@@ -182,19 +198,19 @@
                         <div class="text-xs text-gray-500 dark:text-gray-400">Members</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-xl font-bold text-gray-900 dark:text-white">{{ guild_info.channel_count or 45 }}</div>
+                        <div class="text-xl font-bold text-gray-900 dark:text-white">{{ guild_info.channel_count or 0 }}</div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">Channels</div>
                     </div>
                     <div class="text-center">
-                        <div class="text-xl font-bold text-gray-900 dark:text-white">{{ guild_info.role_count or 25 }}</div>
+                        <div class="text-xl font-bold text-gray-900 dark:text-white">{{ guild_info.role_count or 0 }}</div>
                         <div class="text-xs text-gray-500 dark:text-gray-400">Roles</div>
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button class="flex-1 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400" data-action="manage-guild">
+                    <button class="flex-1 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400" data-action="manage-guild" data-guild="{{ guild_info.id or '' }}" data-guild-name="{{ guild_info.name or 'ECS FC Discord' }}">
                         <i class="ti ti-settings mr-1"></i>Manage
                     </button>
-                    <button class="flex-1 px-3 py-2 text-sm font-medium text-cyan-600 bg-cyan-50 rounded-lg hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400" data-action="guild-stats">
+                    <button class="flex-1 px-3 py-2 text-sm font-medium text-cyan-600 bg-cyan-50 rounded-lg hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400" data-action="guild-stats" data-guild="{{ guild_info.id or '' }}" data-guild-name="{{ guild_info.name or 'ECS FC Discord' }}">
                         <i class="ti ti-chart-dots mr-1"></i>Stats
                     </button>
                 </div>
@@ -298,7 +314,7 @@
                     <div>
                         <h6 class="font-medium text-gray-900 dark:text-white">{{ log.message | truncate(50) }}</h6>
                         <p class="text-sm text-gray-500 dark:text-gray-400">{{ log.level }} - {{ log.message }}</p>
-                        <p class="text-xs text-gray-400 dark:text-gray-500">{{ log.timestamp.strftime('%Y-%m-%d %H:%M') if log.timestamp else 'Unknown time' }}</p>
+                        <p class="text-xs text-gray-400 dark:text-gray-500">{% if log.timestamp is string %}{{ log.timestamp[:16] | replace('T', ' ') }}{% elif log.timestamp %}{{ log.timestamp.strftime('%Y-%m-%d %H:%M') }}{% else %}Unknown time{% endif %}</p>
                     </div>
                 </div>
                 {% endfor %}
@@ -328,64 +344,18 @@
         </div>
     </div>
 </div>
+
+</div><!-- /data-page -->
 {% endblock %}
 
 {% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const isDark = document.documentElement.classList.contains('dark');
-
-    // Bot actions
-    document.addEventListener('click', function(e) {
-        const btn = e.target.closest('[data-action]');
-        if (!btn) return;
-
-        const action = btn.dataset.action;
-
-        if (action === 'restart-bot') {
-            Swal.fire({
-                title: 'Restart Bot?',
-                text: 'This will restart the Discord bot. Are you sure?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Yes, Restart',
-                confirmButtonColor: '#1a472a',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Restarting...',
-                        text: 'The bot is being restarted.',
-                        icon: 'info',
-                        timer: 2000,
-                        showConfirmButton: false,
-                        background: isDark ? '#1f2937' : '#ffffff',
-                        color: isDark ? '#f3f4f6' : '#111827'
-                    });
-                }
-            });
-        } else if (action === 'check-bot-health') {
-            Swal.fire({
-                title: 'Health Check',
-                html: '<div class="text-left"><strong>Status:</strong> {{ stats.bot_status.title() }}<br><strong>Uptime:</strong> {{ stats.uptime or "N/A" }}<br><strong>Commands Today:</strong> {{ stats.commands_today or 0 }}</div>',
-                icon: '{{ "success" if stats.bot_status == "online" else "error" }}',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
-        } else if (action === 'save-bot-config') {
-            Swal.fire({
-                icon: 'success',
-                title: 'Configuration Saved',
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 2000,
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
-        }
-    });
-});
+window.__BOT_API_URL__ = {{ (bot_api_url ~ '/api') | tojson }};
+window.__BOT_RECENT_LOGS__ = {{ recent_logs | tojson }};
+window.__BOT_COMMANDS__ = {{ commands | tojson }};
+window.__BOT_COMMAND_USAGE__ = {{ command_usage | tojson }};
+window.__BOT_GUILD_INFO__ = {{ guild_info | tojson }};
+window.__BOT_ONLINE__ = {{ bot_online | tojson }};
+window.__DISCORD_CLIENT_ID__ = {{ (discord_client_id or '') | tojson }};
 </script>
 {% endblock %}

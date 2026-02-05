@@ -14,9 +14,10 @@ This module contains routes for utility and service management:
 - System maintenance utilities
 """
 
+import os
 import logging
 from datetime import datetime, timedelta
-from flask import render_template, request, jsonify, flash, redirect, url_for
+from flask import render_template, request, jsonify, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from sqlalchemy import func
 
@@ -1015,26 +1016,43 @@ def message_template_management():
 @role_required(['Global Admin', 'Pub League Admin'])
 def discord_bot_management():
     """Discord bot management hub."""
+    bot_api_url = os.getenv('BOT_API_URL', 'http://localhost:5001')
+    discord_client_id = current_app.config.get('DISCORD_CLIENT_ID', '')
+
     try:
         # Get Discord bot statistics from API
         bot_data = get_discord_bot_stats()
-        
+
         stats = bot_data['stats']
         commands = bot_data['commands']
         command_usage = bot_data['command_usage']
         guild_info = bot_data.get('guild_info', {})
         recent_logs = bot_data.get('recent_logs', [])
-        
+        bot_online = bot_data.get('success', False)
+
         return render_template('admin_panel/discord_bot_management_flowbite.html',
                              stats=stats,
                              commands=commands,
                              command_usage=command_usage,
                              guild_info=guild_info,
-                             recent_logs=recent_logs)
+                             recent_logs=recent_logs,
+                             bot_online=bot_online,
+                             bot_api_url=bot_api_url,
+                             discord_client_id=discord_client_id)
     except Exception as e:
         logger.error(f"Error loading Discord bot management: {e}")
-        flash('Discord bot management unavailable. Verify Discord API connection and bot status.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+        return render_template('admin_panel/discord_bot_management_flowbite.html',
+                             stats={'bot_status': 'offline', 'guilds_connected': 0,
+                                    'member_count': 0, 'commands_today': 0,
+                                    'uptime': 'Unknown', 'total_commands': 0},
+                             commands=[],
+                             command_usage={'commands_today': 0, 'commands_this_week': 0,
+                                           'most_used_command': 'N/A', 'avg_response_time': 'N/A'},
+                             guild_info={},
+                             recent_logs=[],
+                             bot_online=False,
+                             bot_api_url=bot_api_url,
+                             discord_client_id=discord_client_id)
 
 
 # Playoff Management
