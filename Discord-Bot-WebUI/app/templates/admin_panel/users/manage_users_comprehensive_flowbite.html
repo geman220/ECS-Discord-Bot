@@ -195,7 +195,7 @@
                 <th scope="col" class="px-4 py-3 w-10">
                     <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                 </th>
-                <th scope="col" class="px-6 py-3">User</th>
+                <th scope="col" class="px-6 py-3">Player</th>
                 <th scope="col" class="px-6 py-3">Email</th>
                 <th scope="col" class="px-6 py-3">Roles</th>
                 <th scope="col" class="px-6 py-3">League/Team</th>
@@ -213,12 +213,15 @@
                 <td class="px-6 py-4">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center mr-3">
-                            <span class="text-white font-bold">{{ user.username[0].upper() }}</span>
+                            {% set display_name = user.player.name if user.player and user.player.name else user.username %}
+                            <span class="text-white font-bold">{{ display_name[0].upper() }}</span>
                         </div>
                         <div>
+                            {% if user.player and user.player.name %}
+                            <p class="font-medium text-gray-900 dark:text-white">{{ user.player.name }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.username }}</p>
+                            {% else %}
                             <p class="font-medium text-gray-900 dark:text-white">{{ user.username }}</p>
-                            {% if user.real_name %}
-                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.real_name }}</p>
                             {% endif %}
                         </div>
                     </div>

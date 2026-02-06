@@ -529,7 +529,7 @@ def draft_player(league_name: str):
         assign_roles_to_player_task.delay(player_id=player_id, only_add=True)
 
         # Invalidate cache
-        DraftCacheService.invalidate_league_cache(db_league_name)
+        DraftCacheService.clear_all_league_caches(db_league_name)
 
         return jsonify({
             "success": True,
@@ -617,10 +617,10 @@ def remove_player_from_team(league_name: str, player_id: int):
 
         # Mark player for Discord update and remove roles
         mark_player_for_discord_update(session, player_id)
-        remove_player_roles_task.delay(player_id=player_id)
+        remove_player_roles_task.delay(player_id=player_id, team_id=team.id)
 
         # Invalidate cache
-        DraftCacheService.invalidate_league_cache(db_league_name)
+        DraftCacheService.clear_all_league_caches(db_league_name)
 
         return jsonify({
             "success": True,

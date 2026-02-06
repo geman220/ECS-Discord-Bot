@@ -135,13 +135,13 @@ class DraftService:
             if subsequent_picks:
                 # Update all positions at once using raw SQL to avoid constraint conflicts
                 session.execute(
-                    """
-                    UPDATE draft_order_history 
+                    text("""
+                    UPDATE draft_order_history
                     SET draft_position = draft_position - 1, updated_at = NOW()
-                    WHERE season_id = :season_id 
-                    AND league_id = :league_id 
+                    WHERE season_id = :season_id
+                    AND league_id = :league_id
                     AND draft_position > :removed_position
-                    """,
+                    """),
                     {
                         'season_id': season_id,
                         'league_id': league_id,
