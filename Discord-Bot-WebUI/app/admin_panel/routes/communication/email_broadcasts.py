@@ -261,6 +261,39 @@ def email_broadcast_cancel(campaign_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@admin_panel_bp.route('/communication/email-broadcasts/<int:campaign_id>/reset-to-draft', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def email_broadcast_reset_to_draft(campaign_id):
+    """Reset a stuck/failed/cancelled campaign back to draft (JSON API)."""
+    try:
+        campaign = EmailCampaign.query.get(campaign_id)
+        if not campaign:
+            return jsonify({'success': False, 'error': 'Campaign not found'}), 404
+
+        if campaign.status not in ('sending', 'failed', 'cancelled', 'partially_sent'):
+            return jsonify({'success': False, 'error': f'Cannot reset a {campaign.status} campaign'}), 400
+
+        campaign.status = 'draft'
+        campaign.sent_at = None
+        campaign.completed_at = None
+        campaign.celery_task_id = None
+
+        # Reset all pending/skipped recipients back to pending
+        EmailCampaignRecipient.query.filter_by(
+            campaign_id=campaign_id
+        ).filter(
+            EmailCampaignRecipient.status.in_(['pending', 'skipped'])
+        ).update({'status': 'pending', 'error_message': None}, synchronize_session='fetch')
+
+        return jsonify({'success': True, 'message': 'Campaign reset to draft'})
+
+    except Exception as e:
+        logger.error(f"Error resetting campaign {campaign_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @admin_panel_bp.route('/communication/email-broadcasts/<int:campaign_id>/duplicate', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -346,6 +379,10 @@ def email_broadcast_preview_recipients():
             val = request.args.get(key)
             if val:
                 filter_criteria[key] = val
+
+        # Boolean params
+        if request.args.get('active_only', 'false').lower() == 'true':
+            filter_criteria['active_only'] = True
 
         # Handle specific_users filter - user_ids passed as comma-separated string
         if filter_type == 'specific_users':

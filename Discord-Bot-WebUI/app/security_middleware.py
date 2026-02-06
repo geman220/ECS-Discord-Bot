@@ -101,6 +101,7 @@ class SecurityMiddleware:
                 '/api/messages/unread-count',
                 '/bot/admin/',
                 '/socket.io/',
+                '/admin-panel/api/email-broadcasts/',
             ]
             if any(request.path.startswith(path) for path in polling_endpoints):
                 # Still check for attack patterns, but skip rate limiting

@@ -56,15 +56,11 @@ class EmailBroadcastService:
             users = base_query.all()
 
         elif filter_type == 'current_season_players':
-            # All players assigned to a team in any current season
-            sub = session.query(Player.user_id).join(
-                PlayerTeamSeason, Player.id == PlayerTeamSeason.player_id
-            ).join(
-                Season, PlayerTeamSeason.season_id == Season.id
-            ).filter(
-                Season.is_current == True,
+            # All players flagged as current (registered/active this season)
+            sub = session.query(Player.user_id).filter(
+                Player.is_current_player == True,
                 Player.user_id.isnot(None),
-            ).distinct()
+            )
             users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'ecs_members':
@@ -101,14 +97,16 @@ class EmailBroadcastService:
             if not league_ids and filter_criteria.get('league_id'):
                 league_ids = [filter_criteria['league_id']]
             league_ids = [int(lid) for lid in league_ids]
+            active_only = filter_criteria.get('active_only', False)
             if not league_ids:
                 users = []
             else:
                 sub = session.query(Player.user_id).filter(
                     Player.primary_league_id.in_(league_ids),
-                    Player.is_current_player == True,
                     Player.user_id.isnot(None),
                 )
+                if active_only:
+                    sub = sub.filter(Player.is_current_player == True)
                 users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'by_role':
@@ -125,25 +123,28 @@ class EmailBroadcastService:
                 users = base_query.filter(User.id.in_(sub.scalar_subquery())).all()
 
         elif filter_type == 'by_discord_role':
-            discord_role = filter_criteria['discord_role']
-            # discord_roles is a JSON column on Player - filter in Python
-            player_rows = session.query(Player.user_id, Player.discord_roles).filter(
-                Player.is_current_player == True,
-                Player.user_id.isnot(None),
-                Player.discord_roles.isnot(None),
-            ).all()
-            matching_user_ids = set()
-            for user_id, roles in player_rows:
-                if isinstance(roles, list):
-                    for r in roles:
-                        role_name_val = r.get('name', '') if isinstance(r, dict) else str(r)
-                        if role_name_val == discord_role:
-                            matching_user_ids.add(user_id)
-                            break
-            if matching_user_ids:
-                users = base_query.filter(User.id.in_(matching_user_ids)).all()
-            else:
+            discord_role = filter_criteria.get('discord_role', '')
+            if not discord_role:
                 users = []
+            else:
+                # discord_roles is a JSON column on Player - filter in Python
+                player_rows = session.query(Player.user_id, Player.discord_roles).filter(
+                    Player.is_current_player == True,
+                    Player.user_id.isnot(None),
+                    Player.discord_roles.isnot(None),
+                ).all()
+                matching_user_ids = set()
+                for user_id, roles in player_rows:
+                    if isinstance(roles, list):
+                        for r in roles:
+                            role_name_val = r.get('name', '') if isinstance(r, dict) else str(r)
+                            if role_name_val == discord_role:
+                                matching_user_ids.add(user_id)
+                                break
+                if matching_user_ids:
+                    users = base_query.filter(User.id.in_(matching_user_ids)).all()
+                else:
+                    users = []
 
         else:
             logger.warning(f"Unknown filter type: {filter_type}")
@@ -321,6 +322,8 @@ class EmailBroadcastService:
             league_ids = filter_criteria.get('league_ids', [])
             if not league_ids and filter_criteria.get('league_id'):
                 league_ids = [filter_criteria['league_id']]
+            active_only = filter_criteria.get('active_only', False)
+            suffix = ' (active only)' if active_only else ' (all players)'
             if league_ids:
                 names = []
                 for lid in league_ids:
@@ -328,8 +331,8 @@ class EmailBroadcastService:
                     if league:
                         names.append(league.name)
                 if len(names) <= 3:
-                    return f'Leagues: {", ".join(names)}'
-                return f'Leagues: {", ".join(names[:2])} +{len(names) - 2} more'
+                    return f'Leagues: {", ".join(names)}{suffix}'
+                return f'Leagues: {", ".join(names[:2])} +{len(names) - 2} more{suffix}'
             return 'By league'
         elif filter_type == 'by_role':
             role_names = filter_criteria.get('role_names', [])

@@ -115,6 +115,12 @@
         <i class="ti ti-player-stop"></i> Cancel Send
     </button>
     {% endif %}
+    {% if campaign.status in ('sending', 'failed', 'cancelled', 'partially_sent') %}
+    <button type="button" data-action="email-reset-to-draft" data-campaign-id="{{ campaign.id }}"
+            class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors">
+        <i class="ti ti-arrow-back-up"></i> Reset to Draft
+    </button>
+    {% endif %}
     <button type="button" data-action="email-duplicate-campaign" data-campaign-id="{{ campaign.id }}"
             class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
         <i class="ti ti-copy"></i> Duplicate

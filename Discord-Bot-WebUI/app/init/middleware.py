@@ -202,6 +202,9 @@ def _init_rate_limiting(app):
                 '/security/events',
                 '/security/logs',
                 '/bot/admin/get_all_match_statuses',
+
+                # Email broadcast progress polling (polls every 5s during send)
+                '/admin-panel/api/email-broadcasts/',
             ]
             return any(request.path.startswith(path) for path in exempt_paths)
 

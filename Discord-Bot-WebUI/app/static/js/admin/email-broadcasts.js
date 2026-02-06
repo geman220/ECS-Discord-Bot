@@ -51,6 +51,9 @@ function getFilterCriteria() {
     } else if (filterType === 'by_league') {
         const checked = document.querySelectorAll('input[name="league_ids"]:checked');
         criteria.league_ids = Array.from(checked).map(cb => cb.value);
+        if (document.getElementById('leagueActiveOnly')?.checked) {
+            criteria.active_only = true;
+        }
     } else if (filterType === 'by_role') {
         const checked = document.querySelectorAll('input[name="role_names"]:checked');
         criteria.role_names = Array.from(checked).map(cb => cb.value);
@@ -548,6 +551,44 @@ async function handlePreviewTemplate() {
     }
 }
 
+async function handleResetToDraft(element) {
+    const campaignId = element?.dataset?.campaignId;
+    if (!campaignId) return;
+
+    const confirm = await window.Swal.fire({
+        title: 'Reset to Draft?',
+        text: 'This will reset the campaign back to draft status. Already-sent emails will not be affected. Pending/skipped recipients will be reset.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Reset to Draft',
+        confirmButtonColor: '#eab308',
+    });
+    if (!confirm.isConfirmed) return;
+
+    try {
+        const resp = await fetch(`${ADMIN_BASE}/communication/email-broadcasts/${campaignId}/reset-to-draft`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+        });
+        const result = await resp.json();
+
+        if (result.success) {
+            window.Swal.fire({
+                title: 'Reset Complete',
+                text: 'Campaign has been reset to draft.',
+                icon: 'success',
+                confirmButtonColor: '#1a472a',
+            }).then(() => {
+                window.location.reload();
+            });
+        } else {
+            window.Swal.fire('Error', result.error || 'Failed to reset campaign', 'error');
+        }
+    } catch (e) {
+        window.Swal.fire('Error', 'Network error', 'error');
+    }
+}
+
 async function handleDeleteCampaign(element) {
     const campaignId = element?.dataset?.campaignId;
     if (!campaignId) return;
@@ -589,17 +630,38 @@ async function handleDeleteCampaign(element) {
    PROGRESS POLLING
    ======================================================================== */
 
-let _pollInterval = null;
+let _pollTimer = null;
+let _pollFailCount = 0;
+const POLL_BASE_INTERVAL = 5000;   // 5s between polls
+const POLL_MAX_FAILURES = 10;       // Stop after 10 consecutive failures
 
 function startProgressPolling(campaignId) {
-    if (_pollInterval) clearInterval(_pollInterval);
+    if (_pollTimer) clearTimeout(_pollTimer);
+    _pollFailCount = 0;
 
-    _pollInterval = setInterval(async () => {
+    async function poll() {
         try {
             const resp = await fetch(`${ADMIN_BASE}/api/email-broadcasts/${campaignId}/status`);
+
+            if (!resp.ok) {
+                // Rate limited or server error - back off
+                _pollFailCount++;
+                if (_pollFailCount >= POLL_MAX_FAILURES) {
+                    console.warn('[Email Broadcasts] Polling stopped after too many failures');
+                    return;
+                }
+                const backoff = POLL_BASE_INTERVAL * Math.min(_pollFailCount, 6);
+                _pollTimer = setTimeout(poll, backoff);
+                return;
+            }
+
+            _pollFailCount = 0;
             const data = await resp.json();
 
-            if (!data.success) return;
+            if (!data.success) {
+                _pollTimer = setTimeout(poll, POLL_BASE_INTERVAL);
+                return;
+            }
 
             // Update stats
             const totalEl = document.getElementById('statTotal');
@@ -625,15 +687,23 @@ function startProgressPolling(campaignId) {
 
             // Stop polling when terminal
             if (['sent', 'partially_sent', 'failed', 'cancelled'].includes(data.status)) {
-                clearInterval(_pollInterval);
-                _pollInterval = null;
-                // Reload to show final state
+                _pollTimer = null;
                 window.location.reload();
+                return;
             }
+
+            _pollTimer = setTimeout(poll, POLL_BASE_INTERVAL);
         } catch (e) {
             console.error('Progress poll error:', e);
+            _pollFailCount++;
+            if (_pollFailCount < POLL_MAX_FAILURES) {
+                const backoff = POLL_BASE_INTERVAL * Math.min(_pollFailCount, 6);
+                _pollTimer = setTimeout(poll, backoff);
+            }
         }
-    }, 3000);
+    }
+
+    _pollTimer = setTimeout(poll, POLL_BASE_INTERVAL);
 }
 
 /* ========================================================================
@@ -796,6 +866,7 @@ window.EventDelegation.register('email-send-campaign', handleSendCampaign, { pre
 window.EventDelegation.register('email-send-test', handleSendTest, { preventDefault: true });
 window.EventDelegation.register('email-cancel-campaign', handleCancelCampaign, { preventDefault: true });
 window.EventDelegation.register('email-duplicate-campaign', handleDuplicateCampaign, { preventDefault: true });
+window.EventDelegation.register('email-reset-to-draft', handleResetToDraft, { preventDefault: true });
 window.EventDelegation.register('email-delete-campaign', handleDeleteCampaign, { preventDefault: true });
 window.EventDelegation.register('email-preview-template', handlePreviewTemplate, { preventDefault: true });
 

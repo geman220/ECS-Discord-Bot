@@ -116,6 +116,11 @@
                     </label>
                     {% endfor %}
                 </div>
+                <label class="flex items-center gap-2 cursor-pointer mt-2 text-sm text-gray-700 dark:text-gray-300">
+                    <input type="checkbox" id="leagueActiveOnly" data-on-change="email-subfilter-change"
+                           class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+                    Active players only <span class="text-xs text-gray-500 font-normal">(current season)</span>
+                </label>
             </div>
 
             <div id="subFilterRole" class="hidden md:col-span-2">
