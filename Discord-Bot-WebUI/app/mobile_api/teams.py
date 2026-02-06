@@ -390,12 +390,12 @@ def get_team_stats(team_id: int):
         if not team:
             return jsonify({"msg": "Team not found"}), 404
 
-        # Find current season - first check team's league's season
+        # Find current season - use the league's season only if it is marked current
         current_season = None
-        if team.league and team.league.season:
+        if team.league and team.league.season and team.league.season.is_current:
             current_season = team.league.season
 
-        # If not found through team's league, find any current season
+        # Fallback - find any season with is_current=True
         if not current_season:
             current_season = session_db.query(Season).filter_by(is_current=True).first()
 

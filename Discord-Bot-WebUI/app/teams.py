@@ -2408,6 +2408,28 @@ def get_match_rsvp_details(match_id):
     })
 
 
+def _notify_rsvp_change(match_id, player_id, response, player_name=None):
+    """Notify Discord and frontend of an RSVP change from a coach override."""
+    try:
+        from app.tasks.tasks_rsvp import (
+            notify_discord_of_rsvp_change_task,
+            notify_frontend_of_rsvp_change_task,
+        )
+        from app.sockets.rsvp import emit_rsvp_update
+
+        notify_discord_of_rsvp_change_task.delay(match_id)
+        notify_frontend_of_rsvp_change_task.delay(match_id, player_id, response)
+        emit_rsvp_update(
+            match_id=match_id,
+            player_id=player_id,
+            availability=response,
+            source='coach_override',
+            player_name=player_name,
+        )
+    except Exception as e:
+        logger.error(f"Failed to send RSVP notifications for coach override: {e}", exc_info=True)
+
+
 @teams_bp.route('/coach/api/match/<int:match_id>/rsvp/<int:player_id>', methods=['POST'])
 @login_required
 @role_required(['Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'])
@@ -2481,6 +2503,12 @@ def coach_update_player_rsvp(match_id, player_id):
         if availability:
             session.delete(availability)
             session.commit()
+
+        logger.info(f"Coach {user.id} cleared RSVP for player {player_id} on match {match_id}")
+
+        # Sync Discord and frontend
+        _notify_rsvp_change(match_id, player_id, 'no_response', target_player.name)
+
         return jsonify({
             'success': True,
             'message': 'RSVP cleared',
@@ -2507,6 +2535,9 @@ def coach_update_player_rsvp(match_id, player_id):
 
         logger.info(f"Coach {user.id} updated RSVP for player {player_id} on match {match_id}: "
                    f"{old_response} -> {new_response}")
+
+        # Sync Discord and frontend
+        _notify_rsvp_change(match_id, player_id, new_response, target_player.name)
 
         return jsonify({
             'success': True,
