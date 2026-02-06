@@ -1,5 +1,6 @@
 import { EventDelegation } from '../core.js';
 import { ModalManager } from '../../modal-manager.js';
+import { escapeHtml } from '../../utils/sanitize.js';
 
 /**
  * Discord Management Action Handlers
@@ -468,5 +469,113 @@ window.EventDelegation.register('player-sort-change', function(element, e) {
 });
 
 // ============================================================================
+
+/**
+ * Helper: submit Discord ID update to backend
+ */
+function submitDiscordIdUpdate(playerId, discordId) {
+    const csrfToken = document.querySelector('meta[name=csrf-token]')?.getAttribute('content') || '';
+
+    window.Swal.fire({
+        title: 'Updating...',
+        allowOutsideClick: false,
+        didOpen: () => window.Swal.showLoading()
+    });
+
+    fetch(`/admin-panel/discord/players/${playerId}/update-discord-id`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify({ discord_id: discordId })
+    })
+    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+    .then(({ ok, data }) => {
+        if (ok && data.success) {
+            window.Swal.fire({
+                icon: 'success',
+                title: 'Success',
+                text: data.message,
+                timer: 3000,
+                showConfirmButton: false
+            }).then(() => location.reload());
+        } else {
+            window.Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: data.error || 'Failed to update Discord ID'
+            });
+        }
+    })
+    .catch(error => {
+        window.Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Request failed: ' + error.message
+        });
+    });
+}
+
+/**
+ * Edit Player Discord ID Action
+ * Opens SweetAlert2 dialog to update or unlink a player's Discord ID
+ */
+window.EventDelegation.register('edit-player-discord', function(element, e) {
+    e.preventDefault();
+
+    const playerId = element.dataset.playerId;
+    const playerName = element.dataset.playerName || 'this player';
+    const currentDiscordId = element.dataset.discordId || '';
+
+    if (!playerId) {
+        console.error('[edit-player-discord] Missing player ID');
+        return;
+    }
+
+    window.Swal.fire({
+        title: `Edit Discord ID`,
+        html: `<p class="mb-2 text-sm text-gray-600">Player: <strong>${escapeHtml(playerName)}</strong></p>
+               <p class="mb-3 text-xs text-gray-500">Enter the correct 17-20 digit Discord ID number.</p>`,
+        input: 'text',
+        inputValue: currentDiscordId,
+        inputPlaceholder: 'e.g. 655986562827288609',
+        inputAttributes: {
+            autocomplete: 'off',
+            maxlength: 20
+        },
+        showCancelButton: true,
+        showDenyButton: !!currentDiscordId,
+        confirmButtonText: 'Update',
+        denyButtonText: 'Unlink Discord',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('success') : '#28c76f',
+        denyButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455',
+        inputValidator: (value) => {
+            if (!value || !value.trim()) return 'Please enter a Discord ID';
+            if (!/^\d{17,20}$/.test(value.trim())) return 'Must be a 17-20 digit number';
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            submitDiscordIdUpdate(playerId, result.value.trim());
+        } else if (result.isDenied) {
+            // Unlink confirmation
+            window.Swal.fire({
+                title: 'Unlink Discord?',
+                html: `<p>Remove the Discord link from <strong>${escapeHtml(playerName)}</strong>?</p>
+                       <p class="text-sm text-gray-500 mt-2">This will clear all Discord data for this player.</p>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, unlink',
+                cancelButtonText: 'Cancel',
+                confirmButtonColor: (typeof window.ECSTheme !== 'undefined') ? window.ECSTheme.getColor('danger') : '#ea5455'
+            }).then((confirmResult) => {
+                if (confirmResult.isConfirmed) {
+                    submitDiscordIdUpdate(playerId, null);
+                }
+            });
+        }
+    });
+});
 
 // Handlers loaded

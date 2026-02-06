@@ -104,13 +104,13 @@
                        placeholder="Search by name, Discord ID, or username..."
                        class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400">
             </div>
-            <select data-action="player-team-filter" data-on-change="player-team-filter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <select data-on-change="player-team-filter" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="">All Teams</option>
                 {% for team in current_teams %}
                 <option value="{{ team.id }}" {{ 'selected' if team_filter == team.id }}>{{ team.name }}</option>
                 {% endfor %}
             </select>
-            <select data-action="player-sort-change" data-on-change="player-sort-change" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <select data-on-change="player-sort-change" class="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <option value="last_checked:asc" {{ 'selected' if sort_by == 'last_checked' and sort_dir == 'asc' }}>Last Checked (oldest first)</option>
                 <option value="last_checked:desc" {{ 'selected' if sort_by == 'last_checked' and sort_dir == 'desc' }}>Last Checked (newest first)</option>
                 <option value="name:asc" {{ 'selected' if sort_by == 'name' and sort_dir == 'asc' }}>Name (A-Z)</option>
@@ -137,7 +137,7 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Player</th>
-                    <th scope="col" class="px-4 py-3">Discord ID</th>
+                    <th scope="col" class="px-4 py-3">Discord</th>
                     <th scope="col" class="px-4 py-3">Status</th>
                     <th scope="col" class="px-4 py-3">Teams</th>
                     <th scope="col" class="px-4 py-3">Last Checked</th>
@@ -154,7 +154,13 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-3">
-                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ player.discord_id }}</code>
+                        {% if player.discord_username %}
+                        <span class="text-[#5865F2] font-medium text-sm" title="ID: {{ player.discord_id }}">
+                            <i class="ti ti-brand-discord mr-1"></i>{{ player.discord_username }}
+                        </span>
+                        {% else %}
+                        <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" title="No username available">{{ player.discord_id }}</code>
+                        {% endif %}
                     </td>
                     <td class="px-4 py-3">
                         {% if player.discord_in_server == True %}
@@ -187,14 +193,25 @@
                         {% endif %}
                     </td>
                     <td class="px-4 py-3">
-                        <button type="button"
-                                class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg"
-                                data-action="update-player-roles"
-                                data-player-id="{{ player.id }}"
-                                data-player-name="{{ player.name }}"
-                                title="Update Roles">
-                            <i class="ti ti-refresh"></i>
-                        </button>
+                        <div class="flex items-center gap-1">
+                            <button type="button"
+                                    class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg"
+                                    data-action="update-player-roles"
+                                    data-player-id="{{ player.id }}"
+                                    data-player-name="{{ player.name }}"
+                                    title="Update Roles">
+                                <i class="ti ti-refresh"></i>
+                            </button>
+                            <button type="button"
+                                    class="p-2 text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg"
+                                    data-action="edit-player-discord"
+                                    data-player-id="{{ player.id }}"
+                                    data-player-name="{{ player.name }}"
+                                    data-discord-id="{{ player.discord_id or '' }}"
+                                    title="Edit Discord ID">
+                                <i class="ti ti-pencil"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}

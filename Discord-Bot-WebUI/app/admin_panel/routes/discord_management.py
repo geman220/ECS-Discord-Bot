@@ -10,6 +10,7 @@ This module contains routes for Discord server management including:
 - Discord server statistics
 """
 
+import re
 import logging
 from datetime import datetime
 from flask import render_template, request, jsonify, g, redirect, url_for
@@ -334,6 +335,115 @@ def discord_update_player_roles(player_id):
     except Exception as e:
         logger.error(f"Error updating roles for player {player_id}: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/discord/players/<int:player_id>/update-discord-id', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def discord_update_player_discord_id(player_id):
+    """Update or unlink a player's Discord ID."""
+    session = g.db_session
+    player = session.query(Player).get(player_id)
+    if not player:
+        return jsonify({'success': False, 'error': 'Player not found'}), 404
+
+    data = request.get_json()
+    new_discord_id = data.get('discord_id')
+    old_discord_id = player.discord_id
+
+    # Unlink case
+    if new_discord_id is None:
+        player.discord_id = None
+        player.discord_username = None
+        player.discord_in_server = None
+        player.discord_last_checked = None
+        player.discord_roles = None
+        player.discord_last_verified = None
+        player.discord_needs_update = False
+        player.discord_roles_synced = False
+        player.last_sync_attempt = None
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='discord_id_unlinked',
+            resource_type='player',
+            resource_id=str(player_id),
+            old_value=old_discord_id,
+            new_value=None,
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Discord ID unlinked from {player.name}'
+        })
+
+    # Validate format: 17-20 digit numeric string
+    new_discord_id = str(new_discord_id).strip()
+    if not re.match(r'^\d{17,20}$', new_discord_id):
+        return jsonify({
+            'success': False,
+            'error': 'Invalid Discord ID format. Must be a 17-20 digit number.'
+        }), 400
+
+    # No change
+    if new_discord_id == old_discord_id:
+        return jsonify({
+            'success': False,
+            'error': 'This is already the current Discord ID.'
+        }), 400
+
+    # Check uniqueness
+    existing = session.query(Player).filter(
+        Player.discord_id == new_discord_id,
+        Player.id != player_id
+    ).first()
+    if existing:
+        return jsonify({
+            'success': False,
+            'error': f'Discord ID already linked to another player: {existing.name}'
+        }), 409
+
+    # Update and reset stale fields
+    player.discord_id = new_discord_id
+    player.discord_username = None
+    player.discord_in_server = None
+    player.discord_last_checked = None
+    player.discord_roles = None
+    player.discord_last_verified = None
+    player.discord_needs_update = True
+    player.discord_roles_synced = False
+    player.last_sync_attempt = None
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='discord_id_updated',
+        resource_type='player',
+        resource_id=str(player_id),
+        old_value=old_discord_id,
+        new_value=new_discord_id,
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    # Trigger role sync to the new Discord account
+    role_sync_message = ''
+    try:
+        task_result = update_player_discord_roles.delay(player_id).get(timeout=30)
+        if task_result.get('success'):
+            role_sync_message = 'Roles synced to new Discord account.'
+        else:
+            role_sync_message = f"Role sync issue: {task_result.get('message', 'Unknown error')}"
+    except Exception as e:
+        logger.warning(f"Role sync after Discord ID update failed for player {player_id}: {e}")
+        role_sync_message = 'Role sync was queued but may still be processing.'
+
+    return jsonify({
+        'success': True,
+        'message': f'Discord ID updated for {player.name}. {role_sync_message}'
+    })
 
 
 @admin_panel_bp.route('/discord/roles/sync-all', methods=['POST'])
