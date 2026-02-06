@@ -15,7 +15,7 @@ import logging
 from datetime import datetime
 from flask import render_template, request, jsonify, g, redirect, url_for
 from flask_login import login_required, current_user
-from sqlalchemy.orm import joinedload, contains_eager
+from sqlalchemy.orm import joinedload
 
 from .. import admin_panel_bp
 from app.decorators import role_required
@@ -160,13 +160,11 @@ def discord_players():
         # Apply search filter
         if search_query:
             search_pattern = f'%{search_query}%'
-            filtered_query = filtered_query.outerjoin(Player.user).options(
-                contains_eager(Player.user)
-            ).filter(
+            filtered_query = filtered_query.filter(
                 (Player.name.ilike(search_pattern)) |
                 (Player.discord_id.ilike(search_pattern)) |
                 (Player.discord_username.ilike(search_pattern)) |
-                (User.username.ilike(search_pattern))
+                (Player.user.has(User.username.ilike(search_pattern)))
             )
 
         # Apply team filter
@@ -427,6 +425,9 @@ def discord_update_player_discord_id(player_id):
         ip_address=request.remote_addr,
         user_agent=request.headers.get('User-Agent')
     )
+
+    # Commit now so the Celery worker sees the new discord_id
+    session.commit()
 
     # Trigger role sync to the new Discord account
     role_sync_message = ''
