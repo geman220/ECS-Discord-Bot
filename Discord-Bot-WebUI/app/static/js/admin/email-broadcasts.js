@@ -291,6 +291,11 @@ function collectFormData() {
     };
 }
 
+function getEditCampaignId() {
+    const page = document.querySelector('[data-page="email-broadcasts-compose"]');
+    return page?.dataset?.campaignId || null;
+}
+
 async function handleSaveDraft() {
     const data = collectFormData();
     if (!data.name || !data.subject || !data.body_html) {
@@ -298,9 +303,15 @@ async function handleSaveDraft() {
         return;
     }
 
+    const editId = getEditCampaignId();
+    const url = editId
+        ? `${ADMIN_BASE}/communication/email-broadcasts/${editId}`
+        : `${ADMIN_BASE}/communication/email-broadcasts`;
+    const method = editId ? 'PUT' : 'POST';
+
     try {
-        const resp = await fetch(`${ADMIN_BASE}/communication/email-broadcasts`, {
-            method: 'POST',
+        const resp = await fetch(url, {
+            method,
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
             body: JSON.stringify(data),
         });
@@ -308,7 +319,7 @@ async function handleSaveDraft() {
 
         if (result.success) {
             window.Swal.fire({
-                title: 'Draft Saved',
+                title: editId ? 'Draft Updated' : 'Draft Saved',
                 text: result.message,
                 icon: 'success',
                 confirmButtonColor: '#1a472a',
@@ -324,11 +335,11 @@ async function handleSaveDraft() {
 }
 
 async function handleSendCampaign(element) {
-    // If on compose page, create campaign first then send
     const campaignId = element?.dataset?.campaignId;
+    const editId = getEditCampaignId();
 
-    if (!campaignId) {
-        // Compose page: create + send
+    if (!campaignId && !editId) {
+        // Compose page (new): create + send
         const data = collectFormData();
         if (!data.name || !data.subject || !data.body_html) {
             window.Swal.fire('Missing Fields', 'Please fill in campaign name, subject, and email content.', 'warning');
@@ -346,7 +357,6 @@ async function handleSendCampaign(element) {
         if (!confirm.isConfirmed) return;
 
         try {
-            // Create campaign
             const createResp = await fetch(`${ADMIN_BASE}/communication/email-broadcasts`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
@@ -359,7 +369,6 @@ async function handleSendCampaign(element) {
                 return;
             }
 
-            // Send it
             const sendResp = await fetch(`${ADMIN_BASE}/communication/email-broadcasts/${createResult.campaign.id}/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
@@ -377,6 +386,60 @@ async function handleSendCampaign(element) {
                 });
             } else {
                 window.Swal.fire('Error', sendResult.error || 'Failed to start send', 'error');
+            }
+        } catch (e) {
+            window.Swal.fire('Error', 'Network error', 'error');
+        }
+    } else if (editId) {
+        // Edit page: update + send
+        const data = collectFormData();
+        if (!data.name || !data.subject || !data.body_html) {
+            window.Swal.fire('Missing Fields', 'Please fill in campaign name, subject, and email content.', 'warning');
+            return;
+        }
+
+        const confirm = await window.Swal.fire({
+            title: 'Save & Send Campaign?',
+            html: `This will save your changes and begin sending to all recipients.<br>This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Save & Send',
+            confirmButtonColor: '#1a472a',
+        });
+        if (!confirm.isConfirmed) return;
+
+        try {
+            // Update first
+            const updateResp = await fetch(`${ADMIN_BASE}/communication/email-broadcasts/${editId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+                body: JSON.stringify(data),
+            });
+            const updateResult = await updateResp.json();
+
+            if (!updateResult.success) {
+                window.Swal.fire('Error', updateResult.error || 'Failed to update campaign', 'error');
+                return;
+            }
+
+            // Then send
+            const sendResp = await fetch(`${ADMIN_BASE}/communication/email-broadcasts/${editId}/send`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken() },
+            });
+            const sendResult = await sendResp.json();
+
+            if (sendResult.success) {
+                window.Swal.fire({
+                    title: 'Sending Started',
+                    text: 'Campaign is now being sent.',
+                    icon: 'success',
+                    confirmButtonColor: '#1a472a',
+                }).then(() => {
+                    window.location.href = `${ADMIN_BASE}/communication/email-broadcasts/${editId}`;
+                });
+            } else {
+                window.Swal.fire('Error', sendResult.error || 'Failed to send', 'error');
             }
         } catch (e) {
             window.Swal.fire('Error', 'Network error', 'error');
@@ -720,7 +783,7 @@ function initTinyMCE() {
         selector: '#emailBody',
         height: 400,
         menubar: false,
-        plugins: 'lists link image table code wordcount',
+        plugins: 'lists link image table code wordcount autolink',
         toolbar: 'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image table | inserttokens | code',
         content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
         skin: isDark ? 'oxide-dark' : 'oxide',
@@ -754,6 +817,9 @@ async function loadTemplateDropdown() {
     const select = document.getElementById('templateSelect');
     if (!select) return;
 
+    // Check if edit mode has a pre-selected template
+    const preSelected = select.dataset.selectedTemplate || '';
+
     try {
         const resp = await fetch(`${ADMIN_BASE}/api/email-templates/list`);
         const data = await resp.json();
@@ -764,7 +830,12 @@ async function loadTemplateDropdown() {
             const option = document.createElement('option');
             option.value = t.id;
             option.textContent = t.name + (t.is_default ? ' (Default)' : '');
-            if (t.is_default) option.selected = true;
+            // In edit mode, select the campaign's template; otherwise select default
+            if (preSelected) {
+                if (String(t.id) === String(preSelected)) option.selected = true;
+            } else {
+                if (t.is_default) option.selected = true;
+            }
             select.appendChild(option);
         });
     } catch (e) {

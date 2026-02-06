@@ -194,6 +194,7 @@ class CeleryConfig:
         'app.tasks.security_cleanup.*': {'queue': 'celery'},
         'app.tasks.tasks_notification_reminders.*': {'queue': 'celery'},
         'app.tasks.tasks_push_notifications.*': {'queue': 'celery'},
+        'app.tasks.tasks_email_broadcast.*': {'queue': 'celery'},
     }
 
     # Beat Configuration

@@ -1,7 +1,9 @@
 {% extends "admin_panel/base_flowbite.html" %}
 
-{% block admin_title %}Compose Email Broadcast{% endblock %}
-{% block panel_description %}Create and send a bulk email campaign{% endblock %}
+{% set is_edit = campaign is defined and campaign is not none %}
+
+{% block admin_title %}{{ 'Edit' if is_edit else 'Compose' }} Email Broadcast{% endblock %}
+{% block panel_description %}{{ 'Edit draft campaign' if is_edit else 'Create and send a bulk email campaign' }}{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -19,7 +21,7 @@
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
-        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Compose</span>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">{{ 'Edit' if is_edit else 'Compose' }}</span>
     </div>
 </li>
 {% endblock %}
@@ -39,7 +41,7 @@
 {% endblock %}
 
 {% block panel_content %}
-<div data-page="email-broadcasts-compose">
+<div data-page="email-broadcasts-compose"{% if is_edit %} data-campaign-id="{{ campaign.id }}"{% endif %}>
 
 <form id="emailBroadcastForm" class="space-y-6">
 
@@ -53,13 +55,15 @@
                 <label for="campaignName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Campaign Name</label>
                 <input type="text" id="campaignName" name="name"
                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                       placeholder="e.g. Spring Season Kickoff" required>
+                       placeholder="e.g. Spring Season Kickoff"
+                       value="{{ campaign.name if is_edit else '' }}" required>
             </div>
             <div>
                 <label for="campaignSubject" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email Subject</label>
                 <input type="text" id="campaignSubject" name="subject"
                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                       placeholder="e.g. Important Update from ECS FC" required>
+                       placeholder="e.g. Important Update from ECS FC"
+                       value="{{ campaign.subject if is_edit else '' }}" required>
             </div>
         </div>
     </div>
@@ -71,7 +75,7 @@
                 <i class="ti ti-users text-ecs-green mr-2"></i>Recipients
             </h3>
             <span id="recipientCount" class="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full text-sm font-medium">
-                0 recipients
+                {% if is_edit %}{{ campaign.total_recipients }} recipient{{ 's' if campaign.total_recipients != 1 else '' }}{% else %}0 recipients{% endif %}
             </span>
         </div>
 
@@ -80,14 +84,16 @@
                 <label for="filterType" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Filter Type</label>
                 <select id="filterType" name="filter_type" data-on-change="email-filter-change"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-                    <option value="all_active">All Active Users</option>
-                    <option value="current_season_players">Current Season Players</option>
-                    <option value="ecs_members">ECS Members (Active Membership)</option>
-                    <option value="by_team">By Team</option>
-                    <option value="by_league">By League</option>
-                    <option value="by_role">By System Role</option>
-                    <option value="by_discord_role">By Discord Role</option>
-                    <option value="specific_users">Specific Users</option>
+                    {% set fc = campaign.filter_criteria if is_edit else {} %}
+                    {% set ft = fc.get('type', 'all_active') if fc else 'all_active' %}
+                    <option value="all_active" {{ 'selected' if ft == 'all_active' }}>All Active Users</option>
+                    <option value="current_season_players" {{ 'selected' if ft == 'current_season_players' }}>Current Season Players</option>
+                    <option value="ecs_members" {{ 'selected' if ft == 'ecs_members' }}>ECS Members (Active Membership)</option>
+                    <option value="by_team" {{ 'selected' if ft == 'by_team' }}>By Team</option>
+                    <option value="by_league" {{ 'selected' if ft == 'by_league' }}>By League</option>
+                    <option value="by_role" {{ 'selected' if ft == 'by_role' }}>By System Role</option>
+                    <option value="by_discord_role" {{ 'selected' if ft == 'by_discord_role' }}>By Discord Role</option>
+                    <option value="specific_users" {{ 'selected' if ft == 'specific_users' }}>Specific Users</option>
                 </select>
             </div>
 
@@ -95,9 +101,11 @@
             <div id="subFilterTeam" class="hidden md:col-span-2">
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Teams <span class="text-xs text-gray-500 font-normal">(select one or more)</span></label>
                 <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700 space-y-1">
+                    {% set selected_teams = (fc.get('team_ids', []) if fc else [])|map('string')|list %}
                     {% for team in teams %}
                     <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
                         <input type="checkbox" name="team_ids" value="{{ team.id }}" data-on-change="email-subfilter-change"
+                               {{ 'checked' if team.id|string in selected_teams }}
                                class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
                         {{ team.name }}
                     </label>
@@ -108,9 +116,11 @@
             <div id="subFilterLeague" class="hidden md:col-span-2">
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Leagues <span class="text-xs text-gray-500 font-normal">(select one or more)</span></label>
                 <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700 space-y-1">
+                    {% set selected_leagues = (fc.get('league_ids', []) if fc else [])|map('string')|list %}
                     {% for league in leagues %}
                     <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
                         <input type="checkbox" name="league_ids" value="{{ league.id }}" data-on-change="email-subfilter-change"
+                               {{ 'checked' if league.id|string in selected_leagues }}
                                class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
                         {{ league.name }}
                     </label>
@@ -118,6 +128,7 @@
                 </div>
                 <label class="flex items-center gap-2 cursor-pointer mt-2 text-sm text-gray-700 dark:text-gray-300">
                     <input type="checkbox" id="leagueActiveOnly" data-on-change="email-subfilter-change"
+                           {{ 'checked' if fc and fc.get('active_only') }}
                            class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
                     Active players only <span class="text-xs text-gray-500 font-normal">(current season)</span>
                 </label>
@@ -126,9 +137,11 @@
             <div id="subFilterRole" class="hidden md:col-span-2">
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Roles <span class="text-xs text-gray-500 font-normal">(select one or more)</span></label>
                 <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700 space-y-1">
+                    {% set selected_roles = (fc.get('role_names', []) if fc else []) %}
                     {% for role in roles %}
                     <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
                         <input type="checkbox" name="role_names" value="{{ role.name }}" data-on-change="email-subfilter-change"
+                               {{ 'checked' if role.name in selected_roles }}
                                class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
                         {{ role.name }}
                     </label>
@@ -140,7 +153,8 @@
                 <label for="filterDiscordRole" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Discord Role Name</label>
                 <input type="text" id="filterDiscordRole" name="discord_role"
                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                       placeholder="e.g. ECS Member">
+                       placeholder="e.g. ECS Member"
+                       value="{{ fc.get('discord_role', '') if fc else '' }}">
             </div>
 
             <div id="subFilterSpecificUsers" class="hidden md:col-span-2">
@@ -178,6 +192,7 @@
             <div>
                 <label for="templateSelect" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Wrapper Template</label>
                 <select id="templateSelect" name="template_id"
+                        data-selected-template="{{ campaign.template_id if is_edit and campaign.template_id else '' }}"
                         class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                     <option value="">No wrapper (raw HTML)</option>
                     <!-- Populated by JS from /api/email-templates/list -->
@@ -206,13 +221,15 @@
                 <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Send Mode</label>
                 <div class="space-y-2">
                     <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="radio" name="send_mode" value="bcc_batch" checked
+                        <input type="radio" name="send_mode" value="bcc_batch"
+                               {{ 'checked' if not is_edit or campaign.send_mode == 'bcc_batch' }}
                                data-on-change="email-send-mode-toggle"
                                class="w-4 h-4 text-ecs-green focus:ring-ecs-green">
                         <span class="text-sm text-gray-700 dark:text-gray-300">BCC Batch (faster, non-personalized)</span>
                     </label>
                     <label class="flex items-center gap-2 cursor-pointer">
                         <input type="radio" name="send_mode" value="individual"
+                               {{ 'checked' if is_edit and campaign.send_mode == 'individual' }}
                                data-on-change="email-send-mode-toggle"
                                class="w-4 h-4 text-ecs-green focus:ring-ecs-green">
                         <span class="text-sm text-gray-700 dark:text-gray-300">Individual (personalized with tokens)</span>
@@ -223,6 +240,7 @@
             <div>
                 <label class="flex items-center gap-2 cursor-pointer mb-2">
                     <input type="checkbox" id="forceSend" name="force_send" value="1"
+                           {{ 'checked' if is_edit and campaign.force_send }}
                            data-on-change="email-force-send-toggle"
                            class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded">
                     <span class="text-sm font-medium text-gray-900 dark:text-white">Force Send</span>
@@ -234,7 +252,8 @@
 
             <div>
                 <label for="bccBatchSize" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">BCC Batch Size</label>
-                <input type="number" id="bccBatchSize" name="bcc_batch_size" value="100" min="1" max="100"
+                <input type="number" id="bccBatchSize" name="bcc_batch_size"
+                       value="{{ campaign.bcc_batch_size if is_edit else 100 }}" min="1" max="100"
                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 100 per batch (Gmail limit)</p>
             </div>
@@ -258,7 +277,7 @@
         </div>
 
         <!-- Token help (shown only for individual mode) -->
-        <div id="tokenHelp" class="hidden mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <div id="tokenHelp" class="{{ '' if is_edit and campaign.send_mode == 'individual' else 'hidden' }} mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p class="text-sm text-blue-800 dark:text-blue-300 font-medium mb-1">Available Personalization Tokens:</p>
             <div class="flex flex-wrap gap-2 text-xs">
                 <code class="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 rounded">{name}</code>
@@ -269,7 +288,7 @@
             </div>
         </div>
 
-        <textarea id="emailBody" name="body_html"></textarea>
+        <textarea id="emailBody" name="body_html">{{ campaign.body_html if is_edit else '' }}</textarea>
     </div>
 
     <!-- Section 5: Actions -->
@@ -280,13 +299,13 @@
         </button>
         <button type="button" data-action="email-save-draft"
                 class="inline-flex items-center gap-2 px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            <i class="ti ti-device-floppy"></i> Save as Draft
+            <i class="ti ti-device-floppy"></i> {{ 'Update Draft' if is_edit else 'Save as Draft' }}
         </button>
-        <button type="button" data-action="email-send-campaign"
+        <button type="button" data-action="email-send-campaign"{% if is_edit %} data-campaign-id="{{ campaign.id }}"{% endif %}
                 class="inline-flex items-center gap-2 px-4 py-2.5 text-sm bg-ecs-green text-white rounded-lg hover:bg-green-700 transition-colors">
-            <i class="ti ti-send"></i> Create &amp; Send Now
+            <i class="ti ti-send"></i> {{ 'Save & Send Now' if is_edit else 'Create &amp; Send Now' }}
         </button>
-        <a href="{{ url_for('admin_panel.email_broadcasts_list') }}"
+        <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) if is_edit else url_for('admin_panel.email_broadcasts_list') }}"
            class="inline-flex items-center gap-2 px-4 py-2.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
             Cancel
         </a>

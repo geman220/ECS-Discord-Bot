@@ -6,6 +6,7 @@ Email Broadcast Celery Tasks
 Background task for processing email campaign sends (BCC batch and individual).
 """
 
+import re
 import time
 import logging
 from datetime import datetime
@@ -17,6 +18,37 @@ from app.email import send_email, send_email_bcc
 from app.services.email_broadcast_service import email_broadcast_service
 
 logger = logging.getLogger(__name__)
+
+
+def linkify_urls(html):
+    """Convert bare URLs in HTML text nodes to clickable <a> tags.
+
+    Splits HTML into tag/text segments so that URLs already inside
+    <a> tags or tag attributes are never double-linked.
+    """
+    parts = re.split(r'(<[^>]+>)', html)
+    result = []
+    in_a_tag = False
+
+    for part in parts:
+        if part.startswith('<'):
+            lower = part.lower()
+            if lower.startswith('<a ') or lower.startswith('<a>'):
+                in_a_tag = True
+            elif lower.startswith('</a'):
+                in_a_tag = False
+            result.append(part)
+        else:
+            if in_a_tag:
+                result.append(part)
+            else:
+                result.append(re.sub(
+                    r'(https?://[^\s<>"\']+)',
+                    r'<a href="\1" target="_blank" style="color: #1a472a; text-decoration: underline;">\1</a>',
+                    part
+                ))
+
+    return ''.join(result)
 
 
 @celery_task(
@@ -66,6 +98,9 @@ def send_email_broadcast(self, session, campaign_id):
             wrapper_html = campaign.body_html
     else:
         wrapper_html = campaign.body_html
+
+    # Auto-link bare URLs in the final HTML
+    wrapper_html = linkify_urls(wrapper_html)
 
     try:
         if campaign.send_mode == 'bcc_batch':
@@ -211,6 +246,9 @@ def _send_individual(session, campaign, wrapper_html):
                 personalized_html = p_body
         else:
             personalized_html = p_body
+
+        # Auto-link bare URLs
+        personalized_html = linkify_urls(personalized_html)
 
         result = send_email(user.email, p_subject, personalized_html)
         now = datetime.utcnow()

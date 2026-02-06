@@ -104,6 +104,10 @@
 <!-- Actions -->
 <div class="flex flex-wrap items-center gap-3 mb-6">
     {% if campaign.status == 'draft' %}
+    <a href="{{ url_for('admin_panel.email_broadcast_edit', campaign_id=campaign.id) }}"
+       class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+        <i class="ti ti-edit"></i> Edit
+    </a>
     <button type="button" data-action="email-send-campaign" data-campaign-id="{{ campaign.id }}"
             class="inline-flex items-center gap-2 px-4 py-2 text-sm bg-ecs-green text-white rounded-lg hover:bg-green-700 transition-colors">
         <i class="ti ti-send"></i> Send Now

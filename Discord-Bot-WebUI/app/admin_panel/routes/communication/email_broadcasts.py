@@ -124,6 +124,45 @@ def email_broadcast_detail(campaign_id):
         return redirect(url_for('admin_panel.email_broadcasts_list'))
 
 
+@admin_panel_bp.route('/communication/email-broadcasts/<int:campaign_id>/edit')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def email_broadcast_edit(campaign_id):
+    """Edit an existing draft campaign."""
+    try:
+        campaign = EmailCampaign.query.get_or_404(campaign_id)
+        if campaign.status != 'draft':
+            flash('Only draft campaigns can be edited', 'warning')
+            return redirect(url_for('admin_panel.email_broadcast_detail', campaign_id=campaign_id))
+
+        # Same data as compose page
+        teams = Team.query.join(League, Team.league_id == League.id).join(
+            Season, League.season_id == Season.id
+        ).filter(
+            Season.is_current == True,
+            Team.is_active == True,
+        ).order_by(Team.name).all()
+
+        leagues = League.query.join(
+            Season, League.season_id == Season.id
+        ).filter(Season.is_current == True).order_by(League.name).all()
+
+        roles = Role.query.order_by(Role.name).all()
+
+        return render_template(
+            'admin_panel/communication/email_broadcast_compose_flowbite.html',
+            teams=teams,
+            leagues=leagues,
+            roles=roles,
+            campaign=campaign,
+            page_title=f'Edit: {campaign.name}',
+        )
+    except Exception as e:
+        logger.error(f"Error loading edit page: {e}", exc_info=True)
+        flash('Error loading edit page', 'error')
+        return redirect(url_for('admin_panel.email_broadcast_detail', campaign_id=campaign_id))
+
+
 # ---------------------------------------------------------------------------
 # JSON API endpoints
 # ---------------------------------------------------------------------------
@@ -193,6 +232,94 @@ def email_broadcast_create():
 
     except Exception as e:
         logger.error(f"Error creating email campaign: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/communication/email-broadcasts/<int:campaign_id>', methods=['PUT'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def email_broadcast_update(campaign_id):
+    """Update an existing draft campaign (JSON API)."""
+    try:
+        campaign = EmailCampaign.query.get(campaign_id)
+        if not campaign:
+            return jsonify({'success': False, 'error': 'Campaign not found'}), 404
+
+        if campaign.status != 'draft':
+            return jsonify({'success': False, 'error': 'Only draft campaigns can be edited'}), 400
+
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
+
+        name = (data.get('name') or '').strip()
+        subject = (data.get('subject') or '').strip()
+        body_html = (data.get('body_html') or '').strip()
+        filter_criteria = data.get('filter_criteria')
+
+        if not name or not subject or not body_html:
+            return jsonify({'success': False, 'error': 'Name, subject, and body are required'}), 400
+
+        if not filter_criteria or not filter_criteria.get('type'):
+            return jsonify({'success': False, 'error': 'Filter criteria is required'}), 400
+
+        session = db.session
+        filter_desc = email_broadcast_service.build_filter_description(session, filter_criteria)
+
+        # Validate template_id if provided
+        template_id = data.get('template_id')
+        if template_id:
+            template = EmailTemplate.query.get(int(template_id))
+            if not template or template.is_deleted:
+                return jsonify({'success': False, 'error': 'Selected template not found'}), 400
+            template_id = template.id
+        else:
+            template_id = None
+
+        # Check if filter criteria changed - if so, re-resolve recipients
+        filters_changed = (campaign.filter_criteria != filter_criteria or
+                           campaign.force_send != bool(data.get('force_send', False)))
+
+        # Update campaign fields
+        campaign.name = name
+        campaign.subject = subject
+        campaign.body_html = body_html
+        campaign.template_id = template_id
+        campaign.send_mode = data.get('send_mode', 'bcc_batch')
+        campaign.force_send = bool(data.get('force_send', False))
+        campaign.bcc_batch_size = int(data.get('bcc_batch_size', 100))
+        campaign.filter_criteria = filter_criteria
+        campaign.filter_description = filter_desc
+
+        if filters_changed:
+            # Delete old recipients and re-resolve
+            EmailCampaignRecipient.query.filter_by(campaign_id=campaign.id).delete()
+            recipients = email_broadcast_service.resolve_recipients(
+                session, filter_criteria, campaign.force_send
+            )
+            for r in recipients:
+                recipient = EmailCampaignRecipient(
+                    campaign_id=campaign.id,
+                    user_id=r['user_id'],
+                    recipient_name=r['name'],
+                    status='pending',
+                )
+                session.add(recipient)
+            campaign.total_recipients = len(recipients)
+            campaign.sent_count = 0
+            campaign.failed_count = 0
+
+        session.flush()
+
+        return jsonify({
+            'success': True,
+            'campaign': campaign.to_dict(),
+            'message': f'Campaign updated with {campaign.total_recipients} recipients',
+        })
+
+    except Exception as e:
+        logger.error(f"Error updating campaign {campaign_id}: {e}", exc_info=True)
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
