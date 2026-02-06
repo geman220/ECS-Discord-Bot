@@ -407,12 +407,16 @@ def email_broadcast_reset_to_draft(campaign_id):
         campaign.completed_at = None
         campaign.celery_task_id = None
 
-        # Reset all pending/skipped recipients back to pending
+        # Reset all unsent recipients back to pending
         EmailCampaignRecipient.query.filter_by(
             campaign_id=campaign_id
         ).filter(
-            EmailCampaignRecipient.status.in_(['pending', 'skipped'])
+            EmailCampaignRecipient.status.in_(['pending', 'skipped', 'failed'])
         ).update({'status': 'pending', 'error_message': None}, synchronize_session='fetch')
+
+        # Reset counters
+        campaign.sent_count = 0
+        campaign.failed_count = 0
 
         return jsonify({'success': True, 'message': 'Campaign reset to draft'})
 
