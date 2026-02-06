@@ -140,7 +140,7 @@ def send_email_bcc(bcc_list, subject, body):
 
     try:
         message = MIMEText(body, "html")
-        message['to'] = 'undisclosed-recipients:;'
+        message['to'] = 'donotreply@weareecs.com'
         message['from'] = 'donotreply@weareecs.com'
         message['bcc'] = ', '.join(bcc_list)
         message['subject'] = subject
