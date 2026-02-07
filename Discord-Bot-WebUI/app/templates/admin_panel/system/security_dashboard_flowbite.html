@@ -251,9 +251,8 @@
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
                 <th scope="col" class="px-4 py-3">IP Address</th>
-                <th scope="col" class="px-4 py-3">Request Count</th>
-                <th scope="col" class="px-4 py-3">Attack Count</th>
-                <th scope="col" class="px-4 py-3">Last Seen</th>
+                <th scope="col" class="px-4 py-3">Requests (1hr)</th>
+                <th scope="col" class="px-4 py-3">Attack Attempts</th>
                 <th scope="col" class="px-4 py-3">Status</th>
             </tr>
         </thead>
@@ -261,19 +260,20 @@
             {% for ip in stats.monitored_ips %}
             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                 <td class="px-4 py-3"><code class="text-xs">{{ ip.ip }}</code></td>
-                <td class="px-4 py-3">{{ ip.request_count }}</td>
+                <td class="px-4 py-3">{{ ip.requests_last_hour }}</td>
                 <td class="px-4 py-3">
-                    {% if ip.attack_count > 0 %}
-                    <span class="text-red-600 dark:text-red-400 font-bold">{{ ip.attack_count }}</span>
+                    {% if ip.attack_attempts > 0 %}
+                    <span class="text-red-600 dark:text-red-400 font-bold">{{ ip.attack_attempts }}</span>
                     {% else %}
                     <span class="text-gray-400">0</span>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3 text-xs">{{ ip.last_seen }}</td>
                 <td class="px-4 py-3">
-                    {% if ip.attack_count >= stats.auto_ban_config.attack_threshold %}
+                    {% if ip.is_blacklisted %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Blacklisted</span>
+                    {% elif ip.attack_attempts >= stats.auto_ban_config.attack_threshold %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">At Risk</span>
-                    {% elif ip.attack_count > 0 %}
+                    {% elif ip.attack_attempts > 0 %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Warning</span>
                     {% else %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Normal</span>

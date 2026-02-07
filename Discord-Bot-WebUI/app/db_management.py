@@ -42,8 +42,12 @@ def get_backend_pid(conn):
     Returns None for non-PostgreSQL databases.
     """
     try:
-        if hasattr(conn, 'connection'):
+        if hasattr(conn, 'driver_connection'):
             # Check if it's a PostgreSQL connection with get_backend_pid method
+            if hasattr(conn.driver_connection, 'get_backend_pid'):
+                return conn.driver_connection.get_backend_pid()
+        elif hasattr(conn, 'connection'):
+            # Fallback for older SQLAlchemy versions
             if hasattr(conn.connection, 'get_backend_pid'):
                 return conn.connection.get_backend_pid()
         elif hasattr(conn, 'get_backend_pid'):

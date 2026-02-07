@@ -268,6 +268,14 @@ class SecurityEvent(db.Model):
         ).order_by(cls.created_at.desc()).limit(limit).all()
     
     @classmethod
+    def get_events_for_ip(cls, ip_address, since=None, limit=100):
+        """Get security events for a specific IP address."""
+        query = db.session.query(cls).filter(cls.ip_address == ip_address)
+        if since:
+            query = query.filter(cls.created_at >= since)
+        return query.order_by(cls.created_at.desc()).limit(limit).all()
+
+    @classmethod
     def cleanup_old_events(cls, days=30):
         """Clean up old security events."""
         cutoff = datetime.utcnow() - timedelta(days=days)

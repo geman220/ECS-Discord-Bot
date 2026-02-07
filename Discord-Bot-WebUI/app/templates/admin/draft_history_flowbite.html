@@ -132,8 +132,7 @@
                                                        data-pick-id="{{ pick.id }}"
                                                        data-draft-position="{{ pick.draft_position }}"
                                                        data-notes="{{ pick.notes|default('') }}"
-                                                       data-player-name="{{ pick.player.name }}"
-                                                       data-modal-toggle="editDraftPickModal">
+                                                       data-player-name="{{ pick.player.name }}">
                                                         <i class="ti ti-edit mr-2"></i>Edit
                                                     </a>
                                                 </li>
@@ -245,6 +244,13 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('editPlayerName').value = this.dataset.playerName;
             document.getElementById('editDraftPosition').value = this.dataset.draftPosition;
             document.getElementById('editNotes').value = this.dataset.notes || '';
+            // Reset radio to default
+            const smartRadio = document.querySelector('input[name="positionMode"][value="smart"]');
+            if (smartRadio) smartRadio.checked = true;
+            // Open modal programmatically
+            if (window.ModalManager) {
+                window.ModalManager.show('editDraftPickModal');
+            }
         });
     });
 
@@ -262,15 +268,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 'Content-Type': 'application/json',
                 'X-CSRFToken': csrfToken
             },
-            body: JSON.stringify({ draft_position: newPosition, notes: notes, mode: mode })
+            body: JSON.stringify({ position: parseInt(newPosition), notes: notes, mode: mode })
         })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                if (window.ModalManager) window.ModalManager.hide('editDraftPickModal');
                 Swal.fire({
                     icon: 'success',
                     title: 'Updated',
-                    text: 'Draft pick updated successfully.',
+                    text: data.message || 'Draft pick updated successfully.',
                     background: isDark ? '#1f2937' : '#ffffff',
                     color: isDark ? '#f3f4f6' : '#111827'
                 }).then(() => location.reload());
@@ -278,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
-                    text: data.error || 'Failed to update draft pick.',
+                    text: data.message || data.error || 'Failed to update draft pick.',
                     background: isDark ? '#1f2937' : '#ffffff',
                     color: isDark ? '#f3f4f6' : '#111827'
                 });
@@ -306,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then((result) => {
                 if (result.isConfirmed) {
                     fetch(`/admin/draft-history/delete/${pickId}`, {
-                        method: 'POST',
+                        method: 'DELETE',
                         headers: { 'X-CSRFToken': csrfToken }
                     })
                     .then(res => res.json())

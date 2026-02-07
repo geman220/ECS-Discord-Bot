@@ -236,14 +236,14 @@ def smart_ban_cleanup(self, session):
                     logger.info(f"Smart cleanup: Unbanned first-time offender {ban.ip_address} after clean behavior")
                     
                     # Log security event
-                    SecurityEvent.create(
-                        ip_address=ban.ip_address,
+                    SecurityEvent.log_event(
                         event_type='smart_unban',
+                        ip_address=ban.ip_address,
                         severity='low',
                         description=f'IP unbanned by smart cleanup after {ban_duration} of clean behavior',
                         user_agent='SYSTEM_SMART_CLEANUP',
-                        path='/security/smart_cleanup',
-                        method='SYSTEM'
+                        request_path='/security/smart_cleanup',
+                        request_method='SYSTEM'
                     )
             
             elif violations_since_ban > 0:

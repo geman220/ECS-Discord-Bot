@@ -42,11 +42,8 @@ class DraftHistoryManager {
     }
 
     setupEventListeners() {
-        // Edit form submission
-        const editForm = document.getElementById('editDraftPickForm');
-        if (editForm) {
-            editForm.addEventListener('submit', (e) => this.handleEditSubmit(e));
-        }
+        // Edit form submission is handled by the inline script in the template
+        // to avoid duplicate handlers
     }
 
     // Initialize drag and drop functionality
