@@ -483,14 +483,20 @@ def edit_user_comprehensive(user_id):
                                 is_coach=user.player.is_coach
                             )
                             db.session.add(team_history)
-                            # Create PlayerTeamSeason record for current season
+                            # Create PlayerTeamSeason record for current season (if not already exists)
                             if team_to_add.league and team_to_add.league.season_id:
-                                player_team_season = PlayerTeamSeason(
+                                existing_pts = PlayerTeamSeason.query.filter_by(
                                     player_id=user.player.id,
                                     team_id=team_id,
                                     season_id=team_to_add.league.season_id
-                                )
-                                db.session.add(player_team_season)
+                                ).first()
+                                if not existing_pts:
+                                    player_team_season = PlayerTeamSeason(
+                                        player_id=user.player.id,
+                                        team_id=team_id,
+                                        season_id=team_to_add.league.season_id
+                                    )
+                                    db.session.add(player_team_season)
                             logger.info(f"Added player {user.player.id} to team {team_id} (with history and season records)")
 
             # Update roles - including auto league-to-role mapping
