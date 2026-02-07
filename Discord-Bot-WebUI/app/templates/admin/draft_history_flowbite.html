@@ -59,6 +59,17 @@
         </form>
     </div>
 
+    {% if error %}
+    <!-- Error Display -->
+    <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+        <div class="flex items-center gap-2 text-red-700 dark:text-red-400">
+            <i class="ti ti-alert-triangle text-xl"></i>
+            <span class="font-medium">Error loading draft history</span>
+        </div>
+        <p class="mt-2 text-sm text-red-600 dark:text-red-300">{{ error }}</p>
+    </div>
+    {% endif %}
+
     <!-- Draft History Content -->
     {% if draft_history %}
         {% for season_name, leagues in draft_history.items() %}
@@ -109,10 +120,10 @@
                                         </p>
                                         <div class="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
                                             <div class="flex items-center gap-1">
-                                                <i class="ti ti-user"></i>Drafted by: {{ pick.drafter.username }}
+                                                <i class="ti ti-user"></i>Drafted by: {{ pick.drafter.username if pick.drafter else 'Unknown' }}
                                             </div>
                                             <div class="flex items-center gap-1">
-                                                <i class="ti ti-calendar"></i>{{ pick.drafted_at.strftime('%Y-%m-%d %H:%M') }}
+                                                <i class="ti ti-calendar"></i>{{ pick.drafted_at.strftime('%Y-%m-%d %H:%M') if pick.drafted_at else 'Unknown' }}
                                             </div>
                                             {% if pick.notes %}
                                             <div class="flex items-center gap-1 mt-1">

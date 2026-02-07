@@ -91,7 +91,7 @@
             <div>
                 <h6 class="font-semibold text-gray-900 dark:text-white">Auto-Ban System</h6>
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if stats.security_features.auto_ban else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
-                    {{ 'Active (' ~ stats.auto_ban_config.attack_threshold ~ ' strikes)' if stats.security_features.auto_ban else 'Disabled' }}
+                    {{ 'Active (score ' ~ stats.auto_ban_config.attack_threshold ~ ')' if stats.security_features.auto_ban else 'Disabled' }}
                 </span>
             </div>
         </div>
@@ -119,7 +119,7 @@
             <i class="ti ti-alert-triangle text-2xl text-yellow-600 dark:text-yellow-400"></i>
         </div>
         <h3 class="text-2xl font-bold text-yellow-600 dark:text-yellow-400" id="attackAttempts">{{ stats.total_attack_attempts }}</h3>
-        <p class="text-sm text-gray-500 dark:text-gray-400">Attack Attempts</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">Threat Score</p>
     </div>
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 text-center">
         <div class="flex items-center justify-center w-12 h-12 mx-auto rounded-full bg-cyan-100 dark:bg-cyan-900/50 mb-3">
@@ -151,7 +151,7 @@
                 </div>
                 <div class="text-right">
                     <p class="text-lg font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.attack_threshold }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Attack Threshold</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Score Threshold</p>
                 </div>
                 <div>
                     <p class="text-lg font-bold text-gray-900 dark:text-white">{{ stats.auto_ban_config.rate_threshold }}</p>
@@ -252,8 +252,11 @@
             <tr>
                 <th scope="col" class="px-4 py-3">IP Address</th>
                 <th scope="col" class="px-4 py-3">Requests (1hr)</th>
-                <th scope="col" class="px-4 py-3">Attack Attempts</th>
+                <th scope="col" class="px-4 py-3">Threat Score</th>
                 <th scope="col" class="px-4 py-3">Status</th>
+                {% if 'Global Admin' in user_roles %}
+                <th scope="col" class="px-4 py-3">Actions</th>
+                {% endif %}
             </tr>
         </thead>
         <tbody>
@@ -279,6 +282,18 @@
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Normal</span>
                     {% endif %}
                 </td>
+                {% if 'Global Admin' in user_roles %}
+                <td class="px-4 py-3">
+                    <div class="flex gap-1">
+                        <button type="button" class="p-1.5 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded" data-action="ban-monitored-ip" data-ip="{{ ip.ip }}" title="Ban IP">
+                            <i class="ti ti-ban text-sm"></i>
+                        </button>
+                        <button type="button" class="p-1.5 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded" data-action="clear-rate-limit-inline" data-ip="{{ ip.ip }}" title="Clear Rate Limit">
+                            <i class="ti ti-eraser text-sm"></i>
+                        </button>
+                    </div>
+                </td>
+                {% endif %}
             </tr>
             {% endfor %}
         </tbody>
@@ -286,6 +301,58 @@
 </div>
 {% endcall %}
 {% endif %}
+
+<!-- Security Event Log -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+            <i class="ti ti-list-search mr-2"></i>Security Event Log
+            <span id="eventCount" class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">0</span>
+        </h5>
+        <div class="flex items-center gap-2">
+            <select id="eventTimeFilter" class="px-3 py-1.5 text-sm border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+                <option value="1">Last 1 hour</option>
+                <option value="6">Last 6 hours</option>
+                <option value="24" selected>Last 24 hours</option>
+                <option value="72">Last 3 days</option>
+                <option value="168">Last 7 days</option>
+            </select>
+            <button type="button" id="refreshEventsBtn" class="px-3 py-1.5 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-lg hover:bg-blue-50 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-blue-400 dark:border-blue-500">
+                <i class="ti ti-refresh mr-1"></i>Refresh
+            </button>
+        </div>
+    </div>
+    <div id="eventsLoading" class="flex justify-center py-8">
+        <div role="status">
+            <svg class="w-8 h-8 animate-spin text-gray-200 dark:text-gray-600 fill-blue-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor"/>
+                <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill"/>
+            </svg>
+        </div>
+    </div>
+    <div id="eventsTableContainer" class="hidden overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Time</th>
+                    <th scope="col" class="px-4 py-3">Severity</th>
+                    <th scope="col" class="px-4 py-3">Type</th>
+                    <th scope="col" class="px-4 py-3">IP</th>
+                    <th scope="col" class="px-4 py-3">Path</th>
+                    <th scope="col" class="px-4 py-3">Description</th>
+                    <th scope="col" class="px-4 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="eventsTableBody"></tbody>
+        </table>
+    </div>
+    <div id="eventsEmptyState" class="hidden text-center py-12">
+        <div class="flex items-center justify-center w-16 h-16 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 mb-4">
+            <i class="ti ti-shield-check text-3xl text-gray-400"></i>
+        </div>
+        <p class="text-gray-500 dark:text-gray-400">No security events in this time period</p>
+    </div>
+</div>
 
 <!-- Ban IP Modal -->
 {% call modal_form('banIpModal', 'Ban IP Address', form_id='banIpForm', action='', method='POST', size='sm', submit_text='Ban IP', submit_color='danger', loading_text='Banning...') %}
@@ -313,16 +380,34 @@
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const swalTheme = { background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' };
 
-    // Refresh stats
-    document.getElementById('refreshBtn')?.addEventListener('click', refreshStats);
-    setInterval(refreshStats, 30000);
+    function escapeHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.appendChild(document.createTextNode(String(str)));
+        return div.innerHTML;
+    }
 
-    // Modal controls
+    // --- Stats auto-refresh ---
+    document.getElementById('refreshBtn')?.addEventListener('click', function() {
+        refreshStats();
+        loadSecurityEvents();
+    });
+    setInterval(function() {
+        refreshStats();
+        loadSecurityEvents();
+    }, 30000);
+
+    // --- Modal controls ---
     const banIpModal = document.getElementById('banIpModal');
 
     document.querySelectorAll('[data-action="show-ban-ip-modal"]').forEach(btn => {
         btn.addEventListener('click', () => {
+            document.getElementById('banIpAddress').value = '';
+            document.getElementById('banReason').value = '';
+            document.getElementById('banDuration').value = '24';
+            document.getElementById('banPermanent').checked = false;
             banIpModal.classList.remove('hidden');
             banIpModal.classList.add('flex');
         });
@@ -335,7 +420,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Handle form submission for ban IP (prevent default, use JS)
     const banIpForm = document.getElementById('banIpForm');
     if (banIpForm) {
         banIpForm.addEventListener('submit', function(e) {
@@ -346,15 +430,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Unban IP
     document.querySelectorAll('[data-action="unban-ip"]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            unbanIp(this.dataset.ip);
-        });
+        btn.addEventListener('click', function() { unbanIp(this.dataset.ip); });
     });
 
     // Clear all bans
     document.querySelectorAll('[data-action="clear-all-bans"]').forEach(btn => {
         btn.addEventListener('click', clearAllBans);
     });
+
+    // --- Monitored IP actions ---
+    document.querySelectorAll('[data-action="ban-monitored-ip"]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const ip = this.dataset.ip;
+            document.getElementById('banIpAddress').value = ip;
+            document.getElementById('banReason').value = 'Suspicious activity detected';
+            banIpModal.classList.remove('hidden');
+            banIpModal.classList.add('flex');
+        });
+    });
+
+    document.querySelectorAll('[data-action="clear-rate-limit-inline"]').forEach(btn => {
+        btn.addEventListener('click', function() { clearRateLimit(this.dataset.ip); });
+    });
+
+    // --- Event log ---
+    const eventTimeFilter = document.getElementById('eventTimeFilter');
+    eventTimeFilter?.addEventListener('change', loadSecurityEvents);
+    document.getElementById('refreshEventsBtn')?.addEventListener('click', loadSecurityEvents);
+
+    // Initial load
+    loadSecurityEvents();
+
+    // --- Functions ---
 
     async function refreshStats() {
         try {
@@ -368,7 +475,163 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('lastUpdated').textContent = data.stats.current_time;
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error refreshing stats:', error);
+        }
+    }
+
+    async function loadSecurityEvents() {
+        const hours = eventTimeFilter ? eventTimeFilter.value : 24;
+        const loadingEl = document.getElementById('eventsLoading');
+        const tableEl = document.getElementById('eventsTableContainer');
+        const emptyEl = document.getElementById('eventsEmptyState');
+
+        loadingEl.classList.remove('hidden');
+        tableEl.classList.add('hidden');
+        emptyEl.classList.add('hidden');
+
+        try {
+            const response = await fetch(`{{ url_for("admin_panel.api_security_events") }}?hours=${hours}&limit=50`);
+            const data = await response.json();
+            loadingEl.classList.add('hidden');
+
+            if (data.success && data.events.length > 0) {
+                document.getElementById('eventCount').textContent = data.count;
+                renderSecurityEvents(data.events);
+                tableEl.classList.remove('hidden');
+            } else {
+                document.getElementById('eventCount').textContent = '0';
+                emptyEl.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Error loading events:', error);
+            loadingEl.classList.add('hidden');
+            emptyEl.classList.remove('hidden');
+        }
+    }
+
+    function renderSecurityEvents(events) {
+        const tbody = document.getElementById('eventsTableBody');
+        tbody.innerHTML = '';
+
+        const severityClasses = {
+            'critical': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+            'high': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
+            'medium': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
+            'low': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+        };
+
+        events.forEach(function(event) {
+            const tr = document.createElement('tr');
+            tr.className = 'bg-white border-b dark:bg-gray-800 dark:border-gray-700';
+
+            const time = event.created_at ? new Date(event.created_at).toLocaleString() : 'N/A';
+            const sevClass = severityClasses[event.severity] || severityClasses['medium'];
+            const path = escapeHtml(event.request_path || '');
+            const desc = escapeHtml(event.description || '');
+            const truncDesc = desc.length > 60 ? desc.substring(0, 60) + '...' : desc;
+
+            tr.innerHTML =
+                '<td class="px-4 py-2 text-xs whitespace-nowrap">' + escapeHtml(time) + '</td>' +
+                '<td class="px-4 py-2"><span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ' + sevClass + '">' + escapeHtml(event.severity) + '</span></td>' +
+                '<td class="px-4 py-2 text-xs">' + escapeHtml(event.event_type) + '</td>' +
+                '<td class="px-4 py-2"><code class="text-xs">' + escapeHtml(event.ip_address) + '</code></td>' +
+                '<td class="px-4 py-2 text-xs font-mono max-w-[200px] truncate" title="' + path + '">' + path + '</td>' +
+                '<td class="px-4 py-2 text-xs max-w-[250px] truncate" title="' + desc + '">' + truncDesc + '</td>' +
+                '<td class="px-4 py-2"><button type="button" class="p-1 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded" data-event-id="' + event.id + '" title="View Details"><i class="ti ti-eye text-sm"></i></button></td>';
+
+            // Attach detail click handler
+            tr.querySelector('[data-event-id]').addEventListener('click', function() {
+                showEventDetail(event);
+            });
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    function showEventDetail(event) {
+        let detailsHtml = '<div class="text-left text-sm space-y-3">';
+        detailsHtml += '<div><strong>Event ID:</strong> ' + escapeHtml(String(event.id)) + '</div>';
+        detailsHtml += '<div><strong>Type:</strong> ' + escapeHtml(event.event_type) + '</div>';
+        detailsHtml += '<div><strong>Severity:</strong> ' + escapeHtml(event.severity) + '</div>';
+        detailsHtml += '<div><strong>IP Address:</strong> <code>' + escapeHtml(event.ip_address) + '</code></div>';
+        detailsHtml += '<div><strong>Path:</strong> <code>' + escapeHtml(event.request_path || 'N/A') + '</code></div>';
+        detailsHtml += '<div><strong>Method:</strong> ' + escapeHtml(event.request_method || 'N/A') + '</div>';
+        detailsHtml += '<div><strong>Description:</strong> ' + escapeHtml(event.description || 'N/A') + '</div>';
+        detailsHtml += '<div><strong>User Agent:</strong> <span class="text-xs break-all">' + escapeHtml(event.user_agent || 'N/A') + '</span></div>';
+        detailsHtml += '<div><strong>Time:</strong> ' + escapeHtml(event.created_at ? new Date(event.created_at).toLocaleString() : 'N/A') + '</div>';
+
+        if (event.details) {
+            detailsHtml += '<hr class="border-gray-300 dark:border-gray-600">';
+            detailsHtml += '<div><strong>Forensic Details:</strong></div>';
+
+            if (event.details.threat_score != null) {
+                detailsHtml += '<div><strong>Threat Score:</strong> <span class="font-bold text-red-600 dark:text-red-400">' + escapeHtml(String(event.details.threat_score)) + '</span>';
+                if (event.details.cumulative_score != null) {
+                    detailsHtml += ' <span class="text-gray-500">(cumulative: ' + escapeHtml(String(event.details.cumulative_score)) + ')</span>';
+                }
+                detailsHtml += '</div>';
+            }
+
+            if (event.details.matched_patterns && event.details.matched_patterns.length > 0) {
+                var weights = event.details.pattern_weights || {};
+                var weightColors = {'1': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300', '2': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300', '3': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300', '4': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'};
+                detailsHtml += '<div><strong>Matched Patterns:</strong> ';
+                event.details.matched_patterns.forEach(function(p) {
+                    var w = weights[p] || 1;
+                    var cls = weightColors[String(w)] || weightColors['1'];
+                    detailsHtml += '<span class="inline-flex items-center px-2 py-0.5 mr-1 mb-1 rounded text-xs font-medium ' + cls + '">' + escapeHtml(p) + ' (wt:' + w + ')</span>';
+                });
+                detailsHtml += '</div>';
+            }
+            if (event.details.query_string) {
+                detailsHtml += '<div><strong>Query String:</strong> <code class="text-xs break-all">' + escapeHtml(event.details.query_string) + '</code></div>';
+            }
+            if (event.details.referrer) {
+                detailsHtml += '<div><strong>Referrer:</strong> <span class="text-xs break-all">' + escapeHtml(event.details.referrer) + '</span></div>';
+            }
+            if (event.details.full_path) {
+                detailsHtml += '<div><strong>Full Path:</strong> <code class="text-xs break-all">' + escapeHtml(event.details.full_path) + '</code></div>';
+            }
+        }
+
+        detailsHtml += '</div>';
+
+        Swal.fire({
+            title: 'Event Details',
+            html: detailsHtml,
+            width: 600,
+            showCloseButton: true,
+            showConfirmButton: false,
+            ...swalTheme
+        });
+    }
+
+    async function clearRateLimit(ipAddress) {
+        const result = await Swal.fire({
+            title: 'Clear Rate Limit?',
+            text: 'Reset request and attack counters for ' + ipAddress + '? This does NOT remove bans.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, clear',
+            ...swalTheme
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const response = await fetch('{{ url_for("admin_panel.security_clear_rate_limit") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ ip_address: ipAddress })
+            });
+            const data = await response.json();
+            if (data.success) {
+                Swal.fire({ title: 'Cleared', text: data.message, icon: 'success', ...swalTheme }).then(() => location.reload());
+            } else {
+                Swal.fire({ title: 'Error', text: data.message, icon: 'error', ...swalTheme });
+            }
+        } catch (error) {
+            Swal.fire({ title: 'Error', text: 'Failed to clear rate limit', icon: 'error', ...swalTheme });
         }
     }
 
@@ -379,7 +642,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const permanent = document.getElementById('banPermanent').checked;
 
         if (!ipAddress) {
-            Swal.fire({ title: 'Error', text: 'IP address is required', icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            Swal.fire({ title: 'Error', text: 'IP address is required', icon: 'error', ...swalTheme });
             return;
         }
 
@@ -391,24 +654,23 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             const data = await response.json();
             if (data.success) {
-                Swal.fire({ title: 'Success', text: data.message, icon: 'success', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                Swal.fire({ title: 'Success', text: data.message, icon: 'success', ...swalTheme }).then(() => location.reload());
             } else {
-                Swal.fire({ title: 'Error', text: data.message, icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                Swal.fire({ title: 'Error', text: data.message, icon: 'error', ...swalTheme });
             }
         } catch (error) {
-            Swal.fire({ title: 'Error', text: 'Failed to ban IP', icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            Swal.fire({ title: 'Error', text: 'Failed to ban IP', icon: 'error', ...swalTheme });
         }
     }
 
     async function unbanIp(ipAddress) {
         const result = await Swal.fire({
             title: 'Unban IP?',
-            text: `Are you sure you want to unban ${ipAddress}?`,
+            text: 'Are you sure you want to unban ' + ipAddress + '?',
             icon: 'question',
             showCancelButton: true,
             confirmButtonText: 'Yes, unban',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
+            ...swalTheme
         });
 
         if (!result.isConfirmed) return;
@@ -421,12 +683,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             const data = await response.json();
             if (data.success) {
-                Swal.fire({ title: 'Success', text: data.message, icon: 'success', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                Swal.fire({ title: 'Success', text: data.message, icon: 'success', ...swalTheme }).then(() => location.reload());
             } else {
-                Swal.fire({ title: 'Error', text: data.message, icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                Swal.fire({ title: 'Error', text: data.message, icon: 'error', ...swalTheme });
             }
         } catch (error) {
-            Swal.fire({ title: 'Error', text: 'Failed to unban IP', icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            Swal.fire({ title: 'Error', text: 'Failed to unban IP', icon: 'error', ...swalTheme });
         }
     }
 
@@ -438,8 +700,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showCancelButton: true,
             confirmButtonColor: '#dc2626',
             confirmButtonText: 'Yes, clear all',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
+            ...swalTheme
         });
 
         if (!result.isConfirmed) return;
@@ -451,12 +712,12 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             const data = await response.json();
             if (data.success) {
-                Swal.fire({ title: 'Success', text: data.message, icon: 'success', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' }).then(() => location.reload());
+                Swal.fire({ title: 'Success', text: data.message, icon: 'success', ...swalTheme }).then(() => location.reload());
             } else {
-                Swal.fire({ title: 'Error', text: data.message, icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+                Swal.fire({ title: 'Error', text: data.message, icon: 'error', ...swalTheme });
             }
         } catch (error) {
-            Swal.fire({ title: 'Error', text: 'Failed to clear bans', icon: 'error', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+            Swal.fire({ title: 'Error', text: 'Failed to clear bans', icon: 'error', ...swalTheme });
         }
     }
 });

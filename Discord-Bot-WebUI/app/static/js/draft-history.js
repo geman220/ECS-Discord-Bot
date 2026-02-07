@@ -55,7 +55,8 @@ class DraftHistoryManager {
             
             items.forEach(item => {
                 const draggableCard = item.querySelector('.draggable-card');
-                
+                if (!draggableCard) return; // Skip items without draggable cards
+
                 // Drag start
                 draggableCard.addEventListener('dragstart', (e) => {
                     item.classList.add('dragging');

@@ -13,16 +13,36 @@ class NotificationService:
         self._initialized = False
     
     def initialize(self, service_account_path: str):
-        """Initialize Firebase Admin SDK"""
+        """Initialize Firebase Admin SDK with optimized connection pool."""
         try:
             if not firebase_admin._apps:
                 cred = credentials.Certificate(service_account_path)
                 initialize_app(cred)
             self._initialized = True
+            self._configure_connection_pool()
             logger.info("Firebase Admin SDK initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize Firebase Admin SDK: {e}")
             raise
+
+    def _configure_connection_pool(self):
+        """Increase HTTP connection pool size for FCM batch sends.
+
+        The default urllib3 pool size is 10, which causes 'Connection pool
+        is full, discarding connection' warnings during batch push sends.
+        """
+        try:
+            from requests.adapters import HTTPAdapter
+
+            app = firebase_admin.get_app()
+            service = messaging._get_messaging_service(app)
+            if hasattr(service, '_client') and hasattr(service._client, '_session'):
+                adapter = HTTPAdapter(pool_connections=25, pool_maxsize=25)
+                service._client._session.mount('https://', adapter)
+                logger.info("FCM HTTP connection pool size increased to 25")
+        except Exception as e:
+            # Non-critical - FCM works with default pool, just with warnings
+            logger.debug(f"Could not increase FCM connection pool: {e}")
     
     def send_push_notification(
         self, 
@@ -103,8 +123,21 @@ class NotificationService:
                         # Categorize errors for proper handling
                         if isinstance(error, FirebaseError):
                             error_code = getattr(error, 'code', None)
-                            if error_code in ['messaging/registration-token-not-registered', 
-                                            'messaging/invalid-registration-token']:
+                            error_msg = str(error).lower()
+                            # Codes indicating the token is permanently invalid
+                            invalid_codes = [
+                                'messaging/registration-token-not-registered',
+                                'messaging/invalid-registration-token',
+                                'NOT_FOUND',
+                                'UNREGISTERED',
+                            ]
+                            is_invalid = (
+                                error_code in invalid_codes
+                                or 'not found' in error_msg
+                                or 'not registered' in error_msg
+                                or 'unregistered' in error_msg
+                            )
+                            if is_invalid:
                                 invalid_tokens.append(token)
                                 logger.warning(f"Invalid token will be cleaned up: {token[:20]}...")
                             else:

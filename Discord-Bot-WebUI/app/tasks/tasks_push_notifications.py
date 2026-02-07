@@ -305,6 +305,60 @@ def cleanup_old_campaigns(self, session, days_old: int = 90) -> Dict[str, Any]:
 
 
 @celery_task(
+    name='app.tasks.tasks_push_notifications.cleanup_stale_fcm_tokens',
+    retry_backoff=True,
+    bind=True
+)
+def cleanup_stale_fcm_tokens(self, session) -> Dict[str, Any]:
+    """
+    Clean up stale FCM tokens that haven't been used in 30+ days.
+
+    Per Firebase recommendations, tokens inactive for 30 days should be
+    deactivated to avoid sending to unregistered devices.
+
+    Args:
+        session: Database session from decorator
+
+    Returns:
+        Dictionary with cleanup results
+    """
+    logger.info("Starting stale FCM token cleanup")
+
+    try:
+        from app.models import UserFCMToken
+
+        stale_threshold = datetime.utcnow() - timedelta(days=30)
+        stale_tokens = session.query(UserFCMToken).filter(
+            UserFCMToken.is_active == True,
+            UserFCMToken.last_used < stale_threshold
+        ).all()
+
+        cleaned = 0
+        for token in stale_tokens:
+            token.is_active = False
+            token.deactivated_reason = 'stale_token_cleanup'
+            token.updated_at = datetime.utcnow()
+            cleaned += 1
+
+        session.commit()
+
+        logger.info(f"Stale FCM token cleanup completed: {cleaned} tokens deactivated")
+
+        return {
+            'success': True,
+            'cleaned_count': cleaned,
+            'cleaned_at': datetime.utcnow().isoformat()
+        }
+
+    except Exception as e:
+        logger.error(f"Error in stale FCM token cleanup: {e}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+@celery_task(
     name='app.tasks.tasks_push_notifications.check_stuck_campaigns',
     retry_backoff=True,
     bind=True

@@ -431,6 +431,18 @@ class CeleryConfig:
             }
         },
 
+        # Push notification maintenance
+        'cleanup-stale-fcm-tokens': {
+            'task': 'app.tasks.tasks_push_notifications.cleanup_stale_fcm_tokens',
+            'schedule': crontab(hour=3, minute=0),  # Daily at 3 AM
+            'options': {
+                'queue': 'celery',
+                'expires': 3540,
+                'time_limit': 300,
+                'soft_time_limit': 240
+            }
+        },
+
         # =====================================================================
         # UNIFIED NOTIFICATION SYSTEM - Automated Reminders
         # =====================================================================

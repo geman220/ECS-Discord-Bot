@@ -11,6 +11,7 @@ This module contains routes for system infrastructure management:
 """
 
 import os
+import json
 import time
 import logging
 from datetime import datetime, timedelta
@@ -878,7 +879,8 @@ def security_dashboard():
             },
             'auto_ban_config': {
                 'enabled': current_app.config.get('SECURITY_AUTO_BAN_ENABLED', True),
-                'attack_threshold': current_app.config.get('SECURITY_AUTO_BAN_ATTACK_THRESHOLD', 3),
+                'attack_threshold': current_app.config.get('SECURITY_AUTO_BAN_SCORE_THRESHOLD',
+                                    current_app.config.get('SECURITY_AUTO_BAN_ATTACK_THRESHOLD', 10)),
                 'rate_threshold': current_app.config.get('SECURITY_AUTO_BAN_RATE_THRESHOLD', 500),
                 'duration_hours': current_app.config.get('SECURITY_AUTO_BAN_DURATION_HOURS', 1),
                 'escalation_enabled': current_app.config.get('SECURITY_AUTO_BAN_ESCALATION_ENABLED', True),
@@ -1173,6 +1175,143 @@ def api_security_status():
     except Exception as e:
         logger.error(f"Error getting security status: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# -----------------------------------------------------------
+# Security Event Log API Routes
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/api/security/events')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_security_events():
+    """API endpoint for recent security events from database."""
+    try:
+        from app.models.security import SecurityEvent
+
+        hours = request.args.get('hours', 24, type=int)
+        limit = request.args.get('limit', 50, type=int)
+
+        # Clamp values
+        hours = max(1, min(hours, 168))  # 1h to 7d
+        limit = max(1, min(limit, 200))
+
+        events = SecurityEvent.get_recent_events(limit=limit, hours=hours)
+
+        events_data = []
+        for event in events:
+            parsed_details = None
+            if event.details:
+                try:
+                    parsed_details = json.loads(event.details)
+                except (json.JSONDecodeError, TypeError):
+                    parsed_details = {'raw': event.details}
+
+            events_data.append({
+                'id': event.id,
+                'event_type': event.event_type,
+                'ip_address': event.ip_address,
+                'severity': event.severity,
+                'description': event.description,
+                'details': parsed_details,
+                'user_agent': event.user_agent,
+                'request_path': event.request_path,
+                'request_method': event.request_method,
+                'created_at': event.created_at.isoformat() if event.created_at else None,
+            })
+
+        return jsonify({
+            'success': True,
+            'events': events_data,
+            'count': len(events_data),
+            'hours': hours,
+            'limit': limit,
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching security events: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_panel_bp.route('/api/security/events/<ip_address>')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def api_security_events_for_ip(ip_address):
+    """API endpoint for security events for a specific IP."""
+    try:
+        from app.models.security import SecurityEvent
+
+        limit = request.args.get('limit', 100, type=int)
+        limit = max(1, min(limit, 200))
+
+        events = SecurityEvent.get_events_for_ip(ip_address, limit=limit)
+
+        events_data = []
+        for event in events:
+            parsed_details = None
+            if event.details:
+                try:
+                    parsed_details = json.loads(event.details)
+                except (json.JSONDecodeError, TypeError):
+                    parsed_details = {'raw': event.details}
+
+            events_data.append({
+                'id': event.id,
+                'event_type': event.event_type,
+                'ip_address': event.ip_address,
+                'severity': event.severity,
+                'description': event.description,
+                'details': parsed_details,
+                'user_agent': event.user_agent,
+                'request_path': event.request_path,
+                'request_method': event.request_method,
+                'created_at': event.created_at.isoformat() if event.created_at else None,
+            })
+
+        return jsonify({
+            'success': True,
+            'events': events_data,
+            'count': len(events_data),
+            'ip_address': ip_address,
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching security events for IP {ip_address}: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_panel_bp.route('/system/security/clear-rate-limit', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+def security_clear_rate_limit():
+    """Clear rate limit counters for a specific IP address."""
+    data = request.get_json()
+    ip_address = data.get('ip_address') if data else None
+
+    if not ip_address:
+        return jsonify({'success': False, 'message': 'IP address is required'}), 400
+
+    if not hasattr(current_app, 'security_middleware') or not current_app.security_middleware:
+        return jsonify({'success': False, 'message': 'Security middleware not available'}), 503
+
+    rate_limiter = current_app.security_middleware.rate_limiter
+    cleared = rate_limiter.clear_rate_limit(ip_address)
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='clear_rate_limit',
+        resource_type='security',
+        resource_id=ip_address,
+        new_value=f"Cleared {cleared['requests_cleared']} requests, {cleared['attack_count_cleared']} attacks",
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    return jsonify({
+        'success': True,
+        'message': f"Rate limit cleared for {ip_address}",
+        'cleared': cleared,
+    })
 
 
 # -----------------------------------------------------------

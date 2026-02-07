@@ -64,23 +64,30 @@ class SecurityMiddleware:
         # Store reference to this middleware in the app for status checking
         app.security_middleware = self
     
+    # Threat weight → severity mapping (max weight among matched patterns determines event severity)
+    WEIGHT_SEVERITY = {1: 'low', 2: 'medium', 3: 'high', 4: 'critical'}
+
+    # Threat weight → temp blacklist duration (seconds) when under auto-ban threshold
+    WEIGHT_BLACKLIST_DURATION = {1: 600, 2: 1200, 3: 1800, 4: 3600}
+
     def _load_attack_patterns(self):
-        """Load common attack patterns for detection."""
+        """Load attack patterns with labels and threat weights.
+
+        Weight guide:
+          1 = scanner noise (automated bots probing common paths)
+          2 = probing (actively looking for weaknesses)
+          3 = active exploitation (attempting to extract data or inject code)
+          4 = weaponized (attempting to gain persistent access / write files)
+        """
         return [
-            # PHP file attempts (main attack vector from logs)
-            re.compile(r'\.php[^a-zA-Z0-9]', re.IGNORECASE),
-            # Common CMS exploitation attempts
-            re.compile(r'/(wp-|plus/|utility/|vendor/phpunit)', re.IGNORECASE),
-            # SQL injection patterns (more conservative to avoid false positives)
-            re.compile(r'\b(union\s+select|drop\s+table|information_schema)\b', re.IGNORECASE),
-            # XSS patterns (basic)
-            re.compile(r'<script|javascript:|onload=|onerror=', re.IGNORECASE),
-            # Path traversal
-            re.compile(r'\.\./|\.\.\\'),
-            # File inclusion attempts
-            re.compile(r'(eval|base64_decode)\s*\(', re.IGNORECASE),
-            # Shell upload attempts
-            re.compile(r'file_put_contents|fopen.*w\+', re.IGNORECASE)
+            # (label, compiled regex, threat weight)
+            ('php_file_access', re.compile(r'\.php[^a-zA-Z0-9]', re.IGNORECASE), 1),
+            ('cms_exploitation', re.compile(r'/(wp-|plus/|utility/|vendor/phpunit)', re.IGNORECASE), 1),
+            ('path_traversal', re.compile(r'\.\./|\.\.\\', re.IGNORECASE), 2),
+            ('sql_injection', re.compile(r'\b(union\s+select|drop\s+table|information_schema)\b', re.IGNORECASE), 3),
+            ('xss_attempt', re.compile(r'<script|javascript:|onload=|onerror=', re.IGNORECASE), 3),
+            ('file_inclusion', re.compile(r'(eval|base64_decode)\s*\(', re.IGNORECASE), 3),
+            ('shell_upload', re.compile(r'file_put_contents|fopen.*w\+', re.IGNORECASE), 4),
         ]
     
     def security_check(self):
@@ -106,8 +113,9 @@ class SecurityMiddleware:
             if any(request.path.startswith(path) for path in polling_endpoints):
                 # Still check for attack patterns, but skip rate limiting
                 client_ip = self._get_client_ip()
-                if self._detect_attack_patterns():
-                    self._handle_security_violation(client_ip)
+                matched = self._detect_attack_patterns()
+                if matched:
+                    self._handle_security_violation(client_ip, matched)
                 return
 
             # Skip ALL security checks for trusted webhook endpoints
@@ -150,8 +158,9 @@ class SecurityMiddleware:
                     abort(429)  # Too Many Requests
             
             # Detect attack patterns
-            if self._detect_attack_patterns():
-                self._handle_security_violation(client_ip)
+            matched = self._detect_attack_patterns()
+            if matched:
+                self._handle_security_violation(client_ip, matched)
                 
         except Exception as e:
             logger.error(f"Security check error: {e}")
@@ -172,78 +181,119 @@ class SecurityMiddleware:
             return request.remote_addr or 'unknown'
     
     def _detect_attack_patterns(self):
-        """Check request for malicious patterns."""
+        """Check request for malicious patterns.
+
+        Returns list of (label, weight) tuples for each matched pattern, or empty list.
+        """
+        matched = []
+        seen_labels = set()
+
+        def _check(text):
+            for label, pattern, weight in self.attack_patterns:
+                if label not in seen_labels and pattern.search(text):
+                    seen_labels.add(label)
+                    matched.append((label, weight))
+
         # Check URL path
-        if any(pattern.search(request.path) for pattern in self.attack_patterns):
-            return True
-        
+        _check(request.path)
+
         # Check query parameters
-        for key, value in request.args.items():
-            if any(pattern.search(str(value)) for pattern in self.attack_patterns):
-                return True
-        
+        for value in request.args.values():
+            _check(str(value))
+
         # Check POST data
         if request.method == 'POST':
             try:
                 if request.is_json:
-                    # Check JSON data
-                    json_str = str(request.get_json())
-                    if any(pattern.search(json_str) for pattern in self.attack_patterns):
-                        return True
+                    _check(str(request.get_json()))
                 elif request.form:
-                    # Check form data
-                    for key, value in request.form.items():
-                        if any(pattern.search(str(value)) for pattern in self.attack_patterns):
-                            return True
+                    for value in request.form.values():
+                        _check(str(value))
             except:
                 pass  # Don't block if we can't parse request data
-        
-        return False
+
+        return matched
     
-    def _handle_security_violation(self, client_ip):
-        """Handle detected security violation with auto-ban logic."""
+    def _handle_security_violation(self, client_ip, matched_patterns=None):
+        """Handle detected security violation with threat-weighted auto-ban logic.
+
+        matched_patterns is a list of (label, weight) tuples from _detect_attack_patterns().
+        Higher-weight patterns (XSS, SQLi, shell upload) escalate much faster than
+        low-weight scanner noise (PHP probes, CMS scans).
+        """
+        import json as _json
+
         path = request.path
         user_agent = request.headers.get('User-Agent', 'Unknown')
-        
-        # Log security violation with more context
+        query_string = request.query_string.decode('utf-8', errors='replace')
+        matched_patterns = matched_patterns or []
+
+        # Compute threat score and severity from matched patterns
+        pattern_labels = [label for label, _ in matched_patterns]
+        max_weight = max((w for _, w in matched_patterns), default=1)
+        total_score = sum(w for _, w in matched_patterns)
+        severity = self.WEIGHT_SEVERITY.get(max_weight, 'medium')
+
         logger.warning(
             f"SECURITY VIOLATION DETECTED: IP={client_ip}, Path={path}, "
             f"Method={request.method}, User-Agent={user_agent}, "
-            f"Query={request.query_string.decode()}"
+            f"Query={query_string}, Patterns={pattern_labels}, "
+            f"Score={total_score}, Severity={severity}"
         )
-        
-        # Track attack attempt for this IP
-        self.rate_limiter.record_attack(client_ip)
-        
+
+        # Accumulate threat score for this IP (not a flat +1)
+        self.rate_limiter.record_attack(client_ip, score=total_score)
+
         # Don't blacklist private/local IPs to avoid blocking legitimate internal traffic
         if not is_private_ip(client_ip):
-            # Check if auto-ban should be triggered
             from flask import current_app
             auto_ban_enabled = current_app.config.get('SECURITY_AUTO_BAN_ENABLED', True)
-            attack_threshold = current_app.config.get('SECURITY_AUTO_BAN_ATTACK_THRESHOLD', 3)
-            
-            attack_count = self.rate_limiter.attack_counts.get(client_ip, 0)
-            
-            if auto_ban_enabled and attack_count >= attack_threshold:
-                # Trigger auto-ban
+            score_threshold = current_app.config.get('SECURITY_AUTO_BAN_SCORE_THRESHOLD',
+                              current_app.config.get('SECURITY_AUTO_BAN_ATTACK_THRESHOLD', 10))
+
+            cumulative_score = self.rate_limiter.attack_counts.get(client_ip, 0)
+
+            if auto_ban_enabled and cumulative_score >= score_threshold:
                 ban_duration = current_app.config.get('SECURITY_AUTO_BAN_DURATION_HOURS', 1) * 3600
                 self.rate_limiter.auto_ban_ip(client_ip, ban_duration)
-                logger.warning(f"AUTO-BAN TRIGGERED: IP {client_ip} banned for {ban_duration/3600} hours after {attack_count} attacks")
-                
-                # Store in database for persistence
-                self._store_security_ban(client_ip, ban_duration, f"Auto-ban after {attack_count} attack attempts")
+                logger.warning(
+                    f"AUTO-BAN TRIGGERED: IP {client_ip} banned for {ban_duration/3600}h "
+                    f"(threat score {cumulative_score} >= {score_threshold})"
+                )
+                self._store_security_ban(
+                    client_ip, ban_duration,
+                    f"Auto-ban: threat score {cumulative_score} (patterns: {', '.join(pattern_labels)})"
+                )
             else:
-                # Add to temporary blacklist (shorter duration)
-                self.rate_limiter.blacklist_ip(client_ip, duration=1800)  # 30 minutes
-                logger.info(f"IP {client_ip} temporarily blacklisted (attack #{attack_count})")
+                # Temp blacklist duration scales with severity
+                temp_duration = self.WEIGHT_BLACKLIST_DURATION.get(max_weight, 1800)
+                self.rate_limiter.blacklist_ip(client_ip, duration=temp_duration)
+                logger.info(
+                    f"IP {client_ip} temp-blacklisted {temp_duration}s "
+                    f"(score {cumulative_score}/{score_threshold}, severity={severity})"
+                )
         else:
             logger.info(f"Skipping blacklist for private IP {client_ip}")
-        
-        # Store security event for dashboard
-        self._store_security_event(client_ip, 'attack_detected', 'high', 
-                                 f"Attack pattern detected in {path}")
-        
-        # Return 404 to avoid revealing attack detection (matches your current behavior)
+
+        # Build rich details for forensic analysis
+        details = _json.dumps({
+            'matched_patterns': pattern_labels,
+            'pattern_weights': {label: weight for label, weight in matched_patterns},
+            'threat_score': total_score,
+            'cumulative_score': self.rate_limiter.attack_counts.get(client_ip, 0),
+            'full_path': path,
+            'query_string': query_string,
+            'user_agent': user_agent,
+            'method': request.method,
+            'referrer': request.headers.get('Referer', ''),
+        })
+
+        self._store_security_event(
+            client_ip, 'attack_detected', severity,
+            f"[{severity.upper()}] {', '.join(pattern_labels)} (score: {total_score})",
+            details=details
+        )
+
         abort(404)
     
     def _store_security_ban(self, ip, duration_seconds, reason):
@@ -257,7 +307,7 @@ class SecurityMiddleware:
         except Exception as e:
             logger.error(f"Failed to store security ban in database: {e}")
     
-    def _store_security_event(self, ip, event_type, severity, description):
+    def _store_security_event(self, ip, event_type, severity, description, details=None):
         """Store security event for dashboard display."""
         try:
             from app.models.security import SecurityEvent
@@ -266,6 +316,7 @@ class SecurityMiddleware:
                 ip_address=ip,
                 severity=severity,
                 description=description,
+                details=details,
                 user_agent=request.headers.get('User-Agent', 'Unknown'),
                 request_path=request.path,
                 request_method=request.method
@@ -381,10 +432,15 @@ class RequestRateLimiter:
         ip_requests.append(current_time)
         return True
     
-    def record_attack(self, ip):
-        """Record an attack attempt from an IP address."""
-        self.attack_counts[ip] += 1
-        logger.warning(f"Attack #{self.attack_counts[ip]} recorded for IP {ip}")
+    def record_attack(self, ip, score=1):
+        """Record an attack attempt with threat-weighted score.
+
+        Scanner noise (weight 1) accumulates slowly while active exploitation
+        (weight 3-4) escalates the cumulative score much faster toward the
+        auto-ban threshold.
+        """
+        self.attack_counts[ip] += score
+        logger.warning(f"Threat score +{score} for IP {ip} (cumulative: {self.attack_counts[ip]})")
     
     def blacklist_ip(self, ip, duration=3600):
         """Temporarily blacklist an IP address."""

@@ -40,11 +40,16 @@ def draft_history():
         # Get available seasons and leagues for filtering
         seasons = db.session.query(Season).order_by(desc(Season.id)).all()
         leagues = db.session.query(League).distinct(League.name).order_by(League.name).all()
-        
+        current_season = db.session.query(Season).filter_by(is_current=True).first()
+
         # Get current season and league filters from query params
         season_filter = request.args.get('season', type=int)
         league_filter = request.args.get('league')
-        
+
+        # Default to current season if no filter specified
+        if season_filter is None and current_season:
+            season_filter = current_season.id
+
         # Build query for draft history
         query = db.session.query(DraftOrderHistory).options(
             joinedload(DraftOrderHistory.player),
@@ -53,33 +58,33 @@ def draft_history():
             joinedload(DraftOrderHistory.league),
             joinedload(DraftOrderHistory.drafter)
         )
-        
+
         # Apply filters
         if season_filter:
             query = query.filter(DraftOrderHistory.season_id == season_filter)
         if league_filter:
             query = query.filter(DraftOrderHistory.league_id == league_filter)
-        
+
         # Order by season (desc), league (asc), then draft position (asc)
         draft_history = query.order_by(
             desc(DraftOrderHistory.season_id),
             DraftOrderHistory.league_id,
             DraftOrderHistory.draft_position
         ).all()
-        
+
         # Group by season and league for easier display
         grouped_history = {}
         for pick in draft_history:
             season_key = f"{pick.season.name} (ID: {pick.season.id})"
             league_key = f"{pick.league.name} (ID: {pick.league.id})"
-            
+
             if season_key not in grouped_history:
                 grouped_history[season_key] = {}
             if league_key not in grouped_history[season_key]:
                 grouped_history[season_key][league_key] = []
-            
+
             grouped_history[season_key][league_key].append(pick)
-        
+
         return render_template(
             'admin/draft_history_flowbite.html',
             draft_history=grouped_history,
@@ -89,11 +94,19 @@ def draft_history():
             current_league_filter=league_filter,
             total_picks=len(draft_history)
         )
-        
+
     except Exception as e:
         logger.error(f"Error loading draft history: {str(e)}", exc_info=True)
-        show_error("Failed to load draft history")
-        return redirect(url_for('admin.admin_dashboard'))
+        return render_template(
+            'admin/draft_history_flowbite.html',
+            draft_history={},
+            seasons=[],
+            leagues=[],
+            current_season_filter=None,
+            current_league_filter=None,
+            total_picks=0,
+            error=str(e)
+        )
 
 
 @admin_bp.route('/admin/draft-history/edit/<int:pick_id>', methods=['POST'])
@@ -222,8 +235,13 @@ def clear_draft_history():
     Clear draft history for a specific season and league.
     """
     data = request.get_json()
-    season_id = data.get('season_id', type=int)
-    league_id = data.get('league_id', type=int)
+    season_id = data.get('season_id')
+    league_id = data.get('league_id')
+
+    if season_id:
+        season_id = int(season_id)
+    if league_id:
+        league_id = int(league_id)
 
     if not season_id or not league_id:
         return jsonify({'success': False, 'message': 'Season ID and League ID are required'}), 400

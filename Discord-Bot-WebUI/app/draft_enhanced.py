@@ -190,13 +190,19 @@ class DraftService:
             # If positions are the same, no action needed
             if old_position == new_position:
                 return {'success': True, 'message': 'No position change needed', 'affected_picks': 0}
-            
+
+            # Count total records for verification
+            total_records = session.query(func.count(DraftOrderHistory.id)).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id
+            ).scalar()
+
             # Get max position to validate the new position
             max_position = session.query(func.max(DraftOrderHistory.draft_position)).filter(
                 DraftOrderHistory.season_id == season_id,
                 DraftOrderHistory.league_id == league_id
             ).scalar() or 0
-            
+
             # Validate new position is within valid range
             if new_position < 1 or new_position > max_position:
                 return {'success': False, 'message': f'Position must be between 1 and {max_position}'}
@@ -246,13 +252,26 @@ class DraftService:
             # Now move the pick to its final position
             pick_to_move.draft_position = new_position
             pick_to_move.updated_at = datetime.utcnow()
-            
+
+            # Verify no records were lost
+            total_after = session.query(func.count(DraftOrderHistory.id)).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id
+            ).scalar()
+
+            if total_after != total_records:
+                logger.error(
+                    f"CRITICAL: Record count changed during swap! "
+                    f"expected={total_records}, after={total_after}"
+                )
+                raise ValueError(f"Data integrity violation during swap: expected {total_records} records, found {total_after}")
+
             # Log the swap
             logger.info(
                 f"Swapped draft pick #{old_position} ({player_name}) "
                 f"to position #{new_position}, affected {len(affected_picks)} other picks"
             )
-            
+
             return {
                 'success': True,
                 'message': f'Successfully moved pick from #{old_position} to #{new_position}',
@@ -261,16 +280,16 @@ class DraftService:
                 'new_position': new_position,
                 'player_name': player_name
             }
-            
+
         except Exception as e:
-            logger.error(f"Error swapping draft positions: {str(e)}")
+            logger.error(f"Error swapping draft positions: {str(e)}", exc_info=True)
             raise
     
     @staticmethod
     def set_absolute_draft_position(session, pick_id, new_position):
         """Set absolute draft position without cascading shifts to other picks."""
         try:
-            pick_to_move = session.query(DraftOrderHistory).get(pick_id)
+            pick_to_move = session.query(DraftOrderHistory).filter_by(id=pick_id).first()
             if not pick_to_move:
                 return {'success': False, 'message': 'Draft pick not found'}
             
@@ -325,6 +344,7 @@ class DraftService:
                 'old_position': old_position,
                 'new_position': new_position,
                 'player_name': player_name,
+                'affected_picks': 1 if existing_pick else 0,
                 'swapped_with': existing_pick.player.name if existing_pick and existing_pick.player else None
             }
             
@@ -336,63 +356,110 @@ class DraftService:
     def insert_draft_position_smart(session, pick_id, new_position):
         """Smart insert that handles gaps and provides intuitive positioning."""
         try:
-            pick_to_move = session.query(DraftOrderHistory).get(pick_id)
+            pick_to_move = session.query(DraftOrderHistory).filter_by(id=pick_id).first()
             if not pick_to_move:
                 return {'success': False, 'message': 'Draft pick not found'}
-            
+
             season_id = pick_to_move.season_id
             league_id = pick_to_move.league_id
             old_position = pick_to_move.draft_position
             player_name = pick_to_move.player.name if pick_to_move.player else 'Unknown Player'
-            
+
             if old_position == new_position:
-                return {'success': True, 'message': 'No position change needed'}
-            
+                return {'success': True, 'message': 'No position change needed', 'affected_picks': 0}
+
+            # Count total records BEFORE the operation for verification
+            total_before = session.query(func.count(DraftOrderHistory.id)).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id
+            ).scalar()
+
             # Get all picks in order (excluding the one we're moving)
             all_picks = session.query(DraftOrderHistory).filter(
                 DraftOrderHistory.season_id == season_id,
                 DraftOrderHistory.league_id == league_id,
                 DraftOrderHistory.id != pick_id
             ).order_by(DraftOrderHistory.draft_position).all()
-            
+
+            # Verify we have the right count (all_picks + pick_to_move should = total_before)
+            if len(all_picks) + 1 != total_before:
+                logger.error(
+                    f"Record count mismatch before smart insert! "
+                    f"total_before={total_before}, all_picks={len(all_picks)}, pick_id={pick_id}"
+                )
+                return {'success': False, 'message': 'Data integrity error - record count mismatch'}
+
             # Create new ordered list with the pick inserted at the desired position
             new_order = []
             pick_inserted = False
-            
+
             for i, pick in enumerate(all_picks):
                 # If we should insert our pick before this position
                 if not pick_inserted and (i + 1) >= new_position:
                     new_order.append(pick_to_move)
                     pick_inserted = True
                 new_order.append(pick)
-            
+
             # If we haven't inserted yet (inserting at the end)
             if not pick_inserted:
                 new_order.append(pick_to_move)
-            
+
+            # Verify new_order has all records
+            if len(new_order) != total_before:
+                logger.error(
+                    f"new_order count mismatch! "
+                    f"new_order={len(new_order)}, expected={total_before}"
+                )
+                return {'success': False, 'message': 'Data integrity error - reorder count mismatch'}
+
+            # Log the planned reorder for debugging
+            logger.info(
+                f"Smart insert plan: moving {player_name} (id={pick_id}) from #{old_position} to position {new_position}. "
+                f"Total picks: {total_before}. "
+                f"New order: {[(p.id, p.player.name if p.player else '?') for p in new_order]}"
+            )
+
             # Use temporary positions to avoid unique constraint violations
             max_position = len(new_order) + 1000
-            
+
             # First, move all picks to temporary positions
             for index, pick in enumerate(new_order):
                 pick.draft_position = max_position + index
                 pick.updated_at = datetime.utcnow()
-            
+
             session.flush()
-            
+
             # Now update all positions sequentially
             changes_made = 0
             for index, pick in enumerate(new_order, start=1):
-                old_pos = pick.draft_position
                 pick.draft_position = index
                 pick.updated_at = datetime.utcnow()
                 changes_made += 1
-                logger.debug(f"Updated {pick.player.name if pick.player else 'Unknown'} from temp #{old_pos} to #{index}")
-            
+
             session.flush()
-            
-            logger.info(f"Smart insert: {player_name} moved from #{old_position} to #{pick_to_move.draft_position}, {changes_made} total changes")
-            
+
+            # Verify record count AFTER the operation
+            total_after = session.query(func.count(DraftOrderHistory.id)).filter(
+                DraftOrderHistory.season_id == season_id,
+                DraftOrderHistory.league_id == league_id
+            ).scalar()
+
+            if total_after != total_before:
+                logger.error(
+                    f"CRITICAL: Record count changed during smart insert! "
+                    f"before={total_before}, after={total_after}, pick_id={pick_id}, "
+                    f"player={player_name}, season={season_id}, league={league_id}"
+                )
+                raise ValueError(
+                    f"Data integrity violation: {total_before} records before, {total_after} after. "
+                    f"Rolling back to prevent data loss."
+                )
+
+            logger.info(
+                f"Smart insert complete: {player_name} moved from #{old_position} to #{pick_to_move.draft_position}, "
+                f"{changes_made} total changes, {total_after} records verified"
+            )
+
             return {
                 'success': True,
                 'message': f'Successfully moved {player_name} to position #{pick_to_move.draft_position}',
@@ -402,9 +469,9 @@ class DraftService:
                 'changes_made': changes_made,
                 'affected_picks': changes_made - 1  # Total changes minus the moved player
             }
-            
+
         except Exception as e:
-            logger.error(f"Error in smart insert: {str(e)}")
+            logger.error(f"Error in smart insert: {str(e)}", exc_info=True)
             raise
 
     @staticmethod
