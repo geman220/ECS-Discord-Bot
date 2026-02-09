@@ -485,34 +485,19 @@ def edit_user_comprehensive(user_id):
                 # Add all selected ECS FC teams
                 target_team_ids.update(ecs_fc_team_ids)
 
-                # DEBUG: Query player_teams directly with raw SQL to see what the DB actually has
-                from sqlalchemy import text as sa_text
-                raw_pt_rows = db.session.execute(
-                    sa_text("SELECT player_id, team_id, is_coach, position FROM player_teams WHERE player_id = :pid"),
-                    {'pid': user.player.id}
-                ).fetchall()
-                print(f"[EDIT_USER] player.id={user.player.id}, ORM player.teams={[t.id for t in user.player.teams]}, "
-                      f"RAW player_teams rows={[(r.player_id, r.team_id) for r in raw_pt_rows]}", flush=True)
-
-                # Current team IDs
+                # Current team IDs (from player_teams association table)
                 current_team_ids = {t.id for t in user.player.teams}
 
                 # Remove teams that should no longer be assigned
-                # (except keep ECS FC teams - they're handled by the multi-select)
                 teams_to_remove = []
                 for team in user.player.teams:
                     team_is_ecs_fc = is_ecs_fc_team(team.id)
-                    # For ECS FC teams: only remove if not in selected ecs_fc_team_ids
-                    # For non-ECS FC teams: only keep primary and secondary
                     if team_is_ecs_fc:
                         if team.id not in ecs_fc_team_ids:
                             teams_to_remove.append(team)
                     else:
                         if team.id not in target_team_ids:
                             teams_to_remove.append(team)
-
-                logger.info(f"Player {user.player.id} team removal: target_team_ids={target_team_ids}, "
-                            f"current_team_ids={current_team_ids}, teams_to_remove={[t.id for t in teams_to_remove]}")
 
                 print(f"[EDIT_USER] target_team_ids={target_team_ids}, current_team_ids={current_team_ids}, teams_to_remove={[t.id for t in teams_to_remove]}", flush=True)
 
@@ -529,13 +514,11 @@ def edit_user_comprehensive(user_id):
                             pt_table.c.team_id.in_(remove_team_ids)
                         )
                     )
-                    print(f"[EDIT_USER] DELETE result: {result.rowcount} rows deleted from player_teams for player {user.player.id}, teams {remove_team_ids}", flush=True)
-                    logger.info(f"Deleted {result.rowcount} player_teams rows for player {user.player.id}, teams {remove_team_ids}")
+                    print(f"[EDIT_USER] Deleted {result.rowcount} player_teams rows for teams {remove_team_ids}", flush=True)
 
                     # Clear primary_team_id if it was one of the removed teams
                     if user.player.primary_team_id in remove_team_ids:
                         user.player.primary_team_id = None
-                        logger.info(f"Cleared primary_team_id for player {user.player.id}")
 
                     # Expire the teams relationship so ORM picks up the change
                     db.session.expire(user.player, ['teams'])
@@ -549,19 +532,14 @@ def edit_user_comprehensive(user_id):
                     ).first()
                     if history_record:
                         history_record.left_date = datetime.utcnow()
-                        logger.info(f"Updated team history: player {user.player.id} left team {team.id}")
 
                     # Remove PlayerTeamSeason records for current season
                     if team.league and team.league.season_id:
-                        pts_records = PlayerTeamSeason.query.filter_by(
+                        PlayerTeamSeason.query.filter_by(
                             player_id=user.player.id,
                             team_id=team.id,
                             season_id=team.league.season_id
-                        ).all()
-                        for pts in pts_records:
-                            db.session.delete(pts)
-                        if pts_records:
-                            logger.info(f"Removed {len(pts_records)} PlayerTeamSeason records for player {user.player.id}, team {team.id}")
+                        ).delete()
 
                     logger.info(f"Removed player {user.player.id} from team {team.id}")
 
@@ -575,6 +553,31 @@ def edit_user_comprehensive(user_id):
                                 'team_name': team.name,
                                 'league_name': room_name,
                             })
+
+                # Clean up orphaned PlayerTeamSeason records that don't match
+                # any target team. This handles the case where player_teams rows
+                # were previously deleted but PlayerTeamSeason rows were left behind
+                # (orphaned data), which causes the player profile to still show
+                # old team assignments.
+                orphan_pts = PlayerTeamSeason.query.filter(
+                    PlayerTeamSeason.player_id == user.player.id,
+                ).all()
+                orphan_team_ids_to_remove = []
+                for pts in orphan_pts:
+                    if pts.team_id not in target_team_ids:
+                        orphan_team_ids_to_remove.append(pts.team_id)
+                        db.session.delete(pts)
+                if orphan_team_ids_to_remove:
+                    print(f"[EDIT_USER] Cleaned up {len(orphan_team_ids_to_remove)} orphaned PlayerTeamSeason records for teams {orphan_team_ids_to_remove}", flush=True)
+                    # Also close out any orphaned PlayerTeamHistory records
+                    for otid in set(orphan_team_ids_to_remove):
+                        history_record = PlayerTeamHistory.query.filter_by(
+                            player_id=user.player.id,
+                            team_id=otid,
+                            left_date=None
+                        ).first()
+                        if history_record:
+                            history_record.left_date = datetime.utcnow()
 
                 # Add new teams
                 for team_id in target_team_ids:
