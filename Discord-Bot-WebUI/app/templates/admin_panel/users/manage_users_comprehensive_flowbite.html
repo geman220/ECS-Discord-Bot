@@ -801,13 +801,17 @@ document.addEventListener('DOMContentLoaded', function() {
             if (singleTeam) singleTeam.classList.add('hidden');
             if (ecsfcTeams) ecsfcTeams.classList.add('hidden');
 
-            // Reset values
+            // Reset values and disable to prevent stale data in form submission
             const teamSelect = document.getElementById(`edit${tier.charAt(0).toUpperCase() + tier.slice(1)}Team`);
-            if (teamSelect) teamSelect.value = '';
+            if (teamSelect) {
+                teamSelect.value = '';
+                teamSelect.disabled = true;
+            }
 
-            // Reset ECS FC checkboxes
+            // Reset and disable ECS FC checkboxes
             document.querySelectorAll(`#${tier}EcsFcTeams input[type="checkbox"]`).forEach(cb => {
                 cb.checked = false;
+                cb.disabled = true;
             });
         });
     }
@@ -938,26 +942,40 @@ document.addEventListener('DOMContentLoaded', function() {
         if (singleTeam) singleTeam.classList.add('hidden');
         if (ecsfcTeams) ecsfcTeams.classList.add('hidden');
 
-        // Reset team selections when league is cleared to prevent stale values
-        if (!leagueType) {
-            if (teamSelect) teamSelect.value = '';
-            if (ecsfcTeams) {
-                ecsfcTeams.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-            }
+        // Reset and disable ALL team elements for this tier first.
+        // Per HTML spec, disabled elements are excluded from form submission,
+        // preventing stale team IDs from being sent when no league is selected.
+        if (teamSelect) {
+            teamSelect.value = '';
+            teamSelect.disabled = true;
+        }
+        if (ecsfcTeams) {
+            ecsfcTeams.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+                cb.disabled = true;
+            });
         }
 
+        if (!leagueType) return;
+
         if (leagueType === 'classic' || leagueType === 'premier') {
-            // Show single team dropdown, filter by league type
+            // Show and enable single team dropdown, filter by league type
             if (singleTeam) singleTeam.classList.remove('hidden');
             if (teamSelect) {
+                teamSelect.disabled = false;
                 teamSelect.querySelectorAll('option[data-league-name]').forEach(opt => {
                     const optLeagueType = getLeagueTypeFromName(opt.dataset.leagueName);
                     opt.style.display = optLeagueType === leagueType ? '' : 'none';
                 });
             }
         } else if (leagueType === 'ecsfc') {
-            // Show ECS FC checkboxes
-            if (ecsfcTeams) ecsfcTeams.classList.remove('hidden');
+            // Show and enable ECS FC checkboxes
+            if (ecsfcTeams) {
+                ecsfcTeams.classList.remove('hidden');
+                ecsfcTeams.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                    cb.disabled = false;
+                });
+            }
         }
     }
 

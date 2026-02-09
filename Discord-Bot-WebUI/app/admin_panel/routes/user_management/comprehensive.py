@@ -494,8 +494,33 @@ def edit_user_comprehensive(user_id):
                         if team.id not in target_team_ids:
                             teams_to_remove.append(team)
 
+                logger.info(f"Player {user.player.id} team removal: target_team_ids={target_team_ids}, "
+                            f"current_team_ids={current_team_ids}, teams_to_remove={[t.id for t in teams_to_remove]}")
+
+                if teams_to_remove:
+                    from sqlalchemy import delete
+                    from app.models import player_teams as pt_table
+
+                    remove_team_ids = [team.id for team in teams_to_remove]
+
+                    # Use explicit SQL DELETE on player_teams for reliable removal
+                    result = db.session.execute(
+                        delete(pt_table).where(
+                            pt_table.c.player_id == user.player.id,
+                            pt_table.c.team_id.in_(remove_team_ids)
+                        )
+                    )
+                    logger.info(f"Deleted {result.rowcount} player_teams rows for player {user.player.id}, teams {remove_team_ids}")
+
+                    # Clear primary_team_id if it was one of the removed teams
+                    if user.player.primary_team_id in remove_team_ids:
+                        user.player.primary_team_id = None
+                        logger.info(f"Cleared primary_team_id for player {user.player.id}")
+
+                    # Expire the teams relationship so ORM picks up the change
+                    db.session.expire(user.player, ['teams'])
+
                 for team in teams_to_remove:
-                    user.player.teams.remove(team)
                     # Update PlayerTeamHistory - set left_date
                     history_record = PlayerTeamHistory.query.filter_by(
                         player_id=user.player.id,
@@ -505,6 +530,19 @@ def edit_user_comprehensive(user_id):
                     if history_record:
                         history_record.left_date = datetime.utcnow()
                         logger.info(f"Updated team history: player {user.player.id} left team {team.id}")
+
+                    # Remove PlayerTeamSeason records for current season
+                    if team.league and team.league.season_id:
+                        pts_records = PlayerTeamSeason.query.filter_by(
+                            player_id=user.player.id,
+                            team_id=team.id,
+                            season_id=team.league.season_id
+                        ).all()
+                        for pts in pts_records:
+                            db.session.delete(pts)
+                        if pts_records:
+                            logger.info(f"Removed {len(pts_records)} PlayerTeamSeason records for player {user.player.id}, team {team.id}")
+
                     logger.info(f"Removed player {user.player.id} from team {team.id}")
 
                     # Track for draft page socket notification

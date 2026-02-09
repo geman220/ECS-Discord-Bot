@@ -160,64 +160,20 @@ function populateEditForm(user) {
     const isCurrentPlayerCheckbox = document.getElementById('editIsCurrentPlayer');
 
     if (user.has_player && user.player) {
-        // Show player fields, hide no-player message
         if (playerFields) playerFields.classList.remove('hidden');
         if (noPlayerMessage) noPlayerMessage.classList.add('hidden');
-
-        // Set active player status
         if (isCurrentPlayerCheckbox) {
             isCurrentPlayerCheckbox.checked = user.player.is_current_player || false;
             isCurrentPlayerCheckbox.disabled = false;
         }
-
-        // Primary league and team
-        const leagueSelect = document.getElementById('editLeague');
-        const teamSelect = document.getElementById('editTeam');
-
-        if (leagueSelect) {
-            leagueSelect.value = user.player.league_id || '';
-            leagueSelect.disabled = false;
-        }
-
-        // Filter teams first, then set value
-        if (teamSelect) {
-            filterTeamsByLeague(user.player.league_id ? user.player.league_id.toString() : '', teamSelect);
-            teamSelect.value = user.player.team_id || '';
-            teamSelect.disabled = false;
-        }
-
-        // Secondary league and team
-        const secondaryLeagueSelect = document.getElementById('editSecondaryLeague');
-        const secondaryTeamSelect = document.getElementById('editSecondaryTeam');
-
-        if (secondaryLeagueSelect) {
-            secondaryLeagueSelect.value = user.player.secondary_league_id || '';
-            secondaryLeagueSelect.disabled = false;
-        }
-
-        if (secondaryTeamSelect) {
-            filterTeamsByLeague(user.player.secondary_league_id ? user.player.secondary_league_id.toString() : '', secondaryTeamSelect, true);
-            secondaryTeamSelect.value = user.player.secondary_team_id || '';
-            secondaryTeamSelect.disabled = false;
-        }
+        // League/team fields are managed by the template's three-tier system
     } else {
-        // Hide player fields, show no-player message
         if (playerFields) playerFields.classList.add('hidden');
         if (noPlayerMessage) noPlayerMessage.classList.remove('hidden');
-
-        // Disable all player-related fields
         if (isCurrentPlayerCheckbox) {
             isCurrentPlayerCheckbox.checked = false;
             isCurrentPlayerCheckbox.disabled = true;
         }
-
-        ['editLeague', 'editTeam', 'editSecondaryLeague', 'editSecondaryTeam'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) {
-                el.value = '';
-                el.disabled = true;
-            }
-        });
     }
 
     // Set form action
@@ -311,60 +267,8 @@ window.EventDelegation.register('remove-user', function(element, e) {
 }, { preventDefault: true });
 
 // ============================================================================
-// EDIT USER
+// EDIT USER - handled by the template's inline three-tier system
 // ============================================================================
-
-/**
- * Handle Edit User button click
- * Loads user data and opens the edit modal
- */
-window.EventDelegation.register('edit-user', function(element, e) {
-    e.preventDefault();
-
-    const userId = element.dataset.userId;
-    if (!userId) {
-        console.error('[edit-user] Missing user ID');
-        return;
-    }
-
-    showLoading('Loading User Data');
-
-    // Fetch user data
-    fetch(getUrl('userDetailsUrl', userId))
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`Server error: ${response.status}`);
-            }
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error('Invalid response format - expected JSON');
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                populateEditForm(data.user);
-                closeLoading();
-                if (editUserModal) {
-                    editUserModal.show();
-                } else {
-                    // Fallback to Flowbite modal
-                    const modalEl = document.getElementById('editUserModal');
-                    if (modalEl && typeof window.Modal !== 'undefined') {
-                        const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
-                        modal.show();
-                    }
-                }
-            } else {
-                throw new Error(data.error || 'Failed to load user');
-            }
-        })
-        .catch(error => {
-            closeLoading();
-            console.error('Error loading user details:', error);
-            showNotification('Error', error.message || 'Failed to load user data', 'error');
-        });
-}, { preventDefault: true });
 
 // ============================================================================
 // APPROVE USER
