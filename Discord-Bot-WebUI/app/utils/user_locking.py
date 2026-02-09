@@ -89,6 +89,12 @@ def lock_user_for_role_update(user_id, session=None, nowait=True, timeout=None):
         session = get_session()
 
     try:
+        # Set a lock timeout if specified (PostgreSQL only).
+        # This limits how long we wait for a lock when nowait=False.
+        if timeout and not nowait:
+            from sqlalchemy import text
+            session.execute(text(f"SET LOCAL lock_timeout = '{int(timeout * 1000)}ms'"))
+
         # IMPORTANT: Do NOT use joinedload with FOR UPDATE!
         # PostgreSQL does not support FOR UPDATE on LEFT OUTER JOINs
         # (which joinedload creates for nullable relationships like User.player)

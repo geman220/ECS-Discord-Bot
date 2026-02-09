@@ -328,8 +328,11 @@ def edit_user_comprehensive(user_id):
 
         draft_socket_events = []
 
-        # Acquire lock on user to prevent concurrent modifications
-        with lock_user_for_role_update(user_id, session=db.session) as user:
+        # Acquire lock on user to prevent concurrent modifications.
+        # Use nowait=False with a 5s timeout so brief lock contention (e.g., from
+        # a Celery task syncing Discord roles) is handled gracefully by waiting
+        # instead of failing immediately.
+        with lock_user_for_role_update(user_id, session=db.session, nowait=False, timeout=5) as user:
 
             # Get form data
             username = request.form.get('username')
@@ -797,6 +800,11 @@ def edit_user_comprehensive(user_id):
 
     except LockAcquisitionError:
         clear_deferred_discord()
+        # CRITICAL: Rollback the aborted transaction BEFORE returning.
+        # PostgreSQL aborts the entire transaction after a FOR UPDATE NOWAIT failure.
+        # If we don't rollback here, @transactional's commit() will fail on the
+        # aborted transaction, turning our nice 409 JSON into an unhandled 500.
+        db.session.rollback()
         print(f"[EDIT_USER] === LOCK FAILED === user_id={user_id}", flush=True)
         logger.warning(f"Lock acquisition failed for user {user_id}")
         return jsonify({
@@ -806,6 +814,10 @@ def edit_user_comprehensive(user_id):
 
     except Exception as e:
         clear_deferred_discord()
+        # CRITICAL: Rollback to undo any partial changes and clear error state.
+        # Without this, @transactional's commit() would either commit partial
+        # changes (data integrity bug) or fail on an aborted transaction.
+        db.session.rollback()
         print(f"[EDIT_USER] === EXCEPTION === user_id={user_id}: {type(e).__name__}: {e}", flush=True)
         import traceback
         traceback.print_exc()
@@ -863,6 +875,7 @@ def approve_user_comprehensive(user_id):
 
     except LockAcquisitionError:
         clear_deferred_discord()
+        db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'User is currently being modified by another request. Please try again.'
@@ -915,6 +928,7 @@ def deactivate_user_comprehensive(user_id):
 
     except LockAcquisitionError:
         clear_deferred_discord()
+        db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'User is currently being modified by another request. Please try again.'
@@ -983,6 +997,7 @@ def activate_user_comprehensive(user_id):
 
     except LockAcquisitionError:
         clear_deferred_discord()
+        db.session.rollback()
         return jsonify({
             'success': False,
             'message': 'User is currently being modified by another request. Please try again.'
