@@ -724,22 +724,28 @@ function handleEditUserSubmit(e) {
         if (contentType && contentType.includes('application/json')) {
             return response.json();
         }
-        if (response.redirected || response.ok) {
-            return { success: true, message: 'User updated successfully' };
+        // Non-JSON response - try to get error text
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
         }
-        throw new Error('Update failed');
+        // Fallback for redirect/HTML responses
+        return { success: true, message: 'User updated successfully' };
     })
     .then(data => {
-        if (editUserModal) {
-            editUserModal.hide();
-        } else {
-            const modalEl = document.getElementById('editUserModal');
-            if (modalEl && modalEl._flowbiteModal) {
-                modalEl._flowbiteModal.hide();
+        if (data.success) {
+            if (editUserModal) {
+                editUserModal.hide();
+            } else {
+                const modalEl = document.getElementById('editUserModal');
+                if (modalEl && modalEl._flowbiteModal) {
+                    modalEl._flowbiteModal.hide();
+                }
             }
+            showNotification('Success', data.message || 'User updated successfully', 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            throw new Error(data.message || 'Failed to update user');
         }
-        showNotification('Success', data.message || 'User updated successfully', 'success');
-        setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         showNotification('Error', error.message || 'Failed to update user', 'error');

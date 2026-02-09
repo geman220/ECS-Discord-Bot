@@ -781,19 +781,26 @@ def edit_user_comprehensive(user_id):
             except Exception as e:
                 logger.warning(f"Could not clear draft cache: {e}")
 
-        flash(f'User {updated_username} updated successfully', 'success')
-        return redirect(url_for('admin_panel.users_comprehensive'))
+        return jsonify({
+            'success': True,
+            'message': f'User {updated_username} updated successfully'
+        })
 
     except LockAcquisitionError:
         clear_deferred_discord()
-        flash('User is currently being modified by another request. Please try again.', 'error')
-        return redirect(url_for('admin_panel.users_comprehensive'))
+        logger.warning(f"Lock acquisition failed for user {user_id}")
+        return jsonify({
+            'success': False,
+            'message': 'User is currently being modified by another request. Please try again.'
+        }), 409
 
     except Exception as e:
         clear_deferred_discord()
-        logger.error(f"Error editing user {user_id}: {e}")
-        flash('Error updating user', 'error')
-        return redirect(url_for('admin_panel.users_comprehensive'))
+        logger.exception(f"Error editing user {user_id}: {e}")
+        return jsonify({
+            'success': False,
+            'message': f'Error updating user: {str(e)}'
+        }), 500
 
 
 @admin_panel_bp.route('/users/<int:user_id>/approve', methods=['POST'])
