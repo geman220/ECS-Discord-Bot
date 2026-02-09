@@ -485,6 +485,15 @@ def edit_user_comprehensive(user_id):
                 # Add all selected ECS FC teams
                 target_team_ids.update(ecs_fc_team_ids)
 
+                # DEBUG: Query player_teams directly with raw SQL to see what the DB actually has
+                from sqlalchemy import text as sa_text
+                raw_pt_rows = db.session.execute(
+                    sa_text("SELECT player_id, team_id, is_coach, position FROM player_teams WHERE player_id = :pid"),
+                    {'pid': user.player.id}
+                ).fetchall()
+                print(f"[EDIT_USER] player.id={user.player.id}, ORM player.teams={[t.id for t in user.player.teams]}, "
+                      f"RAW player_teams rows={[(r.player_id, r.team_id) for r in raw_pt_rows]}", flush=True)
+
                 # Current team IDs
                 current_team_ids = {t.id for t in user.player.teams}
 
