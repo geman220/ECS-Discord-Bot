@@ -318,7 +318,12 @@ def edit_user_comprehensive(user_id):
     defers Discord operations until after the transaction commits.
     """
     try:
-        # Debug log form data
+        # Debug log form data - print() bypasses logging config, guaranteed visible in stdout
+        import sys
+        print(f"[EDIT_USER] === ENDPOINT HIT === user_id={user_id}", flush=True)
+        print(f"[EDIT_USER] Form data: {dict(request.form)}", flush=True)
+        print(f"[EDIT_USER] Request URL: {request.url}", flush=True)
+        sys.stdout.flush()
         logger.info(f"Edit user {user_id} - Form data received: {dict(request.form)}")
 
         draft_socket_events = []
@@ -497,6 +502,8 @@ def edit_user_comprehensive(user_id):
                 logger.info(f"Player {user.player.id} team removal: target_team_ids={target_team_ids}, "
                             f"current_team_ids={current_team_ids}, teams_to_remove={[t.id for t in teams_to_remove]}")
 
+                print(f"[EDIT_USER] target_team_ids={target_team_ids}, current_team_ids={current_team_ids}, teams_to_remove={[t.id for t in teams_to_remove]}", flush=True)
+
                 if teams_to_remove:
                     from sqlalchemy import delete
                     from app.models import player_teams as pt_table
@@ -510,6 +517,7 @@ def edit_user_comprehensive(user_id):
                             pt_table.c.team_id.in_(remove_team_ids)
                         )
                     )
+                    print(f"[EDIT_USER] DELETE result: {result.rowcount} rows deleted from player_teams for player {user.player.id}, teams {remove_team_ids}", flush=True)
                     logger.info(f"Deleted {result.rowcount} player_teams rows for player {user.player.id}, teams {remove_team_ids}")
 
                     # Clear primary_team_id if it was one of the removed teams
@@ -781,6 +789,7 @@ def edit_user_comprehensive(user_id):
             except Exception as e:
                 logger.warning(f"Could not clear draft cache: {e}")
 
+        print(f"[EDIT_USER] === SUCCESS === Returning JSON success for user {updated_username}", flush=True)
         return jsonify({
             'success': True,
             'message': f'User {updated_username} updated successfully'
@@ -788,6 +797,7 @@ def edit_user_comprehensive(user_id):
 
     except LockAcquisitionError:
         clear_deferred_discord()
+        print(f"[EDIT_USER] === LOCK FAILED === user_id={user_id}", flush=True)
         logger.warning(f"Lock acquisition failed for user {user_id}")
         return jsonify({
             'success': False,
@@ -796,6 +806,9 @@ def edit_user_comprehensive(user_id):
 
     except Exception as e:
         clear_deferred_discord()
+        print(f"[EDIT_USER] === EXCEPTION === user_id={user_id}: {type(e).__name__}: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
         logger.exception(f"Error editing user {user_id}: {e}")
         return jsonify({
             'success': False,

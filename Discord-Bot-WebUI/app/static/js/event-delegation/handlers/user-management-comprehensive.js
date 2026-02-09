@@ -713,6 +713,13 @@ function handleEditUserSubmit(e) {
 
     const formData = new FormData(editUserForm);
 
+    // Debug: log form submission details
+    console.log('[EDIT_USER] Form action:', editUserForm.action);
+    console.log('[EDIT_USER] Form data entries:');
+    for (const [key, value] of formData.entries()) {
+        console.log(`  ${key}: ${value}`);
+    }
+
     showLoading('Saving...');
 
     fetch(editUserForm.action, {
@@ -720,18 +727,25 @@ function handleEditUserSubmit(e) {
         body: formData
     })
     .then(response => {
+        console.log('[EDIT_USER] Response status:', response.status, 'redirected:', response.redirected, 'content-type:', response.headers.get('content-type'));
+        // Detect redirects (e.g., session expired -> login page)
+        if (response.redirected) {
+            throw new Error('Session expired or request was redirected. Please refresh and try again.');
+        }
         const contentType = response.headers.get('content-type');
         if (contentType && contentType.includes('application/json')) {
             return response.json();
         }
-        // Non-JSON response - try to get error text
+        // Non-JSON response is ALWAYS an error - never assume success
         if (!response.ok) {
             throw new Error(`Server error: ${response.status}`);
         }
-        // Fallback for redirect/HTML responses
-        return { success: true, message: 'User updated successfully' };
+        // Even a 200 non-JSON response means something went wrong
+        // (our endpoint always returns JSON on success)
+        throw new Error('Unexpected response format from server. Please refresh and try again.');
     })
     .then(data => {
+        console.log('[EDIT_USER] Response data:', data);
         if (data.success) {
             if (editUserModal) {
                 editUserModal.hide();
