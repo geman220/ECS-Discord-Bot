@@ -63,6 +63,36 @@ def get_role_for_league(league):
     return LEAGUE_TO_ROLE_MAP.get(league_name)
 
 
+# Mapping from DB league names to draft room names used by SocketIO
+DB_LEAGUE_TO_DRAFT_ROOM = {
+    'classic': 'classic',
+    'premier': 'premier',
+    'ecs fc': 'ecs_fc',
+}
+
+
+def _build_player_socket_data(player):
+    """Build player data dict for draft page socket emission."""
+    return {
+        'id': player.id,
+        'name': player.name,
+        'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
+        'profile_picture_medium': getattr(player, 'profile_picture_medium', None) or player.profile_picture_url or '/static/img/default_player.png',
+        'profile_picture_webp': getattr(player, 'profile_picture_webp', None) or player.profile_picture_url or '/static/img/default_player.png',
+        'favorite_position': player.favorite_position or 'Any',
+        'other_positions': player.other_positions or '',
+        'positions_not_to_play': player.positions_not_to_play or '',
+        'career_goals': player.career_stats[0].goals if player.career_stats else 0,
+        'career_assists': player.career_stats[0].assists if player.career_stats else 0,
+        'career_yellow_cards': player.career_stats[0].yellow_cards if player.career_stats else 0,
+        'career_red_cards': player.career_stats[0].red_cards if player.career_stats else 0,
+        'league_experience_seasons': 0,
+        'attendance_estimate': 75,
+        'experience_level': 'New Player',
+        'current_position': 'bench',
+    }
+
+
 @admin_panel_bp.route('/users/manage')
 @admin_panel_bp.route('/users-management')  # Alias for template compatibility
 @login_required
@@ -291,6 +321,8 @@ def edit_user_comprehensive(user_id):
         # Debug log form data
         logger.info(f"Edit user {user_id} - Form data received: {dict(request.form)}")
 
+        draft_socket_events = []
+
         # Acquire lock on user to prevent concurrent modifications
         with lock_user_for_role_update(user_id, session=db.session) as user:
 
@@ -303,16 +335,24 @@ def edit_user_comprehensive(user_id):
             is_current_player = request.form.get('is_current_player') == 'on'
             role_ids = request.form.getlist('roles')
 
+            # Read league type selections from the form FIRST (needed to validate team IDs)
+            primary_league_type = request.form.get('primary_league_type', '').strip().lower()
+            secondary_league_type = request.form.get('secondary_league_type', '').strip().lower()
+            tertiary_league_type = request.form.get('tertiary_league_type', '').strip().lower()
+
             # Handle both old and new form field names for team assignments
             # New form uses three-tier system: primary_team_id, secondary_team_id, tertiary_team_id
             team_id = request.form.get('primary_team_id') or request.form.get('team_id')
             secondary_team_id = request.form.get('secondary_team_id')
             tertiary_team_id = request.form.get('tertiary_team_id')
 
-            # Read league type selections from the form
-            primary_league_type = request.form.get('primary_league_type', '').strip().lower()
-            secondary_league_type = request.form.get('secondary_league_type', '').strip().lower()
-            tertiary_league_type = request.form.get('tertiary_league_type', '').strip().lower()
+            # Ignore stale team IDs from hidden form dropdowns when no league is selected
+            if not primary_league_type:
+                team_id = None
+            if not secondary_league_type:
+                secondary_team_id = None
+            if not tertiary_league_type:
+                tertiary_team_id = None
 
             # Helper to get league ID from league type name
             def get_league_id_from_type(league_type):
@@ -467,6 +507,17 @@ def edit_user_comprehensive(user_id):
                         logger.info(f"Updated team history: player {user.player.id} left team {team.id}")
                     logger.info(f"Removed player {user.player.id} from team {team.id}")
 
+                    # Track for draft page socket notification
+                    if team.league:
+                        room_name = DB_LEAGUE_TO_DRAFT_ROOM.get(team.league.name.lower())
+                        if room_name:
+                            draft_socket_events.append({
+                                'type': 'removed',
+                                'team_id': team.id,
+                                'team_name': team.name,
+                                'league_name': room_name,
+                            })
+
                 # Add new teams
                 for team_id in target_team_ids:
                     if team_id not in current_team_ids:
@@ -498,6 +549,23 @@ def edit_user_comprehensive(user_id):
                                     )
                                     db.session.add(player_team_season)
                             logger.info(f"Added player {user.player.id} to team {team_id} (with history and season records)")
+
+                            # Track for draft page socket notification
+                            if team_to_add.league:
+                                room_name = DB_LEAGUE_TO_DRAFT_ROOM.get(team_to_add.league.name.lower())
+                                if room_name:
+                                    draft_socket_events.append({
+                                        'type': 'drafted',
+                                        'team_id': team_to_add.id,
+                                        'team_name': team_to_add.name,
+                                        'league_name': room_name,
+                                    })
+
+                # Build player data for any pending draft socket notifications
+                if draft_socket_events:
+                    player_data = _build_player_socket_data(user.player)
+                    for event in draft_socket_events:
+                        event['player'] = player_data
 
             # Update roles - including auto league-to-role mapping
             if role_ids:
@@ -643,13 +711,35 @@ def edit_user_comprehensive(user_id):
         # Execute deferred Discord operations AFTER transaction commits
         execute_deferred_discord()
 
-        # Clear draft cache if league changed OR is_current_player changed
+        # Emit socket events to update draft pages in real-time
+        if draft_socket_events:
+            from app.core import socketio
+            for event in draft_socket_events:
+                event_name = 'player_drafted_enhanced' if event['type'] == 'drafted' else 'player_removed_enhanced'
+                room = f"draft_{event['league_name']}"
+                socketio.emit(event_name, {
+                    'success': True,
+                    'player': event['player'],
+                    'team_id': event['team_id'],
+                    'team_name': event['team_name'],
+                    'league_name': event['league_name'],
+                }, room=room, namespace='/')
+                logger.info(f"Emitted {event_name} to {room} after user management edit")
+
+        # Clear draft cache if league changed, is_current_player changed, or teams changed
+        all_leagues_to_clear = set()
         if leagues_to_clear and (old_league_id != new_league_id or old_was_current != new_is_current):
+            all_leagues_to_clear.update(leagues_to_clear)
+        for event in draft_socket_events:
+            db_name = {'classic': 'classic', 'premier': 'premier', 'ecs_fc': 'ecs fc'}.get(event['league_name'])
+            if db_name:
+                all_leagues_to_clear.add(db_name)
+        if all_leagues_to_clear:
             try:
                 from app.draft_cache_service import DraftCacheService
-                for league_name in leagues_to_clear:
+                for league_name in all_leagues_to_clear:
                     DraftCacheService.clear_all_league_caches(league_name)
-                logger.info(f"Cleared draft caches for {leagues_to_clear} after editing user {user_id}")
+                logger.info(f"Cleared draft caches for {all_leagues_to_clear} after editing user {user_id}")
             except Exception as e:
                 logger.warning(f"Could not clear draft cache: {e}")
 

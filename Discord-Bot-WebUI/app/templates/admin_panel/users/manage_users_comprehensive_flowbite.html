@@ -938,6 +938,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (singleTeam) singleTeam.classList.add('hidden');
         if (ecsfcTeams) ecsfcTeams.classList.add('hidden');
 
+        // Reset team selections when league is cleared to prevent stale values
+        if (!leagueType) {
+            if (teamSelect) teamSelect.value = '';
+            if (ecsfcTeams) {
+                ecsfcTeams.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            }
+        }
+
         if (leagueType === 'classic' || leagueType === 'premier') {
             // Show single team dropdown, filter by league type
             if (singleTeam) singleTeam.classList.remove('hidden');
