@@ -877,6 +877,30 @@ function hideFlowbiteModal(modalId) {
  * Sets up the create match form submission handler
  */
 document.addEventListener('DOMContentLoaded', function() {
+    // Convert UTC dates to user's local timezone
+    document.querySelectorAll('.mls-match-time').forEach(function(el) {
+        const utcStr = el.dataset.utc;
+        if (!utcStr) return;
+
+        // Ensure the string is parsed as UTC
+        const dt = new Date(utcStr.endsWith('Z') || utcStr.includes('+') ? utcStr : utcStr + 'Z');
+        if (isNaN(dt.getTime())) return;
+
+        const dateEl = el.querySelector('.mls-date');
+        const timeEl = el.querySelector('.mls-time');
+
+        if (dateEl) {
+            dateEl.textContent = dt.toLocaleDateString('en-US', {
+                month: 'short', day: 'numeric', year: 'numeric'
+            });
+        }
+        if (timeEl) {
+            timeEl.textContent = dt.toLocaleTimeString('en-US', {
+                hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short'
+            });
+        }
+    });
+
     const createForm = document.getElementById('createMatchForm');
     if (createForm) {
         createForm.addEventListener('submit', function(e) {

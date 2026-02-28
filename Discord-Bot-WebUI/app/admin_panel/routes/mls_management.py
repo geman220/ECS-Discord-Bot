@@ -47,6 +47,47 @@ COMPETITION_MAPPINGS = {
 # Helper Functions
 # -----------------------------------------------------------
 
+def _schedule_match_tasks_safe(session, match, match_date_time):
+    """
+    Schedule thread creation and live reporting Celery tasks for a match.
+
+    This dispatches Celery tasks directly instead of using MatchScheduler,
+    which relies on redis_connection_service that crashes under gevent
+    (the web process runs gevent, causing greenlet thread-switch errors).
+
+    Celery's apply_async() only sends a message to the broker and is
+    gevent-safe. The actual Redis-heavy work runs in the Celery worker.
+    """
+    from app.tasks.tasks_live_reporting import force_create_mls_thread_task, start_live_reporting
+
+    now = datetime.now(pytz.UTC)
+    thread_time = match_date_time - timedelta(hours=48)
+    reporting_time = match_date_time - timedelta(minutes=5)
+
+    # Ensure match_date_time is tz-aware for comparison
+    if match_date_time.tzinfo is None:
+        match_date_time = pytz.UTC.localize(match_date_time)
+
+    # Schedule thread creation (immediate if past due)
+    if thread_time <= now:
+        force_create_mls_thread_task.apply_async(args=[match.id])
+    else:
+        force_create_mls_thread_task.apply_async(args=[match.id], eta=thread_time)
+
+    # Schedule live reporting (immediate if past due)
+    if reporting_time <= now:
+        start_live_reporting.apply_async(args=[str(match.id)])
+    else:
+        start_live_reporting.apply_async(args=[str(match.id)], eta=reporting_time)
+
+    # Update match record
+    match.thread_creation_time = thread_time
+    match.live_reporting_scheduled = True
+    session.commit()
+
+    logger.info(f"Scheduled tasks for match {match.id}: thread={'immediate' if thread_time <= now else thread_time}, reporting={'immediate' if reporting_time <= now else reporting_time}")
+
+
 def get_status_color(status):
     """Returns Bootstrap color class for match status."""
     # Use MatchStatus enum methods for standardized status values
@@ -601,11 +642,9 @@ def mls_fetch_espn():
                             if match:
                                 total_matches_added += 1
 
-                                # Auto-schedule tasks
+                                # Auto-schedule tasks (gevent-safe)
                                 try:
-                                    from app.match_scheduler import MatchScheduler
-                                    scheduler = MatchScheduler()
-                                    scheduler.schedule_match_tasks(match.id, force=False)
+                                    _schedule_match_tasks_safe(session, match, match_details['date_time'])
                                 except Exception as sched_e:
                                     logger.error(f"Error scheduling tasks: {sched_e}")
 
@@ -843,9 +882,7 @@ def _process_event_for_confirm(session, event, selected_ids, competition_code):
 
         if match:
             try:
-                from app.match_scheduler import MatchScheduler
-                scheduler = MatchScheduler()
-                scheduler.schedule_match_tasks(match.id, force=False)
+                _schedule_match_tasks_safe(session, match, match_details['date_time'])
             except Exception as sched_e:
                 logger.error(f"Error scheduling tasks for confirmed match: {sched_e}")
 
@@ -1029,9 +1066,7 @@ def mls_create_match():
 
         if auto_schedule and match_date_time > datetime.now(pytz.UTC):
             try:
-                from app.match_scheduler import MatchScheduler
-                scheduler = MatchScheduler()
-                scheduler.schedule_match_tasks(new_match.id, force=False)
+                _schedule_match_tasks_safe(session, new_match, match_date_time)
                 tasks_scheduled = True
             except Exception as sched_e:
                 logger.error(f"Error scheduling tasks for new match: {sched_e}")

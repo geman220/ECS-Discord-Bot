@@ -151,9 +151,9 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ match.venue }}</p>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
-                        <p class="font-medium text-gray-900 dark:text-white">{{ match.date_time.strftime('%b %d, %Y') }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ match.date_time.strftime('%I:%M %p') }} UTC</p>
+                    <td class="px-4 py-3 mls-match-time" data-utc="{{ match.date_time.isoformat() }}">
+                        <p class="font-medium text-gray-900 dark:text-white mls-date">{{ match.date_time.strftime('%b %d, %Y') }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mls-time">{{ match.date_time.strftime('%I:%M %p') }} UTC</p>
                     </td>
                     <td class="px-4 py-3">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
