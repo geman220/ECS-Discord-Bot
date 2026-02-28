@@ -58,7 +58,7 @@ def _schedule_match_tasks_safe(session, match, match_date_time):
     Celery's apply_async() only sends a message to the broker and is
     gevent-safe. The actual Redis-heavy work runs in the Celery worker.
     """
-    from app.tasks.tasks_live_reporting import force_create_mls_thread_task, start_live_reporting
+    from app.tasks.tasks_live_reporting import force_create_mls_thread_task, start_mls_live_reporting_task
 
     now = datetime.now(pytz.UTC)
     thread_time = match_date_time - timedelta(hours=48)
@@ -76,9 +76,9 @@ def _schedule_match_tasks_safe(session, match, match_date_time):
 
     # Schedule live reporting (immediate if past due)
     if reporting_time <= now:
-        start_live_reporting.apply_async(args=[str(match.id)])
+        start_mls_live_reporting_task.apply_async(args=[match.id])
     else:
-        start_live_reporting.apply_async(args=[str(match.id)], eta=reporting_time)
+        start_mls_live_reporting_task.apply_async(args=[match.id], eta=reporting_time)
 
     # Update match record
     match.thread_creation_time = thread_time

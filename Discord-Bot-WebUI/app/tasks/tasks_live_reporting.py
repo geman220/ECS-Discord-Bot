@@ -917,6 +917,97 @@ def force_create_mls_thread_task(self, session, match_id: str, force: bool = Fal
 
 
 @celery_task(
+    name='app.tasks.tasks_live_reporting.start_mls_live_reporting_task',
+    bind=True,
+    queue='live_reporting',
+    max_retries=3,
+    default_retry_delay=60
+)
+def start_mls_live_reporting_task(self, session, match_id) -> Dict[str, Any]:
+    """
+    Start live reporting for an MLS match by creating a LiveReportingSession.
+
+    This creates a database session record that the RealtimeReportingService
+    (running in the dedicated realtime-live-reporting container) picks up
+    and begins polling ESPN for live match updates.
+
+    Args:
+        match_id: The MLSMatch database primary key (id).
+    """
+    from app.models import LiveReportingSession
+
+    try:
+        match = get_match(session, match_id)
+        if not match:
+            logger.error(f"MLS match {match_id} not found")
+            return {'success': False, 'message': f'Match {match_id} not found'}
+
+        if not match.discord_thread_id:
+            logger.warning(f"MLS match {match_id} has no Discord thread yet, skipping live reporting start")
+            return {'success': False, 'message': 'No Discord thread available'}
+
+        # Check for existing active session
+        existing = session.query(LiveReportingSession).filter_by(
+            match_id=str(match.match_id),
+            is_active=True
+        ).first()
+
+        if existing:
+            logger.info(f"Live reporting session already active for MLS match {match_id}")
+            return {
+                'success': True,
+                'session_id': existing.id,
+                'message': 'Session already active'
+            }
+
+        # Create the LiveReportingSession for RealtimeReportingService
+        live_session = LiveReportingSession(
+            match_id=str(match.match_id),
+            thread_id=str(match.discord_thread_id),
+            competition=match.competition or 'usa.1',
+            is_active=True,
+            started_at=datetime.utcnow(),
+            last_update=datetime.utcnow(),
+            update_count=0,
+            error_count=0,
+            consecutive_failures=0
+        )
+        session.add(live_session)
+
+        # Update match status
+        match.live_reporting_started = True
+        match.live_reporting_status = MatchStatus.RUNNING
+        session.add(match)
+        session.commit()
+
+        # Notify realtime service via bridge
+        try:
+            from app.services.realtime_bridge_service import notify_session_started
+            notify_session_started(live_session.id, match.id, match.discord_thread_id)
+        except Exception as bridge_err:
+            logger.warning(f"Bridge notification failed (non-fatal): {bridge_err}")
+
+        logger.info(
+            f"Created live reporting session {live_session.id} for MLS match {match_id} "
+            f"(ESPN: {match.match_id}, thread: {match.discord_thread_id})"
+        )
+
+        return {
+            'success': True,
+            'session_id': live_session.id,
+            'match_id': match.match_id,
+            'thread_id': match.discord_thread_id
+        }
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error starting live reporting for match {match_id}: {e}", exc_info=True)
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error(f"Error starting live reporting for match {match_id}: {e}", exc_info=True)
+        raise self.retry(exc=e, countdown=30)
+
+
+@celery_task(
     name='app.tasks.tasks_live_reporting.schedule_mls_thread_task',
     queue='live_reporting',
     max_retries=2
