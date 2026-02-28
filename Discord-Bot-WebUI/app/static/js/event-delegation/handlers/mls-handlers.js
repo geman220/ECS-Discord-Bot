@@ -1,4 +1,5 @@
 import { EventDelegation } from '../core.js';
+import { escapeHtml } from '../../utils/sanitize.js';
 
 /**
  * MLS Management Action Handlers
@@ -6,12 +7,181 @@ import { EventDelegation } from '../core.js';
  */
 
 // ============================================================================
+// ESPN PREVIEW / CONFIRM HELPERS
+// ============================================================================
+
+/**
+ * Build preview HTML for SweetAlert2 dialog.
+ * Shows a table of new matches with checkboxes and a collapsed section for existing matches.
+ */
+function _buildPreviewHtml(data) {
+    const newMatches = data.new_matches || [];
+    const existingMatches = data.existing_matches || [];
+
+    if (newMatches.length === 0 && existingMatches.length === 0) {
+        return null; // No matches at all
+    }
+
+    let html = '';
+
+    if (newMatches.length > 0) {
+        html += `<div class="mb-3 text-left">`;
+        html += `<div class="flex items-center mb-2">`;
+        html += `<label class="flex items-center text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">`;
+        html += `<input type="checkbox" id="espn-select-all" checked class="w-4 h-4 mr-2 text-blue-600 rounded border-gray-300 focus:ring-blue-500"> Select All`;
+        html += `</label>`;
+        html += `</div>`;
+        html += `<div class="max-h-64 overflow-y-auto border rounded-lg dark:border-gray-600">`;
+        html += `<table class="w-full text-sm text-left">`;
+        html += `<thead class="text-xs uppercase bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 sticky top-0"><tr>`;
+        html += `<th class="px-3 py-2 w-8"></th><th class="px-3 py-2">Match</th><th class="px-3 py-2">Date</th><th class="px-3 py-2">Comp</th>`;
+        html += `</tr></thead><tbody>`;
+
+        for (const m of newMatches) {
+            const dt = new Date(m.date_time);
+            const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const homeLabel = m.is_home_game ? 'vs' : '@';
+            html += `<tr class="border-b dark:border-gray-600">`;
+            html += `<td class="px-3 py-2"><input type="checkbox" class="espn-match-cb w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" value="${escapeHtml(String(m.espn_id))}" checked></td>`;
+            html += `<td class="px-3 py-2 text-gray-900 dark:text-white">${homeLabel} ${escapeHtml(m.opponent)}</td>`;
+            html += `<td class="px-3 py-2 text-gray-600 dark:text-gray-400">${escapeHtml(dateStr)}</td>`;
+            html += `<td class="px-3 py-2 text-gray-600 dark:text-gray-400">${escapeHtml(m.competition_name)}</td>`;
+            html += `</tr>`;
+        }
+
+        html += `</tbody></table></div></div>`;
+    }
+
+    if (existingMatches.length > 0) {
+        html += `<details class="text-left mt-2">`;
+        html += `<summary class="cursor-pointer text-sm text-gray-500 dark:text-gray-400 mb-1">Already in database (${existingMatches.length})</summary>`;
+        html += `<div class="max-h-32 overflow-y-auto border rounded-lg dark:border-gray-600">`;
+        html += `<table class="w-full text-sm text-left">`;
+        html += `<tbody>`;
+
+        for (const m of existingMatches) {
+            const dt = new Date(m.date_time);
+            const dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const homeLabel = m.is_home_game ? 'vs' : '@';
+            html += `<tr class="border-b dark:border-gray-600">`;
+            html += `<td class="px-3 py-2 text-gray-500 dark:text-gray-400">${homeLabel} ${escapeHtml(m.opponent)}</td>`;
+            html += `<td class="px-3 py-2 text-gray-500 dark:text-gray-400">${escapeHtml(dateStr)}</td>`;
+            html += `</tr>`;
+        }
+
+        html += `</tbody></table></div></details>`;
+    }
+
+    return html;
+}
+
+/**
+ * Show preview dialog and handle confirm/import.
+ * @param {Object} data - Preview response data
+ * @param {string} mode - 'all' or 'by_date'
+ * @param {Object} extraParams - Additional params for confirm (date, competition for by_date)
+ */
+function _confirmAndImport(data, mode, extraParams) {
+    const newMatches = data.new_matches || [];
+    const existingMatches = data.existing_matches || [];
+
+    // No matches at all
+    if (newMatches.length === 0 && existingMatches.length === 0) {
+        window.Swal.fire('No Matches Found', 'No Sounders matches were found from ESPN.', 'info');
+        return;
+    }
+
+    // All already exist
+    if (newMatches.length === 0) {
+        let existHtml = _buildPreviewHtml(data);
+        window.Swal.fire({
+            title: 'All Matches Already Imported',
+            html: existHtml,
+            icon: 'info',
+        });
+        return;
+    }
+
+    const previewHtml = _buildPreviewHtml(data);
+
+    window.Swal.fire({
+        title: `Found ${newMatches.length} New Match${newMatches.length !== 1 ? 'es' : ''}`,
+        html: previewHtml,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Import Selected',
+        cancelButtonText: 'Cancel',
+        width: '600px',
+        didOpen: () => {
+            // Wire up select-all checkbox
+            const selectAll = document.getElementById('espn-select-all');
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    const cbs = document.querySelectorAll('.espn-match-cb');
+                    cbs.forEach(cb => { cb.checked = selectAll.checked; });
+                });
+            }
+        },
+        preConfirm: () => {
+            const checked = document.querySelectorAll('.espn-match-cb:checked');
+            if (checked.length === 0) {
+                window.Swal.showValidationMessage('Please select at least one match to import.');
+                return false;
+            }
+            return Array.from(checked).map(cb => cb.value);
+        }
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        const selectedIds = result.value;
+
+        // Show loading
+        window.Swal.fire({
+            title: 'Importing...',
+            html: `Importing ${selectedIds.length} match${selectedIds.length !== 1 ? 'es' : ''}...`,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => { window.Swal.showLoading(); }
+        });
+
+        const body = {
+            match_ids: selectedIds,
+            mode: mode,
+            ...(extraParams || {})
+        };
+
+        fetch('/admin-panel/mls/espn-confirm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+        .then(response => response.json())
+        .then(confirmData => {
+            if (confirmData.success) {
+                const added = (confirmData.added || []).length;
+                const skipped = (confirmData.skipped || []).length;
+                let msg = `Successfully imported ${added} match${added !== 1 ? 'es' : ''}.`;
+                if (skipped > 0) msg += ` ${skipped} already existed.`;
+
+                window.Swal.fire('Import Complete', msg, 'success')
+                    .then(() => location.reload());
+            } else {
+                throw new Error(confirmData.error || 'Import failed');
+            }
+        })
+        .catch(error => {
+            window.Swal.fire('Import Error', error.message, 'error');
+        });
+    });
+}
+
+// ============================================================================
 // MLS MATCH MANAGEMENT
 // ============================================================================
 
 /**
- * Fetch ESPN Matches
- * Fetches match data from ESPN API
+ * Fetch ESPN Matches (with Preview/Confirm)
+ * Fetches preview data from ESPN API, then shows confirmation dialog
  */
 window.EventDelegation.register('fetch-espn', function(element, e) {
     e.preventDefault();
@@ -20,20 +190,19 @@ window.EventDelegation.register('fetch-espn', function(element, e) {
     element.innerHTML = '<i class="ti ti-loader spin me-2"></i>Fetching...';
     element.disabled = true;
 
-    fetch('/admin-panel/mls/fetch-espn', { method: 'POST' })
+    fetch('/admin-panel/mls/espn-preview', { method: 'POST' })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                if (typeof window.AdminPanel !== 'undefined') {
-                    window.AdminPanel.showMobileToast(data.message, 'success');
-                }
-                setTimeout(() => location.reload(), 1500);
+                _confirmAndImport(data, 'all', null);
             } else {
-                throw new Error(data.error || 'Failed to fetch matches');
+                throw new Error(data.error || 'Failed to fetch preview');
             }
         })
         .catch(error => {
-            if (typeof window.AdminPanel !== 'undefined') {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', error.message, 'error');
+            } else if (typeof window.AdminPanel !== 'undefined') {
                 window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
             }
         })
@@ -752,6 +921,49 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
                 } else if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire('Error', error.message, 'error');
+                }
+            })
+            .finally(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+    }
+
+    const fetchByDateForm = document.getElementById('fetchByDateForm');
+    if (fetchByDateForm) {
+        fetchByDateForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const submitBtn = fetchByDateForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="ti ti-loader spin mr-2"></i>Searching...';
+            submitBtn.disabled = true;
+
+            const date = document.getElementById('fetch-date').value;
+            const competition = document.getElementById('fetch-competition').value;
+
+            fetch('/admin-panel/mls/espn-preview-by-date', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ date, competition })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide the Flowbite modal
+                hideFlowbiteModal('fetchByDateModal');
+
+                if (data.success) {
+                    _confirmAndImport(data, 'by_date', { date, competition });
+                } else {
+                    throw new Error(data.error || 'Failed to search ESPN');
+                }
+            })
+            .catch(error => {
+                if (typeof window.Swal !== 'undefined') {
+                    window.Swal.fire('Error', error.message, 'error');
+                } else if (typeof window.AdminPanel !== 'undefined') {
+                    window.AdminPanel.showMobileToast('Error: ' + error.message, 'danger');
                 }
             })
             .finally(() => {

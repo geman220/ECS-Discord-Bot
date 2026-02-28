@@ -648,6 +648,317 @@ def mls_fetch_espn():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@admin_panel_bp.route('/mls/espn-preview', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_espn_preview():
+    """Preview upcoming Sounders matches from ESPN without inserting anything."""
+    try:
+        from app.api_utils import async_to_sync, extract_match_details
+        from app.services.espn_service import get_espn_service
+
+        session = g.db_session
+        new_matches = []
+        existing_matches = []
+        competitions_checked = []
+        espn_service = get_espn_service()
+
+        for competition_name, competition_code in COMPETITION_MAPPINGS.items():
+            try:
+                team_endpoint = f"sports/soccer/{competition_code}/teams/9726/schedule"
+                team_data = async_to_sync(espn_service.fetch_data(endpoint=team_endpoint))
+
+                if team_data and 'events' in team_data:
+                    competitions_checked.append(competition_name)
+
+                    for event in team_data['events']:
+                        try:
+                            event_date = datetime.strptime(event['date'], "%Y-%m-%dT%H:%MZ")
+                            if event_date < datetime.utcnow():
+                                continue
+
+                            match_details = extract_match_details(event)
+
+                            existing_match = session.query(MLSMatch).filter_by(
+                                match_id=match_details['match_id']
+                            ).first()
+
+                            entry = {
+                                'espn_id': match_details['match_id'],
+                                'opponent': match_details['opponent'],
+                                'date_time': match_details['date_time'].isoformat(),
+                                'venue': match_details['venue'] or '',
+                                'competition': competition_code,
+                                'competition_name': competition_name,
+                                'is_home_game': match_details['is_home_game'],
+                            }
+
+                            if existing_match:
+                                entry['db_id'] = existing_match.id
+                                existing_matches.append(entry)
+                            else:
+                                new_matches.append(entry)
+
+                        except Exception as e:
+                            logger.error(f"Error processing event for preview: {e}")
+                            continue
+
+            except Exception as e:
+                logger.error(f"Error fetching {competition_name} for preview: {e}")
+                continue
+
+        return jsonify({
+            'success': True,
+            'new_matches': new_matches,
+            'existing_matches': existing_matches,
+            'competitions_checked': competitions_checked,
+        })
+
+    except Exception as e:
+        logger.error(f"Error in ESPN preview: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/mls/espn-preview-by-date', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_espn_preview_by_date():
+    """Preview Sounders matches from ESPN for a specific date + competition."""
+    try:
+        from app.api_utils import async_to_sync, extract_match_details
+        from app.services.espn_service import get_espn_service
+
+        data = request.get_json() or {}
+        date_str = data.get('date')
+        competition_code = data.get('competition')
+
+        if not date_str or not competition_code:
+            return jsonify({'success': False, 'error': 'Date and competition are required'}), 400
+
+        # Convert YYYY-MM-DD to YYYYMMDD for ESPN API
+        try:
+            parsed_date = datetime.strptime(date_str, '%Y-%m-%d')
+            espn_date = parsed_date.strftime('%Y%m%d')
+        except ValueError:
+            return jsonify({'success': False, 'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+
+        # Look up competition name
+        competition_name = next(
+            (name for name, code in COMPETITION_MAPPINGS.items() if code == competition_code),
+            competition_code
+        )
+
+        session = g.db_session
+        new_matches = []
+        existing_matches = []
+        espn_service = get_espn_service()
+
+        scoreboard_data = async_to_sync(
+            espn_service.get_scoreboard(competition_code, espn_date)
+        )
+
+        if scoreboard_data and 'events' in scoreboard_data:
+            for event in scoreboard_data['events']:
+                try:
+                    event_name = event.get('name', '')
+                    if 'Seattle Sounders' not in event_name:
+                        continue
+
+                    match_details = extract_match_details(event)
+
+                    existing_match = session.query(MLSMatch).filter_by(
+                        match_id=match_details['match_id']
+                    ).first()
+
+                    entry = {
+                        'espn_id': match_details['match_id'],
+                        'opponent': match_details['opponent'],
+                        'date_time': match_details['date_time'].isoformat(),
+                        'venue': match_details['venue'] or '',
+                        'competition': competition_code,
+                        'competition_name': competition_name,
+                        'is_home_game': match_details['is_home_game'],
+                    }
+
+                    if existing_match:
+                        entry['db_id'] = existing_match.id
+                        existing_matches.append(entry)
+                    else:
+                        new_matches.append(entry)
+
+                except Exception as e:
+                    logger.error(f"Error processing event for date preview: {e}")
+                    continue
+
+        return jsonify({
+            'success': True,
+            'new_matches': new_matches,
+            'existing_matches': existing_matches,
+            'competitions_checked': [competition_name],
+        })
+
+    except Exception as e:
+        logger.error(f"Error in ESPN preview by date: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+def _process_event_for_confirm(session, event, selected_ids, competition_code):
+    """
+    Process a single ESPN event during confirm step.
+    Checks if the event's ESPN ID is in the selected list, checks DB for duplicates,
+    inserts the match, and auto-schedules tasks.
+
+    Returns:
+        tuple: (status, match_details_dict or None)
+        status is one of: 'added', 'skipped_not_selected', 'skipped_exists', 'failed'
+    """
+    from app.api_utils import extract_match_details
+    from app.db_utils import insert_mls_match
+
+    try:
+        match_details = extract_match_details(event)
+        espn_id = match_details['match_id']
+
+        if espn_id not in selected_ids:
+            return 'skipped_not_selected', None
+
+        # Re-check DB (another admin may have imported since preview)
+        existing = session.query(MLSMatch).filter_by(match_id=espn_id).first()
+        if existing:
+            return 'skipped_exists', {'espn_id': espn_id, 'opponent': match_details['opponent']}
+
+        match = insert_mls_match(
+            session,
+            match_details['match_id'],
+            match_details['opponent'],
+            match_details['date_time'],
+            match_details['is_home_game'],
+            match_details['match_summary_link'],
+            match_details['match_stats_link'],
+            match_details['match_commentary_link'],
+            match_details['venue'],
+            competition_code
+        )
+        session.commit()
+
+        if match:
+            try:
+                from app.match_scheduler import MatchScheduler
+                scheduler = MatchScheduler()
+                scheduler.schedule_match_tasks(match.id, force=False)
+            except Exception as sched_e:
+                logger.error(f"Error scheduling tasks for confirmed match: {sched_e}")
+
+            return 'added', {'espn_id': espn_id, 'opponent': match_details['opponent'], 'db_id': match.id}
+
+        return 'failed', {'espn_id': espn_id, 'opponent': match_details['opponent']}
+
+    except Exception as e:
+        logger.error(f"Error processing event for confirm: {e}")
+        return 'failed', None
+
+
+@admin_panel_bp.route('/mls/espn-confirm', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_espn_confirm():
+    """Confirm and import selected matches from ESPN preview."""
+    try:
+        from app.api_utils import async_to_sync
+        from app.services.espn_service import get_espn_service
+
+        data = request.get_json() or {}
+        match_ids = data.get('match_ids', [])
+        mode = data.get('mode', 'all')
+
+        if not match_ids:
+            return jsonify({'success': False, 'error': 'No matches selected'}), 400
+
+        session = g.db_session
+        espn_service = get_espn_service()
+        selected_ids = set(str(mid) for mid in match_ids)
+
+        added = []
+        skipped = []
+        failed = []
+
+        if mode == 'by_date':
+            # Re-fetch from specific date + competition
+            date_str = data.get('date')
+            competition_code = data.get('competition')
+            if not date_str or not competition_code:
+                return jsonify({'success': False, 'error': 'Date and competition required for by_date mode'}), 400
+
+            espn_date = datetime.strptime(date_str, '%Y-%m-%d').strftime('%Y%m%d')
+            scoreboard_data = async_to_sync(
+                espn_service.get_scoreboard(competition_code, espn_date)
+            )
+
+            if scoreboard_data and 'events' in scoreboard_data:
+                for event in scoreboard_data['events']:
+                    event_name = event.get('name', '')
+                    if 'Seattle Sounders' not in event_name:
+                        continue
+                    status, info = _process_event_for_confirm(
+                        session, event, selected_ids, competition_code
+                    )
+                    if status == 'added' and info:
+                        added.append(info)
+                    elif status == 'skipped_exists' and info:
+                        skipped.append(info)
+                    elif status == 'failed':
+                        failed.append(info or {})
+        else:
+            # Re-fetch all competitions (cache hit within Redis TTL)
+            for competition_name, competition_code in COMPETITION_MAPPINGS.items():
+                try:
+                    team_endpoint = f"sports/soccer/{competition_code}/teams/9726/schedule"
+                    team_data = async_to_sync(espn_service.fetch_data(endpoint=team_endpoint))
+
+                    if team_data and 'events' in team_data:
+                        for event in team_data['events']:
+                            event_date = datetime.strptime(event['date'], "%Y-%m-%dT%H:%MZ")
+                            if event_date < datetime.utcnow():
+                                continue
+
+                            status, info = _process_event_for_confirm(
+                                session, event, selected_ids, competition_code
+                            )
+                            if status == 'added' and info:
+                                added.append(info)
+                            elif status == 'skipped_exists' and info:
+                                skipped.append(info)
+                            elif status == 'failed':
+                                failed.append(info or {})
+
+                except Exception as e:
+                    logger.error(f"Error re-fetching {competition_name} for confirm: {e}")
+                    continue
+
+        # Log the action
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='mls_espn_confirm_import',
+            resource_type='system',
+            resource_id='espn',
+            new_value=f'Imported {len(added)} matches (skipped {len(skipped)}, failed {len(failed)})',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Imported {len(added)} match(es)',
+            'added': added,
+            'skipped': skipped,
+            'failed': failed,
+        })
+
+    except Exception as e:
+        logger.error(f"Error in ESPN confirm: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @admin_panel_bp.route('/mls/create', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Discord Admin'])

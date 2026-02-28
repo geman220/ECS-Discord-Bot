@@ -29,6 +29,9 @@
                 <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600" data-modal-target="createMatchModal" data-modal-toggle="createMatchModal">
                     <i class="ti ti-plus mr-2"></i>Create Match
                 </button>
+                <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-500 rounded-lg hover:bg-indigo-600" data-modal-target="fetchByDateModal" data-modal-toggle="fetchByDateModal">
+                    <i class="ti ti-calendar-search mr-2"></i>Fetch by Date
+                </button>
                 <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600" data-action="fetch-espn">
                     <i class="ti ti-download mr-2"></i>Fetch ESPN
                 </button>
@@ -306,6 +309,37 @@
                     </div>
                     <button type="submit" class="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
                         <i class="ti ti-check mr-2"></i>Save Changes
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Fetch by Date Modal -->
+<div id="fetchByDateModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-md max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <button type="button" class="absolute top-3 right-2.5 text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="fetchByDateModal">
+                <i class="ti ti-x text-xl"></i>
+            </button>
+            <div class="px-6 py-6 lg:px-8">
+                <h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">Fetch by Date</h3>
+                <p class="mb-4 text-sm text-gray-500 dark:text-gray-400">Search ESPN's scoreboard for a specific date and competition to find Sounders matches.</p>
+                <form id="fetchByDateForm" class="space-y-4">
+                    <div>
+                        <label for="fetch-date" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date *</label>
+                        <input type="date" id="fetch-date" name="date" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required>
+                    </div>
+                    <div>
+                        <label for="fetch-competition" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Competition *</label>
+                        <select id="fetch-competition" name="competition" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-indigo-500 focus:border-indigo-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" required>
+                            {% for name, code in competition_mappings.items() %}
+                            <option value="{{ code }}" {% if code == 'usa.1' %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-4 focus:outline-none focus:ring-indigo-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-indigo-500 dark:hover:bg-indigo-600 dark:focus:ring-indigo-800">
+                        <i class="ti ti-search mr-2"></i>Search ESPN
                     </button>
                 </form>
             </div>
