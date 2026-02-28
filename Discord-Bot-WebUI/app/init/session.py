@@ -24,9 +24,24 @@ def init_session(app, redis_manager):
         redis_manager: The Redis manager instance.
     """
     if not app.config.get('TESTING'):
-        # Create a Redis client specifically for sessions that shares the connection pool
-        from redis import Redis
-        session_redis_client = Redis(connection_pool=redis_manager._pool, decode_responses=False)
+        # Create a DEDICATED Redis connection pool for Flask-Session.
+        # This MUST NOT share the pool with SocketIO or other components
+        # that run in background native threads, because gevent's
+        # monkey-patched sockets don't support cross-thread usage.
+        # Sharing the pool causes "Cannot switch to a different thread" crashes.
+        from redis import Redis, ConnectionPool
+        redis_url = app.config.get('REDIS_URL', 'redis://redis:6379/0')
+        session_pool = ConnectionPool.from_url(
+            redis_url,
+            max_connections=10,
+            socket_timeout=5.0,
+            socket_connect_timeout=3.0,
+            retry_on_timeout=True,
+        )
+        session_redis_client = Redis(
+            connection_pool=session_pool,
+            decode_responses=False
+        )
 
         app.config.update({
             'SESSION_TYPE': 'redis',

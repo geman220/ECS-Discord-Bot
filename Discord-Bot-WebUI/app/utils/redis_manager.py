@@ -265,10 +265,17 @@ class UnifiedRedisManager:
                     self._decoded_client.ping()
                 self._last_health_check = current_time
             except Exception as e:
-                # Log at WARNING level so health issues are visible
-                logger.warning(f"Redis health check failed: {e}")
                 self._last_health_check = current_time
-                # Attempt to reinitialize if ping fails
+                # Greenlet/thread switch errors are NOT Redis failures -
+                # they're caused by gevent socket cross-thread usage.
+                # Do NOT reinitialize the pool for these, as that would
+                # cascade failures to all in-flight Redis operations.
+                error_msg = str(e)
+                if 'Cannot switch to a different thread' in error_msg:
+                    logger.warning(f"Redis availability check failed: {error_msg}")
+                    return
+                # For actual Redis connection failures, attempt reinitialize
+                logger.warning(f"Redis health check failed: {e}")
                 try:
                     self._reinitialize()
                 except Exception as reinit_error:
