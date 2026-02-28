@@ -14,6 +14,7 @@ from app.decorators import celery_task
 from app.services.match_scheduler_service import MatchSchedulerService
 from app.utils.task_session_manager import task_session
 from app.models import ScheduledTask, TaskType, TaskState
+from app.models.live_reporting_session import LiveReportingSession
 
 logger = logging.getLogger(__name__)
 
@@ -119,24 +120,52 @@ def schedule_upcoming_matches(self, session):
                         session, match.id, TaskType.LIVE_REPORTING_START
                     )
 
-                    if not existing_reporting_task and live_start_time > now:
-                        celery_task = start_mls_live_reporting_task.apply_async(
-                            args=[match.id],
-                            eta=live_start_time,
-                            expires=live_start_time + timedelta(minutes=30)
-                        )
+                    if not existing_reporting_task:
+                        # Check if live session already exists
+                        existing_live_session = session.query(LiveReportingSession).filter_by(
+                            match_id=str(match.match_id),
+                            is_active=True
+                        ).first()
 
-                        # Create database tracking record
-                        db_task = ScheduledTask(
-                            task_type=TaskType.LIVE_REPORTING_START,
-                            match_id=match.id,
-                            celery_task_id=celery_task.id,
-                            scheduled_time=live_start_time,
-                            state=TaskState.SCHEDULED
-                        )
-                        session.add(db_task)
-                        scheduled_live += 1
-                        logger.info(f"Scheduled live reporting for match {match.id} at {live_start_time}, task_id={celery_task.id}, db_task_id={db_task.id}")
+                        if not existing_live_session:
+                            if live_start_time > now:
+                                # Future: schedule for configured time before match
+                                celery_task = start_mls_live_reporting_task.apply_async(
+                                    args=[match.id],
+                                    eta=live_start_time,
+                                    expires=live_start_time + timedelta(minutes=30)
+                                )
+                                task_state = TaskState.SCHEDULED
+                            elif match_dt > now:
+                                # Past due but match hasn't started yet or is in progress:
+                                # start immediately
+                                celery_task = start_mls_live_reporting_task.apply_async(
+                                    args=[match.id]
+                                )
+                                task_state = TaskState.RUNNING
+                            else:
+                                # Match start time has passed — check if within 3 hours
+                                # (matches last ~2 hours, give buffer)
+                                if now - match_dt < timedelta(hours=3):
+                                    celery_task = start_mls_live_reporting_task.apply_async(
+                                        args=[match.id]
+                                    )
+                                    task_state = TaskState.RUNNING
+                                else:
+                                    celery_task = None
+
+                            if celery_task:
+                                db_task = ScheduledTask(
+                                    task_type=TaskType.LIVE_REPORTING_START,
+                                    match_id=match.id,
+                                    celery_task_id=celery_task.id,
+                                    scheduled_time=live_start_time,
+                                    state=task_state,
+                                    execution_time=now if task_state == TaskState.RUNNING else None
+                                )
+                                session.add(db_task)
+                                scheduled_live += 1
+                                logger.info(f"{'Scheduled' if task_state == TaskState.SCHEDULED else 'Immediately started'} live reporting for match {match.id} at {live_start_time}, task_id={celery_task.id}")
 
                 except Exception as e:
                     logger.error(f"Error scheduling MLS match {match.id}: {e}")
