@@ -22,10 +22,10 @@ from app.models import MLSMatch
 from app.models.admin_config import AdminAuditLog
 from app.models.match_status import MatchStatus
 from app.tasks.tasks_live_reporting import (
-    force_create_mls_thread_task,
     schedule_all_mls_threads_task,
     schedule_mls_thread_task
 )
+from app.tasks.match_scheduler import create_mls_match_thread_task
 from app.services.realtime_bridge_service import realtime_bridge, check_realtime_health, get_coordination_status
 from app.utils.task_monitor import get_task_info
 
@@ -49,17 +49,14 @@ COMPETITION_MAPPINGS = {
 
 def _schedule_match_tasks_safe(session, match, match_date_time):
     """
-    Schedule thread creation and live reporting Celery tasks for a match.
+    Schedule thread creation and live reporting tasks for a match.
 
-    This dispatches Celery tasks directly instead of using MatchScheduler,
-    which relies on redis_connection_service that crashes under gevent
-    (the web process runs gevent, causing greenlet thread-switch errors).
-
-    Celery's apply_async() only sends a message to the broker and is
-    gevent-safe. The actual Redis-heavy work runs in the Celery worker.
+    Creates ScheduledTask DB records for future tasks (poll-dispatch model)
+    or dispatches immediately if past due. Never uses Celery ETA to avoid
+    re-delivery race conditions with task_acks_late.
     """
-    from app.tasks.tasks_live_reporting import force_create_mls_thread_task
     from app.tasks.match_scheduler import start_mls_live_reporting_task
+    from app.models import ScheduledTask, TaskType, TaskState
 
     now = datetime.now(pytz.UTC)
     thread_time = match_date_time - timedelta(hours=48)
@@ -69,17 +66,49 @@ def _schedule_match_tasks_safe(session, match, match_date_time):
     if match_date_time.tzinfo is None:
         match_date_time = pytz.UTC.localize(match_date_time)
 
-    # Schedule thread creation (immediate if past due)
+    # Schedule thread creation (immediate if past due, DB record if future)
     if thread_time <= now:
-        force_create_mls_thread_task.apply_async(args=[match.id])
+        celery_task = create_mls_match_thread_task.apply_async(args=[match.id])
+        db_task = ScheduledTask(
+            task_type=TaskType.THREAD_CREATION,
+            match_id=match.id,
+            celery_task_id=celery_task.id,
+            scheduled_time=thread_time,
+            state=TaskState.RUNNING,
+            execution_time=now
+        )
+        session.add(db_task)
     else:
-        force_create_mls_thread_task.apply_async(args=[match.id], eta=thread_time)
+        db_task = ScheduledTask(
+            task_type=TaskType.THREAD_CREATION,
+            match_id=match.id,
+            celery_task_id=None,
+            scheduled_time=thread_time,
+            state=TaskState.SCHEDULED
+        )
+        session.add(db_task)
 
-    # Schedule live reporting (immediate if past due)
+    # Schedule live reporting (immediate if past due, DB record if future)
     if reporting_time <= now:
-        start_mls_live_reporting_task.apply_async(args=[match.id])
+        celery_task = start_mls_live_reporting_task.apply_async(args=[match.id])
+        db_task = ScheduledTask(
+            task_type=TaskType.LIVE_REPORTING_START,
+            match_id=match.id,
+            celery_task_id=celery_task.id,
+            scheduled_time=reporting_time,
+            state=TaskState.RUNNING,
+            execution_time=now
+        )
+        session.add(db_task)
     else:
-        start_mls_live_reporting_task.apply_async(args=[match.id], eta=reporting_time)
+        db_task = ScheduledTask(
+            task_type=TaskType.LIVE_REPORTING_START,
+            match_id=match.id,
+            celery_task_id=None,
+            scheduled_time=reporting_time,
+            state=TaskState.SCHEDULED
+        )
+        session.add(db_task)
 
     # Update match record
     match.thread_creation_time = thread_time
@@ -372,7 +401,7 @@ def mls_create_thread(match_id):
         return jsonify({'success': False, 'error': 'Match not found'}), 404
 
     try:
-        task_result = force_create_mls_thread_task.delay(match_id)
+        task_result = create_mls_match_thread_task.delay(match_id)
 
         # Log the action
         AdminAuditLog.log_action(
@@ -635,7 +664,8 @@ def mls_fetch_espn():
                                 match_details['match_stats_link'],
                                 match_details['match_commentary_link'],
                                 match_details['venue'],
-                                competition_code
+                                competition_code,
+                                espn_match_id=match_details['match_id']
                             )
 
                             session.commit()
@@ -877,7 +907,8 @@ def _process_event_for_confirm(session, event, selected_ids, competition_code):
             match_details['match_stats_link'],
             match_details['match_commentary_link'],
             match_details['venue'],
-            competition_code
+            competition_code,
+            espn_match_id=match_details['match_id']
         )
         session.commit()
 
@@ -1165,7 +1196,7 @@ def mls_edit_match(match_id):
                 from app.models import ScheduledTask, TaskType, TaskState
                 from app.models.admin_config import AdminConfig
                 from app.core import celery
-                from app.tasks.match_scheduler import create_mls_match_thread_task, start_mls_live_reporting_task
+                from app.tasks.match_scheduler import start_mls_live_reporting_task
 
                 # Get configurable timing
                 thread_creation_hours = AdminConfig.get_setting('mls_thread_creation_hours_before', 48)
@@ -1181,20 +1212,17 @@ def mls_edit_match(match_id):
                 thread_task = ScheduledTask.find_existing_task(session, match.id, TaskType.THREAD_CREATION)
 
                 if thread_task and thread_task.state == TaskState.SCHEDULED:
-                    # Revoke old task
-                    try:
-                        celery.control.revoke(thread_task.celery_task_id, terminate=True)
-                    except Exception:
-                        pass
+                    # Revoke old Celery task if one was dispatched
+                    if thread_task.celery_task_id:
+                        try:
+                            celery.control.revoke(thread_task.celery_task_id, terminate=True)
+                        except Exception:
+                            pass
 
-                    # Create new scheduled task
+                    # Update ScheduledTask for poll-dispatch (no ETA)
                     if thread_time > now and not match.thread_created:
-                        new_celery_task = create_mls_match_thread_task.apply_async(
-                            args=[match.id],
-                            eta=thread_time,
-                            expires=thread_time + timedelta(hours=2)
-                        )
-                        thread_task.celery_task_id = new_celery_task.id
+                        thread_task.celery_task_id = None
+                        thread_task.state = TaskState.SCHEDULED
                         thread_task.scheduled_time = thread_time
                         changes_made.append(f"Thread task rescheduled for {thread_time}")
                         tasks_rescheduled = True
@@ -1204,20 +1232,17 @@ def mls_edit_match(match_id):
                 reporting_task = ScheduledTask.find_existing_task(session, match.id, TaskType.LIVE_REPORTING_START)
 
                 if reporting_task and reporting_task.state == TaskState.SCHEDULED:
-                    # Revoke old task
-                    try:
-                        celery.control.revoke(reporting_task.celery_task_id, terminate=True)
-                    except Exception:
-                        pass
+                    # Revoke old Celery task if one was dispatched
+                    if reporting_task.celery_task_id:
+                        try:
+                            celery.control.revoke(reporting_task.celery_task_id, terminate=True)
+                        except Exception:
+                            pass
 
-                    # Create new scheduled task
+                    # Update ScheduledTask for poll-dispatch (no ETA)
                     if live_start_time > now:
-                        new_celery_task = start_mls_live_reporting_task.apply_async(
-                            args=[match.id],
-                            eta=live_start_time,
-                            expires=live_start_time + timedelta(minutes=30)
-                        )
-                        reporting_task.celery_task_id = new_celery_task.id
+                        reporting_task.celery_task_id = None
+                        reporting_task.state = TaskState.SCHEDULED
                         reporting_task.scheduled_time = live_start_time
                         changes_made.append(f"Live reporting task rescheduled for {live_start_time}")
                         tasks_rescheduled = True
@@ -1698,42 +1723,32 @@ def task_resume(task_id):
 
         time_passed = now >= scheduled_time
 
-        # Schedule the task based on type
-        if task.task_type == TaskType.THREAD_CREATION.value:
-            if time_passed:
-                # Execute immediately
-                celery_task = create_mls_match_thread_task.apply_async(args=[task.match_id])
-            else:
-                # Schedule for original time
-                celery_task = create_mls_match_thread_task.apply_async(
-                    args=[task.match_id],
-                    eta=scheduled_time
-                )
-        elif task.task_type == TaskType.LIVE_REPORTING_START.value:
-            if time_passed:
-                # Execute immediately
-                celery_task = start_mls_live_reporting_task.apply_async(args=[task.match_id])
-            else:
-                # Schedule for original time
-                celery_task = start_mls_live_reporting_task.apply_async(
-                    args=[task.match_id],
-                    eta=scheduled_time
-                )
-        else:
+        # Resume the task based on type
+        if task.task_type not in (TaskType.THREAD_CREATION.value, TaskType.LIVE_REPORTING_START.value):
             return jsonify({
                 'success': False,
                 'error': f'Unknown task type: {task.task_type}'
             }), 400
 
-        # Mark task as resumed with new Celery task ID
-        task.mark_resumed(celery_task.id)
+        if time_passed:
+            # Past due: dispatch immediately
+            if task.task_type == TaskType.THREAD_CREATION.value:
+                celery_task = create_mls_match_thread_task.apply_async(args=[task.match_id])
+            else:
+                celery_task = start_mls_live_reporting_task.apply_async(args=[task.match_id])
+            task.mark_resumed(celery_task.id)
+        else:
+            # Future: set as SCHEDULED with no Celery task (poll-dispatch model)
+            task.state = TaskState.SCHEDULED
+            task.celery_task_id = None
+
         session.commit()
 
         # Build message based on timing
         if time_passed:
             message = f'Task resumed and executing immediately (scheduled time passed)'
         else:
-            message = f'Task resumed and scheduled for {scheduled_time.strftime("%Y-%m-%d %H:%M %Z")}'
+            message = f'Task resumed and will be dispatched at {scheduled_time.strftime("%Y-%m-%d %H:%M %Z")}'
 
         # Log action
         AdminAuditLog.log_action(

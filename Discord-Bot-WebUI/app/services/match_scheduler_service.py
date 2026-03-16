@@ -62,31 +62,46 @@ class MatchSchedulerService:
                 scheduled_live = 0
                 now = datetime.utcnow()
 
+                from app.models import ScheduledTask, TaskType, TaskState
+
                 for match in matches:
                     try:
                         # Schedule thread creation (48 hours before)
                         thread_time = match.date - timedelta(hours=48)
                         if thread_time > now:
-                            create_match_thread_task.apply_async(
-                                args=[match.id],
-                                eta=thread_time,
-                                expires=thread_time + timedelta(hours=2)
-                            )
-                            scheduled_threads += 1
+                            # Future: create DB record only (poll-dispatch, no ETA)
+                            existing = ScheduledTask.find_existing_task(session, match.id, TaskType.THREAD_CREATION)
+                            if not existing:
+                                db_task = ScheduledTask(
+                                    task_type=TaskType.THREAD_CREATION,
+                                    match_id=match.id,
+                                    celery_task_id=None,
+                                    scheduled_time=thread_time,
+                                    state=TaskState.SCHEDULED
+                                )
+                                session.add(db_task)
+                                scheduled_threads += 1
 
                         # Schedule live reporting start (5 minutes before)
                         live_start_time = match.date - timedelta(minutes=5)
                         if live_start_time > now:
-                            start_live_reporting_task.apply_async(
-                                args=[match.id],
-                                eta=live_start_time,
-                                expires=live_start_time + timedelta(minutes=30)
-                            )
-                            scheduled_live += 1
+                            existing = ScheduledTask.find_existing_task(session, match.id, TaskType.LIVE_REPORTING_START)
+                            if not existing:
+                                db_task = ScheduledTask(
+                                    task_type=TaskType.LIVE_REPORTING_START,
+                                    match_id=match.id,
+                                    celery_task_id=None,
+                                    scheduled_time=live_start_time,
+                                    state=TaskState.SCHEDULED
+                                )
+                                session.add(db_task)
+                                scheduled_live += 1
 
                         # Schedule live reporting end (2 hours after start)
                         live_end_time = match.date + timedelta(hours=2)
                         if live_end_time > now:
+                            # Stop task can still use immediate dispatch when due
+                            # (low risk — only called once, not re-delivered)
                             stop_live_reporting_task.apply_async(
                                 args=[match.id],
                                 eta=live_end_time,

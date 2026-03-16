@@ -22,6 +22,7 @@ from app.core import celery as celery_app
 from app.core.helpers import get_match
 from app.core.session_manager import managed_session
 from app.tasks.tasks_live_reporting import start_live_reporting, force_create_mls_thread_task
+from app.tasks.match_scheduler import create_mls_match_thread_task, start_mls_live_reporting_task
 
 logger = logging.getLogger(__name__)
 
@@ -202,25 +203,47 @@ class MatchScheduler:
                     return {'scheduled': False, 'existing_task': existing_task, 'eta': existing_eta}
     
         try:
-            # If the time is past due, execute immediately without eta
+            from app.models import ScheduledTask, TaskType, TaskState
+
+            session = g.db_session
+
             if is_past_due:
-                thread_task = force_create_mls_thread_task.apply_async(args=[match_id])
+                # Dispatch immediately (no ETA)
+                thread_task = create_mls_match_thread_task.apply_async(args=[match_id])
                 logger.info(f"Created immediate thread task with ID: {thread_task.id}")
+                celery_id = thread_task.id
+                task_state = TaskState.RUNNING
             else:
-                thread_task = force_create_mls_thread_task.apply_async(args=[match_id], eta=thread_time)
-                logger.info(f"Created scheduled thread task with ID: {thread_task.id}")
-            
+                # Future: create DB record only, poll-dispatch will fire it
+                celery_id = None
+                task_state = TaskState.SCHEDULED
+                logger.info(f"Created scheduled thread task (poll-dispatch) for {thread_time}")
+
+            # Create ScheduledTask DB record
+            existing = ScheduledTask.find_existing_task(session, match_id, TaskType.THREAD_CREATION)
+            if not existing:
+                db_task = ScheduledTask(
+                    task_type=TaskType.THREAD_CREATION,
+                    match_id=match_id,
+                    celery_task_id=celery_id,
+                    scheduled_time=thread_time,
+                    state=task_state,
+                    execution_time=datetime.utcnow() if is_past_due else None
+                )
+                session.add(db_task)
+
+            # Store in Redis for legacy monitoring
             expiry = int(timedelta(days=2).total_seconds())
             data_to_store = json.dumps({
-                "task_id": thread_task.id,
+                "task_id": celery_id or "pending_dispatch",
                 "eta": thread_time.isoformat()
             })
-            
+
             with self.redis_service.get_connection() as redis_client:
                 redis_client.setex(thread_key, expiry, data_to_store)
             return {
                 'scheduled': True,
-                'task_id': thread_task.id,
+                'task_id': celery_id,
                 'expiry': expiry,
                 'eta': thread_time.isoformat(),
                 'immediate': is_past_due
@@ -285,25 +308,47 @@ class MatchScheduler:
                     return {'scheduled': False, 'existing_task': existing_task, 'eta': existing_eta}
     
         try:
-            # If the time is past due, execute immediately without eta
+            from app.models import ScheduledTask, TaskType, TaskState
+
+            session = g.db_session
+
             if is_past_due:
-                reporting_task = start_live_reporting.apply_async(args=[str(match_id)])
+                # Dispatch immediately (no ETA)
+                reporting_task = start_mls_live_reporting_task.apply_async(args=[match_id])
                 logger.info(f"Created immediate reporting task with ID: {reporting_task.id}")
+                celery_id = reporting_task.id
+                task_state = TaskState.RUNNING
             else:
-                reporting_task = start_live_reporting.apply_async(args=[str(match_id)], eta=reporting_time)
-                logger.info(f"Created scheduled reporting task with ID: {reporting_task.id}")
-            
+                # Future: create DB record only, poll-dispatch will fire it
+                celery_id = None
+                task_state = TaskState.SCHEDULED
+                logger.info(f"Created scheduled reporting task (poll-dispatch) for {reporting_time}")
+
+            # Create ScheduledTask DB record
+            existing = ScheduledTask.find_existing_task(session, match_id, TaskType.LIVE_REPORTING_START)
+            if not existing:
+                db_task = ScheduledTask(
+                    task_type=TaskType.LIVE_REPORTING_START,
+                    match_id=match_id,
+                    celery_task_id=celery_id,
+                    scheduled_time=reporting_time,
+                    state=task_state,
+                    execution_time=datetime.utcnow() if is_past_due else None
+                )
+                session.add(db_task)
+
+            # Store in Redis for legacy monitoring
             expiry = int(timedelta(days=2).total_seconds())
             data_to_store = json.dumps({
-                "task_id": reporting_task.id,
+                "task_id": celery_id or "pending_dispatch",
                 "eta": reporting_time.isoformat()
             })
-            
+
             with self.redis_service.get_connection() as redis_client:
                 redis_client.setex(reporting_key, expiry, data_to_store)
             return {
                 'scheduled': True,
-                'task_id': reporting_task.id,
+                'task_id': celery_id,
                 'expiry': expiry,
                 'eta': reporting_time.isoformat(),
                 'immediate': is_past_due

@@ -48,6 +48,8 @@ class RealtimeReportingService:
         self.active_sessions: Dict[int, Dict[str, Any]] = {}
         self.last_events: Dict[int, Set[str]] = {}  # Track processed events by session
         self.match_history: Dict[int, List[Dict[str, Any]]] = {}  # Track match history per session
+        self._catchup_sessions: Set[int] = set()  # Sessions needing silent catch-up on first poll
+        self._last_statuses: Dict[int, str] = {}  # Track previous status per session for transition detection
 
     async def start_service(self):
         """Start the real-time reporting service."""
@@ -140,8 +142,11 @@ class RealtimeReportingService:
 
                     if match:
                         # For MLSMatch, we have opponent and is_home_game
-                        home_team = "LAFC" if match.is_home_game else match.opponent
-                        away_team = match.opponent if match.is_home_game else "LAFC"
+                        home_team = "Seattle Sounders FC" if match.is_home_game else match.opponent
+                        away_team = match.opponent if match.is_home_game else "Seattle Sounders FC"
+
+                        # espn_match_id may not be populated separately - match_id IS the ESPN ID
+                        espn_id = match.espn_match_id or match.match_id
 
                         session_data.update({
                             'home_team': home_team,
@@ -151,14 +156,38 @@ class RealtimeReportingService:
                             'is_home_game': match.is_home_game,
                             'venue': match.venue or 'TBD',
                             'competition': match.competition or 'MLS',
-                            'espn_match_id': match.espn_match_id
+                            'espn_match_id': espn_id
                         })
 
                     current_sessions[live_session.id] = session_data
 
-                    # Initialize event tracking if new session
+                    # Initialize event tracking - load persisted keys from DB to survive restarts
                     if live_session.id not in self.last_events:
-                        self.last_events[live_session.id] = set()
+                        persisted_keys = live_session.parsed_event_keys
+                        self.last_events[live_session.id] = set(persisted_keys) if persisted_keys else set()
+                        if persisted_keys:
+                            logger.info(f"Loaded {len(persisted_keys)} persisted event keys for session {live_session.id}")
+                        else:
+                            # No persisted keys but session has been active — need silent catch-up
+                            # to avoid replaying all past events after a restart/first-run
+                            age = (datetime.utcnow() - live_session.started_at).total_seconds() if live_session.started_at else 0
+                            if age > 120:  # Session older than 2 minutes
+                                self._catchup_sessions.add(live_session.id)
+                                logger.info(f"Session {live_session.id} needs catch-up (age={age:.0f}s, no persisted events)")
+
+                        # Restore last known status from DB for transition detection
+                        if live_session.last_status:
+                            self._last_statuses[live_session.id] = live_session.last_status
+                            logger.info(f"Restored last status '{live_session.last_status}' for session {live_session.id}")
+
+                        # Seed Redis score key from DB to prevent false score-change on restart
+                        if live_session.last_score:
+                            score_key = f"last_score_{live_session.id}"
+                            try:
+                                self.redis_service.execute_command('setex', score_key, 3600, live_session.last_score)
+                                logger.info(f"Restored last score '{live_session.last_score}' for session {live_session.id}")
+                            except Exception:
+                                pass
 
                 # Clean up old sessions from our cache
                 old_session_ids = set(self.active_sessions.keys()) - set(current_sessions.keys())
@@ -169,7 +198,10 @@ class RealtimeReportingService:
                 self.active_sessions = current_sessions
 
                 if self.active_sessions:
-                    logger.debug(f"Monitoring {len(self.active_sessions)} active live sessions")
+                    session_ids = list(self.active_sessions.keys())
+                    logger.info(f"Found {len(self.active_sessions)} active live session(s): {session_ids}")
+                else:
+                    logger.info("No active live reporting sessions found")
 
         except Exception as e:
             logger.error(f"Error refreshing active sessions: {e}")
@@ -194,45 +226,186 @@ class RealtimeReportingService:
         try:
             espn_match_id = session_data.get('espn_match_id')
             if not espn_match_id:
-                logger.warning(f"No ESPN match ID for session {session_id}")
+                logger.warning(f"No ESPN match ID for session {session_id}, skipping")
                 return
 
-            # Get match data from ESPN with correct competition
-            competition = session_data.get('competition', 'usa.1')  # Default to MLS if not specified
-            match_data = self.espn_client.get_match_data(espn_match_id, competition)
+            # Map competition name to ESPN league code
+            competition = session_data.get('competition', 'usa.1')
+            competition_map = {
+                'MLS': 'usa.1',
+                'US Open Cup': 'usa.open',
+                'Leagues Cup': 'usa.leagues_cup',
+                'CONCACAF Champions League': 'concacaf.champions',
+            }
+            league_code = competition_map.get(competition, competition)
+
+            logger.info(f"Polling ESPN for session {session_id} (match={espn_match_id}, league={league_code})")
+            match_data = self.espn_client.get_match_data(espn_match_id, league_code)
             if not match_data:
                 await self._handle_session_error(session_id, "Failed to fetch match data")
                 return
 
-            # Check if match is actually live
-            if not self._is_match_live(match_data):
-                # Match ended or not started, deactivate session
-                await self._deactivate_session(session_id, "Match no longer live")
+            status = match_data.get('status', 'UNKNOWN')
+            score = f"{match_data.get('home_score', 0)}-{match_data.get('away_score', 0)}"
+            logger.info(f"Session {session_id}: ESPN status={status}, score={score}, mock={match_data.get('mock_data', False)}")
+
+            # Detect status transitions for lifecycle messages
+            previous_status = self._last_statuses.get(session_id)
+            is_catchup = session_id in self._catchup_sessions
+
+            # Check match state
+            if self._is_match_ended(match_data):
+                if not is_catchup:
+                    # Send proper fulltime message before deactivating
+                    await self._send_lifecycle_event(session_id, session_data, 'fulltime', match_data)
+                logger.info(f"Session {session_id}: Match ended (status={status}), deactivating")
+                await self._deactivate_session(session_id, session_data, f"Match ended (status: {status})")
+                self._catchup_sessions.discard(session_id)
                 return
 
-            # Process any new events
+            if not self._is_match_live(match_data):
+                # Match not started yet or unknown status — wait, don't deactivate
+                logger.info(f"Session {session_id}: Match not live yet (status={status}), waiting...")
+                self._last_statuses[session_id] = status
+                return
+
+            # Detect and send lifecycle messages on status transitions
+            if previous_status and previous_status != status and not is_catchup:
+                await self._send_lifecycle_event(session_id, session_data,
+                                                 self._get_transition_type(previous_status, status),
+                                                 match_data)
+
+            # Process any new discrete events (goals, cards, subs)
             new_events = await self._extract_new_events(session_id, match_data)
-            if new_events:
+
+            # On first poll after restart with no persisted keys, silently catch up
+            if is_catchup:
+                if new_events:
+                    logger.info(f"Session {session_id}: Catch-up mode - absorbed {len(new_events)} existing event(s) without sending")
+                self._catchup_sessions.discard(session_id)
+            elif new_events:
+                logger.info(f"Session {session_id}: Processing {len(new_events)} new event(s)")
                 await self._send_events_to_discord(session_id, session_data, new_events)
 
-            # Update session stats
-            await self._update_session_stats(session_id)
+            # Update status tracking and persist state
+            self._last_statuses[session_id] = status
+            await self._update_session_stats(session_id, status, score)
 
         except Exception as e:
             logger.error(f"Error processing session {session_id}: {e}")
             await self._handle_session_error(session_id, str(e))
 
+    def _get_match_status(self, match_data: Dict[str, Any]) -> str:
+        """Extract match status string from match data."""
+        if isinstance(match_data.get('status'), str):
+            return match_data.get('status', '').upper()
+        else:
+            return match_data.get('status', {}).get('type', {}).get('name', '').upper()
+
     def _is_match_live(self, match_data: Dict[str, Any]) -> bool:
         """Check if match is currently live."""
-        # Handle different data structures
-        if isinstance(match_data.get('status'), str):
-            # Our mock data format
-            status = match_data.get('status', '')
-        else:
-            # ESPN API format
-            status = match_data.get('status', {}).get('type', {}).get('name', '')
+        status = self._get_match_status(match_data)
+        return status in ['IN_PLAY', 'HALFTIME', 'SECOND_HALF']
 
-        return status.upper() in ['IN_PLAY', 'HALFTIME', 'SECOND_HALF']
+    def _is_match_ended(self, match_data: Dict[str, Any]) -> bool:
+        """Check if match has ended (should deactivate session)."""
+        status = self._get_match_status(match_data)
+        return status in ['FINAL', 'COMPLETED', 'POSTPONED', 'CANCELLED']
+
+    def _get_transition_type(self, previous_status: str, current_status: str) -> Optional[str]:
+        """Determine the lifecycle event type for a status transition."""
+        prev = previous_status.upper() if previous_status else ''
+        curr = current_status.upper() if current_status else ''
+
+        if curr == 'IN_PLAY' and prev in ('SCHEDULED', 'PRE_MATCH', ''):
+            return 'kickoff'
+        elif curr == 'HALFTIME' and prev == 'IN_PLAY':
+            return 'halftime'
+        elif curr == 'IN_PLAY' and prev == 'HALFTIME':
+            return 'second_half_start'
+        elif curr in ('FINAL', 'COMPLETED'):
+            return 'fulltime'
+        return None
+
+    async def _send_lifecycle_event(self, session_id: int, session_data: Dict[str, Any],
+                                     event_type: Optional[str], match_data: Dict[str, Any]):
+        """Send a match lifecycle message (kickoff, halftime, second half, fulltime)."""
+        if not event_type:
+            return
+
+        thread_id = session_data.get('thread_id')
+        if not thread_id:
+            return
+
+        home_team = session_data.get('home_team', 'Home')
+        away_team = session_data.get('away_team', 'Away')
+        home_score = match_data.get('home_score', 0)
+        away_score = match_data.get('away_score', 0)
+
+        logger.info(f"Session {session_id}: Sending lifecycle event '{event_type}'")
+
+        # Try AI-generated message first, fall back to static
+        message = None
+
+        if event_type == 'kickoff':
+            message = f"⚽ **KICKOFF!** {home_team} vs {away_team} is underway!"
+
+        elif event_type == 'halftime':
+            try:
+                context = {
+                    'home_team': {'displayName': home_team},
+                    'away_team': {'displayName': away_team},
+                    'home_score': str(home_score),
+                    'away_score': str(away_score),
+                    'competition': session_data.get('competition', 'MLS')
+                }
+                ai_msg = self.ai_client.generate_half_time_message(context)
+                if ai_msg:
+                    message = ai_msg
+            except Exception as e:
+                logger.warning(f"AI halftime message failed: {e}")
+            if not message:
+                message = f"⏸️ **HALFTIME** — {home_team} {home_score}-{away_score} {away_team}"
+
+        elif event_type == 'second_half_start':
+            message = f"⚽ **Second half underway!** {home_team} {home_score}-{away_score} {away_team}"
+
+        elif event_type == 'fulltime':
+            try:
+                context = {
+                    'home_team': {'displayName': home_team},
+                    'away_team': {'displayName': away_team},
+                    'home_score': str(home_score),
+                    'away_score': str(away_score),
+                    'competition': session_data.get('competition', 'MLS')
+                }
+                ai_msg = self.ai_client.generate_full_time_message(context)
+                if ai_msg:
+                    message = ai_msg
+            except Exception as e:
+                logger.warning(f"AI fulltime message failed: {e}")
+            if not message:
+                message = f"🏁 **FULL TIME** — {home_team} {home_score}-{away_score} {away_team}"
+
+        if message:
+            try:
+                request_data = {
+                    'thread_id': thread_id,
+                    'event_type': event_type,
+                    'content': message,
+                    'match_data': {
+                        'session_id': session_id,
+                        'match_id': session_data.get('match_id')
+                    }
+                }
+                response = send_to_discord_bot('/api/live-reporting/event', request_data)
+                if response and response.get('success'):
+                    logger.info(f"Sent {event_type} lifecycle message for session {session_id}")
+                else:
+                    error_msg = response.get('error', 'Unknown') if response else 'No response'
+                    logger.error(f"Failed to send {event_type} message: {error_msg}")
+            except Exception as e:
+                logger.error(f"Error sending lifecycle event: {e}")
 
     async def _extract_new_events(self, session_id: int, match_data: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Extract new events that haven't been processed yet."""
@@ -461,14 +634,25 @@ class RealtimeReportingService:
             # Ultimate fallback
             return f"📋 Match event: {event.get('type', 'Unknown')}"
 
-    async def _update_session_stats(self, session_id: int):
-        """Update session statistics in database."""
+    async def _update_session_stats(self, session_id: int, status: str = None, score: str = None):
+        """Update session statistics and persist event keys to database."""
         try:
             with task_session() as session:
                 live_session = session.query(LiveReportingSession).filter_by(id=session_id).first()
                 if live_session:
                     live_session.last_update = datetime.utcnow()
                     live_session.update_count += 1
+
+                    if status:
+                        live_session.last_status = status
+                    if score:
+                        live_session.last_score = score
+
+                    # Persist processed event keys to survive restarts
+                    current_keys = self.last_events.get(session_id, set())
+                    if current_keys:
+                        live_session.last_event_keys = json.dumps(list(current_keys))
+
                     session.commit()
         except Exception as e:
             logger.error(f"Error updating session stats for {session_id}: {e}")
@@ -481,42 +665,81 @@ class RealtimeReportingService:
                 if live_session:
                     live_session.error_count += 1
                     live_session.last_update = datetime.utcnow()
+                    live_session.last_error = error_msg
 
                     # Deactivate session if too many errors
                     if live_session.error_count >= 5:
-                        live_session.is_active = False
-                        live_session.ended_at = datetime.utcnow()
-                        logger.warning(f"Deactivated session {session_id} due to excessive errors")
+                        session.commit()
+                        session_data = self.active_sessions.get(session_id, {})
+                        await self._deactivate_session(
+                            session_id, session_data, f"Too many errors: {error_msg}"
+                        )
+                        return
 
                     session.commit()
         except Exception as e:
             logger.error(f"Error handling session error: {e}")
 
-    async def _deactivate_session(self, session_id: int, reason: str):
-        """Deactivate a live reporting session."""
+    async def _deactivate_session(self, session_id: int, session_data: Dict[str, Any], reason: str):
+        """Deactivate a live reporting session and clean up related records."""
         try:
+            from app.models.scheduled_task import ScheduledTask, TaskType, TaskState
+            from app.models.match_status import MatchStatus
+
             with task_session() as session:
                 live_session = session.query(LiveReportingSession).filter_by(id=session_id).first()
                 if live_session and live_session.is_active:
                     live_session.is_active = False
                     live_session.ended_at = datetime.utcnow()
-                    session.commit()
 
+                    # Persist final event keys
+                    current_keys = self.last_events.get(session_id, set())
+                    if current_keys:
+                        live_session.last_event_keys = json.dumps(list(current_keys))
+
+                    # Update MLSMatch status to completed
+                    match = session.query(MLSMatch).filter_by(match_id=live_session.match_id).first()
+                    if match:
+                        match.live_reporting_status = MatchStatus.COMPLETED
+                        match.live_reporting_started = True
+                        logger.info(f"Updated MLSMatch {match.id} live_reporting_status to COMPLETED")
+
+                        # Update ScheduledTask to COMPLETED
+                        scheduled_task = session.query(ScheduledTask).filter_by(
+                            match_id=match.id,
+                            task_type=TaskType.LIVE_REPORTING_START
+                        ).filter(
+                            ScheduledTask.state.in_([TaskState.SCHEDULED, TaskState.RUNNING])
+                        ).first()
+                        if scheduled_task:
+                            scheduled_task.state = TaskState.COMPLETED
+                            scheduled_task.execution_time = datetime.utcnow()
+                            logger.info(f"Updated ScheduledTask {scheduled_task.id} to COMPLETED")
+
+                    session.commit()
                     logger.info(f"Deactivated session {session_id}: {reason}")
 
-                    # Send final message to Discord
-                    await self._send_session_end_message(live_session.thread_id, reason)
+                    # Send final Discord message (close thread on match end)
+                    is_match_end = 'ended' in reason.lower() or 'FINAL' in reason or 'COMPLETED' in reason
+                    await self._send_session_end_message(
+                        live_session.thread_id, reason, close_thread=is_match_end
+                    )
+
+                    # Clean up in-memory tracking
+                    self.last_events.pop(session_id, None)
+                    self._last_statuses.pop(session_id, None)
+                    self.match_history.pop(session_id, None)
 
         except Exception as e:
             logger.error(f"Error deactivating session {session_id}: {e}")
 
-    async def _send_session_end_message(self, thread_id: int, reason: str):
+    async def _send_session_end_message(self, thread_id: str, reason: str, close_thread: bool = False):
         """Send final message when session ends."""
         try:
             request_data = {
                 'thread_id': thread_id,
                 'content': f"📺 Live reporting ended: {reason}",
-                'close_thread': False
+                'close_thread': close_thread
             }
 
             send_to_discord_bot('/api/live-reporting/final', request_data)

@@ -105,7 +105,7 @@ class ScheduledTask(db.Model):
         return session.query(cls).filter(
             cls.match_id == match_id,
             cls.task_type == task_type,
-            cls.state.in_([TaskState.SCHEDULED, TaskState.RUNNING])
+            cls.state.in_([TaskState.SCHEDULED, TaskState.RUNNING, TaskState.PAUSED])
         ).first()
 
     def mark_running(self, celery_id=None):

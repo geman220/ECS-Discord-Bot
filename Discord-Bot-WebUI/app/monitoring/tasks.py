@@ -28,6 +28,7 @@ from app.core.helpers import get_match
 from app.core.session_manager import managed_session
 from app.models import MLSMatch
 from app.tasks.tasks_live_reporting import start_live_reporting, force_create_mls_thread_task
+from app.tasks.match_scheduler import create_mls_match_thread_task, start_mls_live_reporting_task
 
 logger = logging.getLogger(__name__)
 
@@ -529,16 +530,61 @@ def reschedule_task():
             redis_client = get_safe_redis()
             redis_client.delete(key)
 
+            from app.models import ScheduledTask, TaskType, TaskState
+            import pytz
+
+            now = datetime.now(pytz.UTC)
+            match_dt = match.date_time
+            if match_dt.tzinfo is None:
+                match_dt = pytz.UTC.localize(match_dt)
+
             if 'thread' in key:
-                thread_time = match.date_time - timedelta(hours=48)
-                new_task = force_create_mls_thread_task.apply_async(args=[match_id], eta=thread_time)
+                thread_time = match_dt - timedelta(hours=48)
+                task_type = TaskType.THREAD_CREATION
+
+                if thread_time <= now:
+                    new_task = create_mls_match_thread_task.apply_async(args=[match_id])
+                    celery_id = new_task.id
+                    task_state = TaskState.RUNNING
+                else:
+                    celery_id = None
+                    task_state = TaskState.SCHEDULED
+                    new_task = type('obj', (object,), {'id': 'pending_dispatch'})()
+
                 match.thread_creation_time = thread_time
-                redis_client.setex(key, 172800, new_task.id)
             else:
-                reporting_time = match.date_time - timedelta(minutes=5)
-                new_task = start_live_reporting.apply_async(args=[str(match_id)], eta=reporting_time)
+                reporting_time = match_dt - timedelta(minutes=5)
+                task_type = TaskType.LIVE_REPORTING_START
+
+                if reporting_time <= now:
+                    new_task = start_mls_live_reporting_task.apply_async(args=[match_id])
+                    celery_id = new_task.id
+                    task_state = TaskState.RUNNING
+                else:
+                    celery_id = None
+                    task_state = TaskState.SCHEDULED
+                    new_task = type('obj', (object,), {'id': 'pending_dispatch'})()
+
                 match.live_reporting_scheduled = True
-                redis_client.setex(key, 172800, new_task.id)
+
+            # Update or create ScheduledTask DB record
+            existing_sched = ScheduledTask.find_existing_task(session, int(match_id), task_type)
+            if existing_sched:
+                existing_sched.celery_task_id = celery_id
+                existing_sched.state = task_state
+                existing_sched.scheduled_time = thread_time if 'thread' in key else reporting_time
+            else:
+                db_task = ScheduledTask(
+                    task_type=task_type,
+                    match_id=int(match_id),
+                    celery_task_id=celery_id,
+                    scheduled_time=thread_time if 'thread' in key else reporting_time,
+                    state=task_state,
+                    execution_time=datetime.utcnow() if task_state == TaskState.RUNNING else None
+                )
+                session.add(db_task)
+
+            redis_client.setex(key, 172800, celery_id or 'pending_dispatch')
 
         return jsonify({
             'success': True,

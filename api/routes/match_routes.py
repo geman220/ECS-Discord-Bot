@@ -17,6 +17,16 @@ from aiohttp import ClientError
 
 # Environment variables
 WEBUI_API_URL = os.getenv("WEBUI_API_URL")
+
+# Per-match asyncio locks to prevent concurrent thread creation (TOCTOU race)
+_match_thread_locks: dict[str, asyncio.Lock] = {}
+
+
+def _get_match_thread_lock(match_id: str) -> asyncio.Lock:
+    """Get or create an asyncio lock for a specific match_id."""
+    if match_id not in _match_thread_locks:
+        _match_thread_locks[match_id] = asyncio.Lock()
+    return _match_thread_locks[match_id]
 from discord.ext import commands
 from datetime import datetime
 
@@ -887,7 +897,7 @@ async def create_match_thread(request: dict, bot: commands.Bot = Depends(get_bot
         {"thread_id": "thread_id", "existing": true} if thread already exists
     """
     logger.info(f"Received request to create match thread: {request}")
-    
+
     try:
         # Extract data from request
         match_id = request.get('match_id')
@@ -895,32 +905,48 @@ async def create_match_thread(request: dict, bot: commands.Bot = Depends(get_bot
         away_team = request.get('away_team')
         date = request.get('date')
         time = request.get('time')
-        
+
         if not all([match_id, home_team, away_team]):
             raise HTTPException(status_code=400, detail="Missing required fields: match_id, home_team, away_team")
-        
+
+        # Per-match lock prevents TOCTOU race when multiple tasks try to
+        # create the same thread concurrently
+        match_lock = _get_match_thread_lock(str(match_id))
+        async with match_lock:
+            return await _create_match_thread_locked(request, bot, match_id, home_team, away_team, date, time)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error creating match thread: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+
+
+async def _create_match_thread_locked(request, bot, match_id, home_team, away_team, date, time):
+    """Inner function that runs under per-match lock."""
+    try:
         # Get the match channel ID from environment
         MATCH_CHANNEL_ID = os.getenv("MATCH_CHANNEL_ID")
-        
+
         if not MATCH_CHANNEL_ID:
             logger.error("MATCH_CHANNEL_ID not configured")
             raise HTTPException(status_code=500, detail="Match channel not configured")
-        
+
         # Get the forum channel
         channel = bot.get_channel(int(MATCH_CHANNEL_ID))
         if not channel:
             logger.error(f"Match channel {MATCH_CHANNEL_ID} not found")
             raise HTTPException(status_code=404, detail="Match channel not found")
-        
+
         if not isinstance(channel, discord.ForumChannel):
             logger.error(f"Channel {MATCH_CHANNEL_ID} is not a forum channel")
             raise HTTPException(status_code=400, detail="Channel is not a forum channel")
-        
+
         # Create thread name with consistent format
         thread_name = f"{home_team} vs {away_team}"
         if date:
             thread_name += f" - {date}"
-        
+
         # Check for existing threads with the same name (duplicate prevention)
         try:
             # Get active threads
@@ -929,7 +955,7 @@ async def create_match_thread(request: dict, bot: commands.Bot = Depends(get_bot
                 if thread.name == thread_name:
                     logger.info(f"Thread already exists for match {match_id}: '{thread_name}' (ID: {thread.id})")
                     return {"thread_id": str(thread.id), "existing": True}
-            
+
             # Also check archived threads
             async for thread in channel.archived_threads(limit=100):
                 if thread.name == thread_name:
@@ -939,11 +965,11 @@ async def create_match_thread(request: dict, bot: commands.Bot = Depends(get_bot
                         await thread.edit(archived=False)
                         logger.info(f"Unarchived thread {thread.id}")
                     return {"thread_id": str(thread.id), "existing": True}
-                    
+
         except Exception as e:
             logger.warning(f"Error checking for existing threads: {e}")
             # Continue even if we can't check for duplicates
-        
+
         # Generate AI-powered contextual description
         ai_context = await generate_thread_context({
             'home_team': {'displayName': home_team},

@@ -41,9 +41,45 @@ def schedule_upcoming_matches(self, session):
         from app.core import celery
 
         with task_session() as session:
-            # Get upcoming MLS matches that need scheduling
             from datetime import timezone
             now = datetime.now(timezone.utc)
+
+            # ── Dispatch phase: fire any ScheduledTasks whose time has come ──
+            due_tasks = session.query(ScheduledTask).filter(
+                ScheduledTask.state == TaskState.SCHEDULED,
+                ScheduledTask.celery_task_id.is_(None),
+                ScheduledTask.scheduled_time <= now
+            ).all()
+
+            dispatched_count = 0
+            for due_task in due_tasks:
+                try:
+                    if due_task.task_type == TaskType.THREAD_CREATION:
+                        # Verify match still needs a thread
+                        from app.models.external import MLSMatch as _MLSMatch
+                        _match = session.query(_MLSMatch).filter_by(id=due_task.match_id).first()
+                        if _match and _match.thread_created:
+                            due_task.mark_completed()
+                            logger.info(f"Dispatch: thread already created for match {due_task.match_id}, marking completed")
+                            continue
+                        celery_result = create_mls_match_thread_task.apply_async(args=[due_task.match_id])
+                    elif due_task.task_type == TaskType.LIVE_REPORTING_START:
+                        celery_result = start_mls_live_reporting_task.apply_async(args=[due_task.match_id])
+                    else:
+                        continue
+
+                    due_task.mark_running(celery_result.id)
+                    dispatched_count += 1
+                    logger.info(f"Dispatched due task {due_task.id} (type={due_task.task_type}) for match {due_task.match_id}, celery_id={celery_result.id}")
+                except Exception as e:
+                    logger.error(f"Error dispatching due task {due_task.id}: {e}")
+
+            if dispatched_count:
+                session.commit()
+                logger.info(f"Dispatched {dispatched_count} due tasks")
+
+            # ── Scheduling phase: ensure upcoming matches have ScheduledTask records ──
+            from app.models.external import MLSMatch
             upcoming_matches = session.query(MLSMatch).filter(
                 MLSMatch.date_time > now,
                 MLSMatch.date_time <= now + timedelta(days=7)  # Look ahead 7 days
@@ -75,24 +111,18 @@ def schedule_upcoming_matches(self, session):
 
                         if not existing_thread_task:
                             if thread_time > now:
-                                # Future: schedule for 48 hours before
-                                celery_task = create_mls_match_thread_task.apply_async(
-                                    args=[match.id],
-                                    eta=thread_time,
-                                    expires=thread_time + timedelta(hours=2)
-                                )
-
-                                # Create database tracking record
+                                # Future: create ScheduledTask record only (no Celery dispatch)
+                                # The dispatch phase will fire it when scheduled_time arrives
                                 db_task = ScheduledTask(
                                     task_type=TaskType.THREAD_CREATION,
                                     match_id=match.id,
-                                    celery_task_id=celery_task.id,
+                                    celery_task_id=None,
                                     scheduled_time=thread_time,
                                     state=TaskState.SCHEDULED
                                 )
                                 session.add(db_task)
                                 scheduled_threads += 1
-                                logger.info(f"Scheduled thread creation for match {match.id} at {thread_time}, task_id={celery_task.id}, db_task_id={db_task.id}")
+                                logger.info(f"Scheduled thread creation for match {match.id} at {thread_time} (poll-dispatch, no ETA)")
                             else:
                                 # Past: create immediately (thread creation time has passed)
                                 celery_task = create_mls_match_thread_task.apply_async(
@@ -129,20 +159,34 @@ def schedule_upcoming_matches(self, session):
 
                         if not existing_live_session:
                             if live_start_time > now:
-                                # Future: schedule for configured time before match
-                                celery_task = start_mls_live_reporting_task.apply_async(
-                                    args=[match.id],
-                                    eta=live_start_time,
-                                    expires=live_start_time + timedelta(minutes=30)
+                                # Future: create ScheduledTask record only (no Celery dispatch)
+                                db_task = ScheduledTask(
+                                    task_type=TaskType.LIVE_REPORTING_START,
+                                    match_id=match.id,
+                                    celery_task_id=None,
+                                    scheduled_time=live_start_time,
+                                    state=TaskState.SCHEDULED
                                 )
-                                task_state = TaskState.SCHEDULED
+                                session.add(db_task)
+                                scheduled_live += 1
+                                logger.info(f"Scheduled live reporting for match {match.id} at {live_start_time} (poll-dispatch, no ETA)")
                             elif match_dt > now:
                                 # Past due but match hasn't started yet or is in progress:
                                 # start immediately
                                 celery_task = start_mls_live_reporting_task.apply_async(
                                     args=[match.id]
                                 )
-                                task_state = TaskState.RUNNING
+                                db_task = ScheduledTask(
+                                    task_type=TaskType.LIVE_REPORTING_START,
+                                    match_id=match.id,
+                                    celery_task_id=celery_task.id,
+                                    scheduled_time=live_start_time,
+                                    state=TaskState.RUNNING,
+                                    execution_time=now
+                                )
+                                session.add(db_task)
+                                scheduled_live += 1
+                                logger.info(f"Immediately started live reporting for match {match.id}, task_id={celery_task.id}")
                             else:
                                 # Match start time has passed — check if within 3 hours
                                 # (matches last ~2 hours, give buffer)
@@ -150,22 +194,17 @@ def schedule_upcoming_matches(self, session):
                                     celery_task = start_mls_live_reporting_task.apply_async(
                                         args=[match.id]
                                     )
-                                    task_state = TaskState.RUNNING
-                                else:
-                                    celery_task = None
-
-                            if celery_task:
-                                db_task = ScheduledTask(
-                                    task_type=TaskType.LIVE_REPORTING_START,
-                                    match_id=match.id,
-                                    celery_task_id=celery_task.id,
-                                    scheduled_time=live_start_time,
-                                    state=task_state,
-                                    execution_time=now if task_state == TaskState.RUNNING else None
-                                )
-                                session.add(db_task)
-                                scheduled_live += 1
-                                logger.info(f"{'Scheduled' if task_state == TaskState.SCHEDULED else 'Immediately started'} live reporting for match {match.id} at {live_start_time}, task_id={celery_task.id}")
+                                    db_task = ScheduledTask(
+                                        task_type=TaskType.LIVE_REPORTING_START,
+                                        match_id=match.id,
+                                        celery_task_id=celery_task.id,
+                                        scheduled_time=live_start_time,
+                                        state=TaskState.RUNNING,
+                                        execution_time=now
+                                    )
+                                    session.add(db_task)
+                                    scheduled_live += 1
+                                    logger.info(f"Immediately started live reporting for match {match.id} (match in progress), task_id={celery_task.id}")
 
                 except Exception as e:
                     logger.error(f"Error scheduling MLS match {match.id}: {e}")
@@ -353,9 +392,11 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
     """
     Create Discord thread for an MLS match (48 hours before kickoff).
     """
+    task_id = self.request.id or 'unknown'
     try:
         from app.models.external import MLSMatch
         from app.utils.sync_discord_client import get_sync_discord_client
+        from app.utils.safe_redis import get_safe_redis
         from zoneinfo import ZoneInfo
 
         # Get MLS match details
@@ -364,47 +405,81 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
             logger.error(f"MLS Match {match_id} not found")
             return {"success": False, "error": "MLS Match not found"}
 
-        # Prepare match data for sync Discord client
-        match_dt = match.date_time
-        if match_dt.tzinfo is None:
-            utc_time = match_dt.replace(tzinfo=ZoneInfo('UTC'))
-        else:
-            utc_time = match_dt.astimezone(ZoneInfo('UTC'))
-        pst_time = utc_time.astimezone(ZoneInfo('America/Los_Angeles'))
+        # ── Idempotency guard: if thread already exists, skip ──
+        if match.thread_created and match.discord_thread_id:
+            logger.info(f"Thread already exists for match {match_id} (thread_id={match.discord_thread_id}), skipping")
+            # Mark any pending ScheduledTask as completed
+            sched_task = ScheduledTask.find_existing_task(session, match_id, TaskType.THREAD_CREATION)
+            if sched_task and sched_task.state != TaskState.COMPLETED:
+                sched_task.mark_completed()
+                session.commit()
+            return {"success": True, "match_id": match_id, "thread_id": match.discord_thread_id, "already_existed": True}
 
-        match_data = {
-            'id': match.id,
-            'match_id': match.match_id,
-            'home_team': 'Seattle Sounders FC' if match.is_home_game else match.opponent,
-            'away_team': match.opponent if match.is_home_game else 'Seattle Sounders FC',
-            'date': pst_time.strftime('%Y-%m-%d'),
-            'time': pst_time.strftime('%-I:%M %p PST'),
-            'venue': match.venue or 'TBD',
-            'competition': match.competition or 'MLS',
-            'is_home_game': match.is_home_game
-        }
+        # ── Redis distributed lock: prevent concurrent thread creation ──
+        redis = get_safe_redis()
+        lock_key = f"thread_creation_lock:{match_id}"
+        lock_acquired = redis.set(lock_key, task_id, nx=True, ex=300)
 
-        # Use sync Discord client (works reliably)
-        discord_client = get_sync_discord_client()
-        thread_id = discord_client.create_match_thread(match_data)
+        if not lock_acquired:
+            # Another worker may be creating the thread right now — re-check DB
+            session.refresh(match)
+            if match.thread_created and match.discord_thread_id:
+                logger.info(f"Lock held but thread now exists for match {match_id}, returning success")
+                return {"success": True, "match_id": match_id, "thread_id": match.discord_thread_id, "already_existed": True}
+            logger.warning(f"Could not acquire thread creation lock for match {match_id} (task={task_id}), another task is creating it")
+            return {"success": False, "error": "Another task is creating this thread", "retry_needed": True}
 
-        if thread_id:
-            # Mark thread as created
-            match.thread_created = True
-            match.discord_thread_id = thread_id
-            match.thread_creation_time = datetime.utcnow()
-            session.commit()
+        try:
+            # Prepare match data for sync Discord client
+            match_dt = match.date_time
+            if match_dt.tzinfo is None:
+                utc_time = match_dt.replace(tzinfo=ZoneInfo('UTC'))
+            else:
+                utc_time = match_dt.astimezone(ZoneInfo('UTC'))
+            pst_time = utc_time.astimezone(ZoneInfo('America/Los_Angeles'))
 
-            logger.info(f"Created MLS thread {thread_id} for match {match.match_id}")
-
-            return {
-                "success": True,
-                "match_id": match_id,
-                "thread_id": thread_id
+            match_data = {
+                'id': match.id,
+                'match_id': match.match_id,
+                'home_team': 'Seattle Sounders FC' if match.is_home_game else match.opponent,
+                'away_team': match.opponent if match.is_home_game else 'Seattle Sounders FC',
+                'date': pst_time.strftime('%Y-%m-%d'),
+                'time': pst_time.strftime('%-I:%M %p PST'),
+                'venue': match.venue or 'TBD',
+                'competition': match.competition or 'MLS',
+                'is_home_game': match.is_home_game
             }
-        else:
-            logger.error(f"Failed to create MLS thread for match {match.match_id}: No thread ID returned")
-            return {"success": False, "error": "No thread ID returned"}
+
+            # Use sync Discord client (works reliably)
+            discord_client = get_sync_discord_client()
+            thread_id = discord_client.create_match_thread(match_data)
+
+            if thread_id:
+                # Mark thread as created
+                match.thread_created = True
+                match.discord_thread_id = thread_id
+                match.thread_creation_time = datetime.utcnow()
+
+                # Mark ScheduledTask as completed
+                sched_task = ScheduledTask.find_existing_task(session, match_id, TaskType.THREAD_CREATION)
+                if sched_task:
+                    sched_task.mark_completed()
+
+                session.commit()
+
+                logger.info(f"Created MLS thread {thread_id} for match {match.match_id}")
+
+                return {
+                    "success": True,
+                    "match_id": match_id,
+                    "thread_id": thread_id
+                }
+            else:
+                logger.error(f"Failed to create MLS thread for match {match.match_id}: No thread ID returned")
+                return {"success": False, "error": "No thread ID returned"}
+        finally:
+            # Release lock
+            redis.delete(lock_key)
 
     except Exception as e:
         logger.error(f"Error creating MLS thread for match {match_id}: {e}")
@@ -422,9 +497,11 @@ def start_mls_live_reporting_task(self, session, match_id: int) -> Dict[str, Any
     """
     Start live reporting for an MLS match (5 minutes before kickoff).
     """
+    task_id = self.request.id or 'unknown'
     try:
         from app.models.external import MLSMatch
         from app.models import LiveReportingSession
+        from app.utils.safe_redis import get_safe_redis
 
         # Get MLS match details
         match = session.query(MLSMatch).filter_by(id=match_id).first()
@@ -440,6 +517,11 @@ def start_mls_live_reporting_task(self, session, match_id: int) -> Dict[str, Any
 
         if existing_session:
             logger.info(f"Live session already exists for MLS match {match.match_id}")
+            # Mark ScheduledTask as completed
+            sched_task = ScheduledTask.find_existing_task(session, match_id, TaskType.LIVE_REPORTING_START)
+            if sched_task and sched_task.state != TaskState.COMPLETED:
+                sched_task.mark_completed()
+                session.commit()
             return {
                 "success": True,
                 "match_id": match_id,
@@ -457,33 +539,61 @@ def start_mls_live_reporting_task(self, session, match_id: int) -> Dict[str, Any
                 "error": "No Discord thread created for this match. Create thread first."
             }
 
-        # Create live reporting session for MLS match
-        live_session = LiveReportingSession(
-            match_id=str(match.match_id),  # Use ESPN match_id as string
-            thread_id=str(thread_id),  # Use actual thread ID from match
-            competition=match.competition or 'MLS',
-            is_active=True,
-            started_at=datetime.utcnow(),
-            last_update=datetime.utcnow(),
-            update_count=0,
-            error_count=0
-        )
+        # ── Redis distributed lock: prevent concurrent session creation ──
+        redis = get_safe_redis()
+        lock_key = f"live_reporting_lock:{match_id}"
+        lock_acquired = redis.set(lock_key, task_id, nx=True, ex=120)
 
-        session.add(live_session)
-        session.commit()
+        if not lock_acquired:
+            # Another worker may be creating the session — re-check DB
+            session.expire_all()
+            existing_session = session.query(LiveReportingSession).filter_by(
+                match_id=str(match.match_id),
+                is_active=True
+            ).first()
+            if existing_session:
+                logger.info(f"Lock held but live session now exists for match {match_id}")
+                return {"success": True, "match_id": match_id, "session_id": existing_session.id, "message": "Session created by another worker"}
+            logger.warning(f"Could not acquire live reporting lock for match {match_id} (task={task_id})")
+            return {"success": False, "error": "Another task is starting live reporting", "retry_needed": True}
 
-        # Notify real-time service of new session
-        from app.services.realtime_bridge_service import notify_session_started
-        bridge_result = notify_session_started(live_session.id, str(match.match_id), str(thread_id))
+        try:
+            # Create live reporting session for MLS match
+            live_session = LiveReportingSession(
+                match_id=str(match.match_id),  # Use ESPN match_id as string
+                thread_id=str(thread_id),  # Use actual thread ID from match
+                competition=match.competition or 'MLS',
+                is_active=True,
+                started_at=datetime.utcnow(),
+                last_update=datetime.utcnow(),
+                update_count=0,
+                error_count=0
+            )
 
-        logger.info(f"Started MLS live reporting session {live_session.id} for match {match.match_id}")
+            session.add(live_session)
 
-        return {
-            "success": True,
-            "match_id": match_id,
-            "session_id": live_session.id,
-            "espn_match_id": match.match_id
-        }
+            # Mark ScheduledTask as completed
+            sched_task = ScheduledTask.find_existing_task(session, match_id, TaskType.LIVE_REPORTING_START)
+            if sched_task:
+                sched_task.mark_completed()
+
+            session.commit()
+
+            # Notify real-time service of new session
+            from app.services.realtime_bridge_service import notify_session_started
+            bridge_result = notify_session_started(live_session.id, str(match.match_id), str(thread_id))
+
+            logger.info(f"Started MLS live reporting session {live_session.id} for match {match.match_id}")
+
+            return {
+                "success": True,
+                "match_id": match_id,
+                "session_id": live_session.id,
+                "espn_match_id": match.match_id
+            }
+        finally:
+            # Release lock
+            redis.delete(lock_key)
 
     except Exception as e:
         logger.error(f"Error starting MLS live reporting for match {match_id}: {e}")
