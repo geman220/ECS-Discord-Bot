@@ -1,0 +1,126 @@
+name: Bot Core CI
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '*.py'
+      - 'api/**'
+      - 'tests/**'
+      - 'requirements.txt'
+      - '.github/workflows/bot-core-ci.yml'
+  push:
+    branches: [ main, develop ]
+    paths:
+      - '*.py'
+      - 'api/**'
+      - 'tests/**'
+      - 'requirements.txt'
+
+jobs:
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio pytest-mock pytest-cov aiohttp discord.py
+
+    - name: Run Bot Core Unit Tests
+      run: |
+        export PYTHONPATH=$PYTHONPATH:.
+        python3 -m pytest tests/ -v --cov=. --cov-report=xml
+      env:
+        SERVER_ID: "123456789"
+        BOT_TOKEN: "dummy_token"
+        ADMIN_ROLE: "Admin"
+        DEV_ID: "987654321"
+        TEAM_ID: "184"
+        URL: "https://example.com/wp-json/wc/v3/orders/"
+        MATCH_CHANNEL_ID: "111222333"
+        LEAGUE_ANNOUNCEMENTS_CHANNEL_ID: "444555666"
+        WC_KEY: "dummy_wc_key"
+        WC_SECRET: "dummy_wc_secret"
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: botcore
+        name: bot-core-check
+        fail_ci_if_error: false
+
+  lint:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install linting tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8 black isort mypy
+    
+    - name: Run Black (Formatting)
+      run: black --check --diff .
+      continue-on-error: true # Report only for now
+    
+    - name: Run isort (Imports)
+      run: isort --check-only --diff .
+      continue-on-error: true
+    
+    - name: Run flake8 (Linting)
+      run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    
+    - name: Run mypy (Type Checking)
+      run: mypy . --ignore-missing-imports
+      continue-on-error: true
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+    
+    - name: Install security tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit safety
+    
+    - name: Run bandit (Security Linting)
+      run: bandit -r . -x ./tests,./Discord-Bot-WebUI -f custom
+    
+    - name: Run safety (Vulnerability Scan)
+      run: safety check
+      continue-on-error: true
+
+  secrets:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Secret Scanner
+      uses: trl/secret-scanner@v1
+      with:
+        exclude_paths: 'tests/,Discord-Bot-WebUI/tests/'
