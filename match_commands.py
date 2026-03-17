@@ -106,9 +106,17 @@ class MatchCommands(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.team_id = team_id
-        
-    def is_match_closed(self, match_id):
-        return match_id in completed_matches
+        self._session = None
+
+    async def get_session(self):
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession()
+        return self._session
+
+    def cog_unload(self):
+        if self._session and not self._session.closed:
+            import asyncio
+            asyncio.create_task(self._session.close())
 
     @app_commands.command(name="nextmatch", description="List the next scheduled match information")
     @app_commands.guilds(discord.Object(id=server_id))
@@ -127,7 +135,8 @@ class MatchCommands(commands.Cog):
             embed.add_field(name="Venue", value=match_info["venue"], inline=True)
             await interaction.response.send_message(embed=embed)
         except Exception as e:
-            await interaction.response.send_message(f"An error occurred: {str(e)}")
+            logger.error(f"Error in next_match: {e}", exc_info=True)
+            await interaction.response.send_message("An error occurred while fetching the next match information.")
 
     @app_commands.command(name="predict", description="Predict the score of the match")
     @app_commands.guilds(discord.Object(id=server_id))
@@ -179,7 +188,9 @@ class MatchCommands(commands.Cog):
         match_id = match.get("match_id")
         request_url = f"{API_BASE_URL}/predictions/{match_id}"
         logger.info(f"[show_predictions] Making GET request to {request_url}")
-        async with aiohttp.ClientSession() as session:
+        
+        session = await self.get_session()
+        try:
             async with session.get(request_url) as resp:
                 logger.info(f"[show_predictions] Received response status: {resp.status}")
                 if resp.status == 200:
@@ -189,16 +200,21 @@ class MatchCommands(commands.Cog):
                     logger.error(f"[show_predictions] Failed to fetch predictions. Status: {resp.status}")
                     await interaction.response.send_message("Failed to fetch predictions.", ephemeral=True)
                     return
+        except Exception as e:
+            logger.error(f"Error fetching predictions: {e}")
+            await interaction.response.send_message("Error contacting prediction service.", ephemeral=True)
+            return
 
         if not predictions_data:
             await interaction.response.send_message("No predictions have been made for this match.", ephemeral=True)
             return
 
         embed = discord.Embed(title="Match Predictions", color=0x00FF00)
-        if interaction.guild.icon:
+        if interaction.guild and interaction.guild.icon:
             embed.set_author(name=interaction.guild.name, icon_url=interaction.guild.icon.url)
-        else:
+        elif interaction.guild:
             embed.set_author(name=interaction.guild.name)
+        
         embed.set_footer(text="Predictions are subject to change before match kickoff.")
 
         for pred in predictions_data:
@@ -206,7 +222,7 @@ class MatchCommands(commands.Cog):
             # Try to fetch the member object from the guild using the stored Discord ID.
             member = interaction.guild.get_member(int(user_id))
             # Use the member's display name if available; otherwise fallback to the raw ID.
-            display_name = member.display_name if member else user_id
+            display_name = member.display_name if member else f"User {user_id}"
             prediction_str = f"{display_name}: {pred['home_score']} - {pred['opponent_score']}"
             embed.add_field(name=prediction_str, value="\u200b", inline=False)
 
