@@ -1,0 +1,20 @@
+# Code Owners for ECS Discord Bot Repository
+# These owners will be automatically requested for review when PRs are opened
+
+# Default owners for everything in the repo
+* @ssfcultra
+
+# Infrastructure and deployment
+/.github/ @ssfcultra
+/Dockerfile.* @ssfcultra
+/docker-compose.yml @ssfcultra
+/.kiro/ @ssfcultra
+/.gemini/ @ssfcultra
+
+# Database and Core WebUI Models
+/Discord-Bot-WebUI/app/models/ @ssfcultra
+
+# Security-sensitive files
+.github/SECURITY.md @ssfcultra
+utils.py @ssfcultra
+common.py @ssfcultra

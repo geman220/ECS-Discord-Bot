@@ -1,0 +1,11 @@
+{
+  "name": "Post-Task Spec Updater",
+  "description": "Updates spec task status and progress counts after a spec task completes",
+  "when": {
+    "type": "postTaskExecution"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A spec task just completed. Update the spec file in Docs/In-Progress/:\n1. Change the task status from [~] to [x]\n2. Recalculate the Progress Summary counts (Total, Completed, In Progress, Not Started)\n3. Update the Eligible Tasks section with any newly unlocked tasks (prerequisites now met)\n4. Do NOT change any other content in the spec"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "name": "code-reviewer",
+  "description": "Code review orchestrator that delegates to specialized security, performance, maintainability, infrastructure, and test quality reviewers",
+  "prompt": "file://./prompts/code-reviewer.md",
+  "mcpServers": {},
+  "tools": [
+    "fs_read",
+    "fs_write",
+    "code",
+    "grep",
+    "glob",
+    "execute_bash",
+    "use_subagent"
+  ],
+  "toolAliases": {},
+  "allowedTools": ["fs_read", "code", "grep", "glob", "use_subagent"],
+  "resources": [
+    "file://.kiro/steering/structure.md",
+    "file://.kiro/steering/tech.md"
+  ],
+  "hooks": {
+    "agentSpawn": [
+      { "command": "git diff --name-only" }
+    ]
+  },
+  "toolsSettings": {},
+  "includeMcpJson": false,
+  "model": null,
+  "welcomeMessage": "📋 Code review orchestrator ready. I'll coordinate all 5 specialist reviewers."
+}

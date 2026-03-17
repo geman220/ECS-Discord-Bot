@@ -1,0 +1,12 @@
+{
+  "name": "Security Scanner",
+  "description": "Scans for secrets and credentials after agent finishes making changes",
+  "when": {
+    "type": "agentStop"
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "git diff --cached --diff-filter=ACMR -U0 2>/dev/null | grep -iE '(password|secret|token|api.?key|private.?key|aws_access|aws_secret)\\s*[:=]' | grep -v '\\.(md|txt|example)' | head -5 && echo 'WARNING: Potential secrets detected in staged changes' || true",
+    "timeout": 30
+  }
+}

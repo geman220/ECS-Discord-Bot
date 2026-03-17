@@ -1,0 +1,13 @@
+{
+  "name": "Python Test Runner",
+  "description": "Runs Python tests when AI engagement source files are saved",
+  "when": {
+    "type": "fileEdit",
+    "patterns": ["src/ai-engagement/**/*.py", "src/lambda/**/*.py"]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd src/ai-engagement && source .venv/bin/activate && PYTHONPATH=. python -m pytest ../ai-engagement-tests/ -q 2>&1 | tail -5",
+    "timeout": 120
+  }
+}

@@ -11,7 +11,10 @@ The following is a set of guidelines for contributing to this project. These are
   - [Reporting Bugs](#reporting-bugs)
   - [Suggesting Enhancements](#suggesting-enhancements)
   - [Submitting Changes](#submitting-changes)
-- [Style Guides](#style-guides)
+  - [Testing](#testing)
+  - [Documentation](#documentation)
+  - [Style Guides](#style-guides)
+
   - [Git Commit Messages](#git-commit-messages)
   - [Python Style Guide](#python-style-guide)
 - [Additional Resources](#additional-resources)
@@ -70,6 +73,27 @@ Enhancement suggestions are tracked as [GitHub issues](https://guides.github.com
 4. **Make your changes** and commit them.
 5. **Push to your fork** and submit a pull request.
 6. Ensure the PR description clearly describes the problem and solution. Include the relevant issue number if applicable.
+
+## Testing
+
+We take testing seriously! All new features and bug fixes should include tests.
+
+### **Python Tests**
+- **Discord Bot**: Tests are located in `tests/`. Run with `pytest tests/`.
+- **Web Interface**: Tests are in `Discord-Bot-WebUI/tests/`. Run with `python run_tests.py --all`.
+
+### **Frontend Tests**
+- Run with `npm test` in the `Discord-Bot-WebUI/` directory.
+
+Before submitting a pull request, ensure all tests pass and your code coverage has not significantly decreased.
+
+## Documentation
+
+Documentation is maintained in the `docs/` folder (GitHub Pages) and through `README.md` files in various directories.
+
+- If you change user-facing bot commands, update the relevant file in `docs/`.
+- For architectural changes, update `DEVELOPMENT.md`.
+- Ensure all public functions have clear docstrings.
 
 ## Style Guides
 

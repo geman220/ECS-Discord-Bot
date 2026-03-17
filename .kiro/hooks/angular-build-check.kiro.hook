@@ -1,0 +1,13 @@
+{
+  "name": "Angular Build Check",
+  "description": "Checks Angular build when TypeScript files in the admin client are saved",
+  "when": {
+    "type": "fileEdit",
+    "patterns": ["Source/ExtraLife.Web.Admin/client/src/**/*.ts"]
+  },
+  "then": {
+    "type": "runCommand",
+    "command": "cd Source/ExtraLife.Web.Admin/client && npx ng build 2>&1 | grep -E 'Error|error|Build at' | tail -5",
+    "timeout": 120
+  }
+}
