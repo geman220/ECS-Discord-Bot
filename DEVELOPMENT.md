@@ -64,7 +64,13 @@ flask db upgrade
 Integration tests verify the communication between the Bot API and the WebUI. These often require a running Redis/PostgreSQL instance (provided in `docker-compose.test.yml`).
 
 ### **3. Running Tests**
--   Root tests: `pytest tests/`
+The easiest way to run the entire test suite is using the unified build and test scripts:
+- **Mac/Linux**: `./buildAndTest.sh`
+- **Windows**: `.\buildAndTest.ps1`
+
+Alternatively, you can run them individually:
+- Root tests: `pytest tests/`
+
 -   WebUI tests: `cd Discord-Bot-WebUI && python run_tests.py --all`
 -   Frontend tests: `cd Discord-Bot-WebUI && npm test`
 

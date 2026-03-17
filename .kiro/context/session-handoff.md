@@ -1,34 +1,50 @@
-# Session Handoff - 2026-03-15
+# Session Handoff: Fix Bot Unit Tests & Enterprise CI (Final)
 
-## Summary of Accomplishments
+## ⚠️ BEFORE RESUMING
+- **Blocker: Git Write Access**: Direct push to `origin` (geman220/ECS-Discord-Bot) failed with a 403 error.
+- **Current Branch**: All work is on `fix/issue-27-clean` (based on `origin/master`).
+- **Action**: Verify GitHub permissions or use an authorized SSH key to push and open the PR.
 
-### 1. OpsAdvisor Shim (#438)
-- **Verified**: Tasks 1.1 (IAM Split), 1.2 (Stack Refactor), and 1.3 (Handler Rewrite) are complete and verified in the code.
-- **Tested**: `ops_advisor_handler.py` unit tests passed 10/10, confirming robust SSE parsing and fallback logic.
-- **Current State**: Blocked at Task 1.4 (Deployment) due to missing local AWS credentials for CDK.
+## IMMEDIATE NEXT STEPS
+1. **Push Branch**: Push `fix/issue-27-clean` to a verified remote (origin or fork).
+2. **Open PR**: Create a clean pull request against `geman220/ECS-Discord-Bot:master`.
+3. **WebUI Environment**: Address the `hashlib.scrypt` and Playwright dependency gaps in the CI runner if full WebUI testing is desired.
 
-### 2. Python 3.12 Upgrade (#480)
-- **Identified**: Detected `boto3` deprecation warnings in CI/CD logs caused by Python 3.9 runners.
-- **Fired**: Created Issue #480 and formalized the spec: `Docs/In-Progress/issue-480-upgrade-github-runner-python-spec.md`.
+## CURRENT STATE
+- **Branch**: `fix/issue-27-clean` (Ahead of `origin/master` by 11 commits).
+- **Tests**: 91/91 Bot Core Unit Tests Passing ✅.
+- **Spec**: `Docs/Done/issue-27-fix-unit-tests-spec.md` (100% Complete).
+- **CI**: `bot-core-ci.yml` implemented with full quality and security gates.
+- **Docs**: ADRs initialized in `/docs/adr/` (Records 20260316kh-0001 to 0004).
 
-### 3. Capability Hardening
-- **New Skills**: Created `audit-workflows` (CI/CD compliance) and `manage-runtime` (Runtime deployment automation).
-- **Skill Updates**: `create-spec` now automates GitHub issue filing/renaming; `session-resume` verifies steering integrity.
-- **Agent Updates**: `review_infrastructure` now enforces version consistency between code and workflows.
+## WHAT WE DID THIS SESSION
+- **Unit Test Fixes**: Resolved all 13 failures in `match_commands` and `woocommerce_commands`.
+- **Security Enhancements**:
+    - Centralized hashing logic with environment-aware fallbacks (scrypt/PBKDF2).
+    - Implemented secure 16-char password generation.
+    - Restricted 2FA secret exposure and added route validation.
+- **Enterprise CI/CD**:
+    - Implemented `bot-core-ci.yml` with: Pytest, Black, Flake8, Isort, Mypy, Bandit, Safety, and Secrets detection.
+    - Optimized `test.yml` to only run on WebUI changes.
+- **Architectural Documentation**:
+    - Initialized `/docs/adr/` and logged 4 major decisions.
+- **Skill Evolution**:
+    - Enhanced `push-and-pr` (pre-push validation) and `review-code` (read-only attribute checks).
+    - Created and integrated `create-adr` skill into the handoff workflow.
 
-## Next Steps
+## KEY FILES
+| Area | Path |
+|---|---|
+| Hashing Utility | `Discord-Bot-WebUI/app/utils/auth_helpers.py` |
+| CI Workflow | `.github/workflows/bot-core-ci.yml` |
+| ADRs | `docs/adr/*.md` |
+| Final Spec | `docs/Done/issue-27-fix-unit-tests-spec.md` |
 
-### Immediate Priority
-1. **OpsAdvisor Deployment**: Provide AWS credentials to the local environment and run `npx cdk deploy -c environment=develop` for the Foundation and OpsAdvisor stacks.
-2. **Verify Shim**: Trigger a test SNS alarm and confirm "The Keeper" provides diagnostics in the advisory topic.
+## MEMORY ENTRIES TO ADD
+- `[2026-03-16] Use environment-aware hashing (scrypt/PBKDF2 fallback) for macOS compatibility.`
+- `[2026-03-16] Mock discord.ui.TextInput objects in tests to bypass read-only .value property.`
+- `[2026-03-16] Manual cog_unload() required in unit tests to close shared aiohttp sessions.`
 
-### Next Issue
-3. **Upgrade Python (#480)**: Create branch `feature/480-upgrade-python` and implement the `actions/setup-python@v5` steps in the workflows.
-
-## Blockers
-- **AWS Credentials**: Local environment lacks credentials to perform the CDK diff/deploy for the OpsAdvisor shim.
-
-## Stakeholder Preferences
-- Refer to user as "The Brougham 22".
-- Steering via `.gemini/GEMINI.md` symlink is mandatory.
-- All code reviews must run the 5-agent parallel suite with underscores.
+## COMPLIANCE AUDIT
+- Unique skills used: `route`, `implement-and-review-loop`, `review-code`, `close-issue`, `capture-skill`, `session-handoff`, `auto-memory`.
+- All invocations logged to `.kiro/telemetry/skill_usage.log`.
