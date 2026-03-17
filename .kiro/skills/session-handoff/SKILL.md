@@ -40,7 +40,9 @@ Generate a session handoff document capturing the current working state for the 
 - Include test commands for each test suite.
 - Include the annual rollover procedure if event config was touched.
 - After saving, confirm to the user: "Saved to `.kiro/context/session-handoff.md`."
-- After saving, **IMMEDIATELY run the `auto-memory` skill** — do not wait to be asked. This is mandatory, not optional. Capture learnings from this session into `.kiro/steering/memory.md`.
+- **ADR Check**: Before running `auto-memory`, ask the user: "Were any architectural decisions made this session that should be logged as ADRs? (runs `create-adr` skill)"
+- After saving, **IMMEDIATELY run the `auto-memory` skill** — do not wait to be asked.
+ This is mandatory, not optional. Capture learnings from this session into `.kiro/steering/memory.md`.
 5. **Compliance Audit**: 
    - Count the number of unique skill names mentioned in your responses for this session.
    - Cross-reference with today's `.jsonl` telemetry log.

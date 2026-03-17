@@ -11,9 +11,16 @@ Commit (if needed), push the current branch to origin, and generate a pull reque
 
 ## Process
 
-1. Check `git status` — if there are uncommitted changes, ask the user if they want to commit first.
-2. Push the current branch: `git push origin <branch>`.
-3. Read the PR template from `.github/PULL_REQUEST_TEMPLATE.md`.
+1. **Pre-Push Validation**:
+   - Check if the current branch is cleanly ahead of `origin/master` (or the primary base branch). If it contains unrelated commits from other features, warn the user and offer to rebase onto a fresh branch from `origin/master`.
+   - Verify write permissions by running `git push --dry-run origin <branch>`.
+   - If `403 Permission Denied` occurs:
+     - Check for a configured `fork` remote (`git remote -v`).
+     - If a fork exists, offer to push to `fork` and create a cross-repository PR.
+     - If no fork exists, explain that direct push failed and provide instructions for creating a fork.
+2. Check `git status` — if there are uncommitted changes, ask the user if they want to commit first.
+3. Push to the verified remote (either `origin` or `fork`).
+4. Read the PR template from `.github/PULL_REQUEST_TEMPLATE.md`.
 4. Read `git log develop..HEAD --oneline` and `git diff develop --stat` to understand the scope of changes.
 5. Fill out the PR template with:
    - Description summarizing the branch's purpose
