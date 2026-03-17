@@ -90,6 +90,7 @@ class MLSMatch(db.Model):
     live_reporting_status = db.Column(db.String(20), default='not_started')
     live_reporting_task_id = db.Column(db.String(50))
     espn_match_id = db.Column(db.String(50), nullable=True)  # ESPN match ID for live data
+    broadcast = db.Column(db.String(200))  # Broadcast info from ESPN
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

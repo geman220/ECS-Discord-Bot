@@ -265,7 +265,8 @@ def add_mls_match():
                         match_details['match_stats_link'],
                         match_details['match_commentary_link'],
                         match_details['venue'],
-                        competition
+                        competition,
+                        broadcast=match_details.get('broadcast')
                     )
                     session_db.flush()
                     if not match:
@@ -339,6 +340,7 @@ def update_mls_match_route(match_id):
                     commentary_link=match_details['match_commentary_link'],
                     venue=match_details['venue'],
                     competition=competition,
+                    broadcast=match_details.get('broadcast'),
                     session=session_db
                 )
                 logger.debug(f"Successfully updated match with ID {match_id}.")

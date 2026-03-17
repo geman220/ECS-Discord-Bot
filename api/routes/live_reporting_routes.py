@@ -126,7 +126,7 @@ def get_event_embed_config(event_type: str, content: str, match_data: Optional[D
             'title': '🔥 PRE-MATCH HYPE',
             'color': 0x005F4F,  # Sounders green
             'fields': [
-                {'name': '🏟️ Venue', 'value': 'Lumen Field', 'inline': True},
+                {'name': '🏟️ Venue', 'value': (match_data or {}).get('venue', 'Stadium'), 'inline': True},
                 {'name': '💚💙 Support', 'value': 'ECS Ready!', 'inline': True}
             ]
         })

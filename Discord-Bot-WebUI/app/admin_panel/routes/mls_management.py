@@ -665,7 +665,8 @@ def mls_fetch_espn():
                                 match_details['match_commentary_link'],
                                 match_details['venue'],
                                 competition_code,
-                                espn_match_id=match_details['match_id']
+                                espn_match_id=match_details['match_id'],
+                                broadcast=match_details.get('broadcast')
                             )
 
                             session.commit()
@@ -908,7 +909,8 @@ def _process_event_for_confirm(session, event, selected_ids, competition_code):
             match_details['match_commentary_link'],
             match_details['venue'],
             competition_code,
-            espn_match_id=match_details['match_id']
+            espn_match_id=match_details['match_id'],
+            broadcast=match_details.get('broadcast')
         )
         session.commit()
 

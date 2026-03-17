@@ -324,7 +324,22 @@ class EnhancedAICommentaryService(AICommentaryService):
                     AIPromptConfig.prompt_type == prompt_type,
                     AIPromptConfig.is_active == True
                 ).first()
-                
+
+                # Merge template data if an active template is assigned
+                if config and config.active_template_id and config.active_template:
+                    template_data = config.active_template.template_data or {}
+                    # Overlay template personality traits onto config
+                    if 'personality_traits' in template_data and template_data['personality_traits']:
+                        merged_traits = dict(config.personality_traits or {})
+                        merged_traits.update(template_data['personality_traits'])
+                        config.personality_traits = merged_traits
+                    # Overlay template system prompt tone modifiers
+                    if 'system_prompt_suffix' in template_data and template_data['system_prompt_suffix']:
+                        config.system_prompt = (config.system_prompt or '') + '\n' + template_data['system_prompt_suffix']
+                    # Overlay rivalry intensity if template specifies it
+                    if 'rivalry_intensity' in template_data:
+                        config.rivalry_intensity = template_data['rivalry_intensity']
+
                 return config
                 
         except Exception as e:
@@ -584,8 +599,10 @@ class EnhancedAICommentaryService(AICommentaryService):
     def _create_pre_match_prompt(self, match_context: Dict[str, Any]) -> str:
         """Create prompt for pre-match hype message."""
         
-        home_team = match_context.get('home_team', {}).get('displayName', 'Home')
-        away_team = match_context.get('away_team', {}).get('displayName', 'Away') 
+        home_team_raw = match_context.get('home_team', 'Home')
+        home_team = home_team_raw.get('displayName', 'Home') if isinstance(home_team_raw, dict) else home_team_raw
+        away_team_raw = match_context.get('away_team', 'Away')
+        away_team = away_team_raw.get('displayName', 'Away') if isinstance(away_team_raw, dict) else away_team_raw
         opponent = away_team if home_team == "Seattle Sounders FC" else home_team
         competition = match_context.get('competition', 'MLS')
         venue = match_context.get('venue', 'Unknown Venue')
@@ -731,26 +748,28 @@ Generate a raw, authentic full-time reaction to this result:"""
     def _create_thread_context_prompt(self, match_context: Dict[str, Any]) -> str:
         """Create prompt for match thread contextual description."""
         
-        home_team = match_context.get('home_team', {}).get('displayName', 'Home')
-        away_team = match_context.get('away_team', {}).get('displayName', 'Away')
+        home_team_raw = match_context.get('home_team', 'Home')
+        home_team = home_team_raw.get('displayName', 'Home') if isinstance(home_team_raw, dict) else home_team_raw
+        away_team_raw = match_context.get('away_team', 'Away')
+        away_team = away_team_raw.get('displayName', 'Away') if isinstance(away_team_raw, dict) else away_team_raw
         competition = match_context.get('competition', 'MLS')
         venue = match_context.get('venue', 'Unknown Venue')
         opponent = away_team if home_team == "Seattle Sounders FC" else home_team
-        
+
         # Determine match importance and storylines
         is_playoff = 'playoff' in competition.lower() or 'cup' in competition.lower()
         is_final = 'final' in competition.lower()
         is_portland = "portland" in opponent.lower() or "timber" in opponent.lower()
         is_vancouver = "vancouver" in opponent.lower() or "whitecap" in opponent.lower()
         is_home = home_team == "Seattle Sounders FC"
-        
+
         prompt = f"""You are creating a contextual description for a new match thread. This should give fans context about why this match matters and what to watch for.
 
 MATCH DETAILS:
 - Teams: {home_team} vs {away_team}
 - Competition: {competition}
 - Venue: {venue}
-- Location: {'Home at Lumen Field' if is_home else f'Away at {venue}'}"""
+- Location: {f'Home at {venue}' if is_home else f'Away at {venue}'}"""
 
         if is_final:
             prompt += f"\n- FINAL MATCH - Trophy on the line!"

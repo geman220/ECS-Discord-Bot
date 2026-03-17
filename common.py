@@ -260,7 +260,7 @@ def prepare_starter_message(match_info, date_time_pst_formatted, team_logo, weat
         + weather_info +
         f"**Match Details**\n"
         f"More Info: {summary_md_link}, {stats_md_link}\n"
-        f"**Broadcast**: AppleTV\n"
+        f"**Broadcast**: {match_info.get('broadcast') or 'AppleTV'}\n"
     )
 
     embed = discord.Embed(

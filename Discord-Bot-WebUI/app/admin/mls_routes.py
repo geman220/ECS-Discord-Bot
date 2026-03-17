@@ -789,12 +789,13 @@ def add_match_by_date():
                         match_details['match_stats_link'],
                         match_details['match_commentary_link'],
                         match_details['venue'],
-                        competition_code
+                        competition_code,
+                        broadcast=match_details.get('broadcast')
                     )
-                    
+
                     # Commit to get the database ID
                     session.commit()
-                    
+
                     if match:
                         matches_found += 1
                         logger.info(f"Successfully added match: {match_details['opponent']} on {match_date}")
@@ -895,12 +896,13 @@ def fetch_all_espn_matches():
                                 match_details['match_stats_link'],
                                 match_details['match_commentary_link'],
                                 match_details['venue'],
-                                competition_code
+                                competition_code,
+                                broadcast=match_details.get('broadcast')
                             )
-                            
+
                             # Commit to get the database ID
                             session.commit()
-                            
+
                             if match:
                                 matches_in_competition += 1
                                 total_matches_added += 1

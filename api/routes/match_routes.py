@@ -996,7 +996,7 @@ async def _create_match_thread_locked(request, bot, match_id, home_team, away_te
         
         embed.add_field(name="Venue", value=request.get('venue', 'TBD'), inline=False)
         embed.add_field(name="Competition", value=request.get('competition', 'usa.1'), inline=True)
-        embed.add_field(name="Broadcast", value="AppleTV", inline=True)
+        embed.add_field(name="Broadcast", value=request.get('broadcast') or "AppleTV", inline=True)
         embed.add_field(name="Home/Away", value="Away" if away_team == "Seattle Sounders FC" else "Home", inline=True)
         
         # Add match links if provided

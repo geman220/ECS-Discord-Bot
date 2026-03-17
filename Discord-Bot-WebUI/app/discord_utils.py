@@ -698,7 +698,8 @@ async def create_match_thread_async_only(match_data: Dict[str, Any]) -> Optional
                 'is_home_game': match_data.get('is_home_game', False),
                 'summary_link': match_data.get('summary_link'),
                 'stats_link': match_data.get('stats_link'),
-                'commentary_link': match_data.get('commentary_link')
+                'commentary_link': match_data.get('commentary_link'),
+                'broadcast': match_data.get('broadcast')
             }
             
             logger.info(f"Attempt {attempt + 1}/{max_retries} to create thread for match {thread_data['match_id']}")
@@ -1621,7 +1622,7 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
                 {"name": "Date and Time", "value": pst_time.strftime("%m/%d/%Y %I:%M %p %Z"), "inline": False},
                 {"name": "Venue", "value": match.venue if match.venue else "TBD", "inline": False},
                 {"name": "Competition", "value": match.competition if match.competition else "Unknown", "inline": True},
-                {"name": "Broadcast", "value": "AppleTV", "inline": True},
+                {"name": "Broadcast", "value": match.broadcast or "AppleTV", "inline": True},
                 {"name": "Home/Away", "value": "Home" if match.is_home_game else "Away", "inline": True}
             ],
             "thumbnail_url": "https://a.espncdn.com/combiner/i?img=/i/teamlogos/soccer/500/9726.png",

@@ -100,6 +100,7 @@ def create_prompt():
                 required_elements=data.get('required_elements'),
                 rivalry_teams=data.get('rivalry_teams'),
                 rivalry_intensity=int(data.get('rivalry_intensity', 5)),
+                active_template_id=int(data['active_template_id']) if data.get('active_template_id') else None,
                 created_by=current_user.username if hasattr(current_user, 'username') else 'system'
             )
             
@@ -173,7 +174,8 @@ def edit_prompt(prompt_id: int):
                 return redirect(url_for('ai_prompts.list_prompts'))
             
             if request.method == 'GET':
-                return render_template('ai_prompts/create_prompt_flowbite.html', prompt=prompt_config)
+                templates = session.query(AIPromptTemplate).all()
+                return render_template('ai_prompts/create_prompt_flowbite.html', prompt=prompt_config, templates=templates)
             
             # Create new version with updates
             data = request.get_json() if request.is_json else request.form.to_dict()
@@ -200,7 +202,9 @@ def edit_prompt(prompt_id: int):
                 new_version.rivalry_teams = data['rivalry_teams']
             if 'rivalry_intensity' in data:
                 new_version.rivalry_intensity = int(data['rivalry_intensity'])
-            
+            if 'active_template_id' in data:
+                new_version.active_template_id = int(data['active_template_id']) if data['active_template_id'] else None
+
             session.add(new_version)
             session.commit()
             
@@ -352,6 +356,54 @@ def manage_templates():
         if request.is_json:
             return jsonify({'success': False, 'error': str(e)}), 400
         flash(f"Error creating template: {e}", 'danger')
+        return redirect(url_for('ai_prompts.manage_templates'))
+
+
+@ai_prompts_bp.route('/templates/<int:template_id>/apply', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def apply_template(template_id: int):
+    """Apply a template to an existing active prompt config for a given prompt_type."""
+    try:
+        data = request.get_json() if request.is_json else request.form.to_dict()
+        prompt_type = data.get('prompt_type')
+
+        if not prompt_type:
+            return jsonify({'success': False, 'error': 'prompt_type is required'}), 400
+
+        with managed_session() as session:
+            template = session.query(AIPromptTemplate).get(template_id)
+            if not template:
+                return jsonify({'success': False, 'error': 'Template not found'}), 404
+
+            # Find the active prompt config for this type
+            config = session.query(AIPromptConfig).filter(
+                AIPromptConfig.prompt_type == prompt_type,
+                AIPromptConfig.is_active == True
+            ).first()
+
+            if not config:
+                return jsonify({'success': False, 'error': f'No active prompt config found for type: {prompt_type}'}), 404
+
+            config.active_template_id = template_id
+            session.commit()
+
+            logger.info(f"Applied template '{template.name}' to prompt config '{config.name}' ({prompt_type})")
+
+            if request.is_json:
+                return jsonify({
+                    'success': True,
+                    'message': f'Applied template "{template.name}" to {config.name}'
+                })
+
+            flash(f'Applied template "{template.name}" to {config.name}', 'success')
+            return redirect(url_for('ai_prompts.manage_templates'))
+
+    except Exception as e:
+        logger.error(f"Error applying template {template_id}: {e}", exc_info=True)
+        if request.is_json:
+            return jsonify({'success': False, 'error': str(e)}), 500
+        flash(f"Error applying template: {e}", 'danger')
         return redirect(url_for('ai_prompts.manage_templates'))
 
 
