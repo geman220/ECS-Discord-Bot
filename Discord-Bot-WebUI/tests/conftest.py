@@ -187,15 +187,20 @@ def db(_database, app):
         # Table names verified from model __tablename__ attributes
         tables_to_clean = [
             # Audit and logging tables
-            'admin_audit_log', 'audit_logs',
+            'admin_audit_log', 'audit_logs', 'stat_change_logs', 'player_stat_audits',
             # Player stats
             'player_season_stats', 'player_career_stats',
             # Match-related tables
-            'match_events', 'sub_requests', 'availability',
+            'match_events', 'sub_requests', 'availability', 'match_predictions',
+            'mls_matches', 'match_dates',
             # Player-team relationships
-            'player_teams', 'player_league',
+            'player_teams', 'player_league', 'player_team_season',
             # Schedules and matches (schedule is singular, matches is plural)
-            'matches', 'schedule',
+            'matches', 'schedule', 'week_configurations',
+            # Tokens and tracking
+            'device_tokens', 'progress', 'sms_logs', 'discord_bot_status',
+            # Content
+            'help_topics', 'feedback_replies', 'feedbacks', 'notes',
             # Players (singular)
             'player',
             # Teams and leagues (all singular)
@@ -636,7 +641,12 @@ def api_key_headers():
 # PLAYWRIGHT FIXTURES - Mobile Browser Automation
 # =============================================================================
 
-from playwright.sync_api import sync_playwright
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+
 import threading
 from werkzeug.serving import make_server
 
@@ -694,6 +704,8 @@ def live_server(app):
 @pytest.fixture(scope='session')
 def browser():
     """Launch browser instance for entire test session."""
+    if not PLAYWRIGHT_AVAILABLE:
+        pytest.skip("Playwright not installed")
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=True,

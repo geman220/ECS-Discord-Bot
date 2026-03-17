@@ -223,7 +223,8 @@ def change_password():
     form = PasswordChangeForm(prefix='password')
     if form.validate_on_submit():
         if check_password_hash(user.password_hash, form.current_password.data):
-            user.password_hash = generate_password_hash(form.new_password.data)
+            from app.utils.auth_helpers import secure_hash_password
+            user.password_hash = secure_hash_password(form.new_password.data)
             show_success('Your password has been updated successfully.')
         else:
             show_error('Current password is incorrect.')
@@ -247,10 +248,22 @@ def update_account_info():
     user = session.query(User).get(current_user.id)
 
     form = request.form
-    user.email = form.get('email')
+    email = form.get('email', '').strip()
+    name = form.get('name', '').strip()
+    phone = form.get('phone', '').strip()
+
+    # Basic validation
+    if not email or len(email) < 5 or '@' not in email:
+        show_error('Invalid email address.')
+        return redirect(url_for('account.settings'))
+
+    user.email = email
     if user.player:
-        user.player.name = form.get('name')
-        user.player.phone = form.get('phone')
+        if name:
+            user.player.name = name[:100]  # Respect DB limits
+        if phone:
+            user.player.phone = phone[:20]
+    
     show_success('Account information updated successfully')
     return redirect(url_for('account.settings'))
 
@@ -457,9 +470,15 @@ def enable_2fa():
     
     # POST: Verify the TOTP code and enable 2FA.
     elif request.method == 'POST':
-        code = request.json.get('code')
+        form = Enable2FAForm()
+        # Handle both JSON and Form data for flexibility
+        token = request.json.get('totp_token') if request.is_json else request.form.get('totp_token')
+        
+        if not token:
+            return jsonify({'success': False, 'message': '2FA code is required'}), 400
+            
         totp = pyotp.TOTP(current_user.totp_secret)
-        if totp.verify(code):
+        if totp.verify(token):
             current_user.is_2fa_enabled = True
             show_success('2FA enabled successfully.')
             return jsonify({'success': True})

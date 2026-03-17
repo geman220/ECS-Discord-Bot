@@ -186,7 +186,8 @@ class User(UserMixin, db.Model):
         return totp.verify(token)
 
     def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+        from app.utils.auth_helpers import secure_hash_password
+        self.password_hash = secure_hash_password(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)

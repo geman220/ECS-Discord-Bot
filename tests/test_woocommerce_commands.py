@@ -101,7 +101,7 @@ async def test_list_tickets_no_tickets_available(
         woocommerce_commands_bot, mock_interaction
     )
 
-    expected_message = "🏠 **Home Tickets:**\nNo home tickets found.\n\n🚗 **Away Tickets:**\nNo away tickets found."
+    expected_message = "🏠 **Home Tickets:** (sold, remaining)\nNo home tickets found.\n\n🚗 **Away Tickets:** (sold, remaining)\nNo away tickets found.\n"
     mock_interaction.followup.send.assert_called_once_with(
         expected_message, ephemeral=True
     )

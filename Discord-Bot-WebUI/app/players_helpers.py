@@ -35,59 +35,71 @@ from app.core import db
 logger = logging.getLogger(__name__)
 
 
+def _validate_and_process_image(cropped_image_data, max_dimension=2048, target_size=None):
+    """
+    Common validation and processing for base64 encoded images.
+    
+    Args:
+        cropped_image_data (str): Base64 encoded image data.
+        max_dimension (int): Maximum allowed width/height.
+        target_size (int, optional): Resize to this size if specified.
+        
+    Returns:
+        PIL.Image: Processed image object.
+        
+    Raises:
+        ValueError: If validation fails.
+    """
+    # Validate base64 header
+    if not cropped_image_data.startswith('data:image/'):
+        raise ValueError("Invalid image data format - missing data:image/ header")
+    
+    # Extract header and validate image type
+    header, encoded = cropped_image_data.split(",", 1)
+    mime_type = header.split(':')[1].split(';')[0]
+    
+    # Whitelist allowed image types
+    allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+    if mime_type not in allowed_types:
+        raise ValueError(f"Unsupported image type: {mime_type}. Allowed: {', '.join(allowed_types)}")
+    
+    # Decode and validate image data
+    image_data = base64.b64decode(encoded)
+    
+    # Check file size (5MB limit for profile pictures)
+    max_size = 5 * 1024 * 1024  # 5MB
+    if len(image_data) > max_size:
+        raise ValueError(f"Image too large: {len(image_data)} bytes. Maximum: {max_size} bytes")
+    
+    # Open and validate image using PIL
+    image = Image.open(BytesIO(image_data))
+    
+    # Verify image is actually an image (not a malicious file)
+    image.verify()
+    
+    # Re-open for processing (verify() closes the image)
+    image = Image.open(BytesIO(image_data)).convert("RGBA")
+    
+    # Validate image dimensions (reasonable limits)
+    if image.width > max_dimension or image.height > max_dimension:
+        raise ValueError(f"Image dimensions too large: {image.width}x{image.height}. Maximum: {max_dimension}x{max_dimension}")
+
+    # Auto-resize if target_size is specified
+    if target_size and (image.width > target_size or image.height > target_size):
+        ratio = min(target_size / image.width, target_size / image.height)
+        new_width = int(image.width * ratio)
+        new_height = int(image.height * ratio)
+        image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+        
+    return image
+
+
 def save_cropped_profile_picture(cropped_image_data, player_id):
     """
     Save the cropped profile picture for a player with enhanced security.
-    
-    Decodes the provided base64 image data, validates the image format,
-    saves the image as a PNG file, and returns the new path.
-    
-    Args:
-        cropped_image_data (str): The base64 encoded image data.
-        player_id (int): The ID of the player.
-    
-    Returns:
-        str: The file path to the saved profile picture.
-    
-    Raises:
-        ValueError: If image validation fails.
-        Exception: Propagates any error encountered during the process.
     """
     try:
-        # Validate base64 header
-        if not cropped_image_data.startswith('data:image/'):
-            raise ValueError("Invalid image data format - missing data:image/ header")
-        
-        # Extract header and validate image type
-        header, encoded = cropped_image_data.split(",", 1)
-        mime_type = header.split(':')[1].split(';')[0]
-        
-        # Whitelist allowed image types
-        allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
-        if mime_type not in allowed_types:
-            raise ValueError(f"Unsupported image type: {mime_type}. Allowed: {', '.join(allowed_types)}")
-        
-        # Decode and validate image data
-        image_data = base64.b64decode(encoded)
-        
-        # Check file size (5MB limit for profile pictures)
-        max_size = 5 * 1024 * 1024  # 5MB
-        if len(image_data) > max_size:
-            raise ValueError(f"Image too large: {len(image_data)} bytes. Maximum: {max_size} bytes")
-        
-        # Open and validate image using PIL
-        image = Image.open(BytesIO(image_data))
-        
-        # Verify image is actually an image (not a malicious file)
-        image.verify()
-        
-        # Re-open for processing (verify() closes the image)
-        image = Image.open(BytesIO(image_data)).convert("RGBA")
-        
-        # Validate image dimensions (reasonable limits)
-        max_dimension = 2048  # 2048x2048 max
-        if image.width > max_dimension or image.height > max_dimension:
-            raise ValueError(f"Image dimensions too large: {image.width}x{image.height}. Maximum: {max_dimension}x{max_dimension}")
+        image = _validate_and_process_image(cropped_image_data)
 
         session = g.db_session
         player = session.query(Player).get(player_id)
@@ -96,20 +108,17 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
             return None
 
         # Generate secure filename
-        player_name = re.sub(r'[^a-zA-Z0-9_-]', '_', player.name)  # More secure sanitization
+        player_name = re.sub(r'[^a-zA-Z0-9_-]', '_', player.name)
         filename = secure_filename(f"{player_name}_{player_id}.png")
         upload_folder = os.path.join(current_app.root_path, 'static/img/uploads/profile_pictures')
-        os.makedirs(upload_folder, mode=0o755, exist_ok=True)  # Set secure permissions
+        os.makedirs(upload_folder, mode=0o755, exist_ok=True)
         file_path = os.path.join(upload_folder, filename)
 
         # Always save as PNG to strip potentially malicious metadata
         image.save(file_path, format='PNG', optimize=True)
-        
-        # Set secure file permissions
         os.chmod(file_path, 0o644)
         
         profile_path = f"/static/img/uploads/profile_pictures/{filename}"
-
         player.profile_picture_url = profile_path
         logger.info(f"Profile picture saved for player {player_id}: {filename}")
         return profile_path
@@ -125,67 +134,9 @@ def save_cropped_profile_picture(cropped_image_data, player_id):
 def save_quick_profile_picture(cropped_image_data, quick_profile_id, player_name):
     """
     Save the profile picture for a quick profile (tryout player) with enhanced security.
-
-    Similar to save_cropped_profile_picture but for quick profiles which don't
-    require an existing player. Also auto-resizes images larger than 800x800.
-
-    Args:
-        cropped_image_data (str): The base64 encoded image data.
-        quick_profile_id (int): The ID of the quick profile.
-        player_name (str): The name of the player (for filename).
-
-    Returns:
-        str: The file path to the saved profile picture.
-
-    Raises:
-        ValueError: If image validation fails.
-        Exception: Propagates any error encountered during the process.
     """
     try:
-        # Validate base64 header
-        if not cropped_image_data.startswith('data:image/'):
-            raise ValueError("Invalid image data format - missing data:image/ header")
-
-        # Extract header and validate image type
-        header, encoded = cropped_image_data.split(",", 1)
-        mime_type = header.split(':')[1].split(';')[0]
-
-        # Whitelist allowed image types
-        allowed_types = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
-        if mime_type not in allowed_types:
-            raise ValueError(f"Unsupported image type: {mime_type}. Allowed: {', '.join(allowed_types)}")
-
-        # Decode and validate image data
-        image_data = base64.b64decode(encoded)
-
-        # Check file size (5MB limit for profile pictures)
-        max_size = 5 * 1024 * 1024  # 5MB
-        if len(image_data) > max_size:
-            raise ValueError(f"Image too large: {len(image_data)} bytes. Maximum: {max_size} bytes")
-
-        # Open and validate image using PIL
-        image = Image.open(BytesIO(image_data))
-
-        # Verify image is actually an image (not a malicious file)
-        image.verify()
-
-        # Re-open for processing (verify() closes the image)
-        image = Image.open(BytesIO(image_data)).convert("RGBA")
-
-        # Validate image dimensions (reasonable limits)
-        max_dimension = 2048  # 2048x2048 max
-        if image.width > max_dimension or image.height > max_dimension:
-            raise ValueError(f"Image dimensions too large: {image.width}x{image.height}. Maximum: {max_dimension}x{max_dimension}")
-
-        # Auto-resize if larger than 800x800 for quick profiles
-        target_size = 800
-        if image.width > target_size or image.height > target_size:
-            # Calculate new dimensions maintaining aspect ratio
-            ratio = min(target_size / image.width, target_size / image.height)
-            new_width = int(image.width * ratio)
-            new_height = int(image.height * ratio)
-            image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-            logger.info(f"Quick profile {quick_profile_id}: Image resized to {new_width}x{new_height}")
+        image = _validate_and_process_image(cropped_image_data, target_size=800)
 
         # Generate secure filename
         safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', player_name)
@@ -196,8 +147,6 @@ def save_quick_profile_picture(cropped_image_data, quick_profile_id, player_name
 
         # Always save as PNG to strip potentially malicious metadata
         image.save(file_path, format='PNG', optimize=True)
-
-        # Set secure file permissions
         os.chmod(file_path, 0o644)
 
         profile_path = f"/static/img/uploads/quick_profiles/{filename}"
@@ -275,9 +224,7 @@ def create_user_for_player(player_info, session):
         return existing_user
 
     try:
-        random_password = ''.join(
-            secrets.choice(string.ascii_letters + string.digits) for _ in range(10)
-        )
+        random_password = generate_random_password()
         new_user = User(
             email=player_info['email'],
             username=player_info['name'] or player_info['email'],
@@ -663,16 +610,16 @@ def send_password_setup_email(user):
 
 def hash_password(password):
     """
-    Hash the provided password using the scrypt method.
-    
+    Hash the provided password using the best available method.
+
     Args:
         password (str): The plaintext password.
-    
+
     Returns:
         str: The hashed password.
     """
-    return generate_password_hash(password, method='scrypt')
-
+    from app.utils.auth_helpers import secure_hash_password
+    return secure_hash_password(password)
 
 def clean_phone_number(phone):
     """
