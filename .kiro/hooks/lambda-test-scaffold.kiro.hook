@@ -1,0 +1,12 @@
+{
+  "name": "Lambda Test Scaffold",
+  "description": "Scaffolds a test file when a new Lambda index.py is created",
+  "when": {
+    "type": "fileCreate",
+    "patterns": ["src/lambda/*/index.py"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new Lambda function was created. Scaffold a matching test file:\n1. Create src/ai-engagement-tests/test_lambda_{dirname}/__init__.py\n2. Create src/ai-engagement-tests/test_lambda_{dirname}/test_index.py\n3. Use importlib.util.spec_from_file_location to load the module (avoids name collision with other index.py files)\n4. Include helper functions: _load_module(), _mock_context()\n5. Add a basic test_handler_exists() test that imports and calls the handler\n6. Follow the pattern in src/ai-engagement-tests/test_lambda_log_exporter/test_index.py"
+  }
+}

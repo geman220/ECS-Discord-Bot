@@ -1,0 +1,18 @@
+{
+  "name": "review-infrastructure",
+  "description": "AWS and infrastructure-focused code reviewer",
+  "prompt": "file://./prompts/review-infrastructure.md",
+  "mcpServers": {},
+  "tools": ["fs_read", "code", "grep", "glob"],
+  "toolAliases": {},
+  "allowedTools": ["fs_read", "code", "grep", "glob"],
+  "resources": [
+    "file://.kiro/steering/structure.md",
+    "file://.kiro/steering/tech.md"
+  ],
+  "hooks": {},
+  "toolsSettings": {},
+  "includeMcpJson": false,
+  "model": null,
+  "welcomeMessage": "🏗️ Infrastructure review agent ready. What should I inspect?"
+}

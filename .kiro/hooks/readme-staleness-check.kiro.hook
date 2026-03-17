@@ -1,0 +1,11 @@
+{
+  "name": "README Staleness Check",
+  "description": "Checks if README sections may be stale after implementation work",
+  "when": {
+    "type": "userTriggered"
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check if README.md needs updating based on recent changes:\n1. Run git diff develop --name-only to see what changed\n2. If CDK/infrastructure changed: verify the Observability, Self-Hosted Runners, and Production Deployment sections are current\n3. If Python/Lambda changed: verify the AI agent model list and Prerequisites section\n4. If Angular changed: verify the Local Development and Running Tests sections\n5. If new dependencies added: verify Prerequisites section\n6. Report which sections (if any) appear stale and suggest specific updates"
+  }
+}

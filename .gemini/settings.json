@@ -1,0 +1,16 @@
+{
+  "experimental": {
+    "enableAgents": true
+  },
+  "context": {
+    "includeDirectories": [
+      ".kiro/steering"
+    ],
+    "fileName": [
+      "GEMINI.md",
+      "branching.md",
+      "conventions.md",
+      "memory.md"
+    ]
+  }
+}

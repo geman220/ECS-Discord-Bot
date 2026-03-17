@@ -472,7 +472,35 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 - **Image Caching**: Use Redis for optimized image serving
 - **Background Tasks**: Monitor queue sizes and worker performance
 
-## Contributing
+## Development & Testing
+
+This project uses `pytest` for Python testing and `vitest` for frontend JavaScript testing.
+
+### **Testing the Discord Bot**
+The bot tests are located in the root `tests/` directory.
+```bash
+# Run bot unit tests
+pytest tests/
+```
+
+### **Testing the Web Interface**
+The web interface tests are located in `Discord-Bot-WebUI/tests/`. A comprehensive test runner is provided.
+```bash
+cd Discord-Bot-WebUI
+# Run all web tests
+python run_tests.py --all
+# Run frontend tests
+npm test
+```
+For more details, see the [WebUI README](Discord-Bot-WebUI/README.md).
+
+### **Documentation**
+- **Architecture & Design**: See [DEVELOPMENT.md](DEVELOPMENT.md) for a deep dive into the system's internals.
+- **API Reference**: Detailed documentation for the FastAPI and Flask APIs can be found in the [docs/](docs/) directory.
+- **Command Guides**: User and admin command documentation is available in [docs/](docs/).
+
+## Troubleshooting
+
 Contributions are welcome! This project follows standard open-source contribution practices.
 
 ### Development Setup

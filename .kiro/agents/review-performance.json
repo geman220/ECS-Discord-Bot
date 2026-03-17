@@ -1,0 +1,18 @@
+{
+  "name": "review-performance",
+  "description": "Performance-focused code reviewer",
+  "prompt": "file://./prompts/review-performance.md",
+  "mcpServers": {},
+  "tools": ["fs_read", "code", "grep", "glob"],
+  "toolAliases": {},
+  "allowedTools": ["fs_read", "code", "grep", "glob"],
+  "resources": [
+    "file://.kiro/steering/structure.md",
+    "file://.kiro/steering/tech.md"
+  ],
+  "hooks": {},
+  "toolsSettings": {},
+  "includeMcpJson": false,
+  "model": null,
+  "welcomeMessage": "⚡ Performance review agent ready. What should I profile?"
+}
