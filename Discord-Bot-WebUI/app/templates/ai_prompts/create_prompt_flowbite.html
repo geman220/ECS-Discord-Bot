@@ -217,7 +217,7 @@
                             <option value="{{ template.id }}" {{ 'selected' if prompt and prompt.active_template_id == template.id }}>{{ template.name }}{% if template.category %} ({{ template.category }}){% endif %}</option>
                             {% endfor %}
                         </select>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Assigns a tone overlay (personality traits, intensity) to this prompt</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Overlays the template's personality traits on top of slider values below at runtime</p>
                     </div>
                     {% endif %}
 
@@ -319,7 +319,7 @@
                 {% if templates %}
                 {% call card(title="Quick Templates") %}
                 <div class="space-y-2">
-                    {% for template in templates[:3] %}
+                    {% for template in templates[:6] %}
                     <button type="button" class="w-full px-3 py-2 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white dark:bg-gray-700 dark:hover:bg-ecs-green transition-colors"
                             data-action="load-ai-template"
                             data-template-id="{{ template.id }}">

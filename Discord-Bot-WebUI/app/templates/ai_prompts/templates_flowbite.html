@@ -93,7 +93,7 @@
                 <div class="flex items-center gap-2 mb-2">
                     <button type="button" class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 transition-colors"
                             data-action="use-template" data-template-id="{{ template.id }}">
-                        <i class="ti ti-copy mr-1"></i> Use Template
+                        <i class="ti ti-plus mr-1"></i> New Prompt
                     </button>
                     <button type="button" class="inline-flex items-center justify-center p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                             data-action="view-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-desc="{{ template.description }}" data-template-data="{{ template.template_data }}">
@@ -108,13 +108,19 @@
                 <div class="flex items-center gap-2">
                     <select class="flex-1 text-xs bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-ecs-green focus:border-ecs-green p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                             data-apply-select="{{ template.id }}">
-                        <option value="">Apply to...</option>
+                        <option value="">Apply to active...</option>
                         <option value="match_thread_context">Match Thread Context</option>
                         <option value="pre_match_hype">Pre-Match Hype</option>
                         <option value="half_time_message">Half Time Message</option>
                         <option value="full_time_message">Full Time Message</option>
                         <option value="match_commentary">Match Commentary</option>
                         <option value="goal">Goal Event</option>
+                        <option value="sounders_goal">Sounders Goal</option>
+                        <option value="opponent_goal">Opponent Goal</option>
+                        <option value="card">Card Event</option>
+                        <option value="sounders_red_card">Sounders Red Card</option>
+                        <option value="opponent_red_card">Opponent Red Card</option>
+                        <option value="substitution">Substitution</option>
                         <option value="rivalry">Rivalry Match</option>
                     </select>
                     <button type="button" class="inline-flex items-center justify-center px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-lg hover:bg-blue-100 dark:text-blue-300 dark:bg-blue-900/30 dark:border-blue-700 dark:hover:bg-blue-900/50 transition-colors"

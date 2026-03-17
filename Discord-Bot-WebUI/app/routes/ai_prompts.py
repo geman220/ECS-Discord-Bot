@@ -22,6 +22,65 @@ logger = logging.getLogger(__name__)
 
 ai_prompts_bp = Blueprint('ai_prompts', __name__, url_prefix='/ai-prompts')
 
+# Canonical prompt type labels for display
+PROMPT_TYPE_LABELS = {
+    'match_thread_context': 'Match Thread Context',
+    'pre_match_hype': 'Pre-Match Hype',
+    'half_time_message': 'Half Time Message',
+    'full_time_message': 'Full Time Message',
+    'match_commentary': 'Match Commentary',
+    'goal': 'Goal Event',
+    'sounders_goal': 'Sounders Goal',
+    'opponent_goal': 'Opponent Goal',
+    'card': 'Card Event',
+    'sounders_red_card': 'Sounders Red Card',
+    'opponent_red_card': 'Opponent Red Card',
+    'substitution': 'Substitution',
+    'rivalry': 'Rivalry Match',
+}
+
+
+def _extract_personality_traits(data: dict) -> Optional[dict]:
+    """Extract personality traits from form data (individual sliders) or JSON."""
+    # If already a dict (from JSON API), use directly
+    if isinstance(data.get('personality_traits'), dict):
+        return data['personality_traits']
+
+    # Extract from individual form fields
+    traits = {}
+    trait_keys = ['enthusiasm', 'bias', 'humor', 'hostility', 'formality']
+    for key in trait_keys:
+        val = data.get(f'personality_{key}')
+        if val is not None:
+            traits[key] = int(val)
+
+    return traits if traits else None
+
+
+def _extract_rivalry_teams(data: dict):
+    """Parse rivalry_teams from form string or JSON."""
+    val = data.get('rivalry_teams')
+    if not val:
+        return None
+    if isinstance(val, dict):
+        return val
+    if isinstance(val, str):
+        val = val.strip()
+        if not val:
+            return None
+        import json
+        try:
+            return json.loads(val)
+        except json.JSONDecodeError:
+            return None
+    return None
+
+
+@ai_prompts_bp.context_processor
+def inject_prompt_type_labels():
+    """Make prompt type labels available in all AI prompt templates."""
+    return {'prompt_type_labels': PROMPT_TYPE_LABELS}
+
 
 @ai_prompts_bp.route('/', methods=['GET'])
 @login_required
@@ -74,14 +133,33 @@ def list_prompts():
 def create_prompt():
     """Create a new AI prompt configuration."""
     if request.method == 'GET':
-        # Load templates for the form
         with managed_session() as session:
             templates = session.query(AIPromptTemplate).all()
-            return render_template('ai_prompts/create_prompt_flowbite.html', templates=templates)
-    
+            # Pre-populate from template if query param provided
+            prefill = None
+            template_id = request.args.get('template')
+            if template_id:
+                template = session.query(AIPromptTemplate).get(int(template_id))
+                if template and template.template_data:
+                    td = template.template_data if isinstance(template.template_data, dict) else {}
+                    prefill = AIPromptConfig(
+                        name=f"{template.name} - New",
+                        description=template.description,
+                        prompt_type=td.get('prompt_type', 'match_commentary'),
+                        system_prompt=td.get('system_prompt', ''),
+                        user_prompt_template=td.get('user_prompt_template', ''),
+                        temperature=td.get('temperature', 0.7),
+                        max_tokens=td.get('max_tokens', 150),
+                        personality_traits=td.get('personality_traits'),
+                        rivalry_intensity=td.get('rivalry_intensity', 5),
+                        rivalry_teams=td.get('rivalry_teams'),
+                        competition_filter=td.get('competition_filter', 'all'),
+                    )
+            return render_template('ai_prompts/create_prompt_flowbite.html', templates=templates, prompt=prefill)
+
     try:
         data = request.get_json() if request.is_json else request.form.to_dict()
-        
+
         with managed_session() as session:
             # Create new prompt configuration
             prompt_config = AIPromptConfig(
@@ -95,10 +173,10 @@ def create_prompt():
                 event_types=data.get('event_types'),
                 temperature=float(data.get('temperature', 0.7)),
                 max_tokens=int(data.get('max_tokens', 150)),
-                personality_traits=data.get('personality_traits'),
+                personality_traits=_extract_personality_traits(data),
                 forbidden_topics=data.get('forbidden_topics'),
                 required_elements=data.get('required_elements'),
-                rivalry_teams=data.get('rivalry_teams'),
+                rivalry_teams=_extract_rivalry_teams(data),
                 rivalry_intensity=int(data.get('rivalry_intensity', 5)),
                 active_template_id=int(data['active_template_id']) if data.get('active_template_id') else None,
                 created_by=current_user.username if hasattr(current_user, 'username') else 'system'
@@ -192,14 +270,16 @@ def edit_prompt(prompt_id: int):
                 new_version.temperature = float(data['temperature'])
             if 'max_tokens' in data:
                 new_version.max_tokens = int(data['max_tokens'])
-            if 'personality_traits' in data:
-                new_version.personality_traits = data['personality_traits']
+            traits = _extract_personality_traits(data)
+            if traits:
+                new_version.personality_traits = traits
             if 'forbidden_topics' in data:
                 new_version.forbidden_topics = data['forbidden_topics']
             if 'required_elements' in data:
                 new_version.required_elements = data['required_elements']
-            if 'rivalry_teams' in data:
-                new_version.rivalry_teams = data['rivalry_teams']
+            parsed_rivalry = _extract_rivalry_teams(data)
+            if parsed_rivalry is not None:
+                new_version.rivalry_teams = parsed_rivalry
             if 'rivalry_intensity' in data:
                 new_version.rivalry_intensity = int(data['rivalry_intensity'])
             if 'active_template_id' in data:
@@ -479,7 +559,73 @@ def delete_prompt(prompt_id: int):
 
 @ai_prompts_bp.route('/<int:prompt_id>/view', methods=['GET'])
 @login_required
-@role_required(['Global Admin', 'Pub League Admin']) 
+@role_required(['Global Admin', 'Pub League Admin'])
 def view_prompt(prompt_id: int):
     """View a specific AI prompt configuration."""
     return get_prompt(prompt_id)
+
+
+@ai_prompts_bp.route('/<int:prompt_id>/test', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def test_prompt(prompt_id: int):
+    """Test a prompt config with sample match data and return AI output."""
+    try:
+        with managed_session() as session:
+            config = session.query(AIPromptConfig).get(prompt_id)
+            if not config:
+                return jsonify({'success': False, 'error': 'Prompt not found'}), 404
+
+            # Build sample match context for testing
+            sample_context = {
+                'home_team': 'Seattle Sounders FC',
+                'away_team': 'Portland Timbers',
+                'competition': 'MLS',
+                'venue': 'ONE Spokane Stadium',
+                'match_date': '03/22/2026 7:30 PM PST',
+                'is_home_game': True,
+                'opponent': 'Portland Timbers',
+                'home_score': '2',
+                'away_score': '1',
+            }
+
+            from app.services.ai_commentary import get_enhanced_ai_service
+            ai_service = get_enhanced_ai_service()
+
+            if not ai_service or not ai_service.api_key:
+                return jsonify({'success': False, 'error': 'AI service not configured (no API key)'}), 503
+
+            # Render user prompt template with sample data
+            prompt_text = config.user_prompt_template or config.system_prompt or 'Generate a test response.'
+            try:
+                prompt_text = prompt_text.format(**sample_context)
+            except (KeyError, IndexError):
+                pass  # Use template as-is if variables don't match
+
+            import asyncio
+            result = asyncio.run(ai_service._call_openai_api_with_config(prompt_text, config))
+
+            if result:
+                return jsonify({'success': True, 'result': result})
+            else:
+                return jsonify({'success': False, 'error': 'AI returned empty response'}), 500
+
+    except Exception as e:
+        logger.error(f"Error testing prompt {prompt_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@ai_prompts_bp.route('/api/template/<int:template_id>', methods=['GET'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def get_template_data(template_id: int):
+    """API endpoint to fetch template data for pre-filling the create form."""
+    try:
+        with managed_session() as session:
+            template = session.query(AIPromptTemplate).get(template_id)
+            if not template:
+                return jsonify({'success': False, 'error': 'Template not found'}), 404
+            return jsonify({'success': True, 'template': template.to_dict()})
+    except Exception as e:
+        logger.error(f"Error fetching template {template_id}: {e}", exc_info=True)
+        return jsonify({'success': False, 'error': str(e)}), 500
