@@ -9,6 +9,7 @@ Fix failing tests in `./buildAndTest.sh` and address critical findings from the 
 - [x] Substantive maintainability findings (🟡) are addressed.
 - [x] Test infrastructure (conftest) is updated to include new tables.
 - [x] Test warnings (RuntimeWarnings, unclosed sessions) are resolved.
+- [x] Enterprise-grade GitHub CI workflow (`bot-core-ci.yml`) implemented.
 
 ## 3. Tasks
 
@@ -37,6 +38,8 @@ Fix failing tests in `./buildAndTest.sh` and address critical findings from the 
   - Fix "coroutine never awaited" warnings in `rsvp_utils`.
   - Fix "unclosed client session" warnings in `match_commands`.
   - Configure `pytest.ini` for better async handling.
+- [x] **Task 3.3: Implement Enterprise CI**
+  - Create `bot-core-ci.yml` with linting, security, and secrets gates.
 
 ## 4. Findings Log (from Code Review)
 | # | Severity | File | Issue | Status |
