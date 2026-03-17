@@ -8,6 +8,7 @@ Fix failing tests in `./buildAndTest.sh` and address critical findings from the 
 - [x] Security findings (🔴/🟡) are resolved.
 - [x] Substantive maintainability findings (🟡) are addressed.
 - [x] Test infrastructure (conftest) is updated to include new tables.
+- [x] Test warnings (RuntimeWarnings, unclosed sessions) are resolved.
 
 ## 3. Tasks
 
@@ -32,6 +33,10 @@ Fix failing tests in `./buildAndTest.sh` and address critical findings from the 
   - Add tests for `PredictionModal` and unauthorized access paths in `test_match_commands.py`.
   - Added unit tests for `fetch_match_by_thread`.
   - Added tests for UI fallbacks (member display name, guild icon).
+- [x] **Task 3.2: Resolve Test Warnings**
+  - Fix "coroutine never awaited" warnings in `rsvp_utils`.
+  - Fix "unclosed client session" warnings in `match_commands`.
+  - Configure `pytest.ini` for better async handling.
 
 ## 4. Findings Log (from Code Review)
 | # | Severity | File | Issue | Status |

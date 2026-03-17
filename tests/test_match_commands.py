@@ -186,6 +186,7 @@ async def test_show_predictions_no_predictions(
         await match_commands_bot.show_predictions.callback(
             match_commands_bot, mock_interaction
         )
+        match_commands_bot.cog_unload()
 
     mock_interaction.response.send_message.assert_called_once_with(
         "No predictions have been made for this match.", ephemeral=True
@@ -217,6 +218,7 @@ async def test_show_predictions_success(
         await match_commands_bot.show_predictions.callback(
             match_commands_bot, mock_interaction
         )
+        match_commands_bot.cog_unload()
 
     args, kwargs = mock_interaction.response.send_message.call_args
     assert "embed" in kwargs
@@ -243,6 +245,7 @@ async def test_show_predictions_no_icon(
         await match_commands_bot.show_predictions.callback(
             match_commands_bot, mock_interaction
         )
+        match_commands_bot.cog_unload()
 
     args, kwargs = mock_interaction.response.send_message.call_args
     assert "embed" in kwargs
@@ -263,6 +266,7 @@ async def test_show_predictions_api_error(
         await match_commands_bot.show_predictions.callback(
             match_commands_bot, mock_interaction
         )
+        match_commands_bot.cog_unload()
 
     mock_interaction.response.send_message.assert_called_once_with(
         "Failed to fetch predictions.", ephemeral=True
