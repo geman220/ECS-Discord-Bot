@@ -59,4 +59,5 @@ A new Architectural Decision Record file in `/docs/adr/` committed to the reposi
 - Always use the `YYYYMMDDii` format for IDs.
 - Ensure consequences are balanced (Pros and Cons).
 - Link to related ADRs if they exist.
+- **Service Layer Session Truth**: Standardize on `db.session` (or `self.session` injected) as the primary source of truth in service layers to avoid synchronization issues with `g.db_session`.
 - Refer to the user as "The Brougham 22".

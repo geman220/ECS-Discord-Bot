@@ -125,7 +125,11 @@ Only items with assessment "Agree" and severity 🔴 or 🟡 are actionable. �
 
 ### Step 6: Fix (interactive mode, or when called directly)
 
-Fix all agreed items. Run tests after fixes. Present updated test results.
+Fix all agreed items. 
+
+**Repetitive Patterns**: If a review finding (e.g., Information Exposure via `str(e)`) appears in many files, invoke the `mass-remediate-pattern` skill instead of fixing each file manually. This ensures consistency and speed.
+
+Run tests after fixes. Present updated test results.
 
 ## Severity Definitions
 
