@@ -83,7 +83,7 @@ def push_notification_preview():
         logger.error(f"Error previewing push notification: {e}")
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': 'Internal Server Error',
             'preview': {
                 'total_users': 0,
                 'total_tokens': 0,
@@ -218,7 +218,7 @@ def push_notification_broadcast_enhanced():
 
     except Exception as e:
         logger.error(f"Error sending enhanced broadcast: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # API endpoints for dynamic target selectors
@@ -249,7 +249,7 @@ def api_push_teams():
 
     except Exception as e:
         logger.error(f"Error getting teams: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/push/leagues')
@@ -271,7 +271,7 @@ def api_push_leagues():
 
     except Exception as e:
         logger.error(f"Error getting leagues: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/push/roles')
@@ -293,7 +293,7 @@ def api_push_roles():
 
     except Exception as e:
         logger.error(f"Error getting roles: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/push/substitute-pools')
@@ -329,7 +329,7 @@ def api_push_substitute_pools():
 
     except Exception as e:
         logger.error(f"Error getting substitute pools: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/push/platform-stats')
@@ -357,4 +357,4 @@ def api_push_platform_stats():
 
     except Exception as e:
         logger.error(f"Error getting platform stats: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

@@ -247,7 +247,7 @@ def create_quick_profile():
             picture_url = save_quick_profile_picture(photo_base64, profile.id, player_name)
             profile.profile_picture_url = picture_url
         except ValueError as e:
-            return jsonify({'success': False, 'error': str(e)}), 400
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
 
         # Log the action
         audit_log = AdminAuditLog(
@@ -373,7 +373,7 @@ def link_quick_profile(profile_id):
         })
 
     except ValueError as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
     except Exception as e:
         logger.error(f"Error linking quick profile: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': 'Failed to link quick profile'}), 500

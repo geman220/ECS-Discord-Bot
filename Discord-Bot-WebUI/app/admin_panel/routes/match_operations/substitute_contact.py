@@ -99,7 +99,7 @@ def notify_substitute_pool():
 
     except Exception as e:
         logger.exception(f"Error notifying substitute pool: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/substitute-contact/notify-individual', methods=['POST'])
@@ -160,7 +160,7 @@ def notify_individual_substitute():
 
     except Exception as e:
         logger.exception(f"Error notifying individual substitute: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/substitute-contact/<int:request_id>/availability')
@@ -184,7 +184,7 @@ def get_request_availability(request_id):
 
     except Exception as e:
         logger.exception(f"Error getting availability status: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/substitute-contact/compose-message')
@@ -255,7 +255,7 @@ Location: {match.location or 'TBD'}"""
 
     except Exception as e:
         logger.exception(f"Error composing message: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/substitute-contact/available-subs')
@@ -311,7 +311,7 @@ def get_available_subs():
 
     except Exception as e:
         logger.exception(f"Error getting available subs: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/substitute-contact/send-confirmation', methods=['POST'])
@@ -361,4 +361,4 @@ def send_assignment_confirmation():
 
     except Exception as e:
         logger.exception(f"Error sending confirmation: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

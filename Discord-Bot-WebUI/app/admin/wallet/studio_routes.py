@@ -376,7 +376,7 @@ def save_appearance(pass_type_code):
         db.session.rollback()
         logger.error(f"Error saving appearance: {str(e)}", exc_info=True)
         if request.is_json:
-            return jsonify({'success': False, 'error': str(e)}), 500
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
         flash(f'Error saving appearance: {str(e)}', 'error')
         return redirect(url_for('pass_studio.studio', pass_type_code=pass_type_code, tab='appearance'))
 
@@ -433,7 +433,7 @@ def publish_changes(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error publishing changes: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/pass-count', methods=['GET'])
@@ -460,7 +460,7 @@ def get_pass_count(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error getting pass count: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -566,7 +566,7 @@ def save_fields(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error saving fields: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/fields/<field_key>', methods=['DELETE'])
@@ -602,7 +602,7 @@ def delete_field(pass_type_code, field_key):
 
     except Exception as e:
         logger.error(f"Error deleting field: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -631,7 +631,7 @@ def get_locations(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error getting locations: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/locations', methods=['POST'])
@@ -682,7 +682,7 @@ def add_location(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error adding location: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/locations/<int:location_id>', methods=['PUT'])
@@ -715,7 +715,7 @@ def update_location(pass_type_code, location_id):
 
     except Exception as e:
         logger.error(f"Error updating location: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/locations/<int:location_id>', methods=['DELETE'])
@@ -732,7 +732,7 @@ def delete_location(pass_type_code, location_id):
 
     except Exception as e:
         logger.error(f"Error deleting location: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -759,7 +759,7 @@ def get_sponsors(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error getting sponsors: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/sponsors', methods=['POST'])
@@ -809,7 +809,7 @@ def add_sponsor(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error adding sponsor: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/sponsors/<int:sponsor_id>', methods=['PUT'])
@@ -840,7 +840,7 @@ def update_sponsor(pass_type_code, sponsor_id):
 
     except Exception as e:
         logger.error(f"Error updating sponsor: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/sponsors/<int:sponsor_id>', methods=['DELETE'])
@@ -857,7 +857,7 @@ def delete_sponsor(pass_type_code, sponsor_id):
 
     except Exception as e:
         logger.error(f"Error deleting sponsor: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -951,7 +951,7 @@ def get_preview_data(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error getting preview data: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -971,7 +971,7 @@ def get_subgroups():
         })
     except Exception as e:
         logger.error(f"Error getting subgroups: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/ecs_membership/subgroups', methods=['POST'])
@@ -1012,7 +1012,7 @@ def add_subgroup():
 
     except Exception as e:
         logger.error(f"Error adding subgroup: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/ecs_membership/subgroups/<int:subgroup_id>', methods=['PUT'])
@@ -1052,7 +1052,7 @@ def update_subgroup(subgroup_id):
 
     except Exception as e:
         logger.error(f"Error updating subgroup: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/ecs_membership/subgroups/<int:subgroup_id>', methods=['DELETE'])
@@ -1069,7 +1069,7 @@ def delete_subgroup(subgroup_id):
 
     except Exception as e:
         logger.error(f"Error deleting subgroup: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -1141,7 +1141,7 @@ def upload_asset_cropped(pass_type_code):
 
     except ValueError as e:
         logger.warning(f"Asset upload validation error: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 400
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
     except Exception as e:
         logger.error(f"Error uploading cropped asset: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'error': 'Failed to upload asset'}), 500
@@ -1190,7 +1190,7 @@ def get_assets(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error getting assets: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/assets/<asset_type>', methods=['DELETE'])
@@ -1216,7 +1216,7 @@ def delete_asset(pass_type_code, asset_type):
 
     except Exception as e:
         logger.error(f"Error deleting asset: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -1260,7 +1260,7 @@ def save_google_settings(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error saving Google settings: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/<pass_type_code>/google-settings', methods=['GET'])
@@ -1281,7 +1281,7 @@ def get_google_settings(pass_type_code):
 
     except Exception as e:
         logger.error(f"Error getting Google settings: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -1321,7 +1321,7 @@ def initialize_defaults():
 
     except Exception as e:
         logger.error(f"Error initializing defaults: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pass_studio_bp.route('/config-status', methods=['GET'])
@@ -1392,4 +1392,4 @@ def get_configuration_status():
 
     except Exception as e:
         logger.error(f"Error getting config status: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

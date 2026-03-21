@@ -549,7 +549,7 @@ def api_restart_bot():
 
     except Exception as e:
         logger.error(f"Error restarting bot: {e}")
-        return jsonify({'success': False, 'message': f'Bot restart failed: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/quick-actions/approve-all-pending', methods=['POST'])
@@ -775,7 +775,7 @@ def api_send_emergency_alert():
         }), 503
     except Exception as e:
         logger.error(f"Error sending emergency alert: {e}")
-        return jsonify({'success': False, 'message': f'Failed to send alert: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/quick-actions/export-system-data', methods=['POST'])
@@ -834,7 +834,7 @@ def api_export_system_data():
 
     except Exception as e:
         logger.error(f"Error exporting system data: {e}")
-        return jsonify({'success': False, 'message': f'Export failed: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/quick-actions/toggle-maintenance-mode', methods=['POST'])
@@ -1353,7 +1353,7 @@ def _bulk_approve_users():
         logger.error(f"Error in bulk approve users: {e}")
         return {
             'success': False, 
-            'message': f'Error approving users: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 
@@ -1383,7 +1383,7 @@ def _cleanup_inactive_users():
         logger.error(f"Error in cleanup inactive users: {e}")
         return {
             'success': False,
-            'message': f'Error cleaning up users: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 
@@ -1450,7 +1450,7 @@ def _assign_default_roles():
         logger.error(f"Error in assign default roles: {e}")
         return {
             'success': False,
-            'message': f'Error assigning roles: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 
@@ -1477,7 +1477,7 @@ def _retry_failed_messages():
         logger.error(f"Error in retry failed messages: {e}")
         return {
             'success': False,
-            'message': f'Error retrying messages: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 
@@ -1506,7 +1506,7 @@ def _mark_old_notifications_read():
         logger.error(f"Error in mark old notifications read: {e}")
         return {
             'success': False,
-            'message': f'Error marking notifications: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 
@@ -1530,7 +1530,7 @@ def _clean_device_tokens():
         logger.error(f"Error in clean device tokens: {e}")
         return {
             'success': False,
-            'message': f'Error cleaning tokens: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 
@@ -1558,7 +1558,7 @@ def _update_match_times():
         logger.error(f"Error in update match times: {e}")
         return {
             'success': False,
-            'message': f'Error updating match times: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 
@@ -1636,7 +1636,7 @@ def _send_match_reminders():
         logger.error(f"Error in send match reminders: {e}")
         return {
             'success': False,
-            'message': f'Error sending reminders: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 
@@ -1711,7 +1711,7 @@ def _cleanup_old_notifications():
         logger.error(f"Error in cleanup old notifications: {e}")
         return {
             'success': False,
-            'message': f'Error cleaning notifications: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 
@@ -1735,7 +1735,7 @@ def _refresh_cache():
         logger.error(f"Error in refresh cache: {e}")
         return {
             'success': False,
-            'message': f'Error refreshing cache: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 
@@ -1753,7 +1753,7 @@ def _update_system_stats():
         logger.error(f"Error in update system stats: {e}")
         return {
             'success': False,
-            'message': f'Error updating stats: {str(e)}',
+            'message': 'Internal Server Error',
             'count': 0
         }
 

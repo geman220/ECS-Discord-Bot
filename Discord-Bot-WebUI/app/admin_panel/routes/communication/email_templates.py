@@ -106,7 +106,7 @@ def email_template_create():
 
     except Exception as e:
         logger.error(f"Error creating email template: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/email-templates/<int:template_id>', methods=['PUT'])
@@ -142,7 +142,7 @@ def email_template_update(template_id):
 
     except Exception as e:
         logger.error(f"Error updating email template: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/email-templates/<int:template_id>', methods=['DELETE'])
@@ -178,7 +178,7 @@ def email_template_delete(template_id):
 
     except Exception as e:
         logger.error(f"Error deleting email template: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/email-templates/<int:template_id>/set-default', methods=['POST'])
@@ -205,7 +205,7 @@ def email_template_set_default(template_id):
 
     except Exception as e:
         logger.error(f"Error setting default template: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/email-templates/<int:template_id>/duplicate', methods=['POST'])
@@ -237,7 +237,7 @@ def email_template_duplicate(template_id):
 
     except Exception as e:
         logger.error(f"Error duplicating email template: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/email-templates/preview', methods=['POST'])
@@ -274,7 +274,7 @@ def email_template_preview():
 
     except Exception as e:
         logger.error(f"Error previewing template: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/email-templates/list')
@@ -302,4 +302,4 @@ def email_templates_api_list():
 
     except Exception as e:
         logger.error(f"Error listing templates: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

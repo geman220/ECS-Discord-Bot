@@ -769,7 +769,7 @@ def edit_user(user_id):
             discord_queue.clear()
             session.rollback()
             logger.exception(f"Error updating user {user_id}: {str(e)}")
-            show_error(f'Error updating user: {str(e)}')
+            show_error('Internal Server Error')
     else:
         # Log validation errors for debugging
         logger.warning(f"=== FORM VALIDATION FAILED ===")
@@ -820,7 +820,7 @@ def remove_user(user_id):
     except Exception as e:
         session.rollback()
         logger.exception(f"Error removing user {user_id}: {str(e)}")
-        show_error(f'Error removing user: {str(e)}')
+        show_error('Internal Server Error')
     
     return redirect(url_for('user_management.manage_users'))
 
@@ -1144,7 +1144,7 @@ def delete_user(user_id):
         # Roll back the transaction on error
         session.rollback()
         logger.exception(f"Error deleting user {user_id}: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error deleting user: {str(e)}'})
+        return jsonify({'success': False, 'message': 'Internal Server Error'})
 
 
 @user_management_bp.route('/approve_user/<int:user_id>', endpoint='approve_user', methods=['POST'])
@@ -1382,7 +1382,7 @@ def confirm_update():
     except Exception as e:
         session.rollback()
         logger.exception(f"Error in confirm_update: {str(e)}")
-        return jsonify({'status': 'error', 'message': f'Database error: {str(e)}'}), 500
+        return jsonify({'status': 'error', 'message': 'Internal Server Error'}), 500
 
 
 @user_management_bp.route('/update_status/<task_id>', endpoint='update_status')
@@ -1441,7 +1441,7 @@ def update_status(task_id):
             'state': 'FAILURE',
             'progress': 0,
             'stage': 'error',
-            'message': f'Error retrieving task status: {str(e)}'
+            'message': 'Internal Server Error'
         }
     
     return jsonify(response)
@@ -1478,7 +1478,7 @@ def get_sync_data_endpoint(task_id):
         
     except Exception as e:
         logger.exception(f"Error loading sync data: {str(e)}")
-        return jsonify({'error': f'Failed to load sync data: {str(e)}'}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @user_management_bp.route('/export_player_profiles', endpoint='export_player_profiles', methods=['GET'])
@@ -1646,7 +1646,7 @@ def export_player_profiles():
         
     except Exception as e:
         logger.exception(f"Error exporting player profiles: {str(e)}")
-        show_error(f'Error exporting player profiles: {str(e)}')
+        show_error('Internal Server Error')
         return redirect(url_for('user_management.manage_users'))
 
 
@@ -1682,7 +1682,7 @@ def reset_profile_compliance():
         logger.exception(f"Error resetting profile compliance: {str(e)}")
         return jsonify({
             'success': False,
-            'message': f'Error resetting profile compliance: {str(e)}'
+            'message': 'Internal Server Error'
         })
 
 
@@ -1714,7 +1714,7 @@ def sync_review(task_id):
         
     except Exception as e:
         logger.exception(f"Error displaying sync review: {str(e)}")
-        show_error(f'Error loading sync review: {str(e)}')
+        show_error('Internal Server Error')
         return redirect(url_for('user_management.manage_users'))
 
 
@@ -2037,7 +2037,7 @@ def commit_sync_changes():
         logger.exception(f"Error committing sync changes: {str(e)}")
         return jsonify({
             'success': False,
-            'error': f'Error committing changes: {str(e)}'
+            'error': 'Internal Server Error'
         }), 500
 
 
@@ -2074,7 +2074,7 @@ def search_players():
         
     except Exception as e:
         logger.exception(f"Error searching players: {str(e)}")
-        return jsonify({'players': [], 'error': str(e)})
+        return jsonify({'players': [], 'error': 'Internal Server Error'})
 
 
 @user_management_bp.route('/active_sync_tasks', endpoint='active_sync_tasks', methods=['GET'])
@@ -2101,7 +2101,7 @@ def active_sync_tasks():
         logger.exception(f"Error getting active sync tasks: {str(e)}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         })
 
 
@@ -2159,7 +2159,7 @@ def search_players_post():
         
     except Exception as e:
         logger.error(f"Error searching players: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @user_management_bp.route('/create_quick_player', methods=['POST'])
@@ -2280,7 +2280,7 @@ def create_quick_player():
     except Exception as e:
         logger.error(f"Error creating quick player: {e}", exc_info=True)
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 def clear_sync_data(task_id):

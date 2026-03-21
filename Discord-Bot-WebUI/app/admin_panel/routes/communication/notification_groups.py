@@ -150,7 +150,7 @@ def notification_groups_create():
         logger.error(f"Error creating notification group: {e}")
 
         if request.is_json:
-            return jsonify({'success': False, 'error': str(e)}), 500
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
         flash('Error creating notification group', 'error')
         return redirect(url_for('admin_panel.notification_groups_list'))
@@ -221,7 +221,7 @@ def notification_groups_detail(group_id):
     except Exception as e:
         logger.error(f"Error viewing notification group {group_id}: {e}")
         if request.headers.get('Accept') == 'application/json' or request.is_json:
-            return jsonify({'success': False, 'error': str(e)}), 500
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
         flash('Error loading notification group', 'error')
         return redirect(url_for('admin_panel.notification_groups_list'))
 
@@ -272,7 +272,7 @@ def notification_groups_update(group_id):
 
     except Exception as e:
         logger.error(f"Error updating notification group {group_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/notification-groups/<int:group_id>', methods=['DELETE'])
@@ -306,7 +306,7 @@ def notification_groups_delete(group_id):
 
     except Exception as e:
         logger.error(f"Error deleting notification group {group_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/notification-groups/<int:group_id>/members', methods=['GET'])
@@ -345,7 +345,7 @@ def notification_groups_members(group_id):
 
     except Exception as e:
         logger.error(f"Error getting group members: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/notification-groups/<int:group_id>/members', methods=['POST'])
@@ -398,7 +398,7 @@ def notification_groups_add_member(group_id):
 
     except Exception as e:
         logger.error(f"Error adding group members: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/notification-groups/<int:group_id>/members/<int:user_id>', methods=['DELETE'])
@@ -422,7 +422,7 @@ def notification_groups_remove_member(group_id, user_id):
 
     except Exception as e:
         logger.error(f"Error removing group member: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/notification-groups/<int:group_id>/preview', methods=['POST'])
@@ -447,7 +447,7 @@ def notification_groups_preview(group_id):
 
     except Exception as e:
         logger.error(f"Error previewing group: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/notification-groups/search-users', methods=['GET'])
@@ -478,7 +478,7 @@ def notification_groups_search_users():
 
     except Exception as e:
         logger.error(f"Error searching users: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/notification-groups/<int:group_id>/members/search', methods=['GET'])
@@ -523,7 +523,7 @@ def notification_groups_search_members(group_id):
 
     except Exception as e:
         logger.error(f"Error searching users for group: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # API endpoints for AJAX
@@ -544,4 +544,4 @@ def api_notification_groups_list():
 
     except Exception as e:
         logger.error(f"Error listing groups API: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

@@ -318,7 +318,7 @@ def save_woocommerce_url():
 
     except Exception as e:
         logger.error(f"Error saving WooCommerce URL: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @wallet_config_bp.route('/wizard/save-product-urls', methods=['POST'])
@@ -365,7 +365,7 @@ def save_product_urls():
 
     except Exception as e:
         logger.error(f"Error saving product URLs: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -650,7 +650,7 @@ def get_asset(asset_id):
 
     except Exception as e:
         logger.error(f"Error serving asset {asset_id}: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -1083,7 +1083,7 @@ def diagnostics():
     except Exception as e:
         logger.error(f"Error running wallet diagnostics: {str(e)}", exc_info=True)
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'error': str(e)}), 500
+            return jsonify({'error': 'Internal Server Error'}), 500
         else:
             flash(f'Error running wallet diagnostics: {str(e)}', 'error')
             return redirect(url_for('wallet_config.dashboard'))

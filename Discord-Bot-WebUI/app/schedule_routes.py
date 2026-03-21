@@ -154,7 +154,7 @@ class ScheduleManager:
             match_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
             match_time = datetime.strptime(data['time'], '%H:%M').time()
         except ValueError as e:
-            return [], {'success': False, 'message': f'Invalid date/time: {str(e)}'}
+            return [], {'success': False, 'message': 'Internal Server Error'}
 
         objects_to_update = []
 
@@ -271,7 +271,7 @@ class ScheduleManager:
             match_date = datetime.strptime(data['date'], '%Y-%m-%d').date()
             match_time = datetime.strptime(data['time'], '%H:%M').time()
         except ValueError as e:
-            return [], {'success': False, 'message': f'Invalid date/time: {str(e)}'}
+            return [], {'success': False, 'message': 'Internal Server Error'}
 
         objects_to_create = []
 
@@ -369,7 +369,7 @@ def edit_match(match_id):
         return jsonify(response)
     except Exception as e:
         logger.error(f"Error editing match {match_id}: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 ######################################################################
@@ -394,7 +394,7 @@ def delete_match(match_id):
         return jsonify(response)
     except Exception as e:
         logger.error(f"Error deleting match {match_id}: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 ######################################################################
@@ -417,7 +417,7 @@ def add_match():
         return jsonify(response)
     except Exception as e:
         logger.error(f"Error adding match: {str(e)}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 ######################################################################
@@ -714,7 +714,7 @@ def add_single_week():
             g.db_session.commit()
         except Exception as e:
             g.db_session.rollback()
-            return jsonify({'success': False, 'message': f'Commit failed: {str(e)}'}), 500
+            return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
     return jsonify({
         'success': True,
@@ -936,7 +936,7 @@ def bulk_create_ecsfc_matches(season_id, league_name):
 
     except Exception as e:
         logger.error(f"Error in bulk ECS FC match creation: {str(e)}")
-        show_error(f'Error creating matches: {str(e)}')
+        show_error('Internal Server Error')
 
     return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
 
@@ -985,7 +985,7 @@ def delete_ecsfc_week(season_id, week_number):
     except Exception as e:
         session.rollback()
         logger.error(f"Error deleting week: {str(e)}")
-        show_error(f'Error deleting week: {str(e)}')
+        show_error('Internal Server Error')
 
     return redirect(url_for('schedule.manage_ecsfc_schedule', season_id=season_id))
 
@@ -1023,6 +1023,6 @@ def delete_ecsfc_match(match_id):
     except Exception as e:
         session.rollback()
         logger.error(f"Error deleting match: {str(e)}")
-        show_error(f'Error deleting match: {str(e)}')
+        show_error('Internal Server Error')
 
     return redirect(request.referrer or url_for('main.index'))

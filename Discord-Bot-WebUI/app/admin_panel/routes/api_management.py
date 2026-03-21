@@ -224,7 +224,7 @@ def api_endpoint_details(endpoint_path):
         })
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/test-endpoint', methods=['POST'])
@@ -263,7 +263,7 @@ def test_api_endpoint_legacy():
         return jsonify(result)
         
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 def _get_api_endpoints():
@@ -931,7 +931,7 @@ def manage_rate_limits():
         return jsonify(current_limits)
     except Exception as e:
         logger.error(f"Error getting rate limits: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api-management/api-keys', methods=['GET', 'POST'])
@@ -1021,4 +1021,4 @@ def manage_api_keys():
 
     except Exception as e:
         logger.error(f"Error getting API keys: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500

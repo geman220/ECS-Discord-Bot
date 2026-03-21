@@ -298,7 +298,7 @@ def discord_check_role_status(task_id):
         return jsonify({'state': 'PENDING'})
     except Exception as e:
         logger.error(f"Error checking task status: {e}")
-        return jsonify({'state': 'ERROR', 'error': str(e)}), 500
+        return jsonify({'state': 'ERROR', 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/discord/roles/update-player/<int:player_id>', methods=['POST'])
@@ -332,7 +332,7 @@ def discord_update_player_roles(player_id):
             }), 400
     except Exception as e:
         logger.error(f"Error updating roles for player {player_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/discord/players/<int:player_id>/update-discord-id', methods=['POST'])
@@ -481,7 +481,7 @@ def discord_mass_sync_roles():
 
     except Exception as e:
         logger.error(f"Error initiating mass role update: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -549,7 +549,7 @@ def discord_refresh_all_status():
     except Exception as e:
         session.rollback()
         logger.error(f"Error in refresh_all_discord_status: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/discord/refresh-unknown-status', methods=['POST'])
@@ -603,7 +603,7 @@ def discord_refresh_unknown_status():
     except Exception as e:
         session.rollback()
         logger.error(f"Error in refresh_unknown_discord_status: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -720,7 +720,7 @@ def discord_onboarding_api():
 
     except Exception as e:
         logger.error(f"Error getting onboarding overview: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/discord/onboarding/retry/<int:user_id>', methods=['POST'])
@@ -795,7 +795,7 @@ def discord_stats_api():
         })
     except Exception as e:
         logger.error(f"Error getting Discord stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -939,7 +939,7 @@ def sync_role_to_discord():
 
     except Exception as e:
         logger.error(f"Error syncing role to Discord: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/discord/role-mapping/preview/<int:role_id>')
@@ -955,7 +955,7 @@ def preview_role_sync(role_id):
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error previewing role sync: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/discord/role-mapping/create-role', methods=['POST'])
@@ -1031,4 +1031,4 @@ def create_discord_role():
         return jsonify({'success': False, 'error': 'Cannot connect to bot - is it running?'}), 503
     except Exception as e:
         logger.error(f"Error creating Discord role: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

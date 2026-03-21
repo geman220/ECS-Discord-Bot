@@ -645,7 +645,7 @@ def generate_pass():
         })
 
     except ValueError as e:
-        return jsonify({'success': False, 'message': str(e)}), 400
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 400
     except Exception as e:
         logger.error(f"Error generating pass: {e}")
         return jsonify({'success': False, 'message': 'An error occurred'}), 500
@@ -761,7 +761,7 @@ def process_claim():
         })
 
     except ValueError as e:
-        return jsonify({'success': False, 'message': str(e)}), 400
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 400
     except Exception as e:
         logger.error(f"Error processing claim: {e}")
         return jsonify({'success': False, 'message': 'An error occurred'}), 500

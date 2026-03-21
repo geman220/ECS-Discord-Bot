@@ -43,7 +43,7 @@ def cache_stats_api():
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Error getting cache stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 @cache_admin_bp.route('/warm')
 @login_required
@@ -146,4 +146,4 @@ def test_cache():
     
     except Exception as e:
         logger.error(f"Cache test error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500

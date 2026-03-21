@@ -372,7 +372,7 @@ def add_week(league_id):
     except Exception as e:
         session.rollback()
         logger.error(f"Error adding week: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': 'Internal Server Error'})
 
 
 @auto_schedule_bp.route('/get-match-data')
@@ -456,7 +456,7 @@ def update_match():
     except Exception as e:
         session.rollback()
         logger.error(f"Error updating match: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': 'Internal Server Error'})
 
 
 @auto_schedule_bp.route('/update-week', methods=['POST'])
@@ -534,7 +534,7 @@ def update_week():
     except Exception as e:
         session.rollback()
         logger.error(f"Error updating week: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': 'Internal Server Error'})
 
 
 @auto_schedule_bp.route('/reorder-weeks', methods=['POST'])
@@ -581,7 +581,7 @@ def reorder_weeks():
     except Exception as e:
         session.rollback()
         logger.error(f"Error reordering weeks: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': 'Internal Server Error'})
 
 
 @auto_schedule_bp.route('/delete-match', methods=['POST'])
@@ -676,7 +676,7 @@ def delete_match():
     except Exception as e:
         session.rollback()
         logger.error(f"Error deleting match: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': 'Internal Server Error'})
 
 
 @auto_schedule_bp.route('/add-match', methods=['POST'])
@@ -743,7 +743,7 @@ def add_match():
     except Exception as e:
         session.rollback()
         logger.error(f"Error adding match: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': 'Internal Server Error'})
 
 
 @auto_schedule_bp.route('/league/<int:league_id>/delete-week', methods=['POST'])
@@ -790,7 +790,7 @@ def delete_week(league_id):
     except Exception as e:
         session.rollback()
         logger.error(f"Error deleting week: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': 'Internal Server Error'})
 
 
 @auto_schedule_bp.route('/')
@@ -1042,7 +1042,7 @@ def create_season_wizard():
             except Exception as e:
                 logger.error(f"Rollover failed: {e}")
                 session.rollback()
-                return jsonify({'error': f'Season rollover failed: {str(e)}. Season creation aborted to prevent data corruption.'}), 500
+                return jsonify({'error': 'Internal Server Error'}), 500
         
         # Create placeholder teams based on user selection
         # Classic teams get A, B, C, D first, then Premier continues with E, F, G, H, etc.
@@ -1574,7 +1574,7 @@ def auto_schedule_config(league_id: int):
             
         except ValueError as e:
             logger.error(f"Value error in auto schedule config: {e}")
-            show_error(f'Invalid input: {str(e)}')
+            show_error('Internal Server Error')
         except Exception as e:
             logger.error(f"Error in auto schedule config: {e}")
             show_error('An error occurred while generating the schedule')
@@ -1865,7 +1865,7 @@ def set_active_season():
         except Exception as e:
             logger.error(f"Failed to restore season memberships: {e}")
             # Don't fail the whole operation - just log the error
-            restore_result = {'restored': 0, 'message': f'Restoration failed: {str(e)}'}
+            restore_result = {'restored': 0, 'message': 'Internal Server Error'}
 
         session.commit()
 
@@ -1959,4 +1959,4 @@ def recreate_discord_resources():
     except Exception as e:
         logger.error(f"Error recreating Discord resources: {e}")
         session.rollback()
-        return jsonify({'success': False, 'message': f'An error occurred: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500

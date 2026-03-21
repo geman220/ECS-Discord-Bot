@@ -320,4 +320,4 @@ def messaging_stats_api():
 
     except Exception as e:
         logger.error(f"Error getting messaging stats: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

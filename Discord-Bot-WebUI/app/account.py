@@ -298,7 +298,7 @@ def initiate_sms_opt_in():
         check_code_request_rate_limit(user.id)
     except SMSCodeRequestLimitExceeded as e:
         logger.warning(f"User {user.id} exceeded verification code request limit")
-        return jsonify(success=False, message=str(e)), 429  # 429 Too Many Requests
+        return jsonify(success=False, message='Internal Server Error'), 429  # 429 Too Many Requests
 
     # Validate and normalize the phone number
     phone_number = phone_number.strip()
@@ -370,7 +370,7 @@ def confirm_sms_opt_in():
         attempt_info = check_verification_attempts(user.id)
     except SMSVerificationLocked as e:
         logger.warning(f"User {user.id} blocked from SMS verification due to lockout: {e}")
-        return jsonify(success=False, message=str(e)), 429  # 429 Too Many Requests
+        return jsonify(success=False, message='Internal Server Error'), 429  # 429 Too Many Requests
 
     if verify_sms_confirmation(user, confirmation_code):
         # Record successful attempt (clears attempt counter)
@@ -400,7 +400,7 @@ def confirm_sms_opt_in():
                     message="Invalid verification code. Account locked due to too many attempts."
                 ), 429
         except SMSVerificationLocked as e:
-            return jsonify(success=False, message=str(e)), 429
+            return jsonify(success=False, message='Internal Server Error'), 429
 
         return jsonify(success=False, message="Invalid verification code."), 400
 

@@ -142,7 +142,7 @@ def send_sms():
     except Exception as e:
         logger.error(f"Error sending SMS: {e}")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': str(e)}), 500
+            return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
         flash('Failed to send SMS.', 'error')
         return redirect(url_for('admin_panel.direct_messaging'))
 
@@ -220,15 +220,15 @@ def send_discord_dm():
         except http_requests.exceptions.RequestException as e:
             logger.error(f"Error contacting Discord bot: {str(e)}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'success': False, 'message': f'Error contacting Discord bot: {str(e)}'})
-            flash(f'Error contacting Discord bot: {str(e)}', 'error')
+                return jsonify({'success': False, 'message': 'Internal Server Error'})
+            flash('Internal Server Error')
 
         return redirect(url_for('admin_panel.direct_messaging'))
 
     except Exception as e:
         logger.error(f"Error sending Discord DM: {e}")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': str(e)}), 500
+            return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
         flash('Failed to send Discord DM.', 'error')
         return redirect(url_for('admin_panel.direct_messaging'))
 
@@ -299,7 +299,7 @@ def sms_status():
         })
     except Exception as e:
         logger.error(f"Error getting SMS status: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/player-search')
@@ -346,4 +346,4 @@ def player_search():
 
     except Exception as e:
         logger.error(f"Error searching players: {e}")
-        return jsonify({'error': str(e), 'players': []}), 500
+        return jsonify({'error': 'Internal Server Error', 'players': []}), 500

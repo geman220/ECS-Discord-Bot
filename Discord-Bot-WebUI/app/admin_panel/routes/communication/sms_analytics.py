@@ -195,4 +195,4 @@ def sms_analytics_api():
 
     except Exception as e:
         logger.error(f"Error fetching SMS analytics API: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

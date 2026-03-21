@@ -189,7 +189,7 @@ def get_match_task_details(match_id):
             
     except Exception as e:
         logger.error(f"Error getting match task details from Redis: {str(e)}")
-        return {'status': 'ERROR', 'error': str(e)}
+        return {'status': 'ERROR', 'error': 'Internal Server Error'}
 
 
 # -----------------------------------------------------------
@@ -294,7 +294,7 @@ def get_match_tasks(match_id):
         logger.error(f"Error getting match tasks for {match_id}: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': 'Internal Server Error',
             'match_id': match_id
         }), 500
 
@@ -324,7 +324,7 @@ def get_system_health():
                 'healthy': pool.checkedout() < pool.size() + pool.overflow()
             }
         except Exception as e:
-            metrics['database_pool'] = {'error': str(e), 'healthy': False}
+            metrics['database_pool'] = {'error': 'Internal Server Error', 'healthy': False}
         
         # Overall system health
         metrics['system_healthy'] = (
@@ -340,7 +340,7 @@ def get_system_health():
         logger.error(f"Error getting system health: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': 'Internal Server Error',
             'system_healthy': False
         }), 500
 
@@ -389,7 +389,7 @@ def revoke_match_task():
         logger.error(f"Error revoking task: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 
@@ -426,7 +426,7 @@ def redis_test():
     except Exception as e:
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 
@@ -477,7 +477,7 @@ def get_match_statuses():
         return jsonify({'statuses': statuses})
     except Exception as e:
         logger.error(f"Error getting match statuses: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/schedule/<int:match_id>', endpoint='schedule_match_task', methods=['POST'])
@@ -504,7 +504,7 @@ def schedule_match_task(match_id):
         })
     except Exception as e:
         logger.error(f"Error scheduling match task: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/create-thread/<int:match_id>', endpoint='create_match_thread', methods=['POST'])
@@ -531,7 +531,7 @@ def create_match_thread(match_id):
         })
     except Exception as e:
         logger.error(f"Error creating match thread: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/start-reporting/<int:match_id>', endpoint='start_match_reporting', methods=['POST'])
@@ -607,7 +607,7 @@ def start_match_reporting(match_id):
     except Exception as e:
         logger.error(f"Error starting live reporting: {str(e)}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/stop-reporting/<int:match_id>', endpoint='stop_match_reporting', methods=['POST'])
@@ -680,7 +680,7 @@ def stop_match_reporting(match_id):
     except Exception as e:
         logger.error(f"Error stopping live reporting: {str(e)}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/task-details/<task_id>', endpoint='get_match_task_details', methods=['GET'])
@@ -693,7 +693,7 @@ def get_match_task_details_route(task_id):
         return jsonify(task_info)
     except Exception as e:
         logger.error(f"Error getting task details: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/schedule-all', endpoint='schedule_all_matches', methods=['POST'])
@@ -711,7 +711,7 @@ def schedule_all_matches():
         })
     except Exception as e:
         logger.error(f"Error scheduling all matches: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/add-by-date', endpoint='add_match_by_date', methods=['POST'])
@@ -830,7 +830,7 @@ def add_match_by_date():
             
     except Exception as e:
         logger.error(f"Error adding match by date: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/fetch-all-from-espn', endpoint='fetch_all_espn_matches', methods=['POST'])
@@ -947,7 +947,7 @@ def fetch_all_espn_matches():
             
     except Exception as e:
         logger.error(f"Error fetching ESPN matches: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/clear-all', endpoint='clear_all_matches', methods=['POST'])
@@ -969,7 +969,7 @@ def clear_all_matches():
     except Exception as e:
         logger.error(f"Error clearing matches: {str(e)}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/remove/<int:match_id>', endpoint='remove_specific_match', methods=['POST', 'DELETE'])
@@ -1047,7 +1047,7 @@ def remove_specific_match(match_id):
     except Exception as e:
         logger.error(f"Error removing match: {str(e)}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/queue-status', endpoint='get_queue_status', methods=['GET'])
@@ -1120,7 +1120,7 @@ def get_queue_status():
         })
     except Exception as e:
         logger.error(f"Error getting queue status: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/force-schedule/<int:match_id>', endpoint='force_schedule_match', methods=['POST'])
@@ -1157,7 +1157,7 @@ def force_schedule_match(match_id):
             })
     except Exception as e:
         logger.error(f"Error force scheduling match: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/match_management/debug-tasks/<int:match_id>', endpoint='debug_match_tasks', methods=['GET'])
@@ -1239,7 +1239,7 @@ def debug_match_tasks(match_id):
             except Exception as e:
                 debug_info['celery_tasks']['active_task'] = {
                     'task_id': match.live_reporting_task_id,
-                    'error': str(e)
+                    'error': 'Internal Server Error'
                 }
         
         # Generate recommendations
@@ -1269,7 +1269,7 @@ def debug_match_tasks(match_id):
         })
     except Exception as e:
         logger.error(f"Error debugging match tasks: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -1314,7 +1314,7 @@ def check_thread_status(task_id):
         return jsonify(task_info)
     except Exception as e:
         logger.error(f"Error checking thread status: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/schedule_all_mls_threads', endpoint='schedule_all_mls_threads', methods=['POST'])
@@ -1405,5 +1405,5 @@ def get_cache_status():
         logger.error(f"Error getting cache status: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500

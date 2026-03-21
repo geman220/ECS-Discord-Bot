@@ -477,7 +477,7 @@ def get_current_playoff_schedule(league_id: int):
 
     except Exception as e:
         logger.error(f"Error fetching current playoff schedule: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @playoff_bp.route('/league/<int:league_id>/preview-schedule', methods=['POST'])
@@ -606,7 +606,7 @@ def preview_playoff_schedule(league_id: int):
 
     except Exception as e:
         logger.error(f"Error generating playoff schedule preview: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @playoff_bp.route('/league/<int:league_id>/generate-schedule', methods=['POST'])
@@ -740,7 +740,7 @@ def generate_playoff_schedule(league_id: int):
     except Exception as e:
         logger.error(f"Error generating playoff schedule: {e}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @playoff_bp.route('/league/<int:league_id>/apply-schedule', methods=['POST'])
@@ -871,7 +871,7 @@ def apply_playoff_schedule(league_id: int):
     except Exception as e:
         logger.error(f"Error applying playoff schedule: {e}", exc_info=True)
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @playoff_bp.route('/league/<int:league_id>/resend-playoff-rsvps', methods=['POST'])
@@ -956,7 +956,7 @@ def resend_playoff_rsvps(league_id: int):
     except Exception as e:
         logger.error(f"Error resending playoff RSVPs: {e}", exc_info=True)
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @playoff_bp.route('/league/<int:league_id>/generate-placement-games', methods=['POST'])
@@ -1117,7 +1117,7 @@ def generate_placement_games(league_id: int):
     except Exception as e:
         logger.error(f"Error generating placement games: {e}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @playoff_bp.route('/league/<int:league_id>/auto-assign', methods=['POST'])
@@ -1202,7 +1202,7 @@ def auto_assign_playoffs(league_id: int):
     except Exception as e:
         logger.error(f"Error auto-assigning playoffs: {e}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # API Blueprint for public/player-facing endpoints
@@ -1413,7 +1413,7 @@ def get_bracket_data(league_id: int):
 
     except Exception as e:
         logger.error(f"Error fetching bracket data: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 def get_playoff_matches(session, league_id: int) -> Dict[str, List[Match]]:

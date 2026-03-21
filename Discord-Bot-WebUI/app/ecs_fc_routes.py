@@ -411,7 +411,7 @@ def report_match_post(match_id: int):
     except Exception as e:
         session.rollback()
         logger.error(f"Error submitting ECS FC match report {match_id}: {str(e)}")
-        return jsonify({'success': False, 'message': f'Error submitting report: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 # ============================================================================
@@ -488,7 +488,7 @@ def get_sub_pool_info(match_id: int):
 
     except Exception as e:
         logger.error(f"Error fetching sub pool info: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @ecs_fc_routes.route('/matches/<int:match_id>/sub-request', methods=['POST'])
@@ -627,7 +627,7 @@ def create_sub_request(match_id: int):
     except Exception as e:
         session.rollback()
         logger.error(f"Error creating sub request for match {match_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 def _send_sub_request_notification(player, pool_entry, match, custom_message, channels, rsvp_url, rsvp_token=None, request_id=None):
@@ -1049,7 +1049,7 @@ def get_sub_responses(match_id: int):
 
     except Exception as e:
         logger.error(f"Error fetching sub responses for match {match_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @ecs_fc_routes.route('/matches/<int:match_id>/assign-sub', methods=['POST'])
@@ -1147,7 +1147,7 @@ def assign_sub(match_id: int):
     except Exception as e:
         session.rollback()
         logger.error(f"Error assigning sub to match {match_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @ecs_fc_routes.route('/matches/<int:match_id>/unassign-sub/<int:player_id>', methods=['POST'])
@@ -1194,7 +1194,7 @@ def unassign_sub(match_id: int, player_id: int):
     except Exception as e:
         session.rollback()
         logger.error(f"Error unassigning sub from match {match_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 def _send_assignment_confirmation(player, match, assignment, channels_str):
@@ -1417,7 +1417,7 @@ def get_lineup_data(match_id: int):
 
     except Exception as e:
         logger.error(f"Error fetching lineup for match {match_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @ecs_fc_routes.route('/matches/<int:match_id>/lineup-data', methods=['PUT'])
@@ -1483,7 +1483,7 @@ def save_lineup_data(match_id: int):
     except Exception as e:
         session.rollback()
         logger.error(f"Error saving lineup for match {match_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @ecs_fc_routes.route('/matches/<int:match_id>/lineup-position', methods=['PATCH'])
@@ -1542,7 +1542,7 @@ def update_lineup_position(match_id: int):
     except Exception as e:
         session.rollback()
         logger.error(f"Error updating position for match {match_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @ecs_fc_routes.route('/matches/<int:match_id>/lineup-position/<int:player_id>', methods=['DELETE'])
@@ -1585,4 +1585,4 @@ def remove_from_lineup(match_id: int, player_id: int):
     except Exception as e:
         session.rollback()
         logger.error(f"Error removing player from lineup for match {match_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500

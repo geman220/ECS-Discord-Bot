@@ -63,7 +63,7 @@ def list_prompts():
     except Exception as e:
         logger.error(f"Error listing AI prompts: {e}", exc_info=True)
         if request.headers.get('Accept') == 'application/json':
-            return jsonify({'success': False, 'error': str(e)}), 500
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
         flash(f"Error loading prompts: {e}", 'danger')
         return redirect(url_for('main.index'))
 
@@ -121,7 +121,7 @@ def create_prompt():
     except Exception as e:
         logger.error(f"Error creating AI prompt: {e}", exc_info=True)
         if request.is_json:
-            return jsonify({'success': False, 'error': str(e)}), 400
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
         flash(f"Error creating prompt: {e}", 'danger')
         return redirect(url_for('ai_prompts.create_prompt'))
 
@@ -152,7 +152,7 @@ def get_prompt(prompt_id: int):
     except Exception as e:
         logger.error(f"Error getting AI prompt {prompt_id}: {e}", exc_info=True)
         if request.headers.get('Accept') == 'application/json':
-            return jsonify({'success': False, 'error': str(e)}), 500
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
         flash(f"Error loading prompt: {e}", 'danger')
         return redirect(url_for('ai_prompts.list_prompts'))
 
@@ -219,7 +219,7 @@ def edit_prompt(prompt_id: int):
     except Exception as e:
         logger.error(f"Error editing AI prompt {prompt_id}: {e}", exc_info=True)
         if request.is_json:
-            return jsonify({'success': False, 'error': str(e)}), 500
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
         flash(f"Error editing prompt: {e}", 'danger')
         return redirect(url_for('ai_prompts.list_prompts'))
 
@@ -250,7 +250,7 @@ def toggle_prompt(prompt_id: int):
             
     except Exception as e:
         logger.error(f"Error toggling AI prompt {prompt_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @ai_prompts_bp.route('/active/<string:prompt_type>', methods=['GET'])
@@ -300,7 +300,7 @@ def get_active_prompt(prompt_type: str):
             
     except Exception as e:
         logger.error(f"Error getting active prompt for type {prompt_type}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @ai_prompts_bp.route('/templates', methods=['GET', 'POST'])
@@ -350,7 +350,7 @@ def manage_templates():
     except Exception as e:
         logger.error(f"Error creating template: {e}", exc_info=True)
         if request.is_json:
-            return jsonify({'success': False, 'error': str(e)}), 400
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
         flash(f"Error creating template: {e}", 'danger')
         return redirect(url_for('ai_prompts.manage_templates'))
 

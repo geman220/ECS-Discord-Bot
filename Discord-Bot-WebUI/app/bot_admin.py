@@ -193,7 +193,7 @@ def start_live_reporting_route(match_id):
         })
     except Exception as e:
         logger.error(f"Error starting live reporting for match {match_id}: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': f'Internal server error: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @bot_admin_bp.route('/stop_live_reporting/<int:match_id>', methods=['POST'])
@@ -219,7 +219,7 @@ def stop_live_reporting_route(match_id):
         return jsonify({'success': True, 'message': 'Live reporting stopped'})
     except Exception as e:
         logger.error(f"Error stopping live reporting: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @bot_admin_bp.route('/matches/add', methods=['POST'])
@@ -293,7 +293,7 @@ def add_mls_match():
 
     except Exception as e:
         logger.error(f"Error adding match: {str(e)}", exc_info=True)
-        return jsonify(success=False, message=f"Error adding match: {str(e)}"), 500
+        return jsonify(success=False, message="Error adding match: Internal Server Error"), 500
 
 
 @bot_admin_bp.route('/update_match/<int:match_id>', methods=['POST'])
@@ -419,7 +419,7 @@ def get_all_match_statuses():
         return jsonify(statuses)
     except Exception as e:
         logger.error(f"Error getting match statuses: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @bot_admin_bp.route('/match/<int:match_id>/create-thread', methods=['POST'])
@@ -446,7 +446,7 @@ def create_match_thread(match_id):
         return jsonify({'success': True, 'message': 'Thread creation started', 'task_id': task.id})
     except Exception as e:
         logger.error(f"Error creating thread for match {match_id}: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @bot_admin_bp.route('/match/schedule/<int:match_id>', methods=['POST'])
@@ -469,7 +469,7 @@ def schedule_match(match_id):
         return jsonify(result)
     except Exception as e:
         current_app.logger.error(f"Error scheduling match {match_id}: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @bot_admin_bp.route('/check-redis', methods=['GET'])
@@ -489,7 +489,7 @@ def check_redis_health():
         })
     except Exception as e:
         logger.error(f"Redis health check failed: {str(e)}")
-        return jsonify({'redis_connected': False, 'error': str(e)}), 500
+        return jsonify({'redis_connected': False, 'error': 'Internal Server Error'}), 500
 
 
 @bot_admin_bp.route('/get_player_id_from_discord/<string:discord_id>', methods=['GET'])

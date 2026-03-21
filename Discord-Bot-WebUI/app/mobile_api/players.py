@@ -238,7 +238,7 @@ def update_player_profile():
             }), 200
         except Exception as e:
             logger.error(f"Error updating player profile: {str(e)}")
-            return jsonify({"msg": f"Error updating profile: {str(e)}"}), 500
+            return jsonify({"msg": "Error updating profile: Internal Server Error"}), 500
 
 
 @mobile_api_v2.route('/players/<int:player_id>/stats', methods=['GET'])

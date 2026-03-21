@@ -308,7 +308,7 @@ def api_save_prediction():
     except Exception as e:
         logger.error(f"Error saving prediction: {e}", exc_info=True)
         g.db_session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -624,4 +624,4 @@ def api_league_stats(league_type):
 
     except Exception as e:
         logger.error(f"Error in league stats API: {e}", exc_info=True)
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500

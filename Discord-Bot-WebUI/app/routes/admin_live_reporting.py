@@ -92,7 +92,7 @@ def api_health():
         health = check_realtime_health()
         return jsonify(health)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_live_bp.route('/api/coordination')
@@ -104,7 +104,7 @@ def api_coordination():
         status = get_coordination_status()
         return jsonify(status)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_live_bp.route('/api/schedule-match/<int:match_id>', methods=['POST'])
@@ -158,7 +158,7 @@ def api_schedule_match(match_id):
 
     except Exception as e:
         logger.error(f"Error scheduling individual match: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_live_bp.route('/api/force-sync', methods=['POST'])
@@ -171,7 +171,7 @@ def api_force_sync():
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error forcing sync: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_live_bp.route('/api/send-command', methods=['POST'])
@@ -192,7 +192,7 @@ def api_send_command():
 
     except Exception as e:
         logger.error(f"Error sending command: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_live_bp.route('/api/session/<int:session_id>/stop', methods=['POST'])
@@ -224,4 +224,4 @@ def api_stop_session(session_id):
 
     except Exception as e:
         logger.error(f"Error stopping session: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500

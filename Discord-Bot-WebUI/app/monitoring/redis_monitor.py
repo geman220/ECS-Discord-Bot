@@ -97,7 +97,7 @@ def get_redis_keys():
         })
     except Exception as e:
         logger.error(f"Error getting Redis keys: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/redis/test', endpoint='test_redis')
@@ -156,4 +156,4 @@ def test_redis():
         })
     except Exception as e:
         logger.error(f"Redis test failed: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

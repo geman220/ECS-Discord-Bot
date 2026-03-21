@@ -492,7 +492,7 @@ def void_pass(pass_id):
 
     except Exception as e:
         logger.error(f"Error voiding pass: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @wallet_admin_bp.route('/api/passes/<int:pass_id>/reactivate', methods=['POST'])
@@ -510,10 +510,10 @@ def reactivate_pass(pass_id):
         })
 
     except ValueError as e:
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': 'Internal Server Error'}), 400
     except Exception as e:
         logger.error(f"Error reactivating pass: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @wallet_admin_bp.route('/api/passes/<int:pass_id>/download/<platform>')
@@ -541,10 +541,10 @@ def download_pass(pass_id, platform):
             return jsonify({'error': 'Invalid platform'}), 400
 
     except NotImplementedError as e:
-        return jsonify({'error': str(e)}), 501
+        return jsonify({'error': 'Internal Server Error'}), 501
     except Exception as e:
         logger.error(f"Error downloading pass: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @wallet_admin_bp.route('/api/invalidate-pass/<int:player_id>', methods=['POST'])
@@ -669,7 +669,7 @@ def generate_bulk_passes():
             except Exception as e:
                 results['failed'].append({
                     'player_id': player_id,
-                    'error': str(e)
+                    'error': 'Internal Server Error'
                 })
                 logger.error(f"Bulk pass generation failed for player {player_id}: {str(e)}")
 
@@ -732,14 +732,14 @@ def bulk_void_passes():
             except Exception as e:
                 results['failed'].append({
                     'pass_id': pass_id,
-                    'error': str(e)
+                    'error': 'Internal Server Error'
                 })
 
         return jsonify(results)
 
     except Exception as e:
         logger.error(f"Error in bulk void: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @wallet_admin_bp.route('/api/passes/bulk-reactivate', methods=['POST'])
@@ -788,14 +788,14 @@ def bulk_reactivate_passes():
             except (ValueError, Exception) as e:
                 results['failed'].append({
                     'pass_id': pass_id,
-                    'error': str(e)
+                    'error': 'Internal Server Error'
                 })
 
         return jsonify(results)
 
     except Exception as e:
         logger.error(f"Error in bulk reactivate: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @wallet_admin_bp.route('/api/passes/bulk-generate', methods=['POST'])
@@ -883,14 +883,14 @@ def bulk_generate_passes_ui():
                 results['failed'].append({
                     'player_id': player.id,
                     'player_name': player.name,
-                    'error': str(e)
+                    'error': 'Internal Server Error'
                 })
 
         return jsonify(results)
 
     except Exception as e:
         logger.error(f"Error in bulk generate: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 # =============================================================================
@@ -1077,4 +1077,4 @@ def get_stats():
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Error getting stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500

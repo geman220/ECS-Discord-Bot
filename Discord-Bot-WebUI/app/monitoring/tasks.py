@@ -139,7 +139,7 @@ def get_all_tasks():
             })
     except Exception as e:
         logger.error(f"Error getting all tasks: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/tasks/dashboard', endpoint='get_task_dashboard')
@@ -238,7 +238,7 @@ def get_task_dashboard():
 
     except Exception as e:
         logger.error(f"Error generating task dashboard: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/tasks/match/<match_id>', endpoint='get_match_tasks')
@@ -269,7 +269,7 @@ def get_match_tasks(match_id):
 
     except Exception as e:
         logger.error(f"Error getting tasks for match {match_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/tasks/revoke', endpoint='revoke_task', methods=['POST'])
@@ -331,7 +331,7 @@ def revoke_task():
 
     except Exception as e:
         logger.error(f"Error revoking task: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 def _revoke_worker_task(worker, task_id, task_name):
@@ -496,7 +496,7 @@ def revoke_all_tasks():
 
     except Exception as e:
         logger.error(f"Error revoking all tasks: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/tasks/reschedule', endpoint='reschedule_task', methods=['POST'])
@@ -593,7 +593,7 @@ def reschedule_task():
         })
     except Exception as e:
         logger.error(f"Error rescheduling task {task_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/tasks/nuclear_reset', methods=['POST'], endpoint='nuclear_reset')
@@ -707,7 +707,7 @@ def nuclear_reset():
         logger.error(f"Nuclear reset failed: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 
@@ -783,7 +783,7 @@ def inspect_task(task_id):
         return jsonify({'success': True, 'task': result})
     except Exception as e:
         logger.error(f"Error inspecting task {task_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/cleanup-orphaned-tasks', endpoint='cleanup_orphaned_tasks', methods=['POST'])
@@ -865,4 +865,4 @@ def cleanup_orphaned_tasks():
         })
     except Exception as e:
         logger.error(f"Error cleaning up orphaned tasks: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

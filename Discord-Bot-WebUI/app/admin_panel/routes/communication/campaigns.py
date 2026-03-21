@@ -209,7 +209,7 @@ def campaigns_create():
 
     except ValueError as e:
         if request.is_json:
-            return jsonify({'success': False, 'error': str(e)}), 400
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
         flash(str(e), 'error')
         return redirect(url_for('admin_panel.campaigns_list'))
 
@@ -217,7 +217,7 @@ def campaigns_create():
         logger.error(f"Error creating campaign: {e}")
 
         if request.is_json:
-            return jsonify({'success': False, 'error': str(e)}), 500
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
         flash('Error creating campaign', 'error')
         return redirect(url_for('admin_panel.campaigns_list'))
@@ -259,11 +259,11 @@ def campaigns_update(campaign_id):
         })
 
     except ValueError as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
 
     except Exception as e:
         logger.error(f"Error updating campaign {campaign_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/campaigns/<int:campaign_id>/send', methods=['POST'])
@@ -288,11 +288,11 @@ def campaigns_send(campaign_id):
         return jsonify(result)
 
     except ValueError as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
 
     except Exception as e:
         logger.error(f"Error sending campaign {campaign_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/campaigns/<int:campaign_id>/schedule', methods=['POST'])
@@ -328,11 +328,11 @@ def campaigns_schedule(campaign_id):
         return jsonify(result)
 
     except ValueError as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
 
     except Exception as e:
         logger.error(f"Error scheduling campaign {campaign_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/campaigns/<int:campaign_id>/cancel', methods=['POST'])
@@ -357,11 +357,11 @@ def campaigns_cancel(campaign_id):
         return jsonify(result)
 
     except ValueError as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
 
     except Exception as e:
         logger.error(f"Error cancelling campaign {campaign_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/campaigns/<int:campaign_id>/duplicate', methods=['POST'])
@@ -386,11 +386,11 @@ def campaigns_duplicate(campaign_id):
         })
 
     except ValueError as e:
-        return jsonify({'success': False, 'error': str(e)}), 400
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
 
     except Exception as e:
         logger.error(f"Error duplicating campaign {campaign_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/campaigns/<int:campaign_id>', methods=['DELETE'])
@@ -429,7 +429,7 @@ def campaigns_delete(campaign_id):
 
     except Exception as e:
         logger.error(f"Error deleting campaign {campaign_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # API endpoints
@@ -453,7 +453,7 @@ def api_campaigns_list():
 
     except Exception as e:
         logger.error(f"Error listing campaigns API: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/campaigns/<int:campaign_id>')
@@ -466,8 +466,8 @@ def api_campaigns_detail(campaign_id):
         return jsonify({'success': True, 'campaign': campaign})
 
     except ValueError as e:
-        return jsonify({'success': False, 'error': str(e)}), 404
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 404
 
     except Exception as e:
         logger.error(f"Error getting campaign API: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

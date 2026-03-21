@@ -280,7 +280,7 @@ def save_colors():
 
     except Exception as e:
         current_app.logger.error(f"Error saving colors: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/reset-colors', methods=['POST'])
@@ -303,7 +303,7 @@ def reset_colors():
 
     except Exception as e:
         current_app.logger.error(f"Error resetting colors: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/export-colors')
@@ -351,7 +351,7 @@ def import_colors():
 
     except Exception as e:
         current_app.logger.error(f"Error importing colors: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 # ============================================================================
@@ -418,7 +418,7 @@ def save_typography():
 
     except Exception as e:
         current_app.logger.error(f"Error saving typography: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 # ============================================================================
@@ -474,7 +474,7 @@ def save_spacing():
 
     except Exception as e:
         current_app.logger.error(f"Error saving spacing: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 # ============================================================================
@@ -541,7 +541,7 @@ def save_components():
 
     except Exception as e:
         current_app.logger.error(f"Error saving components: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 # ============================================================================
@@ -604,7 +604,7 @@ def save_animations():
 
     except Exception as e:
         current_app.logger.error(f"Error saving animations: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 # ============================================================================
@@ -662,7 +662,7 @@ def save_theme_variant():
 
     except Exception as e:
         current_app.logger.error(f"Error saving theme variant: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 # ============================================================================
@@ -711,7 +711,7 @@ def import_design_tokens():
 
     except Exception as e:
         current_app.logger.error(f"Error importing design tokens: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/reset-all', methods=['POST'])
@@ -737,7 +737,7 @@ def reset_all_tokens():
 
     except Exception as e:
         current_app.logger.error(f"Error resetting design tokens: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 # ============================================================================
@@ -783,7 +783,7 @@ def list_presets():
         })
     except Exception as e:
         current_app.logger.error(f"Error listing presets: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/api/presets/<slug>')
@@ -805,7 +805,7 @@ def get_preset(slug):
         })
     except Exception as e:
         current_app.logger.error(f"Error getting preset: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/presets/create', methods=['POST'])
@@ -848,7 +848,7 @@ def create_preset():
 
     except Exception as e:
         current_app.logger.error(f"Error creating preset: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/presets/save-current', methods=['POST'])
@@ -891,7 +891,7 @@ def save_current_as_preset():
 
     except Exception as e:
         current_app.logger.error(f"Error saving current as preset: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/presets/<int:preset_id>/update', methods=['POST'])
@@ -932,7 +932,7 @@ def update_preset(preset_id):
 
     except Exception as e:
         current_app.logger.error(f"Error updating preset: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/presets/<int:preset_id>/delete', methods=['POST'])
@@ -964,7 +964,7 @@ def delete_preset(preset_id):
 
     except Exception as e:
         current_app.logger.error(f"Error deleting preset: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/presets/<int:preset_id>/set-default', methods=['POST'])
@@ -988,7 +988,7 @@ def set_default_preset(preset_id):
 
     except Exception as e:
         current_app.logger.error(f"Error setting default preset: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/presets/<int:preset_id>/apply', methods=['POST'])
@@ -1016,7 +1016,7 @@ def apply_preset_colors(preset_id):
 
     except Exception as e:
         current_app.logger.error(f"Error applying preset: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/presets/apply', methods=['POST'])
@@ -1049,7 +1049,7 @@ def apply_preset():
 
     except Exception as e:
         current_app.logger.error(f"Error applying preset: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/appearance/presets/save', methods=['POST'])
@@ -1107,4 +1107,4 @@ def save_preset():
 
     except Exception as e:
         current_app.logger.error(f"Error saving preset: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500

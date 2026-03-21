@@ -1412,7 +1412,7 @@ def edit_match_stat(stat_id):
             return jsonify({'success': True})
         except (SQLAlchemyError, ValueError) as e:
             current_app.logger.error(f"Error editing match stat {stat_id}: {str(e)}")
-            return jsonify({'success': False, 'error': str(e)}), 500
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @players_bp.route('/remove_match_stat/<int:stat_id>', endpoint='remove_match_stat', methods=['POST'])
@@ -1484,7 +1484,7 @@ def upload_profile_picture(player_id):
         return redirect(url_for('players.player_profile', player_id=player_id))
     except Exception as e:
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify(success=False, message=str(e)), 500
+            return jsonify(success=False, message='Internal Server Error'), 500
         show_error(f'An error occurred while uploading the image: {str(e)}')
         raise
 

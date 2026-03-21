@@ -266,7 +266,7 @@ def store_message_ids():
 
     except Exception as e:
         logger.error(f"🔴 [AVAILABILITY_API] Error storing message IDs: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal Server Error"}), 500
 
 
 @availability_bp.route('/get_match_id_from_message/<string:message_id>', methods=['GET'], endpoint='get_match_id_from_message')
@@ -517,7 +517,7 @@ def get_match_rsvps(match_id):
             
         except Exception as e:
             logger.exception(f"Error getting RSVPs for match {match_id}, team {team_id}: {str(e)}")
-            rsvp_data = {'yes': [], 'no': [], 'maybe': [], 'error': str(e)}
+            rsvp_data = {'yes': [], 'no': [], 'maybe': [], 'error': 'Internal Server Error'}
             return jsonify(rsvp_data), 200
 
 
@@ -664,7 +664,7 @@ def update_availability_from_discord():
         logger.error(f"🔴 [AVAILABILITY_API] Error in update_availability_from_discord: {str(e)}", exc_info=True)
         return jsonify({
             'status': 'error',
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 
@@ -763,7 +763,7 @@ def update_poll_response_from_discord():
         logger.error(f"🔴 [AVAILABILITY_API] Error in update_poll_response_from_discord: {str(e)}", exc_info=True)
         return jsonify({
             'status': 'error',
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 
@@ -1100,7 +1100,7 @@ def get_scheduled_messages():
 
     except Exception as e:
         logger.error(f"Error fetching scheduled messages: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @availability_bp.route('/get_player_id_from_discord/<string:discord_id>', methods=['GET'])
@@ -1265,7 +1265,7 @@ def get_message_info(message_id):
         return jsonify({'error': 'Invalid message ID format'}), 400
     except Exception as e:
         logger.error(f"🔴 [AVAILABILITY_API] Error retrieving message info for {message_id}: {str(e)}", exc_info=True)
-        return jsonify({'error': f'Server error: {str(e)}'}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @availability_bp.route('/force_discord_sync', methods=['POST'], endpoint='force_discord_sync')
@@ -1315,13 +1315,13 @@ def force_discord_sync():
         logger.error(f"Error connecting to Discord bot for sync: {str(e)}")
         return jsonify({
             'success': False,
-            'message': f'Could not connect to Discord bot: {str(e)}'
+            'message': 'Internal Server Error'
         }), 500
     except Exception as e:
         logger.exception(f"Unexpected error during Discord sync: {str(e)}")
         return jsonify({
             'success': False,
-            'message': f'Unexpected error: {str(e)}'
+            'message': 'Internal Server Error'
         }), 500
 
 @availability_bp.route('/sync_discord_rsvps', methods=['POST'], endpoint='sync_discord_rsvps')
@@ -1447,7 +1447,7 @@ def sync_discord_rsvps():
         logger.error(f"🔴 [AVAILABILITY_API] Error syncing Discord RSVPs: {str(e)}", exc_info=True)
         return jsonify({
             'success': False,
-            'message': f'Error processing RSVP updates: {str(e)}'
+            'message': 'Internal Server Error'
         }), 500
 
 
@@ -1556,7 +1556,7 @@ def record_poll_response():
     except Exception as e:
         logger.error(f"🔴 [AVAILABILITY_API] Error recording poll response: {str(e)}", exc_info=True)
         return jsonify({
-            'error': f'Error recording poll response: {str(e)}'
+            'error': 'Internal Server Error'
         }), 500
 
 
@@ -1614,7 +1614,7 @@ def update_poll_message():
     except Exception as e:
         logger.error(f"🔴 [AVAILABILITY_API] Error updating poll message: {str(e)}", exc_info=True)
         return jsonify({
-            'error': f'Error updating poll message: {str(e)}'
+            'error': 'Internal Server Error'
         }), 500
 
 
@@ -1656,5 +1656,5 @@ def get_active_poll_messages():
     except Exception as e:
         logger.error(f"🔴 [AVAILABILITY_API] Error getting active poll messages: {str(e)}", exc_info=True)
         return jsonify({
-            'error': f'Error getting active poll messages: {str(e)}'
+            'error': 'Internal Server Error'
         }), 500

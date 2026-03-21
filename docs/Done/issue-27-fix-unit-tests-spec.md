@@ -99,3 +99,12 @@ While significant progress was made fixing WebUI infrastructure (SQLite compatib
 | 6 | 🟡 | `user_locking.py` | Slow debug logging (querying all IDs) on user-not-found | ✅ Fixed |
 | 7 | 🔴 | `approvals.py` | `clear_deferred_discord()` placement vs logging | ✅ Fixed |
 | 8 | 🟡 | `test_admin_behaviors.py` | Excessive use of `db.session.merge()` masks infra issues | ⚠️ Assessed |
+
+## 8. CodeQL Security Fixes
+To ensure the PR passes all security gates, the following CodeQL-identified vulnerabilities were addressed:
+
+| ID | Severity | File | Issue | Fix |
+|---|----------|------|-------|-----|
+| `py/stack-trace-exposure` | Medium | Multiple (app/routes) | Leaking exception messages in `jsonify` | Replaced `str(e)` with generic `"Internal Server Error"` in all API responses. |
+| `js/xss-through-dom` | High | `email-broadcasts.js` | `innerHTML` and `doc.write` with unsanitized data | Refactored to use `textContent`, `document.createElement`, and `iframe.srcdoc`. |
+| `js/xss-through-dom` | High | `email-templates.js` | `doc.write` with unsanitized template data | Refactored `updatePreview` to use `iframe.srcdoc`. |

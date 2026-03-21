@@ -331,7 +331,7 @@ def sms_confirm():
             check_verification_attempts(user.id)
         except SMSVerificationLocked as e:
             logger.warning(f"🔴 [USER_API] User {user.id} locked from SMS verification: {e}")
-            return jsonify({"error": str(e)}), 429
+            return jsonify({"error": "Internal Server Error"}), 429
 
         logger.debug(f"🔵 [USER_API] Verifying SMS confirmation code for {player.name}")
         if verify_sms_confirmation(user, code):

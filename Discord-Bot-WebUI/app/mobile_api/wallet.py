@@ -267,7 +267,7 @@ def download_membership_pass():
 
     except Exception as e:
         logger.error(f"Error downloading membership pass via mobile API: {str(e)}")
-        return jsonify({"error": f"Failed to download membership pass: {str(e)}"}), 500
+        return jsonify({"error": "Failed to download membership pass: Internal Server Error"}), 500
 
 
 @mobile_api_v2.route('/membership/wallet/pass', methods=['GET'])

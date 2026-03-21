@@ -199,8 +199,8 @@ def send_discord_dm():
     except Exception as e:
         logger.error(f"Error contacting Discord bot: {str(e)}")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': f'Error contacting Discord bot: {str(e)}'})
-        show_error(f'Error contacting Discord bot: {str(e)}')
+            return jsonify({'success': False, 'message': 'Internal Server Error'})
+        show_error('Internal Server Error')
     
     if match_id:
         return redirect(url_for('admin.rsvp_status', match_id=match_id))
