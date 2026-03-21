@@ -31,7 +31,7 @@ postgresql.JSONB = SQLiteCompatibleJSONB
 postgresql.json.JSONB = SQLiteCompatibleJSONB
 
 # =============================================================================
-# MOCK REDIS CLIENT (module-level so available to all fixtures)
+# MOCK REDIS CLIENT (must be done before any app imports)
 # =============================================================================
 
 _mock_redis_client = MagicMock()
@@ -58,98 +58,75 @@ _mock_redis_manager._decoded_client = _mock_redis_client
 _mock_redis_manager.get_connection_stats.return_value = {'status': 'mocked'}
 _mock_redis_manager.cleanup.return_value = None
 
+# Apply patches globally at the module level
+patch('app.utils.redis_manager.get_redis_manager', return_value=_mock_redis_manager).start()
+patch('app.utils.redis_manager._get_global_redis_manager', return_value=_mock_redis_manager).start()
+patch('app.utils.redis_manager.get_redis_connection', return_value=_mock_redis_client).start()
+patch('app.utils.redis_manager.UnifiedRedisManager', return_value=_mock_redis_manager).start()
+patch('app.services.redis_connection_service.get_redis_service', return_value=_mock_redis_manager).start()
+patch('app.utils.queue_monitor.get_redis_service', return_value=_mock_redis_manager).start()
 
 @pytest.fixture(scope='session')
 def app():
     """Create application for testing with Redis mocked."""
-    # Create a wrapper that returns our mock
-    mock_redis_wrapper = MagicMock()
-    mock_redis_wrapper.client = _mock_redis_client
-    mock_redis_wrapper.raw_client = _mock_redis_client
-    mock_redis_wrapper.get_connection_stats.return_value = {'status': 'mocked'}
+    from app import create_app
+    app = create_app('web_config.TestingConfig')
 
-    # Patch Redis BEFORE importing app modules to avoid connection attempts
-    # Must patch at all locations where Redis is imported/used
-    with patch('app.utils.redis_manager.get_redis_manager', return_value=_mock_redis_manager), \
-         patch('app.utils.redis_manager._get_global_redis_manager', return_value=_mock_redis_manager), \
-         patch('app.utils.redis_manager.get_redis_connection', return_value=_mock_redis_client), \
-         patch('app.utils.redis_manager.UnifiedRedisManager', return_value=_mock_redis_manager), \
-         patch('app.services.redis_connection_service.get_redis_service', return_value=mock_redis_wrapper), \
-         patch('app.utils.queue_monitor.get_redis_service', return_value=mock_redis_wrapper):
-
-        from app import create_app
-        app = create_app('web_config.TestingConfig')
-
-    # Detect if we're in CI/CD with PostgreSQL available
-    import os
-    database_url = os.environ.get('DATABASE_URL', '')
-    use_postgres = database_url.startswith('postgresql')
-
-    if use_postgres:
-        # CI/CD: Use PostgreSQL - proper session isolation, matches production
-        app.config.update({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': database_url,
-            'SQLALCHEMY_ENGINE_OPTIONS': {
-                'pool_pre_ping': True,
-            },
-            'WTF_CSRF_ENABLED': False,
-            'SECRET_KEY': os.environ.get('SECRET_KEY', 'test-secret-key'),
-            'JWT_SECRET_KEY': os.environ.get('JWT_SECRET_KEY', 'test-jwt-secret'),
-            'REDIS_URL': os.environ.get('REDIS_URL', 'redis://localhost:6379/0'),
-            'CELERY_TASK_ALWAYS_EAGER': True,
-            'CELERY_TASK_EAGER_PROPAGATES': True,
-            'SERVER_NAME': 'localhost:5000',
-            'PREFERRED_URL_SCHEME': 'http',
-            'SESSION_TYPE': 'filesystem',
-            'SESSION_USE_SIGNER': False,
-            'SESSION_PERMANENT': False,
-        })
-    else:
-        # Local development: Use SQLite in-memory with StaticPool
-        # StaticPool is CRITICAL for SQLite in-memory databases - without it,
-        # each connection creates a new empty database.
-        from sqlalchemy.pool import StaticPool
-        app.config.update({
-            'TESTING': True,
-            'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
-            'SQLALCHEMY_ENGINE_OPTIONS': {
-                'poolclass': StaticPool,
-                'connect_args': {'check_same_thread': False},
-            },
-            'WTF_CSRF_ENABLED': False,
-            'SECRET_KEY': 'test-secret-key',
-            'JWT_SECRET_KEY': 'test-jwt-secret',
-            'REDIS_URL': 'redis://localhost:6379/15',
-            'CELERY_TASK_ALWAYS_EAGER': True,
-            'CELERY_TASK_EAGER_PROPAGATES': True,
-            'SERVER_NAME': 'localhost:5000',
-            'PREFERRED_URL_SCHEME': 'http',
-            'SESSION_TYPE': 'filesystem',
-            'SESSION_USE_SIGNER': False,
-            'SESSION_PERMANENT': False,
-        })
+    # Local development: Use SQLite in-memory with StaticPool
+    # StaticPool is CRITICAL for SQLite in-memory databases - without it,
+    # each connection creates a new empty database.
+    from sqlalchemy.pool import StaticPool
+    app.config.update({
+        'TESTING': True,
+        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+        'SQLALCHEMY_ENGINE_OPTIONS': {
+            'poolclass': StaticPool,
+            'connect_args': {'check_same_thread': False},
+        },
+        'WTF_CSRF_ENABLED': False,
+        'SECRET_KEY': 'test-secret-key',
+        'JWT_SECRET_KEY': 'test-jwt-secret',
+        'REDIS_URL': 'redis://localhost:6379/15',
+        'CELERY_TASK_ALWAYS_EAGER': True,
+        'CELERY_TASK_EAGER_PROPAGATES': True,
+        'SERVER_NAME': 'localhost:5000',
+        'PREFERRED_URL_SCHEME': 'http',
+        'SESSION_TYPE': 'filesystem',
+        'SESSION_USE_SIGNER': False,
+        'SESSION_PERMANENT': False,
+    })
 
     # Create application context
     ctx = app.app_context()
     ctx.push()
+    
+    # Sync g.db_session to ensure it exists in the pushed context
+    from flask import g
+    from app.core import db as _db
+    g.db_session = _db.session
 
     yield app
 
+    # Cleanup after yield
+    from flask import has_app_context
+    if has_app_context():
+        # Clear session to avoid leaks between tests
+        _db.session.remove()
+    
     ctx.pop()
 
 
 @pytest.fixture(scope='session')
 def _database(app):
-    """Create database for tests.
-
-    CRITICAL: Uses session scope so tables are created once and shared.
-    The `db` fixture handles per-test cleanup via DELETE statements.
-    """
+    """Create database for tests."""
     from app.core import db as _db
 
     # Create all tables once for the test session
     _db.create_all()
+    
+    # CRITICAL: Prevent DetachedInstanceError after commit globally
+    _db.session.expire_on_commit = False
+    
     yield _db
     _db.drop_all()
 
@@ -158,14 +135,18 @@ def _database(app):
 def db(_database, app):
     """Create clean database for each test by deleting data after."""
     from tests.factories import set_factory_session
+    from flask import g, has_app_context
 
-    # CRITICAL: Clean session state at START of test
-    # This prevents identity map conflicts from previous tests
-    # Note: We use rollback() + expunge_all() but NOT session.remove()
-    # because session.remove() can cause connection recycling, and with
-    # SQLite in-memory databases, each connection has its own database.
+    # Ensure a clean state for EVERY test
     _database.session.rollback()
-    _database.session.expunge_all()  # Clear identity map
+    _database.session.expunge_all()
+    
+    # CRITICAL: Prevent DetachedInstanceError after commit
+    _database.session.expire_on_commit = False
+
+    # Sync g.db_session if we have an app context
+    if has_app_context():
+        g.db_session = _database.session
 
     # Set factory session
     set_factory_session(_database.session)
@@ -175,6 +156,9 @@ def db(_database, app):
     # Clean up after test - delete all data from tables
     with app.app_context():
         _database.session.rollback()  # Clear any pending transaction
+        
+        # Re-sync g.db_session for cleanup phase
+        g.db_session = _database.session
 
         # Disable FK constraints for SQLite during cleanup
         try:
@@ -183,43 +167,26 @@ def db(_database, app):
             pass
 
         # Delete in order to avoid FK constraint issues
-        # Include all potential tables that tests might create data in
-        # Table names verified from model __tablename__ attributes
         tables_to_clean = [
-            # Audit and logging tables
             'admin_audit_log', 'audit_logs', 'stat_change_logs', 'player_stat_audits',
-            # Player stats
             'player_season_stats', 'player_career_stats',
-            # Match-related tables
             'match_events', 'sub_requests', 'availability', 'match_predictions',
             'mls_matches', 'match_dates',
-            # Player-team relationships
             'player_teams', 'player_league', 'player_team_season',
-            # Schedules and matches (schedule is singular, matches is plural)
             'matches', 'schedule', 'week_configurations',
-            # Tokens and tracking
             'device_tokens', 'progress', 'sms_logs', 'discord_bot_status',
-            # Content
             'help_topics', 'feedback_replies', 'feedbacks', 'notes',
-            # Players (singular)
-            'player',
-            # Teams and leagues (all singular)
-            'team', 'league', 'season',
-            # Notifications (plural)
+            'player', 'team', 'league', 'season',
             'notifications', 'announcements',
-            # Role relationships
             'user_roles', 'role_permissions',
-            # Users last (many FKs point to it) - plural
-            'users',
-            # Roles and permissions - plural
-            'roles', 'permissions'
+            'users', 'roles', 'permissions'
         ]
 
         for table in tables_to_clean:
             try:
                 _database.session.execute(_database.text(f'DELETE FROM {table}'))
             except Exception:
-                pass  # Table might not exist or other issue
+                pass
 
         # Re-enable FK constraints
         try:
@@ -228,24 +195,17 @@ def db(_database, app):
             pass
 
         _database.session.commit()
-
-        # Clear all objects from session identity map to prevent stale references
-        # Note: Do NOT call session.remove() - it can cause connection recycling
-        # which breaks SQLite in-memory databases
-        _database.session.expunge_all()
+        # CRITICAL: Ensure session is removed after cleanup
+        _database.session.remove()
 
 
 @pytest.fixture(autouse=True)
 def mock_celery_tasks(monkeypatch):
     """Mock Celery tasks to prevent Redis/broker connection errors."""
-    from unittest.mock import MagicMock
-
-    # Create mock tasks that don't require Celery broker
     mock_task = MagicMock()
     mock_task.delay = MagicMock(return_value=MagicMock(id='mock-task-id'))
     mock_task.apply_async = MagicMock(return_value=MagicMock(id='mock-task-id'))
 
-    # Mock RSVP-related Celery tasks
     try:
         import app.match_pages as match_pages
         monkeypatch.setattr(match_pages, 'notify_discord_of_rsvp_change_task', mock_task, raising=False)
@@ -271,23 +231,31 @@ def runner(app):
     """Create Flask CLI runner."""
     return app.test_cli_runner()
 
-
 @pytest.fixture
-def authenticated_client(client, user):
+def authenticated_client(client, user, db):
     """Create authenticated test client."""
+    # Ensure user is attached to session
+    if user not in db.session:
+        user = db.session.merge(user)
+    
+    user_id = user.id
+    
     with client.session_transaction() as session:
-        # Flask-Login uses _user_id as the session key
-        session['_user_id'] = user.id
+        session['_user_id'] = user_id
         session['_fresh'] = True
     return client
 
-
 @pytest.fixture
-def admin_client(client, admin_user):
+def admin_client(client, admin_user, db):
     """Create admin authenticated test client."""
+    # Ensure user is attached to session
+    if admin_user not in db.session:
+        admin_user = db.session.merge(admin_user)
+    
+    user_id = admin_user.id
+    
     with client.session_transaction() as session:
-        # Flask-Login uses _user_id as the session key
-        session['_user_id'] = admin_user.id
+        session['_user_id'] = user_id
         session['_fresh'] = True
     return client
 
@@ -301,14 +269,13 @@ def user_role(db):
     """Create or get user role with basic permissions."""
     from app.models import Role, Permission
 
-    role = Role.query.filter_by(name='User').first()
+    role = db.session.query(Role).filter_by(name='User').first()
     if not role:
         role = Role(name='User', description='Regular user')
         db.session.add(role)
         db.session.flush()
 
-    # Add view_rsvps permission if not already present
-    view_rsvps = Permission.query.filter_by(name='view_rsvps').first()
+    view_rsvps = db.session.query(Permission).filter_by(name='view_rsvps').first()
     if not view_rsvps:
         view_rsvps = Permission(name='view_rsvps', description='Can view and manage RSVPs')
         db.session.add(view_rsvps)
@@ -317,7 +284,7 @@ def user_role(db):
     if view_rsvps not in role.permissions:
         role.permissions.append(view_rsvps)
 
-    db.session.commit()
+    db.session.flush()
     return role
 
 
@@ -325,11 +292,11 @@ def user_role(db):
 def admin_role(db):
     """Create or get admin role."""
     from app.models import Role
-    role = Role.query.filter_by(name='Admin').first()
+    role = db.session.query(Role).filter_by(name='Admin').first()
     if not role:
         role = Role(name='Admin', description='Administrator')
         db.session.add(role)
-        db.session.commit()
+        db.session.flush()
     return role
 
 
@@ -350,7 +317,7 @@ def user(db, user_role):
     user.set_password('password123')
     user.roles.append(user_role)
     db.session.add(user)
-    db.session.commit()
+    db.session.flush()
     return user
 
 
@@ -367,7 +334,7 @@ def admin_user(db, admin_role):
     admin.set_password('admin123')
     admin.roles.append(admin_role)
     db.session.add(admin)
-    db.session.commit()
+    db.session.flush()
     return admin
 
 
@@ -377,14 +344,7 @@ def admin_user(db, admin_role):
 
 @pytest.fixture
 def season(db):
-    """
-    Create test season.
-
-    Season model fields:
-    - name: String, required
-    - league_type: String, required
-    - is_current: Boolean
-    """
+    """Create test season."""
     from app.models import Season
     season = Season(
         name='Test Season 2024',
@@ -392,26 +352,20 @@ def season(db):
         is_current=True
     )
     db.session.add(season)
-    db.session.commit()
+    db.session.flush()
     return season
 
 
 @pytest.fixture
 def league(db, season):
-    """
-    Create test league.
-
-    League model fields:
-    - name: String, required
-    - season_id: ForeignKey, required
-    """
+    """Create test league."""
     from app.models import League
     league = League(
         name='Test League',
         season_id=season.id
     )
     db.session.add(league)
-    db.session.commit()
+    db.session.flush()
     return league
 
 
@@ -421,20 +375,14 @@ def league(db, season):
 
 @pytest.fixture
 def team(db, league):
-    """
-    Create test team.
-
-    Team model fields:
-    - name: String, required
-    - league_id: ForeignKey, required
-    """
+    """Create test team."""
     from app.models import Team
     team = Team(
         name='Test Team',
         league_id=league.id
     )
     db.session.add(team)
-    db.session.commit()
+    db.session.flush()
     return team
 
 
@@ -447,7 +395,7 @@ def opponent_team(db, league):
         league_id=league.id
     )
     db.session.add(team)
-    db.session.commit()
+    db.session.flush()
     return team
 
 
@@ -457,31 +405,29 @@ def opponent_team(db, league):
 
 @pytest.fixture
 def player(db, user, team):
-    """
-    Create test player linked to user.
-
-    Player model fields:
-    - name: String, required
-    - user_id: ForeignKey to users.id, required
-    - discord_id: String, unique
-    - jersey_number, jersey_size, etc.
-
-    Note: Player-Team is many-to-many via player_teams table.
-    """
+    """Create test player linked to user."""
     import uuid
     from app.models import Player
+    
+    # Ensure user and team are attached to the session
+    if user not in db.session:
+        user = db.session.merge(user)
+    if team not in db.session:
+        team = db.session.merge(team)
+        
+    user_id = user.id
+    
     player = Player(
         name='Test Player',
-        user_id=user.id,
-        discord_id=f'test_discord_{uuid.uuid4().hex[:12]}',  # Unique per test
+        user_id=user_id,
+        discord_id=f'test_discord_{uuid.uuid4().hex[:12]}',
         jersey_number=10,
         jersey_size='M'
     )
     db.session.add(player)
     db.session.flush()
-    # Add to team via relationship
     player.teams.append(team)
-    db.session.commit()
+    db.session.flush()
     return player
 
 
@@ -491,45 +437,25 @@ def player(db, user, team):
 
 @pytest.fixture
 def schedule(db, season, team, opponent_team):
-    """
-    Create test schedule.
-
-    Schedule model fields:
-    - week: String, required
-    - date: Date, required
-    - time: Time, required
-    - opponent: ForeignKey to team.id, required
-    - location: String, required
-    - team_id: ForeignKey, required
-    - season_id: ForeignKey
-    """
+    """Create test schedule."""
     from app.models import Schedule
     schedule = Schedule(
         week='Week 1',
         date=date.today() + timedelta(days=7),
-        time=time(19, 0),  # 7 PM
+        time=time(19, 0),
+        location='Test Field',
         opponent=opponent_team.id,
-        location='Main Field',
         team_id=team.id,
         season_id=season.id
     )
     db.session.add(schedule)
-    db.session.commit()
+    db.session.flush()
     return schedule
 
 
 @pytest.fixture
 def match(db, schedule, team, opponent_team):
-    """
-    Create test match.
-
-    Match model fields:
-    - date: Date, required
-    - time: Time, required
-    - location: String, required
-    - home_team_id, away_team_id: ForeignKey, required
-    - schedule_id: ForeignKey, required
-    """
+    """Create test match."""
     from app.models import Match
     match = Match(
         date=schedule.date,
@@ -540,7 +466,12 @@ def match(db, schedule, team, opponent_team):
         schedule_id=schedule.id
     )
     db.session.add(match)
-    db.session.commit()
+    db.session.flush()
+    
+    # Critical: Link schedule back to match if needed (circular FK often causes issues)
+    schedule.match_id = match.id
+    db.session.flush()
+    
     return match
 
 
@@ -550,15 +481,7 @@ def match(db, schedule, team, opponent_team):
 
 @pytest.fixture
 def availability(db, match, player):
-    """
-    Create test availability (RSVP).
-
-    Availability model fields:
-    - match_id: ForeignKey, required
-    - player_id: ForeignKey
-    - discord_id: String, required
-    - response: String ('yes', 'no', 'maybe')
-    """
+    """Create test availability (RSVP)."""
     from app.models import Availability
     avail = Availability(
         match_id=match.id,
@@ -567,7 +490,7 @@ def availability(db, match, player):
         response='yes'
     )
     db.session.add(avail)
-    db.session.commit()
+    db.session.flush()
     return avail
 
 
@@ -577,11 +500,7 @@ def availability(db, match, player):
 
 @pytest.fixture(autouse=True)
 def mock_redis():
-    """Return the module-level mocked Redis client for tests that need it.
-
-    Note: Redis is already mocked at module level before app import.
-    This fixture just provides access to the mock for assertions.
-    """
+    """Return the module-level mocked Redis client."""
     return _mock_redis_client
 
 
@@ -604,9 +523,8 @@ def mock_twilio(monkeypatch):
 
 @pytest.fixture
 def mock_discord(monkeypatch):
-    """Mock Discord operations - provides mock for Discord API calls."""
+    """Mock Discord operations."""
     mock = Mock()
-    # This is a general-purpose mock that tests can configure as needed
     return mock
 
 
@@ -638,7 +556,7 @@ def api_key_headers():
 
 
 # =============================================================================
-# PLAYWRIGHT FIXTURES - Mobile Browser Automation
+# PLAYWRIGHT FIXTURES
 # =============================================================================
 
 try:
@@ -650,48 +568,14 @@ except ImportError:
 import threading
 from werkzeug.serving import make_server
 
-# MOBILE DEVICE CONFIGURATIONS
-MOBILE_DEVICES = {
-    'iphone_13': {
-        'viewport': {'width': 390, 'height': 844},
-        'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
-        'device_scale_factor': 3,
-        'is_mobile': True,
-        'has_touch': True,
-    },
-    'iphone_13_pro_max': {
-        'viewport': {'width': 428, 'height': 926},
-        'user_agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
-        'device_scale_factor': 3,
-        'is_mobile': True,
-        'has_touch': True,
-    },
-    'ipad_air': {
-        'viewport': {'width': 820, 'height': 1180},
-        'user_agent': 'Mozilla/5.0 (iPad; CPU OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1',
-        'device_scale_factor': 2,
-        'is_mobile': True,
-        'has_touch': True,
-    },
-    'samsung_s21': {
-        'viewport': {'width': 360, 'height': 800},
-        'user_agent': 'Mozilla/5.0 (Linux; Android 11; SM-G991B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36',
-        'device_scale_factor': 3,
-        'is_mobile': True,
-        'has_touch': True,
-    },
-}
-
-
 @pytest.fixture(scope='session')
 def live_server(app):
-    """Start Flask test server in background thread."""
+    """Start Flask test server."""
     server = make_server('127.0.0.1', 5555, app)
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
     thread.start()
 
-    # Return server URL
     class LiveServer:
         @staticmethod
         def url():
@@ -703,59 +587,10 @@ def live_server(app):
 
 @pytest.fixture(scope='session')
 def browser():
-    """Launch browser instance for entire test session."""
+    """Launch browser instance."""
     if not PLAYWRIGHT_AVAILABLE:
         pytest.skip("Playwright not installed")
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True,
-            args=['--disable-dev-shm-usage']  # Prevent crashes in CI
-        )
+        browser = p.chromium.launch(headless=True)
         yield browser
         browser.close()
-
-
-@pytest.fixture
-def mobile_context(browser, request):
-    """Create mobile browser context with device emulation."""
-    device_name = getattr(request, 'param', 'iphone_13')
-    device = MOBILE_DEVICES.get(device_name, MOBILE_DEVICES['iphone_13'])
-
-    context = browser.new_context(**device)
-    yield context
-    context.close()
-
-
-@pytest.fixture
-def mobile_page(mobile_context, live_server):
-    """Create mobile page connected to Flask test server."""
-    page = mobile_context.new_page()
-    page.goto(live_server.url())
-    yield page
-    page.close()
-
-
-@pytest.fixture
-def authenticated_mobile_page(mobile_page, app, user):
-    """Mobile page with authenticated session."""
-    # Use Flask test client to create session
-    with app.test_client() as client:
-        # Login via test endpoint
-        response = client.post('/login', data={
-            'username': user.username,
-            'password': 'testpassword'
-        }, follow_redirects=True)
-
-        # Copy session cookies to Playwright
-        if hasattr(client, 'cookie_jar'):
-            for cookie in client.cookie_jar:
-                mobile_page.context.add_cookies([{
-                    'name': cookie.name,
-                    'value': cookie.value,
-                    'domain': 'localhost',
-                    'path': cookie.path or '/',
-                    'expires': -1  # Session cookie
-                }])
-
-    mobile_page.reload()
-    yield mobile_page

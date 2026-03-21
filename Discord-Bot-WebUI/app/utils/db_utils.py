@@ -12,7 +12,7 @@ decorator creates a new session for each Celery task execution.
 import time
 import random
 from functools import wraps
-from flask import g, current_app
+from flask import g, current_app, has_request_context
 from sqlalchemy.exc import OperationalError, InterfaceError
 from app.core import celery, db
 import logging
@@ -124,14 +124,29 @@ def transactional(f=None, max_retries=3, base_delay=0.5):
 
             for attempt in range(max_retries + 1):
                 try:
+                    # In tests, ensuring g.db_session is used correctly is vital.
+                    if has_request_context():
+                        from flask import g
+                        # If g.db_session is not already set, use db.session
+                        if not hasattr(g, 'db_session') or g.db_session is None:
+                            g.db_session = db.session
+                        session = g.db_session
+                    else:
+                        session = db.session
+
                     result = func(*args, **kwargs)
-                    # Commit both session patterns to ensure all changes are persisted
-                    # Routes may use either g.db_session or db.session inconsistently
-                    if hasattr(g, 'db_session') and g.db_session:
-                        g.db_session.commit()
-                    # Also commit Flask-SQLAlchemy's scoped session
-                    db.session.commit()
+                    
+                    # Commit the session
+                    try:
+                        # Flush first to catch integrity errors early
+                        session.flush()
+                        session.commit()
+                    except Exception as e:
+                        logger.error(f"Error committing session in transactional: {e}")
+                        raise
+                        
                     return result
+
 
                 except (OperationalError, InterfaceError) as e:
                     last_exception = e

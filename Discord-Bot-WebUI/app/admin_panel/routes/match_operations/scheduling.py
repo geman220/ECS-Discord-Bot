@@ -48,33 +48,34 @@ def schedule_matches():
         )
 
         # Get current Pub League season
-        current_season = Season.query.filter_by(is_current=True, league_type="Pub League").first()
+        current_season = db.session.query(Season).filter_by(is_current=True, league_type="Pub League").first()
         if not current_season:
-            current_season = Season.query.filter_by(is_current=True).first()
+            current_season = db.session.query(Season).filter_by(is_current=True).first()
 
         # Get filter parameter
         league_filter = request.args.get('league_id', type=int)
 
         # Get all leagues for the current season (Premier, Classic, ECS FC)
+        # Get leagues for dropdowns
         if current_season:
-            leagues = League.query.filter_by(season_id=current_season.id).order_by(League.name).all()
+            leagues = db.session.query(League).filter_by(season_id=current_season.id).order_by(League.name).all()
         else:
-            leagues = League.query.order_by(League.name).all()
+            leagues = db.session.query(League).order_by(League.name).all()
 
         # Get teams filtered by season and optionally by league
         if current_season:
-            teams_query = Team.query.join(League).filter(League.season_id == current_season.id)
+            teams_query = db.session.query(Team).join(League).filter(League.season_id == current_season.id)
             if league_filter:
                 teams_query = teams_query.filter(Team.league_id == league_filter)
             teams = teams_query.order_by(Team.name).all()
         else:
-            teams = Team.query.order_by(Team.name).all()
+            teams = db.session.query(Team).order_by(Team.name).all()
 
         # Get unscheduled matches (from current season teams)
         if current_season:
             league_ids = [l.id for l in leagues]
-            team_ids = [t.id for t in Team.query.filter(Team.league_id.in_(league_ids)).all()]
-            unscheduled_matches = Match.query.filter(
+            team_ids = [t.id for t in db.session.query(Team).filter(Team.league_id.in_(league_ids)).all()]
+            unscheduled_matches = db.session.query(Match).filter(
                 or_(
                     Match.home_team_id.in_(team_ids),
                     Match.away_team_id.in_(team_ids)
@@ -87,8 +88,10 @@ def schedule_matches():
                 joinedload(Match.home_team),
                 joinedload(Match.away_team)
             ).limit(50).all()
+
         else:
-            unscheduled_matches = Match.query.filter(
+            from sqlalchemy import or_
+            unscheduled_matches = db.session.query(Match).filter(
                 or_(
                     Match.time.is_(None),
                     Match.date.is_(None)
@@ -132,6 +135,7 @@ def create_match():
     away_team_id = data.get('away_team_id')
     match_date = data.get('date')
     match_time = data.get('time')
+    location = data.get('location', 'TBD')
     week = data.get('week')
 
     # Validation
@@ -142,8 +146,8 @@ def create_match():
         return jsonify({'success': False, 'message': 'Home and Away teams must be different'}), 400
 
     # Get teams
-    home_team = Team.query.get(home_team_id)
-    away_team = Team.query.get(away_team_id)
+    home_team = db.session.query(Team).get(home_team_id)
+    away_team = db.session.query(Team).get(away_team_id)
 
     if not home_team or not away_team:
         return jsonify({'success': False, 'message': 'One or both teams not found'}), 404
@@ -152,31 +156,41 @@ def create_match():
     if home_team.league_id != away_team.league_id:
         return jsonify({'success': False, 'message': 'Teams must be in the same league'}), 400
 
+    # Get league
+    league = db.session.query(League).get(home_team.league_id)
+    if not league:
+        return jsonify({'success': False, 'message': 'League not found for teams'}), 404
+
+    # Every match MUST have a schedule in this schema.
+    # If no week is provided, use 'Flex' or similar.
+    week_name = week or 'Flex'
+    default_time = datetime.strptime('19:00', '%H:%M').time()
+
+    # Create schedule first to get its ID
+    schedule = Schedule(
+        season_id=league.season_id,
+        week=week_name,
+        date=datetime.strptime(match_date, '%Y-%m-%d').date() if match_date else datetime.utcnow().date(),
+        time=datetime.strptime(match_time, '%H:%M').time() if match_time else default_time,
+        location=location or 'TBD',
+        team_id=home_team_id,
+        opponent=away_team_id
+    )
+    db.session.add(schedule)
+    db.session.flush()
+
     # Create match
     new_match = Match(
         home_team_id=home_team_id,
-        away_team_id=away_team_id
+        away_team_id=away_team_id,
+        date=schedule.date,
+        time=schedule.time,
+        location=schedule.location,
+        schedule_id=schedule.id
     )
-
-    # Set date and time if provided
-    if match_date:
-        new_match.date = datetime.strptime(match_date, '%Y-%m-%d').date()
-    if match_time:
-        new_match.time = datetime.strptime(match_time, '%H:%M').time()
 
     db.session.add(new_match)
     db.session.flush()
-
-    # Create schedule entry if week provided
-    if week and home_team.league_id:
-        league = League.query.get(home_team.league_id)
-        if league and league.season_id:
-            schedule = Schedule(
-                season_id=league.season_id,
-                week=week,
-                match_id=new_match.id
-            )
-            db.session.add(schedule)
 
     # Log the action
     AdminAuditLog.log_action(
@@ -213,11 +227,11 @@ def auto_schedule_matches():
         return jsonify({'success': False, 'message': 'League is required'}), 400
 
     # Get league and its teams
-    league = League.query.get(league_id)
+    league = db.session.query(League).get(league_id)
     if not league:
         return jsonify({'success': False, 'message': 'League not found'}), 404
 
-    teams = Team.query.filter_by(league_id=league_id).all()
+    teams = db.session.query(Team).filter_by(league_id=league_id).all()
     if len(teams) < 2:
         return jsonify({'success': False, 'message': 'Need at least 2 teams to schedule matches'}), 400
 
@@ -226,6 +240,7 @@ def auto_schedule_matches():
     matches_created = 0
 
     # Generate all possible matchups
+    import itertools
     matchups = list(itertools.combinations(team_ids, 2))
 
     # Parse start date
@@ -235,32 +250,44 @@ def auto_schedule_matches():
         current_date = datetime.utcnow().date() + timedelta(days=7)  # Start next week
 
     week_num = 1
+    default_time = datetime.strptime('19:00', '%H:%M').time()
 
     # Create matches
     for i, (home_id, away_id) in enumerate(matchups):
         # Check if match already exists
-        existing = Match.query.filter(
+        existing = db.session.query(Match).filter(
             ((Match.home_team_id == home_id) & (Match.away_team_id == away_id)) |
             ((Match.home_team_id == away_id) & (Match.away_team_id == home_id))
         ).first()
 
         if not existing:
+            # Create schedule first
+            schedule = Schedule(
+                season_id=league.season_id,
+                week=str(week_num),
+                date=current_date,
+                time=default_time,
+                location='TBD',
+                team_id=home_id,
+                opponent=away_id
+            )
+            db.session.add(schedule)
+            db.session.flush()
+
+            # Create match
             match = Match(
                 home_team_id=home_id,
                 away_team_id=away_id,
-                date=current_date
+                date=current_date,
+                time=schedule.time,
+                location=schedule.location,
+                schedule_id=schedule.id
             )
             db.session.add(match)
             db.session.flush()  # Get the match ID
 
-            # Create schedule entry
-            if league.season_id:
-                schedule = Schedule(
-                    season_id=league.season_id,
-                    week=str(week_num),
-                    match_id=match.id
-                )
-                db.session.add(schedule)
+            # Link schedule to match
+            schedule.match_id = match.id
 
             matches_created += 1
 
@@ -303,7 +330,7 @@ def update_match_time():
     if not match_id:
         return jsonify({'success': False, 'message': 'Match ID is required'}), 400
 
-    match = Match.query.get(match_id)
+    match = db.session.query(Match).get(match_id)
     if not match:
         return jsonify({'success': False, 'message': 'Match not found'}), 404
 
@@ -314,6 +341,14 @@ def update_match_time():
         match.date = datetime.strptime(match_date, '%Y-%m-%d').date()
     if match_time:
         match.time = datetime.strptime(match_time, '%H:%M').time()
+
+    # Update associated schedule if it exists
+    if match.schedule_id:
+        from app.models import Schedule
+        schedule = db.session.query(Schedule).get(match.schedule_id)
+        if schedule:
+            schedule.date = match.date
+            schedule.time = match.time
 
     # Log the action
     AdminAuditLog.log_action(

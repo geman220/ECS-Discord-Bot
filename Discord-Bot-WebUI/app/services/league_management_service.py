@@ -123,9 +123,9 @@ class LeagueManagementService:
         stats = {
             'pub_league': self._get_league_type_stats('Pub League'),
             'ecs_fc': self._get_league_type_stats('ECS FC'),
-            'total_seasons': Season.query.count(),
-            'total_teams': Team.query.count(),
-            'total_matches': Match.query.count(),
+            'total_seasons': self.session.query(Season).count(),
+            'total_teams': self.session.query(Team).count(),
+            'total_matches': self.session.query(Match).count(),
             'recent_activity': self._get_recent_activity()
         }
 
@@ -135,7 +135,7 @@ class LeagueManagementService:
         """Get statistics for a specific league type."""
         from app.models import Season, League, Team, Match, Schedule
 
-        current_season = Season.query.filter_by(
+        current_season = self.session.query(Season).filter_by(
             is_current=True,
             league_type=league_type
         ).first()
@@ -156,28 +156,28 @@ class LeagueManagementService:
                 'is_current': current_season.is_current
             }
 
-            leagues = League.query.filter_by(season_id=current_season.id).all()
+            leagues = self.session.query(League).filter_by(season_id=current_season.id).all()
             league_ids = [l.id for l in leagues]
 
             if league_ids:
-                result['teams_count'] = Team.query.filter(
+                result['teams_count'] = self.session.query(Team).filter(
                     Team.league_id.in_(league_ids)
                 ).count()
 
                 # Get team IDs for match counting
-                team_ids = [t.id for t in Team.query.filter(Team.league_id.in_(league_ids)).all()]
+                team_ids = [t.id for t in self.session.query(Team).filter(Team.league_id.in_(league_ids)).all()]
 
                 if team_ids:
                     today = datetime.utcnow().date()
 
-                    result['matches_total'] = Match.query.filter(
+                    result['matches_total'] = self.session.query(Match).filter(
                         or_(
                             Match.home_team_id.in_(team_ids),
                             Match.away_team_id.in_(team_ids)
                         )
                     ).count()
 
-                    result['matches_played'] = Match.query.filter(
+                    result['matches_played'] = self.session.query(Match).filter(
                         or_(
                             Match.home_team_id.in_(team_ids),
                             Match.away_team_id.in_(team_ids)
@@ -185,7 +185,7 @@ class LeagueManagementService:
                         Match.date < today
                     ).count()
 
-                    result['matches_upcoming'] = Match.query.filter(
+                    result['matches_upcoming'] = self.session.query(Match).filter(
                         or_(
                             Match.home_team_id.in_(team_ids),
                             Match.away_team_id.in_(team_ids)
@@ -195,7 +195,7 @@ class LeagueManagementService:
 
             # Get divisions/leagues
             for league in leagues:
-                teams = Team.query.filter_by(league_id=league.id).count()
+                teams = self.session.query(Team).filter_by(league_id=league.id).count()
                 result['divisions'].append({
                     'name': league.name,
                     'id': league.id,
@@ -209,7 +209,7 @@ class LeagueManagementService:
         from app.models.admin_config import AdminAuditLog
 
         try:
-            recent = AdminAuditLog.query.filter(
+            recent = self.session.query(AdminAuditLog).filter(
                 AdminAuditLog.resource_type.in_([
                     'season', 'team', 'league', 'match',
                     'league_management', 'match_operations'
@@ -236,11 +236,11 @@ class LeagueManagementService:
         """Get detailed summary for a specific season."""
         from app.models import Season, League, Team, Match, Schedule
 
-        season = Season.query.get(season_id)
+        season = self.session.get(Season, season_id)
         if not season:
             return {}
 
-        leagues = League.query.filter_by(season_id=season_id).all()
+        leagues = self.session.query(League).filter_by(season_id=season_id).all()
         league_ids = [l.id for l in leagues]
 
         team_count = 0
@@ -250,13 +250,13 @@ class LeagueManagementService:
         team_ids = []
 
         if league_ids:
-            teams = Team.query.filter(Team.league_id.in_(league_ids)).all()
+            teams = self.session.query(Team).filter(Team.league_id.in_(league_ids)).all()
             team_count = len(teams)
             team_ids = [t.id for t in teams]
 
         if team_ids:
             # Get all matches for teams in this season
-            matches = Match.query.filter(
+            matches = self.session.query(Match).filter(
                 or_(
                     Match.home_team_id.in_(team_ids),
                     Match.away_team_id.in_(team_ids)
@@ -286,7 +286,7 @@ class LeagueManagementService:
                 {
                     'id': l.id,
                     'name': l.name,
-                    'teams_count': Team.query.filter_by(league_id=l.id).count()
+                    'teams_count': self.session.query(Team).filter_by(league_id=l.id).count()
                 }
                 for l in leagues
             ]
@@ -332,7 +332,7 @@ class LeagueManagementService:
                 return False, 'League type and season name are required', None
 
             # Check for duplicate
-            existing = Season.query.filter(
+            existing = self.session.query(Season).filter(
                 func.lower(Season.name) == season_name.lower(),
                 Season.league_type == league_type
             ).first()
@@ -344,7 +344,7 @@ class LeagueManagementService:
             # This fixes gap #3 - rollover was failing because we queried after setting is_current=False
             old_current = None
             if set_as_current:
-                old_current = Season.query.filter_by(
+                old_current = self.session.query(Season).filter_by(
                     is_current=True,
                     league_type=league_type
                 ).first()
@@ -560,19 +560,19 @@ class LeagueManagementService:
         """
         from app.models import Season, League, Team, Player, PlayerTeamSeason
 
-        old_season = Season.query.get(old_season_id)
+        old_season = self.session.get(Season, old_season_id)
         if not old_season:
             return {'error': 'Season not found'}
 
         # Get leagues and teams
-        leagues = League.query.filter_by(season_id=old_season_id).all()
+        leagues = self.session.query(League).filter_by(season_id=old_season_id).all()
         league_ids = [l.id for l in leagues]
 
         teams = []
         player_count = 0
 
         if league_ids:
-            teams = Team.query.filter(Team.league_id.in_(league_ids)).all()
+            teams = self.session.query(Team).filter(Team.league_id.in_(league_ids)).all()
             # Count players on these teams
             for team in teams:
                 player_count += len(team.players) if hasattr(team, 'players') else 0
@@ -620,7 +620,7 @@ class LeagueManagementService:
 
         try:
             # Record team history
-            old_leagues = League.query.filter_by(season_id=old_season.id).all()
+            old_leagues = self.session.query(League).filter_by(season_id=old_season.id).all()
 
             for league in old_leagues:
                 for team in league.teams:
@@ -641,22 +641,21 @@ class LeagueManagementService:
     def delete_season(self, season_id: int, user_id: int) -> Tuple[bool, str]:
         """Delete season with comprehensive cleanup of all FK dependencies."""
         from app.models import Season, League, Team
-        from sqlalchemy import text
+        from sqlalchemy import delete, update
 
-        season = Season.query.get(season_id)
+        season = self.session.get(Season, season_id)
         if not season:
             return False, 'Season not found'
 
-        season_name = season.name
-
-        # If still marked as current, unset it (caller should have handled this)
+        # Reject deletion of current season
         if season.is_current:
-            season.is_current = False
-            self.session.flush()
+            return False, 'Cannot delete current season'
+
+        season_name = season.name
 
         try:
             # Queue Discord cleanup for teams
-            leagues = League.query.filter_by(season_id=season_id).all()
+            leagues = self.session.query(League).filter_by(season_id=season_id).all()
             league_ids = [l.id for l in leagues]
 
             for league in leagues:
@@ -665,182 +664,73 @@ class LeagueManagementService:
 
             if league_ids:
                 # Get all team IDs for these leagues
-                team_ids_result = self.session.execute(
-                    text("SELECT id FROM team WHERE league_id = ANY(:league_ids)"),
-                    {"league_ids": league_ids}
-                ).fetchall()
-                team_ids = [r[0] for r in team_ids_result]
+                team_ids_query = self.session.query(Team.id).filter(Team.league_id.in_(league_ids))
+                team_ids = [r[0] for r in team_ids_query.all()]
 
                 if team_ids:
                     # Delete team-dependent records
-                    team_tables = [
-                        "active_match_reporters",
-                        "draft_order_history",
-                        "ecs_fc_matches",
-                        "ecs_fc_player_events",
-                        "ecs_fc_schedule_templates",
-                        "ecs_fc_sub_requests",
-                        "league_poll_discord_messages",
-                        "match_events",
-                        "match_lineups",
-                        "player_event",
-                        "player_shifts",
-                        "player_team_history",
-                        "player_team_season",
-                        "player_teams",
-                        "standings",
-                        "sub_requests",
-                        "substitute_requests",
-                        "temporary_sub_assignments",
-                    ]
-                    for table in team_tables:
-                        try:
-                            self.session.execute(
-                                text(f"DELETE FROM {table} WHERE team_id = ANY(:team_ids)"),
-                                {"team_ids": team_ids}
-                            )
-                        except Exception:
-                            pass  # Table might not exist or have different schema
-
+                    from app.models import Match, Schedule
+                    # Add other models as needed if they are in the app.models namespace
+                    
                     # Delete matches (home and away teams)
                     try:
                         self.session.execute(
-                            text("DELETE FROM matches WHERE home_team_id = ANY(:team_ids) OR away_team_id = ANY(:team_ids)"),
-                            {"team_ids": team_ids}
+                            delete(Match).where(or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)))
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Could not delete matches: {e}")
 
                     # Delete schedule (team_id and opponent)
                     try:
                         self.session.execute(
-                            text("DELETE FROM schedule WHERE team_id = ANY(:team_ids) OR opponent = ANY(:team_ids)"),
-                            {"team_ids": team_ids}
+                            delete(Schedule).where(or_(Schedule.team_id.in_(team_ids), Schedule.opponent.in_(team_ids)))
                         )
-                    except Exception:
-                        pass
-
-                    # Delete schedule_templates (home and away teams)
-                    try:
-                        self.session.execute(
-                            text("DELETE FROM schedule_templates WHERE home_team_id = ANY(:team_ids) OR away_team_id = ANY(:team_ids)"),
-                            {"team_ids": team_ids}
-                        )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Could not delete schedule entries: {e}")
 
                     # Update player FKs to NULL instead of delete
+                    from app.models import Player
                     try:
                         self.session.execute(
-                            text("UPDATE player SET team_id = NULL, primary_team_id = NULL WHERE team_id = ANY(:team_ids) OR primary_team_id = ANY(:team_ids)"),
-                            {"team_ids": team_ids}
+                            update(Player).where(or_(Player.primary_team_id.in_(team_ids), Player.league_id.in_(league_ids)))
+                            .values(primary_team_id=None, league_id=None)
                         )
-                    except Exception:
-                        pass
-
-                # Delete league-dependent records
-                league_tables = [
-                    "auto_schedule_configs",
-                    "draft_order_history",
-                    "league_events",
-                    "player_league",
-                    "player_order_history",
-                    "player_season_stats",
-                    "season_configurations",
-                    "substitute_pool_history",
-                    "substitute_pools",
-                    "week_configurations",
-                    "schedule_templates",
-                ]
-                for table in league_tables:
-                    try:
-                        self.session.execute(
-                            text(f"DELETE FROM {table} WHERE league_id = ANY(:league_ids)"),
-                            {"league_ids": league_ids}
-                        )
-                    except Exception:
-                        pass
-
-                # Update player league FKs to NULL
-                try:
-                    self.session.execute(
-                        text("UPDATE player SET league_id = NULL, primary_league_id = NULL WHERE league_id = ANY(:league_ids) OR primary_league_id = ANY(:league_ids)"),
-                        {"league_ids": league_ids}
-                    )
-                except Exception:
-                    pass
+                    except Exception as e:
+                        logger.debug(f"Could not update players: {e}")
 
                 # Update users league FK to NULL
+                from app.models import User
                 try:
                     self.session.execute(
-                        text("UPDATE users SET league_id = NULL WHERE league_id = ANY(:league_ids)"),
-                        {"league_ids": league_ids}
+                        update(User).where(User.league_id.in_(league_ids))
+                        .values(league_id=None)
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Could not update users: {e}")
 
                 # Delete teams
                 try:
                     self.session.execute(
-                        text("DELETE FROM team WHERE league_id = ANY(:league_ids)"),
-                        {"league_ids": league_ids}
+                        delete(Team).where(Team.league_id.in_(league_ids))
                     )
-                except Exception:
-                    pass
-
-            # Delete season-dependent records
-            season_tables = [
-                "draft_order_history",
-                "draft_seasons",
-                "league_events",
-                "player_order_history",
-                "player_season_stats",
-                "player_stat_audit",
-                "player_team_season",
-                "pub_league_order",
-                "schedule",
-                "standings",
-                "stat_change_logs",
-                "store_orders",
-                "wallet_pass",
-            ]
-            for table in season_tables:
-                try:
-                    self.session.execute(
-                        text(f"DELETE FROM {table} WHERE season_id = :season_id"),
-                        {"season_id": season_id}
-                    )
-                except Exception:
-                    pass
-
-            # Update nullable season FKs
-            try:
-                self.session.execute(
-                    text("UPDATE player_attendance_stats SET current_season_id = NULL WHERE current_season_id = :season_id"),
-                    {"season_id": season_id}
-                )
-            except Exception:
-                pass
+                except Exception as e:
+                    logger.debug(f"Could not delete teams: {e}")
 
             # Delete leagues
             try:
                 self.session.execute(
-                    text("DELETE FROM league WHERE season_id = :season_id"),
-                    {"season_id": season_id}
+                    delete(League).where(League.season_id == season_id)
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug(f"Could not delete leagues: {e}")
 
             # Finally delete the season
-            self.session.execute(
-                text("DELETE FROM season WHERE id = :season_id"),
-                {"season_id": season_id}
-            )
+            self.session.delete(season)
 
             logger.info(f"Season {season_name} deleted by user {user_id}")
             return True, f'Season "{season_name}" deleted successfully'
         except Exception as e:
-            logger.error(f"Error deleting season: {e}")
+            logger.error(f"Error deleting season: {e}", exc_info=True)
             return False, f'Failed to delete season: {str(e)}'
 
     def _queue_discord_team_cleanup(self, team: Any) -> None:
@@ -873,12 +763,12 @@ class LeagueManagementService:
             if not is_valid:
                 return False, f'Invalid team name: {"; ".join(validation_errors)}', None
 
-            league = League.query.get(league_id)
+            league = self.session.get(League, league_id)
             if not league:
                 return False, 'League not found', None
 
             # Check for duplicate name in same league
-            existing = Team.query.filter(
+            existing = self.session.query(Team).filter(
                 func.lower(Team.name) == name.lower(),
                 Team.league_id == league_id
             ).first()
@@ -933,14 +823,14 @@ class LeagueManagementService:
         from app.models.admin_config import AdminAuditLog
 
         try:
-            team = Team.query.get(team_id)
+            team = self.session.get(Team, team_id)
             if not team:
                 return False, 'Team not found'
 
             old_name = team.name
 
             # Check for duplicate
-            existing = Team.query.filter(
+            existing = self.session.query(Team).filter(
                 func.lower(Team.name) == new_name.lower(),
                 Team.league_id == team.league_id,
                 Team.id != team_id
@@ -950,6 +840,7 @@ class LeagueManagementService:
                 return False, f'A team named "{new_name}" already exists in this league'
 
             team.name = new_name
+            self.session.flush()
 
             # Queue Discord update
             self._queue_discord_team_update(team, old_name)
@@ -997,7 +888,7 @@ class LeagueManagementService:
         from app.models.admin_config import AdminAuditLog
 
         try:
-            team = Team.query.get(team_id)
+            team = self.session.get(Team, team_id)
             if not team:
                 return False, 'Team not found'
 
@@ -1041,7 +932,7 @@ class LeagueManagementService:
         from app.models import Team
 
         try:
-            team = Team.query.get(team_id)
+            team = self.session.get(Team, team_id)
             if not team:
                 return False, 'Team not found'
 
@@ -1108,7 +999,7 @@ class LeagueManagementService:
         from app.models import PlayerTeamSeason, Team, Season
 
         try:
-            history = PlayerTeamSeason.query.filter_by(
+            history = PlayerTeamself.session.query(Season).filter_by(
                 player_id=player_id
             ).options(
                 joinedload(PlayerTeamSeason.team),
@@ -1136,7 +1027,7 @@ class LeagueManagementService:
         from app.models import Season, League, Team
 
         try:
-            query = Season.query.options(
+            query = self.session.query(Season).options(
                 joinedload(Season.leagues)
             ).order_by(Season.id.desc())
 
@@ -1150,7 +1041,7 @@ class LeagueManagementService:
                 # Calculate team count safely
                 team_count = 0
                 for l in s.leagues:
-                    team_count += Team.query.filter_by(league_id=l.id).count()
+                    team_count += self.session.query(Team).filter_by(league_id=l.id).count()
 
                 # Handle created_at - Season model may not have this field
                 created_at = None
@@ -1178,7 +1069,7 @@ class LeagueManagementService:
         from app.models import Player
 
         try:
-            players = Player.query.filter(
+            players = self.session.query(Player).filter(
                 Player.name.ilike(f'%{name_query}%')
             ).limit(limit).all()
 

@@ -55,7 +55,8 @@ def register():
             logger.error(f"Registration error: {str(e)}")
             show_error('Registration failed. Please try again.')
 
-    return render_template('register_flowbite.html', title='Register', form=form)
+    from app.forms import EmptyForm
+    return render_template('register_flowbite.html', title='Register', form=form, empty_form=EmptyForm())
 
 
 @auth.route('/register_with_discord', methods=['GET', 'POST'])

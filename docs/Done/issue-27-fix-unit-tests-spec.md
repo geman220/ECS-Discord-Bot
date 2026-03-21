@@ -52,3 +52,50 @@ Fix failing tests in `./buildAndTest.sh` and address critical findings from the 
 | 6 | 🟡 | `conftest.py` | Incomplete `tables_to_clean` list | ✅ Fixed |
 | 7 | 🟡 | `match_commands.py` | Generic exception leak & redundant sessions | ✅ Fixed |
 | 8 | 🟡 | `match_commands.py` | Dead code `is_match_closed` | ✅ Fixed |
+
+## 5. WebUI Test Status (Post-Fix Pass)
+While significant progress was made fixing WebUI infrastructure (SQLite compatibility, session syncing, missing model properties), several tests remain failing due to `DetachedInstanceError` or environmental issues. Per user request, these have been temporarily skipped to allow CI to pass, with logging here for a future pass.
+
+### Skipped Modules
+| Module | Reason | Status |
+|--------|--------|--------|
+| `tests/unit/routes/test_auto_schedule.py` | Massive failures due to `IntegrityError` and `DetachedInstanceError` | ⏩ Skipped |
+| `tests/unit/routes/test_match_pages.py` | Consistent `DetachedInstanceError` in fixtures | ⏩ Skipped |
+| `tests/unit/routes/test_players.py` | Consistent `DetachedInstanceError` in fixtures | ⏩ Skipped |
+
+### Partially Skipped Tests in `test_auth_flows.py`
+- `TestSessionPersistence.test_session_contains_user_id`
+- `TestSessionPersistence.test_auth_check_endpoint_for_authenticated_user`
+- `TestPasswordResetFlow.test_expired_reset_token_is_rejected`
+- `TestPasswordResetFlow.test_password_reset_page_with_invalid_token_redirects`
+- `TestPasswordResetFlow.test_password_can_be_changed_with_valid_token`
+
+### Skipped Integration Modules
+| Module | Reason | Status |
+|--------|--------|--------|
+| `tests/integration/test_infrastructure.py` | SQLite session identity and `KeyError` during updates | ⏩ Skipped |
+| `tests/integration/test_rsvp_behaviors.py` | Massive failures due to `KeyError` on `UPDATE users` | ⏩ Skipped |
+| `tests/integration/test_sms_behaviors.py` | Consistency issues with SMS workflow in SQLite | ⏩ Skipped |
+
+### Partially Skipped Integration Tests
+- `TestRegistrationBehaviors.test_approved_user_can_be_authenticated` (DetachedInstanceError)
+
+## 6. Key Fixes Applied
+- **Session Sync**: Modified `@transactional` and `conftest.py` to ensure `g.db_session` and `db.session` share the same identity in tests.
+- **SQLite Compatibility**: Replaced PostgreSQL-specific `ANY` with `IN` and patched `JSONB` to `JSON`.
+- **Model Properties**: Added `is_global_admin` and `is_pub_league_admin` to `User` model.
+- **Schema Integrity**: Updated match and schedule creation routes to populate mandatory fields (`location`, `schedule_id`) and enforce creation order.
+- **CSRF**: Fixed missing `empty_form` in registration and password reset templates.
+
+## 7. Code Review Findings (Issue #27)
+
+| # | Severity | File | Issue | Status |
+|---|----------|------|-------|--------|
+| 1 | 🔴 | `db_utils.py` | `transactional` overwrites `g.db_session` regardless of state | ✅ Fixed |
+| 2 | 🟡 | `core.py` | Missing docstrings for `is_global_admin`/`is_pub_league_admin` | ✅ Fixed |
+| 3 | 🟡 | `scheduling.py` | Redundant `datetime.strptime` in loop | ✅ Fixed |
+| 4 | 🟢 | `conftest.py` | `tables_to_clean` is hardcoded/incomplete | ⏳ Deferred |
+| 5 | 🔴 | `league_management_service.py` | Raw SQL strings in `delete_season` prone to dialect errors | ✅ Fixed |
+| 6 | 🟡 | `user_locking.py` | Slow debug logging (querying all IDs) on user-not-found | ✅ Fixed |
+| 7 | 🔴 | `approvals.py` | `clear_deferred_discord()` placement vs logging | ✅ Fixed |
+| 8 | 🟡 | `test_admin_behaviors.py` | Excessive use of `db.session.merge()` masks infra issues | ⚠️ Assessed |

@@ -468,6 +468,12 @@ class AdminAuditLog(db.Model):
                                Defaults to False since most callers use @transactional.
         """
         try:
+            from flask import g, has_request_context
+            if has_request_context() and hasattr(g, 'db_session') and g.db_session:
+                session = g.db_session
+            else:
+                session = db.session
+
             log_entry = cls(
                 user_id=user_id,
                 action=action,
@@ -478,9 +484,9 @@ class AdminAuditLog(db.Model):
                 ip_address=ip_address,
                 user_agent=user_agent
             )
-            db.session.add(log_entry)
+            session.add(log_entry)
             if auto_commit:
-                db.session.commit()
+                session.commit()
             logger.debug(f"Admin action logged: {user_id}:{action} on {resource_type}")
         except Exception as e:
             logger.error(f"Error logging admin action: {e}")

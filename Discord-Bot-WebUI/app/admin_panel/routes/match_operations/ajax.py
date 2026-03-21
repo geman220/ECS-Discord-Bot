@@ -18,10 +18,15 @@ from sqlalchemy.orm import joinedload
 
 from app.admin_panel import admin_panel_bp
 from app.core import db
+from app.models import Team
 from app.models.admin_config import AdminAuditLog
 from app.models.matches import Match
 from app.decorators import role_required
 from app.utils.db_utils import transactional
+try:
+    from app.tasks.tasks_discord import update_team_discord_resources_task
+except ImportError:
+    update_team_discord_resources_task = None
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +43,7 @@ def get_match_details():
             return jsonify({'success': False, 'message': 'Match ID is required'})
 
         # Query match with related data using eager loading to avoid N+1
-        match = Match.query.options(
+        match = db.session.query(Match).options(
             joinedload(Match.home_team),
             joinedload(Match.away_team),
             joinedload(Match.ref),
@@ -173,10 +178,10 @@ def set_current_season():
         return jsonify({'success': False, 'message': 'Season ID is required'})
 
     # Clear current season status from all seasons
-    Season.query.update({'is_current': False})
+    db.session.query(Season).update({'is_current': False})
 
     # Set the selected season as current
-    season = Season.query.get_or_404(season_id)
+    season = db.session.query(Season).get_or_404(season_id)
     season.is_current = True
 
     # Restore player-team memberships from PlayerTeamSeason history
@@ -222,7 +227,7 @@ def rename_team():
     if not team_id or not new_name:
         return jsonify({'success': False, 'message': 'Team ID and new name are required'})
 
-    team = Team.query.get_or_404(team_id)
+    team = db.session.query(Team).get_or_404(team_id)
     old_name = team.name
 
     # Update team name
@@ -242,13 +247,13 @@ def rename_team():
 
     # Trigger Discord automation for team name change
     # Updates Discord role names, channel names, etc.
-    try:
-        from app.tasks.tasks_discord import update_team_discord_resources_task
-        update_team_discord_resources_task.delay(team_id=int(team_id), new_team_name=new_name)
-        logger.info(f"Discord automation task queued for team {team_id} rename")
-    except Exception as discord_err:
-        logger.warning(f"Could not queue Discord automation task: {discord_err}")
-        # Don't fail the rename if Discord task fails to queue
+    if update_team_discord_resources_task:
+        try:
+            update_team_discord_resources_task.delay(team_id=int(team_id), new_team_name=new_name)
+            logger.info(f"Discord automation task queued for team {team_id} rename")
+        except Exception as discord_err:
+            logger.warning(f"Could not queue Discord automation task: {discord_err}")
+            # Don't fail the rename if Discord task fails to queue
 
     logger.info(f"Team {team_id} renamed from '{old_name}' to '{new_name}' by user {current_user.id}")
 

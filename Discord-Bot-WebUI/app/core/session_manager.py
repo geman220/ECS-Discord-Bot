@@ -74,7 +74,7 @@ def cleanup_request(exception=None):
         logger.debug("Skipping session cleanup - request was in degraded mode (no session created)")
         return
         
-    if hasattr(g, 'db_session'):
+    if hasattr(g, 'db_session') and g.db_session is not None:
         # Generate a session ID for logging
         session_id = str(id(g.db_session))
         

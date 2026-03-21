@@ -14,7 +14,8 @@ class UserAuthData:
     This avoids DetachedInstanceError while providing all needed auth data.
     """
     def __init__(self, id, username, is_active, roles, player_id=None, player_name=None,
-                 has_completed_onboarding=False, has_skipped_profile_creation=False):
+                 has_completed_onboarding=False, has_skipped_profile_creation=False,
+                 waitlist_joined_at=None):
         self.id = id
         self.username = username
         self.is_active = is_active
@@ -25,6 +26,7 @@ class UserAuthData:
         self.player_name = player_name
         self.has_completed_onboarding = has_completed_onboarding
         self.has_skipped_profile_creation = has_skipped_profile_creation
+        self.waitlist_joined_at = waitlist_joined_at
 
     def has_role(self, role_name):
         return role_name.lower() in [r.lower() for r in self.roles]
@@ -47,14 +49,24 @@ class UserAuthData:
             'player_id': self.player_id,
             'player_name': self.player_name,
             'has_completed_onboarding': self.has_completed_onboarding,
-            'has_skipped_profile_creation': self.has_skipped_profile_creation
+            'has_skipped_profile_creation': self.has_skipped_profile_creation,
+            'waitlist_joined_at': self.waitlist_joined_at.isoformat() if hasattr(self.waitlist_joined_at, 'isoformat') else self.waitlist_joined_at
         })
 
     @classmethod
     def from_json(cls, json_str: str) -> 'UserAuthData':
         """Deserialize from JSON string (Redis cache)."""
         import json
+        from datetime import datetime
         data = json.loads(json_str)
+        
+        waitlist_at = data.get('waitlist_joined_at')
+        if waitlist_at and isinstance(waitlist_at, str):
+            try:
+                waitlist_at = datetime.fromisoformat(waitlist_at)
+            except ValueError:
+                pass
+                
         return cls(
             id=data['id'],
             username=data['username'],
@@ -63,7 +75,8 @@ class UserAuthData:
             player_id=data.get('player_id'),
             player_name=data.get('player_name'),
             has_completed_onboarding=data.get('has_completed_onboarding', False),
-            has_skipped_profile_creation=data.get('has_skipped_profile_creation', False)
+            has_skipped_profile_creation=data.get('has_skipped_profile_creation', False),
+            waitlist_joined_at=waitlist_at
         )
 
 
@@ -241,7 +254,8 @@ class EfficientQuery:
                     player_id=user.player.id if user.player else None,
                     player_name=user.player.name if user.player else None,
                     has_completed_onboarding=user.has_completed_onboarding,
-                    has_skipped_profile_creation=user.has_skipped_profile_creation
+                    has_skipped_profile_creation=user.has_skipped_profile_creation,
+                    waitlist_joined_at=user.waitlist_joined_at
                 )
         else:
             # Fallback to managed_session for non-request contexts (like Celery)
@@ -261,7 +275,8 @@ class EfficientQuery:
                         player_id=user.player.id if user.player else None,
                         player_name=user.player.name if user.player else None,
                         has_completed_onboarding=user.has_completed_onboarding,
-                        has_skipped_profile_creation=user.has_skipped_profile_creation
+                        has_skipped_profile_creation=user.has_skipped_profile_creation,
+                        waitlist_joined_at=user.waitlist_joined_at
                     )
 
         # Cache in Redis for future requests

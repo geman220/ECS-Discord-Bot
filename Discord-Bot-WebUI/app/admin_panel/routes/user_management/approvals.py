@@ -24,7 +24,7 @@ from app.models.core import User, Role
 from app.models.ecs_fc import is_ecs_fc_team
 from app.decorators import role_required
 from app.utils.db_utils import transactional
-from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
+from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError, UserNotFoundError
 from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal, execute_deferred_discord, clear_deferred_discord
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.utils.user_helpers import safe_current_user
@@ -39,20 +39,20 @@ def user_management():
     """User management hub page."""
     try:
         # Get user statistics
-        total_users = User.query.count()
-        pending_approvals = User.query.filter_by(approval_status='pending').count()
-        approved_users = User.query.filter_by(approval_status='approved').count()
-        denied_users = User.query.filter_by(approval_status='denied').count()
+        total_users = db.session.query(User).count()
+        pending_approvals = db.session.query(User).filter_by(approval_status='pending').count()
+        approved_users = db.session.query(User).filter_by(approval_status='approved').count()
+        denied_users = db.session.query(User).filter_by(approval_status='denied').count()
 
         # Get waitlist statistics
-        waitlist_users = User.query.join(User.roles).filter(Role.name == 'pl-waitlist').count()
+        waitlist_users = db.session.query(User).join(User.roles).filter(Role.name == 'pl-waitlist').count()
 
         # Get role statistics
-        total_roles = Role.query.count()
-        users_with_roles = User.query.join(User.roles).distinct().count()
+        total_roles = db.session.query(Role).count()
+        users_with_roles = db.session.query(User).join(User.roles).distinct().count()
 
         # Get recent admin actions related to users
-        recent_actions = AdminAuditLog.query.filter(
+        recent_actions = db.session.query(AdminAuditLog).filter(
             AdminAuditLog.resource_type.in_(['user_approval', 'user_waitlist', 'user_roles'])
         ).order_by(AdminAuditLog.timestamp.desc()).limit(10).all()
 
@@ -200,6 +200,7 @@ def approve_user(user_id: int):
 
         # Acquire lock on user to prevent concurrent role modifications
         with lock_user_for_role_update(user_id, session=db.session) as user:
+
             # Check if user has pl-waitlist role (can approve directly from waitlist)
             has_waitlist_role = any(role.name == 'pl-waitlist' for role in user.roles)
 
@@ -337,6 +338,14 @@ def approve_user(user_id: int):
 
         return jsonify(response_data)
 
+    except UserNotFoundError:
+        clear_deferred_discord()
+        logger.warning(f"User {user_id} not found during processing")
+        return jsonify({
+            'success': False,
+            'message': 'User not found.'
+        }), 404
+
     except LockAcquisitionError:
         clear_deferred_discord()
         logger.warning(f"Lock acquisition failed for user {user_id} during approval")
@@ -368,6 +377,7 @@ def deny_user(user_id: int):
 
         # Acquire lock on user to prevent concurrent role modifications
         with lock_user_for_role_update(user_id, session=db.session) as user:
+
             if user.approval_status != 'pending':
                 return jsonify({'success': False, 'message': 'User is not pending approval'}), 400
 
@@ -422,6 +432,14 @@ def deny_user(user_id: int):
 
         return jsonify(response_data)
 
+    except UserNotFoundError:
+        clear_deferred_discord()
+        logger.warning(f"User {user_id} not found during processing")
+        return jsonify({
+            'success': False,
+            'message': 'User not found.'
+        }), 404
+
     except LockAcquisitionError:
         clear_deferred_discord()
         logger.warning(f"Lock acquisition failed for user {user_id} during denial")
@@ -447,7 +465,7 @@ def process_user_approval():
 
         if action == 'approve_all':
             # Approve all pending users for classic league (default)
-            pending_users = User.query.filter_by(approval_status='pending').all()
+            pending_users = db.session.query(User).filter_by(approval_status='pending').all()
             approved_count = 0
 
             for user in pending_users:
@@ -497,7 +515,7 @@ def get_user_details():
         user = db.session.query(User).options(
             joinedload(User.player),
             joinedload(User.roles)
-        ).filter_by(id=user_id).first()
+        ).get(user_id)
 
         if not user:
             return jsonify({'success': False, 'message': 'User not found'}), 404
@@ -540,7 +558,7 @@ def get_user_details():
 def user_details_api(user_id):
     """Get detailed user information for modal display."""
     try:
-        user = User.query.options(
+        user = db.session.query(User).options(
             joinedload(User.player),
             joinedload(User.roles)
         ).get(user_id)

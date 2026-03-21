@@ -18,8 +18,9 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import extract
 from sqlalchemy.ext.hybrid import hybrid_property
-
+from sqlalchemy.orm import joinedload
 from app.core import db
+
 from app.models.players import player_teams, player_league
 
 # Set up the module logger
@@ -193,7 +194,36 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     def has_role(self, role_name):
+        """
+        Check if the user has a specific role.
+
+        Args:
+            role_name (str): The name of the role to check for.
+
+        Returns:
+            bool: True if the user has the role, False otherwise.
+        """
         return any(role.name == role_name for role in self.roles or [])
+
+    @property
+    def is_global_admin(self):
+        """
+        Check if user has Global Admin role.
+
+        Returns:
+            bool: True if user is a Global Admin.
+        """
+        return self.has_role('Global Admin')
+
+    @property
+    def is_pub_league_admin(self):
+        """
+        Check if user has Pub League Admin role.
+
+        Returns:
+            bool: True if user is a Pub League Admin.
+        """
+        return self.has_role('Pub League Admin')
 
     def has_permission(self, permission_name):
         return any(
@@ -202,7 +232,40 @@ class User(UserMixin, db.Model):
             for perm in role.permissions or []
         )
 
+    @classmethod
+    def get_by_id(cls, user_id):
+        """Get user by ID with optimized loading."""
+        from flask import g, has_request_context
+        # Use g.db_session if available (synced in tests), else default to db.session
+        if has_request_context() and hasattr(g, 'db_session') and g.db_session:
+            session = g.db_session
+        else:
+            session = db.session
+            
+        return session.get(cls, user_id, options=[
+            joinedload(cls.player),
+            joinedload(cls.roles)
+        ])
+
+    @classmethod
+    def find_by_email(cls, email):
+        """Find a user by their email address using the search hash."""
+        if not email:
+            return None
+        from app.utils.pii_encryption import create_hash
+        from flask import g, has_request_context
+        
+        # Determine session to use
+        if has_request_context() and hasattr(g, 'db_session') and g.db_session:
+            session = g.db_session
+        else:
+            session = db.session
+            
+        search_hash = create_hash(email.lower())
+        return session.query(cls).filter_by(email_hash=search_hash).all()
+
     def to_dict(self):
+        """Serialize user to dictionary."""
         return {
             'id': self.id,
             'username': self.username,

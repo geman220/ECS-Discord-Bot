@@ -35,8 +35,14 @@ class LockAcquisitionError(Exception):
 
     This typically occurs when:
     - Another request is already modifying the user's roles
-    - The user record does not exist
     - A database timeout occurred while waiting for the lock
+    """
+    pass
+
+
+class UserNotFoundError(Exception):
+    """
+    Raised when a user record does not exist.
     """
     pass
 
@@ -89,29 +95,28 @@ def lock_user_for_role_update(user_id, session=None, nowait=True, timeout=None):
         session = get_session()
 
     try:
+        # Get dialect to check compatibility
+        is_sqlite = session.get_bind().dialect.name == 'sqlite'
+
         # Set a lock timeout if specified (PostgreSQL only).
         # This limits how long we wait for a lock when nowait=False.
-        if timeout and not nowait:
+        if timeout and not nowait and not is_sqlite:
             from sqlalchemy import text
             session.execute(text(f"SET LOCAL lock_timeout = '{int(timeout * 1000)}ms'"))
 
-        # IMPORTANT: Do NOT use joinedload with FOR UPDATE!
-        # PostgreSQL does not support FOR UPDATE on LEFT OUTER JOINs
-        # (which joinedload creates for nullable relationships like User.player)
-        #
-        # Instead, we lock the user row first, then access relationships after.
-        # SQLAlchemy will lazy-load them within the same transaction.
         query = session.query(User).filter(User.id == user_id)
 
-        # Apply the FOR UPDATE lock
-        # nowait=True: Fail immediately if another transaction holds the lock
-        # nowait=False: Wait for the lock to be released
-        query = query.with_for_update(nowait=nowait)
+        # Apply the FOR UPDATE lock only for compatible databases (like PostgreSQL)
+        if not is_sqlite:
+            # nowait=True: Fail immediately if another transaction holds the lock
+            # nowait=False: Wait for the lock to be released
+            query = query.with_for_update(nowait=nowait)
 
         user = query.first()
 
         if user is None:
-            raise LockAcquisitionError(f"User {user_id} not found")
+            logger.warning(f"User {user_id} not found in lock_user_for_role_update")
+            raise UserNotFoundError(f"User {user_id} not found")
 
         # Explicitly load the relationships we need within the lock
         # This triggers lazy loading but keeps it within the transaction
@@ -182,14 +187,16 @@ def lock_users_for_role_update(user_ids, session=None, nowait=True):
         return
 
     try:
-        # Query all users with FOR UPDATE, locked in order
-        # IMPORTANT: Do NOT use joinedload - PostgreSQL doesn't support
-        # FOR UPDATE on LEFT OUTER JOINs
-        users = session.query(User).filter(
-            User.id.in_(sorted_ids)
-        ).order_by(
-            User.id
-        ).with_for_update(nowait=nowait).all()
+        # SQLite does not support FOR UPDATE row-level locking
+        is_sqlite = session.get_bind().dialect.name == 'sqlite'
+
+        # Query all users, locked in order if supported
+        query = session.query(User).filter(User.id.in_(sorted_ids)).order_by(User.id)
+
+        if not is_sqlite:
+            query = query.with_for_update(nowait=nowait)
+
+        users = query.all()
 
         # Build the result dictionary
         locked_users = {user.id: user for user in users}

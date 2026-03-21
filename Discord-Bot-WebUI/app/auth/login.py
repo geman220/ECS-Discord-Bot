@@ -79,7 +79,7 @@ def login():
         email = form.email.data.lower()
         logger.debug(f"Attempting login for email: {email}")
 
-        users = User.query.filter_by(email=email).all()
+        users = User.find_by_email(email)
         if not users:
             logger.debug("No user found with provided email")
             show_error('Invalid email or password')

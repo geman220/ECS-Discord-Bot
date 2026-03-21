@@ -60,6 +60,13 @@ def _ensure_required_roles(SessionLocal):
         session = SessionLocal()
         try:
             # Check for pl-unverified role
+            # Use SQLAlchemy's inspect to check if table exists first to avoid OperationalError
+            from sqlalchemy import inspect
+            inspector = inspect(session.bind)
+            if not inspector.has_table('roles'):
+                logger.warning("Roles table does not exist yet, skipping role initialization")
+                return
+
             sub_role = session.query(Role).filter_by(name='pl-unverified').first()
             if not sub_role:
                 logger.info("Creating pl-unverified role in database")
