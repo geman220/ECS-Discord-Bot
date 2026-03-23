@@ -331,6 +331,14 @@ export class ScheduleManager {
     // POST the form to either add_match or edit_match
     async handleMatchFormSubmit(evt) {
         evt.preventDefault();
+
+        if (!this.isAddOperation && !this.currentMatchId) {
+            if (typeof window.Swal !== 'undefined') {
+                window.Swal.fire('Error', 'No match selected for editing.', 'error');
+            }
+            return;
+        }
+
         const form = evt.target;
         const formData = new FormData(form);
 

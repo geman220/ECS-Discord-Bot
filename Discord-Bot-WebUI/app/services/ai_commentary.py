@@ -747,13 +747,14 @@ Generate a raw, authentic full-time reaction to this result:"""
         
     def _create_thread_context_prompt(self, match_context: Dict[str, Any]) -> str:
         """Create prompt for match thread contextual description."""
-        
+
         home_team_raw = match_context.get('home_team', 'Home')
         home_team = home_team_raw.get('displayName', 'Home') if isinstance(home_team_raw, dict) else home_team_raw
         away_team_raw = match_context.get('away_team', 'Away')
         away_team = away_team_raw.get('displayName', 'Away') if isinstance(away_team_raw, dict) else away_team_raw
         competition = match_context.get('competition', 'MLS')
         venue = match_context.get('venue', 'Unknown Venue')
+        match_date = match_context.get('match_date', '')
         opponent = away_team if home_team == "Seattle Sounders FC" else home_team
 
         # Determine match importance and storylines
@@ -763,19 +764,36 @@ Generate a raw, authentic full-time reaction to this result:"""
         is_vancouver = "vancouver" in opponent.lower() or "whitecap" in opponent.lower()
         is_home = home_team == "Seattle Sounders FC"
 
+        # Determine season stage from date
+        season_stage = "regular season"
+        try:
+            month = datetime.now().month
+            if month in (2, 3, 4):
+                season_stage = "early in the MLS season"
+            elif month in (5, 6, 7):
+                season_stage = "mid-season"
+            elif month in (8, 9):
+                season_stage = "the stretch run of the season"
+            elif month in (10, 11, 12):
+                season_stage = "late in the season"
+        except Exception:
+            pass
+
         prompt = f"""You are creating a contextual description for a new match thread. This should give fans context about why this match matters and what to watch for.
 
 MATCH DETAILS:
 - Teams: {home_team} vs {away_team}
 - Competition: {competition}
 - Venue: {venue}
+- Match Date: {match_date}
+- Season Stage: This match is {season_stage}
 - Location: {f'Home at {venue}' if is_home else f'Away at {venue}'}"""
 
         if is_final:
             prompt += f"\n- FINAL MATCH - Trophy on the line!"
         elif is_playoff:
             prompt += f"\n- Playoff match - season defining moment!"
-            
+
         if is_portland:
             prompt += f"\n- PORTLAND RIVALRY - Cascadia Cup implications!"
         elif is_vancouver:
@@ -783,15 +801,19 @@ MATCH DETAILS:
 
         prompt += f"""
 
+CRITICAL RULES:
+- Do NOT mention playoffs, playoff positioning, or postseason UNLESS the competition name explicitly says "playoff" or "cup"
+- Use the season stage provided above to frame the match correctly
+- Do NOT invent standings, records, or statistics
+
 TONE & STYLE:
 - Informative but exciting - set the stage for discussion
 - ECS supporter perspective but welcoming to all fans
-- Highlight what makes this match significant
 - Build anticipation and encourage predictions
 - Professional but passionate - this is for match thread creation
 - NO swearing in this context (thread welcome message)
 
-RESPONSE REQUIREMENTS:  
+RESPONSE REQUIREMENTS:
 - Maximum 200 characters (embed description)
 - 1-2 sentences max
 - Contextual information about match importance
@@ -799,7 +821,7 @@ RESPONSE REQUIREMENTS:
 - Welcome tone for all supporters joining the thread
 
 Generate a welcoming but informative match thread description:"""
-        
+
         return prompt
 
 

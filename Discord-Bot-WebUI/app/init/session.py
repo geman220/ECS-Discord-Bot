@@ -33,7 +33,7 @@ def init_session(app, redis_manager):
         redis_url = app.config.get('REDIS_URL', 'redis://redis:6379/0')
         session_pool = ConnectionPool.from_url(
             redis_url,
-            max_connections=10,
+            max_connections=50,
             socket_timeout=5.0,
             socket_connect_timeout=3.0,
             retry_on_timeout=True,

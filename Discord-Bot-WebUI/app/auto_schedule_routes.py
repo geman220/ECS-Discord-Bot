@@ -793,6 +793,21 @@ def delete_week(league_id):
         return jsonify({'success': False, 'error': str(e)})
 
 
+@auto_schedule_bp.route('/current-season')
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def current_season_schedule():
+    """Redirect to the current Pub League season's schedule view."""
+    session = g.db_session
+    current_season = session.query(Season).filter_by(
+        league_type='Pub League', is_current=True
+    ).first()
+    if current_season:
+        return redirect(url_for('auto_schedule.view_seasonal_schedule', season_id=current_season.id))
+    show_warning('No current Pub League season found. Use Season Builder to create one.')
+    return redirect(url_for('auto_schedule.schedule_manager'))
+
+
 @auto_schedule_bp.route('/')
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])

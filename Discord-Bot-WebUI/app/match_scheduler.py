@@ -21,7 +21,7 @@ from app.services.redis_connection_service import get_redis_service
 from app.core import celery as celery_app
 from app.core.helpers import get_match
 from app.core.session_manager import managed_session
-from app.tasks.tasks_live_reporting import start_live_reporting, force_create_mls_thread_task
+from app.tasks.tasks_live_reporting import force_create_mls_thread_task
 from app.tasks.match_scheduler import create_mls_match_thread_task, start_mls_live_reporting_task
 
 logger = logging.getLogger(__name__)

@@ -18,7 +18,6 @@ from dataclasses import dataclass
 
 from app.core import db, celery as celery_app
 from app.models.live_reporting_session import LiveReportingSession
-from app.tasks.tasks_live_reporting_v2 import process_single_match_v2
 
 
 logger = logging.getLogger(__name__)
@@ -264,28 +263,14 @@ class LiveReportingManager:
             logger.warning(f"Backpressure blocking match {session.match_id}")
             return False
         
-        try:
-            # Schedule the task with retry policy
-            task = process_single_match_v2.apply_async(
-                args=[session.match_id],
-                queue='live_reporting',
-                retry=True,
-                retry_policy={
-                    'max_retries': 3,
-                    'interval_start': 2,
-                    'interval_step': 2,
-                    'interval_max': 30,
-                }
-            )
-            
-            logger.info(f"Scheduled processing for match {session.match_id}, task: {task.id}")
-            self.circuit_breaker.record_success()
-            return True
-            
-        except Exception as e:
-            logger.error(f"Failed to schedule match {session.match_id}: {e}")
-            self.circuit_breaker.record_failure()
-            return False
+        # DEPRECATED: Individual match processing is now handled by RealtimeReportingService.
+        # The realtime service polls the DB for active sessions automatically.
+        # This method is kept for interface compatibility but does nothing.
+        logger.info(
+            f"Match {session.match_id} processing is handled by RealtimeReportingService. "
+            f"No Celery task dispatch needed."
+        )
+        return True
     
     def process_active_sessions(self) -> Dict[str, Any]:
         """

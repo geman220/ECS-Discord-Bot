@@ -64,6 +64,12 @@ class ExternalOpponent(db.Model):
 class EcsFcMatch(db.Model):
     """Model for ECS FC matches."""
     __tablename__ = 'ecs_fc_matches'
+    __table_args__ = (
+        db.CheckConstraint(
+            "status IN ('SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'POSTPONED', 'BYE')",
+            name='chk_ecs_fc_matches_status'
+        ),
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)

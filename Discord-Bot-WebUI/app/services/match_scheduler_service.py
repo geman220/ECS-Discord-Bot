@@ -332,15 +332,16 @@ def start_live_reporting_task(self, match_id: int, session) -> Dict[str, Any]:
         session.add(live_session)
         session.commit()
 
-        # Notify real-time service of new session (hybrid architecture)
-        from app.services.realtime_bridge_service import notify_session_started
-        bridge_result = notify_session_started(live_session.id, match_id, match.discord_thread_id)
-
-        # Fallback to V2 system if real-time service not available
-        if not bridge_result.get('success'):
-            logger.warning("Real-time service unavailable, using V2 fallback")
-            from app.tasks.tasks_live_reporting_v2 import process_all_active_sessions_v2
-            process_all_active_sessions_v2.apply_async(countdown=10)
+        # Notify real-time service of new session via Redis bridge
+        try:
+            from app.services.realtime_bridge_service import notify_session_started
+            bridge_result = notify_session_started(live_session.id, match_id, match.discord_thread_id)
+            if bridge_result.get('success'):
+                logger.info(f"Notified realtime service of new session {live_session.id}")
+            else:
+                logger.info(f"Realtime service will pick up session {live_session.id} on next DB poll (within 10-30s)")
+        except Exception as e:
+            logger.info(f"Bridge notification skipped ({e}), realtime service will pick up session from DB")
 
         logger.info(f"Started live reporting session {live_session.id} for match {match_id}")
 

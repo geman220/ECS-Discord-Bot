@@ -429,21 +429,27 @@ class RealtimeReportingService:
             # Update processed events cache
             self.last_events[session_id] = processed_events
 
-            # Also check for score changes
-            current_score = self._get_current_score(match_data)
-            last_score_key = f"last_score_{session_id}"
-            last_score = self.redis_service.execute_command('get', last_score_key)
+            # Also check for score changes (skip during halftime — score can't change)
+            status = self._get_match_status(match_data)
+            if status != 'HALFTIME':
+                current_score = self._get_current_score(match_data)
+                last_score_key = f"last_score_{session_id}"
+                last_score = self.redis_service.execute_command('get', last_score_key)
 
-            if last_score != current_score:
-                # Score changed, add score update event
-                if last_score is not None:  # Don't send on first check
-                    new_events.append({
-                        'type': 'score_update',
-                        'current_score': current_score,
-                        'previous_score': last_score
-                    })
+                # Ensure consistent string comparison
+                if last_score is not None:
+                    last_score = str(last_score)
 
-                self.redis_service.execute_command('setex', last_score_key, 3600, current_score)
+                if last_score != current_score:
+                    # Score changed, add score update event
+                    if last_score is not None:  # Don't send on first check
+                        new_events.append({
+                            'type': 'score_update',
+                            'current_score': current_score,
+                            'previous_score': last_score
+                        })
+
+                    self.redis_service.execute_command('setex', last_score_key, 3600, current_score)
 
         except Exception as e:
             logger.error(f"Error extracting events for session {session_id}: {e}")
@@ -451,16 +457,8 @@ class RealtimeReportingService:
         return new_events
 
     def _get_current_score(self, match_data: Dict[str, Any]) -> str:
-        """Extract current score from match data."""
-        try:
-            competitors = match_data.get('competitions', [{}])[0].get('competitors', [])
-            if len(competitors) >= 2:
-                home_score = competitors[0].get('score', '0')
-                away_score = competitors[1].get('score', '0')
-                return f"{home_score}-{away_score}"
-        except:
-            pass
-        return "0-0"
+        """Extract current score from processed ESPN match data."""
+        return f"{match_data.get('home_score', 0)}-{match_data.get('away_score', 0)}"
 
     async def _send_events_to_discord(self, session_id: int, session_data: Dict[str, Any], events: List[Dict[str, Any]]):
         """Send new events to Discord via bot API."""
@@ -547,7 +545,8 @@ class RealtimeReportingService:
                     'player': player,
                     'minute': minute,
                     'home_score': session_data.get('home_score', 0),
-                    'away_score': session_data.get('away_score', 0)
+                    'away_score': session_data.get('away_score', 0),
+                    'description': f"{ai_event_type.replace('_', ' ').title()} by {player} ({team}) in minute {minute}"
                 }
 
                 # Set scoring team for goals
@@ -631,8 +630,16 @@ class RealtimeReportingService:
 
         except Exception as e:
             logger.error(f"Error formatting event message with AI: {e}")
-            # Ultimate fallback
-            return f"📋 Match event: {event.get('type', 'Unknown')}"
+            # Ultimate fallback - still include player and minute
+            player = event.get('player', event.get('participant', {}).get('displayName', '')) if isinstance(event, dict) else ''
+            minute = event.get('minute', '') if isinstance(event, dict) else ''
+            event_type_str = event.get('type', 'Unknown') if isinstance(event, dict) else 'Unknown'
+            parts = [f"📋 {event_type_str}"]
+            if minute:
+                parts.append(f"{minute}'")
+            if player:
+                parts.append(f"- {player}")
+            return " ".join(parts)
 
     async def _update_session_stats(self, session_id: int, status: str = None, score: str = None):
         """Update session statistics and persist event keys to database."""

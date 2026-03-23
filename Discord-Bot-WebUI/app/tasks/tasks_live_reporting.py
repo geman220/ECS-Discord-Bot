@@ -46,7 +46,6 @@ from app.decorators import celery_task
 from app.utils.task_session_manager import task_session
 from app.models import MLSMatch, Prediction
 from app.models.match_status import MatchStatus
-from app.match_api import process_live_match_updates
 from app.discord_utils import create_match_thread
 # ESPN API now handled by centralized service
 
@@ -401,15 +400,14 @@ def schedule_live_reporting(self, session) -> Dict[str, Any]:
                     
                 logger.warning(f"Match {match.match_id} is in progress but live reporting hasn't started - starting now!")
                 try:
-                    from app.tasks.tasks_live_reporting_v2 import start_live_reporting_v2
-                    task = start_live_reporting_v2.apply_async(
-                        args=[str(match.match_id), str(match.discord_thread_id), match.competition or 'usa.1'],
-                        queue='live_reporting'
+                    from app.utils.live_reporting_helpers import create_live_reporting_session
+                    result = create_live_reporting_session(
+                        session, str(match.match_id), str(match.discord_thread_id), match.competition or 'usa.1'
                     )
-                    match.live_reporting_scheduled = True
-                    match.live_reporting_task_id = task.id
-                    scheduled_count += 1
-                    logger.info(f"Started immediate live reporting for in-progress match {match.match_id}")
+                    if result.get('success'):
+                        match.live_reporting_scheduled = True
+                        scheduled_count += 1
+                        logger.info(f"Started immediate live reporting for in-progress match {match.match_id}")
                 except Exception as e:
                     logger.error(f"Failed to start immediate live reporting for {match.match_id}: {e}")
                 continue
@@ -427,23 +425,18 @@ def schedule_live_reporting(self, session) -> Dict[str, Any]:
                 logger.info(f"Match {match.match_id} already has scheduled live reporting task")
                 continue
             
-            # Schedule with ETA and store task ID
-            # Use V2 task if available, otherwise fallback to V1
+            # Create session directly — RealtimeReportingService picks it up automatically
             try:
-                from app.tasks.tasks_live_reporting_v2 import start_live_reporting_v2
-                task = start_live_reporting_v2.apply_async(
-                    args=[str(match.match_id), str(match.discord_thread_id), match.competition or 'usa.1'],
-                    eta=reporting_time,
-                    queue='live_reporting'
+                from app.utils.live_reporting_helpers import create_live_reporting_session
+                result = create_live_reporting_session(
+                    session, str(match.match_id), str(match.discord_thread_id), match.competition or 'usa.1'
                 )
-                logger.info(f"Scheduled V2 live reporting for match {match.match_id}")
-            except ImportError:
-                logger.warning("V2 live reporting not available, using V1")
-                task = start_live_reporting.apply_async(
-                    args=[str(match.match_id)],
-                    eta=reporting_time,
-                    queue='live_reporting'
-                )
+                if result.get('success'):
+                    logger.info(f"Created live reporting session for match {match.match_id}")
+                task = type('Task', (), {'id': result.get('session_id', 'direct')})()
+            except Exception as e:
+                logger.error(f"Failed to create live reporting session for {match.match_id}: {e}")
+                continue
             
             # Store task ID in Redis for tracking
             import json

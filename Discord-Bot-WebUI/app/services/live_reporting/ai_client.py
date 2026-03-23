@@ -363,27 +363,48 @@ Remember: You're a real fan in the stands, not a neutral commentator."""
             is_sounders_event = (team_id == sounders_team_id)
             
             # Determine prompt type based on event and team
+            # Uses fallback chain: team-specific → base type → match_commentary
+            base_type_fallbacks = {
+                'sounders_goal': 'goal',
+                'opponent_goal': 'goal',
+                'opponent_card': 'card',
+                'opponent_yellow_card': 'card',
+                'yellow_card': 'card',
+                'opponent_red_card': 'card',
+                'sounders_red_card': 'card',
+                'opponent_substitution': 'substitution',
+                'sounders_penalty_miss': 'match_commentary',
+                'opponent_penalty_miss': 'match_commentary',
+            }
+
             if 'goal' in event_type or ('penalty' in event_type and 'scored' in event_type):
-                prompt_type = 'goal' if is_sounders_event else 'opponent_goal'
+                prompt_type = 'sounders_goal' if is_sounders_event else 'opponent_goal'
             elif 'penalty' in event_type and ('missed' in event_type or 'saved' in event_type):
-                # Penalty miss/save: celebrate if opponent misses, frustrated if we miss
-                prompt_type = 'opponent_penalty_miss' if not is_sounders_event else 'sounders_penalty_miss'
+                prompt_type = 'sounders_penalty_miss' if is_sounders_event else 'opponent_penalty_miss'
             elif 'red card' in event_type or event_type == 'red card':
-                # Red cards get dramatic responses
                 prompt_type = 'sounders_red_card' if is_sounders_event else 'opponent_red_card'
             elif 'card' in event_type or 'yellow card' in event_type:
-                # Yellow cards and generic cards
-                prompt_type = 'yellow_card' if is_sounders_event else 'opponent_yellow_card'
+                prompt_type = 'card' if is_sounders_event else 'opponent_card'
             elif 'substitution' in event_type:
                 prompt_type = 'substitution' if is_sounders_event else 'opponent_substitution'
             else:
                 prompt_type = 'match_commentary'
-            
-            # Fetch AI prompt configuration from API
+
+            # Fetch AI prompt configuration with fallback chain
             prompt_config = await self._get_prompt_config(prompt_type, match_data.competition)
-            
+
             if not prompt_config:
-                logger.warning(f"No AI prompt config found for {prompt_type}, using fallback")
+                # Try base type fallback before giving up
+                base_type = base_type_fallbacks.get(prompt_type)
+                if base_type and base_type != prompt_type:
+                    prompt_config = await self._get_prompt_config(base_type, match_data.competition)
+
+            if not prompt_config:
+                # Last resort: try match_commentary
+                prompt_config = await self._get_prompt_config('match_commentary', match_data.competition)
+
+            if not prompt_config:
+                logger.warning(f"No AI prompt config found for {prompt_type} (even after fallback)")
                 if self.metrics:
                     self.metrics.ai_fallback_used.labels(reason='no_prompt_config').inc()
                 return self._generate_fallback_commentary(match_data, [single_event])
@@ -510,9 +531,9 @@ Provide commentary on this event. Current score: {match_data.score}"""
                 f"Sending off! {athlete_name} gets the red card {clock}"
             ],
             'substitution': [
-                f"Substitution: {athlete_name} comes on {clock}",
-                f"Change made: {athlete_name} enters the game {clock}",
-                f"Fresh legs: {athlete_name} is on {clock}"
+                f"Substitution: {event.get('text', athlete_name + ' comes on')} {clock}",
+                f"Change made: {event.get('text', athlete_name + ' enters the game')} {clock}",
+                f"Fresh legs: {event.get('text', athlete_name + ' is on')} {clock}"
             ]
         }
         

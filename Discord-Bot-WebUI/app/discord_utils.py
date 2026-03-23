@@ -1640,7 +1640,7 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
             "type": 11,  # GUILD_PUBLIC_THREAD
             "auto_archive_duration": 1440,
             "message": {
-                "content": "Match thread created! Discuss the game here and make your predictions.",
+                "content": f"Match Thread: {home_team_name} vs {away_team_name} - Share your predictions and discuss the match!",
                 "embed_data": embed_data
             }
         }

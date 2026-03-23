@@ -572,13 +572,14 @@ document.addEventListener('DOMContentLoaded', function() {
         const matchId = document.getElementById('editMatchId').value;
 
         try {
-            const response = await fetch(`/api/match/${matchId}/update`, {
+            const response = await fetch('/auto-schedule/update-match', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token() }}'
                 },
                 body: JSON.stringify({
+                    match_id: matchId,
                     time: document.getElementById('editMatchTime').value,
                     field: document.getElementById('editMatchField').value,
                     home_team_id: document.getElementById('editMatchHomeTeam').value,

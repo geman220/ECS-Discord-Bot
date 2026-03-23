@@ -115,39 +115,20 @@ def process_all_active_sessions_v2(self, session) -> Dict[str, Any]:
     2. MatchSchedulerService starts live sessions 5min before
     3. RealtimeReportingService handles actual live updates
     """
-    task_id = self.request.id
-    redis_service = get_redis_service()
-
-    logger.error(
-        f"*** DEPRECATED V2 TASK CALLED! *** "
-        f"V2 Celery task {task_id} called when enterprise system is available. "
-        f"CALLING LOCATION: {self.request.origin} "
-        f"TIME: {datetime.utcnow().isoformat()} "
-        f"MIGRATION REQUIRED: Remove calls to process_all_active_sessions_v2 and use MatchSchedulerService + RealtimeReportingService instead."
+    # FULLY DEPRECATED: All live reporting is handled by RealtimeReportingService
+    logger.warning(
+        f"DEPRECATED V2 task process_all_active_sessions_v2 called. "
+        f"Live reporting is now handled exclusively by RealtimeReportingService. "
+        f"This task does nothing — remove all callers."
     )
-
-    # Check if real-time service is running
-    realtime_status = redis_service.get('realtime_service:status')
-    if realtime_status == 'running':
-        logger.info("Real-time service is active, skipping legacy V2 processing")
-        return {
-            'success': True,
-            'message': 'Delegated to real-time service',
-            'processed_count': 0,
-            'error_count': 0,
-            'results': [],
-            'deprecated': True,
-            'realtime_service_active': True
-        }
-
-    # Fallback processing if real-time service not available
-    logger.error(
-        f"*** V2 FALLBACK ACTIVATED! *** "
-        f"Real-time service not available, using deprecated V2 processing for task {task_id}. "
-        f"URGENT: Start RealtimeReportingService or investigate why it's offline. "
-        f"This fallback should only be used temporarily."
-    )
-    return _process_sessions_legacy_fallback(session, redis_service, task_id)
+    return {
+        'success': True,
+        'message': 'DEPRECATED: Use RealtimeReportingService instead',
+        'processed_count': 0,
+        'error_count': 0,
+        'results': [],
+        'deprecated': True
+    }
 
 
 def _process_sessions_legacy_fallback(session, redis_service, task_id) -> Dict[str, Any]:
@@ -875,28 +856,16 @@ def process_single_match_v2(self, session, match_id: str) -> Dict[str, Any]:
 )
 def start_live_reporting_v2(self, session, match_id: str, thread_id: str, competition: str = "usa.1") -> Dict[str, Any]:
     """
-    Start live reporting using synchronous architecture.
-    
-    Args:
-        match_id: ESPN match ID
-        thread_id: Discord thread ID  
-        competition: Competition identifier
-        
-    Returns:
-        Task result dictionary
+    DEPRECATED: Creates a LiveReportingSession for RealtimeReportingService.
+    Prefer using create_live_reporting_session() from app.utils.live_reporting_helpers directly.
     """
-    try:
-        logger.info(f"Starting live reporting V2 for match {match_id}")
-        
-        # Synchronous session creation/reactivation
-        result = _start_live_reporting_sync(session, match_id, thread_id, competition)
-        
-        logger.info(f"V2 live reporting started: {result}")
-        return result
-        
-    except Exception as e:
-        logger.error(f"Error starting V2 live reporting for match {match_id}: {e}", exc_info=True)
-        raise self.retry(exc=e, countdown=60)
+    logger.warning(
+        f"DEPRECATED start_live_reporting_v2 called for match {match_id}. "
+        f"Use create_live_reporting_session() from app.utils.live_reporting_helpers instead."
+    )
+    # Still create the session for backwards compatibility
+    from app.utils.live_reporting_helpers import create_live_reporting_session
+    return create_live_reporting_session(session, match_id, thread_id, competition)
 
 
 def _start_live_reporting_sync(session, match_id: str, thread_id: str, competition: str) -> Dict[str, Any]:

@@ -171,72 +171,13 @@ class DiscordService:
     
     async def update_live_match(self, thread_id: str, match_data: Dict[str, Any]) -> bool:
         """
-        Send live match update to Discord thread via bot API.
-        
-        Args:
-            thread_id: Discord thread ID
-            match_data: Match update data containing thread_id, update_type, and update_data
-            
-        Returns:
-            True if successful, False otherwise
+        DEPRECATED: Live match updates are now handled by RealtimeReportingService.
+        This method is kept for backwards compatibility but logs a warning.
         """
-        if self._should_skip_call("update_live_match"):
-            return False
-            
-        max_retries = 2
-        retry_delay = 1
-        
-        for attempt in range(max_retries):
-            try:
-                session = await self._get_session()
-                # Use the same endpoint as the fallback for compatibility
-                url = f"{self.bot_api_url}/post_match_update"
-                
-                # Extract the proper payload format
-                payload = {
-                    'thread_id': match_data.get('thread_id', thread_id),
-                    'update_type': match_data.get('update_type', 'match_update'),
-                    'update_data': match_data.get('update_data', {})
-                }
-                
-                logger.debug(f"Attempt {attempt + 1}/{max_retries}: Sending live update to thread {thread_id}")
-                
-                async with session.post(url, json=payload) as response:
-                    if response.status == 200:
-                        logger.debug(f"Sent live update to thread {thread_id} via centralized service")
-                        return True
-                    elif response.status in [500, 502, 503, 504]:
-                        # Server errors - retry
-                        error_text = await response.text()
-                        logger.warning(f"Server error {response.status} sending live update (attempt {attempt + 1}): {error_text}")
-                        if attempt < max_retries - 1:
-                            await asyncio.sleep(retry_delay * (attempt + 1))
-                            continue
-                    else:
-                        error_text = await response.text()
-                        logger.error(f"Failed to send live update (status {response.status}): {error_text}")
-                        if attempt < max_retries - 1:
-                            await asyncio.sleep(retry_delay)
-                            continue
-                        return False
-                        
-            except aiohttp.ClientError as e:
-                logger.error(f"Client error sending live update (attempt {attempt + 1}): {e}")
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay)
-                    continue
-            except asyncio.TimeoutError:
-                logger.error(f"Timeout sending live update (attempt {attempt + 1})")
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay)
-                    continue
-            except Exception as e:
-                logger.error(f"Unexpected error sending live update (attempt {attempt + 1}): {e}")
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(retry_delay)
-                    continue
-        
-        logger.error(f"Failed to send live update after {max_retries} attempts to thread {thread_id}")
+        logger.warning(
+            "update_live_match() is DEPRECATED. "
+            "Live reporting is now handled by RealtimeReportingService via /api/live-reporting/* endpoints."
+        )
         return False
     
     async def send_match_embed(self, channel_id: str, embed_data: Dict[str, Any]) -> Optional[str]:
