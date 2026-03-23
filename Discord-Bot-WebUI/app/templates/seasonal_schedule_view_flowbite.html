@@ -563,7 +563,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('editMatchForm')?.addEventListener('submit', async function(e) {
         e.preventDefault();
+        e.stopImmediatePropagation();
+
+        // Capture all values before closing the modal
         const matchId = document.getElementById('editMatchId').value;
+        const matchTime = document.getElementById('editMatchTime').value;
+        const matchField = document.getElementById('editMatchField').value;
+        const homeTeamId = document.getElementById('editMatchHomeTeam').value;
+        const awayTeamId = document.getElementById('editMatchAwayTeam').value;
 
         // Close the modal first to prevent visual conflicts with Swal
         editMatchModalInstance?.hide();
@@ -577,10 +584,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: JSON.stringify({
                     match_id: matchId,
-                    time: document.getElementById('editMatchTime').value,
-                    field: document.getElementById('editMatchField').value,
-                    home_team_id: document.getElementById('editMatchHomeTeam').value,
-                    away_team_id: document.getElementById('editMatchAwayTeam').value
+                    time: matchTime,
+                    field: matchField,
+                    home_team_id: homeTeamId,
+                    away_team_id: awayTeamId
                 })
             });
 
@@ -650,6 +657,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('addMatchForm')?.addEventListener('submit', async function(e) {
         e.preventDefault();
+        e.stopImmediatePropagation();
 
         try {
             const response = await fetch('/api/match/create', {
