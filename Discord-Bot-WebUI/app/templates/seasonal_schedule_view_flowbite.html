@@ -109,6 +109,13 @@
                         </h3>
                         <!-- Inline edit form (hidden by default) -->
                         <div class="week-edit-form hidden flex items-center gap-2 mt-2">
+                            <select class="week-edit-type text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700" data-original-type="{{ week_data.week_type }}">
+                                <option value="REGULAR" {{ 'selected' if week_data.week_type == 'REGULAR' }}>Regular</option>
+                                <option value="BYE" {{ 'selected' if week_data.week_type == 'BYE' }}>Bye Week</option>
+                                <option value="FUN" {{ 'selected' if week_data.week_type == 'FUN' }}>Fun Week</option>
+                                <option value="TST" {{ 'selected' if week_data.week_type == 'TST' }}>TST Week</option>
+                                <option value="PRACTICE" {{ 'selected' if week_data.week_type == 'PRACTICE' }}>Practice</option>
+                            </select>
                             <input type="date" class="week-edit-date text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700"
                                    value="{{ week_data.date.strftime('%Y-%m-%d') }}">
                             <input type="time" class="week-edit-time text-sm rounded border-gray-300 dark:border-gray-600 dark:bg-gray-700">
@@ -460,6 +467,112 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Week edit: show inline form
+    document.querySelectorAll('.js-edit-week').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const weekNum = this.dataset.week;
+            const container = this.closest('.week-container');
+            const form = container?.querySelector('.week-edit-form');
+            if (form) form.classList.toggle('hidden');
+        });
+    });
+
+    // Week edit: cancel
+    document.querySelectorAll('.js-cancel-week-edit').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const form = this.closest('.week-edit-form');
+            // Reset dropdown to original value
+            const typeSelect = form?.querySelector('.week-edit-type');
+            if (typeSelect) typeSelect.value = typeSelect.dataset.originalType;
+            if (form) form.classList.add('hidden');
+        });
+    });
+
+    // Week edit: save
+    document.querySelectorAll('.js-save-week').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const weekNum = this.dataset.week;
+            const container = this.closest('.week-container');
+            const form = container?.querySelector('.week-edit-form');
+
+            const newType = form?.querySelector('.week-edit-type')?.value;
+            const newDate = form?.querySelector('.week-edit-date')?.value;
+            const newTime = form?.querySelector('.week-edit-time')?.value;
+            const originalType = form?.querySelector('.week-edit-type')?.dataset.originalType;
+
+            // Confirm if changing to BYE (destructive - deletes matches)
+            if (newType === 'BYE' && originalType !== 'BYE') {
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Convert to Bye Week?',
+                    text: 'This will delete ALL matches for this week across all leagues. This cannot be undone.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, set as Bye',
+                    confirmButtonColor: '#dc2626',
+                    background: isDark() ? '#1f2937' : '#ffffff',
+                    color: isDark() ? '#f3f4f6' : '#111827',
+                });
+                if (!result.isConfirmed) return;
+            }
+
+            const payload = {
+                week_number: parseInt(weekNum),
+                season_id: {{ season.id }},
+            };
+
+            if (newType && newType !== originalType) payload.week_type = newType;
+            if (newDate) payload.date = newDate;
+            if (newTime) payload.start_time = newTime;
+
+            // If only week_type changed (no date/time), we don't need league_id
+            // For date/time changes, pick first league's matches
+            if (newDate || newTime) {
+                const firstMatch = container?.querySelector('.match-row');
+                if (firstMatch?.dataset.league) {
+                    payload.league_id = parseInt(firstMatch.dataset.league);
+                }
+            }
+
+            try {
+                const response = await fetch('/auto-schedule/update-week', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    sessionStorage.setItem('scheduleScrollPos', window.scrollY);
+                    window.location.reload();
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.error || 'Failed to update week',
+                        background: isDark() ? '#1f2937' : '#ffffff',
+                        color: isDark() ? '#f3f4f6' : '#111827',
+                        confirmButtonColor: '#1a472a'
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message,
+                    background: isDark() ? '#1f2937' : '#ffffff',
+                    color: isDark() ? '#f3f4f6' : '#111827',
+                    confirmButtonColor: '#1a472a'
+                });
+            }
+        });
+    });
+
     // Week toggle (expand/collapse)
     document.querySelectorAll('.week-header').forEach(header => {
         header.addEventListener('click', function() {
@@ -523,9 +636,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Edit Match Modal - using Flowbite modal API
+    // Edit Match Modal - get or create Flowbite modal instance
     const editMatchModalEl = document.getElementById('editMatchModal');
-    const editMatchModalInstance = editMatchModalEl ? new Modal(editMatchModalEl) : null;
+
+    function getEditMatchModal() {
+        if (!editMatchModalEl) return null;
+        // Use Flowbite's getInstance to avoid duplicate instance conflicts
+        return Modal.getInstance(editMatchModalEl) || new Modal(editMatchModalEl);
+    }
 
     function openEditMatchModal(matchId, time, field, homeTeamId, awayTeamId, leagueId) {
         document.getElementById('editMatchId').value = matchId;
@@ -540,11 +658,11 @@ document.addEventListener('DOMContentLoaded', function() {
         homeSelect.innerHTML = teams.map(t => `<option value="${t.id}" ${t.id == homeTeamId ? 'selected' : ''}>${t.name}</option>`).join('');
         awaySelect.innerHTML = teams.map(t => `<option value="${t.id}" ${t.id == awayTeamId ? 'selected' : ''}>${t.name}</option>`).join('');
 
-        editMatchModalInstance?.show();
+        getEditMatchModal()?.show();
     }
 
     function closeEditMatchModal() {
-        editMatchModalInstance?.hide();
+        getEditMatchModal()?.hide();
     }
 
     document.querySelectorAll('.js-edit-match').forEach(btn => {
@@ -573,7 +691,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const awayTeamId = document.getElementById('editMatchAwayTeam').value;
 
         // Close the modal first to prevent visual conflicts with Swal
-        editMatchModalInstance?.hide();
+        getEditMatchModal()?.hide();
 
         try {
             const response = await fetch('/auto-schedule/update-match', {
@@ -617,9 +735,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add Match Modal - using Flowbite modal API
+    // Add Match Modal - get or create Flowbite modal instance
     const addMatchModalEl = document.getElementById('addMatchModal');
-    const addMatchModalInstance = addMatchModalEl ? new Modal(addMatchModalEl) : null;
+
+    function getAddMatchModal() {
+        if (!addMatchModalEl) return null;
+        return Modal.getInstance(addMatchModalEl) || new Modal(addMatchModalEl);
+    }
 
     function openAddMatchModal(weekNum) {
         document.getElementById('addMatchWeek').value = weekNum;
@@ -628,11 +750,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const firstLeagueId = document.getElementById('addMatchLeague').value;
         populateTeamDropdowns(firstLeagueId);
 
-        addMatchModalInstance?.show();
+        getAddMatchModal()?.show();
     }
 
     function closeAddMatchModal() {
-        addMatchModalInstance?.hide();
+        getAddMatchModal()?.hide();
     }
 
     function populateTeamDropdowns(leagueId) {
@@ -660,14 +782,14 @@ document.addEventListener('DOMContentLoaded', function() {
         e.stopImmediatePropagation();
 
         try {
-            const response = await fetch('/api/match/create', {
+            const response = await fetch('/auto-schedule/add-match', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRFToken': '{{ csrf_token() }}'
                 },
                 body: JSON.stringify({
-                    week: document.getElementById('addMatchWeek').value,
+                    week_number: document.getElementById('addMatchWeek').value,
                     date: document.getElementById('addMatchDate').value,
                     time: document.getElementById('addMatchTime').value,
                     field: document.getElementById('addMatchField').value,
@@ -677,16 +799,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
             });
 
-            if (response.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Match Added',
-                    background: isDark() ? '#1f2937' : '#ffffff',
-                    color: isDark() ? '#f3f4f6' : '#111827',
-                    confirmButtonColor: '#1a472a'
-                }).then(() => { sessionStorage.setItem('scheduleScrollPos', window.scrollY); window.location.reload(); });
+            const data = await response.json();
+            if (data.success) {
+                sessionStorage.setItem('scheduleScrollPos', window.scrollY);
+                window.location.reload();
             } else {
-                throw new Error('Failed to add match');
+                throw new Error(data.error || 'Failed to add match');
             }
         } catch (error) {
             Swal.fire({
@@ -718,21 +836,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
-                        const response = await fetch(`/api/match/${matchId}/delete`, {
+                        const response = await fetch('/auto-schedule/delete-match', {
                             method: 'POST',
-                            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({ match_id: matchId })
                         });
 
-                        if (response.ok) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Deleted',
-                                background: isDark() ? '#1f2937' : '#ffffff',
-                                color: isDark() ? '#f3f4f6' : '#111827',
-                                confirmButtonColor: '#1a472a'
-                            }).then(() => { sessionStorage.setItem('scheduleScrollPos', window.scrollY); window.location.reload(); });
+                        const data = await response.json();
+                        if (data.success) {
+                            sessionStorage.setItem('scheduleScrollPos', window.scrollY);
+                            window.location.reload();
                         } else {
-                            throw new Error('Failed to delete');
+                            throw new Error(data.error || 'Failed to delete');
                         }
                     } catch (error) {
                         Swal.fire({
@@ -768,21 +886,24 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
-                        const response = await fetch(`/api/schedule/week/${weekNum}/delete`, {
+                        const response = await fetch('/auto-schedule/delete-week-all', {
                             method: 'POST',
-                            headers: { 'X-CSRFToken': '{{ csrf_token() }}' }
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token() }}'
+                            },
+                            body: JSON.stringify({
+                                week_number: parseInt(weekNum),
+                                season_id: {{ season.id }}
+                            })
                         });
 
-                        if (response.ok) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Week Deleted',
-                                background: isDark() ? '#1f2937' : '#ffffff',
-                                color: isDark() ? '#f3f4f6' : '#111827',
-                                confirmButtonColor: '#1a472a'
-                            }).then(() => { sessionStorage.setItem('scheduleScrollPos', window.scrollY); window.location.reload(); });
+                        const data = await response.json();
+                        if (data.success) {
+                            sessionStorage.setItem('scheduleScrollPos', window.scrollY);
+                            window.location.reload();
                         } else {
-                            throw new Error('Failed to delete week');
+                            throw new Error(data.error || 'Failed to delete week');
                         }
                     } catch (error) {
                         Swal.fire({
@@ -799,9 +920,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Export functionality
+    // Export functionality - client-side CSV from page data
     document.getElementById('exportCsvBtn')?.addEventListener('click', function() {
-        window.location.href = '/api/schedule/export/csv?season_id={{ season.id }}';
+        const rows = [['Week', 'Date', 'Time', 'Field', 'League', 'Home Team', 'Away Team']];
+        document.querySelectorAll('.week-container').forEach(week => {
+            const weekNum = week.dataset.week;
+            week.querySelectorAll('.match-row').forEach(row => {
+                const time = row.querySelector('.time-display')?.textContent.trim() || '';
+                const field = row.querySelector('.field-display')?.textContent.trim() || '';
+                const league = row.querySelectorAll('td')[2]?.textContent.trim() || '';
+                const home = row.querySelector('[data-team-type="home"]')?.closest('td')?.querySelector('.team-display a, span')?.textContent.trim()
+                    || row.querySelectorAll('td')[3]?.textContent.trim() || '';
+                const away = row.querySelector('[data-team-type="away"]')?.closest('td')?.querySelector('.team-display a, span')?.textContent.trim()
+                    || row.querySelectorAll('td')[4]?.textContent.trim() || '';
+                const date = week.querySelector('.week-edit-date')?.value || '';
+                rows.push([weekNum, date, time, field, league, home, away].map(v => `"${v.replace(/"/g, '""')}"`));
+            });
+        });
+        const csv = rows.map(r => r.join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '{{ season.name|e }}_schedule.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
     });
 
     document.getElementById('printScheduleBtn')?.addEventListener('click', function() {
