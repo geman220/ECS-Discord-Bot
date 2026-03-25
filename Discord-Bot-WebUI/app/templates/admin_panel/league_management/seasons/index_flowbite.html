@@ -81,11 +81,11 @@
                         <i class="ti ti-eye mr-1"></i>View
                     </a>
                     {% if not season.is_current %}
-                    <button onclick="setCurrentSeason({{ season.id }}, '{{ season.name }}')"
+                    <button data-action="set-current-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
                             class="p-2 text-green-700 bg-green-100 rounded-lg hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800">
                         <i class="ti ti-check"></i>
                     </button>
-                    <button onclick="deleteSeason({{ season.id }}, '{{ season.name }}')"
+                    <button data-action="delete-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
                             class="p-2 text-red-700 bg-red-100 rounded-lg hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:hover:bg-red-800">
                         <i class="ti ti-trash"></i>
                     </button>
@@ -124,7 +124,7 @@
 
     <div class="flex items-center justify-end gap-2 mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
         <button type="button" data-modal-hide="setCurrentModal" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 modal-close-btn">Cancel</button>
-        <button onclick="confirmSetCurrent()" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
+        <button data-action="confirm-set-current-season" class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">
             <i class="ti ti-check mr-1"></i>Set as Current
         </button>
     </div>
@@ -144,67 +144,77 @@ function applyFilters() {
     window.location.href = window.ADMIN_SEASONS_CONFIG.seasonsUrl + (params.toString() ? '?' + params.toString() : '');
 }
 
-function setCurrentSeason(seasonId, seasonName) {
-    document.getElementById('setCurrentSeasonId').value = seasonId;
-    document.getElementById('setCurrentSeasonName').textContent = seasonName;
-    const modal = FlowbiteInstances.getInstance('Modal', 'setCurrentModal');
-    if (modal) modal.show();
-}
+(function() {
+    const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const isDark = () => document.documentElement.classList.contains('dark');
+    const swalTheme = () => ({ background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827' });
 
-function confirmSetCurrent() {
-    const seasonId = document.getElementById('setCurrentSeasonId').value;
-    const performRollover = document.getElementById('performRollover').checked;
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
 
-    fetch(`/admin-panel/league-management/seasons/${seasonId}/set-current`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({ perform_rollover: performRollover })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.reload();
-        } else {
-            const isDark = document.documentElement.classList.contains('dark');
-            Swal.fire({
-                title: 'Error',
-                text: data.error || 'Failed to set season as current',
-                icon: 'error',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
+        const action = target.dataset.action;
+
+        if (action === 'set-current-season') {
+            const seasonId = target.dataset.seasonId;
+            const seasonName = target.dataset.seasonName;
+            document.getElementById('setCurrentSeasonId').value = seasonId;
+            document.getElementById('setCurrentSeasonName').textContent = seasonName;
+            const modal = FlowbiteInstances.getInstance('Modal', 'setCurrentModal');
+            if (modal) modal.show();
         }
-    });
-}
 
-function deleteSeason(seasonId, seasonName) {
-    const isDark = document.documentElement.classList.contains('dark');
-    Swal.fire({
-        title: 'Delete Season?',
-        text: `Are you sure you want to delete "${seasonName}"? This cannot be undone.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        confirmButtonText: 'Delete',
-        background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/admin-panel/league-management/seasons/${seasonId}`, {
-                method: 'DELETE',
-                headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+        if (action === 'confirm-set-current-season') {
+            const seasonId = document.getElementById('setCurrentSeasonId').value;
+            const performRollover = document.getElementById('performRollover').checked;
+
+            fetch(`/admin-panel/league-management/seasons/${seasonId}/set-current`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken()
+                },
+                body: JSON.stringify({ perform_rollover: performRollover })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     window.location.reload();
+                } else {
+                    Swal.fire({ title: 'Error', text: data.error || 'Failed to set season as current', icon: 'error', ...swalTheme() });
+                }
+            })
+            .catch(() => Swal.fire({ title: 'Error', text: 'Failed to set season as current', icon: 'error', ...swalTheme() }));
+        }
+
+        if (action === 'delete-season') {
+            const seasonId = target.dataset.seasonId;
+            const seasonName = target.dataset.seasonName;
+
+            Swal.fire({
+                title: 'Delete Season?',
+                text: `Are you sure you want to delete "${seasonName}"? This cannot be undone.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                confirmButtonText: 'Delete',
+                ...swalTheme()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin-panel/league-management/seasons/${seasonId}`, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRFToken': csrfToken() }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) window.location.reload();
+                        else Swal.fire({ title: 'Error', text: data.message || 'Failed to delete season', icon: 'error', ...swalTheme() });
+                    })
+                    .catch(() => Swal.fire({ title: 'Error', text: 'Failed to delete season', icon: 'error', ...swalTheme() }));
                 }
             });
         }
     });
-}
+})();
 </script>
 {% endblock %}

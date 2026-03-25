@@ -731,10 +731,14 @@ def delete_match():
             session.delete(temp_sub)
         logger.info(f"Deleted {len(temp_subs)} TemporarySubAssignment records")
 
-        # 8. Delete corresponding schedule entries
+        # 8. Collect schedule IDs and paired matches BEFORE removing anything
+        schedule_ids_to_delete = []
+        paired_match_ids = []
         schedule = session.query(Schedule).get(match.schedule_id)
         if schedule:
-            # Find and delete the paired schedule
+            schedule_ids_to_delete.append(schedule.id)
+
+            # Find the paired schedule (opponent's view)
             paired_schedule = session.query(Schedule).filter_by(
                 team_id=match.away_team_id,
                 opponent=match.home_team_id,
@@ -743,12 +747,35 @@ def delete_match():
             ).first()
 
             if paired_schedule:
-                session.delete(paired_schedule)
+                schedule_ids_to_delete.append(paired_schedule.id)
+                # Find any matches linked to the paired schedule
+                paired_matches = session.query(Match).filter_by(
+                    schedule_id=paired_schedule.id
+                ).all()
+                for pm in paired_matches:
+                    if pm.id != match_id:
+                        paired_match_ids.append(pm.id)
 
-            session.delete(schedule)
+        # 9. Delete paired matches and their related records
+        for pm_id in paired_match_ids:
+            session.query(ScheduledMessage).filter_by(match_id=pm_id).delete()
+            session.query(PlayerEvent).filter_by(match_id=pm_id).delete()
+            session.query(Availability).filter_by(match_id=pm_id).delete()
+            session.query(Match).filter_by(id=pm_id).delete()
 
-        # 9. Finally delete the match itself
+        # 10. Delete the primary match
         session.delete(match)
+        session.flush()
+
+        # 11. Delete schedule entries via direct SQL to avoid ORM relationship
+        # cascades that try to SET NULL on the non-nullable opponent column
+        if schedule_ids_to_delete:
+            from sqlalchemy import text
+            session.execute(
+                text("DELETE FROM schedule WHERE id IN :ids"),
+                {"ids": tuple(schedule_ids_to_delete)}
+            )
+
         session.commit()
 
         logger.info(f"Successfully deleted match {match_id} and all related records")

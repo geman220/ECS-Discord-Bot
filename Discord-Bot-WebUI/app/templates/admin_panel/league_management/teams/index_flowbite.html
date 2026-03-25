@@ -140,18 +140,18 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="#" onclick="editTeam({{ team.id }}, '{{ team.name }}')" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                        <a href="#" data-action="rename-league-team" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
                                             <i class="ti ti-edit mr-2"></i>Rename
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="#" onclick="syncDiscord({{ team.id }})" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                                        <a href="#" data-action="sync-league-team-discord" data-team-id="{{ team.id }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
                                             <i class="ti ti-refresh mr-2"></i>Sync Discord
                                         </a>
                                     </li>
                                 </ul>
                                 <div class="py-2">
-                                    <a href="#" onclick="deleteTeam({{ team.id }}, '{{ team.name }}')" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600">
+                                    <a href="#" data-action="delete-league-team" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600">
                                         <i class="ti ti-trash mr-2"></i>Delete
                                     </a>
                                 </div>
@@ -240,123 +240,127 @@ function openCreateModal() {
     if (modal) modal.show();
 }
 
-function editTeam(teamId, teamName) {
-    document.getElementById('editTeamId').value = teamId;
-    document.getElementById('editTeamName').value = teamName;
-    const modal = FlowbiteInstances.getInstance('Modal', 'editTeamModal');
-    if (modal) modal.show();
-}
+(function() {
+    const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const isDark = () => document.documentElement.classList.contains('dark');
+    const swalTheme = () => ({ background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827' });
 
-// Handle create team form submission
-document.getElementById('createTeamForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const name = document.getElementById('newTeamName').value;
-    const leagueId = document.getElementById('newTeamLeague').value;
+    // Event delegation for league management team actions
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
 
-    if (!name || !leagueId) return;
+        const action = target.dataset.action;
+        const teamId = target.dataset.teamId;
+        const teamName = target.dataset.teamName;
 
-    fetch(window.ADMIN_TEAMS_CONFIG.createTeamUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({ name, league_id: leagueId })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) window.location.reload();
-    });
-});
-
-// Handle edit team form submission
-document.getElementById('editTeamForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const teamId = document.getElementById('editTeamId').value;
-    const name = document.getElementById('editTeamName').value;
-
-    fetch(`/admin-panel/league-management/teams/api/${teamId}/update`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({ name })
-    })
-    .then(response => response.json())
-    .then(data => {
-        const isDark = document.documentElement.classList.contains('dark');
-        if (data.success) {
-            Swal.fire({
-                title: 'Success',
-                text: data.message || 'Team renamed successfully',
-                icon: 'success',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            }).then(() => window.location.reload());
-        } else {
-            Swal.fire({
-                title: 'Error',
-                text: data.message || 'Failed to rename team',
-                icon: 'error',
-                background: isDark ? '#1f2937' : '#ffffff',
-                color: isDark ? '#f3f4f6' : '#111827'
-            });
+        if (action === 'rename-league-team') {
+            e.preventDefault();
+            document.getElementById('editTeamId').value = teamId;
+            document.getElementById('editTeamName').value = teamName || '';
+            const modal = FlowbiteInstances.getInstance('Modal', 'editTeamModal');
+            if (modal) modal.show();
         }
-    })
-    .catch(() => {
-        const isDark = document.documentElement.classList.contains('dark');
-        Swal.fire({
-            title: 'Error',
-            text: 'Failed to rename team',
-            icon: 'error',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        });
-    });
-});
 
-function syncDiscord(teamId) {
-    fetch(`/admin-panel/league-management/teams/api/${teamId}/sync-discord`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
-    })
-    .then(response => response.json())
-    .then(data => {
-        const isDark = document.documentElement.classList.contains('dark');
-        Swal.fire({
-            title: data.success ? 'Success' : 'Error',
-            text: data.message || (data.success ? 'Discord synced' : 'Sync failed'),
-            icon: data.success ? 'success' : 'error',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        });
-    });
-}
-
-function deleteTeam(teamId, teamName) {
-    const isDark = document.documentElement.classList.contains('dark');
-    Swal.fire({
-        title: 'Delete Team?',
-        text: `Are you sure you want to delete "${teamName}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        confirmButtonText: 'Delete',
-        background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/admin-panel/league-management/teams/api/${teamId}/delete`, {
-                method: 'DELETE',
-                headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
+        if (action === 'sync-league-team-discord') {
+            e.preventDefault();
+            fetch(`/admin-panel/league-management/teams/api/${teamId}/sync-discord`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken() }
             })
             .then(response => response.json())
             .then(data => {
-                if (data.success) window.location.reload();
+                Swal.fire({
+                    title: data.success ? 'Success' : 'Error',
+                    text: data.message || (data.success ? 'Discord synced' : 'Sync failed'),
+                    icon: data.success ? 'success' : 'error',
+                    ...swalTheme()
+                });
+            })
+            .catch(() => Swal.fire({ title: 'Error', text: 'Failed to sync Discord', icon: 'error', ...swalTheme() }));
+        }
+
+        if (action === 'delete-league-team') {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Delete Team?',
+                text: `Are you sure you want to delete "${teamName}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                confirmButtonText: 'Delete',
+                ...swalTheme()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin-panel/league-management/teams/api/${teamId}/delete`, {
+                        method: 'DELETE',
+                        headers: { 'X-CSRFToken': csrfToken() }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) window.location.reload();
+                        else Swal.fire({ title: 'Error', text: data.message || 'Failed to delete team', icon: 'error', ...swalTheme() });
+                    })
+                    .catch(() => Swal.fire({ title: 'Error', text: 'Failed to delete team', icon: 'error', ...swalTheme() }));
+                }
             });
         }
     });
-}
+
+    // Handle create team form submission
+    document.getElementById('createTeamForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const name = document.getElementById('newTeamName').value.trim();
+        const leagueId = document.getElementById('newTeamLeague').value;
+
+        if (!name || !leagueId) return;
+
+        fetch(window.ADMIN_TEAMS_CONFIG.createTeamUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken()
+            },
+            body: JSON.stringify({ name, league_id: leagueId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) window.location.reload();
+            else Swal.fire({ title: 'Error', text: data.message || 'Failed to create team', icon: 'error', ...swalTheme() });
+        })
+        .catch(() => Swal.fire({ title: 'Error', text: 'Failed to create team', icon: 'error', ...swalTheme() }));
+    });
+
+    // Handle edit team form submission
+    document.getElementById('editTeamForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const teamId = document.getElementById('editTeamId').value;
+        const name = document.getElementById('editTeamName').value.trim();
+
+        if (!name) {
+            Swal.fire({ title: 'Error', text: 'Team name is required', icon: 'error', ...swalTheme() });
+            return;
+        }
+
+        fetch(`/admin-panel/league-management/teams/api/${teamId}/update`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken()
+            },
+            body: JSON.stringify({ name })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ title: 'Success', text: data.message || 'Team renamed successfully', icon: 'success', ...swalTheme() })
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire({ title: 'Error', text: data.message || 'Failed to rename team', icon: 'error', ...swalTheme() });
+            }
+        })
+        .catch(() => Swal.fire({ title: 'Error', text: 'Failed to rename team', icon: 'error', ...swalTheme() }));
+    });
+})();
 </script>
 {% endblock %}

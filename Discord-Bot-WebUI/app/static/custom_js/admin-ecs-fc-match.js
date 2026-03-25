@@ -89,8 +89,8 @@ function initAdminEcsFcMatch() {
     const manager = getManager();
     manager.init();
 
-    // Expose methods globally for backward compatibility
-    window.toggleOpponentSource = () => manager.toggleOpponentSource();
+    // All actions handled via data-action event delegation.
+    // Global window.toggleOpponentSource removed - it dropped the required 'source' argument.
 }
 
 // Register with window.InitSystem

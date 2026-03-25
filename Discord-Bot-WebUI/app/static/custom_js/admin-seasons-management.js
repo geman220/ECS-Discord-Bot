@@ -438,11 +438,8 @@ function initAdminSeasonsManagement() {
     const manager = getManager();
     manager.init();
 
-    // Expose methods globally for data-action handlers
-    window.setCurrentSeason = (seasonId, seasonName) => manager.setCurrentSeason(seasonId, seasonName);
-    window.confirmSetCurrent = () => manager.confirmSetCurrent();
-    window.deleteSeason = (seasonId, seasonName) => manager.deleteSeason(seasonId, seasonName);
-    window.loadRolloverPreview = () => manager.loadRolloverPreview();
+    // All actions handled via data-action event delegation in templates.
+    // Global window.* assignments removed to prevent collisions with inline template functions.
 }
 
 // Register with window.InitSystem

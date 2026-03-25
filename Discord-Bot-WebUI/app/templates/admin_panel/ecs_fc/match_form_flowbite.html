@@ -60,12 +60,12 @@
                             Opponent <span class="text-red-500">*</span>
                         </label>
                         <div class="inline-flex rounded-md shadow-sm mb-3 w-full" role="group">
-                            <button type="button" id="oppLibraryBtn" onclick="toggleOpponentSource('library')"
+                            <button type="button" id="oppLibraryBtn" data-action="toggle-opponent-source" data-source="library"
                                     class="opponent-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-l-lg focus:z-10 focus:ring-2 focus:ring-blue-700
                                     {% if not match or match.external_opponent_id %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-900 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600{% endif %}">
                                 <i class="ti ti-books mr-1"></i>From Library
                             </button>
-                            <button type="button" id="oppCustomBtn" onclick="toggleOpponentSource('custom')"
+                            <button type="button" id="oppCustomBtn" data-action="toggle-opponent-source" data-source="custom"
                                     class="opponent-toggle flex-1 px-4 py-2 text-sm font-medium border rounded-r-lg focus:z-10 focus:ring-2 focus:ring-blue-700
                                     {% if match and not match.external_opponent_id %}bg-blue-600 text-white border-blue-600{% else %}bg-white text-gray-900 border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600{% endif %}">
                                 <i class="ti ti-pencil mr-1"></i>Custom Entry
@@ -271,7 +271,14 @@
 {% endif %}
 
 <script>
-function toggleOpponentSource(source) {
+document.addEventListener('click', function(e) {
+    const target = e.target.closest('[data-action="toggle-opponent-source"]');
+    if (target) {
+        _toggleOpponentSource(target.dataset.source);
+    }
+});
+
+function _toggleOpponentSource(source) {
     document.getElementById('opponent_source').value = source;
     const librarySelect = document.getElementById('librarySelect');
     const customInput = document.getElementById('customInput');

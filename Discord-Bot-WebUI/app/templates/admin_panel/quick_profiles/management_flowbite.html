@@ -827,7 +827,7 @@ document.getElementById('player-search').addEventListener('input', function() {
                     resultsDiv.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No players found</p>';
                 } else {
                     resultsDiv.innerHTML = data.players.map(p => `
-                        <button type="button" onclick="selectPlayer(${p.id}, '${p.name.replace(/'/g, "\\'")}', '${p.profile_picture_url || ''}', '${(p.teams || []).join(", ")}')"
+                        <button type="button" onclick="selectQuickProfilePlayer(${p.id}, '${p.name.replace(/'/g, "\\'")}', '${p.profile_picture_url || ''}', '${(p.teams || []).join(", ")}')"
                                 class="w-full flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors text-left">
                             ${p.profile_picture_url ?
                                 `<img src="${p.profile_picture_url}" class="w-8 h-8 rounded-full object-cover">` :
@@ -847,7 +847,7 @@ document.getElementById('player-search').addEventListener('input', function() {
     }, 300);
 });
 
-function selectPlayer(id, name, photoUrl, teams) {
+function selectQuickProfilePlayer(id, name, photoUrl, teams) {
     selectedPlayerId = id;
     document.getElementById('selected-player-id').value = id;
     document.getElementById('selected-player-name').textContent = name;
