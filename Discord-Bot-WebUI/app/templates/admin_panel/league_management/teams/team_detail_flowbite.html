@@ -59,7 +59,7 @@
             </div>
         </div>
         <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
-            <button onclick="editTeam({{ team.id }}, '{{ team.name }}')"
+            <button onclick="editTeam({{ team.id }}, '{{ team.name|replace("'", "\\'") }}')"
                     class="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">
                 <i class="ti ti-edit mr-1"></i>Edit
             </button>
@@ -289,7 +289,19 @@ document.getElementById('editTeamForm').addEventListener('submit', function(e) {
     const teamId = document.getElementById('editTeamId').value;
     const name = document.getElementById('editTeamName').value;
 
-    fetch(`/admin-panel/league-management/teams/${teamId}`, {
+    if (!name || !name.trim()) {
+        const isDark = document.documentElement.classList.contains('dark');
+        Swal.fire({
+            title: 'Error',
+            text: 'Team name is required',
+            icon: 'error',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
+        return;
+    }
+
+    fetch(`/admin-panel/league-management/teams/api/${teamId}/update`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -299,12 +311,39 @@ document.getElementById('editTeamForm').addEventListener('submit', function(e) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) window.location.reload();
+        const isDark = document.documentElement.classList.contains('dark');
+        if (data.success) {
+            Swal.fire({
+                title: 'Success',
+                text: data.message || 'Team renamed successfully',
+                icon: 'success',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then(() => window.location.reload());
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.message || 'Failed to rename team',
+                icon: 'error',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    })
+    .catch(() => {
+        const isDark = document.documentElement.classList.contains('dark');
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to rename team',
+            icon: 'error',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
     });
 });
 
 function syncDiscord(teamId) {
-    fetch(`/admin-panel/league-management/teams/${teamId}/sync-discord`, {
+    fetch(`/admin-panel/league-management/teams/api/${teamId}/sync-discord`, {
         method: 'POST',
         headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
     })
