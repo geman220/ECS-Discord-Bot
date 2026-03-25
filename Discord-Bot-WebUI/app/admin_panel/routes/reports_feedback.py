@@ -15,7 +15,7 @@ from datetime import datetime, timedelta
 from flask import render_template, request, jsonify, g, redirect, url_for, abort
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
-from sqlalchemy import func, and_
+from sqlalchemy import func, and_, or_
 
 from .. import admin_panel_bp
 from app.decorators import role_required
@@ -447,6 +447,229 @@ def delete_feedback(feedback_id):
         return jsonify({'success': True, 'message': 'Feedback deleted successfully'})
 
     return redirect(url_for('admin_panel.feedback_list'))
+
+
+# -----------------------------------------------------------
+# RSVP Bulk Update
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/reports/rsvp/bulk-update', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
+def bulk_update_rsvp():
+    """Bulk update RSVP status for multiple players."""
+    from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task
+
+    session = g.db_session
+
+    try:
+        data = request.get_json()
+        player_ids = data.get('player_ids', [])
+        response_value = data.get('response')
+        match_id = data.get('match_id')
+
+        if not player_ids or not response_value or not match_id:
+            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+
+        is_ecs_fc = isinstance(match_id, str) and match_id.startswith('ecs_')
+        updated_count = 0
+
+        for player_id in player_ids:
+            player = session.query(Player).get(int(player_id))
+            if not player:
+                continue
+
+            try:
+                if is_ecs_fc:
+                    actual_match_id = int(match_id[4:])
+                    _handle_ecs_fc_rsvp_update(session, player, actual_match_id, response_value)
+                else:
+                    _handle_regular_rsvp_update(session, player, match_id, response_value)
+                updated_count += 1
+            except Exception as e:
+                logger.error(f"Error updating RSVP for player {player_id}: {e}")
+                continue
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='bulk_rsvp_update',
+            resource_type='match',
+            resource_id=str(match_id),
+            new_value=f'Bulk updated {updated_count} RSVPs to {response_value}',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Updated {updated_count} RSVPs to {response_value}'
+        })
+
+    except Exception as e:
+        logger.error(f"Error in bulk RSVP update: {e}")
+        session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# -----------------------------------------------------------
+# Statistics Management
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/statistics/recalculate', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def recalculate_statistics():
+    """Recalculate player and team statistics."""
+    from app.models.stats import PlayerSeasonStats, PlayerCareerStats, Standings, PlayerAttendanceStats
+    from app.models import Team, League
+
+    session = g.db_session
+
+    try:
+        data = request.get_json()
+        scope = data.get('scope', 'all')
+
+        current_season = session.query(Season).filter_by(is_current=True).first()
+        if not current_season:
+            return jsonify({'success': False, 'error': 'No current season found'}), 400
+
+        recalc_count = 0
+
+        if scope in ('all', 'standings'):
+            standings = session.query(Standings).filter_by(season_id=current_season.id).all()
+            for standing in standings:
+                team = session.query(Team).get(standing.team_id)
+                if not team:
+                    continue
+
+                matches = session.query(Match).filter(
+                    and_(
+                        or_(Match.home_team_id == team.id, Match.away_team_id == team.id),
+                        Match.home_team_score.isnot(None),
+                        Match.away_team_score.isnot(None)
+                    )
+                ).all()
+
+                wins = draws = losses = gf = ga = 0
+                for m in matches:
+                    is_home = m.home_team_id == team.id
+                    team_goals = m.home_team_score if is_home else m.away_team_score
+                    opp_goals = m.away_team_score if is_home else m.home_team_score
+                    gf += team_goals
+                    ga += opp_goals
+                    if team_goals > opp_goals:
+                        wins += 1
+                    elif team_goals == opp_goals:
+                        draws += 1
+                    else:
+                        losses += 1
+
+                standing.played = len(matches)
+                standing.wins = wins
+                standing.draws = draws
+                standing.losses = losses
+                standing.goals_for = gf
+                standing.goals_against = ga
+                standing.goal_difference = gf - ga
+                standing.points = (wins * 3) + draws
+                recalc_count += 1
+
+        if scope in ('all', 'attendance'):
+            attendance_stats = session.query(PlayerAttendanceStats).all()
+            for stat in attendance_stats:
+                stat.update_stats(session)
+                recalc_count += 1
+
+        session.commit()
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='recalculate_statistics',
+            resource_type='statistics',
+            resource_id=scope,
+            new_value=f"Recalculated {recalc_count} records (scope: {scope})",
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': f'Recalculated {recalc_count} statistics records'
+        })
+
+    except Exception as e:
+        logger.error(f"Error recalculating statistics: {e}")
+        session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/statistics/export', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def export_statistics():
+    """Export statistics data."""
+    import csv
+    import io
+    from flask import Response
+
+    session = g.db_session
+
+    try:
+        data = request.get_json()
+        export_type = data.get('type', 'all')
+        export_format = data.get('format', 'csv')
+
+        current_season = session.query(Season).filter_by(is_current=True).first()
+        if not current_season:
+            return jsonify({'success': False, 'error': 'No current season found'}), 400
+
+        if export_format == 'csv':
+            output = io.StringIO()
+            writer = csv.writer(output)
+
+            if export_type in ('all', 'players'):
+                from app.models.stats import PlayerSeasonStats
+                writer.writerow(['Player', 'Season', 'League', 'Goals', 'Assists', 'Yellow Cards', 'Red Cards'])
+
+                stats = session.query(PlayerSeasonStats).filter_by(
+                    season_id=current_season.id
+                ).all()
+
+                for stat in stats:
+                    player_name = stat.player.name if stat.player else 'Unknown'
+                    league_name = stat.league.name if stat.league else 'N/A'
+                    writer.writerow([
+                        player_name, current_season.name, league_name,
+                        stat.goals, stat.assists, stat.yellow_cards, stat.red_cards
+                    ])
+
+            output.seek(0)
+
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='export_statistics',
+                resource_type='statistics',
+                resource_id=export_type,
+                new_value=f"Exported {export_type} statistics as {export_format}",
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+            return Response(
+                output.getvalue(),
+                mimetype='text/csv',
+                headers={'Content-Disposition': f'attachment; filename=statistics_{export_type}_{current_season.name}.csv'}
+            )
+
+        return jsonify({
+            'success': True,
+            'message': 'Export generated',
+            'download_url': None
+        })
+
+    except Exception as e:
+        logger.error(f"Error exporting statistics: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 # -----------------------------------------------------------

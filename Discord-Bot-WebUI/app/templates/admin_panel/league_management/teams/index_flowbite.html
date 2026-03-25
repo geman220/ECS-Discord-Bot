@@ -275,7 +275,7 @@ document.getElementById('editTeamForm').addEventListener('submit', function(e) {
     const teamId = document.getElementById('editTeamId').value;
     const name = document.getElementById('editTeamName').value;
 
-    fetch(`/admin-panel/league-management/teams/${teamId}`, {
+    fetch(`/admin-panel/league-management/teams/api/${teamId}/update`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
@@ -285,12 +285,39 @@ document.getElementById('editTeamForm').addEventListener('submit', function(e) {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.success) window.location.reload();
+        const isDark = document.documentElement.classList.contains('dark');
+        if (data.success) {
+            Swal.fire({
+                title: 'Success',
+                text: data.message || 'Team renamed successfully',
+                icon: 'success',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            }).then(() => window.location.reload());
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.message || 'Failed to rename team',
+                icon: 'error',
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827'
+            });
+        }
+    })
+    .catch(() => {
+        const isDark = document.documentElement.classList.contains('dark');
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to rename team',
+            icon: 'error',
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        });
     });
 });
 
 function syncDiscord(teamId) {
-    fetch(`/admin-panel/league-management/teams/${teamId}/sync-discord`, {
+    fetch(`/admin-panel/league-management/teams/api/${teamId}/sync-discord`, {
         method: 'POST',
         headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
     })
@@ -320,7 +347,7 @@ function deleteTeam(teamId, teamName) {
         color: isDark ? '#f3f4f6' : '#111827'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch(`/admin-panel/league-management/teams/${teamId}`, {
+            fetch(`/admin-panel/league-management/teams/api/${teamId}/delete`, {
                 method: 'DELETE',
                 headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
             })

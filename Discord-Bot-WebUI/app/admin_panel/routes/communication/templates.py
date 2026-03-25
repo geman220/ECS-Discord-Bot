@@ -219,6 +219,92 @@ def delete_message_template():
         return redirect(url_for('admin_panel.message_templates'))
 
 
+@admin_panel_bp.route('/communication/messages/templates/create', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def create_message_template_api():
+    """Create a new message template via JSON API."""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+
+        name = data.get('name', '').strip()
+        category_id = data.get('category_id')
+        description = data.get('description', '')
+        content = data.get('content', '')
+
+        if not name:
+            return jsonify({'success': False, 'message': 'Template name is required'}), 400
+
+        if not category_id:
+            return jsonify({'success': False, 'message': 'Category is required'}), 400
+
+        # Auto-generate key from name
+        key = name.lower().replace(' ', '_').replace('-', '_')
+        key = ''.join(c for c in key if c.isalnum() or c == '_')
+
+        template = MessageTemplate(
+            key=key,
+            name=name,
+            description=description,
+            message_content=content,
+            category_id=category_id,
+            is_active=True,
+            created_by=current_user.id
+        )
+        db.session.add(template)
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='create',
+            resource_type='message_template',
+            resource_id=str(template.id),
+            new_value=f"Created template: {name}",
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({'success': True, 'message': f'Template "{name}" created successfully'})
+
+    except Exception as e:
+        logger.error(f"Error creating message template via API: {e}")
+        return jsonify({'success': False, 'message': 'Failed to create template'}), 500
+
+
+@admin_panel_bp.route('/communication/messages/templates/bulk-activate', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def bulk_activate_message_templates():
+    """Activate all inactive message templates."""
+    try:
+        inactive_templates = MessageTemplate.query.filter_by(is_active=False).all()
+        count = len(inactive_templates)
+
+        for template in inactive_templates:
+            template.is_active = True
+            template.updated_at = datetime.utcnow()
+            template.updated_by = current_user.id
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='bulk_activate',
+            resource_type='message_template',
+            resource_id='bulk',
+            new_value=f"Activated {count} templates",
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({'success': True, 'count': count, 'message': f'{count} templates activated'})
+
+    except Exception as e:
+        logger.error(f"Error bulk activating templates: {e}")
+        return jsonify({'success': False, 'message': 'Failed to activate templates'}), 500
+
+
 @admin_panel_bp.route('/communication/messages/template/<int:template_id>/duplicate', methods=['POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
