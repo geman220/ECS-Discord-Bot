@@ -464,20 +464,101 @@ def update_match():
 @role_required(['Pub League Admin', 'Global Admin'])
 def update_week():
     """
-    Update week details including date and start time.
+    Update week details including date, start time, and week type.
+    When week_type is changed to BYE, matches for that week are deleted.
     """
     session = g.db_session
-    
+
     try:
         data = request.get_json()
         week_number = data.get('week_number')
         league_id = data.get('league_id')
+        season_id = data.get('season_id')
         new_date = data.get('date')
         new_start_time = data.get('start_time')
-        
-        if not week_number or not league_id:
-            return jsonify({'success': False, 'error': 'Week number and league ID are required'})
-        
+        new_week_type = data.get('week_type')
+
+        if not week_number:
+            return jsonify({'success': False, 'error': 'Week number is required'})
+
+        # If changing week type, update all league configs for this week
+        if new_week_type:
+            # Get all leagues for this season
+            if season_id:
+                season_leagues = session.query(League).filter_by(season_id=season_id).all()
+            elif league_id:
+                # Fall back to single league
+                league = session.query(League).get(league_id)
+                season_leagues = session.query(League).filter_by(season_id=league.season_id).all() if league else []
+            else:
+                season_leagues = []
+
+            for league in season_leagues:
+                week_config = session.query(WeekConfiguration).filter_by(
+                    league_id=league.id,
+                    week_order=week_number
+                ).first()
+
+                if week_config:
+                    week_config.week_type = new_week_type
+                else:
+                    # Create week config if it doesn't exist
+                    # Use the provided date or find from existing matches
+                    config_date = None
+                    if new_date:
+                        config_date = datetime.strptime(new_date, '%Y-%m-%d').date()
+                    else:
+                        existing_match = session.query(Match).join(
+                            Schedule, Match.schedule_id == Schedule.id
+                        ).join(Team, Schedule.team_id == Team.id).filter(
+                            Team.league_id == league.id,
+                            Schedule.week == week_number
+                        ).first()
+                        if existing_match:
+                            config_date = existing_match.date
+
+                    if config_date:
+                        week_config = WeekConfiguration(
+                            league_id=league.id,
+                            week_order=week_number,
+                            week_date=config_date,
+                            week_type=new_week_type
+                        )
+                        session.add(week_config)
+
+            # If changing to BYE, delete all matches for this week across all leagues
+            if new_week_type == 'BYE':
+                all_week_matches = session.query(Match).join(
+                    Schedule, Match.schedule_id == Schedule.id
+                ).filter(
+                    Schedule.week == week_number,
+                    Schedule.season_id == (season_id or (season_leagues[0].season_id if season_leagues else None))
+                ).all()
+
+                deleted_count = 0
+                for match in all_week_matches:
+                    # Delete related schedules
+                    schedules = session.query(Schedule).filter_by(id=match.schedule_id).all()
+                    paired_schedules = session.query(Schedule).filter_by(
+                        team_id=match.away_team_id,
+                        opponent=match.home_team_id,
+                        week=week_number
+                    ).all()
+                    for s in schedules + paired_schedules:
+                        session.delete(s)
+                    session.delete(match)
+                    deleted_count += 1
+
+                session.commit()
+                return jsonify({
+                    'success': True,
+                    'message': f'Week {week_number} set to BYE. {deleted_count} matches removed.'
+                })
+
+        # For non-type changes, require league_id
+        if not league_id:
+            return jsonify({'success': False, 'error': 'League ID is required for date/time updates'})
+
         # Get all matches for this week and league
         matches = session.query(Match).join(
             Schedule, Match.schedule_id == Schedule.id
@@ -487,26 +568,26 @@ def update_week():
             Team.league_id == league_id,
             Schedule.week == week_number
         ).all()
-        
+
         if not matches:
             return jsonify({'success': False, 'error': 'No matches found for this week'})
-        
+
         # Update week configuration if it exists
         week_config = session.query(WeekConfiguration).filter_by(
             league_id=league_id,
             week_order=week_number
         ).first()
-        
+
         if week_config and new_date:
             week_config.week_date = datetime.strptime(new_date, '%Y-%m-%d').date()
-        
+
         # Update matches and schedules
         for match in matches:
             if new_date:
                 match.date = datetime.strptime(new_date, '%Y-%m-%d').date()
             if new_start_time:
                 match.time = datetime.strptime(new_start_time, '%H:%M').time()
-            
+
             # Update corresponding schedule
             schedule = session.query(Schedule).get(match.schedule_id)
             if schedule:
@@ -514,20 +595,20 @@ def update_week():
                     schedule.date = match.date
                 if new_start_time:
                     schedule.time = match.time
-                
+
                 # Update paired schedule
                 paired_schedule = session.query(Schedule).filter_by(
                     team_id=match.away_team_id,
                     opponent=match.home_team_id,
                     week=schedule.week
                 ).first()
-                
+
                 if paired_schedule:
                     if new_date:
                         paired_schedule.date = match.date
                     if new_start_time:
                         paired_schedule.time = match.time
-        
+
         session.commit()
         return jsonify({'success': True, 'message': 'Week updated successfully'})
         
@@ -650,10 +731,14 @@ def delete_match():
             session.delete(temp_sub)
         logger.info(f"Deleted {len(temp_subs)} TemporarySubAssignment records")
 
-        # 8. Delete corresponding schedule entries
+        # 8. Collect schedule IDs and paired matches BEFORE removing anything
+        schedule_ids_to_delete = []
+        paired_match_ids = []
         schedule = session.query(Schedule).get(match.schedule_id)
         if schedule:
-            # Find and delete the paired schedule
+            schedule_ids_to_delete.append(schedule.id)
+
+            # Find the paired schedule (opponent's view)
             paired_schedule = session.query(Schedule).filter_by(
                 team_id=match.away_team_id,
                 opponent=match.home_team_id,
@@ -662,12 +747,35 @@ def delete_match():
             ).first()
 
             if paired_schedule:
-                session.delete(paired_schedule)
+                schedule_ids_to_delete.append(paired_schedule.id)
+                # Find any matches linked to the paired schedule
+                paired_matches = session.query(Match).filter_by(
+                    schedule_id=paired_schedule.id
+                ).all()
+                for pm in paired_matches:
+                    if pm.id != match_id:
+                        paired_match_ids.append(pm.id)
 
-            session.delete(schedule)
+        # 9. Delete paired matches and their related records
+        for pm_id in paired_match_ids:
+            session.query(ScheduledMessage).filter_by(match_id=pm_id).delete()
+            session.query(PlayerEvent).filter_by(match_id=pm_id).delete()
+            session.query(Availability).filter_by(match_id=pm_id).delete()
+            session.query(Match).filter_by(id=pm_id).delete()
 
-        # 9. Finally delete the match itself
+        # 10. Delete the primary match
         session.delete(match)
+        session.flush()
+
+        # 11. Delete schedule entries via direct SQL to avoid ORM relationship
+        # cascades that try to SET NULL on the non-nullable opponent column
+        if schedule_ids_to_delete:
+            from sqlalchemy import text
+            session.execute(
+                text("DELETE FROM schedule WHERE id IN :ids"),
+                {"ids": tuple(schedule_ids_to_delete)}
+            )
+
         session.commit()
 
         logger.info(f"Successfully deleted match {match_id} and all related records")
@@ -791,6 +899,79 @@ def delete_week(league_id):
         session.rollback()
         logger.error(f"Error deleting week: {str(e)}")
         return jsonify({'success': False, 'error': 'Internal Server Error'})
+
+
+@auto_schedule_bp.route('/delete-week-all', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def delete_week_all():
+    """
+    Delete an entire week across all leagues in a season.
+    Removes matches, schedules, and week configurations.
+    """
+    session = g.db_session
+
+    try:
+        data = request.get_json()
+        week_number = data.get('week_number')
+        season_id = data.get('season_id')
+
+        if not week_number or not season_id:
+            return jsonify({'success': False, 'error': 'Week number and season ID are required'})
+
+        # Get all leagues in this season
+        season_leagues = session.query(League).filter_by(season_id=season_id).all()
+
+        deleted_matches = 0
+        for league in season_leagues:
+            # Get all schedules for this week and league
+            schedules = session.query(Schedule).join(
+                Team, Schedule.team_id == Team.id
+            ).filter(
+                Team.league_id == league.id,
+                Schedule.week == week_number
+            ).all()
+
+            for schedule in schedules:
+                matches = session.query(Match).filter_by(schedule_id=schedule.id).all()
+                for match in matches:
+                    session.delete(match)
+                    deleted_matches += 1
+                session.delete(schedule)
+
+            # Delete week configuration
+            week_config = session.query(WeekConfiguration).filter_by(
+                league_id=league.id,
+                week_order=week_number
+            ).first()
+            if week_config:
+                session.delete(week_config)
+
+        session.commit()
+        return jsonify({
+            'success': True,
+            'message': f'Week {week_number} deleted. {deleted_matches} matches removed.'
+        })
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error deleting week across season: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
+
+
+@auto_schedule_bp.route('/current-season')
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def current_season_schedule():
+    """Redirect to the current Pub League season's schedule view."""
+    session = g.db_session
+    current_season = session.query(Season).filter_by(
+        league_type='Pub League', is_current=True
+    ).first()
+    if current_season:
+        return redirect(url_for('auto_schedule.view_seasonal_schedule', season_id=current_season.id))
+    show_warning('No current Pub League season found. Use Season Builder to create one.')
+    return redirect(url_for('auto_schedule.schedule_manager'))
 
 
 @auto_schedule_bp.route('/')

@@ -59,11 +59,11 @@
             </div>
         </div>
         <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
-            <button onclick="editTeam({{ team.id }}, '{{ team.name }}')"
+            <button data-action="rename-league-team" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}"
                     class="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">
                 <i class="ti ti-edit mr-1"></i>Edit
             </button>
-            <button onclick="syncDiscord({{ team.id }})"
+            <button data-action="sync-league-team-discord" data-team-id="{{ team.id }}"
                     class="flex-1 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
                 <i class="ti ti-refresh mr-1"></i>Sync Discord
             </button>
@@ -276,49 +276,77 @@
 {% endcall %}
 
 <script>
-function editTeam(teamId, teamName) {
-    document.getElementById('editTeamId').value = teamId;
-    document.getElementById('editTeamName').value = teamName;
-    const modal = FlowbiteInstances.getInstance('Modal', 'editTeamModal');
-    if (modal) modal.show();
-}
+(function() {
+    const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const isDark = () => document.documentElement.classList.contains('dark');
+    const swalTheme = () => ({ background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827' });
 
-// Handle form submission
-document.getElementById('editTeamForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const teamId = document.getElementById('editTeamId').value;
-    const name = document.getElementById('editTeamName').value;
+    // Event delegation for league management team actions
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
 
-    fetch(`/admin-panel/league-management/teams/${teamId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({ name })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) window.location.reload();
+        const action = target.dataset.action;
+        const teamId = target.dataset.teamId;
+        const teamName = target.dataset.teamName;
+
+        if (action === 'rename-league-team') {
+            e.preventDefault();
+            document.getElementById('editTeamId').value = teamId;
+            document.getElementById('editTeamName').value = teamName || '';
+            const modal = FlowbiteInstances.getInstance('Modal', 'editTeamModal');
+            if (modal) modal.show();
+        }
+
+        if (action === 'sync-league-team-discord') {
+            e.preventDefault();
+            fetch(`/admin-panel/league-management/teams/api/${teamId}/sync-discord`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrfToken() }
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.fire({
+                    title: data.success ? 'Success' : 'Error',
+                    text: data.message || (data.success ? 'Discord synced' : 'Sync failed'),
+                    icon: data.success ? 'success' : 'error',
+                    ...swalTheme()
+                });
+            })
+            .catch(() => Swal.fire({ title: 'Error', text: 'Failed to sync Discord', icon: 'error', ...swalTheme() }));
+        }
     });
-});
 
-function syncDiscord(teamId) {
-    fetch(`/admin-panel/league-management/teams/${teamId}/sync-discord`, {
-        method: 'POST',
-        headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
-    })
-    .then(response => response.json())
-    .then(data => {
-        const isDark = document.documentElement.classList.contains('dark');
-        Swal.fire({
-            title: data.success ? 'Success' : 'Error',
-            text: data.message || (data.success ? 'Discord synced' : 'Sync failed'),
-            icon: data.success ? 'success' : 'error',
-            background: isDark ? '#1f2937' : '#ffffff',
-            color: isDark ? '#f3f4f6' : '#111827'
-        });
+    // Handle edit team form submission
+    document.getElementById('editTeamForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const teamId = document.getElementById('editTeamId').value;
+        const name = document.getElementById('editTeamName').value.trim();
+
+        if (!name) {
+            Swal.fire({ title: 'Error', text: 'Team name is required', icon: 'error', ...swalTheme() });
+            return;
+        }
+
+        fetch(`/admin-panel/league-management/teams/api/${teamId}/update`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken()
+            },
+            body: JSON.stringify({ name })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ title: 'Success', text: data.message || 'Team renamed successfully', icon: 'success', ...swalTheme() })
+                    .then(() => window.location.reload());
+            } else {
+                Swal.fire({ title: 'Error', text: data.message || 'Failed to rename team', icon: 'error', ...swalTheme() });
+            }
+        })
+        .catch(() => Swal.fire({ title: 'Error', text: 'Failed to rename team', icon: 'error', ...swalTheme() }));
     });
-}
+})();
 </script>
 {% endblock %}

@@ -501,7 +501,7 @@ class MatchMonitoringService:
             pre_match_message = f"🚨 **Pre-Match Hype: {match_data.home_team['name']} vs {match_data.away_team['name']}** 🚨\n\n"
             
             if is_home:
-                pre_match_message += f"{team_name} is ready to dominate on home turf! Let's make Lumen Field rock! 🏟️💚\n\n"
+                pre_match_message += f"{team_name} is ready to dominate on home turf! Let's make {venue} rock! 🏟️💚\n\n"
             else:
                 pre_match_message += f"{team_name} is ready for battle away from home—let's make it a statement! 🚀\n\n"
             

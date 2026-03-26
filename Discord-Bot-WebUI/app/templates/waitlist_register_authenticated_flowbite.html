@@ -231,7 +231,7 @@
     <!-- Custom Footer -->
     <div class="flex flex-col sm:flex-row-reverse gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-600">
         {% if player %}
-        <a href="{{ url_for('players.player_profile_wizard', player_id=player.id) }}"
+        <a href="{{ url_for('players.wizard_profile', player_id=player.id) }}"
            class="inline-flex justify-center items-center px-4 py-2 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90">
             <i class="ti ti-edit mr-2"></i>
             Edit Profile

@@ -195,22 +195,42 @@ class SyncAIClient:
                     if rivalry_config:
                         prompt_config = rivalry_config
 
-                # Priority 2: Check for event-specific prompts
+                # Priority 2: Check for event-specific prompts with fallback chain
+                # Try team-specific type first, then base type, then match_commentary
                 if not prompt_config:
                     event_specific_configs = {
                         'goal': 'sounders_goal' if is_sounders_event else 'opponent_goal',
                         'yellow_card': 'card' if is_sounders_event else 'opponent_card',
                         'red_card': 'sounders_red_card' if is_sounders_event else 'opponent_red_card',
-                        'substitution': 'substitution'
+                        'substitution': 'substitution' if is_sounders_event else 'opponent_substitution'
+                    }
+
+                    # Base type fallbacks when team-specific config is inactive/missing
+                    base_type_fallbacks = {
+                        'sounders_goal': 'goal',
+                        'opponent_goal': 'goal',
+                        'opponent_card': 'card',
+                        'opponent_yellow_card': 'card',
+                        'yellow_card': 'card',
+                        'opponent_red_card': 'card',
+                        'sounders_red_card': 'card',
+                        'opponent_substitution': 'substitution',
+                        'sounders_penalty_miss': 'match_commentary',
+                        'opponent_penalty_miss': 'match_commentary',
                     }
 
                     if event_type in event_specific_configs:
                         specific_type = event_specific_configs[event_type]
-                        specific_config = query.filter(
-                            AIPromptConfig.prompt_type == specific_type
-                        ).first()
-                        if specific_config:
-                            prompt_config = specific_config
+                        base_type = base_type_fallbacks.get(specific_type)
+
+                        # Try team-specific first, then base type
+                        for try_type in [specific_type, base_type]:
+                            if try_type and not prompt_config:
+                                config = query.filter(
+                                    AIPromptConfig.prompt_type == try_type
+                                ).first()
+                                if config:
+                                    prompt_config = config
 
                 # Priority 3: Fall back to general match commentary
                 if not prompt_config:
@@ -533,11 +553,17 @@ class SyncAIClient:
                 else:
                     return f"😤 {player} scores. Time for the Sounders to respond!"
             elif event_type == 'yellow_card':
-                return f"🟨 Yellow card shown in minute {minute}"
+                return f"🟨 Yellow card for {player} in minute {minute}"
+            elif event_type == 'red_card':
+                return f"🟥 Red card! {player} sent off in minute {minute}"
             elif event_type == 'substitution':
-                return f"🔄 Substitution in minute {minute}"
+                player_on = event_context.get('player_on', player)
+                player_off = event_context.get('player_off', '')
+                if player_off:
+                    return f"🔄 Substitution in minute {minute}: {player_on} on for {player_off}"
+                return f"🔄 Substitution in minute {minute}: {player}"
             else:
-                return f"📋 Match event in minute {minute}"
+                return f"📋 Match event in minute {minute}: {player}"
 
         except Exception as e:
             logger.error(f"Error in fallback commentary: {e}")
@@ -638,7 +664,8 @@ class SyncAIClient:
 
         except Exception as e:
             logger.error(f"Error generating card commentary: {e}")
-            return f"📋 Card shown in minute {context.get('minute', 0)}"
+            player = context.get('player', 'Unknown Player')
+            return f"📋 Card for {player} in minute {context.get('minute', 0)}"
 
     def _generate_substitution_commentary(self, context: Dict[str, Any]) -> Optional[str]:
         """Generate substitution commentary."""
@@ -667,7 +694,8 @@ class SyncAIClient:
 
         except Exception as e:
             logger.error(f"Error generating substitution commentary: {e}")
-            return f"🔄 Substitution in minute {context.get('minute', 0)}"
+            team = context.get('team', 'Unknown Team')
+            return f"🔄 {team} substitution in minute {context.get('minute', 0)}"
 
     def _generate_general_commentary(self, context: Dict[str, Any]) -> Optional[str]:
         """Generate general event commentary."""

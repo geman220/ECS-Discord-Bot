@@ -71,12 +71,12 @@
             </div>
         </div>
         <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex gap-2">
-            <button onclick="editSeason({{ season.id }}, '{{ season.name }}')"
+            <button data-action="edit-league-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
                     class="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-300 dark:hover:bg-blue-800">
                 <i class="ti ti-edit mr-1"></i>Edit
             </button>
             {% if not season.is_current %}
-            <button onclick="setCurrentSeason({{ season.id }})"
+            <button data-action="set-current-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
                     class="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800">
                 <i class="ti ti-check mr-1"></i>Set Current
             </button>
@@ -212,60 +212,74 @@
 {% endcall %}
 
 <script>
-function editSeason(seasonId, seasonName) {
-    document.getElementById('editSeasonId').value = seasonId;
-    document.getElementById('editSeasonName').value = seasonName;
-    const modal = FlowbiteInstances.getInstance('Modal', 'editSeasonModal');
-    if (modal) modal.show();
-}
+(function() {
+    const csrfToken = () => document.querySelector('meta[name="csrf-token"]')?.content || '';
+    const isDark = () => document.documentElement.classList.contains('dark');
+    const swalTheme = () => ({ background: isDark() ? '#1f2937' : '#ffffff', color: isDark() ? '#f3f4f6' : '#111827' });
 
-// Handle form submission
-document.getElementById('editSeasonForm').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const seasonId = document.getElementById('editSeasonId').value;
-    const name = document.getElementById('editSeasonName').value;
-    const startDate = document.getElementById('editSeasonStartDate').value;
-    const endDate = document.getElementById('editSeasonEndDate').value;
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
 
-    fetch(`/admin-panel/league-management/seasons/${seasonId}`, {
-        method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content
-        },
-        body: JSON.stringify({ name, start_date: startDate, end_date: endDate })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            window.location.reload();
+        const action = target.dataset.action;
+
+        if (action === 'edit-league-season') {
+            document.getElementById('editSeasonId').value = target.dataset.seasonId;
+            document.getElementById('editSeasonName').value = target.dataset.seasonName;
+            const modal = FlowbiteInstances.getInstance('Modal', 'editSeasonModal');
+            if (modal) modal.show();
         }
-    });
-});
 
-function setCurrentSeason(seasonId) {
-    const isDark = document.documentElement.classList.contains('dark');
-    Swal.fire({
-        title: 'Set as Current Season?',
-        text: 'This will mark this season as current.',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#16a34a',
-        confirmButtonText: 'Set Current',
-        background: isDark ? '#1f2937' : '#ffffff',
-        color: isDark ? '#f3f4f6' : '#111827'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch(`/admin-panel/league-management/seasons/${seasonId}/set-current`, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').content }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) window.location.reload();
+        if (action === 'set-current-season') {
+            const seasonId = target.dataset.seasonId;
+            Swal.fire({
+                title: 'Set as Current Season?',
+                text: 'This will mark this season as current.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#16a34a',
+                confirmButtonText: 'Set Current',
+                ...swalTheme()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin-panel/league-management/seasons/${seasonId}/set-current`, {
+                        method: 'POST',
+                        headers: { 'X-CSRFToken': csrfToken() }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) window.location.reload();
+                        else Swal.fire({ title: 'Error', text: data.message || 'Failed to set season', icon: 'error', ...swalTheme() });
+                    })
+                    .catch(() => Swal.fire({ title: 'Error', text: 'Failed to set season', icon: 'error', ...swalTheme() }));
+                }
             });
         }
     });
-}
+
+    // Handle edit season form submission
+    document.getElementById('editSeasonForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const seasonId = document.getElementById('editSeasonId').value;
+        const name = document.getElementById('editSeasonName').value;
+        const startDate = document.getElementById('editSeasonStartDate').value;
+        const endDate = document.getElementById('editSeasonEndDate').value;
+
+        fetch(`/admin-panel/league-management/seasons/${seasonId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken()
+            },
+            body: JSON.stringify({ name, start_date: startDate, end_date: endDate })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) window.location.reload();
+            else Swal.fire({ title: 'Error', text: data.message || 'Failed to update season', icon: 'error', ...swalTheme() });
+        })
+        .catch(() => Swal.fire({ title: 'Error', text: 'Failed to update season', icon: 'error', ...swalTheme() }));
+    });
+})();
 </script>
 {% endblock %}

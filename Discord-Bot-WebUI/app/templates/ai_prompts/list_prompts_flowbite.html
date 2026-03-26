@@ -27,9 +27,14 @@
             <h2 class="text-xl font-bold text-gray-900 dark:text-white">AI Prompts Configuration</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400">Manage AI prompts for live match commentary and reactions</p>
         </div>
-        <a href="{{ url_for('ai_prompts.create_prompt') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
-            <i class="ti ti-plus mr-1"></i> Create New Prompt
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{{ url_for('ai_prompts.manage_templates') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600">
+                <i class="ti ti-template mr-1"></i> Tone Templates
+            </a>
+            <a href="{{ url_for('ai_prompts.create_prompt') }}" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:ring-4 focus:ring-ecs-green/50">
+                <i class="ti ti-plus mr-1"></i> Create New Prompt
+            </a>
+        </div>
     </div>
     {% endcall %}
 
@@ -64,7 +69,7 @@
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-1">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                                {{ prompt.prompt_type }}
+                                {{ prompt_type_labels.get(prompt.prompt_type, prompt.prompt_type) }}
                             </span>
                             {% if prompt.rivalry_intensity and prompt.rivalry_intensity > 7 %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">

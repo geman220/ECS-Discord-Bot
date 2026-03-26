@@ -272,10 +272,9 @@ function initAdminLeagueHistory() {
     const manager = getManager();
     manager.init();
 
-    // Expose methods globally for backward compatibility
-    window.searchResults = manager.searchResults;
-    window.selectPlayer = (player) => manager.selectPlayer(player);
-    window.lookupPlayerHistory = () => manager.lookupPlayerHistory();
+    // All actions handled via data-action event delegation or internal class methods.
+    // Global window.* assignments removed to prevent collisions with other modules
+    // (e.g. quick_profiles selectPlayer had a different signature).
 }
 
 // Register with window.InitSystem

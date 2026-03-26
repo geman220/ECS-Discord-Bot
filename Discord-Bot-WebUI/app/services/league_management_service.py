@@ -871,7 +871,7 @@ class LeagueManagementService:
             if team.discord_channel_id:
                 update_team_discord_resources_task.delay(
                     team_id=team.id,
-                    old_name=old_name
+                    new_team_name=team.name
                 )
                 logger.info(f"Discord update task queued for team {team.id}")
         except Exception as e:

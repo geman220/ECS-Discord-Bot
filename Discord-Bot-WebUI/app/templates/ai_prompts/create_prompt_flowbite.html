@@ -48,14 +48,19 @@
                             <select id="prompt_type" name="prompt_type" required
                                     class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
                                 <option value="">Select Type...</option>
+                                <option value="match_thread_context" {{ 'selected' if prompt and prompt.prompt_type == 'match_thread_context' }}>Match Thread Context</option>
+                                <option value="pre_match_hype" {{ 'selected' if prompt and prompt.prompt_type == 'pre_match_hype' }}>Pre-Match Hype</option>
+                                <option value="half_time_message" {{ 'selected' if prompt and prompt.prompt_type == 'half_time_message' }}>Half Time Message</option>
+                                <option value="full_time_message" {{ 'selected' if prompt and prompt.prompt_type == 'full_time_message' }}>Full Time Message</option>
                                 <option value="match_commentary" {{ 'selected' if prompt and prompt.prompt_type == 'match_commentary' }}>Match Commentary</option>
                                 <option value="goal" {{ 'selected' if prompt and prompt.prompt_type == 'goal' }}>Goal Event</option>
+                                <option value="sounders_goal" {{ 'selected' if prompt and prompt.prompt_type == 'sounders_goal' }}>Sounders Goal</option>
+                                <option value="opponent_goal" {{ 'selected' if prompt and prompt.prompt_type == 'opponent_goal' }}>Opponent Goal</option>
                                 <option value="card" {{ 'selected' if prompt and prompt.prompt_type == 'card' }}>Card Event</option>
+                                <option value="sounders_red_card" {{ 'selected' if prompt and prompt.prompt_type == 'sounders_red_card' }}>Sounders Red Card</option>
+                                <option value="opponent_red_card" {{ 'selected' if prompt and prompt.prompt_type == 'opponent_red_card' }}>Opponent Red Card</option>
                                 <option value="substitution" {{ 'selected' if prompt and prompt.prompt_type == 'substitution' }}>Substitution</option>
-                                <option value="halftime" {{ 'selected' if prompt and prompt.prompt_type == 'halftime' }}>Halftime</option>
-                                <option value="fulltime" {{ 'selected' if prompt and prompt.prompt_type == 'fulltime' }}>Full Time</option>
                                 <option value="rivalry" {{ 'selected' if prompt and prompt.prompt_type == 'rivalry' }}>Rivalry Match</option>
-                                <option value="penalty" {{ 'selected' if prompt and prompt.prompt_type == 'penalty' }}>Penalty</option>
                             </select>
                         </div>
                     </div>
@@ -80,8 +85,39 @@
                         <label for="user_prompt_template" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">User Prompt Template <span class="text-red-500">*</span></label>
                         <textarea id="user_prompt_template" name="user_prompt_template" rows="5" required
                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono">{{ prompt.user_prompt_template if prompt else '' }}</textarea>
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Use <code class="bg-gray-100 dark:bg-gray-600 px-1 rounded">{match_context}</code>, <code class="bg-gray-100 dark:bg-gray-600 px-1 rounded">{events}</code>, <code class="bg-gray-100 dark:bg-gray-600 px-1 rounded">{score}</code> as variables</p>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Use template variables listed below as placeholders in your prompt</p>
                     </div>
+
+                    <!-- Template Variables Reference -->
+                    <details class="border border-gray-200 dark:border-gray-600 rounded-lg">
+                        <summary class="px-4 py-2.5 text-sm font-medium text-gray-900 dark:text-white cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg">
+                            <i class="ti ti-info-circle mr-1"></i> Available Template Variables
+                        </summary>
+                        <div class="px-4 pb-3 text-xs text-gray-600 dark:text-gray-400 space-y-3">
+                            <div>
+                                <p class="font-semibold text-gray-700 dark:text-gray-300 mb-1">All prompt types:</p>
+                                <div class="flex flex-wrap gap-1">
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{home_team}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{away_team}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{venue}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{competition}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{match_date}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{is_home_game}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{opponent}</code>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-700 dark:text-gray-300 mb-1">Event types (goal, card, substitution):</p>
+                                <div class="flex flex-wrap gap-1">
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{scoring_team}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{player}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{minute}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{sounders_score}</code>
+                                    <code class="bg-gray-100 dark:bg-gray-600 px-1.5 py-0.5 rounded">{opponent_score}</code>
+                                </div>
+                            </div>
+                        </div>
+                    </details>
                 </div>
                 {% endcall %}
 
@@ -169,6 +205,21 @@
                                class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                         <label for="ai-prompt-is_active" class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Active</label>
                     </div>
+
+                    <!-- Tone Template Assignment -->
+                    {% if templates %}
+                    <div>
+                        <label for="active_template_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tone Template</label>
+                        <select id="active_template_id" name="active_template_id"
+                                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                            <option value="">None (default tone)</option>
+                            {% for template in templates %}
+                            <option value="{{ template.id }}" {{ 'selected' if prompt and prompt.active_template_id == template.id }}>{{ template.name }}{% if template.category %} ({{ template.category }}){% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Overlays the template's personality traits on top of slider values below at runtime</p>
+                    </div>
+                    {% endif %}
 
                     <!-- Version Info -->
                     {% if prompt %}
@@ -268,7 +319,7 @@
                 {% if templates %}
                 {% call card(title="Quick Templates") %}
                 <div class="space-y-2">
-                    {% for template in templates[:3] %}
+                    {% for template in templates[:6] %}
                     <button type="button" class="w-full px-3 py-2 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white dark:bg-gray-700 dark:hover:bg-ecs-green transition-colors"
                             data-action="load-ai-template"
                             data-template-id="{{ template.id }}">

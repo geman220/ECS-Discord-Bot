@@ -60,8 +60,27 @@ def get_bot():
     return bot
 
 
+def _extract_minute_from_content(content: str) -> str:
+    """Extract match minute from content text (e.g., 'minute 38' or '38th minute' or "38'")."""
+    import re
+    patterns = [
+        r"minute (\d+)",
+        r"(\d+)(?:st|nd|rd|th) minute",
+        r"(\d+)'",
+        r"in (\d+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, content)
+        if match:
+            return f"{match.group(1)}'"
+    return 'Live'
+
+
 def get_event_embed_config(event_type: str, content: str, match_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Generate embed configuration for different live event types."""
+
+    # Extract minute from content for use in fields
+    minute_display = _extract_minute_from_content(content)
 
     # Default configuration
     config = {
@@ -73,60 +92,67 @@ def get_event_embed_config(event_type: str, content: str, match_data: Optional[D
     }
 
     # Parse content to extract event details
-    if '⚽ GOAL!' in content:
+    if '⚽ GOAL!' in content or 'GOAL' in content.upper() and 'scores' in content.lower():
         config.update({
             'title': '⚽ GOAL!',
             'color': 0x00FF00,  # Bright green for goals
             'fields': [
                 {'name': '🎯 Event', 'value': 'Goal Scored', 'inline': True},
-                {'name': '⏱️ Time', 'value': 'Live', 'inline': True}
+                {'name': '⏱️ Match Time', 'value': minute_display, 'inline': True}
             ]
         })
 
-        # Extract team context for goal color (Sounders is always our team regardless of home/away)
+        # Extract team context for goal color
         if 'Sounders' in content or 'Seattle' in content or 'SOUNDERS' in content:
-            config['color'] = 0x005F4F  # Sounders green for OUR goals - always celebrate!
+            config['color'] = 0x005F4F  # Sounders green for OUR goals
             config['title'] = '⚽ SOUNDERS GOAL!'
         else:
-            config['color'] = 0xFF4444  # Red for opponent goals - tone it down
+            config['color'] = 0xFF4444  # Red for opponent goals
             config['title'] = '⚽ Opponent Goal'
 
-    elif '📋 Yellow-Card' in content or '🟨' in content:
+    elif '📋 Yellow-Card' in content or '🟨' in content or 'yellow card' in content.lower():
         config.update({
             'title': '🟨 Yellow Card',
             'color': 0xFFD700,  # Gold for yellow cards
             'fields': [
-                {'name': '⚠️ Caution', 'value': 'Player Booked', 'inline': True},
-                {'name': '📋 Discipline', 'value': 'Yellow Card', 'inline': True}
+                {'name': '📋 Discipline', 'value': 'Yellow Card', 'inline': True},
+                {'name': '⏱️ Match Time', 'value': minute_display, 'inline': True}
             ]
         })
 
-    elif '🟥' in content or 'Red Card' in content:
+    elif '🟥' in content or 'red card' in content.lower():
         config.update({
             'title': '🟥 Red Card',
             'color': 0xFF0000,  # Red for red cards
             'fields': [
-                {'name': '🚫 Dismissal', 'value': 'Player Sent Off', 'inline': True},
-                {'name': '📋 Discipline', 'value': 'Red Card', 'inline': True}
+                {'name': '📋 Discipline', 'value': 'Red Card', 'inline': True},
+                {'name': '⏱️ Match Time', 'value': minute_display, 'inline': True}
             ]
         })
 
-    elif '📋 Substitution' in content or '🔄' in content:
+    elif '📋 Substitution' in content or '🔄' in content or 'substitution' in content.lower():
         config.update({
             'title': '🔄 Substitution',
             'color': 0x0099FF,  # Blue for substitutions
             'fields': [
-                {'name': '⚡ Change', 'value': 'Player Substitution', 'inline': True},
-                {'name': '🔄 Tactical', 'value': 'Fresh Legs', 'inline': True}
+                {'name': '⚡ Change', 'value': 'Tactical Change', 'inline': True},
+                {'name': '⏱️ Match Time', 'value': minute_display, 'inline': True}
             ]
         })
 
-    elif 'LET\'S GO' in content or '🔥' in content and 'Time to' in content:
+    elif 'Score Update' in content or '📊' in content:
+        config.update({
+            'title': '📊 Score Update',
+            'color': 0x005F4F,
+            'fields': []
+        })
+
+    elif 'LET\'S GO' in content or ('🔥' in content and 'Time to' in content):
         config.update({
             'title': '🔥 PRE-MATCH HYPE',
             'color': 0x005F4F,  # Sounders green
             'fields': [
-                {'name': '🏟️ Venue', 'value': 'Lumen Field', 'inline': True},
+                {'name': '🏟️ Venue', 'value': (match_data or {}).get('venue', 'Stadium'), 'inline': True},
                 {'name': '💚💙 Support', 'value': 'ECS Ready!', 'inline': True}
             ]
         })
@@ -141,22 +167,19 @@ def get_event_embed_config(event_type: str, content: str, match_data: Optional[D
             ]
         })
 
-    # Add match data if available
+    # Add match time from match_data if available and not already set
     if match_data and isinstance(match_data, dict):
         try:
-            # Extract score from match data
-            competition = match_data.get('header', {}).get('competitions', [{}])[0]
-            status_info = competition.get('status', {})
-            clock = status_info.get('displayClock', 'Live')
-
-            if clock and clock != '0:00':
-                config['fields'].append({
-                    'name': '⏱️ Match Time',
-                    'value': f"{clock}",
-                    'inline': True
-                })
+            event_data = match_data.get('event', {})
+            if event_data and event_data.get('minute'):
+                # Use event-specific minute if available
+                event_minute = f"{event_data['minute']}'"
+                # Update any existing match time field
+                for field in config['fields']:
+                    if field['name'] == '⏱️ Match Time' and field['value'] == 'Live':
+                        field['value'] = event_minute
         except:
-            pass  # Skip if match_data parsing fails
+            pass
 
     return config
 

@@ -366,12 +366,8 @@ function initAdminTeamsManagement() {
     const manager = getManager();
     manager.init();
 
-    // Expose methods globally for backward compatibility
-    window.createTeam = () => manager.createTeam();
-    window.editTeam = (teamId, teamName) => manager.editTeam(teamId, teamName);
-    window.saveTeamEdit = () => manager.saveTeamEdit();
-    window.syncTeamDiscord = (teamId) => manager.syncTeamDiscord(teamId);
-    window.deleteTeam = (teamId, teamName) => manager.deleteTeam(teamId, teamName);
+    // All actions are handled via data-action event delegation or form submit handlers.
+    // Global window.* assignments were removed to prevent collisions with other modules.
 }
 
 // Register with window.InitSystem

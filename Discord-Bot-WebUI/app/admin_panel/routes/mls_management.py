@@ -665,7 +665,8 @@ def mls_fetch_espn():
                                 match_details['match_commentary_link'],
                                 match_details['venue'],
                                 competition_code,
-                                espn_match_id=match_details['match_id']
+                                espn_match_id=match_details['match_id'],
+                                broadcast=match_details.get('broadcast')
                             )
 
                             session.commit()
@@ -908,7 +909,8 @@ def _process_event_for_confirm(session, event, selected_ids, competition_code):
             match_details['match_commentary_link'],
             match_details['venue'],
             competition_code,
-            espn_match_id=match_details['match_id']
+            espn_match_id=match_details['match_id'],
+            broadcast=match_details.get('broadcast')
         )
         session.commit()
 
@@ -2324,3 +2326,53 @@ def mls_api_coordination():
         return jsonify(status)
     except Exception as e:
         return jsonify({'error': 'Internal Server Error'}), 500
+
+
+@admin_panel_bp.route('/mls/retry-task', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_retry_task():
+    """Retry a failed MLS task (thread creation or live reporting)."""
+    try:
+        from app.models import ScheduledTask, TaskState
+
+        data = request.get_json()
+        task_id = data.get('task_id')
+
+        if not task_id:
+            return jsonify({'success': False, 'error': 'Task ID is required'}), 400
+
+        session = g.db_session
+        task = session.query(ScheduledTask).get(int(task_id))
+
+        if not task:
+            return jsonify({'success': False, 'error': 'Task not found'}), 404
+
+        # Reset task state to allow re-execution
+        old_state = task.state.value if task.state else 'unknown'
+        task.state = TaskState.SCHEDULED
+        task.celery_task_id = None
+        task.execution_time = None
+        task.error_message = None
+
+        session.commit()
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='mls_retry_task',
+            resource_type='scheduled_task',
+            resource_id=str(task_id),
+            old_value=f"State: {old_state}",
+            new_value=f"Reset to SCHEDULED for retry",
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent')
+        )
+
+        return jsonify({
+            'success': True,
+            'message': 'Task queued for retry'
+        })
+
+    except Exception as e:
+        logger.error(f"Error retrying MLS task: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

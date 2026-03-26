@@ -25,6 +25,9 @@ from flask import current_app, request, jsonify
 
 logger = logging.getLogger(__name__)
 
+# Known home venues for Seattle Sounders (used as fallback when team data is missing)
+KNOWN_HOME_VENUES = ["Lumen Field", "Starfire Sports Stadium", "ONE Spokane Stadium"]
+
 
 def validate_json_request(request_obj):
     """
@@ -328,7 +331,14 @@ def extract_match_details(event: Dict[str, Any]) -> Dict[str, Any]:
         date_time_str = event.get("date")  # ESPN datetime string (naive but actually PST)
         name = event.get("name")
         venue = event.get("competitions", [{}])[0].get("venue", {}).get("fullName")
-        
+
+        # Extract broadcast info from ESPN
+        broadcasts_data = event.get("competitions", [{}])[0].get("broadcasts", [])
+        broadcast_names = []
+        for b in broadcasts_data:
+            broadcast_names.extend(b.get("names", []))
+        broadcast = ", ".join(broadcast_names) if broadcast_names else None
+
         # Parse ESPN's datetime string
         parsed_dt = parser.parse(date_time_str)
         
@@ -355,7 +365,7 @@ def extract_match_details(event: Dict[str, Any]) -> Dict[str, Any]:
         else:
             opponent = "Unknown"
             # If team data isn't found, infer home game status by known venues
-            is_home_game = venue in ["Lumen Field", "Starfire Sports Stadium"]
+            is_home_game = venue in KNOWN_HOME_VENUES
             team_logo = "Unknown"
         
         # Extract match-related links
@@ -372,6 +382,7 @@ def extract_match_details(event: Dict[str, Any]) -> Dict[str, Any]:
             "match_summary_link": summary_link,
             "match_stats_link": stats_link,
             "match_commentary_link": commentary_link,
+            "broadcast": broadcast,
         }
     except Exception as e:
         logger.error(f"Error extracting match details: {e}")

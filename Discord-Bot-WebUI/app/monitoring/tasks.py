@@ -27,7 +27,7 @@ from app.core import celery
 from app.core.helpers import get_match
 from app.core.session_manager import managed_session
 from app.models import MLSMatch
-from app.tasks.tasks_live_reporting import start_live_reporting, force_create_mls_thread_task
+from app.tasks.tasks_live_reporting import force_create_mls_thread_task
 from app.tasks.match_scheduler import create_mls_match_thread_task, start_mls_live_reporting_task
 
 logger = logging.getLogger(__name__)

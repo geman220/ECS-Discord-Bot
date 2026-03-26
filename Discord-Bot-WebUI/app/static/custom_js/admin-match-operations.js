@@ -213,7 +213,7 @@ class AdminMatchOperationsManager {
                             <div class="text-start">
                                 <div class="mb-3">
                                     <label class="form-label">Team Name <span class="text-danger">*</span></label>
-                                    <input type="text" id="editTeamName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${team.name}">
+                                    <input type="text" id="swalEditTeamName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white" value="${team.name}">
                                 </div>
                                 <p class="text-muted small mb-0">Players: ${team.player_count}</p>
                             </div>
@@ -225,7 +225,8 @@ class AdminMatchOperationsManager {
                         denyButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('danger') : 'var(--ecs-danger)',
                         cancelButtonText: 'Cancel',
                         preConfirm: () => {
-                            const name = document.getElementById('editTeamName').value;
+                            const nameInput = window.Swal.getPopup().querySelector('#swalEditTeamName');
+                            const name = nameInput ? nameInput.value.trim() : '';
                             if (!name) {
                                 window.Swal.showValidationMessage('Team name is required');
                                 return false;
@@ -697,18 +698,9 @@ function initAdminMatchOperations() {
     const manager = getManager();
     manager.init();
 
-    // Expose methods globally for backward compatibility
-    window.createTeam = () => manager.createTeam();
-    window.viewTeam = (teamId) => manager.viewTeam(teamId);
-    window.editTeam = (teamId) => manager.editTeam(teamId);
-    window.deleteTeam = (teamId, teamName) => manager.deleteTeam(teamId, teamName);
-    window.manageRoster = (teamId) => manager.manageRoster(teamId);
-    window.scheduleMatch = (matchId) => manager.scheduleMatch(matchId);
-    window.quickSchedule = () => manager.quickSchedule();
-    window.createNewMatch = () => manager.createNewMatch();
-    window.viewMatch = (matchId) => manager.viewMatch(matchId);
-    window.editMatch = (matchId) => manager.editMatch(matchId);
-    window.enterResult = (matchId) => manager.enterResult(matchId);
+    // All actions are handled via data-action event delegation in setupEventDelegation().
+    // Global window.* assignments were removed to prevent collisions with other modules
+    // (e.g. admin-teams-management.js also defined window.editTeam/deleteTeam).
 }
 
 // Register with window.InitSystem

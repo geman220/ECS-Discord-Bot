@@ -321,7 +321,7 @@ def discord_callback():
                 if profile_expired or not (user.player and user.player.profile_last_updated):
                     # Profile incomplete/expired - go to wizard first
                     logger.info(f"User {user.id} on waitlist with expired/incomplete profile, redirecting to wizard")
-                    return redirect(url_for('players.player_profile_wizard', player_id=user.player.id))
+                    return redirect(url_for('players.wizard_profile', player_id=user.player.id))
                 else:
                     # Profile complete - show waitlist status
                     logger.info(f"User {user.id} on waitlist with complete profile, redirecting to status")
@@ -331,6 +331,10 @@ def discord_callback():
             if waitlist_intent:
                 logger.info(f"User {user.id} has waitlist intent, auto-adding to waitlist")
                 try:
+                    # Merge user into the transactional session to avoid
+                    # "already attached to session" errors when manipulating roles
+                    user = db_session.merge(user)
+
                     # Find or create pl-waitlist role
                     waitlist_role = db_session.query(Role).filter_by(name='pl-waitlist').first()
                     if not waitlist_role:

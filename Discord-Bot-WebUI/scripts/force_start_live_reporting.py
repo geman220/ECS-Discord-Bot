@@ -47,21 +47,16 @@ def force_start_live_reporting(match_id: str, thread_id: str, competition: str =
         app = create_app()
         
         with app.app_context():
-            # Import tasks
-            logger.info("Importing V2 live reporting tasks...")
-            from app.tasks.tasks_live_reporting_v2 import start_live_reporting_v2
-            
-            # Check if session already exists
-            logger.info(f"Checking for existing session for match {match_id}...")
+            from app.utils.live_reporting_helpers import create_live_reporting_session, stop_live_reporting_session
             from app.models.live_reporting_session import LiveReportingSession
             from app.core.session_manager import managed_session
-            
+
             with managed_session() as session:
                 existing = session.query(LiveReportingSession).filter_by(
                     match_id=match_id,
                     is_active=True
                 ).first()
-                
+
                 if existing:
                     logger.warning(f"Active session already exists (ID: {existing.id})")
                     print(f"⚠️  Active session already exists for match {match_id}")
@@ -69,29 +64,27 @@ def force_start_live_reporting(match_id: str, thread_id: str, competition: str =
                     print(f"   Started: {existing.started_at}")
                     print(f"   Thread ID: {existing.thread_id}")
                     print(f"   Updates: {existing.update_count}")
-                    
+
                     response = input("\nDo you want to restart this session? (y/N): ")
                     if response.lower() != 'y':
                         logger.info("Aborted by user")
                         return
-                    
-                    # Deactivate existing session
-                    existing.is_active = False
-                    existing.ended_at = datetime.utcnow()
-                    session.commit()
+
+                    stop_live_reporting_session(session, match_id)
                     logger.info(f"Deactivated existing session {existing.id}")
-            
-            # Submit task to Celery queue
-            logger.info(f"Submitting live reporting task for match {match_id}...")
-            result = start_live_reporting_v2.apply_async(
-                args=[match_id, thread_id, competition],
-                queue='live_reporting'
-            )
-            
-            print(f"\n✅ Live reporting task submitted successfully!")
-            print(f"   Task ID: {result.id}")
-            print(f"   Match ID: {match_id}")
-            print(f"   Thread ID: {thread_id}")
+
+            # Create session directly — RealtimeReportingService picks it up
+            with managed_session() as session:
+                result = create_live_reporting_session(session, match_id, thread_id, competition)
+
+            if result.get('success'):
+                print(f"\n✅ Live reporting session created!")
+                print(f"   Session ID: {result.get('session_id')}")
+                print(f"   Match ID: {match_id}")
+                print(f"   Thread ID: {thread_id}")
+                print(f"   RealtimeReportingService will pick it up within 10-30 seconds")
+            else:
+                print(f"\n❌ Failed: {result.get('message')}")
             print(f"   Competition: {competition}")
             
             # Wait for task result (with timeout)

@@ -228,19 +228,26 @@ class ScheduleManager:
             match_id (int): The ID of the main schedule row to delete.
 
         Returns:
-            Tuple: A tuple of objects to delete and a response dict.
+            Tuple: A tuple of objects to delete (ordered: messages, matches, schedules)
+                   and a response dict.
         """
         schedule = self.session.query(Schedule).get(match_id)
         if not schedule:
             return [], {'success': False, 'message': 'Schedule not found'}
 
-        objects_to_delete = [schedule]
+        # Collect objects in correct deletion order:
+        # 1. Messages (no FK dependencies)
+        # 2. Matches (FK to schedule)
+        # 3. Schedules (FK from matches must be gone first)
+        messages_to_delete = []
+        matches_to_delete = []
+        schedules_to_delete = [schedule]
 
         match = self.session.query(Match).filter_by(schedule_id=match_id).first()
         if match:
-            objects_to_delete.append(match)
+            matches_to_delete.append(match)
             messages = self.session.query(ScheduledMessage).filter_by(match_id=match.id).all()
-            objects_to_delete.extend(messages)
+            messages_to_delete.extend(messages)
 
         paired = self.session.query(Schedule).filter_by(
             team_id=schedule.opponent,
@@ -248,13 +255,15 @@ class ScheduleManager:
             week=schedule.week
         ).first()
         if paired:
-            objects_to_delete.append(paired)
+            schedules_to_delete.append(paired)
             paired_match = self.session.query(Match).filter_by(schedule_id=paired.id).first()
             if paired_match:
-                objects_to_delete.append(paired_match)
+                matches_to_delete.append(paired_match)
                 paired_messages = self.session.query(ScheduledMessage).filter_by(match_id=paired_match.id).all()
-                objects_to_delete.extend(paired_messages)
+                messages_to_delete.extend(paired_messages)
 
+        # Return in correct order: messages first, then matches, then schedules
+        objects_to_delete = messages_to_delete + matches_to_delete + schedules_to_delete
         return objects_to_delete, {'success': True, 'message': 'Match deleted'}
 
     def create_match(self, data: Dict) -> Tuple[List[Any], Dict]:

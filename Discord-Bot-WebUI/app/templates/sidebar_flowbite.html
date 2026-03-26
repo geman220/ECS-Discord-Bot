@@ -66,7 +66,7 @@
             {% set can_view_draft_predictions = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
             {% set can_view_teams = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'pl-classic' in user_roles or 'pl-ecs-fc' in user_roles or 'pl-premier' in user_roles %}
             {% set can_view_standings = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles %}
-            {% set can_view_calendar = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Ref' in user_roles %}
+            {% set can_view_calendar = 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles or 'ECS FC Coach' in user_roles or 'Pub League Ref' in user_roles or 'pl-classic' in user_roles or 'pl-premier' in user_roles or 'pl-ecs-fc' in user_roles %}
             {% set can_view_any_ecsfc_section = can_view_season_management or can_view_draft or can_view_draft_predictions or can_view_standings or can_view_calendar or can_view_teams %}
 
             <!-- ECS FC League Section -->
@@ -144,7 +144,7 @@
                 <li>
                     <a href="{{ url_for('calendar.calendar_view') }}" class="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20' if request.endpoint == 'calendar.calendar_view' else '' }}">
                         <i class="ti ti-calendar w-5 h-5 {{ 'text-ecs-green' if request.endpoint == 'calendar.calendar_view' else 'text-gray-500 dark:text-gray-400' }}"></i>
-                        <span class="ml-3">Pub League Calendar</span>
+                        <span class="ml-3">Calendar</span>
                     </a>
                 </li>
                 {% endif %}

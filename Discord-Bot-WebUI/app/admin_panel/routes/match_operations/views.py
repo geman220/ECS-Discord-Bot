@@ -19,10 +19,12 @@ from flask_login import login_required, current_user
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 
+from flask import jsonify
 from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
+from app.utils.db_utils import transactional
 
 logger = logging.getLogger(__name__)
 
@@ -354,3 +356,71 @@ def match_reports():
         logger.error(f"Error loading match reports: {e}")
         flash('Match reports unavailable. Check database connectivity and report generation.', 'error')
         return redirect(url_for('admin_panel.match_operations'))
+
+
+@admin_panel_bp.route('/matches/bulk-actions', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def match_bulk_actions():
+    """Perform bulk actions on matches (delete, update status)."""
+    try:
+        from app.models import Match
+
+        data = request.get_json()
+        action = data.get('action')
+        match_ids = data.get('match_ids', [])
+
+        if not match_ids:
+            return jsonify({'success': False, 'error': 'No matches selected'}), 400
+
+        if action == 'delete':
+            matches = Match.query.filter(Match.id.in_(match_ids)).all()
+            count = len(matches)
+            for match in matches:
+                db.session.delete(match)
+
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='bulk_delete_matches',
+                resource_type='match',
+                resource_id=','.join(str(m) for m in match_ids),
+                new_value=f"Deleted {count} matches",
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+            return jsonify({'success': True, 'message': f'{count} matches deleted successfully'})
+
+        elif action == 'update_status':
+            new_status = data.get('status')
+            valid_statuses = ['scheduled', 'live', 'completed', 'cancelled', 'postponed']
+
+            if new_status not in valid_statuses:
+                return jsonify({'success': False, 'error': f'Invalid status: {new_status}'}), 400
+
+            matches = Match.query.filter(Match.id.in_(match_ids)).all()
+            count = len(matches)
+
+            for match in matches:
+                if hasattr(match, 'status'):
+                    match.status = new_status
+
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='bulk_update_match_status',
+                resource_type='match',
+                resource_id=','.join(str(m) for m in match_ids),
+                new_value=f"Updated {count} matches to status: {new_status}",
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+            return jsonify({'success': True, 'message': f'{count} matches updated to {new_status}'})
+
+        else:
+            return jsonify({'success': False, 'error': f'Unknown action: {action}'}), 400
+
+    except Exception as e:
+        logger.error(f"Error performing bulk match action: {e}")
+        return jsonify({'success': False, 'error': 'Failed to perform bulk action'}), 500

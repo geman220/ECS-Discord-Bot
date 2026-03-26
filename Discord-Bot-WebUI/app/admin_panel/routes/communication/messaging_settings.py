@@ -321,3 +321,122 @@ def messaging_stats_api():
     except Exception as e:
         logger.error(f"Error getting messaging stats: {e}")
         return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
+
+
+# -----------------------------------------------------------
+# General Communication Settings
+# -----------------------------------------------------------
+
+@admin_panel_bp.route('/communication/settings/save', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def save_communication_settings():
+    """Save general communication settings from form data."""
+    try:
+        from app.models.admin_config import AdminConfig
+
+        form_data = request.form
+        changes = []
+
+        for key in form_data:
+            if key == 'csrf_token':
+                continue
+
+            value = form_data[key]
+            config_key = f'communication_{key}'
+
+            existing = AdminConfig.query.filter_by(key=config_key).first()
+            if existing:
+                if existing.value != value:
+                    changes.append(f"{key}: {existing.value} -> {value}")
+                    existing.value = value
+                    existing.updated_by = current_user.id
+            else:
+                new_config = AdminConfig(
+                    key=config_key,
+                    value=value,
+                    category='communication',
+                    data_type='string',
+                    description=f'Communication setting: {key}',
+                    updated_by=current_user.id
+                )
+                db.session.add(new_config)
+                changes.append(f"{key}: (new) -> {value}")
+
+        if changes:
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='update_communication_settings',
+                resource_type='communication_settings',
+                resource_id='general',
+                new_value='; '.join(changes[:5]),
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+        return jsonify({'success': True, 'message': 'Settings saved successfully'})
+
+    except Exception as e:
+        logger.error(f"Error saving communication settings: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_panel_bp.route('/communication/settings/test-webhook', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def test_communication_webhook():
+    """Test a webhook URL by sending a test payload."""
+    import requests as http_requests
+    from app.utils.url_validator import validate_url_for_ssrf, SSRFValidationError
+
+    try:
+        data = request.get_json()
+        webhook_url = data.get('webhook_url', '').strip()
+
+        if not webhook_url:
+            return jsonify({'success': False, 'error': 'Webhook URL is required'}), 400
+
+        # Validate URL for SSRF
+        try:
+            validate_url_for_ssrf(webhook_url)
+        except SSRFValidationError as e:
+            return jsonify({'success': False, 'error': f'Invalid URL: {str(e)}'}), 400
+
+        test_payload = {
+            'text': 'Test message from ECS Admin Panel',
+            'source': 'ecs-discord-bot',
+            'timestamp': datetime.utcnow().isoformat()
+        }
+
+        resp = http_requests.post(
+            webhook_url,
+            json=test_payload,
+            timeout=10,
+            headers={'Content-Type': 'application/json'}
+        )
+
+        if resp.status_code < 300:
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='test_webhook',
+                resource_type='communication_settings',
+                resource_id='webhook',
+                new_value=f"Tested webhook: {webhook_url[:50]}... Status: {resp.status_code}",
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+            return jsonify({'success': True, 'message': 'Webhook test successful'})
+        else:
+            return jsonify({
+                'success': False,
+                'error': f'Webhook returned status {resp.status_code}'
+            }), 400
+
+    except http_requests.Timeout:
+        return jsonify({'success': False, 'error': 'Webhook request timed out'}), 400
+    except http_requests.ConnectionError:
+        return jsonify({'success': False, 'error': 'Could not connect to webhook URL'}), 400
+    except Exception as e:
+        logger.error(f"Error testing webhook: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500

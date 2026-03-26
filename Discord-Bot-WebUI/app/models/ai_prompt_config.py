@@ -49,6 +49,10 @@ class AIPromptConfig(db.Model):
     rivalry_teams = Column(JSON)  # {"portland": ["timbers"], "seattle": ["sounders"]}
     rivalry_intensity = Column(Integer, default=5)  # 1-10 scale
     
+    # Template assignment
+    active_template_id = Column(Integer, db.ForeignKey('ai_prompt_templates.id'), nullable=True)
+    active_template = db.relationship('AIPromptTemplate', backref='prompt_configs')
+
     # Status and versioning
     is_active = Column(Boolean, default=True)
     version = Column(Integer, default=1)
@@ -98,6 +102,7 @@ class AIPromptConfig(db.Model):
             'required_elements': self.required_elements,
             'rivalry_teams': self.rivalry_teams,
             'rivalry_intensity': self.rivalry_intensity,
+            'active_template_id': self.active_template_id,
             'is_active': self.is_active,
             'version': self.version,
             'created_at': self.created_at.isoformat() if self.created_at else None,
@@ -122,6 +127,7 @@ class AIPromptConfig(db.Model):
             required_elements=self.required_elements,
             rivalry_teams=self.rivalry_teams,
             rivalry_intensity=self.rivalry_intensity,
+            active_template_id=self.active_template_id,
             is_active=True,
             version=self.version + 1,
             parent_id=self.id
