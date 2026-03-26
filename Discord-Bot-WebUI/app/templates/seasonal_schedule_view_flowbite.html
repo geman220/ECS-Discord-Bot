@@ -431,6 +431,10 @@
 
 {% block extra_js %}
 <script>
+// Guard against double execution (extra_js block renders in two locations in template hierarchy)
+if (window._seasonalScheduleInit) { /* skip duplicate */ } else {
+window._seasonalScheduleInit = true;
+
 // League teams data for populating dropdowns
 window.leagueTeams = {};
 {% for league in leagues %}
@@ -1050,5 +1054,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.dispatchEvent(new CustomEvent('admin-mode-init'));
     {% endif %}
 });
+
+} // end double-execution guard
 </script>
 {% endblock %}

@@ -708,7 +708,7 @@ def shift_weeks_down():
     """
     Shift all weeks from a given week onward down by 1.
     The original week becomes a BYE with entries for all teams.
-    E.g., shift from week 7: week 7→8, 8→9, 9→10, etc. Week 7 becomes BYE.
+    E.g., shift from week 7: week 7->8, 8->9, 9->10, etc. Week 7 becomes BYE.
     """
     session = g.db_session
 
@@ -784,10 +784,9 @@ def shift_weeks_down():
 
         session.flush()
 
-        # Now from_week is empty — create BYE entries
-        # First, set up WeekConfiguration for the BYE week
+        # Now from_week is empty - create BYE entries
+        # Set up WeekConfiguration for the BYE week
         for league in season_leagues:
-            # Check if a config already exists at from_week (shouldn't after shift, but be safe)
             existing_config = session.query(WeekConfiguration).filter_by(
                 league_id=league.id, week_order=from_week
             ).first()
