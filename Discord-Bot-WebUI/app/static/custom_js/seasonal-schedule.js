@@ -303,6 +303,7 @@ const SeasonalSchedule = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCsrfToken()
             },
             body: JSON.stringify(data)
         })
@@ -674,6 +675,7 @@ const SeasonalSchedule = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCsrfToken()
             },
             body: JSON.stringify(data)
         })
@@ -725,6 +727,7 @@ const SeasonalSchedule = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'X-CSRFToken': this.getCsrfToken()
             },
             body: JSON.stringify(data)
         })

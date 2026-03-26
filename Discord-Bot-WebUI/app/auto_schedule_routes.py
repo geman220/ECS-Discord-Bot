@@ -14,7 +14,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, time, date, timedelta
 import logging
 from typing import Optional
-from sqlalchemy import func
+from sqlalchemy import func, Integer as SAInteger
 
 from app.models import (
     League, Team, Season, AutoScheduleConfig, ScheduleTemplate, 
@@ -186,7 +186,25 @@ def view_seasonal_schedule(season_id):
         match.is_playoff_game = getattr(match, 'is_playoff_game', False)
         
         schedule_by_week[week_num]['matches'].append(match)
-    
+
+    # Add BYE/matchless weeks from WeekConfiguration that have no matches
+    league_ids = [league.id for league in leagues]
+    if league_ids:
+        all_week_configs = session.query(WeekConfiguration).filter(
+            WeekConfiguration.league_id.in_(league_ids)
+        ).order_by(WeekConfiguration.week_order).all()
+
+        for wc in all_week_configs:
+            if wc.week_order and wc.week_order not in schedule_by_week:
+                schedule_by_week[wc.week_order] = {
+                    'date': wc.week_date or date.today(),
+                    'week_type': wc.week_type or 'REGULAR',
+                    'matches': []
+                }
+
+    # Sort by week number
+    schedule_by_week = dict(sorted(schedule_by_week.items()))
+
     return render_template(
         'seasonal_schedule_view_flowbite.html',
         season=season,
@@ -419,7 +437,11 @@ def update_match():
         match = session.query(Match).get(match_id)
         if not match:
             return jsonify({'success': False, 'error': 'Match not found'})
-        
+
+        # Store original team IDs before updating (needed for paired schedule lookup)
+        original_home_team_id = match.home_team_id
+        original_away_team_id = match.away_team_id
+
         # Update match
         if 'time' in data:
             match.time = datetime.strptime(data['time'], '%H:%M').time()
@@ -429,26 +451,28 @@ def update_match():
             match.home_team_id = data['home_team_id']
         if 'away_team_id' in data:
             match.away_team_id = data['away_team_id']
-        
+
         # Update corresponding schedule entries
         schedule = session.query(Schedule).get(match.schedule_id)
         if schedule:
+            # Find the paired schedule BEFORE updating (using original team IDs)
+            paired_schedule = session.query(Schedule).filter_by(
+                team_id=original_away_team_id,
+                opponent=original_home_team_id,
+                week=schedule.week,
+                date=schedule.date
+            ).first()
+
             schedule.time = match.time
             schedule.location = match.location
             schedule.team_id = match.home_team_id
             schedule.opponent = match.away_team_id
-            
-            # Find and update the paired schedule
-            paired_schedule = session.query(Schedule).filter_by(
-                team_id=match.away_team_id,
-                opponent=match.home_team_id,
-                week=schedule.week,
-                date=schedule.date
-            ).first()
-            
+
             if paired_schedule:
                 paired_schedule.time = match.time
                 paired_schedule.location = match.location
+                paired_schedule.team_id = match.away_team_id
+                paired_schedule.opponent = match.home_team_id
         
         session.commit()
         return jsonify({'success': True, 'message': 'Match updated successfully'})
@@ -526,18 +550,36 @@ def update_week():
                         )
                         session.add(week_config)
 
-            # If changing to BYE, delete all matches for this week across all leagues
+            # If changing to BYE, delete all matches and create BYE entries for teams
             if new_week_type == 'BYE':
+                effective_season_id = season_id or (season_leagues[0].season_id if season_leagues else None)
+
                 all_week_matches = session.query(Match).join(
                     Schedule, Match.schedule_id == Schedule.id
                 ).filter(
                     Schedule.week == week_number,
-                    Schedule.season_id == (season_id or (season_leagues[0].season_id if season_leagues else None))
+                    Schedule.season_id == effective_season_id
                 ).all()
 
+                # Capture the week date before deleting (for creating BYE entries)
+                bye_date = None
+                if all_week_matches:
+                    bye_date = all_week_matches[0].date
+                else:
+                    # Try to get date from WeekConfiguration
+                    for league in season_leagues:
+                        wc = session.query(WeekConfiguration).filter_by(
+                            league_id=league.id, week_order=week_number
+                        ).first()
+                        if wc and wc.week_date:
+                            bye_date = wc.week_date
+                            break
+                if not bye_date:
+                    bye_date = date.today()
+
+                # Delete existing matches and their schedules
                 deleted_count = 0
                 for match in all_week_matches:
-                    # Delete related schedules
                     schedules = session.query(Schedule).filter_by(id=match.schedule_id).all()
                     paired_schedules = session.query(Schedule).filter_by(
                         team_id=match.away_team_id,
@@ -549,10 +591,51 @@ def update_week():
                     session.delete(match)
                     deleted_count += 1
 
+                # Also delete any orphaned schedules for this week (safety cleanup)
+                orphaned = session.query(Schedule).filter(
+                    Schedule.week == str(week_number),
+                    Schedule.season_id == effective_season_id
+                ).all()
+                for s in orphaned:
+                    session.delete(s)
+
+                session.flush()
+
+                # Create BYE self-match entries for each team (matches initial BYE pattern)
+                bye_time = time(19, 0)
+                for league in season_leagues:
+                    teams = session.query(Team).filter_by(league_id=league.id).all()
+                    for team in teams:
+                        # Create Schedule entry for this team's BYE
+                        bye_schedule = Schedule(
+                            week=str(week_number),
+                            date=bye_date,
+                            time=bye_time,
+                            location='N/A',
+                            team_id=team.id,
+                            opponent=team.id,
+                            season_id=effective_season_id
+                        )
+                        session.add(bye_schedule)
+                        session.flush()
+
+                        # Create Match with self-reference (BYE pattern)
+                        bye_match = Match(
+                            date=bye_date,
+                            time=bye_time,
+                            location='N/A',
+                            home_team_id=team.id,
+                            away_team_id=team.id,
+                            schedule_id=bye_schedule.id,
+                            week_type='BYE',
+                            is_special_week=True
+                        )
+                        session.add(bye_match)
+
                 session.commit()
                 return jsonify({
                     'success': True,
-                    'message': f'Week {week_number} set to BYE. {deleted_count} matches removed.'
+                    'message': f'Week {week_number} set to BYE. {deleted_count} matches removed. BYE entries created for all teams.'
                 })
 
         # For non-type changes, require league_id
@@ -615,6 +698,150 @@ def update_week():
     except Exception as e:
         session.rollback()
         logger.error(f"Error updating week: {str(e)}")
+        return jsonify({'success': False, 'error': 'Internal Server Error'})
+
+
+@auto_schedule_bp.route('/shift-weeks-down', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def shift_weeks_down():
+    """
+    Shift all weeks from a given week onward down by 1.
+    The original week becomes a BYE with entries for all teams.
+    E.g., shift from week 7: week 7→8, 8→9, 9→10, etc. Week 7 becomes BYE.
+    """
+    session = g.db_session
+
+    try:
+        data = request.get_json()
+        from_week = data.get('from_week')
+        season_id = data.get('season_id')
+
+        if not from_week or not season_id:
+            return jsonify({'success': False, 'error': 'from_week and season_id are required'})
+
+        from_week = int(from_week)
+
+        # Get all leagues for this season
+        season_leagues = session.query(League).filter_by(season_id=season_id).all()
+        if not season_leagues:
+            return jsonify({'success': False, 'error': 'No leagues found for this season'})
+
+        # Find the max week number across all schedules for this season
+        max_week_result = session.query(func.max(func.cast(Schedule.week, SAInteger))).filter(
+            Schedule.season_id == season_id
+        ).scalar()
+
+        # Also check WeekConfiguration for higher week numbers
+        league_ids = [l.id for l in season_leagues]
+        max_config_week = session.query(func.max(WeekConfiguration.week_order)).filter(
+            WeekConfiguration.league_id.in_(league_ids)
+        ).scalar()
+
+        max_week = max(max_week_result or 0, max_config_week or 0)
+
+        if from_week > max_week:
+            return jsonify({'success': False, 'error': f'Week {from_week} is beyond the last week ({max_week})'})
+
+        # Capture the date of the from_week before shifting (for BYE entries)
+        bye_date = None
+        from_week_schedule = session.query(Schedule).filter(
+            Schedule.week == str(from_week),
+            Schedule.season_id == season_id
+        ).first()
+        if from_week_schedule:
+            bye_date = from_week_schedule.date
+        else:
+            for league in season_leagues:
+                wc = session.query(WeekConfiguration).filter_by(
+                    league_id=league.id, week_order=from_week
+                ).first()
+                if wc and wc.week_date:
+                    bye_date = wc.week_date
+                    break
+        if not bye_date:
+            bye_date = date.today()
+
+        # Shift weeks from highest down to from_week (prevents collisions)
+        for week_num in range(max_week, from_week - 1, -1):
+            new_week_num = week_num + 1
+
+            # Update Schedule.week
+            schedules_to_shift = session.query(Schedule).filter(
+                Schedule.week == str(week_num),
+                Schedule.season_id == season_id
+            ).all()
+            for sched in schedules_to_shift:
+                sched.week = str(new_week_num)
+
+            # Update WeekConfiguration.week_order for all leagues
+            for league in season_leagues:
+                wc = session.query(WeekConfiguration).filter_by(
+                    league_id=league.id, week_order=week_num
+                ).first()
+                if wc:
+                    wc.week_order = new_week_num
+
+        session.flush()
+
+        # Now from_week is empty — create BYE entries
+        # First, set up WeekConfiguration for the BYE week
+        for league in season_leagues:
+            # Check if a config already exists at from_week (shouldn't after shift, but be safe)
+            existing_config = session.query(WeekConfiguration).filter_by(
+                league_id=league.id, week_order=from_week
+            ).first()
+            if existing_config:
+                existing_config.week_type = 'BYE'
+                existing_config.week_date = bye_date
+            else:
+                bye_config = WeekConfiguration(
+                    league_id=league.id,
+                    week_order=from_week,
+                    week_date=bye_date,
+                    week_type='BYE'
+                )
+                session.add(bye_config)
+
+        # Create BYE self-match entries for each team
+        bye_time = time(19, 0)
+        for league in season_leagues:
+            teams = session.query(Team).filter_by(league_id=league.id).all()
+            for team in teams:
+                bye_schedule = Schedule(
+                    week=str(from_week),
+                    date=bye_date,
+                    time=bye_time,
+                    location='N/A',
+                    team_id=team.id,
+                    opponent=team.id,
+                    season_id=season_id
+                )
+                session.add(bye_schedule)
+                session.flush()
+
+                bye_match = Match(
+                    date=bye_date,
+                    time=bye_time,
+                    location='N/A',
+                    home_team_id=team.id,
+                    away_team_id=team.id,
+                    schedule_id=bye_schedule.id,
+                    week_type='BYE',
+                    is_special_week=True
+                )
+                session.add(bye_match)
+
+        session.commit()
+        shifted_count = max_week - from_week + 1
+        return jsonify({
+            'success': True,
+            'message': f'Week {from_week} set to BYE. {shifted_count} weeks shifted down.'
+        })
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error shifting weeks: {str(e)}")
         return jsonify({'success': False, 'error': 'Internal Server Error'})
 
 
