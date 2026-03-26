@@ -486,6 +486,44 @@ def update_match():
 @auto_schedule_bp.route('/update-week', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
+def _delete_matches_with_dependencies(session, match_ids, schedule_ids):
+    """
+    Delete matches and ALL their FK-dependent child records.
+    Uses bulk SQL deletes to avoid ORM relationship cascade issues
+    (particularly the post_update=True on Schedule.opponent_team).
+
+    Args:
+        session: DB session
+        match_ids: list of Match IDs to delete
+        schedule_ids: list/set of Schedule IDs to delete
+    """
+    from app.models import Availability, ScheduledMessage, PlayerEvent, TemporarySubAssignment, SubstituteRequest
+    from app.database.db_models import ActiveMatchReporter, LiveMatch, PlayerShift
+    from app.models.match_lineup import MatchLineup
+    from app.models.league_features import SubRequest
+    from sqlalchemy import text
+
+    if match_ids:
+        # Delete all child records that reference these matches
+        for Model in [LiveMatch, ActiveMatchReporter, PlayerEvent, ScheduledMessage,
+                      Availability, SubstituteRequest, TemporarySubAssignment,
+                      MatchLineup, SubRequest, PlayerShift]:
+            session.query(Model).filter(Model.match_id.in_(match_ids)).delete(synchronize_session='fetch')
+
+        # Delete the matches themselves
+        session.query(Match).filter(Match.id.in_(match_ids)).delete(synchronize_session='fetch')
+
+    if schedule_ids:
+        # Delete schedules via raw SQL to avoid ORM post_update SET NULL on opponent column
+        schedule_id_list = list(schedule_ids)
+        session.execute(
+            text("DELETE FROM schedule WHERE id = ANY(:ids)"),
+            {"ids": schedule_id_list}
+        )
+
+    session.flush()
+
+
 def update_week():
     """
     Update week details including date, start time, and week type.
@@ -615,13 +653,8 @@ def update_week():
 
                 deleted_count = len(match_ids)
 
-                # Bulk delete matches first (FK dependency), then schedules
-                if match_ids:
-                    session.query(Match).filter(Match.id.in_(match_ids)).delete(synchronize_session='fetch')
-                if schedule_ids:
-                    session.query(Schedule).filter(Schedule.id.in_(schedule_ids)).delete(synchronize_session='fetch')
-
-                session.flush()
+                # Delete matches with all FK dependencies, then schedules
+                _delete_matches_with_dependencies(session, match_ids, schedule_ids)
 
                 # Create BYE self-match entries for each team (matches initial BYE pattern)
                 bye_time = time(19, 0)
