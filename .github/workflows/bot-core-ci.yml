@@ -1,5 +1,8 @@
 name: Bot Core CI
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     branches: [ main, develop ]

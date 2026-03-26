@@ -80,20 +80,6 @@
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
 
-    // Store Flowbite modal instances
-    const modalInstances = {};
-
-    // Initialize Flowbite modals
-    document.querySelectorAll('[id^="reportMatchModal-"]').forEach(modalEl => {
-        const modalId = modalEl.id;
-        if (typeof Modal !== 'undefined') {
-            modalInstances[modalId] = new Modal(modalEl, {
-                backdrop: 'static',
-                closable: true
-            });
-        }
-    });
-
     // Wait for playoff bracket to initialize
     setTimeout(function() {
         if (window.playoffBracket) {
@@ -102,14 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const modalElement = document.getElementById(modalId);
 
                 if (modalElement) {
-                    // Use Flowbite Modal instance if available
-                    if (modalInstances[modalId]) {
-                        modalInstances[modalId].show();
-                    } else {
-                        // Fallback: manually toggle visibility
-                        modalElement.classList.remove('hidden');
-                        modalElement.setAttribute('aria-hidden', 'false');
-                    }
+                    window.ModalManager.show(modalId, { backdrop: 'static' });
                 } else {
                     console.error('Match report modal not found:', modalId);
                     if (typeof Swal !== 'undefined') {
@@ -143,17 +122,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 const data = await response.json();
 
                 if (data.success) {
-                    // Close modal using Flowbite instance
+                    // Close modal
                     const modalId = `reportMatchModal-${matchId}`;
-                    if (modalInstances[modalId]) {
-                        modalInstances[modalId].hide();
-                    } else {
-                        const modalEl = document.getElementById(modalId);
-                        if (modalEl) {
-                            modalEl.classList.add('hidden');
-                            modalEl.setAttribute('aria-hidden', 'true');
-                        }
-                    }
+                    window.ModalManager.hide(modalId);
 
                     // Show success message
                     if (typeof Swal !== 'undefined') {
@@ -195,15 +166,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('[data-modal-hide]').forEach(button => {
         button.addEventListener('click', function() {
             const modalId = this.getAttribute('data-modal-hide');
-            if (modalInstances[modalId]) {
-                modalInstances[modalId].hide();
-            } else {
-                const modalEl = document.getElementById(modalId);
-                if (modalEl) {
-                    modalEl.classList.add('hidden');
-                    modalEl.setAttribute('aria-hidden', 'true');
-                }
-            }
+            window.ModalManager.hide(modalId);
         });
     });
 });

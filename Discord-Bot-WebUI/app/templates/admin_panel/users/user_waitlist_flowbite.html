@@ -349,12 +349,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get CSRF token
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
-    // Initialize Flowbite modals properly
-    const removalModalEl = document.getElementById('removalModal');
-    const contactModalEl = document.getElementById('contactModal');
-    const playerDetailsModalEl = document.getElementById('playerDetailsModal');
-    const approvalModalEl = document.getElementById('approvalModal');
-
     const modalOptions = {
         placement: 'center',
         backdrop: 'dynamic',
@@ -362,26 +356,12 @@ document.addEventListener('DOMContentLoaded', function() {
         closable: true
     };
 
-    const removalModal = removalModalEl ? new Modal(removalModalEl, modalOptions) : null;
-    const contactModal = contactModalEl ? new Modal(contactModalEl, modalOptions) : null;
-    const playerDetailsModal = playerDetailsModalEl ? new Modal(playerDetailsModalEl, modalOptions) : null;
-    const approvalModal = approvalModalEl ? new Modal(approvalModalEl, modalOptions) : null;
-
-    // Store modals on elements for access
-    if (removalModalEl) removalModalEl._flowbiteModal = removalModal;
-    if (contactModalEl) contactModalEl._flowbiteModal = contactModal;
-    if (playerDetailsModalEl) playerDetailsModalEl._flowbiteModal = playerDetailsModal;
-    if (approvalModalEl) approvalModalEl._flowbiteModal = approvalModal;
-
-    // Setup close buttons to use Flowbite Modal API
+    // Setup close buttons to use ModalManager API
     document.querySelectorAll('[data-modal-hide]').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const modalId = this.getAttribute('data-modal-hide');
-            const modalEl = document.getElementById(modalId);
-            if (modalEl && modalEl._flowbiteModal) {
-                modalEl._flowbiteModal.hide();
-            }
+            window.ModalManager.hide(modalId);
         });
     });
 
@@ -400,7 +380,7 @@ document.addEventListener('DOMContentLoaded', function() {
             case 'view-player':
                 currentUserId = userId;
                 loadPlayerDetails(userId);
-                if (playerDetailsModal) playerDetailsModal.show();
+                window.ModalManager.show('playerDetailsModal', modalOptions);
                 break;
             case 'approve-modal':
                 currentUserId = userId;
@@ -408,19 +388,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('approvalUsername').textContent = target.dataset.username || 'this user';
                 document.getElementById('leagueSelect').value = '';
                 document.getElementById('approvalNotes').value = '';
-                if (approvalModal) approvalModal.show();
+                window.ModalManager.show('approvalModal', modalOptions);
                 break;
             case 'contact-modal':
                 currentUserId = userId;
                 document.getElementById('contactUserId').value = userId;
                 document.getElementById('contact-message').value = '';
-                if (contactModal) contactModal.show();
+                window.ModalManager.show('contactModal', modalOptions);
                 break;
             case 'removal-modal':
                 currentUserId = userId;
                 document.getElementById('removalUserId').value = userId;
                 document.getElementById('removal-reason').value = '';
-                if (removalModal) removalModal.show();
+                window.ModalManager.show('removalModal', modalOptions);
                 break;
         }
     });
@@ -550,7 +530,7 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 Swal.fire({title: 'Success', text: data.message, icon: 'success', confirmButtonColor: '#1a472a', background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'});
-                if (contactModal) contactModal.hide();
+                window.ModalManager.hide('contactModal');
                 document.getElementById('contact-message').value = '';
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalText;

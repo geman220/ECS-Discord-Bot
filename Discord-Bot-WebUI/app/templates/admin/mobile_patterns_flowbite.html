@@ -173,15 +173,9 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
-    const modalEl = document.getElementById('pattern-modal');
     const patternContent = document.getElementById('pattern-detail-content');
     const searchInput = document.getElementById('pattern-search');
-
-    // Initialize Flowbite modal
-    let patternModal = null;
-    if (modalEl && typeof Modal !== 'undefined') {
-        patternModal = new Modal(modalEl, { closable: true });
-    }
+    const patternModalId = 'pattern-modal';
 
     // Search functionality
     searchInput?.addEventListener('input', function() {
@@ -204,9 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const patternId = this.dataset.patternId;
 
             patternContent.innerHTML = '<div class="text-center py-8"><i class="ti ti-loader-2 animate-spin text-2xl text-gray-400"></i></div>';
-            if (patternModal) {
-                patternModal.show();
-            }
+            window.ModalManager.show(patternModalId, { closable: true });
 
             fetch(`/admin/mobile-analytics/api/pattern/${patternId}`)
                 .then(res => res.json())

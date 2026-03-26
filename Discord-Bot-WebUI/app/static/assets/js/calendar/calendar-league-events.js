@@ -20,7 +20,6 @@ export const EVENT_TYPES = {
 
 // State
 let currentEvent = null;
-let modal = null;
 let isAdmin = false;
 
 /**
@@ -42,8 +41,6 @@ export function init(options = {}) {
 function createModal() {
     // Check if modal already exists
     if (document.getElementById('leagueEventModal')) {
-        const modalEl = document.getElementById('leagueEventModal');
-        modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
         return;
     }
 
@@ -56,7 +53,7 @@ function createModal() {
                         <i class="ti ti-calendar-plus me-2"></i>
                         <span id="eventModalTitle">Create League Event</span>
                     </h3>
-                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="var modal = document.getElementById('leagueEventModal'); if(modal._flowbiteModal) modal._flowbiteModal.hide();" aria-label="Close">
+                    <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ms-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" onclick="window.ModalManager.hide('leagueEventModal');" aria-label="Close">
                         <i class="ti ti-x text-xl"></i>
                     </button>
                 </div>
@@ -171,7 +168,7 @@ function createModal() {
                     <button type="button" class="hidden text-white bg-red-600 hover:bg-red-700 focus:ring-4 focus:ring-red-300 font-medium rounded-lg text-sm px-5 py-2.5 me-auto calendar-delete-event-btn dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-900" id="deleteEventBtn">
                         <i class="ti ti-trash me-1"></i> Delete
                     </button>
-                    <button type="button" class="text-gray-900 bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600" onclick="var modal = document.getElementById('leagueEventModal'); if(modal._flowbiteModal) modal._flowbiteModal.hide();">Cancel</button>
+                    <button type="button" class="text-gray-900 bg-gray-200 hover:bg-gray-300 focus:ring-4 focus:ring-gray-100 font-medium rounded-lg text-sm px-5 py-2.5 me-2 dark:bg-gray-700 dark:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600" onclick="window.ModalManager.hide('leagueEventModal');">Cancel</button>
                     <button type="button" class="text-white bg-ecs-green hover:bg-ecs-green-dark focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 dark:focus:ring-green-800" id="saveEventBtn">
                         <i class="ti ti-check me-1"></i> Save Event
                     </button>
@@ -182,8 +179,6 @@ function createModal() {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modalEl = document.getElementById('leagueEventModal');
-    modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
 }
 
 /**
@@ -289,7 +284,7 @@ export function openCreateModal(date = null) {
         document.getElementById('eventStartDate').value = dateStr;
     }
 
-    modal.show();
+    window.ModalManager.show('leagueEventModal');
 }
 
 /**
@@ -340,7 +335,7 @@ export function openEditModal(event) {
     document.getElementById('deleteEventBtn').classList.remove('hidden');
     document.getElementById('saveEventBtn').innerHTML = '<i class="ti ti-check me-1"></i> Save Changes';
 
-    modal.show();
+    window.ModalManager.show('leagueEventModal');
 }
 
 /**
@@ -510,7 +505,7 @@ async function saveEvent() {
                 }
             }
 
-            modal.hide();
+            window.ModalManager.hide('leagueEventModal');
 
             if (failCount === 0) {
                 const discordMsg = wantsDiscord ? ' (Discord announcement posted)' : '';
@@ -546,7 +541,7 @@ async function saveEvent() {
 
             const savedEvent = await response.json();
 
-            modal.hide();
+            window.ModalManager.hide('leagueEventModal');
             showToast('success', isEdit ? 'Event updated successfully' : 'Event created successfully');
         }
 
@@ -599,7 +594,7 @@ async function deleteEvent() {
             throw new Error(error.error || 'Failed to delete event');
         }
 
-        modal.hide();
+        window.ModalManager.hide('leagueEventModal');
         showToast('success', 'Event deleted successfully');
 
         // Trigger calendar refresh

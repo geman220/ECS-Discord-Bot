@@ -238,12 +238,7 @@ export async function showStackTrace(pid) {
                 return;
             }
             modal.querySelector('.stack-trace-content').textContent = data.details?.stack_trace || 'No stack trace captured';
-            if (typeof window.ModalManager !== 'undefined') {
-                window.ModalManager.show('stackTraceModal');
-            } else if (typeof window.Modal !== 'undefined') {
-                const flowbiteModal = modal._flowbiteModal || (modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true }));
-                flowbiteModal.show();
-            }
+            window.ModalManager.show('stackTraceModal');
         } else {
             showAlert('Failed to fetch stack trace: ' + (data.error || 'Unknown error'), 'danger');
         }
@@ -261,12 +256,7 @@ export function showQuery(pid, query) {
         }
         const content = modal.querySelector('.query-content');
         content.textContent = query || 'No query available';
-        if (typeof window.ModalManager !== 'undefined') {
-            window.ModalManager.show('queryModal');
-        } else if (typeof window.Modal !== 'undefined') {
-            modal._flowbiteModal = modal._flowbiteModal || new window.Modal(modal, { backdrop: 'dynamic', closable: true });
-            modal._flowbiteModal.show();
-        }
+        window.ModalManager.show('queryModal');
     } catch (error) {
         console.error('Error showing query:', error);
         showAlert('Error displaying query: ' + error.message, 'danger');

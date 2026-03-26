@@ -240,14 +240,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-    const modalEl = document.getElementById('session-modal');
     const sessionContent = document.getElementById('session-detail-content');
-
-    // Initialize Flowbite modal
-    let sessionModal = null;
-    if (modalEl && typeof Modal !== 'undefined') {
-        sessionModal = new Modal(modalEl, { closable: true });
-    }
+    const sessionModalId = 'session-modal';
 
     // Refresh
     document.getElementById('refresh-btn')?.addEventListener('click', function() {
@@ -368,9 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             `;
-            if (sessionModal) {
-                sessionModal.show();
-            }
+            window.ModalManager.show(sessionModalId, { closable: true });
         });
     });
 });

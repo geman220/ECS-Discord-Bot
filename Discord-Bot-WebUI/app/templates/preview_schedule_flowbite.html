@@ -204,10 +204,6 @@
 const isDark = document.documentElement.classList.contains('dark');
 let selectedMatches = [];
 
-// Initialize Flowbite modal for swapTeamsModal
-const swapTeamsModalEl = document.getElementById('swapTeamsModal');
-const swapTeamsModalInstance = swapTeamsModalEl ? new Modal(swapTeamsModalEl) : null;
-
 // Toggle settings
 document.getElementById('toggleSettingsBtn')?.addEventListener('click', () => {
     document.getElementById('scheduleSettings').classList.toggle('hidden');
@@ -284,7 +280,7 @@ document.querySelectorAll('.js-select-swap').forEach(btn => {
         btn.closest('tr').classList.add('ring-2', 'ring-ecs-green');
         updateSwapModal();
         if (selectedMatches.length === 2) {
-            swapTeamsModalInstance?.show();
+            window.ModalManager.show('swapTeamsModal');
         }
     });
 });
@@ -304,7 +300,7 @@ function removeFromSwap(index) {
     selectedMatches.splice(index, 1);
     updateSwapModal();
     if (selectedMatches.length === 0) {
-        swapTeamsModalInstance?.hide();
+        window.ModalManager.hide('swapTeamsModal');
     }
 }
 

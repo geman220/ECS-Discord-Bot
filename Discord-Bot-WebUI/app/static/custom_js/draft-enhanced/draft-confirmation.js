@@ -118,8 +118,7 @@ export function showDraftTeamSelection(playerId, playerName, existingTeams = '')
         }
 
         // Close modal
-        const modalEl = document.getElementById('draftConfirmModal');
-        modalEl?._flowbiteModal?.hide();
+        window.ModalManager.hide('draftConfirmModal');
 
         const leagueName = getLeagueName();
 
@@ -137,10 +136,5 @@ export function showDraftTeamSelection(playerId, playerName, existingTeams = '')
     };
 
     // Show the modal
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('draftConfirmModal');
-    } else if (typeof window.Modal !== 'undefined') {
-        const flowbiteModal = modalElement._flowbiteModal || (modalElement._flowbiteModal = new window.Modal(modalElement, { backdrop: 'dynamic', closable: true }));
-        flowbiteModal.show();
-    }
+    window.ModalManager.show('draftConfirmModal');
 }

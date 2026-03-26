@@ -295,17 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentSeasonId = null;
     let currentSeasonName = null;
     let currentSeasonType = null;
-    const confirmModalEl = document.getElementById('confirmDeleteModal');
     const isDark = document.documentElement.classList.contains('dark');
-
-    // Initialize Flowbite modal
-    let confirmModal = null;
-    if (confirmModalEl && typeof Modal !== 'undefined') {
-        confirmModal = new Modal(confirmModalEl, {
-            backdrop: 'static',
-            closable: true
-        });
-    }
 
     document.querySelectorAll('.delete-season-btn').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -313,23 +303,17 @@ document.addEventListener('DOMContentLoaded', function() {
             currentSeasonName = this.dataset.seasonName;
             currentSeasonType = this.dataset.seasonType;
             document.getElementById('seasonToDelete').textContent = `${currentSeasonType} - ${currentSeasonName}`;
-            if (confirmModal) {
-                confirmModal.show();
-            }
+            window.ModalManager.show('confirmDeleteModal', { backdrop: 'static', closable: true });
         });
     });
 
     document.getElementById('cancelDeleteBtn')?.addEventListener('click', () => {
-        if (confirmModal) {
-            confirmModal.hide();
-        }
+        window.ModalManager.hide('confirmDeleteModal');
     });
 
     document.getElementById('confirmDeleteBtn')?.addEventListener('click', function() {
         if (!currentSeasonId) return;
-        if (confirmModal) {
-            confirmModal.hide();
-        }
+        window.ModalManager.hide('confirmDeleteModal');
 
         Swal.fire({
             title: 'Deleting Season...',

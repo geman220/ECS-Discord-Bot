@@ -119,15 +119,7 @@ export function displayRequestDetailsModal(request) {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 
   // Show modal
-  const modalEl = document.getElementById('requestDetailsModal');
-  if (window.ModalManager) {
-    window.ModalManager.show('requestDetailsModal');
-  } else if (modalEl && typeof window.Modal !== 'undefined') {
-    if (!modalEl._flowbiteModal) {
-      modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
-    }
-    modalEl._flowbiteModal.show();
-  }
+  window.ModalManager.show('requestDetailsModal');
 }
 
 /**
@@ -300,14 +292,7 @@ export async function assignSubstitute(requestId, playerId, league, position = '
  * Hide the details modal
  */
 function hideDetailsModal() {
-  const modal = document.getElementById('requestDetailsModal');
-  if (!modal) return;
-
-  if (window.ModalManager) {
-    window.ModalManager.hide('requestDetailsModal');
-  } else if (modal._flowbiteModal) {
-    modal._flowbiteModal.hide();
-  }
+  window.ModalManager.hide('requestDetailsModal');
 }
 
 /**

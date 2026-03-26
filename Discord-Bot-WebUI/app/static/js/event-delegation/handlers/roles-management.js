@@ -78,16 +78,7 @@ window.EventDelegation.register('view-role', function(element, e) {
     }
 
     // Show the modal
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('roleDetailsModal');
-    } else {
-        // Fallback to Flowbite modal if window.ModalManager not available
-        const modalEl = document.getElementById('roleDetailsModal');
-        if (modalEl) {
-            const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
-            modal.show();
-        }
-    }
+    window.ModalManager.show('roleDetailsModal');
 
     // Load role details via AJAX
     fetch(getRoleDetailsUrl(roleId))

@@ -231,13 +231,7 @@ window.EventDelegation.register('bulk-void-passes', (element, event) => {
     const voidCountEl = document.getElementById('voidCount');
     if (voidCountEl) voidCountEl.textContent = ids.length;
 
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('bulkVoidModal');
-    } else if (typeof window.Modal !== 'undefined') {
-        const modalEl = document.getElementById('bulkVoidModal');
-        const modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
-        modal.show();
-    }
+    window.ModalManager.show('bulkVoidModal');
 });
 
 /**
@@ -255,10 +249,7 @@ window.EventDelegation.register('confirm-bulk-void', (element, event) => {
     })
     .then(response => response.json())
     .then(data => {
-        const modal = document.getElementById('bulkVoidModal');
-        if (modal && modal._flowbiteModal) {
-            modal._flowbiteModal.hide();
-        }
+        window.ModalManager.hide('bulkVoidModal');
         showNotification('Bulk Void Complete', `Voided ${data.success?.length || 0} passes. ${data.failed?.length || 0} failed.`, 'success');
         location.reload();
     })
@@ -399,13 +390,7 @@ window.EventDelegation.register('check-player-eligibility', (element, event) => 
 
     const modalBody = document.getElementById('eligibilityModalBody');
 
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('eligibilityModal');
-    } else if (typeof window.Modal !== 'undefined') {
-        const modalEl = document.getElementById('eligibilityModal');
-        const modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
-        modal.show();
-    }
+    window.ModalManager.show('eligibilityModal');
 
     // Construct the URL by replacing 0 with the actual player ID
     const baseUrl = window.location.origin;

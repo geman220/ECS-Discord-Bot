@@ -66,7 +66,7 @@ export function showModal(id, title, message, type = 'info', callback = null) {
                             <i class="ti ${iconMap[type] || iconMap.info} me-2"></i>
                             ${title}
                         </h5>
-                        ${type !== 'loading' ? '<button type="button" class="text-gray-400 hover:text-gray-500" onclick="var modal = this.closest(\'[id]\'); if(modal._flowbiteModal) modal._flowbiteModal.hide();"><i class="ti ti-x text-xl"></i></button>' : ''}
+                        ${type !== 'loading' ? `<button type="button" class="text-gray-400 hover:text-gray-500" onclick="window.ModalManager.hide('${id}');"><i class="ti ti-x text-xl"></i></button>` : ''}
                     </div>
                     <div class="modal-body">
                         ${type === 'loading' ? '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin mb-3"></div></div>' : ''}
@@ -74,7 +74,7 @@ export function showModal(id, title, message, type = 'info', callback = null) {
                     </div>
                     ${type !== 'loading' ? `
                     <div class="modal-footer">
-                        <button type="button" class="c-btn c-btn--primary" onclick="var modal = this.closest('[id]'); if(modal._flowbiteModal) modal._flowbiteModal.hide();">OK</button>
+                        <button type="button" class="c-btn c-btn--primary" onclick="window.ModalManager.hide('${id}');">OK</button>
                     </div>
                     ` : ''}
                 </div>
@@ -83,9 +83,7 @@ export function showModal(id, title, message, type = 'info', callback = null) {
     `;
 
     document.body.insertAdjacentHTML('beforeend', modalHTML);
-    const modalEl = document.getElementById(id);
-    const modal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
-    modal.show();
+    window.ModalManager.show(id);
 
     if (callback) {
         document.getElementById(id).addEventListener('hidden.bs.modal', callback, { once: true });
@@ -105,11 +103,9 @@ export function showLoadingModal(title, message) {
  * Hide the loading modal
  */
 export function hideLoadingModal() {
+    window.ModalManager.hide('loadingModal');
     const modal = document.getElementById('loadingModal');
     if (modal) {
-        if (modal._flowbiteModal) {
-            modal._flowbiteModal.hide();
-        }
         modal.remove();
     }
 }

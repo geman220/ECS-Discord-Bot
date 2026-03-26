@@ -247,30 +247,19 @@ document.addEventListener('DOMContentLoaded', function() {
     const groupId = {{ group.id }};
     const baseUrl = '/admin/communication/notification-groups/' + groupId;
 
-    // Initialize modals
-    const addMemberModalEl = document.getElementById('addMemberModal');
-    const editGroupModalEl = document.getElementById('editGroupModal');
-    let addMemberModal = null;
-    let editGroupModal = null;
-
-    if (addMemberModalEl && typeof Modal !== 'undefined') {
-        addMemberModal = new Modal(addMemberModalEl);
-    }
-    if (editGroupModalEl && typeof Modal !== 'undefined') {
-        editGroupModal = new Modal(editGroupModalEl);
-    }
+    // Modal IDs
+    const addMemberModalId = 'addMemberModal';
+    const editGroupModalId = 'editGroupModal';
 
     // Add Member button handlers
     const addMemberBtn = document.getElementById('addMemberBtn');
     const addFirstMemberBtn = document.getElementById('addFirstMemberBtn');
 
     function openAddMemberModal() {
-        if (addMemberModal) {
-            addMemberModal.show();
-            document.getElementById('memberSearchInput').value = '';
-            document.getElementById('memberSearchResults').innerHTML =
-                '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Start typing to search for users</p>';
-        }
+        window.ModalManager.show(addMemberModalId);
+        document.getElementById('memberSearchInput').value = '';
+        document.getElementById('memberSearchResults').innerHTML =
+            '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Start typing to search for users</p>';
     }
 
     if (addMemberBtn) {
@@ -394,9 +383,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const editGroupBtn = document.getElementById('editGroupBtn');
     if (editGroupBtn) {
         editGroupBtn.addEventListener('click', function() {
-            if (editGroupModal) {
-                editGroupModal.show();
-            }
+            window.ModalManager.show(editGroupModalId);
         });
     }
 

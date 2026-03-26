@@ -128,7 +128,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-2" onclick="event.stopPropagation();">
+                <div class="flex items-center gap-2 js-week-actions">
                     <span class="text-sm text-gray-500 dark:text-gray-400">{{ week_data.matches|length }} matches</span>
                     <button type="button" class="p-1.5 text-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600 rounded week-toggle-btn" data-week="{{ week_num }}">
                         <i class="ti ti-chevron-down"></i>
@@ -467,6 +467,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // Stop clicks on week action buttons from toggling week expand/collapse
+    document.querySelectorAll('.js-week-actions').forEach(div => {
+        div.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+    });
+
+    // Week toggle (chevron button)
+    document.querySelectorAll('.week-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const weekNum = this.dataset.week;
+            const container = this.closest('.week-container');
+            const content = container?.querySelector('.week-content');
+            const chevron = container?.querySelector('.week-chevron');
+
+            if (content) {
+                content.classList.toggle('hidden');
+                chevron?.classList.toggle('rotate-180');
+            }
+        });
+    });
+
     // Week edit: show inline form
     document.querySelectorAll('.js-edit-week').forEach(btn => {
         btn.addEventListener('click', function(e) {
@@ -636,15 +659,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Edit Match Modal - get or create Flowbite modal instance
-    const editMatchModalEl = document.getElementById('editMatchModal');
-
-    function getEditMatchModal() {
-        if (!editMatchModalEl) return null;
-        // Use Flowbite's getInstance to avoid duplicate instance conflicts
-        return Modal.getInstance(editMatchModalEl) || new Modal(editMatchModalEl);
-    }
-
+    // Edit Match Modal - use ModalManager
     function openEditMatchModal(matchId, time, field, homeTeamId, awayTeamId, leagueId) {
         document.getElementById('editMatchId').value = matchId;
         document.getElementById('editMatchTime').value = time;
@@ -658,11 +673,15 @@ document.addEventListener('DOMContentLoaded', function() {
         homeSelect.innerHTML = teams.map(t => `<option value="${t.id}" ${t.id == homeTeamId ? 'selected' : ''}>${t.name}</option>`).join('');
         awaySelect.innerHTML = teams.map(t => `<option value="${t.id}" ${t.id == awayTeamId ? 'selected' : ''}>${t.name}</option>`).join('');
 
-        getEditMatchModal()?.show();
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('editMatchModal');
+        }
     }
 
     function closeEditMatchModal() {
-        getEditMatchModal()?.hide();
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.hide('editMatchModal');
+        }
     }
 
     document.querySelectorAll('.js-edit-match').forEach(btn => {
@@ -691,7 +710,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const awayTeamId = document.getElementById('editMatchAwayTeam').value;
 
         // Close the modal first to prevent visual conflicts with Swal
-        getEditMatchModal()?.hide();
+        closeEditMatchModal();
 
         try {
             const response = await fetch('/auto-schedule/update-match', {
@@ -735,14 +754,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Add Match Modal - get or create Flowbite modal instance
-    const addMatchModalEl = document.getElementById('addMatchModal');
-
-    function getAddMatchModal() {
-        if (!addMatchModalEl) return null;
-        return Modal.getInstance(addMatchModalEl) || new Modal(addMatchModalEl);
-    }
-
+    // Add Match Modal - use ModalManager
     function openAddMatchModal(weekNum) {
         document.getElementById('addMatchWeek').value = weekNum;
 
@@ -750,11 +762,15 @@ document.addEventListener('DOMContentLoaded', function() {
         const firstLeagueId = document.getElementById('addMatchLeague').value;
         populateTeamDropdowns(firstLeagueId);
 
-        getAddMatchModal()?.show();
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.show('addMatchModal');
+        }
     }
 
     function closeAddMatchModal() {
-        getAddMatchModal()?.hide();
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.hide('addMatchModal');
+        }
     }
 
     function populateTeamDropdowns(leagueId) {

@@ -304,85 +304,32 @@ const baseUrl = '/admin-panel';
 const csrfToken = '{{ csrf_token() }}';
 let currentMemberGroupId = null;
 
-// Modal functions using Flowbite modal instances
-let createGroupModalInstance = null;
-let viewGroupModalInstance = null;
-let manageMembersModalInstance = null;
-
-function initModals() {
-    const createGroupEl = document.getElementById('createGroupModal');
-    const viewGroupEl = document.getElementById('viewGroupModal');
-    const manageMembersEl = document.getElementById('manageMembersModal');
-
-    if (createGroupEl && typeof Modal !== 'undefined') {
-        createGroupModalInstance = new Modal(createGroupEl);
-    }
-    if (viewGroupEl && typeof Modal !== 'undefined') {
-        viewGroupModalInstance = new Modal(viewGroupEl);
-    }
-    if (manageMembersEl && typeof Modal !== 'undefined') {
-        manageMembersModalInstance = new Modal(manageMembersEl);
-    }
-}
-
 function showCreateGroupModal() {
-    if (createGroupModalInstance) {
-        createGroupModalInstance.show();
-    } else {
-        document.getElementById('createGroupModal').classList.remove('hidden');
-        document.getElementById('createGroupModal').classList.add('flex');
-    }
+    window.ModalManager.show('createGroupModal');
 }
 
 function hideCreateGroupModal() {
-    if (createGroupModalInstance) {
-        createGroupModalInstance.hide();
-    } else {
-        document.getElementById('createGroupModal').classList.add('hidden');
-        document.getElementById('createGroupModal').classList.remove('flex');
-    }
+    window.ModalManager.hide('createGroupModal');
 }
 
 function showViewGroupModal() {
-    if (viewGroupModalInstance) {
-        viewGroupModalInstance.show();
-    } else {
-        document.getElementById('viewGroupModal').classList.remove('hidden');
-        document.getElementById('viewGroupModal').classList.add('flex');
-    }
+    window.ModalManager.show('viewGroupModal');
 }
 
 function hideViewGroupModal() {
-    if (viewGroupModalInstance) {
-        viewGroupModalInstance.hide();
-    } else {
-        document.getElementById('viewGroupModal').classList.add('hidden');
-        document.getElementById('viewGroupModal').classList.remove('flex');
-    }
+    window.ModalManager.hide('viewGroupModal');
 }
 
 function showMembersModal() {
-    if (manageMembersModalInstance) {
-        manageMembersModalInstance.show();
-    } else {
-        document.getElementById('manageMembersModal').classList.remove('hidden');
-        document.getElementById('manageMembersModal').classList.add('flex');
-    }
+    window.ModalManager.show('manageMembersModal');
 }
 
 function hideMembersModal() {
-    if (manageMembersModalInstance) {
-        manageMembersModalInstance.hide();
-    } else {
-        document.getElementById('manageMembersModal').classList.add('hidden');
-        document.getElementById('manageMembersModal').classList.remove('flex');
-    }
+    window.ModalManager.hide('manageMembersModal');
 }
 
-// Initialize modals and form handler when DOM is ready
+// Initialize form handler when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    initModals();
-
     // Attach form submit handler
     const createGroupForm = document.getElementById('createGroupForm');
     if (createGroupForm) {

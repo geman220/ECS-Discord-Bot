@@ -200,20 +200,10 @@ export function loadImageForCropping(input) {
 
                 resetImagePosition();
 
-                // Show the modal (Flowbite version)
+                // Show the modal
                 const modalElement = document.getElementById('cropBackgroundModal');
                 if (modalElement) {
-                    // Try Flowbite Modal first
-                    if (typeof window.Modal !== 'undefined') {
-                        const modal = new window.Modal(modalElement);
-                        modal.show();
-                    } else {
-                        // Fallback: manual show
-                        modalElement.classList.remove('hidden');
-                        modalElement.classList.add('flex');
-                        modalElement.setAttribute('aria-hidden', 'false');
-                        document.body.classList.add('overflow-hidden');
-                    }
+                    window.ModalManager.show('cropBackgroundModal');
 
                     // Initialize positioning after modal is shown
                     setTimeout(() => {

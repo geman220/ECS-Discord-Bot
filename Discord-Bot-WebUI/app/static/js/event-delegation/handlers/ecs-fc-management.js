@@ -147,11 +147,7 @@ window.EventDelegation.register('deactivate-opponent', function(element, e) {
 window.EventDelegation.register('add-quick-opponent', function(element, e) {
     e.preventDefault();
 
-    const modal = document.getElementById('addOpponentModal');
-    if (modal && window.Modal) {
-        const flowbiteModal = modal._flowbiteModal || (modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true }));
-        flowbiteModal.show();
-    }
+    window.ModalManager.show('addOpponentModal');
 });
 
 /**
@@ -969,7 +965,7 @@ window.EventDelegation.register('submit-ecs-match', function(element, e) {
     .then(data => {
         if (data.success) {
             // Close modal
-            if (modal._flowbiteModal) modal._flowbiteModal.hide();
+            if (modal.id) window.ModalManager.hide(modal.id);
 
             if (window.Swal) {
                 window.Swal.fire({

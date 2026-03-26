@@ -88,11 +88,7 @@ function initMatchStats() {
                             'Match stat has been updated successfully.',
                             'success'
                         ).then(() => {
-                            const modal = document.getElementById('editMatchStatModal');
-                            if (modal) {
-                                const flowbiteModal = modal._flowbiteModal;
-                                if (flowbiteModal) flowbiteModal.hide();
-                            }
+                            window.ModalManager.hide('editMatchStatModal');
                             location.reload();
                         });
                     } else {
@@ -152,11 +148,7 @@ async function matchStatsEditMatch(statId) {
         document.getElementById('editRedCardsInput').value = data.red_cards;
         document.getElementById('editStatId').value = statId;
 
-        const modal = document.getElementById('editMatchStatModal');
-        if (modal) {
-            modal._flowbiteModal = modal._flowbiteModal || new window.Modal(modal, { backdrop: 'dynamic', closable: true });
-            modal._flowbiteModal.show();
-        }
+        window.ModalManager.show('editMatchStatModal');
     } catch (error) {
         console.error('[match_stats] Error loading stat:', error);
         window.Swal.fire({

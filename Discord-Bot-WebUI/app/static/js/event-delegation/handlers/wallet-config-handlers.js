@@ -54,16 +54,7 @@ window.EventDelegation.register('run-admin-command', (element, event) => {
         commandTextElement.textContent = command;
     }
 
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('commandModal');
-    } else {
-        // Fallback to Flowbite modal
-        const modal = document.getElementById('commandModal');
-        if (modal && typeof window.Modal !== 'undefined') {
-            const flowbiteModal = modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true });
-            flowbiteModal.show();
-        }
-    }
+    window.ModalManager.show('commandModal');
 });
 
 /**
@@ -158,15 +149,7 @@ window.EventDelegation.register('edit-wallet-template', (element, event) => {
     }
 
     // Show modal
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('editTemplateModal');
-    } else {
-        const modal = document.getElementById('editTemplateModal');
-        if (modal && typeof window.Modal !== 'undefined') {
-            const flowbiteModal = modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true });
-            flowbiteModal.show();
-        }
-    }
+    window.ModalManager.show('editTemplateModal');
 });
 
 /**
@@ -182,15 +165,7 @@ window.EventDelegation.register('create-wallet-template', (element, event) => {
     if (passTypeField) passTypeField.value = passTypeId;
 
     // Show modal
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('createTemplateModal');
-    } else {
-        const modal = document.getElementById('createTemplateModal');
-        if (modal && typeof window.Modal !== 'undefined') {
-            const flowbiteModal = modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true });
-            flowbiteModal.show();
-        }
-    }
+    window.ModalManager.show('createTemplateModal');
 });
 
 // ============================================================================

@@ -101,15 +101,7 @@ window.EventDelegation.register('view-user', function(element, e) {
     }
 
     // Show the modal
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('waitlistUserModal');
-    } else {
-        const modalEl = document.getElementById('waitlistUserModal');
-        if (modalEl) {
-            const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
-            modal.show();
-        }
-    }
+    window.ModalManager.show('waitlistUserModal');
 
     // Load user details via AJAX
     fetch(getUserDetailsUrl(userId))

@@ -65,12 +65,7 @@ export function openPlayerModal(playerId) {
     document.getElementById('draftFromModal').classList.add('hidden');
 
     // Open modal
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('playerProfileModal');
-    } else if (typeof window.Modal !== 'undefined') {
-        const flowbiteModal = modalElement._flowbiteModal || (modalElement._flowbiteModal = new window.Modal(modalElement, { backdrop: 'dynamic', closable: true }));
-        flowbiteModal.show();
-    }
+    window.ModalManager.show('playerProfileModal');
 
     // Fetch player data
     fetch(`/players/api/player_profile/${playerId}`)
@@ -213,13 +208,7 @@ export function displayPlayerProfile(data, playerId) {
     draftButton.classList.remove('hidden');
     draftButton.onclick = () => {
         // Close modal and trigger draft using ModalManager
-        if (typeof window.ModalManager !== 'undefined') {
-            window.ModalManager.hide('playerProfileModal');
-        } else {
-            // Fallback to direct Flowbite instance
-            const modalEl = document.getElementById('playerProfileModal');
-            modalEl?._flowbiteModal?.hide();
-        }
+        window.ModalManager.hide('playerProfileModal');
         confirmDraftPlayer(playerId, data.name);
     };
 }

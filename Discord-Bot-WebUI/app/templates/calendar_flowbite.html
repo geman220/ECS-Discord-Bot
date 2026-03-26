@@ -2719,14 +2719,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // League Event Modal Handlers (using inline modal, not JS module)
     const canEditEvents = {{ 'true' if can_edit_events else 'false' }};
     if (canEditEvents) {
-        const leagueEventModal = document.getElementById('leagueEventModal');
-        let flowbiteModal = null;
-
-        // Initialize Flowbite modal
-        if (leagueEventModal && typeof Modal !== 'undefined') {
-            flowbiteModal = new Modal(leagueEventModal);
-        }
-
         // Helper to format date for datetime-local input (preserves local time, no UTC conversion)
         function formatDateTimeLocal(date) {
             const d = new Date(date);
@@ -2787,8 +2779,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (flowbiteModal) flowbiteModal.show();
-            else leagueEventModal.classList.remove('hidden');
+            window.ModalManager.show('leagueEventModal');
         }
 
         // Bind Add Event button
@@ -2939,8 +2930,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (response.ok) successCount++;
                     }
 
-                    if (flowbiteModal) flowbiteModal.hide();
-                    else leagueEventModal.classList.add('hidden');
+                    window.ModalManager.hide('leagueEventModal');
                     if (window.showToast) window.showToast(`Created ${successCount} recurring events` + (wantsDiscord ? ' (Discord announced)' : ''), 'success');
                     window.refreshCalendar?.();
                 } else {
@@ -2959,8 +2949,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (!response.ok) throw new Error((await response.json()).error || 'Failed to save');
 
-                    if (flowbiteModal) flowbiteModal.hide();
-                    else leagueEventModal.classList.add('hidden');
+                    window.ModalManager.hide('leagueEventModal');
                     if (window.showToast) window.showToast(isEdit ? 'Event updated' : 'Event created', 'success');
                     window.refreshCalendar?.();
                 }
@@ -2982,8 +2971,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 if (!response.ok) throw new Error('Failed to delete');
 
-                if (flowbiteModal) flowbiteModal.hide();
-                else leagueEventModal.classList.add('hidden');
+                window.ModalManager.hide('leagueEventModal');
                 if (window.showToast) window.showToast('Event deleted', 'success');
                 window.refreshCalendar?.();
             } catch (error) {

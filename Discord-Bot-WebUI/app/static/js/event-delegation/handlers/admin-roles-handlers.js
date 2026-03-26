@@ -61,13 +61,6 @@ window.EventDelegation.register('create-role', function(element, e) {
 
     if (roleModal) {
         roleModal.show();
-    } else {
-        // Fallback to Flowbite modal
-        const modalEl = document.getElementById('roleModal');
-        if (modalEl && typeof window.Modal !== 'undefined') {
-            const flowbiteModal = modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
-            flowbiteModal.show();
-        }
     }
 });
 

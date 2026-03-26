@@ -647,15 +647,7 @@ function exportColors() {
  * Show import modal
  */
 function showImportModal() {
-    const modal = document.getElementById('importModal');
-    if (modal && typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('importModal');
-    } else if (modal && typeof window.Modal !== 'undefined') {
-        if (!modal._flowbiteModal) {
-            modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true });
-        }
-        modal._flowbiteModal.show();
-    }
+    window.ModalManager.show('importModal');
 }
 
 /**
@@ -687,12 +679,7 @@ function importColors() {
         .then(data => {
             if (data.success) {
                 // Hide modal
-                const modal = document.getElementById('importModal');
-                if (modal) {
-                    if (modal._flowbiteModal) {
-                        modal._flowbiteModal.hide();
-                    }
-                }
+                window.ModalManager.hide('importModal');
 
                 if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire({
@@ -892,14 +879,7 @@ function showSavePresetModal(presetData = null) {
     }
 
     // Show modal
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('savePresetModal');
-    } else if (typeof window.Modal !== 'undefined') {
-        if (!modal._flowbiteModal) {
-            modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true });
-        }
-        modal._flowbiteModal.show();
-    }
+    window.ModalManager.show('savePresetModal');
 }
 
 /**
@@ -944,10 +924,7 @@ function savePreset() {
     .then(data => {
         if (data.success) {
             // Hide modal
-            const modal = document.getElementById('savePresetModal');
-            if (modal && modal._flowbiteModal) {
-                modal._flowbiteModal.hide();
-            }
+            window.ModalManager.hide('savePresetModal');
 
             if (typeof window.Swal !== 'undefined') {
                 window.Swal.fire({

@@ -22,14 +22,7 @@ window.EventDelegation.register('show-create-team-modal', function(element, e) {
         const form = document.getElementById('createTeamForm');
         if (form) form.reset();
 
-        if (typeof window.ModalManager !== 'undefined') {
-            window.ModalManager.show('createTeamModal');
-        } else {
-            const modalEl = document.getElementById('createTeamModal');
-            if (modalEl) {
-                (modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }))).show();
-            }
-        }
+        window.ModalManager.show('createTeamModal');
     }
 });
 
@@ -55,14 +48,7 @@ window.EventDelegation.register('show-edit-team-modal', function(element, e) {
         if (editTeamName) editTeamName.value = teamName || '';
         if (editLeagueId) editLeagueId.value = leagueId || '';
 
-        if (typeof window.ModalManager !== 'undefined') {
-            window.ModalManager.show('editTeamModal');
-        } else {
-            const modalEl = document.getElementById('editTeamModal');
-            if (modalEl) {
-                (modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }))).show();
-            }
-        }
+        window.ModalManager.show('editTeamModal');
     }
 });
 

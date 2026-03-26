@@ -432,15 +432,7 @@ const SeasonalSchedule = {
         this.updateAddMatchTeams();
 
         // Show modal
-        const modalEl = document.getElementById('addMatchModal');
-        if (typeof window.ModalManager !== 'undefined') {
-            window.ModalManager.show('addMatchModal');
-        } else if (modalEl && typeof window.Modal !== 'undefined') {
-            if (!modalEl._flowbiteModal) {
-                modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
-            }
-            modalEl._flowbiteModal.show();
-        }
+        window.ModalManager.show('addMatchModal');
     },
 
     /**
@@ -541,15 +533,7 @@ const SeasonalSchedule = {
                     }
 
                     // Show modal
-                    const modalEl = document.getElementById('editMatchModal');
-                    if (typeof window.ModalManager !== 'undefined') {
-                        window.ModalManager.show('editMatchModal');
-                    } else if (modalEl && typeof window.Modal !== 'undefined') {
-                        if (!modalEl._flowbiteModal) {
-                            modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
-                        }
-                        modalEl._flowbiteModal.show();
-                    }
+                    window.ModalManager.show('editMatchModal');
                 } else {
                     this.showAlert('error', data.error);
                 }
@@ -698,10 +682,7 @@ const SeasonalSchedule = {
             if (data.success) {
                 this.showAlert('success', data.message);
                 // Hide modal
-                const modalEl = document.getElementById('editMatchModal');
-                if (modalEl && modalEl._flowbiteModal) {
-                    modalEl._flowbiteModal.hide();
-                }
+                window.ModalManager.hide('editMatchModal');
                 location.reload();
             } else {
                 this.showAlert('error', data.error);
@@ -752,10 +733,7 @@ const SeasonalSchedule = {
             if (data.success) {
                 this.showAlert('success', data.message);
                 // Hide modal
-                const modalEl = document.getElementById('addMatchModal');
-                if (modalEl && modalEl._flowbiteModal) {
-                    modalEl._flowbiteModal.hide();
-                }
+                window.ModalManager.hide('addMatchModal');
                 location.reload();
             } else {
                 this.showAlert('error', data.error);

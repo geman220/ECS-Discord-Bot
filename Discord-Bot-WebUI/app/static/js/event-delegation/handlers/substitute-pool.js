@@ -387,15 +387,7 @@ window.EventDelegation.register('show-sub-assignment', function(element, e) {
     }
 
     // Show the modal
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('subAssignmentModal');
-    } else {
-        const modalEl = document.getElementById('subAssignmentModal');
-        if (modalEl && typeof window.Modal !== 'undefined') {
-            const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
-            modal.show();
-        }
-    }
+    window.ModalManager.show('subAssignmentModal');
 }, { preventDefault: true });
 
 /**
@@ -556,10 +548,7 @@ window.EventDelegation.register('send-to-all-subs', function(element, e) {
                     window.Swal.fire('Sent!', `Successfully contacted ${data.notifications_sent} subs.`, 'success');
                 }
                 // Close modal
-                const modalEl = document.getElementById('contactSubsModal');
-                if (modalEl && modalEl._flowbiteModal) {
-                    modalEl._flowbiteModal.hide();
-                }
+                window.ModalManager.hide('contactSubsModal');
             } else {
                 if (typeof window.Swal !== 'undefined') {
                     window.Swal.fire('Error', data.errors?.join(', ') || 'Failed to send notifications.', 'error');
@@ -619,15 +608,7 @@ window.EventDelegation.register('show-availability', function(element, e) {
     }
 
     // Show the modal
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('availabilityModal');
-    } else {
-        const modalEl = document.getElementById('availabilityModal');
-        if (modalEl && typeof window.Modal !== 'undefined') {
-            const modal = modalEl._flowbiteModal || (modalEl._flowbiteModal = new window.Modal(modalEl, { backdrop: 'dynamic', closable: true }));
-            modal.show();
-        }
-    }
+    window.ModalManager.show('availabilityModal');
 
     // Load availability data
     loadSubAvailability(requestId);

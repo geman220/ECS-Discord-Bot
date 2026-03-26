@@ -355,11 +355,7 @@ async function openConversation(user) {
     await loadMessages(user.id);
 
     if (modal) {
-        if (window.ModalManager) {
-            window.ModalManager.hide('newConversationModal');
-        } else if (modal._flowbiteModal) {
-            modal._flowbiteModal.hide();
-        }
+        window.ModalManager.hide('newConversationModal');
     }
 
     if (elements.messageInput) {
@@ -742,14 +738,7 @@ function handleConversationSearch() {
 
 function openNewConversationModal() {
     if (modal) {
-        if (window.ModalManager) {
-            window.ModalManager.show('newConversationModal');
-        } else if (typeof window.Modal !== 'undefined') {
-            const flowbiteModal = modal._flowbiteModal || (modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true }));
-            flowbiteModal.show();
-        } else {
-            console.error('[MessagesInbox] Neither window.ModalManager nor Flowbite available');
-        }
+        window.ModalManager.show('newConversationModal');
     } else {
         console.error('[MessagesInbox] Modal element not found');
     }

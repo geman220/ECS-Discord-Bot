@@ -294,9 +294,7 @@ function handleAssignSub(link) {
     }
 
     // Open modal
-    const modalEl = document.getElementById('assignSubModal');
-    modalEl._flowbiteModal = modalEl._flowbiteModal || new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
-    modalEl._flowbiteModal.show();
+    window.ModalManager.show('assignSubModal');
 }
 
 // ========================================================================
@@ -324,8 +322,7 @@ function handleAssignSubFormSubmit(form) {
             showToast(data.message, 'success');
 
             // Close modal
-            const modalEl = document.getElementById('assignSubModal');
-            modalEl?._flowbiteModal?.hide();
+            window.ModalManager.hide('assignSubModal');
 
             // Reset form
             form.reset();

@@ -40,16 +40,7 @@ export function viewUserDetails(userId, userName) {
         contentEl.innerHTML = '<div class="flex justify-center"><div class="w-8 h-8 border-4 border-ecs-green border-t-transparent rounded-full animate-spin" role="status" data-spinner></div></div>';
     }
 
-    // Show modal using ModalManager if available
-    if (typeof window.ModalManager !== 'undefined') {
-        window.ModalManager.show('userDetailsModal');
-    } else if (typeof window.Modal !== 'undefined') {
-        const modalEl = document.getElementById('userDetailsModal');
-        if (modalEl) {
-            modalEl._flowbiteModal = modalEl._flowbiteModal || new window.Modal(modalEl, { backdrop: 'dynamic', closable: true });
-            modalEl._flowbiteModal.show();
-        }
-    }
+    window.ModalManager.show('userDetailsModal');
 
     // Load user details via AJAX
     const url = config.getUserDetailsUrl ?

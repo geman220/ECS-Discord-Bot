@@ -370,61 +370,23 @@ function populateEventContainers(matchId, data) {
 }
 
 /**
- * Show a modal using ModalManager (preferred) or Flowbite fallback
+ * Show a modal using ModalManager
  * @param {Element} modal - Modal element
  */
 function showModal(modal) {
     const modalId = modal.id;
 
-    // Use ModalManager if available (preferred - handles caching)
-    if (typeof window.ModalManager !== 'undefined' && modalId) {
-        const shown = window.ModalManager.show(modalId, {
-            backdrop: 'static',
-            closable: true
-        });
-        if (shown) {
-            // Setup close button handlers for dynamically created modals
-            setupModalCloseHandlers(modal);
-            return;
-        }
-    }
+    window.ModalManager.show(modalId, {
+        backdrop: 'static',
+        closable: true
+    });
 
-    // Fallback: Use Flowbite Modal directly
-    try {
-        if (typeof window.Modal !== 'undefined') {
-            // Check if already has a cached instance
-            let flowbiteModal = modal._flowbiteModal;
-            if (!flowbiteModal) {
-                flowbiteModal = new window.Modal(modal, {
-                    backdrop: 'static',
-                    closable: true
-                });
-                modal._flowbiteModal = flowbiteModal;
-            }
-            flowbiteModal.show();
-        } else {
-            // Ultimate fallback: manual show
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            modal.setAttribute('aria-hidden', 'false');
-            document.body.classList.add('overflow-hidden');
-        }
-
-        // Setup close button handlers
-        setupModalCloseHandlers(modal);
-    } catch (error) {
-        console.error('Modal show error:', error);
-        // Ultimate fallback
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-        modal.setAttribute('aria-hidden', 'false');
-        document.body.classList.add('overflow-hidden');
-        setupModalCloseHandlers(modal);
-    }
+    // Setup close button handlers for dynamically created modals
+    setupModalCloseHandlers(modal);
 }
 
 /**
- * Hide modal using ModalManager (preferred) or Flowbite fallback
+ * Hide modal using ModalManager
  * @param {Element} modal - Modal element
  */
 function hideModal(modal) {
@@ -435,24 +397,7 @@ function hideModal(modal) {
     }
 
     const modalId = modal.id;
-
-    // Use ModalManager if available (preferred)
-    if (typeof window.ModalManager !== 'undefined' && modalId) {
-        const hidden = window.ModalManager.hide(modalId);
-        if (hidden) {
-            return;
-        }
-    }
-
-    // Fallback: Use cached Flowbite instance or manual hide
-    if (modal._flowbiteModal) {
-        modal._flowbiteModal.hide();
-    } else {
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-        modal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('overflow-hidden');
-    }
+    window.ModalManager.hide(modalId);
 }
 
 /**

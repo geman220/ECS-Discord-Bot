@@ -259,34 +259,7 @@ function handleErrorResponse(matchId, data) {
  */
 function closeModal(matchId) {
     try {
-        const modalElem = document.getElementById(`reportMatchModal-${matchId}`);
-        if (modalElem) {
-            // Try Flowbite stored reference first
-            if (modalElem._flowbiteModal) {
-                modalElem._flowbiteModal.hide();
-            } else if (typeof window.Modal !== 'undefined') {
-                // Try Flowbite Modal class
-                const flowbiteModal = window.Modal.getInstance(modalElem);
-                if (flowbiteModal) {
-                    flowbiteModal.hide();
-                } else {
-                    // Fallback: manual hide with Flowbite patterns
-                    modalElem.classList.add('hidden');
-                    modalElem.classList.remove('flex');
-                    modalElem.setAttribute('aria-hidden', 'true');
-                    document.body.classList.remove('overflow-hidden');
-                }
-            } else if (window.hideMatchModal) {
-                // Use exported function from modal-builder
-                window.hideMatchModal(modalElem);
-            } else {
-                // Ultimate fallback
-                modalElem.classList.add('hidden');
-                modalElem.classList.remove('flex');
-                modalElem.setAttribute('aria-hidden', 'true');
-                document.body.classList.remove('overflow-hidden');
-            }
-        }
+        window.ModalManager.hide(`reportMatchModal-${matchId}`);
     } catch (e) {
         console.error('Error closing modal:', e);
     }

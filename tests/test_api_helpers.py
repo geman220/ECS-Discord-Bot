@@ -3,6 +3,7 @@
 import pytest
 import aiohttp
 from unittest.mock import AsyncMock, patch, MagicMock
+from urllib.parse import urlparse
 from api_helpers import (
     send_async_http_request,
     call_woocommerce_api,
@@ -72,7 +73,7 @@ async def test_fetch_espn_data(mock_aiohttp_session):
     result = await fetch_espn_data("sports/soccer/usa.1/teams/184")
     
     assert result == {"team": "Sounders"}
-    assert "site.api.espn.com" in mock_session.request.call_args[0][1]
+    assert mock_session.request.call_args[0][1].startswith("https://site.api.espn.com")
 
 @pytest.mark.asyncio
 async def test_check_new_orders_detected(mock_aiohttp_session, monkeypatch):
@@ -122,4 +123,6 @@ async def test_fetch_serpapi_flight_data(mock_aiohttp_session):
     from datetime import date
     result = await fetch_serpapi_flight_data("SEA", "PDX", date(2024, 5, 12), date(2024, 5, 14))
     assert result == {"flights": []}
-    assert "serpapi.com" in mock_session.request.call_args[0][1]
+    request_url = mock_session.request.call_args[0][1]
+    parsed_url = urlparse(request_url)
+    assert parsed_url.hostname and parsed_url.hostname.endswith("serpapi.com")

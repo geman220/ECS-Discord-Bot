@@ -245,16 +245,6 @@ window.ROLES_CONFIG = {
 
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = document.documentElement.classList.contains('dark');
-    const roleDetailsModalEl = document.getElementById('roleDetailsModal');
-
-    // Initialize Flowbite modal
-    const modalOptions = {
-        placement: 'center',
-        backdrop: 'dynamic',
-        backdropClasses: 'bg-gray-900/50 dark:bg-gray-900/80 fixed inset-0 z-40',
-        closable: true
-    };
-    const roleDetailsModal = roleDetailsModalEl ? new Modal(roleDetailsModalEl, modalOptions) : null;
 
     document.addEventListener('click', function(e) {
         const target = e.target.closest('[data-action]');
@@ -285,7 +275,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
             </div>
         `;
-        if (roleDetailsModal) roleDetailsModal.show();
+        window.ModalManager.show('roleDetailsModal');
 
         fetch(`${window.ROLES_CONFIG.roleDetailsUrl}?role_id=${roleId}`)
             .then(response => response.json())

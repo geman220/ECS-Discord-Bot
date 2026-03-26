@@ -679,9 +679,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.season-dropdown').forEach(d => d.classList.add('hidden'));
     });
 
-    // Wizard Modal - using Flowbite modal API
-    const wizardModalEl = document.getElementById('wizardModal');
-    const wizardModalInstance = wizardModalEl ? new Modal(wizardModalEl, { backdrop: 'static' }) : null;
+    // Wizard Modal - using ModalManager API
     const startWizardBtn = document.getElementById('startWizardBtn');
     const prevStepBtn = document.getElementById('prevStepBtn');
     const nextStepBtn = document.getElementById('nextStepBtn');
@@ -693,11 +691,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function openWizard() {
         currentStep = 1;
         updateWizardStep();
-        wizardModalInstance?.show();
+        window.ModalManager.show('wizardModal', { backdrop: 'static' });
     }
 
     function closeWizard() {
-        wizardModalInstance?.hide();
+        window.ModalManager.hide('wizardModal');
     }
 
     function updateWizardStep() {

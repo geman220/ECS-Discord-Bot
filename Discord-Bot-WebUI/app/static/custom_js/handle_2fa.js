@@ -34,12 +34,8 @@ function initHandle2fa() {
                     if (modal) {
                         modal.setAttribute('data-secret', data.secret);
                     }
-                    // Use window.ModalManager for safe modal handling
-                    if (modal && typeof window.ModalManager !== 'undefined') {
+                    if (modal) {
                         window.ModalManager.show('enable2FAModal');
-                    } else if (modal && typeof window.Modal !== 'undefined') {
-                        const flowbiteModal = modal._flowbiteModal || (modal._flowbiteModal = new window.Modal(modal, { backdrop: 'dynamic', closable: true }));
-                        flowbiteModal.show();
                     }
                 });
         });
