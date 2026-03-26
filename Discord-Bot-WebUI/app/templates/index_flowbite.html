@@ -135,9 +135,15 @@
                         <div class="p-4">
                             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div class="flex items-start gap-3">
+                                    {% if match_data['week_type'] == 'BYE' %}
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                                        <i class="ti ti-moon"></i>
+                                    </div>
+                                    {% else %}
                                     <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% else %}bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400{% endif %}">
                                         {% if is_home %}H{% else %}A{% endif %}
                                     </div>
+                                    {% endif %}
                                     <div>
                                         <h6 class="font-medium text-gray-900 dark:text-white">
                                             {% if match_data['week_type'] in ['FUN', 'TST', 'BYE', 'BONUS', 'PLAYOFF'] %}
@@ -158,13 +164,18 @@
                                             {% endif %}
                                         </h6>
                                         <div class="flex flex-wrap items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                            {% if match_data['week_type'] == 'BYE' %}
+                                            <span class="flex items-center gap-1"><i class="ti ti-calendar-off"></i>No game scheduled - week off</span>
+                                            {% else %}
                                             <span class="flex items-center gap-1"><i class="ti ti-clock"></i>{{ match_data['time'].strftime('%I:%M %p') }}</span>
                                             <span class="flex items-center gap-1"><i class="ti ti-map-pin"></i>{{ match_data['location'] }}</span>
+                                            {% endif %}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div class="flex flex-wrap items-center gap-2">
+                                    {% if match_data['week_type'] != 'BYE' %}
                                     <!-- RSVP Controls -->
                                     <div class="flex rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600" data-rsvp-controls data-match-id="{{ match_data['match_id'] }}" {% if match_data.get('is_ecs_fc') %}data-is-ecs-fc="true"{% endif %}>
                                         <label class="rsvp-option cursor-pointer">
@@ -216,6 +227,7 @@
                                     </button>
                                     {% endif %}
                                     {% endif %}
+                                    {% endif %}{# end BYE check for RSVP/details/report #}
                                 </div>
                             </div>
                         </div>
@@ -285,12 +297,20 @@
                         <div class="p-4">
                             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                 <div class="flex items-start gap-3">
+                                    {% if match_data.get('week_type') == 'BYE' %}
+                                    <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                                        <i class="ti ti-moon"></i>
+                                    </div>
+                                    {% else %}
                                     <div class="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold {% if is_home %}bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400{% else %}bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400{% endif %}">
                                         {% if is_home %}H{% else %}A{% endif %}
                                     </div>
+                                    {% endif %}
                                     <div>
                                         <h6 class="font-medium text-gray-900 dark:text-white">
-                                            {% if is_home %}
+                                            {% if match_data.get('week_type') == 'BYE' %}
+                                            <span class="px-2 py-0.5 text-xs rounded bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300">Bye Week</span>
+                                            {% elif is_home %}
                                             <span class="text-ecs-green dark:text-ecs-gold">{{ t.name }}</span> vs {{ opponent_name }}
                                             {% else %}
                                             {{ opponent_name }} vs <span class="text-ecs-green dark:text-ecs-gold">{{ t.name }}</span>

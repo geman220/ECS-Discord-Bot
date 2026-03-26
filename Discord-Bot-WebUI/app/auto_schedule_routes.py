@@ -14,7 +14,7 @@ from flask_login import login_required, current_user
 from datetime import datetime, time, date, timedelta
 import logging
 from typing import Optional
-from sqlalchemy import func, Integer as SAInteger
+from sqlalchemy import func, or_, Integer as SAInteger
 
 from app.models import (
     League, Team, Season, AutoScheduleConfig, ScheduleTemplate, 
@@ -557,12 +557,19 @@ def update_week():
             # If changing to BYE, delete all matches and create BYE entries for teams
             if new_week_type == 'BYE':
                 effective_season_id = season_id or (season_leagues[0].season_id if season_leagues else None)
+                season_league_ids = [l.id for l in season_leagues]
 
+                # Find matches through team/league relationship (handles NULL season_id on schedules)
                 all_week_matches = session.query(Match).join(
                     Schedule, Match.schedule_id == Schedule.id
+                ).join(
+                    Team, Schedule.team_id == Team.id
                 ).filter(
                     Schedule.week == week_number,
-                    Schedule.season_id == effective_season_id
+                    or_(
+                        Schedule.season_id == effective_season_id,
+                        Team.league_id.in_(season_league_ids)
+                    )
                 ).all()
 
                 # Capture the week date before deleting (for creating BYE entries)
@@ -596,9 +603,14 @@ def update_week():
                     deleted_count += 1
 
                 # Also delete any orphaned schedules for this week (safety cleanup)
-                orphaned = session.query(Schedule).filter(
-                    Schedule.week == str(week_number),
-                    Schedule.season_id == effective_season_id
+                orphaned = session.query(Schedule).join(
+                    Team, Schedule.team_id == Team.id
+                ).filter(
+                    Schedule.week == week_number,
+                    or_(
+                        Schedule.season_id == effective_season_id,
+                        Team.league_id.in_(season_league_ids)
+                    )
                 ).all()
                 for s in orphaned:
                     session.delete(s)
