@@ -588,22 +588,21 @@ def update_week():
                 if not bye_date:
                     bye_date = date.today()
 
-                # Delete existing matches and their schedules
-                deleted_count = 0
+                # Collect IDs for bulk delete (bypasses ORM cascade/post_update issues)
+                match_ids = [m.id for m in all_week_matches]
+                schedule_ids = set()
                 for match in all_week_matches:
-                    schedules = session.query(Schedule).filter_by(id=match.schedule_id).all()
-                    paired_schedules = session.query(Schedule).filter_by(
+                    schedule_ids.add(match.schedule_id)
+                    # Find paired schedule IDs
+                    paired = session.query(Schedule.id).filter_by(
                         team_id=match.away_team_id,
                         opponent=match.home_team_id,
                         week=week_number
                     ).all()
-                    for s in schedules + paired_schedules:
-                        session.delete(s)
-                    session.delete(match)
-                    deleted_count += 1
+                    schedule_ids.update(p.id for p in paired)
 
-                # Also delete any orphaned schedules for this week (safety cleanup)
-                orphaned = session.query(Schedule).join(
+                # Also find any orphaned schedule IDs for this week
+                orphaned = session.query(Schedule.id).join(
                     Team, Schedule.team_id == Team.id
                 ).filter(
                     Schedule.week == week_number,
@@ -612,8 +611,15 @@ def update_week():
                         Team.league_id.in_(season_league_ids)
                     )
                 ).all()
-                for s in orphaned:
-                    session.delete(s)
+                schedule_ids.update(o.id for o in orphaned)
+
+                deleted_count = len(match_ids)
+
+                # Bulk delete matches first (FK dependency), then schedules
+                if match_ids:
+                    session.query(Match).filter(Match.id.in_(match_ids)).delete(synchronize_session='fetch')
+                if schedule_ids:
+                    session.query(Schedule).filter(Schedule.id.in_(schedule_ids)).delete(synchronize_session='fetch')
 
                 session.flush()
 
