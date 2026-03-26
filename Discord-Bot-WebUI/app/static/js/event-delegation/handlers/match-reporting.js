@@ -182,6 +182,39 @@ window.EventDelegation.register('remove-own-goal', function(element, e) {
     }
 });
 
+/**
+ * Generic Add Event Action
+ * Used by server-rendered modals that use data-action="add-event" with data-event-type
+ */
+window.EventDelegation.register('add-event', function(element, e) {
+    e.preventDefault();
+
+    const matchId = element.dataset.matchId;
+    const containerId = element.dataset.container;
+    const eventType = element.dataset.eventType;
+
+    if (!matchId || !containerId) {
+        console.error('[add-event] Missing match ID or container');
+        return;
+    }
+
+    // Detect own goal from event type or container name
+    const isOwnGoal = eventType === 'own_goal' || eventType === 'owngoal' || containerId.startsWith('ownGoals');
+    if (isOwnGoal) {
+        if (typeof window.addOwnGoalEvent === 'function') {
+            window.addOwnGoalEvent(matchId, containerId);
+        } else {
+            console.error('[add-event] addOwnGoalEvent function not found');
+        }
+    } else {
+        if (typeof window.addEvent === 'function') {
+            window.addEvent(matchId, containerId);
+        } else {
+            console.error('[add-event] addEvent function not found');
+        }
+    }
+});
+
 // ============================================================================
 
 // Handlers loaded
