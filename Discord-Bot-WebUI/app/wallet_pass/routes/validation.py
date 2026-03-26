@@ -122,7 +122,7 @@ def validate_pass():
 
     except Exception as e:
         logger.error(f"Error validating pass: {e}", exc_info=True)
-        return jsonify({'error': 'Validation failed', 'details': str(e)}), 500
+        return jsonify({'error': 'Validation failed', 'details': 'Internal Server Error'}), 500
 
 
 @validation_bp.route('/validate/<barcode>', methods=['GET'])

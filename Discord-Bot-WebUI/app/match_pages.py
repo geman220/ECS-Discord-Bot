@@ -473,7 +473,7 @@ def debug_rsvp(match_id):
         return jsonify(debug_info)
     except Exception as e:
         logger.exception(f"Error in debug RSVP: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 def local_update_rsvp(match_id, player_id, response, discord_id=None):
     """
@@ -650,7 +650,7 @@ def rsvp(match_id):
             
     except Exception as e:
         logger.exception(f"Error processing RSVP: {str(e)}")
-        return jsonify({"success": False, "message": f"Server error: {str(e)}"}), 500
+        return jsonify({"success": False, "message": "Server error: Internal Server Error"}), 500
 
     if success:
         logger.info(f"RSVP updated successfully: {message}")
@@ -692,7 +692,7 @@ def get_rsvp_status(match_id):
             
     except Exception as e:
         logger.exception(f"Error fetching RSVP status: {str(e)}")
-        return jsonify({'response': 'no_response', 'error': str(e)})
+        return jsonify({'response': 'no_response', 'error': 'Internal Server Error'})
 
 
 @match_pages.route('/matches/<int:match_id>/live-report', methods=['GET'])

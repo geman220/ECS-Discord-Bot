@@ -54,6 +54,18 @@ def set_session_timeout(session, statement_timeout_seconds=None, idle_timeout_se
         # Session timeout configuration skipped for PgBouncer
         pass
         return
+
+    # Check if using PostgreSQL before attempting SET commands
+    try:
+        if session.bind.dialect.name != 'postgresql':
+            return
+    except Exception:
+        # Fallback to checking session object
+        try:
+            if session.get_bind().dialect.name != 'postgresql':
+                return
+        except Exception:
+            pass
         
     try:
         if statement_timeout_seconds:

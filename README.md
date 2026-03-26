@@ -476,6 +476,11 @@ curl -H "Authorization: Bearer YOUR_API_KEY" \
 
 This project uses `pytest` for Python testing and `vitest` for frontend JavaScript testing.
 
+### **Running All Tests**
+A unified script is provided to run both Bot and WebUI tests:
+- **Mac/Linux**: `./buildAndTest.sh`
+- **Windows**: `.\buildAndTest.ps1` (PowerShell)
+
 ### **Testing the Discord Bot**
 The bot tests are located in the root `tests/` directory.
 ```bash

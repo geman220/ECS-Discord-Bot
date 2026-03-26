@@ -98,4 +98,4 @@ def cleanup_stale_sessions():
         return jsonify({'success': True, 'message': 'Stale sessions cleaned up'})
     except Exception as e:
         logger.error(f"Error during manual session cleanup: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

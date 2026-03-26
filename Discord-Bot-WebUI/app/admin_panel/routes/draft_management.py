@@ -382,4 +382,4 @@ def draft_stats_api():
 
     except Exception as e:
         logger.error(f"Error getting draft stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500

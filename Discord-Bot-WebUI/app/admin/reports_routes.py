@@ -267,8 +267,8 @@ def update_rsvp():
         except Exception as e:
             logger.error(f"Error clearing RSVP: {str(e)}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'success': False, 'message': f'Error clearing RSVP: {str(e)}'})
-            show_error(f'Error clearing RSVP: {str(e)}')
+                return jsonify({'success': False, 'message': 'Internal Server Error'})
+            show_error('Internal Server Error')
     else:
         try:
             if is_ecs_fc_match:
@@ -351,8 +351,8 @@ def update_rsvp():
         except Exception as e:
             logger.error(f"Error updating RSVP: {str(e)}")
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'success': False, 'message': f'Error updating RSVP: {str(e)}'})
-            show_error(f'Error updating RSVP: {str(e)}')
+                return jsonify({'success': False, 'message': 'Internal Server Error'})
+            show_error('Internal Server Error')
     
     return redirect(url_for('admin.rsvp_status', match_id=match_id))
 

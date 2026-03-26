@@ -1250,7 +1250,7 @@ def update_application():
         )
         return jsonify({"success": True, "message": "Update initiated", "output": result.stdout})
     except subprocess.CalledProcessError as e:
-        return jsonify({"success": False, "message": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal Server Error"}), 500
 
 
 @main.route('/set-theme', methods=['POST'])
@@ -1465,7 +1465,7 @@ def save_phone_for_verification():
         return jsonify({'success': True, 'message': 'Phone number saved for verification'})
     except Exception as e:
         logger.error(f"Error saving phone for verification for user {safe_current_user.id}: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': f'Error saving phone number: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @main.route('/send_verification_code', methods=['POST'])
@@ -1528,7 +1528,7 @@ def send_verification_code():
             return jsonify({'success': False, 'message': f'Failed to send verification code: {message}'}), 200  # Return 200 to let our error handler work
     except Exception as e:
         logger.error(f"Error in send_verification_code for user {safe_current_user.id}: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': f'Error sending verification code: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @main.route('/verify_sms_code', methods=['POST'])
@@ -1606,7 +1606,7 @@ def verify_sms_code():
             return jsonify({'success': False, 'message': 'Invalid verification code'})
     except Exception as e:
         logger.error(f"Error verifying SMS code for user {safe_current_user.id}: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': f'Error verifying code: {str(e)}'})
+        return jsonify({'success': False, 'message': 'Internal Server Error'})
 
 
 @main.route('/test_sms_verification', methods=['GET'])
@@ -1657,7 +1657,7 @@ def test_sms_verification():
         return jsonify(verification_status)
     except Exception as e:
         logger.error(f"Error in test_sms_verification: {e}", exc_info=True)
-        return jsonify({'error': str(e)})
+        return jsonify({'error': 'Internal Server Error'})
 
 
 @main.route('/set_verification_code', methods=['POST'])
@@ -1706,7 +1706,7 @@ def set_verification_code():
         })
     except Exception as e:
         logger.error(f"Error setting verification code: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+        return jsonify({'success': False, 'message': 'Internal Server Error'})
 
 
 @main.context_processor

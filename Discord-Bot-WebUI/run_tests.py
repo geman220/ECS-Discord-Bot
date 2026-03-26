@@ -51,7 +51,7 @@ def setup_environment():
 
 def run_unit_tests(verbose=False, coverage=False):
     """Run unit tests."""
-    cmd = "pytest tests/unit/"
+    cmd = f"{sys.executable} -m pytest tests/unit/"
     
     if verbose:
         cmd += " -v"
@@ -64,7 +64,7 @@ def run_unit_tests(verbose=False, coverage=False):
 
 def run_integration_tests(verbose=False, coverage=False):
     """Run integration tests."""
-    cmd = "pytest tests/integration/"
+    cmd = f"{sys.executable} -m pytest tests/integration/"
     
     if verbose:
         cmd += " -v"
@@ -77,7 +77,7 @@ def run_integration_tests(verbose=False, coverage=False):
 
 def run_all_tests(verbose=False, coverage=False):
     """Run all tests."""
-    cmd = "pytest"
+    cmd = f"{sys.executable} -m pytest"
     
     if verbose:
         cmd += " -v"
@@ -121,7 +121,7 @@ def run_security_scan():
 
 def run_performance_tests():
     """Run performance tests."""
-    cmd = "pytest tests/ -m slow -v"
+    cmd = f"{sys.executable} -m pytest tests/ -m slow -v"
     return run_command(cmd, "Performance Tests", fail_on_error=False)
 
 

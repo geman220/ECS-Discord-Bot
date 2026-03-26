@@ -57,7 +57,7 @@ def reports_stats_api():
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Error getting report stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -159,7 +159,7 @@ def update_rsvp():
         logger.error(f"Error updating RSVP: {e}")
         session.rollback()
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return jsonify({'success': False, 'message': str(e)}), 500
+            return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
     return redirect(url_for('admin_panel.rsvp_status', match_id=match_id))
 

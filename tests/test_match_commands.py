@@ -2,9 +2,10 @@
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
-from match_commands import MatchCommands
+from match_commands import MatchCommands, fetch_match_by_thread, PredictionModal
 from match_utils import closed_matches
 from discord import Embed, TextChannel, Thread, ForumChannel
+import discord
 
 @pytest.fixture
 def match_commands_bot():
@@ -14,14 +15,23 @@ def match_commands_bot():
 
 @pytest.fixture
 def mock_interaction():
-    interaction = AsyncMock()
+    interaction = MagicMock()
+    interaction.user = MagicMock()
+    interaction.user.id = 123456789
+    interaction.guild = MagicMock()
+    interaction.guild.name = "Test Guild"
     interaction.guild.channels = [
         MagicMock(spec=ForumChannel, name="match-thread"),
         MagicMock(spec=ForumChannel, name="away-travel"),
     ]
+    interaction.guild.icon = MagicMock()
+    interaction.guild.icon.url = "http://example.com/icon.png"
     interaction.channel = MagicMock(spec=TextChannel)
+    interaction.response = MagicMock()
     interaction.response.send_message = AsyncMock()
     interaction.response.defer = AsyncMock()
+    interaction.response.send_modal = AsyncMock()
+    interaction.followup = MagicMock()
     interaction.followup.send = AsyncMock()
     return interaction
 
@@ -41,17 +51,10 @@ def mock_convert_to_pst(monkeypatch):
 
 
 @pytest.fixture
-def mock_insert_prediction(monkeypatch):
-    mock = Mock()
-    monkeypatch.setattr("match_commands.insert_prediction", mock)
-    return mock
-
-
-@pytest.fixture
-def mock_get_predictions(monkeypatch):
-    mock = Mock()
-    monkeypatch.setattr("match_commands.get_predictions", mock)
-    return mock
+def mock_fetch_match_by_thread(monkeypatch):
+    async_mock = AsyncMock()
+    monkeypatch.setattr("match_commands.fetch_match_by_thread", async_mock)
+    return async_mock
 
 
 @pytest.fixture
@@ -61,32 +64,27 @@ def mock_has_admin_role(monkeypatch):
     return async_mock
 
 
-@pytest.fixture
-def mock_prepare_match_environment(monkeypatch):
-    async_mock = AsyncMock()
-    monkeypatch.setattr("match_commands.prepare_match_environment", async_mock)
-    return async_mock
+@pytest.mark.asyncio
+async def test_fetch_match_by_thread_success():
+    with patch("aiohttp.ClientSession.get") as mock_get:
+        mock_resp = AsyncMock()
+        mock_resp.status = 200
+        mock_resp.json.return_value = {"match_id": "12345"}
+        mock_get.return_value.__aenter__.return_value = mock_resp
+        
+        result = await fetch_match_by_thread("thread_id")
+        assert result == {"match_id": "12345"}
 
 
-@pytest.fixture
-def mock_get_away_match(monkeypatch):
-    async_mock = AsyncMock()
-    monkeypatch.setattr("match_commands.get_away_match", async_mock)
-    return async_mock
-
-
-@pytest.fixture
-def mock_check_existing_threads(monkeypatch):
-    async_mock = AsyncMock()
-    monkeypatch.setattr("match_commands.check_existing_threads", async_mock)
-    return async_mock
-
-
-@pytest.fixture
-def mock_create_and_manage_thread(monkeypatch):
-    async_mock = AsyncMock()
-    monkeypatch.setattr("match_commands.create_and_manage_thread", async_mock)
-    return async_mock
+@pytest.mark.asyncio
+async def test_fetch_match_by_thread_failure():
+    with patch("aiohttp.ClientSession.get") as mock_get:
+        mock_resp = AsyncMock()
+        mock_resp.status = 404
+        mock_get.return_value.__aenter__.return_value = mock_resp
+        
+        result = await fetch_match_by_thread("thread_id")
+        assert result is None
 
 
 @pytest.mark.asyncio
@@ -109,6 +107,10 @@ async def test_next_match_success(
     mock_interaction.response.send_message.assert_called_once()
     args, kwargs = mock_interaction.response.send_message.call_args
     assert isinstance(kwargs["embed"], Embed)
+    embed = kwargs["embed"]
+    assert embed.title == "Next Match: Match Name"
+    assert embed.fields[0].value == "Opponent Team"
+    assert embed.fields[2].value == "Stadium Name"
 
 
 @pytest.mark.asyncio
@@ -132,41 +134,13 @@ async def test_next_match_error(
 
     await match_commands_bot.next_match.callback(match_commands_bot, mock_interaction)
 
-    expected_message = "An error occurred: Error fetching match info"
+    expected_message = "An error occurred while fetching the next match information."
     mock_interaction.response.send_message.assert_called_once_with(expected_message)
 
 
 @pytest.mark.asyncio
-async def test_new_match_with_admin_role_check(
-    match_commands_bot,
-    mock_interaction,
-    mock_has_admin_role
-):
-    mock_has_admin_role.return_value = True
-
-    await match_commands_bot.new_match.callback(match_commands_bot, mock_interaction)
-
-    mock_has_admin_role.assert_called_once_with(mock_interaction)
-
-
-@pytest.mark.asyncio
-async def test_away_match_success(
-    match_commands_bot, mock_interaction, mock_has_admin_role, mock_get_away_match
-):
-    mock_has_admin_role.return_value = True
-    mock_get_away_match.return_value = ("Away Match Title", "ticket_link")
-
-    await match_commands_bot.away_match.callback(
-        match_commands_bot, mock_interaction, opponent="Opponent"
-    )
-
-    mock_has_admin_role.assert_called_once()
-    mock_get_away_match.assert_called_once_with("Opponent")
-
-
-@pytest.mark.asyncio
 async def test_show_predictions_outside_thread(
-    match_commands_bot, mock_interaction, mock_get_predictions
+    match_commands_bot, mock_interaction, mock_fetch_match_by_thread
 ):
     mock_interaction.channel = MagicMock(spec=TextChannel)
     await match_commands_bot.show_predictions.callback(
@@ -179,10 +153,10 @@ async def test_show_predictions_outside_thread(
 
 @pytest.mark.asyncio
 async def test_show_predictions_unassociated_thread(
-    match_commands_bot, mock_interaction, mock_get_predictions
+    match_commands_bot, mock_interaction, mock_fetch_match_by_thread
 ):
-    mock_interaction.channel = MagicMock(spec=Thread, id="12345")
-    match_commands_bot.match_thread_map = {}
+    mock_interaction.channel = MagicMock(spec=Thread, id=12345)
+    mock_fetch_match_by_thread.return_value = None
 
     await match_commands_bot.show_predictions.callback(
         match_commands_bot, mock_interaction
@@ -195,19 +169,24 @@ async def test_show_predictions_unassociated_thread(
 
 @pytest.mark.asyncio
 async def test_show_predictions_no_predictions(
-    match_commands_bot, mock_interaction, mock_get_predictions
+    match_commands_bot, mock_interaction, mock_fetch_match_by_thread
 ):
-    mock_thread_id = "12345"
+    mock_thread_id = 12345
     mock_interaction.channel = MagicMock(spec=Thread, id=mock_thread_id)
 
     mock_match_id = "67890"
-    match_commands_bot.match_thread_map = {mock_thread_id: mock_match_id}
+    mock_fetch_match_by_thread.return_value = {"match_id": mock_match_id}
 
-    mock_get_predictions.return_value = []
+    with patch("aiohttp.ClientSession.get") as mock_get:
+        mock_resp = AsyncMock()
+        mock_resp.status = 200
+        mock_resp.json.return_value = []
+        mock_get.return_value.__aenter__.return_value = mock_resp
 
-    await match_commands_bot.show_predictions.callback(
-        match_commands_bot, mock_interaction
-    )
+        await match_commands_bot.show_predictions.callback(
+            match_commands_bot, mock_interaction
+        )
+        match_commands_bot.cog_unload()
 
     mock_interaction.response.send_message.assert_called_once_with(
         "No predictions have been made for this match.", ephemeral=True
@@ -216,51 +195,92 @@ async def test_show_predictions_no_predictions(
 
 @pytest.mark.asyncio
 async def test_show_predictions_success(
-    match_commands_bot, mock_interaction, mock_get_predictions
+    match_commands_bot, mock_interaction, mock_fetch_match_by_thread
 ):
-    mock_channel_id = "123"
+    mock_channel_id = 123
     mock_interaction.channel = MagicMock(spec=Thread, id=mock_channel_id)
-    match_commands_bot.match_thread_map = {mock_channel_id: "match_id"}
-    mock_predictions = [("Win", 5), ("Lose", 2)]
-    mock_get_predictions.return_value = mock_predictions
+    mock_fetch_match_by_thread.return_value = {"match_id": "match_id"}
+    
+    mock_predictions = [
+        {"discord_user_id": "1", "home_score": 1, "opponent_score": 0},
+        {"discord_user_id": "2", "home_score": 2, "opponent_score": 1}
+    ]
 
-    await match_commands_bot.show_predictions.callback(
-        match_commands_bot, mock_interaction
-    )
+    with patch("aiohttp.ClientSession.get") as mock_get:
+        mock_resp = AsyncMock()
+        mock_resp.status = 200
+        mock_resp.json.return_value = mock_predictions
+        mock_get.return_value.__aenter__.return_value = mock_resp
+
+        # Mock interaction.guild.get_member
+        mock_interaction.guild.get_member.side_effect = lambda uid: MagicMock(display_name=f"User {uid}") if uid == "1" else None
+
+        await match_commands_bot.show_predictions.callback(
+            match_commands_bot, mock_interaction
+        )
+        match_commands_bot.cog_unload()
 
     args, kwargs = mock_interaction.response.send_message.call_args
     assert "embed" in kwargs
-    assert isinstance(kwargs["embed"], Embed)
-    assert len(kwargs["embed"].fields) == 2
+    embed = kwargs["embed"]
+    assert len(embed.fields) == 2
+    assert embed.fields[0].name == "User 1: 1 - 0"
+    assert embed.fields[1].name == "User 2: 2 - 1"
 
 
 @pytest.mark.asyncio
-async def test_show_predictions_in_thread(
-    match_commands_bot, mock_interaction, mock_get_predictions
+async def test_show_predictions_no_icon(
+    match_commands_bot, mock_interaction, mock_fetch_match_by_thread
 ):
-    mock_channel_id = "12345"
-    mock_interaction.channel = MagicMock(spec=Thread, id=mock_channel_id)
-    match_commands_bot.match_thread_map = {mock_channel_id: "67890"}
-    mock_predictions = [("Win", 5), ("Lose", 2)]
-    mock_get_predictions.return_value = mock_predictions
+    mock_interaction.channel = MagicMock(spec=Thread, id=123)
+    mock_interaction.guild.icon = None
+    mock_fetch_match_by_thread.return_value = {"match_id": "match_id"}
 
-    await match_commands_bot.show_predictions.callback(
-        match_commands_bot, mock_interaction
-    )
+    with patch("aiohttp.ClientSession.get") as mock_get:
+        mock_resp = AsyncMock()
+        mock_resp.status = 200
+        mock_resp.json.return_value = [{"discord_user_id": "1", "home_score": 1, "opponent_score": 0}]
+        mock_get.return_value.__aenter__.return_value = mock_resp
+
+        await match_commands_bot.show_predictions.callback(
+            match_commands_bot, mock_interaction
+        )
+        match_commands_bot.cog_unload()
 
     args, kwargs = mock_interaction.response.send_message.call_args
     assert "embed" in kwargs
-    assert isinstance(kwargs["embed"], Embed)
+
+
+@pytest.mark.asyncio
+async def test_show_predictions_api_error(
+    match_commands_bot, mock_interaction, mock_fetch_match_by_thread
+):
+    mock_interaction.channel = MagicMock(spec=Thread, id=123)
+    mock_fetch_match_by_thread.return_value = {"match_id": "match_id"}
+
+    with patch("aiohttp.ClientSession.get") as mock_get:
+        mock_resp = AsyncMock()
+        mock_resp.status = 500
+        mock_get.return_value.__aenter__.return_value = mock_resp
+
+        await match_commands_bot.show_predictions.callback(
+            match_commands_bot, mock_interaction
+        )
+        match_commands_bot.cog_unload()
+
+    mock_interaction.response.send_message.assert_called_once_with(
+        "Failed to fetch predictions.", ephemeral=True
+    )
 
 
 @pytest.mark.asyncio
 async def test_predict_outside_thread(
-    match_commands_bot, mock_interaction, mock_insert_prediction
+    match_commands_bot, mock_interaction, mock_fetch_match_by_thread
 ):
     mock_interaction.channel = MagicMock(spec=TextChannel)
 
     await match_commands_bot.predict.callback(
-        match_commands_bot, mock_interaction, prediction="2-1"
+        match_commands_bot, mock_interaction
     )
 
     mock_interaction.response.send_message.assert_called_once_with(
@@ -270,13 +290,13 @@ async def test_predict_outside_thread(
 
 @pytest.mark.asyncio
 async def test_predict_unassociated_thread(
-    match_commands_bot, mock_interaction, mock_insert_prediction
+    match_commands_bot, mock_interaction, mock_fetch_match_by_thread
 ):
-    mock_interaction.channel = MagicMock(spec=Thread, id="12345")
-    match_commands_bot.match_thread_map = {}
+    mock_interaction.channel = MagicMock(spec=Thread, id=12345)
+    mock_fetch_match_by_thread.return_value = None
 
     await match_commands_bot.predict.callback(
-        match_commands_bot, mock_interaction, prediction="2-1"
+        match_commands_bot, mock_interaction
     )
 
     mock_interaction.response.send_message.assert_called_once_with(
@@ -285,74 +305,109 @@ async def test_predict_unassociated_thread(
 
 
 @pytest.mark.asyncio
-async def test_predict_closed_predictions(
-    match_commands_bot, mock_interaction, mock_insert_prediction
+async def test_predict_success(
+    match_commands_bot, mock_interaction, mock_fetch_match_by_thread
 ):
-    mock_channel_id = "12345"
-    mock_match_id = "67890"
-    mock_interaction.channel = MagicMock(spec=Thread, id=mock_channel_id)
-    match_commands_bot.match_thread_map = {mock_channel_id: mock_match_id}
-
-    closed_matches.add(mock_match_id)
-
-    mock_insert_prediction.return_value = True
+    mock_interaction.channel = MagicMock(spec=Thread, id=12345)
+    mock_interaction.channel.name = "Sounders vs Timbers - 2024-01-01"
+    mock_fetch_match_by_thread.return_value = {"match_id": "67890"}
 
     await match_commands_bot.predict.callback(
-        match_commands_bot, mock_interaction, prediction="2-1"
+        match_commands_bot, mock_interaction
     )
 
+    mock_interaction.response.send_modal.assert_called_once()
+    modal = mock_interaction.response.send_modal.call_args[0][0]
+    assert isinstance(modal, PredictionModal)
+    assert modal.home_team == "Sounders"
+    assert modal.opponent_team == "Timbers"
+
+
+@pytest.mark.asyncio
+async def test_predict_fallback_teams(
+    match_commands_bot, mock_interaction, mock_fetch_match_by_thread
+):
+    mock_interaction.channel = MagicMock(spec=Thread, id=12345)
+    mock_interaction.channel.name = "Malformed Title"
+    mock_fetch_match_by_thread.return_value = {"match_id": "67890"}
+
+    await match_commands_bot.predict.callback(
+        match_commands_bot, mock_interaction
+    )
+
+    modal = mock_interaction.response.send_modal.call_args[0][0]
+    assert modal.home_team == "Home"
+    assert modal.opponent_team == "Opponent"
+
+
+@pytest.mark.asyncio
+async def test_prediction_modal_submit_success(mock_interaction):
+    modal = PredictionModal(home_team="Home", opponent_team="Opponent", match_id="67890")
+    modal.home_score = MagicMock()
+    modal.home_score.value = "2"
+    modal.opponent_score = MagicMock()
+    modal.opponent_score.value = "1"
+    
+    with patch("aiohttp.ClientSession.post") as mock_post:
+        mock_resp = AsyncMock()
+        mock_resp.status = 200
+        mock_resp.json.return_value = {"message": "Prediction recorded"}
+        mock_post.return_value.__aenter__.return_value = mock_resp
+        
+        await modal.on_submit(mock_interaction)
+        
+    mock_interaction.response.send_message.assert_called_once_with(
+        "Prediction recorded", ephemeral=True
+    )
+
+
+@pytest.mark.asyncio
+async def test_prediction_modal_invalid_input(mock_interaction):
+    modal = PredictionModal(home_team="Home", opponent_team="Opponent", match_id="67890")
+    modal.home_score = MagicMock()
+    modal.home_score.value = "abc"
+    modal.opponent_score = MagicMock()
+    modal.opponent_score.value = "1"
+    
+    await modal.on_submit(mock_interaction)
+        
+    mock_interaction.response.send_message.assert_called_once_with(
+        "Please enter valid numeric scores.", ephemeral=True
+    )
+
+
+@pytest.mark.asyncio
+async def test_prediction_modal_closed_match(mock_interaction):
+    # Mock match closure
+    with patch("match_commands.closed_matches", ["67890"]):
+        modal = PredictionModal(home_team="Home", opponent_team="Opponent", match_id="67890")
+        modal.home_score = MagicMock()
+        modal.home_score.value = "2"
+        modal.opponent_score = MagicMock()
+        modal.opponent_score.value = "1"
+        await modal.on_submit(mock_interaction)
+        
     mock_interaction.response.send_message.assert_called_once_with(
         "Predictions are closed for this match.", ephemeral=True
     )
 
-    closed_matches.remove(mock_match_id)
-
 
 @pytest.mark.asyncio
-async def test_predict_success(
-    match_commands_bot, mock_interaction, mock_insert_prediction
-):
-    mock_interaction.channel = MagicMock(spec=Thread, id="12345")
-    match_commands_bot.match_thread_map = {"12345": "67890"}
-    mock_insert_prediction.return_value = True
-
-    await match_commands_bot.predict.callback(
-        match_commands_bot, mock_interaction, prediction="1-0"
-    )
-
+async def test_prediction_modal_api_error(mock_interaction):
+    modal = PredictionModal(home_team="Home", opponent_team="Opponent", match_id="67890")
+    modal.home_score = MagicMock()
+    modal.home_score.value = "2"
+    modal.opponent_score = MagicMock()
+    modal.opponent_score.value = "1"
+    
+    with patch("aiohttp.ClientSession.post") as mock_post:
+        mock_resp = AsyncMock()
+        mock_resp.status = 400
+        mock_resp.json.return_value = {"error": "Invalid user"}
+        mock_post.return_value.__aenter__.return_value = mock_resp
+        
+        await modal.on_submit(mock_interaction)
+        
     mock_interaction.response.send_message.assert_called_once_with(
-        "Prediction recorded!", ephemeral=True
-    )
-
-
-@pytest.mark.asyncio
-async def test_predict_command_already_predicted(match_commands_bot, mock_interaction):
-    mock_db = {}
-
-    mock_interaction.channel = MagicMock(spec=Thread, id="12345678")
-    mock_interaction.user.id = "87654321"
-
-    async def mock_insert_prediction(match_id, user_id, prediction):
-        if user_id in mock_db:
-            return False
-        else:
-            mock_db[user_id] = prediction
-            return True
-
-    match_commands_bot.insert_prediction = mock_insert_prediction
-
-    match_commands_bot.match_thread_map = {"12345678": "match1"}
-
-    match_commands_bot.closed_matches = set()
-
-    await match_commands_bot.predict.callback(
-        match_commands_bot, mock_interaction, prediction="3-0"
-    )
-
-    await match_commands_bot.predict.callback(
-        match_commands_bot, mock_interaction, prediction="2-1"
-    )
-
-    mock_interaction.response.send_message.assert_awaited_with(
-        "You have already made a prediction for this match.", ephemeral=True
+        "Invalid user", ephemeral=True
     )

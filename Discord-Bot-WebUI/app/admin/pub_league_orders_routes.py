@@ -272,7 +272,7 @@ def api_search_players():
 
         except Exception as e:
             logger.error(f"Error in suggestion search: {e}", exc_info=True)
-            return jsonify({'success': False, 'error': str(e)}), 500
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
     # Normal search mode
     if len(query) < 2:
@@ -295,7 +295,7 @@ def api_search_players():
 
     except Exception as e:
         logger.error(f"Error searching players: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pub_league_orders_admin_bp.route('/pub-league-orders/api/manual-link', methods=['POST'])
@@ -355,7 +355,7 @@ def api_manual_link():
     except Exception as e:
         logger.error(f"Error manually linking pass: {e}", exc_info=True)
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pub_league_orders_admin_bp.route('/pub-league-orders/api/resend-claim', methods=['POST'])
@@ -408,7 +408,7 @@ def api_resend_claim():
 
     except Exception as e:
         logger.error(f"Error resending claim email: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pub_league_orders_admin_bp.route('/pub-league-orders/api/cancel-claim', methods=['POST'])
@@ -448,7 +448,7 @@ def api_cancel_claim():
     except Exception as e:
         logger.error(f"Error cancelling claim: {e}", exc_info=True)
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pub_league_orders_admin_bp.route('/pub-league-orders/api/refresh-order', methods=['POST'])
@@ -502,7 +502,7 @@ def api_refresh_order():
     except Exception as e:
         logger.error(f"Error refreshing order: {e}", exc_info=True)
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pub_league_orders_admin_bp.route('/pub-league-orders/api/delete-order', methods=['POST'])
@@ -544,7 +544,7 @@ def api_delete_order():
     except Exception as e:
         logger.error(f"Error deleting order: {e}", exc_info=True)
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pub_league_orders_admin_bp.route('/pub-league-orders/api/unassign-pass', methods=['POST'])
@@ -596,7 +596,7 @@ def api_unassign_pass():
     except Exception as e:
         logger.error(f"Error unassigning pass: {e}", exc_info=True)
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @pub_league_orders_admin_bp.route('/pub-league-orders/api/update-line-item', methods=['POST'])
@@ -647,7 +647,7 @@ def api_update_line_item():
     except Exception as e:
         logger.error(f"Error updating line item: {e}", exc_info=True)
         db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 def _mask_email(email: str) -> str:

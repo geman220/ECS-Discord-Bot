@@ -221,7 +221,7 @@ def api_cleanup_preview():
         return jsonify(preview)
     except Exception as e:
         logger.error(f"Error getting cleanup preview: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @mobile_analytics_admin_bp.route('/api/cleanup/execute', methods=['POST'])
@@ -247,7 +247,7 @@ def api_cleanup_execute():
             
     except Exception as e:
         logger.error(f"Error executing cleanup: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @mobile_analytics_admin_bp.route('/api/stats')
@@ -260,7 +260,7 @@ def api_storage_stats():
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Error getting storage stats: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @mobile_analytics_admin_bp.route('/api/error/<int:error_id>')
@@ -277,7 +277,7 @@ def api_error_details(error_id):
         
     except Exception as e:
         logger.error(f"Error getting error details: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @mobile_analytics_admin_bp.route('/api/pattern/<int:pattern_id>')
@@ -294,7 +294,7 @@ def api_pattern_details(pattern_id):
         
     except Exception as e:
         logger.error(f"Error getting pattern details: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @mobile_analytics_admin_bp.route('/api/summary')
@@ -350,4 +350,4 @@ def api_analytics_summary():
         
     except Exception as e:
         logger.error(f"Error getting analytics summary: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500

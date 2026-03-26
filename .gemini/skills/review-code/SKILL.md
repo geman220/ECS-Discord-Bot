@@ -19,6 +19,13 @@ Run a multi-faceted code review on uncommitted changes using specialized review 
 See [Finding Schema](references/FINDING-SCHEMA.md) for the typed contract.
 
 
+## Subagent Throttling
+
+Max 4 subagents per invocation. This skill uses 5 review subagents, which exceeds the limit. **Batch them:**
+1. **Batch 1 (4 parallel):** `review-security`, `review-maintainability`, `review-test-quality`, `review-infrastructure`
+2. **Batch 2 (1):** `review-performance`
+3. **Merge:** Combine all findings from both batches into a single assessment table.
+
 ## Workflow
 
 ### Step 1: Gather Changes
@@ -31,36 +38,49 @@ See [Finding Schema](references/FINDING-SCHEMA.md) for the typed contract.
 
 Read the full content of every substantive changed/new file. This is critical — subagents need the actual code, not just file names.
 
-### Step 3: Invoke Code Reviewers
+### Step 3: Invoke Code Reviewer
 
-Invoke the 5 specialized review subagents. These are now native tools that can be invoked in parallel:
+Invoke 5 specialized review subagents in 2 batches:
 
-**Parallel Invocation:**
-- `review_security` — authentication, input validation, secrets, IAM, data exposure
-- `review_maintainability` — code organization, naming, duplication, DRY, configuration
-- `review_test_quality` — coverage gaps, edge cases, assertion quality, test isolation
-- `review_infrastructure` — CDK patterns, CI/CD, deployment, monitoring, cost
-- `review_performance` — resource allocation, latency, memory, cold starts, algorithmic efficiency
+**Batch 1 — invoke IN PARALLEL (4 subagents):**
+- `review-security` — authentication, input validation, secrets, IAM, data exposure
+- `review-maintainability` — code organization, naming, duplication, DRY, configuration
+- `review-test-quality` — coverage gaps, edge cases, assertion quality, test isolation
+- `review-infrastructure` — CDK patterns, CI/CD, deployment, monitoring, cost
 
-**Merge all findings into a single assessment table in Step 4.**
+**Wait for Batch 1 to complete, then:**
+
+**Batch 2 — invoke (1 subagent):**
+- `review-performance` — resource allocation, latency, memory, cold starts, algorithmic efficiency
+
+**Merge all findings from both batches into a single assessment table in Step 4.**
 
 **⚠️ CRITICAL — Subagent source code delivery:**
-Native subagents **cannot read files directly from your context**. The ONLY way to get code to a subagent is to **embed the full source code directly in the `query` string**. This means:
-- Read every changed file
+Subagents **cannot read files, access the filesystem, or see `relevant_context` reliably**. The ONLY way to get code to a subagent is to **embed the full source code directly in the `query` string**. This means:
+- Read every changed file with `cat` or `fs_read`
 - Paste the full file contents into the `query` parameter as fenced code blocks
+- Do NOT rely on `relevant_context` — it may not be passed through to the subagent
+- Do NOT pass file paths and expect subagents to read them
 - Include the file path as a label above each code block so the reviewer knows which file it's reviewing
 
 Example query structure:
 ```
-Review the following files for security concerns...
+You are a SECURITY code reviewer. Review the following files for...
 
 FILE 1 - src/tools/data_tools.py:
 \`\`\`python
 <full file contents here>
 \`\`\`
+
+FILE 2 - Database/MyProc.sql:
+\`\`\`sql
+<full file contents here>
+\`\`\`
 ```
 
-If native subagents are unavailable or fail to produce useful results, fall back to running the review directly in the main conversation using the same 5 categories. Read the full diff with `git diff HEAD~1` and produce a single findings table covering all categories.
+If subagents fail to produce useful results (e.g., diff too large for subagent context, subagents return "no code provided", or `use_subagent` cannot resolve agent names from `.kiro/agents/`), fall back to running the review directly in the main conversation using the same 4 categories. **Before falling back, you MUST: (1) attempt `use_subagent ListAgents` to verify agents are discoverable, (2) attempt at least one `InvokeSubagents` call, (3) explicitly tell the user "Subagents unavailable — falling back to inline review" with the error message.** For inline review, read the full diff with `git diff HEAD~1` and produce a single findings table covering all 4 categories.
+
+Note: All 5 `review-*` agents are invoked every review. Performance was previously consolidated into maintainability but is now a separate agent for deeper analysis. The 4+1 batching respects the subagent concurrency limit.
 
 ### Step 4: Assess Findings
 
@@ -105,7 +125,11 @@ Only items with assessment "Agree" and severity 🔴 or 🟡 are actionable. �
 
 ### Step 6: Fix (interactive mode, or when called directly)
 
-Fix all agreed items. Run tests after fixes. Present updated test results.
+Fix all agreed items. 
+
+**Repetitive Patterns**: If a review finding (e.g., Information Exposure via `str(e)`) appears in many files, invoke the `mass-remediate-pattern` skill instead of fixing each file manually. This ensures consistency and speed.
+
+Run tests after fixes. Present updated test results.
 
 ## Severity Definitions
 

@@ -33,10 +33,10 @@ def seasons():
         from app.models import Season, League, Match
 
         # Get all seasons (ordered by id since Season has no created_at)
-        seasons = Season.query.order_by(Season.id.desc()).all()
+        seasons = db.session.query(Season).order_by(Season.id.desc()).all()
 
         # Get season statistics
-        current_season = Season.query.filter_by(is_current=True).first()
+        current_season = db.session.query(Season).filter_by(is_current=True).first()
 
         stats = {
             'total_seasons': len(seasons),
@@ -50,7 +50,7 @@ def seasons():
         for season in seasons:
             # Get match count for each season
             if hasattr(Match, 'season_id'):
-                season.match_count = Match.query.filter_by(season_id=season.id).count()
+                season.match_count = db.session.query(Match).filter_by(season_id=season.id).count()
             else:
                 season.match_count = 0
 
@@ -97,14 +97,15 @@ def create_season():
 
     # If setting as current, unset other current seasons
     if is_current:
-        Season.query.update({'is_current': False})
+        db.session.query(Season).update({'is_current': False})
 
     # Create new season
     season = Season(
         name=name,
         start_date=parsed_start,
         end_date=parsed_end,
-        is_current=is_current
+        is_current=is_current,
+        league_type=request.form.get('league_type', 'CLASSIC')
     )
     db.session.add(season)
     db.session.flush()
@@ -136,7 +137,7 @@ def update_season(season_id):
     """Update an existing season."""
     from app.models import Season
 
-    season = Season.query.get_or_404(season_id)
+    season = db.session.query(Season).get_or_404(season_id)
     old_name = season.name
 
     name = request.form.get('name')
@@ -149,7 +150,7 @@ def update_season(season_id):
 
     # If setting as current, unset other current seasons
     if is_current and not season.is_current:
-        Season.query.filter(Season.id != season_id).update({'is_current': False})
+        db.session.query(Season).filter(Season.id != season_id).update({'is_current': False})
 
     # Update season
     season.name = name
@@ -184,10 +185,10 @@ def delete_season(season_id):
     """Delete a season."""
     from app.models import Season, Match
 
-    season = Season.query.get_or_404(season_id)
+    season = db.session.query(Season).get_or_404(season_id)
 
     # Check if season has matches
-    match_count = Match.query.filter_by(season_id=season_id).count() if hasattr(Match, 'season_id') else 0
+    match_count = db.session.query(Match).filter_by(season_id=season_id).count() if hasattr(Match, 'season_id') else 0
     if match_count > 0:
         return jsonify({
             'success': False,
@@ -224,7 +225,7 @@ def get_season_details(season_id):
     try:
         from app.models import Season
 
-        season = Season.query.get_or_404(season_id)
+        season = db.session.query(Season).get_or_404(season_id)
 
         return jsonify({
             'success': True,

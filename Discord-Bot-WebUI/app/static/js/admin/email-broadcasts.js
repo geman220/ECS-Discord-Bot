@@ -160,21 +160,47 @@ async function handlePreviewRecipients() {
         return;
     }
 
-    let html = `<p class="mb-3">${data.count} recipient${data.count !== 1 ? 's' : ''} matched</p>`;
+    const container = document.createElement('div');
+    container.style.maxHeight = '300px';
+    container.style.overflowY = 'auto';
+    container.style.textAlign = 'left';
+
+    const p = document.createElement('p');
+    p.className = 'mb-3';
+    p.textContent = `${data.count} recipient${data.count !== 1 ? 's' : ''} matched`;
+    container.appendChild(p);
+
     if (data.recipients && data.recipients.length > 0) {
-        html += '<div style="max-height:300px;overflow-y:auto;text-align:left;">';
-        html += '<table class="w-full text-sm"><tbody>';
+        const table = document.createElement('table');
+        table.className = 'w-full text-sm';
+        const tbody = document.createElement('tbody');
+        
         data.recipients.forEach(r => {
-            html += `<tr class="border-b"><td class="py-1">${escapeHtml(r.name)}</td></tr>`;
+            const tr = document.createElement('tr');
+            tr.className = 'border-b';
+            const td = document.createElement('td');
+            td.className = 'py-1';
+            td.textContent = r.name;
+            tr.appendChild(td);
+            tbody.appendChild(tr);
         });
-        html += '</tbody></table>';
+        
+        table.appendChild(tbody);
+        container.appendChild(table);
+
         if (data.truncated) {
-            html += `<p class="text-xs text-gray-500 mt-2">Showing first 100 of ${data.count}</p>`;
+            const pSmall = document.createElement('p');
+            pSmall.className = 'text-xs text-gray-500 mt-2';
+            pSmall.textContent = `Showing first 100 of ${data.count}`;
+            container.appendChild(pSmall);
         }
-        html += '</div>';
     }
 
-    window.Swal.fire({ title: 'Recipient Preview', html, width: 500 });
+    window.Swal.fire({ 
+        title: 'Recipient Preview', 
+        html: container,
+        width: 500 
+    });
 }
 
 function handleSendModeToggle() {
@@ -252,15 +278,34 @@ async function handleUserSearch(query) {
         const data = await resp.json();
 
         if (!data.success || !data.users.length) {
-            resultsEl.innerHTML = '<div class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">No users found</div>';
+            resultsEl.innerHTML = '';
+            const noUsers = document.createElement('div');
+            noUsers.className = 'px-4 py-3 text-sm text-gray-500 dark:text-gray-400';
+            noUsers.textContent = 'No users found';
+            resultsEl.appendChild(noUsers);
             resultsEl.classList.remove('hidden');
             return;
         }
 
-        resultsEl.innerHTML = data.users
-            .filter(u => !_selectedUsers.has(u.id))
-            .map(u => `<button type="button" data-add-user-id="${u.id}" data-add-user-name="${escapeHtml(u.name)}" class="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">${escapeHtml(u.name)}</button>`)
-            .join('') || '<div class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">All matching users already selected</div>';
+        resultsEl.innerHTML = '';
+        const filteredUsers = data.users.filter(u => !_selectedUsers.has(u.id));
+        
+        if (filteredUsers.length === 0) {
+            const allSelected = document.createElement('div');
+            allSelected.className = 'px-4 py-3 text-sm text-gray-500 dark:text-gray-400';
+            allSelected.textContent = 'All matching users already selected';
+            resultsEl.appendChild(allSelected);
+        } else {
+            filteredUsers.forEach(u => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.addUserId = u.id;
+                btn.dataset.addUserName = u.name;
+                btn.className = 'block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors';
+                btn.textContent = u.name;
+                resultsEl.appendChild(btn);
+            });
+        }
 
         resultsEl.classList.remove('hidden');
     } catch (e) {
@@ -583,10 +628,7 @@ async function handlePreviewTemplate() {
             confirmButtonColor: '#1a472a',
             didOpen: () => {
                 const frame = document.getElementById('swalPreviewFrame');
-                const doc = frame.contentDocument || frame.contentWindow.document;
-                doc.open();
-                doc.write(html);
-                doc.close();
+                frame.srcdoc = html;
             },
         });
     }

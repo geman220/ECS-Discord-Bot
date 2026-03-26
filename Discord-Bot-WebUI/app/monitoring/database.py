@@ -83,7 +83,7 @@ def check_connections():
         return jsonify({'success': True, 'connections': connections})
     except Exception as e:
         logger.error(f"Error checking connections: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/db/cleanup', endpoint='cleanup_connections', methods=['POST'])
@@ -115,7 +115,7 @@ def cleanup_connections():
         return jsonify({'success': True, 'message': f'Cleaned up {terminated} connections'})
     except Exception as e:
         logger.error(f"Error cleaning up connections: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/db/stats', endpoint='connection_stats')
@@ -161,7 +161,7 @@ def connection_stats():
         })
     except Exception as e:
         logger.error(f"Error getting connection stats: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/db/terminate', endpoint='terminate_connection', methods=['POST'])
@@ -188,7 +188,7 @@ def terminate_connection():
         return jsonify({'success': True, 'message': f'Connection {pid} terminated'})
     except Exception as e:
         logger.error(f"Error terminating connection {pid}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/db/monitoring_data', endpoint='get_db_monitoring_data')
@@ -227,7 +227,7 @@ def get_db_monitoring_data():
         return jsonify({'success': True, 'data': data})
     except Exception as e:
         logger.error(f"Error fetching monitoring data: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/db/connections/<int:pid>/stack', endpoint='get_stack_trace')
@@ -268,4 +268,4 @@ def get_stack_trace(pid):
         return jsonify({'success': True, 'pid': pid, 'details': details})
     except Exception as e:
         logger.error(f"Error getting transaction details for pid {pid}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

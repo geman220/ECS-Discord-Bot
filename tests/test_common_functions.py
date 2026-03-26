@@ -42,11 +42,10 @@ async def test_is_admin_or_owner_as_owner():
 @pytest.mark.asyncio
 async def test_is_admin_or_owner_as_non_admin():
     mock_interaction = AsyncMock()
-    mock_interaction.user.id = "987654321"
+    mock_interaction.user.id = 555555555 # Not 987654321
     mock_interaction.user.roles = [MagicMock(name="Member")]
     result = await is_admin_or_owner(mock_interaction)
     assert not result
-
 
 @pytest.mark.asyncio
 async def test_has_admin_role_with_admin():

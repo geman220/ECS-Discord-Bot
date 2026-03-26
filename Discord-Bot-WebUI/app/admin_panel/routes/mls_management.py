@@ -386,7 +386,7 @@ def mls_schedule_match(match_id):
         })
     except Exception as e:
         logger.error(f"Error scheduling match task: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/create-thread/<int:match_id>', methods=['POST'])
@@ -423,7 +423,7 @@ def mls_create_thread(match_id):
         })
     except Exception as e:
         logger.error(f"Error creating match thread: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/start-reporting/<int:match_id>', methods=['POST'])
@@ -498,7 +498,7 @@ def mls_start_reporting(match_id):
     except Exception as e:
         logger.error(f"Error starting live reporting: {e}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/stop-reporting/<int:match_id>', methods=['POST'])
@@ -580,7 +580,7 @@ def mls_stop_reporting(match_id):
     except Exception as e:
         logger.error(f"Error stopping live reporting: {e}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/schedule-all', methods=['POST'])
@@ -609,7 +609,7 @@ def mls_schedule_all():
         })
     except Exception as e:
         logger.error(f"Error scheduling all matches: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -716,7 +716,7 @@ def mls_fetch_espn():
 
     except Exception as e:
         logger.error(f"Error fetching ESPN matches: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/espn-preview', methods=['POST'])
@@ -787,7 +787,7 @@ def mls_espn_preview():
 
     except Exception as e:
         logger.error(f"Error in ESPN preview: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/espn-preview-by-date', methods=['POST'])
@@ -870,7 +870,7 @@ def mls_espn_preview_by_date():
 
     except Exception as e:
         logger.error(f"Error in ESPN preview by date: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 def _process_event_for_confirm(session, event, selected_ids, competition_code):
@@ -1027,7 +1027,7 @@ def mls_espn_confirm():
 
     except Exception as e:
         logger.error(f"Error in ESPN confirm: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/create', methods=['POST'])
@@ -1130,7 +1130,7 @@ def mls_create_match():
     except Exception as e:
         logger.error(f"Error creating manual match: {e}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/edit/<int:match_id>', methods=['POST'])
@@ -1281,7 +1281,7 @@ def mls_edit_match(match_id):
     except Exception as e:
         logger.error(f"Error editing match {match_id}: {e}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/remove/<int:match_id>', methods=['POST', 'DELETE'])
@@ -1365,7 +1365,7 @@ def mls_remove_match(match_id):
     except Exception as e:
         logger.error(f"Error removing match: {e}")
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -1382,7 +1382,7 @@ def mls_task_details(task_id):
         return jsonify(task_info)
     except Exception as e:
         logger.error(f"Error getting task details: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/match-tasks/<int:match_id>')
@@ -1402,7 +1402,7 @@ def mls_match_tasks(match_id):
         logger.error(f"Error getting match tasks for {match_id}: {e}")
         return jsonify({
             'success': False,
-            'error': str(e),
+            'error': 'Internal Server Error',
             'match_id': match_id
         }), 500
 
@@ -1437,7 +1437,7 @@ def mls_match_statuses_api():
         return jsonify({'statuses': statuses})
     except Exception as e:
         logger.error(f"Error getting match statuses: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -1593,7 +1593,7 @@ def task_retry(task_id):
     except Exception as e:
         logger.error(f"Error retrying task {task_id}: {e}", exc_info=True)
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/task/<int:task_id>/expire', methods=['POST'])
@@ -1632,7 +1632,7 @@ def task_expire(task_id):
     except Exception as e:
         logger.error(f"Error expiring task {task_id}: {e}", exc_info=True)
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/task/<int:task_id>/pause', methods=['POST'])
@@ -1688,7 +1688,7 @@ def task_pause(task_id):
     except Exception as e:
         logger.error(f"Error pausing task {task_id}: {e}", exc_info=True)
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/task/<int:task_id>/resume', methods=['POST'])
@@ -1779,7 +1779,7 @@ def task_resume(task_id):
     except Exception as e:
         logger.error(f"Error resuming task {task_id}: {e}", exc_info=True)
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/match/<int:match_id>/debug')
@@ -1841,7 +1841,7 @@ def match_debug(match_id):
 
     except Exception as e:
         logger.error(f"Error getting debug info for match {match_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/match/<int:match_id>/resync', methods=['POST'])
@@ -1953,7 +1953,7 @@ def match_resync(match_id):
     except Exception as e:
         logger.error(f"Error resyncing match {match_id}: {e}", exc_info=True)
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -2172,7 +2172,7 @@ def mls_settings_update():
     except Exception as e:
         logger.error(f"Error updating MLS settings: {e}", exc_info=True)
         session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -2264,7 +2264,7 @@ def mls_stop_session(session_id):
 
     except Exception as e:
         logger.error(f"Error stopping session {session_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -2281,7 +2281,7 @@ def mls_force_sync():
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error forcing sync: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/api/send-command', methods=['POST'])
@@ -2301,7 +2301,7 @@ def mls_send_command():
         return jsonify(result)
     except Exception as e:
         logger.error(f"Error sending command: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/api/health')
@@ -2313,7 +2313,7 @@ def mls_api_health():
         health = check_realtime_health()
         return jsonify(health)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/api/coordination')
@@ -2325,7 +2325,7 @@ def mls_api_coordination():
         status = get_coordination_status()
         return jsonify(status)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/retry-task', methods=['POST'])

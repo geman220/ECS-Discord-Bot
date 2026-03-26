@@ -20,6 +20,11 @@ from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
 from app.utils.db_utils import transactional
+try:
+    from app.tasks.tasks_discord import create_team_discord_resources_task, update_team_discord_resources_task
+except ImportError:
+    create_team_discord_resources_task = None
+    update_team_discord_resources_task = None
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +42,7 @@ def manage_teams():
         league_type_filter = request.args.get('league_type', '')  # 'Pub League', 'ECS FC', or '' for all
 
         # Get ALL current seasons (both Pub League and ECS FC)
-        current_seasons = Season.query.filter_by(is_current=True).all()
+        current_seasons = db.session.query(Season).filter_by(is_current=True).all()
         current_season_ids = [s.id for s in current_seasons]
 
         # Build a display name for current seasons
@@ -50,7 +55,7 @@ def manage_teams():
         # Get all leagues from current seasons, grouped by league type
         # Eagerly load season for display in dropdown
         if current_season_ids:
-            leagues_query = League.query.options(
+            leagues_query = db.session.query(League).options(
                 joinedload(League.season)
             ).filter(League.season_id.in_(current_season_ids))
 
@@ -60,14 +65,14 @@ def manage_teams():
 
             leagues = leagues_query.order_by(League.name.asc()).all()
         else:
-            leagues = League.query.options(
+            leagues = db.session.query(League).options(
                 joinedload(League.season)
             ).order_by(League.name.asc()).all()
 
         # Build teams query - show teams from all current seasons
         # Use eager loading to avoid N+1 queries
         if current_season_ids:
-            teams_query = Team.query.options(
+            teams_query = db.session.query(Team).options(
                 joinedload(Team.league).joinedload(League.season),
                 selectinload(Team.players)
             ).join(
@@ -82,7 +87,8 @@ def manage_teams():
                     Season.league_type == league_type_filter
                 )
         else:
-            teams_query = Team.query.options(
+            from sqlalchemy.orm import selectinload
+            teams_query = db.session.query(Team).options(
                 joinedload(Team.league).joinedload(League.season),
                 selectinload(Team.players)
             )
@@ -155,7 +161,7 @@ def team_rosters():
         )
 
         # Get current season
-        current_season = Season.query.filter_by(is_current=True).first()
+        current_season = db.session.query(Season).filter_by(is_current=True).first()
 
         # Filter teams by current season
         if current_season:
@@ -218,7 +224,7 @@ def create_team():
 
     # Check if league exists
     if league_id:
-        league = League.query.get(league_id)
+        league = db.session.query(League).get(league_id)
         if not league:
             return jsonify({'success': False, 'message': 'Selected league not found'}), 400
 
@@ -232,9 +238,8 @@ def create_team():
 
     # Trigger Discord channel/role creation if team has a league
     discord_task_queued = False
-    if league_id:
+    if league_id and create_team_discord_resources_task:
         try:
-            from app.tasks.tasks_discord import create_team_discord_resources_task
             create_team_discord_resources_task.delay(team_id=team.id)
             discord_task_queued = True
             logger.info(f"Discord resource creation task queued for team {team.id}")
@@ -273,7 +278,7 @@ def update_team(team_id):
     """Update an existing team."""
     from app.models import Team, League
 
-    team = Team.query.get_or_404(team_id)
+    team = db.session.query(Team).get_or_404(team_id)
     old_name = team.name
 
     name = request.form.get('name')
@@ -288,9 +293,8 @@ def update_team(team_id):
         team.league_id = int(league_id)
 
     # Trigger Discord automation for team name change if name changed
-    if old_name != name:
+    if old_name != name and update_team_discord_resources_task:
         try:
-            from app.tasks.tasks_discord import update_team_discord_resources_task
             update_team_discord_resources_task.delay(team_id=team_id, new_team_name=name)
             logger.info(f"Discord automation task queued for team {team_id} rename")
         except Exception as discord_err:
@@ -323,7 +327,7 @@ def delete_team(team_id):
     """Delete a team."""
     from app.models import Team, Player, Match
 
-    team = Team.query.get_or_404(team_id)
+    team = db.session.query(Team).get_or_404(team_id)
 
     # Check if team has players
     player_count = len(team.players) if hasattr(team, 'players') else 0
@@ -334,7 +338,7 @@ def delete_team(team_id):
         }), 400
 
     # Check if team has matches
-    match_count = Match.query.filter(
+    match_count = db.session.query(Match).filter(
         (Match.home_team_id == team_id) | (Match.away_team_id == team_id)
     ).count()
     if match_count > 0:
@@ -392,7 +396,7 @@ def get_team_details(team_id):
     try:
         from app.models import Team
 
-        team = Team.query.get_or_404(team_id)
+        team = db.session.query(Team).get_or_404(team_id)
 
         return jsonify({
             'success': True,

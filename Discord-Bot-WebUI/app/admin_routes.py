@@ -724,7 +724,7 @@ def update_poll_response():
     except Exception as e:
         logger.error(f"Error updating poll response: {str(e)}", exc_info=True)
         session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/api/update_poll_message', methods=['POST'])
@@ -762,7 +762,7 @@ def update_poll_message():
     except Exception as e:
         logger.error(f"Error updating poll message: {str(e)}", exc_info=True)
         session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 # Match management routes are now in app/admin/mls_routes.py
@@ -820,7 +820,7 @@ def admin_task_management():
         logger.error(f"Error fetching task management data: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 @admin_bp.route('/admin/revoke-task/<task_id>', endpoint='revoke_task', methods=['POST'])
@@ -846,7 +846,7 @@ def admin_revoke_task(task_id):
         logger.error(f"Error destroying task {task_id}: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 @admin_bp.route('/admin/task-details/<task_id>', endpoint='task_details', methods=['GET'])
@@ -874,7 +874,7 @@ def admin_task_details(task_id):
         logger.error(f"Error fetching task details for {task_id}: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 @admin_bp.route('/admin/remove-task/<task_id>', endpoint='remove_task', methods=['POST'])
@@ -923,7 +923,7 @@ def admin_remove_task(task_id):
         logger.error(f"Error removing task {task_id}: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 @admin_bp.route('/admin/cleanup-tasks', endpoint='cleanup_tasks', methods=['POST'])
@@ -949,5 +949,5 @@ def admin_cleanup_tasks():
         logger.error(f"Error cleaning up tasks: {e}")
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500

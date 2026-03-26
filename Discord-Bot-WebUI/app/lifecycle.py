@@ -89,7 +89,7 @@ class RequestLifecycle:
         def cleanup_app_context(exc):
             """Final cleanup when app context ends."""
             try:
-                if hasattr(g, 'db_session'):
+                if hasattr(g, 'db_session') and g.db_session is not None:
                     # Double-check that db_session is properly closed
                     try:
                         g.db_session.close()

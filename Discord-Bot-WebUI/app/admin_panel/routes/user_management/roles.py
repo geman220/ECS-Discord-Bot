@@ -83,14 +83,14 @@ def sync_ecs_fc_coach_status(user, is_adding_role: bool):
 def roles_management():
     """Roles and permissions management page."""
     try:
-        roles = Role.query.order_by(Role.name).all()
-        users = User.query.order_by(User.username).all()
+        roles = db.session.query(Role).order_by(Role.name).all()
+        users = db.session.query(User).order_by(User.username).all()
 
         # Get all permissions from database
         permissions = Permission.query.order_by(Permission.name).all()
 
         # Get statistics
-        users_with_roles = User.query.join(User.roles).distinct().count()
+        users_with_roles = db.session.query(User).join(User.roles).distinct().count()
         admin_roles = len([r for r in roles if 'Admin' in r.name])
 
         return render_template('admin_panel/users/roles_flowbite.html',
@@ -112,7 +112,7 @@ def get_role_details():
     """Get role details via AJAX."""
     try:
         role_id = request.args.get('role_id')
-        role = Role.query.get_or_404(role_id)
+        role = db.session.query(Role).get_or_404(role_id)
 
         # Build role details HTML
         details_html = f"""
@@ -190,7 +190,7 @@ def assign_user_roles():
             # Clear existing roles and assign new ones
             user.roles.clear()
             for role_id in role_ids:
-                role = Role.query.get(role_id)
+                role = db.session.query(Role).get(role_id)
                 if role:
                     user.roles.append(role)
                     new_roles.add(role)
@@ -242,7 +242,7 @@ def assign_user_roles():
                 action='assign_roles',
                 resource_type='user_roles',
                 resource_id=str(user_id),
-                new_value=f"Assigned roles: {', '.join([Role.query.get(rid).name for rid in role_ids if Role.query.get(rid)])}",
+                new_value=f"Assigned roles: {', '.join([db.session.query(Role).get(rid).name for rid in role_ids if db.session.query(Role).get(rid)])}",
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
@@ -273,14 +273,14 @@ def search_users_by_role():
             flash('Role ID is required', 'error')
             return redirect(url_for('admin_panel.roles_management'))
 
-        role = Role.query.get_or_404(role_id)
+        role = db.session.query(Role).get_or_404(role_id)
         search_results = role.users
         search_role_name = role.name
 
         # Get all roles and users for the template
-        roles = Role.query.order_by(Role.name).all()
-        users = User.query.order_by(User.username).all()
-        users_with_roles = User.query.join(User.roles).distinct().count()
+        roles = db.session.query(Role).order_by(Role.name).all()
+        users = db.session.query(User).order_by(User.username).all()
+        users_with_roles = db.session.query(User).join(User.roles).distinct().count()
         admin_roles = len([r for r in roles if 'Admin' in r.name])
 
         return render_template('admin_panel/users/roles_flowbite.html',
@@ -307,8 +307,8 @@ def get_user_roles():
         if not user_id:
             return jsonify({'success': False, 'message': 'User ID is required'})
 
-        user = User.query.options(joinedload(User.roles)).get_or_404(user_id)
-        all_roles = Role.query.order_by(Role.name).all()
+        user = db.session.query(User).options(joinedload(User.roles)).get_or_404(user_id)
+        all_roles = db.session.query(Role).order_by(Role.name).all()
 
         # Build HTML for role management interface
         html = f"""
@@ -398,7 +398,7 @@ def assign_user_role():
         if not all([user_id, role_id, action]):
             return jsonify({'success': False, 'message': 'Missing required parameters'})
 
-        role = Role.query.get_or_404(role_id)
+        role = db.session.query(Role).get_or_404(role_id)
 
         # Acquire lock on user to prevent concurrent role modifications
         with lock_user_for_role_update(int(user_id), session=db.session) as user:
@@ -408,14 +408,14 @@ def assign_user_role():
                     message = f'Role "{role.name}" added to user "{user.username}"'
                     audit_action = 'assign_role'
                 else:
-                    return jsonify({'success': False, 'message': 'User already has this role'})
+                    return jsonify({'success': False, 'message': 'User already has this role'}), 400
             elif action == 'remove':
                 if role in user.roles:
                     user.roles.remove(role)
                     message = f'Role "{role.name}" removed from user "{user.username}"'
                     audit_action = 'remove_role'
                 else:
-                    return jsonify({'success': False, 'message': 'User does not have this role'})
+                    return jsonify({'success': False, 'message': 'User does not have this role'}), 400
             else:
                 return jsonify({'success': False, 'message': 'Invalid action'})
 
@@ -480,7 +480,7 @@ def assign_user_role():
 def export_roles():
     """Export all roles and their permissions as JSON."""
     try:
-        roles = Role.query.options(joinedload(Role.permissions)).order_by(Role.name).all()
+        roles = db.session.query(Role).options(joinedload(Role.permissions)).order_by(Role.name).all()
 
         export_data = {
             'roles': [],

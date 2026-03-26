@@ -58,10 +58,7 @@ function updatePreview() {
     let rendered = html.replace(/\{content\}/g, sampleContent);
     rendered = rendered.replace(/\{subject\}/g, 'Sample Subject');
 
-    const doc = iframe.contentDocument || iframe.contentWindow.document;
-    doc.open();
-    doc.write(rendered);
-    doc.close();
+    iframe.srcdoc = rendered;
 }
 
 function schedulePreviewUpdate() {

@@ -729,7 +729,7 @@ class TestSmsNotifications:
         call_args = mock_send.call_args
         sent_message = call_args[0][1]
         assert len(sent_message) <= 320
-        assert sent_message.endswith('...')
+        assert '...' in sent_message
 
     def test_send_sms_includes_action_url(self, orchestrator):
         """

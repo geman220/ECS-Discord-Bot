@@ -508,7 +508,7 @@ def ecs_fc_match_create():
             logger.error(f"Error creating match: {e}")
             session.rollback()
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'success': False, 'message': str(e)}), 400
+                return jsonify({'success': False, 'message': 'Internal Server Error'}), 400
             flash(f'Error creating match: {e}', 'error')
             return redirect(url_for('admin_panel.ecs_fc_match_create'))
 
@@ -594,7 +594,7 @@ def ecs_fc_match_edit(match_id):
             logger.error(f"Error updating match: {e}")
             session.rollback()
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return jsonify({'success': False, 'message': str(e)}), 400
+                return jsonify({'success': False, 'message': 'Internal Server Error'}), 400
             flash(f'Error updating match: {e}', 'error')
 
     # GET request - show form
@@ -640,7 +640,7 @@ def ecs_fc_match_delete(match_id):
     except Exception as e:
         logger.error(f"Error deleting match: {e}")
         session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 400
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 400
 
 
 # -----------------------------------------------------------
@@ -701,7 +701,7 @@ def ecs_fc_opponent_create():
     except Exception as e:
         logger.error(f"Error creating opponent: {e}")
         session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 400
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 400
 
 
 @admin_panel_bp.route('/ecs-fc/opponent/<int:opponent_id>/update', methods=['POST'])
@@ -738,7 +738,7 @@ def ecs_fc_opponent_update(opponent_id):
     except Exception as e:
         logger.error(f"Error updating opponent: {e}")
         session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 400
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 400
 
 
 @admin_panel_bp.route('/ecs-fc/opponent/<int:opponent_id>/delete', methods=['POST'])
@@ -761,7 +761,7 @@ def ecs_fc_opponent_delete(opponent_id):
     except Exception as e:
         logger.error(f"Error deactivating opponent: {e}")
         session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 400
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 400
 
 
 # -----------------------------------------------------------
@@ -941,7 +941,7 @@ def ecs_fc_send_reminder(match_id):
         })
     except Exception as e:
         logger.error(f"Failed to queue RSVP reminder: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/ecs-fc/rsvp/<int:match_id>')
@@ -1006,7 +1006,7 @@ def ecs_fc_post_missing_rsvps():
         })
     except Exception as e:
         logger.error(f"Failed to trigger post_missing_ecs_fc_rsvps: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/ecs-fc/match/<int:match_id>/post-rsvp', methods=['POST'])
@@ -1039,7 +1039,7 @@ def ecs_fc_post_rsvp(match_id):
         })
     except Exception as e:
         logger.error(f"Failed to post RSVP for match {match_id}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------

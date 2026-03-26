@@ -232,7 +232,7 @@ def email_broadcast_create():
 
     except Exception as e:
         logger.error(f"Error creating email campaign: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/email-broadcasts/<int:campaign_id>', methods=['PUT'])
@@ -320,7 +320,7 @@ def email_broadcast_update(campaign_id):
 
     except Exception as e:
         logger.error(f"Error updating campaign {campaign_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/email-broadcasts/<int:campaign_id>/send', methods=['POST'])
@@ -356,7 +356,7 @@ def email_broadcast_send(campaign_id):
 
     except Exception as e:
         logger.error(f"Error sending campaign {campaign_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/email-broadcasts/<int:campaign_id>/cancel', methods=['POST'])
@@ -385,7 +385,7 @@ def email_broadcast_cancel(campaign_id):
 
     except Exception as e:
         logger.error(f"Error cancelling campaign {campaign_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/email-broadcasts/<int:campaign_id>/reset-to-draft', methods=['POST'])
@@ -422,7 +422,7 @@ def email_broadcast_reset_to_draft(campaign_id):
 
     except Exception as e:
         logger.error(f"Error resetting campaign {campaign_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/email-broadcasts/<int:campaign_id>/duplicate', methods=['POST'])
@@ -461,7 +461,7 @@ def email_broadcast_duplicate(campaign_id):
 
     except Exception as e:
         logger.error(f"Error duplicating campaign {campaign_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/communication/email-broadcasts/<int:campaign_id>', methods=['DELETE'])
@@ -483,7 +483,7 @@ def email_broadcast_delete(campaign_id):
 
     except Exception as e:
         logger.error(f"Error deleting campaign {campaign_id}: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # ---------------------------------------------------------------------------
@@ -535,7 +535,7 @@ def email_broadcast_preview_recipients():
 
     except Exception as e:
         logger.error(f"Error previewing recipients: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/email-broadcasts/<int:campaign_id>/status')
@@ -553,7 +553,7 @@ def email_broadcast_status(campaign_id):
 
     except Exception as e:
         logger.error(f"Error getting campaign status: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/email-broadcasts/search-users')
@@ -579,7 +579,7 @@ def email_broadcast_search_users():
 
     except Exception as e:
         logger.error(f"Error searching users: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/email-broadcasts/send-test', methods=['POST'])
@@ -629,7 +629,7 @@ def email_broadcast_send_test():
 
     except Exception as e:
         logger.error(f"Error sending test email: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/email-broadcasts/preview-with-template', methods=['POST'])
@@ -662,4 +662,4 @@ def email_broadcast_preview_with_template():
 
     except Exception as e:
         logger.error(f"Error previewing with template: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

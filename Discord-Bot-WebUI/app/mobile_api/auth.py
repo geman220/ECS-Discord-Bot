@@ -167,7 +167,7 @@ def discord_callback():
 
     except Exception as e:
         logger.exception(f"Error in Discord callback: {e}")
-        return jsonify({"msg": f"Error processing Discord login: {str(e)}"}), 500
+        return jsonify({"msg": "Error processing Discord login: Internal Server Error"}), 500
 
 
 @mobile_api_v2.route('/login', methods=['POST'])

@@ -515,7 +515,7 @@ def upload_profile_picture():
 
         except ValueError as e:
             logger.warning(f"Profile picture validation error: {e}")
-            return jsonify({"msg": str(e)}), 400
+            return jsonify({"msg": "Internal Server Error"}), 400
         except Exception as e:
             logger.error(f"Error uploading profile picture: {e}")
             return jsonify({"msg": "Failed to upload profile picture"}), 500

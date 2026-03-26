@@ -3,8 +3,12 @@ name: Test Suite
 on:
   push:
     branches: [ main, master, develop ]
+    paths:
+      - 'Discord-Bot-WebUI/**'
   pull_request:
     branches: [ main, master, develop ]
+    paths:
+      - 'Discord-Bot-WebUI/**'
 
 jobs:
   test:

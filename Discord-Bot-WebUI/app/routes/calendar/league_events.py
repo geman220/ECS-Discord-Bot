@@ -800,7 +800,7 @@ def import_league_events():
 
     except Exception as e:
         logger.error(f"Error importing league events from CSV: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @league_events_bp.route('/league-events/import/template', methods=['GET'])

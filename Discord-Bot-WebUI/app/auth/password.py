@@ -71,4 +71,5 @@ def reset_password_token(token):
             logger.error(f"Password reset error: {str(e)}")
             show_error('Password reset failed. Please try again.')
 
-    return render_template('reset_password_flowbite.html', title='Reset Password', form=form, token=token)
+    from app.forms import EmptyForm
+    return render_template('reset_password_flowbite.html', title='Reset Password', form=form, token=token, empty_form=EmptyForm())

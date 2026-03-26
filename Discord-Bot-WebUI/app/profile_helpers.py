@@ -288,12 +288,17 @@ def check_email_uniqueness(email, user_id):
     Returns:
         bool: True if the email is already in use, False otherwise.
     """
-    session = g.db_session
     try:
         logger.debug(f"Checking uniqueness for email: {email} and user_id: {user_id}")
-        existing_user = session.query(User).filter(User.email == email, User.id != user_id).first()
-        if existing_user:
-            logger.warning(f"Email {email} already in use by user {existing_user.id}.")
+        
+        # Use the class method that handles hashing/encryption
+        users = User.find_by_email(email)
+        
+        # Filter out the current user
+        other_users = [u for u in users if u.id != user_id]
+        
+        if other_users:
+            logger.warning(f"Email {email} already in use by user {other_users[0].id}.")
             show_error('Email is already in use by another account.')
             return True
         logger.debug(f"Email {email} is unique.")

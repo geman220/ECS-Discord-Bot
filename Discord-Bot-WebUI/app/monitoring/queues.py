@@ -47,7 +47,7 @@ def get_queue_status():
             logger.error(f"Direct Redis connection failed: {e}")
             return jsonify({
                 'success': False,
-                'error': f'Redis connection failed: {str(e)}',
+                'error': 'Internal Server Error',
                 'queues': {},
                 'alerts': []
             })
@@ -95,7 +95,7 @@ def get_queue_status():
 
             except Exception as e:
                 queue_data[queue_name] = {
-                    'error': str(e),
+                    'error': 'Internal Server Error',
                     'status': 'error',
                     'length': 0
                 }
@@ -110,7 +110,7 @@ def get_queue_status():
 
     except Exception as e:
         logger.error(f"Error getting queue status: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/queue/details', endpoint='get_queue_details')
@@ -133,7 +133,7 @@ def get_queue_details():
             redis_client = direct_redis
         except Exception as e:
             logger.error(f"Direct Redis connection failed for queue details: {e}")
-            return jsonify({'success': False, 'error': f'Redis connection failed: {str(e)}'}), 500
+            return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
         # Use Celery inspect to get detailed queue information
         timeout = 2.0
@@ -284,7 +284,7 @@ def get_queue_details():
 
     except Exception as e:
         logger.error(f"Error getting queue details: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/queue/purge', endpoint='purge_queue', methods=['POST'])
@@ -396,4 +396,4 @@ def purge_queue():
 
     except Exception as e:
         logger.error(f"Error purging queue: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

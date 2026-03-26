@@ -1118,4 +1118,4 @@ def api_mobile_error_details(error_id):
         return jsonify({'error': 'Mobile error analytics models not available'}), 500
     except Exception as e:
         logger.error(f"Error getting error details: {str(e)}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500

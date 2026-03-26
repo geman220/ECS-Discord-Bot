@@ -704,7 +704,7 @@ def system_status():
         })
     except Exception as e:
         logger.error(f"System status error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/task-monitor')
@@ -754,7 +754,7 @@ def task_monitor():
             })
     except Exception as e:
         logger.error(f"Task monitor error: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 # Quick Actions API Endpoints

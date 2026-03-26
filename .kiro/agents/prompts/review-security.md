@@ -5,6 +5,9 @@ Focus exclusively on:
 - Input validation: Are all user inputs validated and sanitized? SQL injection, XSS, command injection risks?
 - Secrets management: Are secrets, keys, or credentials hardcoded or logged?
 - Data exposure: Does the API return more data than necessary? Are error messages leaking internals?
+    - **CRITICAL**: Flag any usage of `str(e)` or `traceback.format_exc()` inside `jsonify()` or API responses. These leak stack traces and implementation details.
+- DOM XSS:
+    - **CRITICAL**: Flag usage of `innerHTML` or `doc.write()` in frontend scripts. Recommend `textContent` or `iframe.srcdoc` instead.
 - Dependency risks: Are there known-vulnerable packages?
 - IAM permissions: Are AWS IAM policies least-privilege?
 - Encryption: Is data encrypted at rest and in transit?

@@ -32,6 +32,6 @@ pytest-benchmark==4.0.0
 # Browser automation & visual testing
 playwright==1.44.0
 pytest-playwright==0.4.4
-pillow==10.3.0              # Screenshot comparison
+pillow>=10.3.0              # Screenshot comparison
 pixelmatch==0.3.0           # Visual diff
 cssutils==2.11.1            # CSS parsing and analysis

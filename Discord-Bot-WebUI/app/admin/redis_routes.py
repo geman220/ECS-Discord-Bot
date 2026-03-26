@@ -41,7 +41,7 @@ def redis_stats():
                 'decoded_client': False,
                 'raw_client': False,
                 'overall': False,
-                'error': str(e)
+                'error': 'Internal Server Error'
             }
         
         # Get Redis server info if possible
@@ -59,7 +59,7 @@ def redis_stats():
     
     except Exception as e:
         logger.error(f"Error getting Redis stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @redis_bp.route('/api/stats')
@@ -85,7 +85,7 @@ def redis_stats_api():
                 'decoded_client': False,
                 'raw_client': False,
                 'overall': False,
-                'error': str(e)
+                'error': 'Internal Server Error'
             }
         
         # Add connection usage metrics
@@ -99,13 +99,13 @@ def redis_stats_api():
                 'instantaneous_ops_per_sec': info.get('instantaneous_ops_per_sec', 0)
             }
         except Exception as e:
-            stats['server_metrics'] = {'error': str(e)}
+            stats['server_metrics'] = {'error': 'Internal Server Error'}
             
         return jsonify(stats)
     
     except Exception as e:
         logger.error(f"Error getting Redis API stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @redis_bp.route('/test-connection')
@@ -153,7 +153,7 @@ def test_redis_connection():
     
     except Exception as e:
         logger.error(f"Error testing Redis connection: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @redis_bp.route('/connection-cleanup')
@@ -182,7 +182,7 @@ def cleanup_connections():
     
     except Exception as e:
         logger.error(f"Error during connection cleanup: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @redis_bp.route('/draft-cache-stats')
@@ -213,7 +213,7 @@ def draft_cache_stats():
     
     except Exception as e:
         logger.error(f"Error getting draft cache stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @redis_bp.route('/api/draft-cache-stats')
@@ -239,7 +239,7 @@ def draft_cache_stats_api():
     
     except Exception as e:
         logger.error(f"Error getting draft cache API stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @redis_bp.route('/warm-draft-cache/<league_name>')
@@ -262,7 +262,7 @@ def warm_draft_cache(league_name: str):
 
     except Exception as e:
         logger.error(f"Error warming draft cache for {league_name}: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @redis_bp.route('/clear-draft-cache', methods=['POST'])
@@ -295,7 +295,7 @@ def clear_draft_cache():
 
     except Exception as e:
         logger.error(f"Error clearing draft cache: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @redis_bp.route('/clear-draft-cache/<league_name>', methods=['POST'])
@@ -317,4 +317,4 @@ def clear_draft_cache_for_league(league_name: str):
 
     except Exception as e:
         logger.error(f"Error clearing draft cache for {league_name}: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500

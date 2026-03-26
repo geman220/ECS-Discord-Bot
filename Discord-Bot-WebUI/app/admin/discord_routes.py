@@ -54,7 +54,7 @@ def check_role_status(task_id):
         return jsonify({'state': 'PENDING'})
     except Exception as e:
         logger.error(f"Error checking task status: {str(e)}")
-        return jsonify({'state': 'ERROR', 'error': str(e)}), 500
+        return jsonify({'state': 'ERROR', 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/update_player_roles/<int:player_id>', endpoint='update_player_roles_route', methods=['POST'])
@@ -79,7 +79,7 @@ def update_player_roles_route(player_id):
             }), 400
     except Exception as e:
         logger.error(f"Error updating roles for player {player_id}: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/update_discord_roles', endpoint='mass_update_discord_roles', methods=['POST'])
@@ -107,7 +107,7 @@ def mass_update_discord_roles():
 
     except Exception as e:
         logger.error(f"Error initiating mass role update: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/discord_management', endpoint='discord_management', methods=['GET'])
@@ -326,7 +326,7 @@ def refresh_all_discord_status():
     except Exception as e:
         session.rollback()
         logger.error(f"Error in refresh_all_discord_status: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_bp.route('/admin/refresh_unknown_discord_status', endpoint='refresh_unknown_discord_status', methods=['POST'])
@@ -387,4 +387,4 @@ def refresh_unknown_discord_status():
     except Exception as e:
         session.rollback()
         logger.error(f"Error in refresh_unknown_discord_status: {str(e)}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

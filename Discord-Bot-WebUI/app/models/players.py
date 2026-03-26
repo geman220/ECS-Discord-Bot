@@ -245,6 +245,17 @@ class Player(db.Model):
     # authoritative phone verification status field.
     verified_phone = db.Column(db.Boolean, default=False)
 
+    @property
+    def email(self):
+        """Get email from associated user."""
+        return self.user.email if self.user else None
+
+    @email.setter
+    def email(self, value):
+        """Set email on associated user."""
+        if self.user:
+            self.user.email = value
+
     @property 
     def current_teams(self):
         """Return a list of tuples containing teams and associated coach status."""

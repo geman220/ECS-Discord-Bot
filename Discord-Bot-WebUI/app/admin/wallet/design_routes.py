@@ -451,4 +451,4 @@ def api_init_defaults():
         return jsonify({'success': True, 'message': 'Defaults initialized'})
     except Exception as e:
         logger.error(f"Error initializing defaults: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

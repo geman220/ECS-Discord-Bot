@@ -172,7 +172,7 @@ def test_twilio_config():
             except Exception as e:
                 result['connection_test'] = {
                     'status': 'FAILED',
-                    'message': str(e)
+                    'message': 'Internal Server Error'
                 }
         else:
             result['auth_check']['sid_present'] = bool(twilio_sid)
@@ -198,7 +198,7 @@ def test_twilio_config():
         logger.error(f"Error testing Twilio config: {e}")
         return jsonify({
             'status': 'error',
-            'message': str(e)
+            'message': 'Internal Server Error'
         }), 500
 
 
@@ -231,7 +231,7 @@ def redis_management():
                 'decoded_client': False,
                 'raw_client': False,
                 'overall': False,
-                'error': str(e)
+                'error': 'Internal Server Error'
             }
 
         # Get Redis server info
@@ -277,7 +277,7 @@ def redis_stats_api():
                 'decoded_client': False,
                 'raw_client': False,
                 'overall': False,
-                'error': str(e)
+                'error': 'Internal Server Error'
             }
 
         # Add server metrics
@@ -291,12 +291,12 @@ def redis_stats_api():
                 'instantaneous_ops_per_sec': info.get('instantaneous_ops_per_sec', 0)
             }
         except Exception as e:
-            stats['server_metrics'] = {'error': str(e)}
+            stats['server_metrics'] = {'error': 'Internal Server Error'}
 
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Error getting Redis API stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/system/redis/test-connection')
@@ -318,14 +318,14 @@ def redis_test_connection():
             redis_manager.client.ping()
             test_results['tests']['decoded_client'] = {'status': 'success', 'message': 'Ping successful'}
         except Exception as e:
-            test_results['tests']['decoded_client'] = {'status': 'failed', 'message': str(e)}
+            test_results['tests']['decoded_client'] = {'status': 'failed', 'message': 'Internal Server Error'}
 
         # Test raw client
         try:
             redis_manager.raw_client.ping()
             test_results['tests']['raw_client'] = {'status': 'success', 'message': 'Ping successful'}
         except Exception as e:
-            test_results['tests']['raw_client'] = {'status': 'failed', 'message': str(e)}
+            test_results['tests']['raw_client'] = {'status': 'failed', 'message': 'Internal Server Error'}
 
         # Test basic operations
         try:
@@ -339,7 +339,7 @@ def redis_test_connection():
             else:
                 test_results['tests']['operations'] = {'status': 'failed', 'message': f'Expected "test_value", got "{value}"'}
         except Exception as e:
-            test_results['tests']['operations'] = {'status': 'failed', 'message': str(e)}
+            test_results['tests']['operations'] = {'status': 'failed', 'message': 'Internal Server Error'}
 
         # Log the test
         AdminAuditLog.log_action(
@@ -355,7 +355,7 @@ def redis_test_connection():
         return jsonify(test_results)
     except Exception as e:
         logger.error(f"Error testing Redis connection: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/system/redis/connection-cleanup', methods=['POST'])
@@ -389,7 +389,7 @@ def redis_cleanup_connections():
         })
     except Exception as e:
         logger.error(f"Error during connection cleanup: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/system/redis/pool-status')
@@ -490,7 +490,7 @@ def redis_draft_cache_api():
         return jsonify(cache_stats)
     except Exception as e:
         logger.error(f"Error getting draft cache API stats: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/system/redis/warm-draft-cache/<league_name>', methods=['POST'])
@@ -522,7 +522,7 @@ def redis_warm_draft_cache(league_name):
         })
     except Exception as e:
         logger.error(f"Error warming draft cache for {league_name}: {e}")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -561,7 +561,7 @@ def docker_status_api():
         return jsonify({"success": True, "containers": containers})
     except Exception as e:
         logger.error(f"Error getting Docker status: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"success": False, "error": "Internal Server Error"}), 500
 
 
 @admin_panel_bp.route('/system/docker/container/<container_id>/<action>', methods=['POST'])
@@ -594,7 +594,7 @@ def docker_manage_container(container_id, action):
             return jsonify({'success': False, 'error': f'Failed to {action} container'}), 500
     except Exception as e:
         logger.error(f"Error managing container {container_id}: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/system/docker/container/<container_id>/logs')
@@ -611,7 +611,7 @@ def docker_view_logs(container_id):
         return jsonify({"logs": logs})
     except Exception as e:
         logger.error(f"Error getting container logs for {container_id}: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal Server Error"}), 500
 
 
 # -----------------------------------------------------------
@@ -650,7 +650,7 @@ def docker_restart_container():
             return jsonify({'success': False, 'error': 'Failed to restart container'}), 500
     except Exception as e:
         logger.error(f"Error restarting container: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/system/docker/stop', methods=['POST'])
@@ -685,7 +685,7 @@ def docker_stop_container():
             return jsonify({'success': False, 'error': 'Failed to stop container'}), 500
     except Exception as e:
         logger.error(f"Error stopping container: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/system/docker/start', methods=['POST'])
@@ -720,7 +720,7 @@ def docker_start_container():
             return jsonify({'success': False, 'error': 'Failed to start container'}), 500
     except Exception as e:
         logger.error(f"Error starting container: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -1174,7 +1174,7 @@ def api_security_status():
 
     except Exception as e:
         logger.error(f"Error getting security status: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 # -----------------------------------------------------------
@@ -1230,7 +1230,7 @@ def api_security_events():
 
     except Exception as e:
         logger.error(f"Error fetching security events: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/api/security/events/<ip_address>')
@@ -1277,7 +1277,7 @@ def api_security_events_for_ip(ip_address):
 
     except Exception as e:
         logger.error(f"Error fetching security events for IP {ip_address}: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/system/security/clear-rate-limit', methods=['POST'])
@@ -1717,7 +1717,7 @@ def draft_fix_orphaned_players():
         logger.error(f"Error fixing orphaned players: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 
@@ -1861,5 +1861,5 @@ def draft_diagnostic():
         logger.error(f"Error in draft diagnostic: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500

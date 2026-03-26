@@ -51,7 +51,7 @@ def get_debug_logs():
         return jsonify({'success': True, 'logs': logs})
     except Exception as e:
         current_app.logger.error(f"Error getting debug logs: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/debug/queries', endpoint='get_debug_queries')
@@ -95,7 +95,7 @@ def get_debug_queries():
         return jsonify({'success': True, 'queries': queries})
     except Exception as e:
         current_app.logger.error(f"Error getting debug queries: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500
 
 
 @monitoring_bp.route('/debug/system', endpoint='get_system_stats')
@@ -125,4 +125,4 @@ def get_system_stats():
         return jsonify({'success': True, 'stats': stats})
     except Exception as e:
         current_app.logger.error(f"Error getting system stats: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

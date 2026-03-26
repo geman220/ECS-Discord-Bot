@@ -1,0 +1,22 @@
+{
+  "team": {
+    "id": "184",
+    "name": "Seattle Sounders FC",
+    "logos": [
+      { "href": "https://a.espncdn.com/i/teamlogos/soccer/500/184.png" }
+    ],
+    "record": {
+      "items": [
+        {
+          "stats": [
+            { "name": "wins", "value": 12 },
+            { "name": "losses", "value": 8 },
+            { "name": "draws", "value": 5 },
+            { "name": "gamesPlayed", "value": 25 },
+            { "name": "points", "value": 41 }
+          ]
+        }
+      ]
+    }
+  }
+}

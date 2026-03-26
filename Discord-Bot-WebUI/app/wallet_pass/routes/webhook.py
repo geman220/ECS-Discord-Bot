@@ -376,7 +376,7 @@ def handle_order_completed():
 
     except Exception as e:
         logger.error(f"Error processing webhook: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @webhook_bp.route('/webhook/test', methods=['POST', 'GET'])
@@ -471,4 +471,4 @@ def manual_create_pass():
 
     except Exception as e:
         logger.error(f"Error in manual pass creation: {e}", exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500

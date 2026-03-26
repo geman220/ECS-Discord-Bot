@@ -5,6 +5,8 @@ Persistent learnings for the ECS Discord Bot & WebUI project.
 ## Bug Patterns
 - [2026-03-16] `find_customer_info_in_order` fails if `membership_year` is not explicitly passed and `datetime.datetime.now().year` doesn't match the order's membership string. Always pass the target year for verification.
 - [2026-03-16] `utils.normalize_string` returns an empty string for non-string inputs. Ensure types are checked before further string operations.
+- [2026-03-16] Python 3.9 on macOS (LibreSSL) often lacks `hashlib.scrypt`; always use a fallback to `PBKDF2` for password hashing to avoid `AttributeError`.
+- [2026-03-16] `discord.ui.TextInput.value` is read-only; attempts to assign to it in tests trigger `AttributeError`. Mock the entire `TextInput` object to simulate input values.
 
 ## Stakeholder Preferences
 - [2026-03-16] Refer to user as "The Brougham 22" (Keith Hodo, jersey #22, Seattle Sounders ultra, gamertag ssfcultra/ssfcultra74. Named after the Brougham End at Lumen Field where ECS stands).
@@ -13,7 +15,12 @@ Persistent learnings for the ECS Discord Bot & WebUI project.
 - [2026-03-16] Use implement-and-review-loop as default, not implement-task standalone.
 - [2026-03-16] Log all skill/agent invocations to .kiro/telemetry/ (if telemetry is active).
 
+## SDK Gotchas
+- [2026-03-16] `AsyncMock` for `discord.Interaction` causes synchronous methods like `get_member` to return coroutines; use `MagicMock` for the interaction and selectively assign `AsyncMock` only to async methods.
+
 ## Workflow Learnings
 - [2026-03-16] Always verify bot command registration in `ECS_Discord_Bot.py` when adding new command modules.
 - [2026-03-16] WebUI tests should be run using `python run_tests.py` in the `Discord-Bot-WebUI/` directory to ensure environment variables are set correctly.
 - [2026-03-16] When subagents fail to produce useful results, fall back to inline review in main conversation.
+- [2026-03-16] Unclosed `aiohttp.ClientSession` warnings in tests can be resolved by refactoring cogs to use a shared session and calling `cog_unload()` manually in unit tests.
+- [2026-03-16] `pytest.ini` `filterwarnings` may fail to suppress warnings from root `__init__.py` files; use `pytest_configure` hook in `conftest.py` for more reliable suppression.

@@ -951,7 +951,7 @@ def sync_roles_from_discord():
         logger.error(f"Error syncing roles from Discord: {e}", exc_info=True)
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': 'Internal Server Error'
         }), 500
 
 
@@ -999,4 +999,4 @@ def get_role_mappings():
 
     except Exception as e:
         logger.error(f"Error fetching role mappings: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'Internal Server Error'}), 500

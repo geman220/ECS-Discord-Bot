@@ -357,7 +357,7 @@ def debug_roles():
             }
         })
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 
 @role_impersonation_bp.route('/api/role-impersonation/status', methods=['GET'])
