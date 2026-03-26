@@ -205,11 +205,24 @@ def report_match_get(match_id: int):
         if not check_ecs_fc_access(match_id):
             return jsonify({'success': False, 'message': 'Access denied'}), 403
 
-        # Build player choices for the team
-        team_players = {}
+        # Build team data in the same format as pub league (home_team/away_team with players arrays)
+        home_team_data = {
+            'name': match.team.name if match.team else 'Unknown',
+            'id': match.team_id,
+            'players': []
+        }
         if match.team and match.team.players:
-            for player in match.team.players:
-                team_players[str(player.id)] = player.name
+            home_team_data['players'] = [
+                {'id': player.id, 'name': player.name}
+                for player in match.team.players
+            ]
+
+        # ECS FC matches have an external opponent with no tracked players
+        away_team_data = {
+            'name': match.opponent_name or 'Unknown',
+            'id': None,
+            'players': []
+        }
 
         # Get existing events grouped by type
         goals = []
@@ -252,9 +265,8 @@ def report_match_get(match_id: int):
             'match_date': match.match_date.strftime('%Y-%m-%d') if match.match_date else None,
             'match_time': match.match_time.strftime('%H:%M') if match.match_time else None,
             'location': match.location,
-            'player_choices': {
-                match.team.name if match.team else 'Team': team_players
-            },
+            'home_team': home_team_data,
+            'away_team': away_team_data,
             'goals': goals,
             'assists': assists,
             'yellow_cards': yellow_cards,
