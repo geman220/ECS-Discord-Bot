@@ -654,7 +654,14 @@ def update_week():
                     'message': f'Week {week_number} set to BYE. {deleted_count} matches removed. BYE entries created for all teams.'
                 })
 
-        # For non-type changes, require league_id
+            # For non-BYE type changes, just commit the WeekConfiguration update and return
+            session.commit()
+            return jsonify({
+                'success': True,
+                'message': f'Week {week_number} type changed to {new_week_type}.'
+            })
+
+        # For non-type changes (date/time only), require league_id
         if not league_id:
             return jsonify({'success': False, 'error': 'League ID is required for date/time updates'})
 
