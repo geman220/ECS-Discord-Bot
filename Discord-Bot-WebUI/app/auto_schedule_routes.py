@@ -483,9 +483,6 @@ def update_match():
         return jsonify({'success': False, 'error': 'Internal Server Error'})
 
 
-@auto_schedule_bp.route('/update-week', methods=['POST'])
-@login_required
-@role_required(['Pub League Admin', 'Global Admin'])
 def _delete_matches_with_dependencies(session, match_ids, schedule_ids):
     """
     Delete matches and ALL their FK-dependent child records.
@@ -515,15 +512,17 @@ def _delete_matches_with_dependencies(session, match_ids, schedule_ids):
 
     if schedule_ids:
         # Delete schedules via raw SQL to avoid ORM post_update SET NULL on opponent column
-        schedule_id_list = list(schedule_ids)
         session.execute(
-            text("DELETE FROM schedule WHERE id = ANY(:ids)"),
-            {"ids": schedule_id_list}
+            text("DELETE FROM schedule WHERE id IN :ids"),
+            {"ids": tuple(schedule_ids)}
         )
 
     session.flush()
 
 
+@auto_schedule_bp.route('/update-week', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
 def update_week():
     """
     Update week details including date, start time, and week type.
