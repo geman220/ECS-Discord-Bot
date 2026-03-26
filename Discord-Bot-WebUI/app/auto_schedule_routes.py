@@ -505,6 +505,10 @@ def update_week():
         if not week_number:
             return jsonify({'success': False, 'error': 'Week number is required'})
 
+        # Ensure week_number is a string for Schedule.week comparisons (varchar column)
+        week_number_int = int(week_number)
+        week_number = str(week_number)
+
         # If changing week type, update all league configs for this week
         if new_week_type:
             # Get all leagues for this season
@@ -520,7 +524,7 @@ def update_week():
             for league in season_leagues:
                 week_config = session.query(WeekConfiguration).filter_by(
                     league_id=league.id,
-                    week_order=week_number
+                    week_order=week_number_int
                 ).first()
 
                 if week_config:
@@ -544,7 +548,7 @@ def update_week():
                     if config_date:
                         week_config = WeekConfiguration(
                             league_id=league.id,
-                            week_order=week_number,
+                            week_order=week_number_int,
                             week_date=config_date,
                             week_type=new_week_type
                         )
@@ -569,7 +573,7 @@ def update_week():
                     # Try to get date from WeekConfiguration
                     for league in season_leagues:
                         wc = session.query(WeekConfiguration).filter_by(
-                            league_id=league.id, week_order=week_number
+                            league_id=league.id, week_order=week_number_int
                         ).first()
                         if wc and wc.week_date:
                             bye_date = wc.week_date
@@ -658,7 +662,7 @@ def update_week():
         # Update week configuration if it exists
         week_config = session.query(WeekConfiguration).filter_by(
             league_id=league_id,
-            week_order=week_number
+            week_order=week_number_int
         ).first()
 
         if week_config and new_date:
