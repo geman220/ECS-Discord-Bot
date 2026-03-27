@@ -263,6 +263,7 @@ import './pass-studio-locations.js';
 import './pass-studio-sponsors.js';
 import './pass-studio-subgroups.js';
 import './security-dashboard.js';
+import './admin-search.js';
 
 // ============================================================================
 // 12. MAIN APP INITIALIZATION

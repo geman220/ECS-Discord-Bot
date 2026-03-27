@@ -13,6 +13,9 @@ export function generateOperationId() {
 // Track the last selected response to allow "unclick" behavior
 const lastSelected = {};
 
+// Flag to suppress submit during programmatic initialization
+let _settingInitialValues = false;
+
 // Current operation ID for retry logic
 let currentOperationId = null;
 
@@ -135,7 +138,7 @@ function submitRSVP(matchId, response, csrfToken, discordId, retryCount = 0) {
  */
 export function setInitialRSVPs(csrfToken) {
     try {
-        const inputs = document.querySelectorAll('.btn-check.rsvp-input');
+        const inputs = document.querySelectorAll('.rsvp-input');
         if (!inputs || inputs.length === 0) {
             return;
         }
@@ -178,6 +181,9 @@ export function setInitialRSVPs(csrfToken) {
                     const radioButton = document.querySelector(`input[name="response-${matchId}"][value="${data.response}"]`);
                     if (radioButton) {
                         radioButton.checked = true;
+                        _settingInitialValues = true;
+                        radioButton.dispatchEvent(new Event('change', { bubbles: true }));
+                        _settingInitialValues = false;
                         lastSelected[matchId] = data.response;
                     }
                 }
@@ -210,11 +216,10 @@ export function initRsvp() {
     const csrfToken = rsvpDataElement.getAttribute('data-csrf-token');
 
     // Attach event listeners for RSVP radio buttons using event delegation
-    document.addEventListener('click', function(event) {
-        // Guard: ensure event.target is an Element with closest method
-        if (!event.target || typeof event.target.closest !== 'function') return;
-        const element = event.target.closest('.btn-check.rsvp-input');
-        if (!element) return;
+    document.addEventListener('change', function(event) {
+        const element = event.target;
+        if (!element || !element.classList.contains('rsvp-input')) return;
+        if (_settingInitialValues) return;
 
         const matchId = element.name.split('-')[1];
         const response = element.value;

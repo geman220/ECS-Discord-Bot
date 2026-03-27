@@ -95,14 +95,79 @@
                     {% block panel_description %}Centralized administrative control center for ECS FC{% endblock %}
                 </p>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3 md:gap-4">
+                <!-- Admin Search - Mobile Toggle -->
+                <button type="button" data-action="admin-search-toggle-mobile"
+                        class="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                        aria-label="Search admin features">
+                    <i class="ti ti-search text-xl"></i>
+                </button>
+                <!-- Admin Search Bar -->
+                <div class="hidden md:block relative w-full md:w-72 lg:w-80" id="admin-search-container" role="search" aria-label="Search admin features">
+                    <div class="relative">
+                        <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                        <input type="text"
+                               id="admin-search-input"
+                               data-on-input="admin-search-filter"
+                               data-on-keydown="admin-search-keyboard"
+                               placeholder="Search features..."
+                               autocomplete="off"
+                               aria-expanded="false"
+                               aria-controls="admin-search-results"
+                               aria-activedescendant=""
+                               class="w-full pl-10 pr-20 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-ecs-green focus:border-ecs-green">
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                            <button type="button" data-action="admin-search-clear"
+                                    class="hidden text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0.5" aria-label="Clear search"
+                                    id="admin-search-clear-btn">
+                                <i class="ti ti-x text-sm"></i>
+                            </button>
+                            <kbd class="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[10px] font-mono text-gray-400 bg-gray-100 dark:bg-gray-600 rounded border border-gray-200 dark:border-gray-500"
+                                 id="admin-search-shortcut-hint">
+                                <span class="admin-search-mod-key">Ctrl</span>+K
+                            </kbd>
+                        </div>
+                    </div>
+                    <!-- Search Results Dropdown -->
+                    <div id="admin-search-results"
+                         role="listbox"
+                         aria-label="Search results"
+                         class="hidden absolute z-[60] w-full mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-80 overflow-y-auto">
+                    </div>
+                </div>
                 <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
                     <i class="ti ti-shield-check mr-1"></i>
                     {% if user_roles and 'Global Admin' in user_roles %}Global Admin{% else %}Pub League Admin{% endif %}
                 </span>
-                <span class="text-sm text-gray-500 dark:text-gray-400">
+                <span class="text-sm text-gray-500 dark:text-gray-400 hidden sm:inline">
                     {{ safe_current_user.name or safe_current_user.username }}
                 </span>
+            </div>
+        </div>
+        <!-- Admin Search - Mobile Expanded (hidden by default) -->
+        <div id="admin-search-mobile-container" class="hidden mt-4 md:hidden" role="search" aria-label="Search admin features">
+            <div class="relative">
+                <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                <input type="text"
+                       id="admin-search-input-mobile"
+                       data-on-input="admin-search-filter"
+                       data-on-keydown="admin-search-keyboard"
+                       placeholder="Search features..."
+                       autocomplete="off"
+                       aria-expanded="false"
+                       aria-controls="admin-search-results-mobile"
+                       aria-activedescendant=""
+                       class="w-full pl-10 pr-10 py-2.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-ecs-green focus:border-ecs-green">
+                <button type="button" data-action="admin-search-clear"
+                        class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-0.5" aria-label="Clear search"
+                        id="admin-search-clear-btn-mobile">
+                    <i class="ti ti-x text-sm"></i>
+                </button>
+            </div>
+            <div id="admin-search-results-mobile"
+                 role="listbox"
+                 aria-label="Search results"
+                 class="hidden absolute left-0 right-0 z-[60] mx-4 mt-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 max-h-64 overflow-y-auto">
             </div>
         </div>
     </div>
@@ -134,6 +199,9 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if admin_search_index is defined %}
+<script id="admin-search-index" type="application/json">{{ admin_search_index | tojson }}</script>
+{% endif %}
 <script>
 // Initialize Flowbite collapse components for sidebar dropdowns
 document.addEventListener('DOMContentLoaded', function() {
