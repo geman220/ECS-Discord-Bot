@@ -17,6 +17,7 @@ import logging
 from datetime import datetime
 
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core import db
 
@@ -190,6 +191,7 @@ class MatchLineup(db.Model):
             self.positions = []
 
         self.positions.append(entry)
+        flag_modified(self, 'positions')
         return entry
 
     def remove_player(self, player_id):
@@ -208,6 +210,7 @@ class MatchLineup(db.Model):
         for i, p in enumerate(self.positions):
             if p.get('player_id') == player_id:
                 removed = self.positions.pop(i)
+                flag_modified(self, 'positions')
                 return removed
 
         return None
