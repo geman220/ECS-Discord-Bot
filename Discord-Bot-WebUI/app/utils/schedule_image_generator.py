@@ -637,3 +637,318 @@ def generate_schedule_image_file(
     with open(output_path, 'wb') as f:
         f.write(image_bytes)
     return output_path
+
+
+# Match week type configuration with colors
+MATCH_WEEK_TYPES = {
+    'REGULAR': {'bg': (76, 175, 80), 'text': (255, 255, 255), 'label': 'MATCH', 'emoji': '⚽'},
+    'PLAYOFF': {'bg': (255, 193, 7), 'text': (0, 0, 0), 'label': 'PLAYOFF', 'emoji': '🏆'},
+    'FUN': {'bg': (156, 39, 176), 'text': (255, 255, 255), 'label': 'FUN', 'emoji': '🎉'},
+    'TST': {'bg': (33, 150, 243), 'text': (255, 255, 255), 'label': 'TST', 'emoji': '🎯'},
+    'PRACTICE': {'bg': (96, 125, 139), 'text': (255, 255, 255), 'label': 'PRACTICE', 'emoji': '🏋'},
+    'BONUS': {'bg': (255, 152, 0), 'text': (255, 255, 255), 'label': 'BONUS', 'emoji': '⭐'},
+    'BYE': {'bg': (66, 66, 66), 'text': (180, 180, 180), 'label': 'BYE', 'emoji': '😴'},
+}
+
+
+def _draw_match_week_badge(draw: ImageDraw.Draw, x: int, y: int, week_type: str,
+                           font: ImageFont.FreeTypeFont) -> int:
+    """Draw a match week type badge and return the width."""
+    type_info = MATCH_WEEK_TYPES.get(week_type.upper(), MATCH_WEEK_TYPES['REGULAR'])
+    label = type_info['label']
+
+    bbox = draw.textbbox((0, 0), label, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
+    padding_x = 10
+    padding_y = 5
+    badge_width = text_width + padding_x * 2
+    badge_height = text_height + padding_y * 2
+
+    draw.rounded_rectangle(
+        [x, y, x + badge_width, y + badge_height],
+        radius=6,
+        fill=type_info['bg']
+    )
+
+    text_x = x + padding_x
+    text_y = y + padding_y - 1
+    draw.text((text_x, text_y), label, font=font, fill=type_info['text'])
+
+    return badge_width
+
+
+def _draw_home_away_indicator(draw: ImageDraw.Draw, x: int, y: int, is_home: bool,
+                              font: ImageFont.FreeTypeFont) -> int:
+    """Draw a Home/Away pill indicator."""
+    label = "HOME" if is_home else "AWAY"
+    bg_color = (46, 125, 50) if is_home else (21, 101, 192)
+
+    bbox = draw.textbbox((0, 0), label, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
+    padding_x = 8
+    padding_y = 4
+    badge_width = text_width + padding_x * 2
+    badge_height = text_height + padding_y * 2
+
+    draw.rounded_rectangle(
+        [x, y, x + badge_width, y + badge_height],
+        radius=5,
+        fill=bg_color
+    )
+
+    draw.text((x + padding_x, y + padding_y - 1), label, font=font, fill=(255, 255, 255))
+    return badge_width
+
+
+def generate_match_schedule_image(
+    matches: List[Dict[str, Any]],
+    player_name: str = "",
+    team_names: List[str] = None,
+    footer_url: Optional[str] = None
+) -> bytes:
+    """
+    Generate a professional match schedule poster image.
+
+    Args:
+        matches: List of match dicts with keys: date, time, home_team, away_team,
+                 home_team_id, away_team_id, is_home, location, week_type
+        player_name: Player's display name
+        team_names: List of the player's team names
+        footer_url: Optional URL for footer
+
+    Returns:
+        PNG image as bytes
+    """
+    width = 1100
+    padding = 50
+    header_height = 140
+    row_height = 70
+    footer_height = 75
+    month_header_height = 55
+
+    # Parse and sort matches
+    parsed = []
+    for m in matches:
+        try:
+            date_str = m.get('date', '')
+            time_str = m.get('time', '')
+            if date_str:
+                match_date = datetime.strptime(date_str, '%Y-%m-%d')
+            else:
+                match_date = datetime.now()
+
+            # Format the time for display
+            display_time = ''
+            if time_str:
+                try:
+                    t = datetime.strptime(time_str, '%H:%M:%S')
+                    display_time = t.strftime('%-I:%M %p')
+                except ValueError:
+                    display_time = time_str
+
+            week_type = m.get('week_type', 'REGULAR').upper()
+            is_home = m.get('is_home', True)
+            is_bye = week_type == 'BYE'
+
+            if is_bye:
+                opponent = 'BYE WEEK'
+            else:
+                opponent = m.get('away_team', 'TBD') if is_home else m.get('home_team', 'TBD')
+
+            # Clean location data (strip stray characters)
+            location = (m.get('location') or '').strip().strip('{}')
+
+            parsed.append({
+                'date': match_date,
+                'time': display_time,
+                'opponent': opponent,
+                'location': location,
+                'is_home': is_home,
+                'week_type': week_type,
+                'is_bye': is_bye,
+            })
+        except Exception as e:
+            logger.warning(f"Error parsing match: {e}")
+
+    parsed.sort(key=lambda x: x['date'])
+
+    if not parsed:
+        parsed = [{'date': datetime.now(), 'time': '', 'opponent': 'No upcoming matches',
+                    'location': '', 'is_home': True, 'week_type': 'REGULAR', 'is_bye': False}]
+
+    # Group by month
+    months = {}
+    for match in parsed:
+        month_key = match['date'].strftime('%B %Y')
+        if month_key not in months:
+            months[month_key] = []
+        months[month_key].append(match)
+
+    # Calculate height
+    num_matches = len(parsed)
+    num_months = len(months)
+    content_height = (num_matches * row_height) + (num_months * month_header_height)
+    total_height = header_height + content_height + footer_height + 50
+
+    # Create gradient background
+    img = create_gradient(width, total_height, COLORS['background_dark'], COLORS['background_light'])
+    draw = ImageDraw.Draw(img)
+
+    # Add watermark logo
+    logo = download_logo()
+    if logo:
+        watermark = create_watermark_logo(logo, (550, 450), opacity=0.05)
+        wm_x = (width - watermark.width) // 2
+        wm_y = header_height + (content_height - watermark.height) // 2
+        img.paste(watermark, (wm_x, wm_y), watermark)
+        draw = ImageDraw.Draw(img)
+
+    # Load fonts
+    font_title = get_font(44, bold=True)
+    font_subtitle = get_font(20, bold=False)
+    font_month = get_font(24, bold=True)
+    font_opponent = get_font(24, bold=True)
+    font_detail = get_font(18, bold=False)
+    font_badge = get_font(12, bold=True)
+    font_ha_badge = get_font(11, bold=True)
+    font_footer = get_font(18, bold=True)
+    font_emoji = get_font(22, bold=False)
+
+    # Draw header gradient
+    header_gradient = create_gradient(width, header_height, COLORS['header_bg'], COLORS['header_bg_light'])
+    img.paste(header_gradient, (0, 0))
+    draw = ImageDraw.Draw(img)
+
+    # Draw title
+    title_text = "MATCH SCHEDULE"
+    title_bbox = draw.textbbox((0, 0), title_text, font=font_title)
+    title_width = title_bbox[2] - title_bbox[0]
+    title_x = (width - title_width) // 2
+    draw_text_with_shadow(draw, (title_x, 22), title_text, font_title, COLORS['title'], shadow_offset=3)
+
+    # Draw subtitle (player name and teams)
+    subtitle_parts = []
+    if player_name:
+        subtitle_parts.append(player_name)
+    if team_names:
+        subtitle_parts.append(" · ".join(team_names))
+    subtitle = " — ".join(subtitle_parts) if subtitle_parts else f"{num_matches} matches"
+
+    sub_bbox = draw.textbbox((0, 0), subtitle, font=font_subtitle)
+    sub_width = sub_bbox[2] - sub_bbox[0]
+    sub_x = (width - sub_width) // 2
+    draw.text((sub_x, 78), subtitle, font=font_subtitle, fill=COLORS['subtitle'])
+
+    # Count line
+    count_text = f"{num_matches} upcoming match{'es' if num_matches != 1 else ''}"
+    count_bbox = draw.textbbox((0, 0), count_text, font=get_font(15, bold=False))
+    count_width = count_bbox[2] - count_bbox[0]
+    count_x = (width - count_width) // 2
+    draw.text((count_x, 108), count_text, font=get_font(15, bold=False), fill=COLORS['text_secondary'])
+
+    # Column positions
+    col_date = padding
+    col_badge = 210
+    col_opponent = 320
+    col_time = 680
+    col_location = 830
+
+    # Draw matches grouped by month
+    current_y = header_height + 20
+
+    for month_name, month_matches in months.items():
+        # Month header
+        draw.rounded_rectangle(
+            [(padding - 15, current_y), (width - padding + 15, current_y + month_header_height - 10)],
+            radius=8,
+            fill=COLORS['month_header_bg']
+        )
+
+        month_text = f"📅 {month_name.upper()}"
+        draw_text_with_emoji(img, (padding + 12, current_y + 12), month_text, font_month, COLORS['month_header_text'])
+        draw = ImageDraw.Draw(img)
+
+        current_y += month_header_height
+
+        for match_idx, match in enumerate(month_matches):
+            # Alternating row background
+            if match_idx % 2 == 1:
+                draw.rounded_rectangle(
+                    [(padding - 15, current_y), (width - padding + 15, current_y + row_height - 8)],
+                    radius=6,
+                    fill=COLORS['row_alt']
+                )
+
+            text_y = current_y + 18
+
+            # Date column
+            date_str = match['date'].strftime('%b %d')
+            day_str = match['date'].strftime('(%a)')
+            draw.text((col_date, text_y), date_str, font=get_font(22, bold=True), fill=COLORS['text_primary'])
+            date_bbox = draw.textbbox((col_date, text_y), date_str, font=get_font(22, bold=True))
+            draw.text((date_bbox[2] + 8, text_y + 4), day_str, font=font_detail, fill=COLORS['text_secondary'])
+
+            # Week type badge
+            badge_w = _draw_match_week_badge(draw, col_badge, text_y + 2, match['week_type'], font_badge)
+
+            # Home/Away indicator (right after badge, skip for BYE)
+            if not match['is_bye']:
+                ha_x = col_badge + badge_w + 10
+                _draw_home_away_indicator(draw, ha_x, text_y + 2, match['is_home'], font_ha_badge)
+
+            # Opponent name
+            opp_text = match['opponent']
+            if match['is_bye']:
+                # Dim text for BYE weeks
+                draw.text((col_opponent, text_y), opp_text, font=font_opponent, fill=COLORS['text_secondary'])
+            else:
+                max_opp = 30
+                if len(opp_text) > max_opp:
+                    opp_text = opp_text[:max_opp - 1] + '…'
+                draw.text((col_opponent, text_y), f"vs {opp_text}", font=font_opponent, fill=COLORS['text_primary'])
+
+            # Time
+            if match['time'] and not match['is_bye']:
+                time_emoji = "🕐"
+                draw_text_with_emoji(img, (col_time, text_y), time_emoji, font_emoji, COLORS['text_secondary'], emoji_size=20)
+                draw = ImageDraw.Draw(img)
+                draw.text((col_time + 26, text_y + 2), match['time'], font=font_detail, fill=COLORS['text_secondary'])
+
+            # Location
+            if match['location'] and not match['is_bye']:
+                loc = match['location']
+                max_loc = 22
+                if len(loc) > max_loc:
+                    loc = loc[:max_loc - 1] + '…'
+                draw.text((col_location, text_y + 2), f"📍 {loc}", font=font_detail, fill=COLORS['text_secondary'])
+
+            current_y += row_height
+
+    # Footer
+    footer_y = total_height - footer_height
+    footer_gradient = create_gradient(width, footer_height, COLORS['footer_bg'], COLORS['header_bg_light'])
+    img.paste(footer_gradient, (0, footer_y))
+    draw = ImageDraw.Draw(img)
+
+    footer_text = footer_url or "portal.ecsfc.com"
+    url_text = f"🔗 {footer_text}"
+    draw_text_with_emoji(img, (padding, footer_y + 24), url_text, font_footer, COLORS['white'])
+    draw = ImageDraw.Draw(img)
+
+    if logo:
+        small_logo = logo.copy()
+        small_logo.thumbnail((90, 60), Image.Resampling.LANCZOS)
+        logo_x = width - small_logo.width - padding
+        logo_y = footer_y + (footer_height - small_logo.height) // 2
+        img.paste(small_logo, (logo_x, logo_y), small_logo)
+
+    # Save to bytes
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG', optimize=True, quality=95)
+    buffer.seek(0)
+
+    return buffer.getvalue()

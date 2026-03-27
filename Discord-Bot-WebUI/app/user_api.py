@@ -8,11 +8,12 @@ including player lookup, notification preferences retrieval and updates,
 SMS enrollment and confirmation, and team lookup via case-insensitive queries.
 """
 
+import io
 import logging
 from datetime import datetime, date
 import ipaddress
 
-from flask import Blueprint, request, jsonify, g, url_for, current_app
+from flask import Blueprint, request, jsonify, g, url_for, current_app, Response
 from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 from app import csrf
@@ -875,3 +876,128 @@ def upcoming_events():
         events_data = [e.to_dict() for e in events]
         logger.info(f"[USER_API] Returning {len(events_data)} upcoming events")
         return jsonify({"events": events_data}), 200
+
+
+@user_bp.route('/player-schedule-image/<string:discord_id>', methods=['GET'])
+def player_schedule_image(discord_id):
+    """
+    Generate a professional match schedule image for a player.
+
+    Returns a PNG image suitable for embedding in Discord.
+    Used by the Discord bot /schedule command.
+    """
+    from app.utils.schedule_image_generator import generate_match_schedule_image
+
+    logger.info(f"[USER_API] player_schedule_image called for discord_id: {discord_id}")
+
+    with managed_session() as session_db:
+        player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
+        if not player:
+            return jsonify({"error": "Player not found"}), 404
+
+        team_ids = [t.id for t in player.teams]
+        team_names = [t.name for t in player.teams]
+
+        if not team_ids:
+            return jsonify({"error": "Player has no teams"}), 404
+
+        today = date.today()
+        matches = (
+            session_db.query(Match)
+            .options(joinedload(Match.home_team), joinedload(Match.away_team))
+            .filter(
+                or_(
+                    Match.home_team_id.in_(team_ids),
+                    Match.away_team_id.in_(team_ids)
+                ),
+                Match.date >= today
+            )
+            .order_by(Match.date, Match.time)
+            .limit(15)
+            .all()
+        )
+
+        if not matches:
+            return jsonify({"error": "No upcoming matches"}), 404
+
+        matches_data = []
+        for m in matches:
+            player_team_ids = set(team_ids)
+            is_home = m.home_team_id in player_team_ids
+            matches_data.append({
+                "date": m.date.isoformat() if m.date else None,
+                "time": m.time.isoformat() if m.time else None,
+                "location": m.location,
+                "home_team": m.home_team.name if m.home_team else "TBD",
+                "away_team": m.away_team.name if m.away_team else "TBD",
+                "home_team_id": m.home_team_id,
+                "away_team_id": m.away_team_id,
+                "is_home": is_home,
+                "week_type": m.week_type,
+            })
+
+        image_bytes = generate_match_schedule_image(
+            matches=matches_data,
+            player_name=player.name,
+            team_names=team_names,
+            footer_url="portal.ecsfc.com"
+        )
+
+        return Response(image_bytes, mimetype='image/png')
+
+
+@user_bp.route('/upcoming-events-image', methods=['GET'])
+def upcoming_events_image():
+    """
+    Generate a professional league events image.
+
+    Returns a PNG image suitable for embedding in Discord.
+    Used by the Discord bot /calendar command.
+    """
+    from app.utils.schedule_image_generator import generate_schedule_image
+
+    limit = request.args.get("limit", 15, type=int)
+    limit = min(max(limit, 1), 25)
+
+    logger.info(f"[USER_API] upcoming_events_image called with limit: {limit}")
+
+    with managed_session() as session_db:
+        now = datetime.utcnow()
+        events = (
+            session_db.query(LeagueEvent)
+            .filter(
+                LeagueEvent.is_active == True,
+                LeagueEvent.start_datetime >= now
+            )
+            .order_by(LeagueEvent.start_datetime)
+            .limit(limit)
+            .all()
+        )
+
+        if not events:
+            return jsonify({"error": "No upcoming events"}), 404
+
+        # Format events for the image generator
+        image_events = []
+        for e in events:
+            time_str = ''
+            if e.start_datetime and not e.is_all_day:
+                time_str = e.start_datetime.strftime('%-I:%M %p')
+                if e.end_datetime:
+                    time_str += f" - {e.end_datetime.strftime('%-I:%M %p')}"
+
+            image_events.append({
+                'date': e.start_datetime,
+                'title': e.title,
+                'time': time_str if not e.is_all_day else 'All Day',
+                'location': e.location or '',
+                'event_type': e.event_type or 'other',
+            })
+
+        image_bytes = generate_schedule_image(
+            events=image_events,
+            title="UPCOMING EVENTS",
+            footer_url="portal.ecsfc.com/calendar"
+        )
+
+        return Response(image_bytes, mimetype='image/png')
