@@ -1427,7 +1427,8 @@ async def load_cogs():
         'ispy_commands',
         'match_dates_commands',
         'help_commands',
-        'clearchat_commands'
+        'clearchat_commands',
+        'schedule_commands'
     ]
     
     for extension in cog_extensions:

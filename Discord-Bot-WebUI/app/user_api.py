@@ -9,12 +9,16 @@ SMS enrollment and confirmation, and team lookup via case-insensitive queries.
 """
 
 import logging
-from datetime import datetime
+from datetime import datetime, date
 import ipaddress
 
 from flask import Blueprint, request, jsonify, g, url_for, current_app
+from sqlalchemy import or_
+from sqlalchemy.orm import joinedload
 from app import csrf
 from app.models import User, Player, Team, player_teams
+from app.models.matches import Match
+from app.models.calendar import LeagueEvent
 from app.discord_utils import get_expected_roles
 from app.core.session_manager import managed_session
 from app.sms_helpers import (
@@ -765,7 +769,109 @@ def ispy_admin_reset_cooldowns():
             return jsonify({'success': True}), 200
         else:
             return jsonify({'error': 'Failed to reset cooldowns'}), 500
-        
+
     except Exception as e:
         logger.error(f"Error resetting cooldowns: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+@user_bp.route('/player-schedule/<string:discord_id>', methods=['GET'])
+def player_schedule(discord_id):
+    """
+    Retrieve a player's upcoming match schedule based on their Discord ID.
+
+    Returns the player's teams and upcoming matches for those teams.
+    Used by the Discord bot /schedule command.
+    """
+    logger.info(f"[USER_API] player_schedule called for discord_id: {discord_id}")
+
+    with managed_session() as session_db:
+        player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
+        if not player:
+            logger.info(f"[USER_API] No player found for discord_id: {discord_id}")
+            return jsonify({"error": "Player not found"}), 404
+
+        team_ids = [t.id for t in player.teams]
+        teams_data = [{"id": t.id, "name": t.name} for t in player.teams]
+
+        if not team_ids:
+            logger.info(f"[USER_API] Player {player.name} has no teams")
+            return jsonify({
+                "player_name": player.name,
+                "teams": [],
+                "matches": []
+            }), 200
+
+        today = date.today()
+        matches = (
+            session_db.query(Match)
+            .options(joinedload(Match.home_team), joinedload(Match.away_team))
+            .filter(
+                or_(
+                    Match.home_team_id.in_(team_ids),
+                    Match.away_team_id.in_(team_ids)
+                ),
+                Match.date >= today
+            )
+            .order_by(Match.date, Match.time)
+            .limit(10)
+            .all()
+        )
+
+        matches_data = []
+        for m in matches:
+            player_team_ids = set(team_ids)
+            is_home = m.home_team_id in player_team_ids
+            matches_data.append({
+                "id": m.id,
+                "date": m.date.isoformat() if m.date else None,
+                "time": m.time.isoformat() if m.time else None,
+                "location": m.location,
+                "home_team": m.home_team.name if m.home_team else "TBD",
+                "away_team": m.away_team.name if m.away_team else "TBD",
+                "home_team_id": m.home_team_id,
+                "away_team_id": m.away_team_id,
+                "is_home": is_home,
+                "week_type": m.week_type,
+                "is_playoff_game": m.is_playoff_game,
+            })
+
+        logger.info(f"[USER_API] Returning {len(matches_data)} upcoming matches for {player.name}")
+        return jsonify({
+            "player_name": player.name,
+            "teams": teams_data,
+            "matches": matches_data
+        }), 200
+
+
+@user_bp.route('/upcoming-events', methods=['GET'])
+def upcoming_events():
+    """
+    Retrieve upcoming active league events.
+
+    Query Parameters:
+        limit (int): Max events to return (default 10, max 25).
+
+    Used by the Discord bot /calendar command.
+    """
+    limit = request.args.get("limit", 10, type=int)
+    limit = min(max(limit, 1), 25)
+
+    logger.info(f"[USER_API] upcoming_events called with limit: {limit}")
+
+    with managed_session() as session_db:
+        now = datetime.utcnow()
+        events = (
+            session_db.query(LeagueEvent)
+            .filter(
+                LeagueEvent.is_active == True,
+                LeagueEvent.start_datetime >= now
+            )
+            .order_by(LeagueEvent.start_datetime)
+            .limit(limit)
+            .all()
+        )
+
+        events_data = [e.to_dict() for e in events]
+        logger.info(f"[USER_API] Returning {len(events_data)} upcoming events")
+        return jsonify({"events": events_data}), 200
