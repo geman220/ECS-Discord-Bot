@@ -70,6 +70,7 @@ class CeleryConfig:
         'app.tasks.tasks_push_notifications',  # Push notification campaigns
         'app.tasks.tasks_api_logging',  # Async API request logging
         'app.tasks.tasks_email_broadcast',  # Email broadcast campaigns
+        'app.tasks.tasks_audit',  # Deferred admin audit log writes
     )
 
     # Task Settings - Industry Best Practices
@@ -195,6 +196,7 @@ class CeleryConfig:
         'app.tasks.tasks_notification_reminders.*': {'queue': 'celery'},
         'app.tasks.tasks_push_notifications.*': {'queue': 'celery'},
         'app.tasks.tasks_email_broadcast.*': {'queue': 'celery'},
+        'app.tasks.tasks_audit.*': {'queue': 'celery'},
     }
 
     # Beat Configuration
@@ -423,6 +425,21 @@ class CeleryConfig:
         'security-maintenance': {
             'task': 'app.tasks.security_cleanup.security_maintenance',
             'schedule': crontab(hour=2, minute=30, day_of_week=0),
+            'options': {
+                'queue': 'celery',
+                'expires': 3540,
+                'time_limit': 600,
+                'soft_time_limit': 540
+            }
+        },
+
+        # Audit log maintenance - prune old rows and VACUUM to prevent bloat
+        'maintain-audit-log': {
+            'task': 'app.tasks.tasks_audit.maintain_audit_log_table',
+            'schedule': crontab(hour=3, minute=30),  # Daily at 3:30 AM
+            'kwargs': {
+                'retention_days': 90
+            },
             'options': {
                 'queue': 'celery',
                 'expires': 3540,

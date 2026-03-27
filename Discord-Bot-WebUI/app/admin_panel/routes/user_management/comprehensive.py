@@ -732,7 +732,8 @@ def edit_user_comprehensive(user_id):
                 defer_discord_sync(user.player.id, only_add=False)
                 logger.info(f"Queued Discord role sync for user {user.id}")
 
-            # Log the action
+            # Log the action (deferred to Celery so a slow audit INSERT
+            # doesn't block or roll back the main transaction).
             AdminAuditLog.log_action(
                 user_id=current_user.id,
                 action='edit_user_comprehensive',
@@ -747,7 +748,8 @@ def edit_user_comprehensive(user_id):
                     'roles': [r.id for r in user.roles]
                 }),
                 ip_address=request.remote_addr,
-                user_agent=request.headers.get('User-Agent')
+                user_agent=request.headers.get('User-Agent'),
+                deferred=True
             )
 
             updated_username = user.username

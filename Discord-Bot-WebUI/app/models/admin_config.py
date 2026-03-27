@@ -431,7 +431,7 @@ class AdminAuditLog(db.Model):
     __tablename__ = 'admin_audit_log'
 
     id = db.Column(Integer, primary_key=True)
-    user_id = db.Column(Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     action = db.Column(String(100), nullable=False)
     resource_type = db.Column(String(50), nullable=False)  # 'admin_config', 'user', 'role', etc.
     resource_id = db.Column(String(100), nullable=True)  # ID of affected resource
@@ -439,7 +439,7 @@ class AdminAuditLog(db.Model):
     new_value = db.Column(Text, nullable=True)
     ip_address = db.Column(String(45), nullable=True)
     user_agent = db.Column(Text, nullable=True)
-    timestamp = db.Column(DateTime, nullable=False, default=datetime.utcnow)
+    timestamp = db.Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
 
     # Relationship to user who performed the action
     user = db.relationship('User', backref='admin_audit_logs', lazy='select')
@@ -450,7 +450,7 @@ class AdminAuditLog(db.Model):
     @classmethod
     def log_action(cls, user_id, action, resource_type, resource_id=None,
                    old_value=None, new_value=None, ip_address=None, user_agent=None,
-                   auto_commit=False):
+                   auto_commit=False, deferred=True):
         """
         Log an admin action.
 
@@ -463,10 +463,23 @@ class AdminAuditLog(db.Model):
             new_value (str): New value (for updates)
             ip_address (str): IP address of user
             user_agent (str): User agent string
-            auto_commit (bool): Whether to commit immediately. Set to False when called
-                               from routes with @transactional decorator to avoid double-commit.
-                               Defaults to False since most callers use @transactional.
+            auto_commit (bool): Whether to commit immediately (only relevant when
+                               deferred=False). Defaults to False.
+            deferred (bool): If True (default), write via Celery task after the
+                            current transaction commits. This prevents slow audit
+                            INSERTs from blocking or rolling back the caller's
+                            transaction. Pass deferred=False to force synchronous
+                            writes (used internally by the Celery-down fallback).
         """
+        if deferred:
+            from app.utils.deferred_audit import defer_audit_log
+            defer_audit_log(
+                user_id=user_id, action=action, resource_type=resource_type,
+                resource_id=resource_id, old_value=old_value, new_value=new_value,
+                ip_address=ip_address, user_agent=user_agent,
+            )
+            return
+
         try:
             from flask import g, has_request_context
             if has_request_context() and hasattr(g, 'db_session') and g.db_session:

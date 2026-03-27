@@ -250,14 +250,13 @@ def create_quick_profile():
             return jsonify({'success': False, 'error': 'Internal Server Error'}), 400
 
         # Log the action
-        audit_log = AdminAuditLog(
+        AdminAuditLog.log_action(
             user_id=current_user.id,
             action='create_quick_profile',
             resource_type='quick_profile',
             resource_id=profile.id,
-            details={'player_name': player_name, 'claim_code': profile.claim_code}
+            new_value=str({'player_name': player_name, 'claim_code': profile.claim_code}),
         )
-        session.add(audit_log)
 
         logger.info(f"Quick profile {profile.id} created by {current_user.username} with code {profile.claim_code}")
 
@@ -297,14 +296,13 @@ def delete_quick_profile(profile_id):
         session.delete(profile)
 
         # Log the action
-        audit_log = AdminAuditLog(
+        AdminAuditLog.log_action(
             user_id=current_user.id,
             action='delete_quick_profile',
             resource_type='quick_profile',
             resource_id=profile_id,
-            details={'player_name': player_name, 'claim_code': claim_code}
+            new_value=str({'player_name': player_name, 'claim_code': claim_code}),
         )
-        session.add(audit_log)
 
         logger.info(f"Quick profile {profile_id} deleted by {current_user.username}")
 
@@ -351,14 +349,13 @@ def link_quick_profile(profile_id):
         profile.link_to_player(player, current_user, overwrite_photo=overwrite_photo)
 
         # Log the action
-        audit_log = AdminAuditLog(
+        AdminAuditLog.log_action(
             user_id=current_user.id,
             action='link_quick_profile',
             resource_type='quick_profile',
             resource_id=profile_id,
-            details={'player_id': player_id, 'player_name': player.name}
+            new_value=str({'player_id': player_id, 'player_name': player.name}),
         )
-        session.add(audit_log)
 
         logger.info(f"Quick profile {profile_id} linked to player {player_id} by {current_user.username}")
 
