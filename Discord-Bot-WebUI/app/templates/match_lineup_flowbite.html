@@ -73,6 +73,25 @@
     50% { opacity: 0.7; }
 }
 
+/* Non-draggable player styling for NO RSVP */
+.js-draggable-player[data-rsvp="no"] {
+    opacity: 0.5;
+    cursor: not-allowed !important;
+    user-select: none;
+}
+.js-draggable-player[data-rsvp="no"]:active {
+    cursor: not-allowed !important;
+}
+
+/* Touch drag ghost */
+.touch-ghost {
+    border-radius: 8px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+}
+.touch-dragging {
+    opacity: 0.4;
+}
+
 /* Mobile optimizations */
 @media (max-width: 767px) {
     .soccer-pitch {
@@ -194,11 +213,11 @@
                     <!-- Players List -->
                     <div id="availablePlayersList" class="space-y-2 max-h-[50vh] lg:max-h-[60vh] overflow-y-auto">
                         {% for player in roster %}
-                        <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-grab js-draggable-player rsvp-border-{{ player.rsvp_color }}"
+                        <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg js-draggable-player rsvp-border-{{ player.rsvp_color }} {% if player.rsvp_status == 'no' %}cursor-not-allowed{% else %}cursor-grab{% endif %}"
                              data-player-id="{{ player.player_id }}"
                              data-player-name="{{ player.name|lower }}"
                              data-rsvp="{{ player.rsvp_status }}"
-                             draggable="true">
+                             draggable="{{ 'false' if player.rsvp_status == 'no' else 'true' }}">
                             <div class="relative flex-shrink-0">
                                 <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
                                      alt="{{ player.name }}"
@@ -220,7 +239,11 @@
                                     {% endif %}
                                 </div>
                             </div>
+                            {% if player.rsvp_status == 'no' %}
+                            <i class="ti ti-ban text-red-400 flex-shrink-0" title="Player declined - not available"></i>
+                            {% else %}
                             <i class="ti ti-grip-vertical text-gray-400 flex-shrink-0"></i>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>

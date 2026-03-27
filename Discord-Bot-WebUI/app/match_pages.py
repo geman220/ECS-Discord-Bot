@@ -908,6 +908,10 @@ def match_lineup(match_id, team_id):
                 }
             })
 
+        # Sort roster by RSVP priority: yes > maybe > no response > no
+        rsvp_sort_order = {'yes': 0, 'maybe': 1, 'unavailable': 2, 'no': 3}
+        roster.sort(key=lambda p: (rsvp_sort_order.get(p['rsvp_status'], 2), p['name']))
+
         # Prepare lineup data for template
         lineup_data = None
         if lineup:

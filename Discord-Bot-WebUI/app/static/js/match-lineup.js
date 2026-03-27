@@ -259,9 +259,26 @@ class MatchLineupSystem {
                 indicator.classList.remove('rsvp-green', 'rsvp-yellow', 'rsvp-red', 'rsvp-gray');
                 indicator.classList.add(`rsvp-${data.color}`);
             }
+
+            // Update draggable state based on RSVP
+            if (data.new_status === 'no') {
+                playerCard.setAttribute('draggable', 'false');
+                playerCard.classList.remove('cursor-grab');
+                playerCard.classList.add('cursor-not-allowed');
+                // If player is on the pitch, remove them
+                const onPitch = document.querySelector(`.positioned-player[data-player-id="${data.player_id}"]`);
+                if (onPitch) {
+                    this.removePlayerPosition(data.player_id);
+                    this.showToast(`${player ? player.name : 'Player'} declined and was removed from lineup`, 'info');
+                }
+            } else {
+                playerCard.setAttribute('draggable', 'true');
+                playerCard.classList.remove('cursor-not-allowed');
+                playerCard.classList.add('cursor-grab');
+            }
         }
 
-        // Update player on pitch
+        // Update player on pitch if still there
         const pitchPlayer = document.querySelector(`.positioned-player[data-player-id="${data.player_id}"]`);
         if (pitchPlayer) {
             pitchPlayer.classList.remove('rsvp-yes', 'rsvp-maybe', 'rsvp-no', 'rsvp-unavailable');
@@ -287,6 +304,11 @@ class MatchLineupSystem {
             if (!e.target || typeof e.target.closest !== 'function') return;
             const playerCard = e.target.closest('.js-draggable-player');
             if (playerCard) {
+                // Block NO RSVP players from being dragged
+                if (playerCard.dataset.rsvp === 'no') {
+                    e.preventDefault();
+                    return;
+                }
                 const playerId = playerCard.dataset.playerId;
                 e.dataTransfer.setData('text/plain', playerId);
                 e.dataTransfer.effectAllowed = 'move';
@@ -364,20 +386,49 @@ class MatchLineupSystem {
         // Touch support for mobile
         let touchStartElement = null;
         let touchMoveElement = null;
+        let touchGhost = null;
         const self = this;
 
         document.addEventListener('touchstart', (e) => {
             const playerCard = e.target.closest('.js-draggable-player, .positioned-player');
-            if (playerCard) {
-                touchStartElement = playerCard;
-                playerCard.classList.add('touch-dragging');
-            }
+            if (!playerCard) return;
+            // Block NO RSVP players
+            if (playerCard.dataset.rsvp === 'no') return;
+
+            touchStartElement = playerCard;
+            playerCard.classList.add('touch-dragging');
+
+            // Create ghost element that follows finger
+            touchGhost = playerCard.cloneNode(true);
+            touchGhost.classList.add('touch-ghost');
+            touchGhost.style.cssText = `
+                position: fixed;
+                pointer-events: none;
+                z-index: 9999;
+                opacity: 0.8;
+                width: ${playerCard.offsetWidth}px;
+                transform: scale(0.9);
+                transition: none;
+            `;
+            document.body.appendChild(touchGhost);
+
+            const touch = e.touches[0];
+            touchGhost.style.left = `${touch.clientX - playerCard.offsetWidth / 2}px`;
+            touchGhost.style.top = `${touch.clientY - 20}px`;
         }, { passive: true });
 
         document.addEventListener('touchmove', (e) => {
             if (!touchStartElement) return;
+            e.preventDefault(); // Prevent page scroll during drag
 
             const touch = e.touches[0];
+
+            // Move ghost
+            if (touchGhost) {
+                touchGhost.style.left = `${touch.clientX - touchGhost.offsetWidth / 2}px`;
+                touchGhost.style.top = `${touch.clientY - 20}px`;
+            }
+
             const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
             const dropZone = elementBelow?.closest('.js-position-drop-zone');
 
@@ -388,7 +439,7 @@ class MatchLineupSystem {
                 dropZone.classList.add('drag-over');
                 touchMoveElement = dropZone;
             }
-        }, { passive: true });
+        }, { passive: false });
 
         document.addEventListener('touchend', (e) => {
             if (touchStartElement && touchMoveElement) {
@@ -402,6 +453,10 @@ class MatchLineupSystem {
 
             touchStartElement?.classList.remove('touch-dragging');
             touchMoveElement?.classList.remove('drag-over');
+            if (touchGhost) {
+                touchGhost.remove();
+                touchGhost = null;
+            }
             touchStartElement = null;
             touchMoveElement = null;
         }, { passive: true });
@@ -479,6 +534,12 @@ class MatchLineupSystem {
         const player = this.playerMap[playerId];
         if (!player) {
             console.error('Player not found:', playerId);
+            return;
+        }
+
+        // Block NO RSVP players from being placed
+        if (player.rsvp_status === 'no') {
+            this.showToast('This player has declined and cannot be added to the lineup', 'error');
             return;
         }
 
