@@ -679,31 +679,6 @@ def _draw_match_week_badge(draw: ImageDraw.Draw, x: int, y: int, week_type: str,
     return badge_width
 
 
-def _draw_home_away_indicator(draw: ImageDraw.Draw, x: int, y: int, is_home: bool,
-                              font: ImageFont.FreeTypeFont) -> int:
-    """Draw a Home/Away pill indicator."""
-    label = "HOME" if is_home else "AWAY"
-    bg_color = (46, 125, 50) if is_home else (21, 101, 192)
-
-    bbox = draw.textbbox((0, 0), label, font=font)
-    text_width = bbox[2] - bbox[0]
-    text_height = bbox[3] - bbox[1]
-
-    padding_x = 8
-    padding_y = 4
-    badge_width = text_width + padding_x * 2
-    badge_height = text_height + padding_y * 2
-
-    draw.rounded_rectangle(
-        [x, y, x + badge_width, y + badge_height],
-        radius=5,
-        fill=bg_color
-    )
-
-    draw.text((x + padding_x, y + padding_y - 1), label, font=font, fill=(255, 255, 255))
-    return badge_width
-
-
 def generate_match_schedule_image(
     matches: List[Dict[str, Any]],
     player_name: str = "",
@@ -814,7 +789,6 @@ def generate_match_schedule_image(
     font_opponent = get_font(24, bold=True)
     font_detail = get_font(18, bold=False)
     font_badge = get_font(12, bold=True)
-    font_ha_badge = get_font(11, bold=True)
     font_footer = get_font(18, bold=True)
     font_emoji = get_font(22, bold=False)
 
@@ -893,17 +867,11 @@ def generate_match_schedule_image(
             draw.text((date_bbox[2] + 8, text_y + 4), day_str, font=font_detail, fill=COLORS['text_secondary'])
 
             # Week type badge
-            badge_w = _draw_match_week_badge(draw, col_badge, text_y + 2, match['week_type'], font_badge)
-
-            # Home/Away indicator (right after badge, skip for BYE)
-            if not match['is_bye']:
-                ha_x = col_badge + badge_w + 10
-                _draw_home_away_indicator(draw, ha_x, text_y + 2, match['is_home'], font_ha_badge)
+            _draw_match_week_badge(draw, col_badge, text_y + 2, match['week_type'], font_badge)
 
             # Opponent name
             opp_text = match['opponent']
             if match['is_bye']:
-                # Dim text for BYE weeks
                 draw.text((col_opponent, text_y), opp_text, font=font_opponent, fill=COLORS['text_secondary'])
             else:
                 max_opp = 30
@@ -924,7 +892,9 @@ def generate_match_schedule_image(
                 max_loc = 22
                 if len(loc) > max_loc:
                     loc = loc[:max_loc - 1] + '…'
-                draw.text((col_location, text_y + 2), f"📍 {loc}", font=font_detail, fill=COLORS['text_secondary'])
+                loc_text = f"📍 {loc}"
+                draw_text_with_emoji(img, (col_location, text_y), loc_text, font_detail, COLORS['text_secondary'], emoji_size=18)
+                draw = ImageDraw.Draw(img)
 
             current_y += row_height
 
