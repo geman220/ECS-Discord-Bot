@@ -53,14 +53,21 @@ def get_discord_auth_url():
     default_redirect = 'ecs-fc-scheme://auth'
     redirect_uri = request.args.get('redirect_uri', default_redirect)
 
-    # Generate PKCE codes for enhanced security
-    code_verifier, code_challenge = generate_pkce_codes()
+    # Check if the client provided its own PKCE challenge (proper client-side PKCE)
+    client_code_challenge = request.args.get('code_challenge')
+    client_challenge_method = request.args.get('code_challenge_method')
+
+    if client_code_challenge and client_challenge_method:
+        # Client-side PKCE: the verifier never leaves the device
+        code_challenge = client_code_challenge
+        code_verifier = None
+    else:
+        # Legacy server-side PKCE for backward compatibility
+        code_verifier, code_challenge = generate_pkce_codes()
+        session['code_verifier'] = code_verifier
 
     # Generate state parameter for CSRF protection
     state_value = generate_oauth_state()
-
-    # Store both code verifier and state in session for later verification
-    session['code_verifier'] = code_verifier
     session['oauth_state'] = state_value
 
     # Discord client ID
@@ -84,11 +91,16 @@ def get_discord_auth_url():
 
     logger.debug(f"Generated combined login+auth URL for mobile app: {discord_login_url}")
 
-    return jsonify({
+    response = {
         'auth_url': discord_login_url,
-        'code_verifier': code_verifier,
         'state': state_value
-    }), 200
+    }
+
+    # Only include code_verifier for legacy server-side PKCE flow
+    if code_verifier:
+        response['code_verifier'] = code_verifier
+
+    return jsonify(response), 200
 
 
 @mobile_api_v2.route('/discord_callback', methods=['POST'])
