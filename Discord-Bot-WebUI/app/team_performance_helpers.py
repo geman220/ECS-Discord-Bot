@@ -19,42 +19,45 @@ logger = logging.getLogger(__name__)
 
 
 @cache_team_stats(ttl=600)  # Cache for 10 minutes
-def bulk_load_team_stats(team_ids, session=None):
+def bulk_load_team_stats(team_ids, session=None, season_id=None):
     """
     Load statistics for multiple teams using simplified queries to avoid N+1 problems.
     Includes Redis caching for improved performance.
-    
+
     Args:
         team_ids: List of team IDs to load stats for
         session: Database session (uses g.db_session if not provided)
-    
+        season_id: Optional season ID to scope stats to. If None, returns all-time stats.
+
     Returns:
         Dictionary mapping team_id to stats dict with keys:
         - top_scorer: "Player Name (X goals)" or "No data"
-        - top_assist: "Player Name (X assists)" or "No data" 
+        - top_assist: "Player Name (X assists)" or "No data"
         - total_goals: Total goals scored by team
         - total_assists: Total assists by team
         - matches_played: Number of matches played
         - avg_goals_per_match: Average goals per match
     """
+    from app.models import Schedule
+
     if session is None:
         session = g.db_session
-    
+
     if not team_ids:
         return {}
-    
+
     # Initialize results for all teams
     team_stats = {}
     for team_id in team_ids:
         team_stats[team_id] = {
             'top_scorer': 'No data',
-            'top_assist': 'No data', 
+            'top_assist': 'No data',
             'total_goals': 0,
             'total_assists': 0,
             'matches_played': 1,  # Avoid division by zero
             'avg_goals_per_match': 0.0
         }
-    
+
     # Get goal statistics with a simpler query
     goal_query = session.query(
         player_teams.c.team_id,
@@ -69,25 +72,28 @@ def bulk_load_team_stats(team_ids, session=None):
     ).filter(
         player_teams.c.team_id.in_(team_ids),
         PlayerSeasonStats.goals > 0
-    ).order_by(
+    )
+    if season_id is not None:
+        goal_query = goal_query.filter(PlayerSeasonStats.season_id == season_id)
+    goal_query = goal_query.order_by(
         player_teams.c.team_id,
         PlayerSeasonStats.goals.desc()
     ).all()
-    
+
     # Process goal statistics
     team_goal_totals = {}
     team_top_scorers = {}
-    
+
     for team_id, player_name, goals in goal_query:
         # Track total goals per team
         if team_id not in team_goal_totals:
             team_goal_totals[team_id] = 0
         team_goal_totals[team_id] += goals
-        
+
         # Track top scorer per team (first one due to ordering)
         if team_id not in team_top_scorers:
             team_top_scorers[team_id] = f"{player_name} ({goals} goals)"
-    
+
     # Get assist statistics with a simpler query
     assist_query = session.query(
         player_teams.c.team_id,
@@ -102,39 +108,50 @@ def bulk_load_team_stats(team_ids, session=None):
     ).filter(
         player_teams.c.team_id.in_(team_ids),
         PlayerSeasonStats.assists > 0
-    ).order_by(
+    )
+    if season_id is not None:
+        assist_query = assist_query.filter(PlayerSeasonStats.season_id == season_id)
+    assist_query = assist_query.order_by(
         player_teams.c.team_id,
         PlayerSeasonStats.assists.desc()
     ).all()
-    
+
     # Process assist statistics
     team_assist_totals = {}
     team_top_assisters = {}
-    
+
     for team_id, player_name, assists in assist_query:
         # Track total assists per team
         if team_id not in team_assist_totals:
             team_assist_totals[team_id] = 0
         team_assist_totals[team_id] += assists
-        
+
         # Track top assister per team (first one due to ordering)
         if team_id not in team_top_assisters:
             team_top_assisters[team_id] = f"{player_name} ({assists} assists)"
-    
-    # Get match counts (simplified)
-    home_matches = session.query(
+
+    # Get match counts - join through Schedule to filter by season
+    home_query = session.query(
         Match.home_team_id.label('team_id'),
         func.count(Match.id).label('matches')
     ).filter(
         Match.home_team_id.in_(team_ids)
-    ).group_by(Match.home_team_id).all()
-    
-    away_matches = session.query(
+    )
+    away_query = session.query(
         Match.away_team_id.label('team_id'),
         func.count(Match.id).label('matches')
     ).filter(
         Match.away_team_id.in_(team_ids)
-    ).group_by(Match.away_team_id).all()
+    )
+    if season_id is not None:
+        home_query = home_query.join(Schedule, Match.schedule_id == Schedule.id).filter(
+            Schedule.season_id == season_id
+        )
+        away_query = away_query.join(Schedule, Match.schedule_id == Schedule.id).filter(
+            Schedule.season_id == season_id
+        )
+    home_matches = home_query.group_by(Match.home_team_id).all()
+    away_matches = away_query.group_by(Match.away_team_id).all()
     
     # Combine match counts
     team_match_counts = {}
@@ -165,15 +182,16 @@ def bulk_load_team_stats(team_ids, session=None):
     return team_stats
 
 
-def get_team_stats_cached(team_id, session=None):
+def get_team_stats_cached(team_id, session=None, season_id=None):
     """
     Get statistics for a single team. Uses bulk loading if multiple teams
     are being accessed to avoid N+1 queries.
-    
+
     Args:
         team_id: ID of the team
         session: Database session (uses g.db_session if not provided)
-    
+        season_id: Optional season ID to scope stats to
+
     Returns:
         Dictionary with team statistics
     """
@@ -181,9 +199,9 @@ def get_team_stats_cached(team_id, session=None):
     if hasattr(g, '_team_stats_cache'):
         if team_id in g._team_stats_cache:
             return g._team_stats_cache[team_id]
-    
+
     # Load stats for this single team
-    stats = bulk_load_team_stats([team_id], session)
+    stats = bulk_load_team_stats([team_id], session, season_id=season_id)
     return stats.get(team_id, {
         'top_scorer': 'No data',
         'top_assist': 'No data',
@@ -194,20 +212,21 @@ def get_team_stats_cached(team_id, session=None):
     })
 
 
-def preload_team_stats_for_request(team_ids, session=None):
+def preload_team_stats_for_request(team_ids, session=None, season_id=None):
     """
     Preload team statistics for multiple teams at the start of a request.
     This prevents N+1 queries when team properties are accessed later.
-    
+
     Call this at the beginning of any view that will access team statistics.
-    
+
     Args:
         team_ids: List of team IDs that will be accessed in this request
         session: Database session (uses g.db_session if not provided)
+        season_id: Optional season ID to scope stats to
     """
     if session is None:
         session = g.db_session
-    
+
     # Load all stats in bulk and cache in request context
-    g._team_stats_cache = bulk_load_team_stats(team_ids, session)
+    g._team_stats_cache = bulk_load_team_stats(team_ids, session, season_id=season_id)
     logger.debug(f"Preloaded stats for {len(team_ids)} teams in single query")

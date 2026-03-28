@@ -405,26 +405,35 @@ def get_team_stats(team_id: int):
             season_id=current_season.id if current_season else None
         ).first()
 
-        # Preload team stats to avoid N+1 queries
+        # Preload team stats scoped to current season
         from app.team_performance_helpers import preload_team_stats_for_request
-        preload_team_stats_for_request([team.id])
+        season_id = current_season.id if current_season else None
+        preload_team_stats_for_request([team.id], season_id=season_id)
 
-        # Get team stats from model properties
+        # Read from season-scoped preloaded cache (not model properties which are all-time)
+        from app.team_performance_helpers import get_team_stats_cached
+        cached = get_team_stats_cached(team.id, season_id=season_id)
         stats = {
             "name": team.name,
             "league": team.league.name if team.league else None,
             "season": current_season.name if current_season else None,
-            "top_scorer": team.top_scorer,
-            "top_assist": team.top_assist,
-            "avg_goals_per_match": team.avg_goals_per_match,
+            "top_scorer": cached['top_scorer'],
+            "top_assist": cached['top_assist'],
+            "avg_goals_per_match": cached['avg_goals_per_match'],
         }
 
-        # Add recent form information
-        recent_matches = session_db.query(Match).filter(
+        # Add recent form information - scoped to current season via Schedule
+        recent_match_query = session_db.query(Match).filter(
             or_(Match.home_team_id == team_id, Match.away_team_id == team_id),
             Match.home_team_score.isnot(None),
             Match.away_team_score.isnot(None)
-        ).order_by(Match.date.desc()).limit(5).all()
+        )
+        if current_season:
+            from app.models import Schedule
+            recent_match_query = recent_match_query.join(
+                Schedule, Match.schedule_id == Schedule.id
+            ).filter(Schedule.season_id == current_season.id)
+        recent_matches = recent_match_query.order_by(Match.date.desc()).limit(5).all()
 
         form = []
         for match in recent_matches:
