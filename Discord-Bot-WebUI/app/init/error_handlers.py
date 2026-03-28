@@ -70,11 +70,33 @@ def install_error_handlers(app):
         app.logger.warning(f"WebSocket mismatch for {request.path} - this should be rare now")
         return None
 
+    @app.errorhandler(405)
+    def handle_method_not_allowed(error):
+        """Handle 405 errors with detailed logging for debugging."""
+        app.logger.error(
+            f"405 Method Not Allowed: {request.method} {request.url} | "
+            f"Valid methods: {error.valid_methods} | "
+            f"User-Agent: {request.headers.get('User-Agent', 'unknown')[:100]}"
+        )
+        if _is_api_request():
+            return jsonify({
+                'success': False,
+                'error': 'Method Not Allowed',
+                'detail': f'{request.method} is not allowed for {request.path}',
+                'allowed_methods': list(error.valid_methods or []),
+                'status_code': 405
+            }), 405
+        return render_template("500_flowbite.html"), 405
+
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):
         """Handle unexpected exceptions with secure error messages."""
         # Log the full error internally (not exposed to user)
-        app.logger.error(f"Unhandled Exception: {error}", exc_info=True)
+        app.logger.error(
+            f"Unhandled Exception: {error} | "
+            f"{request.method} {request.url}",
+            exc_info=True
+        )
 
         # Determine status code
         if isinstance(error, HTTPException):
