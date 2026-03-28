@@ -73,7 +73,7 @@ def is_admin(user_id, session_db):
     user = session_db.query(User).filter_by(id=user_id).first()
     if not user:
         return False
-    return any(role.name.lower() in ['admin', 'superadmin'] for role in user.roles)
+    return any(role.name in ['Global Admin', 'Pub League Admin'] for role in user.roles)
 
 
 def check_coach_permission(user_id, team_id, session_db):
