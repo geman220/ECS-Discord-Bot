@@ -24,7 +24,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 # Third-party imports
 import requests
-from sqlalchemy import func, or_
+from sqlalchemy import and_, func, or_
 from sqlalchemy.orm.query import Query
 
 # Local application imports
@@ -485,7 +485,12 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
     if upcoming:
         query = query.filter(Match.date >= current_time)
     elif completed:
-        query = query.filter(Match.date < current_time)
+        query = query.filter(
+            or_(
+                Match.date < current_time,
+                and_(Match.home_team_score.isnot(None), Match.away_team_score.isnot(None))
+            )
+        )
 
     # Add ordering for consistent pagination
     query = query.order_by(Match.date.desc())

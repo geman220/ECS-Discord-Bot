@@ -97,6 +97,7 @@ class Feedback(db.Model):
     description = db.Column(db.Text, nullable=False)
     priority = db.Column(db.String(20), default='Low')
     status = db.Column(db.String(20), default='Open')
+    source = db.Column(db.String(20), default='web', nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     closed_at = db.Column(db.DateTime, nullable=True)

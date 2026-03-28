@@ -18,6 +18,7 @@ from collections import defaultdict
 
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.mobile_api import mobile_api_v2
@@ -171,7 +172,12 @@ def query_ecs_fc_matches(session, team_ids: list, upcoming: bool = False,
         query = query.filter(EcsFcMatch.match_date >= today)
         query = query.order_by(EcsFcMatch.match_date.asc(), EcsFcMatch.match_time.asc())
     elif completed:
-        query = query.filter(EcsFcMatch.match_date < today)
+        query = query.filter(
+            or_(
+                EcsFcMatch.match_date < today,
+                and_(EcsFcMatch.home_score.isnot(None), EcsFcMatch.away_score.isnot(None))
+            )
+        )
         query = query.order_by(EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc())
     else:
         query = query.order_by(EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc())

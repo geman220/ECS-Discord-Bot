@@ -19,6 +19,7 @@ from app.mobile_api import mobile_api_v2
 from app.mobile_api.middleware import jwt_or_discord_auth_required
 from app.core.session_manager import managed_session
 from app.models import Player, Match, Availability
+from app.models.players import player_teams
 from app.app_api_helpers import (
     update_player_availability,
     update_player_match_availability,
@@ -47,6 +48,7 @@ def update_availability():
     data = request.json or {}
     match_id = data.get('match_id')
     availability_response = data.get('availability')
+    target_player_id = data.get('player_id')
 
     if not match_id or not availability_response:
         return jsonify({"msg": "Missing match_id or availability"}), 400
@@ -59,12 +61,41 @@ def update_availability():
         # Handle Discord user lookup
         if isinstance(current_user_id, str) and not current_user_id.isdigit():
             # Discord user ID - find player by discord_id
-            player = session_db.query(Player).filter_by(discord_id=current_user_id).first()
+            auth_player = session_db.query(Player).filter_by(discord_id=current_user_id).first()
         else:
-            player = session_db.query(Player).filter_by(user_id=int(current_user_id)).first()
+            auth_player = session_db.query(Player).filter_by(user_id=int(current_user_id)).first()
 
-        if not player:
+        if not auth_player:
             return jsonify({"msg": "Player not found"}), 404
+
+        # Determine which player's availability to update
+        if target_player_id and target_player_id != auth_player.id:
+            # Coach setting availability on behalf of a player
+            if not auth_player.is_coach:
+                return jsonify({"msg": "Only coaches can update availability for other players"}), 403
+
+            target_player = session_db.query(Player).get(target_player_id)
+            if not target_player:
+                return jsonify({"msg": "Target player not found"}), 404
+
+            # Verify the target player is on one of the coach's teams
+            from sqlalchemy import and_
+            coach_team_ids = session_db.query(player_teams.c.team_id).filter(
+                player_teams.c.player_id == auth_player.id
+            ).subquery()
+            shared_team = session_db.query(player_teams.c.team_id).filter(
+                and_(
+                    player_teams.c.player_id == target_player_id,
+                    player_teams.c.team_id.in_(coach_team_ids)
+                )
+            ).first()
+
+            if not shared_team:
+                return jsonify({"msg": "Target player is not on your team"}), 403
+
+            player = target_player
+        else:
+            player = auth_player
 
         match = session_db.query(Match).get(match_id)
         if not match:
