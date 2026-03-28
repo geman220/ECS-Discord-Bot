@@ -663,10 +663,10 @@ def can_report_ecs_fc_match(session, user, player, match) -> bool:
 
     # Check admin roles
     is_global_admin = user.has_role('Global Admin')
-    is_admin = user.has_role('admin')
+    is_pub_league_admin = user.has_role('Pub League Admin')
     is_ecs_fc_admin = user.has_role('ECS FC Admin')
 
-    if is_global_admin or is_admin or is_ecs_fc_admin:
+    if is_global_admin or is_pub_league_admin or is_ecs_fc_admin:
         return True
 
     if not player:

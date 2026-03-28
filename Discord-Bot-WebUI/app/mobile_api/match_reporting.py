@@ -70,9 +70,9 @@ def can_report_match(session, user: User, player: Player, match: Match) -> bool:
         bool: True if user can report/edit the match
     """
     # Check admin roles
-    is_admin = user.has_role('admin')
     is_global_admin = user.has_role('Global Admin')
     is_pub_league_admin = user.has_role('Pub League Admin')
+    is_admin = is_global_admin or is_pub_league_admin
     is_pub_league_ref = user.has_role('Pub League Ref')
 
     # Admins and refs can edit any match

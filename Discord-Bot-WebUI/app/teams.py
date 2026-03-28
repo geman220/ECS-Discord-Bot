@@ -628,10 +628,10 @@ def report_match(match_id):
     if current_user_obj.player:
         current_user_player = current_user_obj.player
     
-    is_admin = current_user_obj.has_role('admin')
-    is_assigned_referee = False
     is_global_admin = current_user_obj.has_role('Global Admin')
     is_pub_league_admin = current_user_obj.has_role('Pub League Admin')
+    is_admin = is_global_admin or is_pub_league_admin
+    is_assigned_referee = False
     is_pub_league_ref = current_user_obj.has_role('Pub League Ref')
     
     is_coach_for_team = False
@@ -725,9 +725,9 @@ def report_match(match_id):
                 
             # Determine which team the current user is affiliated with
             user_team_ids = []
-            is_admin = current_user.has_role('admin')
             is_global_admin = current_user.has_role('Global Admin')
             is_pub_league_admin = current_user.has_role('Pub League Admin')
+            is_admin = is_global_admin or is_pub_league_admin
             is_pub_league_ref = current_user.has_role('Pub League Ref')
             
             if current_user_player:
@@ -872,9 +872,9 @@ def report_match(match_id):
             current_user_player = current_user.player
             
         user_team_ids = []
-        is_admin = current_user.has_role('admin')
         is_global_admin = current_user.has_role('Global Admin')
         is_pub_league_admin = current_user.has_role('Pub League Admin')
+        is_admin = is_global_admin or is_pub_league_admin
         is_pub_league_ref = current_user.has_role('Pub League Ref')
         
         if current_user_player:

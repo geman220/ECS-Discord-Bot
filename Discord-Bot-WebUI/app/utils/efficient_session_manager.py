@@ -33,7 +33,7 @@ class UserAuthData:
 
     def has_permission(self, permission_name):
         # For now, simplified permission check
-        return self.has_role('admin') or self.has_role('global admin')
+        return self.has_role('Global Admin') or self.has_role('Pub League Admin')
 
     def get_id(self):
         return str(self.id)
