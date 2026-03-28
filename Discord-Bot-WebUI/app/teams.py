@@ -628,18 +628,28 @@ def report_match(match_id):
     if current_user_obj.player:
         current_user_player = current_user_obj.player
     
-    user_team_ids = []
     is_admin = current_user_obj.has_role('admin')
     is_assigned_referee = False
     is_global_admin = current_user_obj.has_role('Global Admin')
     is_pub_league_admin = current_user_obj.has_role('Pub League Admin')
     is_pub_league_ref = current_user_obj.has_role('Pub League Ref')
     
+    is_coach_for_team = False
     if current_user_player:
-        user_team_ids = [team.id for team in current_user_player.teams]
         if current_user_player.is_ref and match.ref_id == current_user_player.id:
             is_assigned_referee = True
-    
+        # Check if user is a coach for either team in this match
+        coach_check = session.execute(
+            player_teams.select().where(
+                and_(
+                    player_teams.c.player_id == current_user_player.id,
+                    player_teams.c.is_coach == True,
+                    player_teams.c.team_id.in_([match.home_team_id, match.away_team_id])
+                )
+            )
+        ).fetchall()
+        is_coach_for_team = len(coach_check) > 0
+
     # Handle role impersonation
     if is_impersonation_active():
         user_roles = get_effective_roles()
@@ -647,18 +657,17 @@ def report_match(match_id):
         is_global_admin = 'Global Admin' in user_roles
         is_pub_league_admin = 'Pub League Admin' in user_roles
         is_pub_league_ref = 'Pub League Ref' in user_roles
-        # For impersonation, we don't check is_assigned_referee since impersonated users 
-        # don't have actual player records with referee assignments
-    
+        # For impersonation, we don't check is_assigned_referee or is_coach_for_team
+        # since impersonated users don't have actual player records
+
     # Check if user has access to this match
-    # Global Admin, Pub League Admin, and Pub League Ref can edit any match
-    has_access = (is_admin or 
-                  is_global_admin or 
-                  is_pub_league_admin or 
+    # Global Admin, Pub League Admin, Pub League Ref, assigned ref, or coach for either team
+    has_access = (is_admin or
+                  is_global_admin or
+                  is_pub_league_admin or
                   is_pub_league_ref or
-                  match.home_team_id in user_team_ids or 
-                  match.away_team_id in user_team_ids or 
-                  is_assigned_referee)
+                  is_assigned_referee or
+                  is_coach_for_team)
     
     if not has_access:
         show_error('You do not have permission to access this match.')

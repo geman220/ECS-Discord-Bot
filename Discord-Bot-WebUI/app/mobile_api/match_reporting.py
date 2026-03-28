@@ -52,12 +52,13 @@ def can_report_match(session, user: User, player: Player, match: Match) -> bool:
     """
     Check if a user has permission to report/edit a match.
 
-    Permissions mirror the web UI (teams.py):
+    Allowed roles:
     - Global Admin, Pub League Admin, admin role - can edit any match
     - Pub League Ref - can edit any match
     - Assigned referee for the match - can edit
     - Coach for either team - can edit
-    - Player on either team - can edit
+
+    Regular players on the roster are NOT allowed to report matches.
 
     Args:
         session: Database session
@@ -88,11 +89,6 @@ def can_report_match(session, user: User, player: Player, match: Match) -> bool:
 
     # Check if user is a coach for either team
     if is_coach_for_match(session, player.id, match):
-        return True
-
-    # Check if user is on either team's roster
-    user_team_ids = {team.id for team in player.teams}
-    if match.home_team_id in user_team_ids or match.away_team_id in user_team_ids:
         return True
 
     return False
@@ -147,7 +143,7 @@ def get_match_reporting_info(match_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check if user can report for this match (admins, refs, coaches, team members)
+        # Check if user can report for this match (admins, refs, coaches)
         can_report = can_report_match(session, user, player, match)
         coach_team_id = get_coach_team_id(session, player.id, match) if player and is_coach_for_match(session, player.id, match) else None
 
@@ -324,7 +320,7 @@ def add_match_event(match_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check authorization (admins, refs, coaches, team members)
+        # Check authorization (admins, refs, coaches)
         if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to report events for this match"}), 403
 
@@ -482,7 +478,7 @@ def update_match_event(match_id: int, event_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check authorization (admins, refs, coaches, team members)
+        # Check authorization (admins, refs, coaches)
         if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to update events for this match"}), 403
 
@@ -581,7 +577,7 @@ def delete_match_event(match_id: int, event_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check authorization (admins, refs, coaches, team members)
+        # Check authorization (admins, refs, coaches)
         if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to delete events for this match"}), 403
 
@@ -664,7 +660,7 @@ def report_match(match_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check authorization (admins, refs, coaches, team members)
+        # Check authorization (admins, refs, coaches)
         if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to report this match"}), 403
 
@@ -825,7 +821,7 @@ def update_match_score(match_id: int):
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        # Check authorization (admins, refs, coaches, team members)
+        # Check authorization (admins, refs, coaches)
         if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to update scores for this match"}), 403
 
