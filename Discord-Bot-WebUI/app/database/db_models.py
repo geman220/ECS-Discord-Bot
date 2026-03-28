@@ -123,21 +123,25 @@ class MatchEvent(db.Model):
 
 class PlayerShift(db.Model):
     """
-    Tracks player shifts during a match.
-    
+    Tracks player sit/stay counts during a match.
+
+    Sit count: how many times a player has sat out a rotation.
+    Stay count: how many times a player has stayed on for back-to-back shifts.
+
     This is team-specific and not synchronized between teams.
-    Each coach manages their own team's player shifts.
+    Each coach manages their own team's counts.
     """
     __tablename__ = 'player_shifts'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False)
-    is_active = db.Column(db.Boolean, default=False)
+    sit_count = db.Column(db.Integer, default=0, nullable=False)
+    stay_count = db.Column(db.Integer, default=0, nullable=False)
     last_updated = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     updated_by = db.Column(db.Integer, db.ForeignKey('users.id'))
-    
+
     match = db.relationship('Match', backref=db.backref('player_shifts', lazy='dynamic'))
     team = db.relationship('Team', backref=db.backref('player_shifts', lazy='dynamic'))
     player = db.relationship('Player', backref=db.backref('shifts', lazy='dynamic'))

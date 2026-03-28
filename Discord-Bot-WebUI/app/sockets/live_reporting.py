@@ -1060,13 +1060,19 @@ def on_force_add_event(data):
 @socketio.on('update_player_shift', namespace='/live')
 def on_player_shift_update(data):
     """
-    Update a player's shift status during a match.
-    
+    Increment a player's sit or stay count during a match.
+
+    Sit count: player sat out a rotation.
+    Stay count: player stayed on for back-to-back shifts.
+
     This data is team-specific and not synchronized across teams.
-    Each coach manages their own team's player shifts.
-    
+
     Args:
-        data: Dictionary containing match_id, player_id, is_active, and team_id.
+        data: Dictionary containing:
+            - match_id: The match ID
+            - player_id: The player ID
+            - team_id: The team ID
+            - action: 'sit' or 'stay' to increment, 'undo_sit' or 'undo_stay' to decrement
     """
     with socket_session(db.engine) as session:
         # Get authenticated user
@@ -1075,69 +1081,82 @@ def on_player_shift_update(data):
             emit('error', {'message': 'Authentication required'})
             disconnect()
             return
-            
+
         match_id = data.get('match_id')
         player_id = data.get('player_id')
-        is_active = data.get('is_active')
         team_id = data.get('team_id')
+        action = data.get('action')
         user_id = user.id
-        
-        if not all([match_id, player_id, is_active is not None, team_id]):
-            emit('error', {'message': 'Match ID, player ID, active status, and team ID are required'})
+
+        if not all([match_id, player_id, team_id, action]):
+            emit('error', {'message': 'match_id, player_id, team_id, and action are required'})
             return
-        
+
+        if action not in ('sit', 'stay', 'undo_sit', 'undo_stay'):
+            emit('error', {'message': "action must be 'sit', 'stay', 'undo_sit', or 'undo_stay'"})
+            return
+
         try:
             # Verify the user is reporting for this team
             reporter = session.query(ActiveMatchReporter).filter_by(
                 match_id=match_id, user_id=user_id
             ).first()
-            
+
             if not reporter or reporter.team_id != team_id:
                 emit('error', {'message': 'You can only update shifts for your own team'})
                 return
-            
-            # Update or create player shift
+
+            # Get or create player shift record
             shift = session.query(PlayerShift).filter_by(
                 match_id=match_id, player_id=player_id, team_id=team_id
             ).first()
-            
-            if shift:
-                shift.is_active = is_active
-                shift.last_updated = datetime.utcnow()
-                shift.updated_by = user_id
-            else:
+
+            if not shift:
                 shift = PlayerShift(
                     match_id=match_id,
                     player_id=player_id,
                     team_id=team_id,
-                    is_active=is_active,
+                    sit_count=0,
+                    stay_count=0,
                     updated_by=user_id
                 )
                 session.add(shift)
-                
+
+            if action == 'sit':
+                shift.sit_count += 1
+            elif action == 'stay':
+                shift.stay_count += 1
+            elif action == 'undo_sit':
+                shift.sit_count = max(0, shift.sit_count - 1)
+            elif action == 'undo_stay':
+                shift.stay_count = max(0, shift.stay_count - 1)
+
+            shift.last_updated = datetime.utcnow()
+            shift.updated_by = user_id
             session.commit()
-            
+
             # Get player name
             player = session.query(Player).get(player_id)
             player_name = player.name if player else f"Player {player_id}"
-            
+
             # Send to all reporters of this team (but not other team)
             team_reporters = session.query(ActiveMatchReporter).filter_by(
                 match_id=match_id, team_id=team_id
             ).all()
-            
+
             for team_reporter in team_reporters:
                 emit('player_shift_updated', {
                     'match_id': match_id,
                     'player_id': player_id,
                     'player_name': player_name,
-                    'is_active': is_active,
+                    'sit_count': shift.sit_count,
+                    'stay_count': shift.stay_count,
                     'team_id': team_id,
                     'updated_by': user_id,
                     'updated_by_name': user.username
                 }, room=f"user_{team_reporter.user_id}")
-            
-            logger.info(f"Player shift updated: Match {match_id}, Player {player_id}, Active: {is_active}, Team: {team_id}")
+
+            logger.info(f"Player shift updated: Match {match_id}, Player {player_id}, Action: {action}, Sits: {shift.sit_count}, Stays: {shift.stay_count}, Team: {team_id}")
 
         except Exception as e:
             logger.error(f"Error updating player shift: {str(e)}", exc_info=True)
@@ -1433,15 +1452,17 @@ def get_active_reporters(session, match_id):
 
 def get_player_shifts(session, match_id, team_id):
     """
-    Get the current player shifts for a team in a match.
-    
+    Get the current sit/stay counts for a team in a match.
+
+    Only returns players who have at least one sit or stay recorded.
+
     Args:
         session: Database session
         match_id: ID of the match
         team_id: ID of the team
-        
+
     Returns:
-        List of dictionaries with player shift details
+        List of dictionaries with player sit/stay counts
     """
     shifts_query = session.query(
         PlayerShift, Player
@@ -1451,17 +1472,18 @@ def get_player_shifts(session, match_id, team_id):
         PlayerShift.match_id == match_id,
         PlayerShift.team_id == team_id
     )
-    
+
     shifts = []
     for shift, player in shifts_query:
         shifts.append({
             "player_id": player.id,
             "player_name": player.name,
-            "is_active": shift.is_active,
+            "sit_count": shift.sit_count,
+            "stay_count": shift.stay_count,
             "last_updated": shift.last_updated.isoformat(),
             "updated_by": shift.updated_by
         })
-        
+
     return shifts
 
 

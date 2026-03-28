@@ -140,7 +140,8 @@ def get_match_reporting_info(match_id: int):
         match = session.query(Match).options(
             joinedload(Match.home_team),
             joinedload(Match.away_team),
-            joinedload(Match.events)
+            joinedload(Match.events),
+            joinedload(Match.availability)
         ).get(match_id)
 
         if not match:
@@ -150,7 +151,15 @@ def get_match_reporting_info(match_id: int):
         can_report = can_report_match(session, user, player, match)
         coach_team_id = get_coach_team_id(session, player.id, match) if player and is_coach_for_match(session, player.id, match) else None
 
-        # Get home team roster
+        # Build availability lookup by player_id
+        availability_by_player = {}
+        for a in match.availability:
+            availability_by_player[a.player_id] = a.response or 'no_response'
+
+        # RSVP sort priority: yes=0, maybe=1, no_response=2, no=3
+        rsvp_sort_order = {'yes': 0, 'maybe': 1, 'no_response': 2, 'no': 3}
+
+        # Get home team roster with availability
         home_players = []
         for p in match.home_team.players:
             if p.is_current_player:
@@ -158,10 +167,12 @@ def get_match_reporting_info(match_id: int):
                     "id": p.id,
                     "name": p.name,
                     "jersey_number": p.jersey_number,
-                    "position": p.favorite_position
+                    "position": p.favorite_position,
+                    "availability": availability_by_player.get(p.id, 'no_response')
                 })
+        home_players.sort(key=lambda x: rsvp_sort_order.get(x['availability'], 2))
 
-        # Get away team roster
+        # Get away team roster with availability
         away_players = []
         for p in match.away_team.players:
             if p.is_current_player:
@@ -169,8 +180,10 @@ def get_match_reporting_info(match_id: int):
                     "id": p.id,
                     "name": p.name,
                     "jersey_number": p.jersey_number,
-                    "position": p.favorite_position
+                    "position": p.favorite_position,
+                    "availability": availability_by_player.get(p.id, 'no_response')
                 })
+        away_players.sort(key=lambda x: rsvp_sort_order.get(x['availability'], 2))
 
         # Get existing events
         events = []
