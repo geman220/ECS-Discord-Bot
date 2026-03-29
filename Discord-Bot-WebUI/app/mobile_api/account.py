@@ -343,7 +343,7 @@ def get_notification_preferences():
     Get the current user's notification preferences.
 
     Returns:
-        JSON with notification preferences
+        JSON with all notification preferences (web + mobile fields)
     """
     current_user_id = int(get_jwt_identity())
 
@@ -356,7 +356,13 @@ def get_notification_preferences():
             "email_notifications": user.email_notifications,
             "sms_notifications": user.sms_notifications,
             "discord_notifications": user.discord_notifications,
-            "profile_visibility": user.profile_visibility
+            "profile_visibility": user.profile_visibility,
+            "push_notifications": user.push_notifications,
+            "match_reminders": user.match_reminder_notifications,
+            "rsvp_reminders": user.rsvp_reminder_notifications,
+            "team_notifications": user.team_update_notifications,
+            "league_announcements": user.announcement_notifications,
+            "general_announcements": user.general_announcements,
         }), 200
 
 
@@ -371,6 +377,12 @@ def update_notification_preferences():
         sms_notifications: Boolean
         discord_notifications: Boolean
         profile_visibility: String (public, private, team_only)
+        push_notifications: Boolean (master push toggle)
+        match_reminders: Boolean
+        rsvp_reminders: Boolean
+        team_notifications: Boolean
+        league_announcements: Boolean
+        general_announcements: Boolean
 
     Returns:
         JSON with updated preferences
@@ -386,6 +398,7 @@ def update_notification_preferences():
         if not user:
             return jsonify({"msg": "User not found"}), 404
 
+        # Web notification channels
         if 'email_notifications' in data:
             user.email_notifications = bool(data['email_notifications'])
         if 'sms_notifications' in data:
@@ -397,17 +410,35 @@ def update_notification_preferences():
             if visibility in ['public', 'private', 'team_only']:
                 user.profile_visibility = visibility
 
+        # Mobile push notification preferences
+        if 'push_notifications' in data:
+            user.push_notifications = bool(data['push_notifications'])
+        if 'match_reminders' in data:
+            user.match_reminder_notifications = bool(data['match_reminders'])
+        if 'rsvp_reminders' in data:
+            user.rsvp_reminder_notifications = bool(data['rsvp_reminders'])
+        if 'team_notifications' in data:
+            user.team_update_notifications = bool(data['team_notifications'])
+        if 'league_announcements' in data:
+            user.announcement_notifications = bool(data['league_announcements'])
+        if 'general_announcements' in data:
+            user.general_announcements = bool(data['general_announcements'])
+
         session.commit()
 
         logger.info(f"Notification preferences updated for user {user.username}")
 
         return jsonify({
-            "success": True,
-            "message": "Notification preferences updated",
             "email_notifications": user.email_notifications,
             "sms_notifications": user.sms_notifications,
             "discord_notifications": user.discord_notifications,
-            "profile_visibility": user.profile_visibility
+            "profile_visibility": user.profile_visibility,
+            "push_notifications": user.push_notifications,
+            "match_reminders": user.match_reminder_notifications,
+            "rsvp_reminders": user.rsvp_reminder_notifications,
+            "team_notifications": user.team_update_notifications,
+            "league_announcements": user.announcement_notifications,
+            "general_announcements": user.general_announcements,
         }), 200
 
 
@@ -845,3 +876,103 @@ def delete_account():
         logger.info(f"Account permanently deleted for former user {username} (id={current_user_id})")
 
         return jsonify({"msg": "Account deleted successfully"}), 200
+
+
+# ---------------------------------------------------------------------------
+# Export Data (Download My Data)
+# ---------------------------------------------------------------------------
+
+@mobile_api_v2.route('/account/export-data', methods=['POST'])
+@jwt_required()
+def request_data_export():
+    """
+    Request a data export. Queues a background job to collect the user's data
+    and email a download link. Rate limited to 1 export per 24 hours.
+
+    Returns:
+        JSON with success message, or 429 if rate limited
+    """
+    from flask import current_app
+
+    current_user_id = int(get_jwt_identity())
+
+    # Rate limit: 1 export per 24 hours via Redis
+    try:
+        redis_client = current_app.redis
+        rate_key = f"data_export:{current_user_id}"
+        if redis_client and redis_client.exists(rate_key):
+            return jsonify({"msg": "You can only request one data export per day"}), 429
+    except Exception as e:
+        logger.warning(f"Redis rate-limit check failed: {e}")
+
+    with managed_session() as session:
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
+        if not user.email:
+            return jsonify({"msg": "No email address on file. Add an email first."}), 400
+
+    # Set rate limit (24 hours)
+    try:
+        redis_client = current_app.redis
+        if redis_client:
+            redis_client.setex(rate_key, 24 * 60 * 60, '1')
+    except Exception as e:
+        logger.warning(f"Redis rate-limit set failed: {e}")
+
+    # Queue the Celery task
+    from app.tasks.tasks_data_export import export_user_data
+    export_user_data.delay(current_user_id)
+
+    logger.info(f"Data export requested by user {current_user_id}")
+
+    return jsonify({
+        "msg": "Data export requested. You will receive an email with a download link."
+    }), 200
+
+
+@mobile_api_v2.route('/account/export-data/download/<token>', methods=['GET'])
+def download_data_export(token):
+    """
+    Download a previously exported data file using a signed token.
+    Token expires after 48 hours. No JWT required (link from email).
+
+    Path parameter:
+        token: Signed download token from the email link
+
+    Returns:
+        JSON file download, or error
+    """
+    import os
+    from flask import current_app, send_file
+    from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
+
+    serializer = URLSafeTimedSerializer(current_app.config['SECRET_KEY'])
+
+    try:
+        # 48-hour expiry
+        data = serializer.loads(token, salt='data-export', max_age=48 * 60 * 60)
+    except SignatureExpired:
+        return jsonify({"msg": "Download link has expired"}), 410
+    except BadSignature:
+        return jsonify({"msg": "Invalid download link"}), 400
+
+    filename = data.get('filename')
+    if not filename:
+        return jsonify({"msg": "Invalid download link"}), 400
+
+    # Validate filename to prevent path traversal
+    if '/' in filename or '\\' in filename or '..' in filename:
+        return jsonify({"msg": "Invalid download link"}), 400
+
+    filepath = os.path.join(current_app.root_path, 'exports', filename)
+    if not os.path.exists(filepath):
+        return jsonify({"msg": "Export file not found. It may have been cleaned up."}), 404
+
+    return send_file(
+        filepath,
+        mimetype='application/json',
+        as_attachment=True,
+        download_name=f"ecsfc_data_export.json",
+    )

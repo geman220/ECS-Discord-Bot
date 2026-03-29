@@ -71,6 +71,7 @@ class CeleryConfig:
         'app.tasks.tasks_api_logging',  # Async API request logging
         'app.tasks.tasks_email_broadcast',  # Email broadcast campaigns
         'app.tasks.tasks_audit',  # Deferred admin audit log writes
+        'app.tasks.tasks_data_export',  # User data export (GDPR)
     )
 
     # Task Settings - Industry Best Practices
