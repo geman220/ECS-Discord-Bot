@@ -750,6 +750,131 @@ def remove_assignment(assignment_id: int):
         }), 200
 
 
+@mobile_api_v2.route('/substitutes/requests/<int:request_id>/notify-pool', methods=['POST'])
+@jwt_required()
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
+def notify_substitute_pool(request_id: int):
+    """
+    Contact substitute pool members for a request (admin only).
+
+    Admins use this to reach out to subs from the pool after a coach
+    has created a substitute request. This creates SubstituteResponse
+    records with notification_sent_at set, marking them as targeted.
+
+    Args:
+        request_id: Substitute request ID
+
+    Expected JSON:
+        custom_message: Message to send to subs (required)
+        channels: List of notification channels (optional, defaults to all)
+                  Valid: "EMAIL", "SMS", "DISCORD", "PUSH"
+        gender_filter: Filter by gender (optional, e.g. "male", "female")
+        position_filters: Filter by positions (optional, e.g. ["GK", "DEF"])
+        player_ids: Contact only specific players (optional, list of player IDs)
+        subs_needed: Override number of subs needed (optional)
+
+    Returns:
+        JSON with notification results
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    custom_message = data.get('custom_message', '').strip()
+    if not custom_message:
+        return jsonify({"msg": "custom_message is required"}), 400
+
+    with managed_session() as session:
+        sub_request = session.query(SubstituteRequest).get(request_id)
+        if not sub_request:
+            return jsonify({"msg": "Request not found"}), 404
+
+        if sub_request.status not in ['OPEN', 'PENDING']:
+            return jsonify({"msg": f"Cannot notify for request with status: {sub_request.status}"}), 400
+
+    from app.services.substitute_notification_service import SubstituteNotificationService
+    notification_service = SubstituteNotificationService()
+
+    league_type = data.get('league_type', 'Premier')
+    result = notification_service.notify_pool(
+        request_id=request_id,
+        league_type=league_type,
+        custom_message=custom_message,
+        channels=data.get('channels'),
+        gender_filter=data.get('gender_filter'),
+        position_filters=data.get('position_filters'),
+        player_ids=data.get('player_ids'),
+        subs_needed=data.get('subs_needed', 1)
+    )
+
+    status_code = 200 if result['success'] else 400
+    return jsonify({
+        "success": result['success'],
+        "total_subs_in_pool": result['total_subs'],
+        "notifications_sent": result['notifications_sent'],
+        "responses_created": result['responses_created'],
+        "errors": result['errors']
+    }), status_code
+
+
+@mobile_api_v2.route('/substitutes/requests/<int:request_id>/notify-individual', methods=['POST'])
+@jwt_required()
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
+def notify_individual_substitute(request_id: int):
+    """
+    Contact a specific substitute for a request (admin only).
+
+    Args:
+        request_id: Substitute request ID
+
+    Expected JSON:
+        player_id: Player ID to contact (required)
+        custom_message: Message to send (required)
+        channels: List of notification channels (optional, defaults to all)
+                  Valid: "EMAIL", "SMS", "DISCORD", "PUSH"
+
+    Returns:
+        JSON with notification results
+    """
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    player_id = data.get('player_id')
+    custom_message = data.get('custom_message', '').strip()
+
+    if not player_id:
+        return jsonify({"msg": "player_id is required"}), 400
+    if not custom_message:
+        return jsonify({"msg": "custom_message is required"}), 400
+
+    with managed_session() as session:
+        sub_request = session.query(SubstituteRequest).get(request_id)
+        if not sub_request:
+            return jsonify({"msg": "Request not found"}), 404
+
+        if sub_request.status not in ['OPEN', 'PENDING']:
+            return jsonify({"msg": f"Cannot notify for request with status: {sub_request.status}"}), 400
+
+    from app.services.substitute_notification_service import SubstituteNotificationService
+    notification_service = SubstituteNotificationService()
+
+    result = notification_service.notify_individual(
+        player_id=player_id,
+        request_id=request_id,
+        custom_message=custom_message,
+        channels=data.get('channels')
+    )
+
+    status_code = 200 if result['success'] else 400
+    return jsonify({
+        "success": result['success'],
+        "channels_used": result['channels_used'],
+        "response_id": result['response_id'],
+        "errors": result['errors']
+    }), status_code
+
+
 @mobile_api_v2.route('/substitutes/pool', methods=['GET'])
 @jwt_required()
 @jwt_role_required(['Global Admin', 'Pub League Admin'])

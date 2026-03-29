@@ -1983,3 +1983,366 @@ def leave_ecs_fc_substitute_pool():
             "success": True,
             "message": "Left ECS FC substitute pool"
         }), 200
+
+
+@mobile_api_v2.route('/substitutes/ecs-fc/my-targeted-requests', methods=['GET'])
+@jwt_required()
+def get_my_ecs_fc_targeted_requests():
+    """
+    Get ECS FC substitute requests where the current user was specifically contacted.
+
+    Returns requests where an EcsFcSubResponse exists for the user with
+    notification_sent_at populated (indicating they were directly contacted).
+
+    Query Parameters:
+        status: Filter by request status (OPEN, FILLED, CANCELLED)
+        pending_only: If 'true', only show requests user hasn't responded to yet
+
+    Returns:
+        JSON with list of targeted requests
+    """
+    from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse
+
+    current_user_id = int(get_jwt_identity())
+    status_filter = request.args.get('status')
+    pending_only = request.args.get('pending_only', 'false').lower() == 'true'
+
+    with managed_session() as session:
+        player = session.query(Player).filter_by(user_id=current_user_id).first()
+        if not player:
+            return jsonify({"msg": "Player profile not found"}), 404
+
+        # Find responses where user was specifically contacted (notification_sent_at is set)
+        query = session.query(EcsFcSubResponse).options(
+            joinedload(EcsFcSubResponse.request).joinedload(EcsFcSubRequest.match),
+            joinedload(EcsFcSubResponse.request).joinedload(EcsFcSubRequest.team)
+        ).filter(
+            EcsFcSubResponse.player_id == player.id,
+            EcsFcSubResponse.notification_sent_at.isnot(None)
+        )
+
+        if pending_only:
+            query = query.filter(EcsFcSubResponse.responded_at.is_(None))
+
+        query = query.order_by(EcsFcSubResponse.notification_sent_at.desc())
+        targeted_responses = query.all()
+
+        requests_data = []
+        for resp in targeted_responses:
+            if not resp.request:
+                continue
+
+            if status_filter and resp.request.status != status_filter.upper():
+                continue
+
+            match_data = None
+            if resp.request.match:
+                match = resp.request.match
+                match_data = {
+                    "id": match.id,
+                    "opponent_name": match.opponent_name,
+                    "date": match.match_date.isoformat() if match.match_date else None,
+                    "time": match.match_time.strftime('%H:%M') if match.match_time else None,
+                    "location": match.location,
+                    "is_home_match": match.is_home_match,
+                }
+
+            requests_data.append({
+                "request_id": resp.request.id,
+                "response_id": resp.id,
+                "match": match_data,
+                "team": {
+                    "id": resp.request.team.id,
+                    "name": resp.request.team.name
+                } if resp.request.team else None,
+                "positions_needed": resp.request.positions_needed,
+                "substitutes_needed": resp.request.substitutes_needed,
+                "notes": resp.request.notes,
+                "request_status": resp.request.status,
+                "contacted_at": resp.notification_sent_at.isoformat() if resp.notification_sent_at else None,
+                "notification_methods": resp.notification_methods,
+                "has_responded": resp.responded_at is not None,
+                "my_response": {
+                    "is_available": resp.is_available,
+                    "response_text": resp.response_text,
+                    "responded_at": resp.responded_at.isoformat() if resp.responded_at else None
+                } if resp.responded_at else None,
+                "created_at": resp.request.created_at.isoformat() if resp.request.created_at else None
+            })
+
+        return jsonify({
+            "requests": requests_data,
+            "count": len(requests_data),
+            "pending_count": sum(1 for r in requests_data if not r['has_responded'])
+        }), 200
+
+
+@mobile_api_v2.route('/substitutes/ecs-fc/requests/<int:request_id>/notify-pool', methods=['POST'])
+@jwt_required()
+def notify_ecs_fc_substitute_pool(request_id: int):
+    """
+    Contact ECS FC substitute pool members for a request (coach or admin).
+
+    Coaches can directly reach out to subs without admin approval.
+
+    Args:
+        request_id: ECS FC substitute request ID
+
+    Expected JSON:
+        custom_message: Message to send to subs (required)
+        channels: List of notification channels (optional, defaults to all)
+                  Valid: "EMAIL", "SMS", "DISCORD", "PUSH"
+        position_filters: Filter by positions (optional, e.g. ["GK", "DEF"])
+        player_ids: Contact only specific players (optional, list of player IDs)
+        subs_needed: Override number of subs needed (optional)
+
+    Returns:
+        JSON with notification results
+    """
+    from app.models.substitutes import EcsFcSubRequest
+
+    current_user_id = int(get_jwt_identity())
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    custom_message = data.get('custom_message', '').strip()
+    if not custom_message:
+        return jsonify({"msg": "custom_message is required"}), 400
+
+    with managed_session() as session:
+        sub_request = session.query(EcsFcSubRequest).get(request_id)
+        if not sub_request:
+            return jsonify({"msg": "Request not found"}), 404
+
+        if not is_coach_for_team(session, current_user_id, sub_request.team_id) and not is_admin_user(session, current_user_id):
+            return jsonify({"msg": "You are not authorized to contact subs for this team"}), 403
+
+        if sub_request.status not in ['OPEN', 'PENDING']:
+            return jsonify({"msg": f"Cannot notify for request with status: {sub_request.status}"}), 400
+
+    from app.services.substitute_notification_service import SubstituteNotificationService
+    notification_service = SubstituteNotificationService()
+
+    result = notification_service.notify_ecs_fc_pool(
+        request_id=request_id,
+        custom_message=custom_message,
+        channels=data.get('channels'),
+        position_filters=data.get('position_filters'),
+        player_ids=data.get('player_ids'),
+        subs_needed=data.get('subs_needed', 1)
+    )
+
+    status_code = 200 if result['success'] else 400
+    return jsonify({
+        "success": result['success'],
+        "total_subs_in_pool": result['total_subs'],
+        "notifications_sent": result['notifications_sent'],
+        "responses_created": result['responses_created'],
+        "errors": result['errors']
+    }), status_code
+
+
+@mobile_api_v2.route('/substitutes/ecs-fc/requests/<int:request_id>/notify-individual', methods=['POST'])
+@jwt_required()
+def notify_ecs_fc_individual_substitute(request_id: int):
+    """
+    Contact a specific substitute for an ECS FC request (coach or admin).
+
+    Args:
+        request_id: ECS FC substitute request ID
+
+    Expected JSON:
+        player_id: Player ID to contact (required)
+        custom_message: Message to send (required)
+        channels: List of notification channels (optional, defaults to all)
+                  Valid: "EMAIL", "SMS", "DISCORD", "PUSH"
+
+    Returns:
+        JSON with notification results
+    """
+    from app.models.substitutes import EcsFcSubRequest
+
+    current_user_id = int(get_jwt_identity())
+    data = request.get_json()
+
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    player_id = data.get('player_id')
+    custom_message = data.get('custom_message', '').strip()
+
+    if not player_id:
+        return jsonify({"msg": "player_id is required"}), 400
+    if not custom_message:
+        return jsonify({"msg": "custom_message is required"}), 400
+
+    with managed_session() as session:
+        sub_request = session.query(EcsFcSubRequest).get(request_id)
+        if not sub_request:
+            return jsonify({"msg": "Request not found"}), 404
+
+        if not is_coach_for_team(session, current_user_id, sub_request.team_id) and not is_admin_user(session, current_user_id):
+            return jsonify({"msg": "You are not authorized to contact subs for this team"}), 403
+
+        if sub_request.status not in ['OPEN', 'PENDING']:
+            return jsonify({"msg": f"Cannot notify for request with status: {sub_request.status}"}), 400
+
+    from app.services.substitute_notification_service import SubstituteNotificationService
+    notification_service = SubstituteNotificationService()
+
+    result = notification_service.notify_ecs_fc_individual(
+        player_id=player_id,
+        request_id=request_id,
+        custom_message=custom_message,
+        channels=data.get('channels')
+    )
+
+    status_code = 200 if result['success'] else 400
+    return jsonify({
+        "success": result['success'],
+        "channels_used": result['channels_used'],
+        "response_id": result['response_id'],
+        "errors": result['errors']
+    }), status_code
+
+
+@mobile_api_v2.route('/substitutes/ecs-fc/pool', methods=['GET'])
+@jwt_required()
+def get_ecs_fc_substitute_pool():
+    """
+    Browse ECS FC substitute pool members (coach or admin).
+
+    Coaches use this to see available subs they can contact.
+
+    Query Parameters:
+        active_only: If 'true', only return active members (default: true)
+        position: Filter by preferred position (e.g. "GK", "DEF")
+
+    Returns:
+        JSON with list of pool members
+    """
+    from app.models.substitutes import EcsFcSubPool
+
+    current_user_id = int(get_jwt_identity())
+    active_only = request.args.get('active_only', 'true').lower() == 'true'
+    position_filter = request.args.get('position')
+
+    with managed_session() as session:
+        # Must be a coach or admin
+        coach_team_ids = get_user_ecs_fc_team_ids(session, current_user_id)
+        if not coach_team_ids and not is_admin_user(session, current_user_id):
+            return jsonify({"msg": "You are not authorized to view the substitute pool"}), 403
+
+        query = session.query(EcsFcSubPool).options(
+            joinedload(EcsFcSubPool.player)
+        )
+
+        if active_only:
+            query = query.filter(EcsFcSubPool.is_active == True)
+
+        pool_members = query.all()
+
+        # Apply position filter in Python (stored as comma-separated string)
+        if position_filter:
+            position_upper = position_filter.upper()
+            pool_members = [
+                m for m in pool_members
+                if m.preferred_positions and position_upper in [
+                    p.strip().upper() for p in m.preferred_positions.split(',')
+                ]
+            ]
+
+        members_data = []
+        for member in pool_members:
+            player = member.player
+            members_data.append({
+                "pool_id": member.id,
+                "player_id": player.id,
+                "player_name": player.name,
+                "preferred_positions": member.preferred_positions,
+                "max_matches_per_week": member.max_matches_per_week,
+                "is_active": member.is_active,
+                "requests_received": member.requests_received,
+                "requests_accepted": member.requests_accepted,
+                "matches_played": member.matches_played,
+                "joined_at": member.joined_pool_at.isoformat() if member.joined_pool_at else None,
+                "last_active_at": member.last_active_at.isoformat() if member.last_active_at else None,
+                "notification_preferences": {
+                    "sms": member.sms_for_sub_requests,
+                    "discord": member.discord_for_sub_requests,
+                    "email": member.email_for_sub_requests
+                }
+            })
+
+        return jsonify({
+            "pool_members": members_data,
+            "count": len(members_data)
+        }), 200
+
+
+@mobile_api_v2.route('/substitutes/ecs-fc/requests/<int:request_id>/responses', methods=['GET'])
+@jwt_required()
+def get_ecs_fc_request_responses(request_id: int):
+    """
+    View responses to an ECS FC substitute request (coach or admin).
+
+    Args:
+        request_id: ECS FC substitute request ID
+
+    Returns:
+        JSON with list of responses and availability summary
+    """
+    from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        sub_request = session.query(EcsFcSubRequest).get(request_id)
+        if not sub_request:
+            return jsonify({"msg": "Request not found"}), 404
+
+        if not is_coach_for_team(session, current_user_id, sub_request.team_id) and not is_admin_user(session, current_user_id):
+            return jsonify({"msg": "You are not authorized to view responses"}), 403
+
+        responses = session.query(EcsFcSubResponse).options(
+            joinedload(EcsFcSubResponse.player)
+        ).filter(
+            EcsFcSubResponse.request_id == request_id
+        ).order_by(
+            EcsFcSubResponse.notification_sent_at.desc()
+        ).all()
+
+        responses_data = []
+        available_count = 0
+        unavailable_count = 0
+        pending_count = 0
+
+        for resp in responses:
+            if resp.responded_at is None:
+                pending_count += 1
+            elif resp.is_available:
+                available_count += 1
+            else:
+                unavailable_count += 1
+
+            responses_data.append({
+                "response_id": resp.id,
+                "player_id": resp.player_id,
+                "player_name": resp.player.name if resp.player else None,
+                "is_available": resp.is_available,
+                "response_text": resp.response_text,
+                "response_method": resp.response_method,
+                "contacted_at": resp.notification_sent_at.isoformat() if resp.notification_sent_at else None,
+                "responded_at": resp.responded_at.isoformat() if resp.responded_at else None,
+                "notification_methods": resp.notification_methods
+            })
+
+        return jsonify({
+            "responses": responses_data,
+            "count": len(responses_data),
+            "available": available_count,
+            "unavailable": unavailable_count,
+            "pending": pending_count
+        }), 200

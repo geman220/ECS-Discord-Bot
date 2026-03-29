@@ -381,6 +381,283 @@ class SubstituteNotificationService:
 
         return results
 
+    def notify_ecs_fc_pool(
+        self,
+        request_id: int,
+        custom_message: str,
+        channels: Optional[List[str]] = None,
+        position_filters: Optional[List[str]] = None,
+        player_ids: Optional[List[int]] = None,
+        subs_needed: int = 1
+    ) -> Dict[str, Any]:
+        """
+        Contact ECS FC substitutes in pool for a specific request.
+
+        Args:
+            request_id: EcsFcSubRequest ID
+            custom_message: Custom message from coach
+            channels: List of channels to use (defaults to all enabled)
+            position_filters: Optional position filter (['GK', 'DEF', 'MID', 'FWD'])
+            player_ids: Optional specific player IDs to contact
+            subs_needed: How many subs are needed
+
+        Returns:
+            Dict with notification results
+        """
+        from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse, EcsFcSubPool
+        from app.models import Player, User
+        from sqlalchemy.orm import joinedload
+
+        results = {
+            'success': False,
+            'total_subs': 0,
+            'notifications_sent': 0,
+            'errors': [],
+            'responses_created': [],
+            'subs_needed': subs_needed
+        }
+
+        try:
+            sub_request = db.session.query(EcsFcSubRequest).get(request_id)
+            if not sub_request:
+                results['errors'].append(f'EcsFcSubRequest {request_id} not found')
+                return results
+
+            if subs_needed and subs_needed > 0:
+                sub_request.substitutes_needed = subs_needed
+
+            # Get active ECS FC pool members
+            query = db.session.query(EcsFcSubPool).options(
+                joinedload(EcsFcSubPool.player).joinedload(Player.user)
+            ).join(Player).join(User).filter(
+                EcsFcSubPool.is_active == True,
+                Player.is_current_player == True,
+                User.is_approved == True
+            )
+
+            active_subs = query.all()
+
+            # Apply position filter
+            if position_filters:
+                position_filters_upper = [p.upper() for p in position_filters]
+                filtered_subs = []
+                for pool_entry in active_subs:
+                    if pool_entry.preferred_positions:
+                        player_positions = [p.strip().upper() for p in pool_entry.preferred_positions.split(',')]
+                        if any(p in position_filters_upper for p in player_positions):
+                            filtered_subs.append(pool_entry)
+                active_subs = filtered_subs
+
+            # Apply specific player filter
+            if player_ids:
+                active_subs = [pe for pe in active_subs if pe.player_id in player_ids]
+
+            results['total_subs'] = len(active_subs)
+
+            if not active_subs:
+                results['errors'].append('No active ECS FC substitutes found')
+                return results
+
+            match_details = self._format_ecs_fc_match_details(sub_request.match, sub_request)
+
+            for pool_entry in active_subs:
+                try:
+                    player = pool_entry.player
+
+                    existing_response = db.session.query(EcsFcSubResponse).filter_by(
+                        request_id=request_id,
+                        player_id=player.id
+                    ).first()
+
+                    if existing_response:
+                        continue
+
+                    available_channels = self.get_player_channels(player, pool_entry)
+
+                    if channels:
+                        for channel in list(available_channels.keys()):
+                            if channel not in channels:
+                                available_channels[channel] = False
+
+                    if not any(available_channels.values()):
+                        continue
+
+                    response = EcsFcSubResponse(
+                        request_id=request_id,
+                        player_id=player.id,
+                        is_available=None,
+                        notification_sent_at=datetime.utcnow(),
+                        notification_methods=','.join(
+                            ch for ch, enabled in available_channels.items() if enabled
+                        )
+                    )
+                    response.generate_token()
+                    db.session.add(response)
+                    db.session.flush()
+
+                    rsvp_url = self._build_rsvp_url(response.rsvp_token, 'ecs_fc')
+
+                    send_results = self._send_notifications(
+                        player=player,
+                        channels=available_channels,
+                        subject=f"Sub Request: ECS FC vs {match_details['opponent']}",
+                        message=self._build_message(custom_message, match_details, rsvp_url),
+                        rsvp_url=rsvp_url,
+                        rsvp_token=response.rsvp_token,
+                        league_type='ecs_fc',
+                        request_id=request_id,
+                        match_id=sub_request.match_id
+                    )
+
+                    if send_results['sent_count'] > 0:
+                        results['notifications_sent'] += 1
+                        results['responses_created'].append(response.id)
+
+                        pool_entry.requests_received = (pool_entry.requests_received or 0) + 1
+                        pool_entry.last_active_at = datetime.utcnow()
+
+                except Exception as e:
+                    logger.error(f"Error notifying ECS FC player {player.id}: {e}")
+                    results['errors'].append(f"Player {player.id}: {str(e)}")
+
+            db.session.commit()
+            results['success'] = results['notifications_sent'] > 0
+
+        except Exception as e:
+            logger.error(f"Error in notify_ecs_fc_pool: {e}")
+            db.session.rollback()
+            results['errors'].append(str(e))
+
+        return results
+
+    def notify_ecs_fc_individual(
+        self,
+        player_id: int,
+        request_id: int,
+        custom_message: str,
+        channels: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
+        """
+        Contact a single ECS FC substitute for a request.
+
+        Args:
+            player_id: Player ID to contact
+            request_id: EcsFcSubRequest ID
+            custom_message: Custom message from coach
+            channels: List of channels to use (defaults to all enabled)
+
+        Returns:
+            Dict with notification results
+        """
+        from app.models import Player
+        from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse, EcsFcSubPool
+
+        results = {
+            'success': False,
+            'channels_used': [],
+            'response_id': None,
+            'errors': []
+        }
+
+        try:
+            player = db.session.query(Player).get(player_id)
+            if not player:
+                results['errors'].append(f'Player {player_id} not found')
+                return results
+
+            sub_request = db.session.query(EcsFcSubRequest).get(request_id)
+            if not sub_request:
+                results['errors'].append(f'EcsFcSubRequest {request_id} not found')
+                return results
+
+            existing_response = db.session.query(EcsFcSubResponse).filter_by(
+                request_id=request_id,
+                player_id=player_id
+            ).first()
+
+            if existing_response:
+                results['errors'].append('Player has already been contacted for this request')
+                return results
+
+            pool_entry = db.session.query(EcsFcSubPool).filter_by(
+                player_id=player_id,
+                is_active=True
+            ).first()
+
+            available_channels = self.get_player_channels(player, pool_entry)
+
+            if channels:
+                for channel in list(available_channels.keys()):
+                    if channel not in channels:
+                        available_channels[channel] = False
+
+            if not any(available_channels.values()):
+                results['errors'].append('No notification channels available for this player')
+                return results
+
+            match_details = self._format_ecs_fc_match_details(sub_request.match, sub_request)
+
+            response = EcsFcSubResponse(
+                request_id=request_id,
+                player_id=player_id,
+                is_available=None,
+                notification_sent_at=datetime.utcnow(),
+                notification_methods=','.join(
+                    ch for ch, enabled in available_channels.items() if enabled
+                )
+            )
+            response.generate_token()
+            db.session.add(response)
+            db.session.flush()
+
+            rsvp_url = self._build_rsvp_url(response.rsvp_token, 'ecs_fc')
+
+            send_results = self._send_notifications(
+                player=player,
+                channels=available_channels,
+                subject=f"Sub Request: ECS FC vs {match_details['opponent']}",
+                message=self._build_message(custom_message, match_details, rsvp_url),
+                rsvp_url=rsvp_url,
+                rsvp_token=response.rsvp_token,
+                league_type='ecs_fc',
+                request_id=request_id,
+                match_id=sub_request.match_id
+            )
+
+            results['channels_used'] = send_results['channels_sent']
+            results['response_id'] = response.id
+
+            if send_results['sent_count'] > 0:
+                results['success'] = True
+
+                if pool_entry:
+                    pool_entry.requests_received = (pool_entry.requests_received or 0) + 1
+                    pool_entry.last_active_at = datetime.utcnow()
+
+            db.session.commit()
+
+        except Exception as e:
+            logger.error(f"Error in notify_ecs_fc_individual: {e}")
+            db.session.rollback()
+            results['errors'].append(str(e))
+
+        return results
+
+    def _format_ecs_fc_match_details(self, match, sub_request) -> Dict[str, Any]:
+        """Format ECS FC match details for messages."""
+        team = sub_request.team
+
+        return {
+            'teams': f"ECS FC vs {match.opponent_name}" if match else 'ECS FC Match',
+            'opponent': match.opponent_name if match else 'TBD',
+            'team_name': team.name if team else 'ECS FC',
+            'date': match.match_date.strftime('%A, %B %d, %Y') if match and match.match_date else 'TBD',
+            'time': match.match_time.strftime('%I:%M %p') if match and match.match_time else 'TBD',
+            'location': match.location if match else 'TBD',
+            'positions_needed': sub_request.positions_needed or 'Any position',
+            'notes': sub_request.notes or ''
+        }
+
     def send_confirmation(
         self,
         assignment_id: int,
