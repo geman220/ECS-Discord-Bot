@@ -42,6 +42,10 @@ class AdminMatchOperationsManager {
             if (!target) return;
 
             const action = target.dataset.action;
+
+            // Defer to centralized EventDelegation for registered actions
+            if (window.EventDelegation && window.EventDelegation.isRegistered(action)) return;
+
             const matchId = target.dataset.matchId;
             const teamId = target.dataset.teamId;
             const playerId = target.dataset.playerId;
@@ -73,9 +77,6 @@ class AdminMatchOperationsManager {
                     break;
                 case 'view-match':
                     this.viewMatch(matchId);
-                    break;
-                case 'edit-match':
-                    this.editMatch(matchId);
                     break;
                 case 'enter-result':
                     this.enterResult(matchId);

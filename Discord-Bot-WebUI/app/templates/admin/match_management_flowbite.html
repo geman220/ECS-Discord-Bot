@@ -190,7 +190,7 @@
                         </button>
                         <div class="hidden match-menu absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600 z-10" data-menu-for="{{ match.id }}">
                             <div class="py-1">
-                                <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-match" data-match-id="{{ match.id }}">
+                                <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-match-report" data-match-id="{{ match.id }}">
                                     <i class="ti ti-edit mr-2"></i>Edit Match
                                 </button>
                                 <button type="button" class="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="debug-match" data-match-id="{{ match.id }}">
@@ -335,7 +335,7 @@
                                         <i class="ti ti-player-stop"></i>
                                     </button>
                                     {% endif %}
-                                    <button type="button" class="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-action="edit-match" data-match-id="{{ match.id }}" title="Edit">
+                                    <button type="button" class="p-1.5 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded" data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit">
                                         <i class="ti ti-edit"></i>
                                     </button>
                                 </div>

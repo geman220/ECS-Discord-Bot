@@ -29,6 +29,10 @@ function initAdminPanelMatchList() {
         if (!target) return;
 
         const action = target.dataset.action;
+
+        // Defer to centralized EventDelegation for registered actions
+        if (window.EventDelegation && window.EventDelegation.isRegistered(action)) return;
+
         const matchId = target.dataset.matchId;
         const matchName = target.dataset.matchName;
 

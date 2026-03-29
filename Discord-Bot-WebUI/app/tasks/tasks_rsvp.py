@@ -853,7 +853,7 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
     This task runs every Monday to:
       - Find all Sunday matches for the upcoming week
       - Schedule RSVP messages for each match without existing scheduled messages
-      - Set send time to 2 AM PST (10 AM UTC) on Monday for maximum visibility
+      - Set send time to 2 AM PST (10 AM UTC) on Monday (5 days before match) for maximum visibility
       - Create ScheduledMessage records in the database
       - Schedules messages with varying countdown times to prevent rate limiting
       
@@ -940,12 +940,12 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
         
         for i, match_data in enumerate(matches_data):
             if not match_data['has_message']:
-                # Calculate send time: 6 days before match at 2:00 AM PST (10:00 AM UTC)
+                # Calculate send time: 5 days before match at 2:00 AM PST (10:00 AM UTC)
                 match_date = match_data['date']
-                
-                # For Sunday matches, RSVP goes out 6 days before (Monday)
-                # Example: Sunday 9/7 match → RSVP on Monday 9/1 at 2am PST
-                rsvp_send_date = match_date - timedelta(days=6)
+
+                # For Sunday matches, RSVP goes out 5 days before (Monday at 2am PST)
+                # Example: Sunday 4/5 match → RSVP on Monday 3/31 at 2am PST
+                rsvp_send_date = match_date - timedelta(days=5)
                 
                 # Only schedule if the RSVP date is in the future
                 if rsvp_send_date <= today:

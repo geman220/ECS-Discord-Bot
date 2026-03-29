@@ -20,8 +20,6 @@ import { ModalManager } from '../js/modal-manager.js';
 import {
     isInitialized,
     setInitialized,
-    areEditButtonsSetup,
-    setEditButtonsSetup,
     setCurrentMatchData,
     getInitialEvents,
     setInitialEvents
@@ -75,9 +73,6 @@ export function initReportMatch() {
     if (typeof window.playerChoices === 'undefined') {
         window.playerChoices = {};
     }
-
-    // Setup edit match buttons when available
-    setupEditMatchButtons();
 }
 
 // Register with InitSystem
@@ -92,29 +87,6 @@ if (window.InitSystem && window.InitSystem.register) {
 // Ensure globals are available
 window.playerChoices = window.playerChoices || {};
 window.initialEvents = window.initialEvents || {};
-
-/**
- * Set up edit match buttons
- */
-export function setupEditMatchButtons() {
-    if (areEditButtonsSetup()) return;
-    setEditButtonsSetup();
-
-    const editButtons = document.querySelectorAll('.edit-match-btn');
-
-    if (editButtons.length > 0) {
-        editButtons.forEach(function(button) {
-            const matchId = button.getAttribute('data-match-id');
-            if (!matchId) return;
-
-            if (!button.hasAttribute('data-action')) {
-                button.setAttribute('data-action', 'edit-match-report');
-            }
-
-            button.setAttribute('data-match-id', matchId);
-        });
-    }
-}
 
 /**
  * Handle edit button clicks

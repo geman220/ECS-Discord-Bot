@@ -369,6 +369,9 @@ document.addEventListener('click', function(e) {
 
     const action = target.dataset.action;
 
+    // Defer to centralized EventDelegation for registered actions
+    if (window.EventDelegation && window.EventDelegation.isRegistered(action)) return;
+
     switch(action) {
         case 'force-cleanup':
             handleForceCleanup();

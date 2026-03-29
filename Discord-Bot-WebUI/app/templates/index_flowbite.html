@@ -215,13 +215,13 @@
                                     {% if has_permission('report_match') %}
                                     {% if match_data.get('is_ecs_fc') %}
                                     <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors edit-match-btn"
-                                            data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true">
+                                            data-action="edit-match-report" data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true">
                                         <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}"></i>
                                         <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
                                     </button>
                                     {% else %}
                                     <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors edit-match-btn"
-                                            data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}">
+                                            data-action="edit-match-report" data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}">
                                         <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}"></i>
                                         <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
                                     </button>
@@ -340,13 +340,13 @@
                                     {% if has_permission('report_match') %}
                                     {% if match_data.get('is_ecs_fc') %}
                                     <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors edit-match-btn"
-                                            data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true">
+                                            data-action="edit-match-report" data-match-id="ecs_{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}" data-is-ecs-fc="true">
                                         <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}"></i>
                                         <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
                                     </button>
                                     {% else %}
                                     <button class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors edit-match-btn"
-                                            data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}">
+                                            data-action="edit-match-report" data-match-id="{{ match_data['match_id'] }}" data-reported="{{ match_data['reported']|default(false) | lower }}">
                                         <i class="ti ti-{% if match_data['reported'] %}edit{% else %}report{% endif %}"></i>
                                         <span class="hidden sm:inline ml-1">{% if match_data['reported'] %}Edit{% else %}Report{% endif %}</span>
                                     </button>

@@ -42,6 +42,9 @@ let _initialized = false;
 
       const action = target.dataset.action;
 
+      // Defer to centralized EventDelegation for registered actions
+      if (window.EventDelegation && window.EventDelegation.isRegistered(action)) return;
+
       switch(action) {
         case 'clear-search':
           handleClearSearch(e);

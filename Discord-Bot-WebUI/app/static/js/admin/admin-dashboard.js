@@ -97,6 +97,9 @@ const AdminDashboard = {
 
             const action = actionElement.dataset.action;
 
+            // Defer to centralized EventDelegation for registered actions
+            if (window.EventDelegation && window.EventDelegation.isRegistered(action)) return;
+
             switch(action) {
                 case CONFIG.selectors.actions.refreshContainers:
                     e.preventDefault();

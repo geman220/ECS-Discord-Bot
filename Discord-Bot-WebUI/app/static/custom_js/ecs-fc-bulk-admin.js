@@ -56,13 +56,16 @@ export class ECSFCScheduleManager {
             const action = e.target.closest('[data-action]')?.dataset.action;
             if (!action) return;
 
+            // Defer to centralized EventDelegation for registered actions
+            if (window.EventDelegation && window.EventDelegation.isRegistered(action)) return;
+
             const target = e.target.closest('[data-action]');
 
             switch(action) {
                 case 'generate-form':
                     this.handleGenerateForm(target.dataset.leagueName);
                     break;
-                case 'edit-match':
+                case 'edit-ecsfc-schedule-match':
                     this.handleEditMatch(target);
                     break;
                 case 'add-single-week':

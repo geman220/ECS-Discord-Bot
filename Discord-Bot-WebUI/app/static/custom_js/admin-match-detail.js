@@ -59,6 +59,9 @@ function handleClick(e) {
 
     const actionType = action.dataset.action;
 
+    // Defer to centralized EventDelegation for registered actions
+    if (window.EventDelegation && window.EventDelegation.isRegistered(actionType)) return;
+
     // Route to appropriate handler based on data-action value
     switch (actionType) {
         case 'schedule-match':

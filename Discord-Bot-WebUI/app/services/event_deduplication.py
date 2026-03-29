@@ -126,6 +126,7 @@ def find_near_duplicate_match_events(
 
     # Filter by minute range (±NEAR_DUPLICATE_MINUTE_WINDOW) if provided
     if minute is not None:
+        minute = int(minute)
         minute_conditions = [MatchEvent.minute == minute + offset
                            for offset in range(-NEAR_DUPLICATE_MINUTE_WINDOW, NEAR_DUPLICATE_MINUTE_WINDOW + 1)]
         query = query.filter(or_(*minute_conditions))

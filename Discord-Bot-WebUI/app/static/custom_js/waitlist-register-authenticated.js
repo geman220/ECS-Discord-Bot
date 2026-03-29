@@ -29,6 +29,9 @@ export function initWaitlistRegisterAuthenticated() {
 
         const action = target.dataset.action;
 
+        // Defer to centralized EventDelegation for registered actions
+        if (window.EventDelegation && window.EventDelegation.isRegistered(action)) return;
+
         switch(action) {
             case 'show-profile-modal':
                 showProfileModal();

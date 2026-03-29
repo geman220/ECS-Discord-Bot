@@ -10,10 +10,6 @@ if (typeof window._reportMatchInitialized === 'undefined') {
     window._reportMatchInitialized = false;
 }
 
-if (typeof window._editMatchButtonsSetup === 'undefined') {
-    window._editMatchButtonsSetup = false;
-}
-
 // Initialize playerChoices if not defined
 if (typeof window.playerChoices === 'undefined') {
     window.playerChoices = {};
@@ -37,21 +33,6 @@ export function setInitialized() {
  */
 export function isInitialized() {
     return window._reportMatchInitialized === true;
-}
-
-/**
- * Mark edit buttons as setup
- */
-export function setEditButtonsSetup() {
-    window._editMatchButtonsSetup = true;
-}
-
-/**
- * Check if edit buttons are setup
- * @returns {boolean}
- */
-export function areEditButtonsSetup() {
-    return window._editMatchButtonsSetup === true;
 }
 
 /**
@@ -192,8 +173,6 @@ export function setCurrentMatchData(data) {
 export default {
     setInitialized,
     isInitialized,
-    setEditButtonsSetup,
-    areEditButtonsSetup,
     getPlayerChoices,
     setPlayerChoices,
     initializePlayerChoices,

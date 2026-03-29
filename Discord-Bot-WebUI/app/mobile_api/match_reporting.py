@@ -15,6 +15,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload
 from sqlalchemy import and_
 
+from datetime import datetime
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, Match, player_teams
@@ -147,6 +148,14 @@ def get_match_reporting_info(match_id: int):
         can_report = can_report_match(session, user, player, match)
         coach_team_id = get_coach_team_id(session, player.id, match) if player and is_coach_for_match(session, player.id, match) else None
 
+        # Determine verification permissions
+        is_admin = user.has_role('Global Admin') or user.has_role('Pub League Admin')
+        is_ref = user.has_role('Pub League Ref') or (player and player.is_ref and match.ref_id == player.id)
+        admin_or_ref = is_admin or is_ref
+        user_team_ids = [t.id for t in player.teams] if player else []
+        can_verify_home = admin_or_ref or (match.home_team_id in user_team_ids)
+        can_verify_away = admin_or_ref or (match.away_team_id in user_team_ids)
+
         # Build availability lookup by player_id
         availability_by_player = {}
         for a in match.availability:
@@ -209,12 +218,23 @@ def get_match_reporting_info(match_id: int):
                     "name": match.away_team.name
                 },
                 "home_team_score": match.home_team_score,
-                "away_team_score": match.away_team_score
+                "away_team_score": match.away_team_score,
+                "home_team_verified": match.home_team_verified,
+                "away_team_verified": match.away_team_verified,
+                "fully_verified": match.fully_verified,
+                "home_verifier": (match.home_verifier.player.name if match.home_verifier and hasattr(match.home_verifier, 'player') and match.home_verifier.player
+                                  else match.home_verifier.username if match.home_verifier else None),
+                "away_verifier": (match.away_verifier.player.name if match.away_verifier and hasattr(match.away_verifier, 'player') and match.away_verifier.player
+                                  else match.away_verifier.username if match.away_verifier else None),
+                "home_team_verified_at": match.home_team_verified_at.isoformat() if match.home_team_verified_at else None,
+                "away_team_verified_at": match.away_team_verified_at.isoformat() if match.away_team_verified_at else None
             },
             "home_roster": home_players,
             "away_roster": away_players,
             "events": events,
             "can_report": can_report,
+            "can_verify_home": can_verify_home,
+            "can_verify_away": can_verify_away,
             "coach_team_id": coach_team_id
         }), 200
 
@@ -674,6 +694,29 @@ def report_match(match_id: int):
         if notes:
             match.notes = notes
 
+        # Handle verification if requested
+        verify_home = data.get('verify_home_team', False)
+        verify_away = data.get('verify_away_team', False)
+
+        if verify_home or verify_away:
+            is_admin = user.has_role('Global Admin') or user.has_role('Pub League Admin')
+            is_ref = user.has_role('Pub League Ref') or (player and player.is_ref and match.ref_id == player.id)
+            admin_or_ref = is_admin or is_ref
+            user_team_ids = [t.id for t in player.teams] if player else []
+            now = datetime.utcnow()
+
+            if verify_home and (admin_or_ref or match.home_team_id in user_team_ids):
+                match.home_team_verified = True
+                match.home_team_verified_by = current_user_id
+                match.home_team_verified_at = now
+                logger.info(f"Home team verified for match {match_id} by user {current_user_id}")
+
+            if verify_away and (admin_or_ref or match.away_team_id in user_team_ids):
+                match.away_team_verified = True
+                match.away_team_verified_by = current_user_id
+                match.away_team_verified_at = now
+                logger.info(f"Away team verified for match {match_id} by user {current_user_id}")
+
         # Add events if provided (with idempotency support)
         events_data = data.get('events', [])
         events_result = []
@@ -759,7 +802,10 @@ def report_match(match_id: int):
                 "home_team_score": match.home_team_score,
                 "away_team_score": match.away_team_score,
                 "reported": match.reported,
-                "notes": match.notes
+                "notes": match.notes,
+                "home_team_verified": match.home_team_verified,
+                "away_team_verified": match.away_team_verified,
+                "fully_verified": match.fully_verified
             },
             "events_created": created_count,
             "events_duplicate": duplicate_count,
@@ -1008,3 +1054,118 @@ def resolve_event_conflict(match_id: int):
                 },
                 "message": "Event created (conflict resolved)"
             }), 201
+
+
+@mobile_api_v2.route('/matches/<int:match_id>/verify', methods=['POST'])
+@jwt_required()
+def verify_match(match_id: int):
+    """
+    Verify match results for a team.
+
+    Each team's coach must verify separately. Admins and refs can verify any team.
+
+    Args:
+        match_id: Match ID
+
+    Expected JSON:
+        team: 'home', 'away', or 'both' (which team to verify for)
+
+    Returns:
+        JSON with updated verification status
+    """
+    current_user_id = int(get_jwt_identity())
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    team = data.get('team')
+    if team not in ('home', 'away', 'both'):
+        return jsonify({"msg": "team must be 'home', 'away', or 'both'"}), 400
+
+    with managed_session() as session:
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
+        player = session.query(Player).filter_by(user_id=current_user_id).first()
+
+        match = session.query(Match).options(
+            joinedload(Match.home_team),
+            joinedload(Match.away_team),
+            joinedload(Match.home_verifier),
+            joinedload(Match.away_verifier)
+        ).get(match_id)
+
+        if not match:
+            return jsonify({"msg": "Match not found"}), 404
+
+        # Match must be reported before it can be verified
+        if not match.reported:
+            return jsonify({"msg": "Match must be reported before it can be verified"}), 400
+
+        # Determine permissions
+        is_admin = user.has_role('Global Admin') or user.has_role('Pub League Admin')
+        is_ref = user.has_role('Pub League Ref') or (player and player.is_ref and match.ref_id == player.id)
+        admin_or_ref = is_admin or is_ref
+        user_team_ids = [t.id for t in player.teams] if player else []
+
+        now = datetime.utcnow()
+        verified_teams = []
+
+        # Verify home team
+        if team in ('home', 'both'):
+            can_verify_home = admin_or_ref or (match.home_team_id in user_team_ids)
+            if not can_verify_home:
+                return jsonify({"msg": "You are not authorized to verify for the home team"}), 403
+            if match.home_team_verified:
+                verified_teams.append('home (already verified)')
+            else:
+                match.home_team_verified = True
+                match.home_team_verified_by = current_user_id
+                match.home_team_verified_at = now
+                verified_teams.append('home')
+                logger.info(f"Home team verified for match {match_id} by user {current_user_id}")
+
+        # Verify away team
+        if team in ('away', 'both'):
+            can_verify_away = admin_or_ref or (match.away_team_id in user_team_ids)
+            if not can_verify_away:
+                return jsonify({"msg": "You are not authorized to verify for the away team"}), 403
+            if match.away_team_verified:
+                verified_teams.append('away (already verified)')
+            else:
+                match.away_team_verified = True
+                match.away_team_verified_by = current_user_id
+                match.away_team_verified_at = now
+                verified_teams.append('away')
+                logger.info(f"Away team verified for match {match_id} by user {current_user_id}")
+
+        session.commit()
+
+        return jsonify({
+            "success": True,
+            "verified_teams": verified_teams,
+            "match": {
+                "id": match.id,
+                "home_team": {
+                    "id": match.home_team.id,
+                    "name": match.home_team.name
+                },
+                "away_team": {
+                    "id": match.away_team.id,
+                    "name": match.away_team.name
+                },
+                "home_team_score": match.home_team_score,
+                "away_team_score": match.away_team_score,
+                "home_team_verified": match.home_team_verified,
+                "away_team_verified": match.away_team_verified,
+                "fully_verified": match.fully_verified,
+                "home_verifier": (match.home_verifier.player.name if match.home_verifier and hasattr(match.home_verifier, 'player') and match.home_verifier.player
+                                  else match.home_verifier.username if match.home_verifier else None),
+                "away_verifier": (match.away_verifier.player.name if match.away_verifier and hasattr(match.away_verifier, 'player') and match.away_verifier.player
+                                  else match.away_verifier.username if match.away_verifier else None),
+                "home_team_verified_at": match.home_team_verified_at.isoformat() if match.home_team_verified_at else None,
+                "away_team_verified_at": match.away_team_verified_at.isoformat() if match.away_team_verified_at else None
+            }
+        }), 200

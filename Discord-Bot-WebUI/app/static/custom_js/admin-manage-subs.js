@@ -103,6 +103,9 @@ function handleClick(e) {
 
     const actionType = action.dataset.action;
 
+    // Defer to centralized EventDelegation for registered actions
+    if (window.EventDelegation && window.EventDelegation.isRegistered(actionType)) return;
+
     switch (actionType) {
         case 'load-assignments':
             e.preventDefault();

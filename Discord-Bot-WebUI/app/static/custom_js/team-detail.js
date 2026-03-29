@@ -78,6 +78,9 @@ export function initializeEventDelegation() {
 
         const action = target.dataset.action;
 
+        // Defer to centralized EventDelegation for registered actions
+        if (window.EventDelegation && window.EventDelegation.isRegistered(action)) return;
+
         switch(action) {
             case 'trigger-file-input':
                 handleTriggerFileInput(target);
@@ -105,9 +108,6 @@ export function initializeEventDelegation() {
                 break;
             case 'refresh-player-discord':
                 handleRefreshPlayerDiscord(target);
-                break;
-            case 'edit-match':
-                // Handled by report_match.js
                 break;
             case 'close-modal':
                 // Modal close - Bootstrap handles this
