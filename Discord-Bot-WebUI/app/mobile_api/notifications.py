@@ -23,6 +23,69 @@ from app.models.notifications import UserFCMToken
 logger = logging.getLogger(__name__)
 
 
+@mobile_api_v2.route('/notifications/register-token', methods=['POST'])
+@jwt_required()
+def register_fcm_token():
+    """
+    Register an FCM token for push notifications.
+
+    Expected JSON parameters:
+        fcm_token: The Firebase Cloud Messaging token
+        platform: 'ios' or 'android'
+
+    Returns:
+        JSON with registration result
+    """
+    current_user_id = int(get_jwt_identity())
+
+    data = request.json or {}
+    fcm_token = data.get('fcm_token')
+    platform = data.get('platform', 'unknown')
+
+    if not fcm_token:
+        return jsonify({"msg": "Missing fcm_token"}), 400
+
+    if platform not in ('ios', 'android', 'web', 'unknown'):
+        platform = 'unknown'
+
+    logger.info(f"Registering FCM token for user {current_user_id}: platform={platform}")
+
+    with managed_session() as session_db:
+        user = session_db.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
+        try:
+            existing = session_db.query(UserFCMToken).filter_by(
+                fcm_token=fcm_token
+            ).first()
+
+            if existing:
+                if existing.user_id != current_user_id:
+                    existing.user_id = current_user_id
+                existing.platform = platform
+                existing.is_active = True
+                existing.updated_at = datetime.utcnow()
+                existing.last_used = datetime.utcnow()
+            else:
+                new_token = UserFCMToken(
+                    user_id=current_user_id,
+                    fcm_token=fcm_token,
+                    platform=platform,
+                    is_active=True,
+                )
+                session_db.add(new_token)
+
+            session_db.commit()
+
+            return jsonify({"msg": "Token registered successfully"}), 200
+
+        except Exception as e:
+            logger.exception(f"Error registering FCM token: {e}")
+            session_db.rollback()
+            return jsonify({"msg": "Failed to register token"}), 500
+
+
 @mobile_api_v2.route('/notifications/register', methods=['POST'])
 @jwt_required()
 def register_device():

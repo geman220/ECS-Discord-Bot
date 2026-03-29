@@ -30,6 +30,7 @@ from app.app_api_helpers import (
     get_player_stats,
 )
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
+from app.utils.session_utils import create_user_session
 
 logger = logging.getLogger(__name__)
 
@@ -165,9 +166,12 @@ def discord_callback():
             if not user:
                 return jsonify({"msg": "Failed to process Discord user"}), 500
 
-            # Create JWT access and refresh tokens for the user
-            access_token = create_access_token(identity=str(user.id))
-            refresh_token = create_refresh_token(identity=str(user.id))
+            # Create session record and JWT tokens
+            session_id = create_user_session(session_db, user.id)
+            session_db.commit()
+
+            access_token = create_access_token(identity=str(user.id), additional_claims={'sid': session_id})
+            refresh_token = create_refresh_token(identity=str(user.id), additional_claims={'sid': session_id})
 
             return jsonify({
                 "access_token": access_token,
@@ -212,8 +216,11 @@ def login():
         if user.is_2fa_enabled:
             return jsonify({"msg": "2FA required", "user_id": user.id}), 200
 
-        access_token = create_access_token(identity=str(user.id))
-        refresh_token = create_refresh_token(identity=str(user.id))
+        session_id = create_user_session(session_db, user.id)
+        session_db.commit()
+
+        access_token = create_access_token(identity=str(user.id), additional_claims={'sid': session_id})
+        refresh_token = create_refresh_token(identity=str(user.id), additional_claims={'sid': session_id})
         return jsonify(access_token=access_token, refresh_token=refresh_token), 200
 
 
@@ -241,8 +248,11 @@ def verify_2fa():
         if not user or not user.verify_totp(token):
             return jsonify({"msg": "Invalid 2FA token"}), 401
 
-        access_token = create_access_token(identity=str(user.id))
-        refresh_token = create_refresh_token(identity=str(user.id))
+        session_id = create_user_session(session_db, user.id)
+        session_db.commit()
+
+        access_token = create_access_token(identity=str(user.id), additional_claims={'sid': session_id})
+        refresh_token = create_refresh_token(identity=str(user.id), additional_claims={'sid': session_id})
         return jsonify(access_token=access_token, refresh_token=refresh_token), 200
 
 
@@ -261,6 +271,8 @@ def refresh_token():
     from app.init.jwt import add_token_to_blocklist
 
     current_user_id = get_jwt_identity()
+    jwt_data = get_jwt()
+    session_id = jwt_data.get('sid')
 
     with managed_session() as session_db:
         user = session_db.query(User).filter_by(id=int(current_user_id)).first()
@@ -273,8 +285,18 @@ def refresh_token():
             logger.warning(f"Token refresh attempted for unapproved user: {current_user_id}")
             return jsonify({"msg": "Account not approved"}), 403
 
-        # Create new access token
-        new_access_token = create_access_token(identity=str(user.id))
+        # Update session last_activity
+        if session_id:
+            from app.models.sessions import UserSession
+            from datetime import datetime
+            user_session = session_db.query(UserSession).get(session_id)
+            if user_session and user_session.is_active:
+                user_session.last_activity = datetime.utcnow()
+                session_db.commit()
+
+        # Create new access token preserving session ID
+        claims = {'sid': session_id} if session_id else {}
+        new_access_token = create_access_token(identity=str(user.id), additional_claims=claims)
         logger.info(f"Access token refreshed for user: {user.username}")
 
         return jsonify({"access_token": new_access_token}), 200

@@ -32,14 +32,18 @@ def init_jwt(app):
 
     @jwt.token_in_blocklist_loader
     def check_if_token_in_blocklist(jwt_header, jwt_payload):
-        """Check if a token has been revoked."""
+        """Check if a token has been revoked (by JTI or session ID)."""
         jti = jwt_payload.get('jti')
-        if not jti:
-            return False
+        sid = jwt_payload.get('sid')  # Session ID embedded at login
         try:
             redis_client = current_app.redis
             if redis_client:
-                return redis_client.exists(f"jwt_blocklist:{jti}") > 0
+                # Check per-token revocation
+                if jti and redis_client.exists(f"jwt_blocklist:{jti}") > 0:
+                    return True
+                # Check per-session revocation
+                if sid and redis_client.exists(f"session_revoked:{sid}") > 0:
+                    return True
         except Exception as e:
             logger.error(f"Error checking token blocklist: {e}")
         return False

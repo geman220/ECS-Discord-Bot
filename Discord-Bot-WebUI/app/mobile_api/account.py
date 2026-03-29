@@ -67,10 +67,7 @@ def change_password():
 
         logger.info(f"Password changed for user {user.username}")
 
-        return jsonify({
-            "success": True,
-            "message": "Password changed successfully"
-        }), 200
+        return jsonify({"msg": "Password changed successfully"}), 200
 
 
 @mobile_api_v2.route('/account/2fa/setup', methods=['POST'])
@@ -162,7 +159,7 @@ def enable_2fa():
         # Verify the token
         totp = pyotp.TOTP(user.totp_secret)
         if not totp.verify(token):
-            return jsonify({"msg": "Invalid verification code"}), 401
+            return jsonify({"msg": "Invalid verification code"}), 400
 
         # Enable 2FA
         user.is_2fa_enabled = True
@@ -170,10 +167,7 @@ def enable_2fa():
 
         logger.info(f"2FA enabled for user {user.username}")
 
-        return jsonify({
-            "success": True,
-            "message": "2FA enabled successfully"
-        }), 200
+        return jsonify({"msg": "Two-factor authentication enabled successfully"}), 200
 
 
 @mobile_api_v2.route('/account/2fa', methods=['DELETE'])
@@ -198,8 +192,8 @@ def disable_2fa():
     password = data.get('password')
     token = data.get('token')
 
-    if not password:
-        return jsonify({"msg": "Password is required to disable 2FA"}), 400
+    if not password or not token:
+        return jsonify({"msg": "Password and token are required to disable 2FA"}), 400
 
     with managed_session() as session:
         user = session.query(User).get(current_user_id)
@@ -213,11 +207,13 @@ def disable_2fa():
         if not user.check_password(password):
             return jsonify({"msg": "Incorrect password"}), 401
 
-        # Optionally verify 2FA token if provided
-        if token and user.totp_secret:
-            totp = pyotp.TOTP(user.totp_secret)
-            if not totp.verify(token):
-                return jsonify({"msg": "Invalid 2FA code"}), 401
+        # Verify 2FA token
+        if not user.totp_secret:
+            return jsonify({"msg": "2FA secret not found"}), 400
+
+        totp = pyotp.TOTP(user.totp_secret)
+        if not totp.verify(token):
+            return jsonify({"msg": "Invalid 2FA code"}), 401
 
         # Disable 2FA
         user.is_2fa_enabled = False
@@ -226,10 +222,7 @@ def disable_2fa():
 
         logger.info(f"2FA disabled for user {user.username}")
 
-        return jsonify({
-            "success": True,
-            "message": "2FA disabled successfully"
-        }), 200
+        return jsonify({"msg": "Two-factor authentication disabled"}), 200
 
 
 @mobile_api_v2.route('/account/profile', methods=['PUT'])
@@ -569,3 +562,286 @@ def delete_profile_picture():
         except Exception as e:
             logger.error(f"Error removing profile picture: {e}")
             return jsonify({"msg": "Failed to remove profile picture"}), 500
+
+
+# ---------------------------------------------------------------------------
+# Change Email (Spec H)
+# ---------------------------------------------------------------------------
+
+@mobile_api_v2.route('/account/change-email', methods=['POST'])
+@jwt_required()
+def change_email():
+    """
+    Change the current user's email address.
+
+    Expected JSON:
+        new_email: The new email address
+        password: Current password for verification
+
+    Returns:
+        JSON with success message
+    """
+    current_user_id = int(get_jwt_identity())
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    new_email = data.get('new_email')
+    password = data.get('password')
+
+    if not new_email or not password:
+        return jsonify({"msg": "new_email and password are required"}), 400
+
+    # Validate email format
+    import re
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, new_email):
+        return jsonify({"msg": "Invalid email format"}), 400
+
+    with managed_session() as session:
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
+        if not user.check_password(password):
+            return jsonify({"msg": "Incorrect password"}), 401
+
+        # Check uniqueness via email hash
+        from app.utils.pii_encryption import create_hash
+        new_hash = create_hash(new_email.lower())
+        existing = session.query(User).filter(
+            User.email_hash == new_hash,
+            User.id != current_user_id,
+        ).first()
+        if existing:
+            return jsonify({"msg": "Email already in use"}), 409
+
+        # Update email (setter handles encryption + hash)
+        user.email = new_email.lower()
+        session.commit()
+
+        logger.info(f"Email changed for user {user.username}")
+
+        return jsonify({"msg": "Email updated successfully"}), 200
+
+
+# ---------------------------------------------------------------------------
+# Active Sessions (Spec F)
+# ---------------------------------------------------------------------------
+
+@mobile_api_v2.route('/account/sessions', methods=['GET'])
+@jwt_required()
+def get_sessions():
+    """
+    List active sessions for the current user.
+
+    Returns:
+        JSON with sessions list, each including is_current flag
+    """
+    from flask_jwt_extended import get_jwt
+    from app.models.sessions import UserSession
+
+    current_user_id = int(get_jwt_identity())
+    current_sid = get_jwt().get('sid')
+
+    with managed_session() as session:
+        sessions = session.query(UserSession).filter_by(
+            user_id=current_user_id,
+            is_active=True,
+        ).order_by(UserSession.last_activity.desc()).all()
+
+        return jsonify({
+            "sessions": [
+                s.to_dict(is_current=(s.id == current_sid))
+                for s in sessions
+            ]
+        }), 200
+
+
+# ---------------------------------------------------------------------------
+# Revoke Session (Spec G)
+# ---------------------------------------------------------------------------
+
+@mobile_api_v2.route('/account/sessions/<session_id>', methods=['DELETE'])
+@jwt_required()
+def revoke_session(session_id):
+    """
+    Revoke an active session.
+
+    Path parameter:
+        session_id: The session ID to revoke
+
+    Returns:
+        JSON with success message
+    """
+    from app.models.sessions import UserSession
+    from app.utils.session_utils import revoke_user_session
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        user_session = session.query(UserSession).filter_by(
+            id=session_id,
+            user_id=current_user_id,
+            is_active=True,
+        ).first()
+
+        if not user_session:
+            return jsonify({"msg": "Session not found"}), 404
+
+        # Revoke in Redis so JWTs with this sid are immediately rejected
+        revoke_user_session(session_id)
+
+        user_session.is_active = False
+        session.commit()
+
+        logger.info(f"Session {session_id[:8]}... revoked for user {current_user_id}")
+
+        return jsonify({"msg": "Session revoked successfully"}), 200
+
+
+# ---------------------------------------------------------------------------
+# Deactivate Account (Spec J)
+# ---------------------------------------------------------------------------
+
+@mobile_api_v2.route('/account/deactivate', methods=['POST'])
+@jwt_required()
+def deactivate_account():
+    """
+    Temporarily deactivate the current user's account.
+
+    Expected JSON:
+        password: Current password for verification
+        reason: Optional reason for deactivation
+
+    Returns:
+        JSON with success message
+    """
+    from app.models.sessions import UserSession
+    from app.models.notifications import UserFCMToken
+    from app.utils.session_utils import revoke_user_session
+
+    current_user_id = int(get_jwt_identity())
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    password = data.get('password')
+    reason = data.get('reason')
+    if not password:
+        return jsonify({"msg": "Password is required"}), 400
+
+    with managed_session() as session:
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
+        if not user.check_password(password):
+            return jsonify({"msg": "Incorrect password"}), 401
+
+        # Deactivate account
+        user.is_active = False
+
+        # Revoke all active sessions
+        active_sessions = session.query(UserSession).filter_by(
+            user_id=current_user_id, is_active=True,
+        ).all()
+        for s in active_sessions:
+            revoke_user_session(s.id)
+            s.is_active = False
+
+        # Deactivate all FCM tokens
+        session.query(UserFCMToken).filter_by(
+            user_id=current_user_id, is_active=True,
+        ).update({
+            'is_active': False,
+            'deactivated_reason': 'account_deactivated',
+        })
+
+        session.commit()
+
+        logger.info(f"Account deactivated for user {user.username}" +
+                     (f", reason: {reason}" if reason else ""))
+
+        return jsonify({"msg": "Account deactivated successfully"}), 200
+
+
+# ---------------------------------------------------------------------------
+# Delete Account (Spec K)
+# ---------------------------------------------------------------------------
+
+@mobile_api_v2.route('/account', methods=['DELETE'])
+@jwt_required()
+def delete_account():
+    """
+    Permanently delete the current user's account.
+    Clears all PII, revokes sessions, and deactivates the account.
+
+    Expected JSON:
+        password: Current password for verification
+        confirmation: Must be exactly "DELETE MY ACCOUNT"
+
+    Returns:
+        JSON with success message
+    """
+    from app.models.sessions import UserSession
+    from app.models.notifications import UserFCMToken
+    from app.utils.session_utils import revoke_user_session
+
+    current_user_id = int(get_jwt_identity())
+
+    data = request.get_json()
+    if not data:
+        return jsonify({"msg": "Missing request data"}), 400
+
+    password = data.get('password')
+    confirmation = data.get('confirmation')
+
+    if not password:
+        return jsonify({"msg": "Password is required"}), 400
+
+    if confirmation != "DELETE MY ACCOUNT":
+        return jsonify({"msg": "Invalid confirmation string"}), 400
+
+    with managed_session() as session:
+        user = session.query(User).get(current_user_id)
+        if not user:
+            return jsonify({"msg": "User not found"}), 404
+
+        if not user.check_password(password):
+            return jsonify({"msg": "Incorrect password"}), 401
+
+        username = user.username  # capture for logging before clearing
+
+        # Revoke all sessions
+        active_sessions = session.query(UserSession).filter_by(
+            user_id=current_user_id, is_active=True,
+        ).all()
+        for s in active_sessions:
+            revoke_user_session(s.id)
+            s.is_active = False
+
+        # Deactivate all FCM tokens
+        session.query(UserFCMToken).filter_by(
+            user_id=current_user_id,
+        ).update({
+            'is_active': False,
+            'deactivated_reason': 'account_deleted',
+        })
+
+        # Clear PII and deactivate
+        user.encrypted_email = None
+        user.email_hash = None
+        user.password_hash = 'DELETED'
+        user.is_active = False
+        user.is_2fa_enabled = False
+        user.totp_secret = None
+        user.username = f'deleted_user_{user.id}'
+
+        session.commit()
+
+        logger.info(f"Account permanently deleted for former user {username} (id={current_user_id})")
+
+        return jsonify({"msg": "Account deleted successfully"}), 200

@@ -51,6 +51,10 @@ from .notifications import (
     UserFCMToken
 )
 
+from .sessions import (
+    UserSession
+)
+
 from .push_campaigns import (
     NotificationGroup, NotificationGroupMember, PushNotificationCampaign,
     GroupType, CampaignStatus, CampaignPriority, TargetType
@@ -201,6 +205,9 @@ __all__ = [
     
     # Push notification models
     'UserFCMToken',
+
+    # Session tracking models
+    'UserSession',
 
     # Push campaign models
     'NotificationGroup', 'NotificationGroupMember', 'PushNotificationCampaign',
