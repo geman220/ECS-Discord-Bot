@@ -277,7 +277,7 @@ const ChatWidget = {
 
 // Backward compatibility - expose to global scope
 window.ChatWidget = ChatWidget;
-window.escapeHtml = escapeHtml;
+// Note: NOT exporting escapeHtml to window - safe-html.js is the canonical source.
 
 // Export for ES modules
 export {

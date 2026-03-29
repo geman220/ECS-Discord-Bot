@@ -467,7 +467,7 @@ window.PushCampaigns = PushCampaigns;
 
 // Backward compatibility
 window.CampaignsConfig = CampaignsConfig;
-window.handleGoBack = handleGoBack;
+// Note: NOT exporting handleGoBack to window - message-template-detail.js already exports it.
 window.handleViewCampaign = handleViewCampaign;
 window.handleEditCampaign = handleEditCampaign;
 window.handleSendCampaign = handleSendCampaign;

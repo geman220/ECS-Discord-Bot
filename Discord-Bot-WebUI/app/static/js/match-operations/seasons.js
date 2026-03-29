@@ -373,7 +373,8 @@ if (true && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Backward compatibility
-window.createSeason = createSeason;
+// Note: NOT exporting createSeason to window - it conflicts with auto_schedule_wizard.js
+// which also uses window.createSeason. The wizard version is the canonical one.
 window.submitCreateSeason = submitCreateSeason;
 window.viewSeason = viewSeason;
 window.editSeason = editSeason;

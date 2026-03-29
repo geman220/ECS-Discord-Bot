@@ -100,5 +100,5 @@ if (window.InitSystem && window.InitSystem.register) {
 // Fallback
 // window.InitSystem handles initialization
 
-// Window export - used by user-approval.js event handler
-window.refreshStats = refreshStats;
+// Note: NOT exporting refreshStats to window - it conflicts with user-approval-management.js
+// which also uses window.refreshStats. Cache stats refreshStats is only used internally.

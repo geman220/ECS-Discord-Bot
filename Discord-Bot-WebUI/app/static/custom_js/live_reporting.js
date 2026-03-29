@@ -874,4 +874,5 @@ if (window.InitSystem && window.InitSystem.register) {
 // window.InitSystem handles initialization
 
 // Window exports - only functions used by event delegation handlers
-window.addEvent = addEvent;
+// Note: NOT exporting addEvent to window - it conflicts with match-reporting/event-entries.js
+// which also uses window.addEvent. Live reporting's addEvent is only used internally via import.
