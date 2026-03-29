@@ -70,30 +70,6 @@ def health_check():
     }), 200
 
 
-@mobile_api_v2.route('/debug/routes', methods=['GET'])
-@jwt_role_required('Global Admin')
-def debug_routes():
-    """
-    List all registered API routes matching a pattern (admin only).
-    Useful for verifying routes exist on the running server.
-
-    Query params:
-        q: filter pattern (e.g. "lineup", "position")
-    """
-    pattern = request.args.get('q', 'lineup').lower()
-    routes = []
-    for rule in current_app.url_map.iter_rules():
-        if pattern in str(rule).lower():
-            methods = sorted(rule.methods - {'OPTIONS', 'HEAD'})
-            routes.append({
-                'rule': rule.rule,
-                'methods': methods,
-                'endpoint': rule.endpoint
-            })
-    routes.sort(key=lambda r: r['rule'])
-    return jsonify({'routes': routes, 'count': len(routes)}), 200
-
-
 # =============================================================================
 # Mobile App Logging Endpoints
 # =============================================================================

@@ -205,6 +205,23 @@ def view_seasonal_schedule(season_id):
     # Sort by week number
     schedule_by_week = dict(sorted(schedule_by_week.items()))
 
+    # Compute Classic practice state per week for the toggle button
+    classic_league = next((l for l in leagues if l.name.lower() == 'classic'), None)
+    for week_num, week_data in schedule_by_week.items():
+        week_data['has_classic_practice'] = False
+        week_data['has_classic_first_window'] = False
+        if classic_league:
+            classic_matches = [m for m in week_data['matches']
+                               if hasattr(m, 'home_team') and m.home_team
+                               and m.home_team.league_id == classic_league.id]
+            if classic_matches:
+                min_time = min(m.time for m in classic_matches)
+                first_window = [m for m in classic_matches if m.time == min_time]
+                week_data['has_classic_first_window'] = True
+                week_data['has_classic_practice'] = all(
+                    m.week_type == 'PRACTICE' for m in first_window
+                )
+
     return render_template(
         'seasonal_schedule_view_flowbite.html',
         season=season,
@@ -1141,6 +1158,132 @@ def add_match():
         return jsonify({'success': False, 'error': 'Internal Server Error'})
 
 
+@auto_schedule_bp.route('/toggle-classic-practice', methods=['POST'])
+@login_required
+@role_required(['Pub League Admin', 'Global Admin'])
+def toggle_classic_practice():
+    """
+    Toggle Classic division practice for the first time window of a given week.
+
+    Two modes:
+    - Add practice (no 'matchups'): marks first-window matches as PRACTICE.
+    - Remove practice ('matchups' provided): replaces practice entries with
+      real matchups and sets week_type back to REGULAR.
+    """
+    session = g.db_session
+
+    try:
+        data = request.get_json()
+        week_number = data.get('week_number')
+        season_id = data.get('season_id')
+        matchups = data.get('matchups')  # Optional: for removing practice
+
+        if not week_number or not season_id:
+            return jsonify({'success': False, 'error': 'Week number and season ID are required'})
+
+        week_str = str(week_number)
+
+        # Find Classic league for this season
+        classic_league = session.query(League).filter_by(season_id=season_id).filter(
+            func.lower(League.name) == 'classic'
+        ).first()
+
+        if not classic_league:
+            return jsonify({'success': False, 'error': 'Classic league not found for this season'})
+
+        # Find all Classic matches for this week
+        classic_matches = session.query(Match).join(
+            Schedule, Match.schedule_id == Schedule.id
+        ).join(Team, Schedule.team_id == Team.id).filter(
+            Team.league_id == classic_league.id,
+            Schedule.week == week_str
+        ).all()
+
+        if not classic_matches:
+            return jsonify({'success': False, 'error': 'No Classic matches found for this week'})
+
+        # Find the first time window (earliest time among Classic matches)
+        min_time = min(m.time for m in classic_matches)
+        first_window_matches = [m for m in classic_matches if m.time == min_time]
+
+        if matchups:
+            # ── Remove practice: replace with real matchups ──
+            first_window_matches.sort(key=lambda m: m.location)
+
+            for i, match in enumerate(first_window_matches):
+                if i >= len(matchups):
+                    break
+
+                mu = matchups[i]
+                new_home = int(mu['home_team_id'])
+                new_away = int(mu['away_team_id'])
+
+                if new_home == new_away:
+                    return jsonify({'success': False, 'error': 'Home and away teams cannot be the same'})
+
+                old_home = match.home_team_id
+                old_away = match.away_team_id
+
+                # Update match
+                match.home_team_id = new_home
+                match.away_team_id = new_away
+                match.week_type = 'REGULAR'
+
+                # Update home team's schedule entry
+                schedule = session.query(Schedule).get(match.schedule_id)
+                if schedule:
+                    schedule.team_id = new_home
+                    schedule.opponent = new_away
+                    schedule.location = match.location
+
+                # Handle paired schedule (away team's view)
+                if old_home != old_away:
+                    # Was a real match - find and update paired schedule
+                    paired = session.query(Schedule).filter_by(
+                        team_id=old_away,
+                        opponent=old_home,
+                        week=week_str
+                    ).filter(
+                        Schedule.date == match.date,
+                        Schedule.time == match.time
+                    ).first()
+                    if paired:
+                        paired.team_id = new_away
+                        paired.opponent = new_home
+                else:
+                    # Was a self-match placeholder - create paired schedule
+                    paired = Schedule(
+                        week=week_str,
+                        date=match.date,
+                        time=match.time,
+                        location=match.location,
+                        team_id=new_away,
+                        opponent=new_home
+                    )
+                    session.add(paired)
+
+            new_state = 'REGULAR'
+        else:
+            # ── Add practice: mark first-window matches as PRACTICE ──
+            for match in first_window_matches:
+                match.week_type = 'PRACTICE'
+            new_state = 'PRACTICE'
+
+        session.commit()
+
+        return jsonify({
+            'success': True,
+            'new_state': new_state,
+            'matches_affected': len(first_window_matches),
+            'message': f'Classic first window set to {new_state} for week {week_number}'
+        })
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error toggling classic practice: {e}")
+        return jsonify({'success': False, 'error': 'Internal Server Error'})
+
+
 @auto_schedule_bp.route('/league/<int:league_id>/delete-week', methods=['POST'])
 @login_required
 @role_required(['Pub League Admin', 'Global Admin'])
@@ -1733,7 +1876,7 @@ def create_season_wizard():
                         start_time=start_time,
                         match_duration_minutes=auto_config.match_duration_minutes,
                         weeks_count=auto_config.weeks_count,
-                        fields=auto_config.fields
+                        fields=','.join(auto_config.get_field_list())
                     )
                     
                     logger.info(f"Generator configured successfully for {league.name}")
@@ -1979,7 +2122,27 @@ def auto_schedule_config(league_id: int):
                 session.add(config)
             
             session.commit()
-            
+
+            # Sync practice settings to SeasonConfiguration (used by generation)
+            season_config = session.query(SeasonConfiguration).filter_by(league_id=league_id).first()
+            if season_config:
+                season_config.has_practice_sessions = enable_practice_weeks
+                season_config.practice_weeks = practice_weeks
+                session.commit()
+            elif enable_practice_weeks:
+                # Create SeasonConfiguration if it doesn't exist and practice is enabled
+                league_type = 'CLASSIC' if league.name.upper() == 'CLASSIC' else 'PREMIER'
+                season_config = SeasonConfiguration(
+                    league_id=league_id,
+                    league_type=league_type,
+                    regular_season_weeks=weeks_count,
+                    has_practice_sessions=True,
+                    practice_weeks=practice_weeks,
+                    practice_game_number=1
+                )
+                session.add(season_config)
+                session.commit()
+
             # Generate schedule templates
             generator = AutoScheduleGenerator(league_id, session)
             # Use the appropriate start time based on league type
@@ -1988,10 +2151,10 @@ def auto_schedule_config(league_id: int):
                 start_time=league_start_time,
                 match_duration_minutes=match_duration,
                 weeks_count=weeks_count,
-                fields=fields
+                fields=','.join(config.get_field_list())
             )
-            
-            # Get season configuration for this league
+
+            # Reload season config after sync
             season_config = session.query(SeasonConfiguration).filter_by(league_id=league_id).first()
             if season_config:
                 generator.set_season_configuration(season_config)

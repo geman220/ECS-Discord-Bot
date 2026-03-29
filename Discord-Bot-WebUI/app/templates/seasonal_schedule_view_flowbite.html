@@ -145,6 +145,16 @@
                     <button type="button" class="edit-control hidden p-1.5 text-amber-600 hover:bg-amber-100 dark:hover:bg-amber-900/50 rounded js-shift-week" data-week="{{ week_num }}" title="Shift This & Later Weeks Down (Make BYE)">
                         <i class="ti ti-arrow-bar-down"></i>
                     </button>
+                    {% if week_data.has_classic_first_window %}
+                    <button type="button"
+                            class="edit-control hidden p-1.5 rounded js-toggle-practice
+                                   {{ 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/50 hover:bg-yellow-200 dark:hover:bg-yellow-900/70' if week_data.has_classic_practice else 'text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/50' }}"
+                            data-week="{{ week_num }}"
+                            data-practice="{{ 'true' if week_data.has_classic_practice else 'false' }}"
+                            title="{{ 'Remove Classic Practice' if week_data.has_classic_practice else 'Set Classic Practice' }}">
+                        <i class="ti ti-ball-football"></i>
+                    </button>
+                    {% endif %}
                 </div>
             </div>
 
@@ -425,6 +435,48 @@
         </div>
     </div>
 {% endcall %}
+
+<!-- Remove Practice Modal -->
+{% call modal_form('removePracticeModal', 'Set Classic Matchups', form_id='removePracticeForm', submit_text='Set Matchups', loading_text='Saving...') %}
+    <input type="hidden" id="rpWeekNum">
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+        Select the matchups for the Classic first time window. This will replace the practice session with regular matches.
+    </p>
+    <div class="space-y-4">
+        <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"><i class="ti ti-map-pin me-1"></i>North Field</h4>
+            <div class="grid grid-cols-5 gap-2 items-center">
+                <div class="col-span-2">
+                    <select id="rpNorthHome" required
+                            class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </select>
+                </div>
+                <div class="text-center text-gray-500 text-sm font-medium">vs</div>
+                <div class="col-span-2">
+                    <select id="rpNorthAway" required
+                            class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"><i class="ti ti-map-pin me-1"></i>South Field</h4>
+            <div class="grid grid-cols-5 gap-2 items-center">
+                <div class="col-span-2">
+                    <select id="rpSouthHome" required
+                            class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </select>
+                </div>
+                <div class="text-center text-gray-500 text-sm font-medium">vs</div>
+                <div class="col-span-2">
+                    <select id="rpSouthAway" required
+                            class="w-full text-sm rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endcall %}
 {% endblock %}
 
 {% block modals %}{% endblock %}
@@ -444,6 +496,9 @@ window.leagueTeams[{{ league.id }}] = [
     {% endfor %}
 ];
 {% endfor %}
+
+// Classic league ID for practice toggle
+window.classicLeagueId = {{ (leagues | selectattr('name', 'equalto', 'Classic') | first).id if (leagues | selectattr('name', 'equalto', 'Classic') | list) else 'null' }};
 
 document.addEventListener('DOMContentLoaded', function() {
     const isDark = () => document.documentElement.classList.contains('dark');
@@ -1003,6 +1058,172 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
+    });
+
+    // Toggle Classic Practice
+    function populateClassicTeamSelect(selectEl, selectedId) {
+        const teams = window.leagueTeams[window.classicLeagueId] || [];
+        selectEl.innerHTML = teams.map(t =>
+            `<option value="${t.id}" ${t.id == selectedId ? 'selected' : ''}>${t.name}</option>`
+        ).join('');
+    }
+
+    document.querySelectorAll('.js-toggle-practice').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const weekNum = this.dataset.week;
+            const isPractice = this.dataset.practice === 'true';
+
+            if (isPractice) {
+                // Removing practice → open modal to pick replacement matchups
+                document.getElementById('rpWeekNum').value = weekNum;
+
+                // Populate dropdowns with Classic teams
+                populateClassicTeamSelect(document.getElementById('rpNorthHome'));
+                populateClassicTeamSelect(document.getElementById('rpNorthAway'));
+                populateClassicTeamSelect(document.getElementById('rpSouthHome'));
+                populateClassicTeamSelect(document.getElementById('rpSouthAway'));
+
+                if (typeof window.ModalManager !== 'undefined') {
+                    window.ModalManager.show('removePracticeModal');
+                }
+            } else {
+                // Adding practice → confirm first, show which matches will be affected
+                const weekContainer = document.querySelector(`.week-container[data-week="${weekNum}"]`);
+                const cid = String(window.classicLeagueId);
+                const classicRows = Array.from(weekContainer?.querySelectorAll(`.match-row[data-league="${cid}"]`) || []);
+
+                // Find first-window match names for the confirmation
+                let matchList = '';
+                if (classicRows.length) {
+                    const times = classicRows.map(r => r.querySelector('.time-display')?.textContent.trim()).filter(Boolean);
+                    const minTime = [...new Set(times)].sort()[0];
+                    const firstRows = classicRows.filter(r => r.querySelector('.time-display')?.textContent.trim() === minTime);
+                    const names = firstRows.map(r => {
+                        const tds = r.querySelectorAll('td');
+                        const home = tds[3]?.querySelector('a')?.textContent.trim();
+                        const away = tds[4]?.querySelector('a')?.textContent.trim();
+                        return (home && away) ? `<li>${home} vs ${away}</li>` : '';
+                    }).filter(Boolean);
+                    if (names.length) matchList = `<ul class="mt-2 text-sm text-left list-disc pl-5">${names.join('')}</ul>`;
+                }
+
+                const result = await Swal.fire({
+                    title: 'Set Classic Practice?',
+                    html: `<p>The Classic first time slot for <strong>Week ${weekNum}</strong> will be set to <strong>Practice</strong>.</p>
+                           ${matchList ? '<p class="mt-2 text-sm text-gray-500">These matches will be replaced:</p>' + matchList : ''}`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, set practice',
+                    confirmButtonColor: '#1a472a',
+                    cancelButtonColor: '#6b7280',
+                    background: isDark() ? '#1f2937' : '#ffffff',
+                    color: isDark() ? '#f3f4f6' : '#111827'
+                });
+                if (!result.isConfirmed) return;
+
+                try {
+                    const response = await fetch('/auto-schedule/toggle-classic-practice', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            week_number: parseInt(weekNum),
+                            season_id: {{ season.id }}
+                        })
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        sessionStorage.setItem('scheduleScrollPos', window.scrollY);
+                        window.location.reload();
+                    } else {
+                        throw new Error(data.error || 'Failed to set practice');
+                    }
+                } catch (error) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message,
+                        background: isDark() ? '#1f2937' : '#ffffff',
+                        color: isDark() ? '#f3f4f6' : '#111827',
+                        confirmButtonColor: '#1a472a'
+                    });
+                }
+            }
+        });
+    });
+
+    // Remove Practice modal form submission
+    document.getElementById('removePracticeForm')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        const weekNum = document.getElementById('rpWeekNum').value;
+        const matchups = [
+            {
+                home_team_id: document.getElementById('rpNorthHome').value,
+                away_team_id: document.getElementById('rpNorthAway').value
+            },
+            {
+                home_team_id: document.getElementById('rpSouthHome').value,
+                away_team_id: document.getElementById('rpSouthAway').value
+            }
+        ];
+
+        // Validate no same-team matchups
+        for (const mu of matchups) {
+            if (mu.home_team_id === mu.away_team_id) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Matchup',
+                    text: 'Home and away teams cannot be the same.',
+                    background: isDark() ? '#1f2937' : '#ffffff',
+                    color: isDark() ? '#f3f4f6' : '#111827',
+                    confirmButtonColor: '#1a472a'
+                });
+                return;
+            }
+        }
+
+        // Close modal
+        if (typeof window.ModalManager !== 'undefined') {
+            window.ModalManager.hide('removePracticeModal');
+        }
+
+        try {
+            const response = await fetch('/auto-schedule/toggle-classic-practice', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({
+                    week_number: parseInt(weekNum),
+                    season_id: {{ season.id }},
+                    matchups: matchups
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                sessionStorage.setItem('scheduleScrollPos', window.scrollY);
+                window.location.reload();
+            } else {
+                throw new Error(data.error || 'Failed to set matchups');
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message,
+                background: isDark() ? '#1f2937' : '#ffffff',
+                color: isDark() ? '#f3f4f6' : '#111827',
+                confirmButtonColor: '#1a472a'
+            });
+        }
     });
 
     // Export functionality - client-side CSV from page data

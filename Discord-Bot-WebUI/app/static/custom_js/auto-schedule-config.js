@@ -53,9 +53,9 @@ function setupEventListeners() {
             const practiceWeeksSelection = document.getElementById('practice-weeks-selection');
             if (practiceWeeksSelection) {
                 if (e.target.checked) {
-                    practiceWeeksSelection.classList.remove('u-hidden');
+                    practiceWeeksSelection.classList.remove('hidden');
                 } else {
-                    practiceWeeksSelection.classList.add('u-hidden');
+                    practiceWeeksSelection.classList.add('hidden');
                 }
             }
         }
@@ -122,7 +122,7 @@ export function applyTemplate(templateType) {
                 setFormValue('practice-week-1', true, true);
                 setFormValue('practice-week-3', true, true);
                 const practiceWeeksSelection = document.getElementById('practice-weeks-selection');
-                if (practiceWeeksSelection) practiceWeeksSelection.classList.remove('u-hidden');
+                if (practiceWeeksSelection) practiceWeeksSelection.classList.remove('hidden');
             }, 100);
 
             generateRegularWeeks(7);
@@ -194,7 +194,7 @@ function updatePracticeWeekOptions() {
  */
 function updatePracticeConfigVisibility() {
     const practiceConfig = document.getElementById('practice-config');
-    if (practiceConfig) practiceConfig.classList.remove('u-hidden');
+    if (practiceConfig) practiceConfig.classList.remove('hidden');
 }
 
 /**

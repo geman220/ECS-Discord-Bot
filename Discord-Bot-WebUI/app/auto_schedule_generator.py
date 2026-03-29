@@ -142,7 +142,7 @@ class AutoScheduleGenerator:
         self.start_time = start_time
         self.match_duration_minutes = match_duration_minutes
         self.weeks_count = weeks_count
-        self.fields = [field.strip() for field in fields.split(',')]
+        self.fields = [field.strip().strip('{}') for field in fields.split(',')]
         
         logger.info(f"Schedule configuration set for {self.league.name}: start_time={start_time}, duration={match_duration_minutes}min, weeks={weeks_count}, fields={self.fields}")
         
