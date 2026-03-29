@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECS FC - Delete Your Account</title>
+    <style>
+        :root {
+            --primary: #00539F;
+            --danger: #dc2626;
+            --danger-bg: #fef2f2;
+            --warning-bg: #fffbeb;
+            --warning-border: #f59e0b;
+            --text: #1a1a1a;
+            --text-secondary: #666;
+            --bg: #ffffff;
+            --border: #e5e5e5;
+            --card-bg: #f9fafb;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --text: #f0f0f0;
+                --text-secondary: #aaa;
+                --bg: #1a1a1a;
+                --border: #333;
+                --card-bg: #252525;
+                --danger-bg: #2d1b1b;
+                --warning-bg: #2d2714;
+            }
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            line-height: 1.7;
+            color: var(--text);
+            background: var(--bg);
+        }
+        h1 {
+            color: var(--primary);
+            font-size: 2em;
+            margin-bottom: 8px;
+        }
+        h2 {
+            color: var(--primary);
+            margin-top: 36px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border);
+            font-size: 1.4em;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.05em;
+            margin-bottom: 30px;
+        }
+        .last-updated {
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-bottom: 32px;
+            font-size: 0.9em;
+        }
+        .warning-box {
+            background: var(--danger-bg);
+            border-left: 4px solid var(--danger);
+            padding: 16px 20px;
+            border-radius: 6px;
+            margin: 24px 0;
+        }
+        .warning-box strong {
+            color: var(--danger);
+        }
+        .info-box {
+            background: var(--warning-bg);
+            border-left: 4px solid var(--warning-border);
+            padding: 16px 20px;
+            border-radius: 6px;
+            margin: 24px 0;
+        }
+        .steps {
+            counter-reset: step;
+            list-style: none;
+            padding: 0;
+        }
+        .steps li {
+            counter-increment: step;
+            padding: 12px 0 12px 52px;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+        .steps li:last-child {
+            border-bottom: none;
+        }
+        .steps li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0;
+            top: 12px;
+            width: 36px;
+            height: 36px;
+            background: var(--primary);
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95em;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0;
+        }
+        .data-table th,
+        .data-table td {
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .data-table th {
+            background: var(--card-bg);
+            font-weight: 600;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .deleted { color: var(--danger); font-weight: 600; }
+        .retained { color: var(--warning-border); font-weight: 600; }
+        .btn-settings {
+            display: inline-block;
+            background: var(--primary);
+            color: #fff;
+            padding: 12px 28px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 16px;
+        }
+        .btn-settings:hover {
+            opacity: 0.9;
+        }
+        .contact-info {
+            background: var(--card-bg);
+            padding: 16px 20px;
+            border-radius: 6px;
+            margin: 16px 0;
+        }
+        a { color: var(--primary); }
+        footer {
+            margin-top: 48px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <h1>Delete Your Account</h1>
+    <p class="subtitle">ECS FC Mobile App &mdash; Account &amp; Data Deletion</p>
+    <p class="last-updated">Last updated: March 28, 2026</p>
+
+    <div class="warning-box">
+        <strong>This action is permanent.</strong> Once your account is deleted, your personal data is
+        erased and cannot be recovered. Please read this page carefully before proceeding.
+    </div>
+
+    <h2>How to Delete Your Account</h2>
+
+    <h3>From the Mobile App</h3>
+    <ol class="steps">
+        <li>Open the <strong>ECS FC</strong> app and sign in.</li>
+        <li>Go to <strong>Settings</strong> (tap the gear icon).</li>
+        <li>Scroll to <strong>Account</strong> and tap <strong>Delete Account</strong>.</li>
+        <li>Enter your password and type <strong>DELETE MY ACCOUNT</strong> to confirm.</li>
+        <li>Your account and personal data will be permanently deleted.</li>
+    </ol>
+
+    <h3>From the Web</h3>
+    <p>You can also manage your account from the web portal:</p>
+    <a href="https://portal.ecsfc.com/account/settings" class="btn-settings">Go to Account Settings</a>
+
+    <h3>Can't Access Your Account?</h3>
+    <div class="contact-info">
+        If you are unable to sign in, you can request account deletion by emailing
+        <a href="mailto:donotreply@weareecs.com">donotreply@weareecs.com</a> from the email address
+        associated with your account. Include your username and we will process your request
+        within 7 business days.
+    </div>
+
+    <h2>What Data Is Deleted</h2>
+    <p>When you delete your account, the following happens immediately:</p>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Data Type</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Email address</td>
+                <td class="deleted">Permanently erased</td>
+            </tr>
+            <tr>
+                <td>Password</td>
+                <td class="deleted">Permanently erased</td>
+            </tr>
+            <tr>
+                <td>Username</td>
+                <td class="deleted">Replaced with anonymous identifier</td>
+            </tr>
+            <tr>
+                <td>Two-factor authentication secret</td>
+                <td class="deleted">Permanently erased</td>
+            </tr>
+            <tr>
+                <td>Push notification tokens</td>
+                <td class="deleted">Deactivated immediately</td>
+            </tr>
+            <tr>
+                <td>Active sessions</td>
+                <td class="deleted">Revoked immediately (logged out everywhere)</td>
+            </tr>
+            <tr>
+                <td>Notification preferences</td>
+                <td class="deleted">Reset / no longer applicable</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>What Data Is Retained</h2>
+    <p>To maintain league integrity (match results, standings, historical records), certain
+       <strong>non-identifying</strong> data is retained in anonymized form:</p>
+
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Data Type</th>
+                <th>Retention</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Match results and scores</td>
+                <td class="retained">Retained (anonymized)</td>
+            </tr>
+            <tr>
+                <td>Season and career statistics</td>
+                <td class="retained">Retained (anonymized)</td>
+            </tr>
+            <tr>
+                <td>RSVP / attendance history</td>
+                <td class="retained">Retained (anonymized)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="info-box">
+        Retained records are associated with an anonymous identifier (e.g. <code>deleted_user_123</code>)
+        and cannot be traced back to you. No personal information remains in these records.
+    </div>
+
+    <h2>Data Export</h2>
+    <p>Before deleting your account, you can download a copy of all your personal data.
+       In the app, go to <strong>Settings &rarr; Download My Data</strong>. You will receive an email
+       with a download link (JSON format) within a few minutes.</p>
+
+    <h2>Questions?</h2>
+    <p>If you have questions about your data or this process, please contact us at
+       <a href="mailto:donotreply@weareecs.com">donotreply@weareecs.com</a>.</p>
+    <p>You can also review our <a href="/privacy">Privacy Policy</a> and
+       <a href="/terms">Terms of Service</a>.</p>
+
+    <footer>
+        &copy; 2026 Emerald City Supporters FC. All rights reserved.
+    </footer>
+</body>
+</html>
