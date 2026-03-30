@@ -85,10 +85,17 @@ window.EventDelegation.register('onboarding-next', function(element, e) {
         if (form && form.checkValidity()) {
             form.submit();
         } else {
-            form.classList.add('was-validated');
+            // Highlight all invalid fields
+            const invalidFields = form ? form.querySelectorAll(':invalid') : [];
+            invalidFields.forEach(field => {
+                if (field.offsetParent !== null) {
+                    field.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                    field.dataset.invalid = 'true';
+                }
+            });
 
-            // Find first invalid input and focus it
-            const firstInvalid = form.querySelector(':invalid');
+            // Focus first invalid input
+            const firstInvalid = form ? form.querySelector(':invalid') : null;
             if (firstInvalid) {
                 firstInvalid.focus();
                 firstInvalid.scrollIntoView({
@@ -110,17 +117,26 @@ window.EventDelegation.register('onboarding-next', function(element, e) {
 
             if (!field.checkValidity()) {
                 isValid = false;
-                field.classList.add('is-invalid');
+                field.classList.add('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                field.dataset.invalid = 'true';
 
                 // Add validation feedback if it doesn't exist
-                if (!field.nextElementSibling || !field.nextElementSibling.classList.contains('invalid-feedback')) {
-                    const feedback = document.createElement('div');
-                    feedback.className = 'invalid-feedback';
+                const existingFeedback = field.nextElementSibling;
+                if (!existingFeedback || !existingFeedback.dataset.validationFeedback) {
+                    const feedback = document.createElement('p');
+                    feedback.className = 'mt-1 text-sm text-red-600 dark:text-red-400';
+                    feedback.dataset.validationFeedback = 'true';
                     feedback.textContent = field.validationMessage || 'This field is required.';
                     field.parentNode.insertBefore(feedback, field.nextSibling);
                 }
             } else {
-                field.classList.remove('is-invalid');
+                field.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                delete field.dataset.invalid;
+                // Remove dynamic feedback
+                const feedback = field.nextElementSibling;
+                if (feedback && feedback.dataset.validationFeedback) {
+                    feedback.remove();
+                }
             }
         });
 
@@ -132,7 +148,7 @@ window.EventDelegation.register('onboarding-next', function(element, e) {
             }
         } else {
             // Focus first invalid field
-            const firstInvalid = activeItem ? activeItem.querySelector('.is-invalid') : null;
+            const firstInvalid = activeItem ? activeItem.querySelector('[data-invalid="true"]') : null;
             if (firstInvalid) {
                 firstInvalid.focus();
                 firstInvalid.scrollIntoView({
@@ -181,16 +197,14 @@ window.EventDelegation.register('toggle-sms-consent', function(element, e) {
     if (typeof window.toggleSmsConsent === 'function') {
         window.toggleSmsConsent(element.checked);
     } else {
-        // Fallback implementation
         const smsOptInSection = document.getElementById('smsOptInSection');
         if (smsOptInSection) {
-            smsOptInSection.classList.toggle('u-hidden', !element.checked);
+            smsOptInSection.classList.toggle('hidden', !element.checked);
         }
-        // If unchecking, also hide verification section
         if (!element.checked) {
-            const smsVerificationSection = document.getElementById('smsVerificationSection');
-            if (smsVerificationSection) {
-                smsVerificationSection.classList.add('u-hidden');
+            const verificationSection = document.getElementById('verificationCodeSection');
+            if (verificationSection) {
+                verificationSection.classList.add('hidden');
             }
         }
     }
@@ -205,10 +219,9 @@ window.EventDelegation.register('toggle-sms-verification', function(element, e) 
     if (typeof window.toggleSmsVerification === 'function') {
         window.toggleSmsVerification(element.checked);
     } else {
-        // Fallback implementation
-        const smsVerificationSection = document.getElementById('smsVerificationSection');
-        if (smsVerificationSection) {
-            smsVerificationSection.classList.toggle('u-hidden', !element.checked);
+        const verificationSection = document.getElementById('verificationCodeSection');
+        if (verificationSection) {
+            verificationSection.classList.toggle('hidden', !element.checked);
         }
     }
 });
@@ -618,7 +631,7 @@ window.EventDelegation.register('onboarding-sms-toggle', function(element, e) {
     } else {
         smsOptInSection.classList.add('hidden');
         const smsConsent = document.getElementById('smsConsent');
-        const smsVerification = document.getElementById('smsVerificationSection');
+        const smsVerification = document.getElementById('verificationCodeSection');
         if (smsConsent) smsConsent.checked = false;
         if (smsVerification) smsVerification.classList.add('hidden');
     }
@@ -628,7 +641,7 @@ window.EventDelegation.register('onboarding-sms-toggle', function(element, e) {
  * Toggle SMS Consent Verification
  */
 window.EventDelegation.register('onboarding-sms-consent', function(element, e) {
-    const smsVerification = document.getElementById('smsVerificationSection');
+    const smsVerification = document.getElementById('verificationCodeSection');
     if (!smsVerification) return;
 
     smsVerification.classList.toggle('hidden', !element.checked);

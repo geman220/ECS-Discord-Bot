@@ -381,128 +381,123 @@
 
 {% macro render_enhanced_onboarding_modal(onboarding_form, player) %}
 <form method="POST"
-      class="c-onboarding-form needs-validation"
+      class="needs-validation flex flex-col max-h-[calc(100vh-7rem)] sm:max-h-[calc(100vh-9rem)]"
       data-component="onboarding-form"
       enctype="multipart/form-data"
       novalidate>
-    {{ onboarding_form.hidden_tag() }} <!-- CSRF Token -->
-    <!-- Hidden input to identify form action -->
+    {{ onboarding_form.hidden_tag() }}
     <input type="hidden" id="form_action" name="form_action" value="">
-
-    <!-- Hidden Player ID for AJAX cropping -->
+    <input type="hidden" id="smsVerified" name="sms_verified" value="{{ 'true' if player and player.is_phone_verified else 'false' }}">
     {% if player %}
     <input type="hidden" id="playerId" value="{{ player.id }}">
     {% else %}
     <input type="hidden" id="playerId" value="">
     {% endif %}
 
-    <!-- Progress Bar -->
-    <div class="c-onboarding-form__progress-wrapper progress mb-3">
-        <div id="onboardingProgress"
-             class="c-onboarding-form__progress progress-bar progress-bar-striped progress-bar-animated"
-             role="progressbar"
-             aria-valuenow="0"
-             aria-valuemin="0"
-             aria-valuemax="100"></div>
-    </div>
-    <div class="c-onboarding-form__step-info text-center mb-4">
-        <small class="text-muted" id="currentStep">Step 1 of 5</small>
+    {# ── Progress Bar (sticky top) ── #}
+    <div class="flex-shrink-0 px-4 pt-4 md:px-5 md:pt-5">
+        <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-3">
+            <div id="onboardingProgress"
+                 class="bg-ecs-green h-2.5 rounded-full transition-all duration-300"
+                 role="progressbar"
+                 style="width: 0%"
+                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-0" id="currentStep">Step 1 of 5</p>
     </div>
 
-    <!-- Carousel for Onboarding Steps -->
+    {# ── Scrollable Content ── #}
+    <div class="flex-1 overflow-y-auto px-4 py-4 md:px-5 md:py-5 overscroll-contain" style="-webkit-overflow-scrolling: touch;">
     <div id="modalCarouselControls"
-         class="c-onboarding-carousel carousel slide"
+         class="carousel slide"
          data-component="onboarding-carousel"
          data-bs-interval="false">
-        <!-- Carousel Inner -->
         <div class="carousel-inner">
+
+            {# ════════════════════════════════════════════
+               STEP 0 — Welcome (new users without a profile)
+               ════════════════════════════════════════════ #}
             {% if not player %}
-            <!-- Step 0: For Users without a Profile -->
-            <div class="c-onboarding-step carousel-item active" data-component="onboarding-step" data-step="0">
-                <div class="c-onboarding-step__content">
-                    <div class="c-onboarding-step__image-wrapper">
+            <div class="carousel-item active" data-component="onboarding-step" data-step="0">
+                <div class="space-y-6">
+                    <div class="flex justify-center">
                         <img src="{{ url_for('static', filename='img/undraw_questions_re_1fy7.svg') }}"
-                             alt="Welcome Image"
-                             class="c-onboarding-step__image">
+                             alt="Welcome" class="w-48 h-48 opacity-80">
                     </div>
-                    <div class="c-onboarding-step__card c-card bg-light p-4 mb-4">
-                        <h4 class="c-onboarding-step__heading fw-bold text-primary mb-3">Welcome to the ECS!</h4>
-                        <p class="c-onboarding-step__text text-muted">It looks like you don't have a player profile yet. Would you like to create one?</p>
-                        <div class="c-onboarding-step__alert alert alert-warning" data-alert>
-                            <i class="ti ti-alert-circle me-2"></i>
-                            <strong>A player profile is required for ECS FC or ECS FC Pub League!</strong>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-5 space-y-3">
+                        <h4 class="text-lg font-bold text-ecs-green dark:text-ecs-gold">Welcome to the ECS!</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-300">It looks like you don't have a player profile yet. Would you like to create one?</p>
+                        <div class="flex items-start gap-2 p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border border-yellow-300 dark:border-yellow-800">
+                            <i class="ti ti-alert-circle flex-shrink-0 mt-0.5"></i>
+                            <span class="text-sm font-semibold">A player profile is required for ECS FC or ECS FC Pub League!</span>
                         </div>
                     </div>
-                    <div class="c-onboarding-step__actions">
+                    <div class="flex flex-col gap-3">
                         <button type="button"
                                 id="createProfileCarouselButton"
-                                class="c-onboarding-step__button c-onboarding-step__button--primary c-btn c-btn--lg c-btn--primary"
+                                class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white transition-colors focus:outline-none focus:ring-4 focus:ring-ecs-green/50"
                                 data-action="onboarding-create-profile">
-                            <i class="ti ti-user-plus me-2"></i>Create Profile
+                            <i class="ti ti-user-plus"></i>Create Profile
                         </button>
                         <button type="button"
                                 id="skipProfileButton"
-                                class="c-onboarding-step__button c-onboarding-step__button--secondary c-btn c-btn--lg c-btn--outline-secondary"
+                                class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
                                 data-action="onboarding-skip-profile">
-                            <i class="ti ti-arrow-right me-2"></i>Skip for now
+                            <i class="ti ti-arrow-right"></i>Skip for now
                         </button>
                     </div>
                 </div>
             </div>
             {% endif %}
 
-            <!-- Step 1: Contact Info -->
-            <div class="c-onboarding-step carousel-item {% if player %}active{% endif %}"
-                 data-component="onboarding-step"
-                 data-step="1">
-                <div class="c-onboarding-step__content">
-                    <div class="c-onboarding-step__header">
-                        <div class="c-onboarding-step__icon text-primary">
+            {# ════════════════════════════════════════════
+               STEP 1 — Contact Information
+               ════════════════════════════════════════════ #}
+            <div class="carousel-item {% if player %}active{% endif %}"
+                 data-component="onboarding-step" data-step="1">
+                <div class="space-y-5">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+                        <div class="text-3xl text-ecs-green dark:text-ecs-gold">
                             <i class="ti ti-user-circle"></i>
                         </div>
-                        <div class="c-onboarding-step__header-text">
-                            <h4 class="c-onboarding-step__heading fw-bold text-primary mb-1">Contact Information</h4>
-                            <p class="c-onboarding-step__subheading text-muted mb-0">Tell us how to reach you</p>
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-900 dark:text-white">Contact Information</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Tell us how to reach you</p>
                         </div>
                     </div>
 
-                    <div class="c-onboarding-step__card c-card shadow-sm p-4 mb-4">
-                        <!-- Contact Info Fields -->
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label for="{{ onboarding_form.name.id }}" class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-id-badge me-1"></i>{{ onboarding_form.name.label.text }} <span class="text-danger" data-badge>*</span>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                        {# Name — full width #}
+                        <div>
+                            <label for="{{ onboarding_form.name.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <i class="ti ti-id-badge mr-1"></i>{{ onboarding_form.name.label.text }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ onboarding_form.name(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", required=True, placeholder="First and Last name (e.g. John Smith)") }}
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Enter your real full name — this will be displayed on your public profile</p>
+                            {% if onboarding_form.name.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.name.errors[0] }}</p>
+                            {% endif %}
+                        </div>
+                        {# Email + Phone — two columns on md #}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="{{ onboarding_form.email.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <i class="ti ti-mail mr-1"></i>{{ onboarding_form.email.label.text }} <span class="text-red-500">*</span>
                                 </label>
-                                {{ onboarding_form.name(class="c-onboarding-step__input form-control form-control-lg", required=True, placeholder="First and Last name (e.g. John Smith)") }}
-                                <div class="c-onboarding-step__help-text form-text">Enter your real full name - this will be displayed on your public profile</div>
-                                {% if onboarding_form.name.errors %}
-                                <div class="invalid-feedback">
-                                    {{ onboarding_form.name.errors[0] }}
-                                </div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.email.id }}" class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-mail me-1"></i>{{ onboarding_form.email.label.text }} <span class="text-danger">*</span>
-                                </label>
-                                {{ onboarding_form.email(class="c-onboarding-step__input form-control form-control-lg", required=True, placeholder="email@example.com") }}
-                                <div class="c-onboarding-step__help-text form-text">Used for match notifications and team communications</div>
+                                {{ onboarding_form.email(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", required=True, placeholder="email@example.com") }}
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Used for match notifications and team communications</p>
                                 {% if onboarding_form.email.errors %}
-                                <div class="invalid-feedback">
-                                    {{ onboarding_form.email.errors[0] }}
-                                </div>
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.email.errors[0] }}</p>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.phone.id }}" class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-phone me-1"></i>{{ onboarding_form.phone.label.text }} <span class="text-danger">*</span>
+                            <div>
+                                <label for="{{ onboarding_form.phone.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <i class="ti ti-phone mr-1"></i>{{ onboarding_form.phone.label.text }} <span class="text-red-500">*</span>
                                 </label>
-                                {{ onboarding_form.phone(class="c-onboarding-step__input form-control form-control-lg", required=True, placeholder="(555) 555-5555") }}
-                                <div class="c-onboarding-step__help-text form-text">Used for emergency contacts and optional SMS notifications</div>
+                                {{ onboarding_form.phone(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", required=True, placeholder="(555) 555-5555") }}
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Used for emergency contacts and optional SMS notifications</p>
                                 {% if onboarding_form.phone.errors %}
-                                <div class="invalid-feedback">
-                                    {{ onboarding_form.phone.errors[0] }}
-                                </div>
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.phone.errors[0] }}</p>
                                 {% endif %}
                             </div>
                         </div>
@@ -510,156 +505,139 @@
                 </div>
             </div>
 
-            <!-- Step 2: Profile Picture -->
-            <div class="c-onboarding-step carousel-item" data-component="onboarding-step" data-step="2">
-                <div class="c-onboarding-step__content">
-                    <div class="c-onboarding-step__header">
-                        <div class="c-onboarding-step__icon text-primary">
+            {# ════════════════════════════════════════════
+               STEP 2 — Profile Picture
+               ════════════════════════════════════════════ #}
+            <div class="carousel-item" data-component="onboarding-step" data-step="2">
+                <div class="space-y-5">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+                        <div class="text-3xl text-ecs-green dark:text-ecs-gold">
                             <i class="ti ti-camera"></i>
                         </div>
-                        <div class="c-onboarding-step__header-text">
-                            <h4 class="c-onboarding-step__heading fw-bold text-primary mb-1">Profile Picture</h4>
-                            <p class="c-onboarding-step__subheading text-muted mb-0">Add a photo to personalize your profile</p>
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-900 dark:text-white">Profile Picture</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Add a photo to personalize your profile</p>
                         </div>
                     </div>
 
-                    <div class="c-onboarding-step__card c-card shadow-sm p-4 mb-4">
-                        <div class="row align-items-center">
-                            <!-- Profile Picture / Cropper Area -->
-                            <div class="col-md-6 text-center mb-4 mb-md-0">
-                                <!-- Default Profile Picture Preview (shown initially) -->
-                                <div id="profilePicturePreview" class="c-profile-preview">
-                                    <div class="c-profile-preview__avatar">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                            {# Left: Preview / Cropper #}
+                            <div class="text-center">
+                                {# Default avatar preview #}
+                                <div id="profilePicturePreview">
+                                    <div class="inline-block rounded-full overflow-hidden shadow-md border-4 border-gray-200 dark:border-gray-600">
                                         <img id="currentProfilePicture"
                                              src="{{ player.profile_picture_url or url_for('static', filename='img/default_player.png') }}"
                                              alt="Profile Picture"
-                                             class="c-profile-preview__image">
+                                             class="w-32 h-32 md:w-40 md:h-40 object-cover">
                                     </div>
                                 </div>
-
-                                <!-- Cropper Interface (shown when image selected) - uses Cropper.js -->
-                                <div id="cropperInterface" class="c-cropper d-none">
-                                    <div class="c-cropper__container">
-                                        <img id="onboardingCropperImage"
-                                             class="c-cropper__image"
-                                             alt="Image to crop"
-                                             src="">
+                                {# Cropper.js interface (hidden until image selected) #}
+                                <div id="cropperInterface" class="hidden">
+                                    <div class="relative w-full max-w-[280px] mx-auto bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                                        <img id="onboardingCropperImage" alt="Image to crop" src="" class="block max-w-full w-full">
                                     </div>
-                                    <div class="c-cropper__help text-muted small text-center mt-3">
-                                        <i class="ti ti-info-circle me-1"></i>
-                                        Drag to move • Scroll to zoom • Image will be cropped to square
-                                    </div>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-3">
+                                        <i class="ti ti-info-circle mr-1"></i>
+                                        Drag to move &bull; Scroll to zoom &bull; Cropped to square
+                                    </p>
                                 </div>
                             </div>
-                            <!-- Controls Column -->
-                            <div class="col-md-6">
-                                <div class="text-center text-md-start">
-                                    <!-- Initial Instructions (shown before image selected) -->
-                                    <div id="uploadInstructions" class="c-upload-instructions">
-                                        <p class="c-upload-instructions__text mb-4">Upload a clear photo of yourself for your player profile. A good profile picture helps teammates and admins recognize you.</p>
-                                        <!-- Hidden file input -->
-                                        <input type="file"
-                                               name="image"
-                                               id="image"
-                                               accept="image/*"
-                                               class="c-upload-instructions__input form-control d-none"
-                                               data-form-control>
-                                        <!-- Button that triggers the file input -->
+                            {# Right: Controls #}
+                            <div class="text-center md:text-left">
+                                {# Upload instructions (shown initially) #}
+                                <div id="uploadInstructions">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Upload a clear photo of yourself for your player profile. A good profile picture helps teammates and admins recognize you.</p>
+                                    <input type="file" name="image" id="image" accept="image/*" class="hidden" data-form-control>
+                                    <button type="button"
+                                            class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-ecs-green text-white font-medium hover:bg-ecs-green/90 transition-colors"
+                                            data-action="trigger-file-input"
+                                            data-target="image">
+                                        <i class="ti ti-upload"></i>Select Image
+                                    </button>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">PNG, JPG, or WEBP (max 5MB)</p>
+                                </div>
+                                {# Crop controls (shown after image selected) #}
+                                <div id="cropperControls" class="hidden space-y-3">
+                                    <p class="text-sm text-gray-600 dark:text-gray-400">Adjust your photo. Drag to move and pinch or scroll to zoom.</p>
+                                    <div class="grid gap-2">
                                         <button type="button"
-                                                class="c-upload-instructions__button c-btn c-btn--lg c-btn--primary w-100 mb-2 touch-target"
-                                                data-action="trigger-file-input"
-                                                data-target="image">
-                                            <i class="ti ti-upload me-1"></i> Select Image
+                                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 font-medium transition-colors"
+                                                data-action="reset-image-selection">
+                                            <i class="ti ti-photo"></i>Choose Different
                                         </button>
-                                    </div>
-
-                                    <!-- Cropper Controls (shown after image selected) -->
-                                    <div id="cropperControls" class="c-cropper-controls d-none">
-                                        <p class="c-cropper-controls__text mb-3">Adjust your photo below. Drag to move and pinch or scroll to zoom.</p>
-                                        <div class="c-cropper-controls__actions d-grid gap-2">
-                                            <button type="button"
-                                                    class="c-cropper-controls__button c-btn c-btn--outline-secondary touch-target"
-                                                    data-action="reset-image-selection">
-                                                <i class="ti ti-photo me-1"></i> Choose Different
-                                            </button>
-                                            <button type="button"
-                                                    class="c-cropper-controls__button c-btn c-btn--lg c-btn--success touch-target"
-                                                    data-action="crop-save-profile-image">
-                                                <i class="ti ti-check me-1"></i> Save Photo
-                                            </button>
-                                        </div>
+                                        <button type="button"
+                                                class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors focus:ring-4 focus:ring-green-500/50"
+                                                data-action="crop-save-profile-image">
+                                            <i class="ti ti-check"></i>Save Photo
+                                        </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Hidden input that can store the final base64 for form submission -->
                         <input type="hidden" id="cropped_image_data" name="cropped_image_data">
                     </div>
                 </div>
             </div>
 
-            <!-- Step 3: Player Profile -->
-            <div class="c-onboarding-step carousel-item" data-component="onboarding-step" data-step="3">
-                <div class="c-onboarding-step__content">
-                    <div class="c-onboarding-step__header">
-                        <div class="c-onboarding-step__icon text-primary">
+            {# ════════════════════════════════════════════
+               STEP 3 — Player Preferences
+               ════════════════════════════════════════════ #}
+            <div class="carousel-item" data-component="onboarding-step" data-step="3">
+                <div class="space-y-5">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+                        <div class="text-3xl text-ecs-green dark:text-ecs-gold">
                             <i class="ti ti-soccer-field"></i>
                         </div>
-                        <div class="c-onboarding-step__header-text">
-                            <h4 class="c-onboarding-step__heading fw-bold text-primary mb-1">Player Preferences</h4>
-                            <p class="c-onboarding-step__subheading text-muted mb-0">Tell us about your playing preferences</p>
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-900 dark:text-white">Player Preferences</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Tell us about your playing preferences</p>
                         </div>
                     </div>
 
-                    <div class="c-onboarding-step__card c-card shadow-sm p-4 mb-4">
-                        <!-- Player Profile Fields -->
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.jersey_size.id }}" class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-shirt me-1"></i>{{ onboarding_form.jersey_size.label.text }} <span class="text-danger">*</span>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                        {# Jersey Size + Pronouns #}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="{{ onboarding_form.jersey_size.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <i class="ti ti-shirt mr-1"></i>{{ onboarding_form.jersey_size.label.text }} <span class="text-red-500">*</span>
                                 </label>
-                                {{ onboarding_form.jersey_size(class="c-onboarding-step__select form-select form-select-lg", required=True) }}
+                                {{ onboarding_form.jersey_size(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", required=True) }}
                                 {% if onboarding_form.jersey_size.errors %}
-                                <div class="invalid-feedback">
-                                    {{ onboarding_form.jersey_size.errors[0] }}
-                                </div>
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.jersey_size.errors[0] }}</p>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.pronouns.id }}" class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-user me-1"></i>{{ onboarding_form.pronouns.label.text }} <span class="text-danger">*</span>
+                            <div>
+                                <label for="{{ onboarding_form.pronouns.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <i class="ti ti-user mr-1"></i>{{ onboarding_form.pronouns.label.text }} <span class="text-red-500">*</span>
                                 </label>
-                                {{ onboarding_form.pronouns(class="c-onboarding-step__select form-select form-select-lg", required=True) }}
+                                {{ onboarding_form.pronouns(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", required=True) }}
                                 {% if onboarding_form.pronouns.errors %}
-                                <div class="invalid-feedback">
-                                    {{ onboarding_form.pronouns.errors[0] }}
-                                </div>
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.pronouns.errors[0] }}</p>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <label for="{{ onboarding_form.favorite_position.id }}" class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-star me-1"></i>{{ onboarding_form.favorite_position.label.text }} <span class="text-danger">*</span>
-                                </label>
-                                {{ onboarding_form.favorite_position(class="c-onboarding-step__select form-select form-select-lg", required=True) }}
-                                <div class="c-onboarding-step__help-text form-text">This is the position you'd most like to play</div>
-                                {% if onboarding_form.favorite_position.errors %}
-                                <div class="invalid-feedback">
-                                    {{ onboarding_form.favorite_position.errors[0] }}
-                                </div>
-                                {% endif %}
-                            </div>
+                        {# Favorite Position — full width #}
+                        <div>
+                            <label for="{{ onboarding_form.favorite_position.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <i class="ti ti-star mr-1"></i>{{ onboarding_form.favorite_position.label.text }} <span class="text-red-500">*</span>
+                            </label>
+                            {{ onboarding_form.favorite_position(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", required=True) }}
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">This is the position you'd most like to play</p>
+                            {% if onboarding_form.favorite_position.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.favorite_position.errors[0] }}</p>
+                            {% endif %}
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-list-check me-1"></i>{{ onboarding_form.other_positions.label.text }}
+                        {# Other Positions + Positions to Avoid — checkbox chips #}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <i class="ti ti-list-check mr-1"></i>{{ onboarding_form.other_positions.label.text }}
                                 </label>
-                                <div class="c-onboarding-step__help-text form-text mb-2">Tap to select multiple positions</div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Tap to select multiple positions</p>
                                 <div class="c-wizard__checkbox-group c-wizard__checkbox-group--positions" data-field="other_positions">
                                     {% set selected_other = onboarding_form.other_positions.data or [] %}
                                     {% for value, label in onboarding_form.other_positions.choices %}
@@ -673,16 +651,14 @@
                                     {% endfor %}
                                 </div>
                                 {% if onboarding_form.other_positions.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ onboarding_form.other_positions.errors[0] }}
-                                </div>
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.other_positions.errors[0] }}</p>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-list-x me-1"></i>{{ onboarding_form.positions_not_to_play.label.text }}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <i class="ti ti-list-x mr-1"></i>{{ onboarding_form.positions_not_to_play.label.text }}
                                 </label>
-                                <div class="c-onboarding-step__help-text form-text mb-2">Tap to select positions to avoid</div>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Tap to select positions to avoid</p>
                                 <div class="c-wizard__checkbox-group c-wizard__checkbox-group--positions" data-field="positions_not_to_play">
                                     {% set selected_avoid = onboarding_form.positions_not_to_play.data or [] %}
                                     {% for value, label in onboarding_form.positions_not_to_play.choices %}
@@ -696,124 +672,110 @@
                                     {% endfor %}
                                 </div>
                                 {% if onboarding_form.positions_not_to_play.errors %}
-                                <div class="invalid-feedback d-block">
-                                    {{ onboarding_form.positions_not_to_play.errors[0] }}
-                                </div>
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.positions_not_to_play.errors[0] }}</p>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.expected_weeks_available.id }}" class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-calendar me-1"></i>{{ onboarding_form.expected_weeks_available.label.text }}
+                        {# Availability + Unavailable Dates #}
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="{{ onboarding_form.expected_weeks_available.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <i class="ti ti-calendar mr-1"></i>{{ onboarding_form.expected_weeks_available.label.text }}
                                 </label>
-                                {{ onboarding_form.expected_weeks_available(class="c-onboarding-step__select form-select form-select-lg") }}
+                                {{ onboarding_form.expected_weeks_available(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green") }}
                                 {% if onboarding_form.expected_weeks_available.errors %}
-                                <div class="invalid-feedback">
-                                    {{ onboarding_form.expected_weeks_available.errors[0] }}
-                                </div>
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.expected_weeks_available.errors[0] }}</p>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ onboarding_form.unavailable_dates.id }}" class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-calendar-off me-1"></i>{{ onboarding_form.unavailable_dates.label.text }}
+                            <div>
+                                <label for="{{ onboarding_form.unavailable_dates.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <i class="ti ti-calendar-off mr-1"></i>{{ onboarding_form.unavailable_dates.label.text }}
                                 </label>
-                                {{ onboarding_form.unavailable_dates(class="c-onboarding-step__input form-control form-control-lg") }}
-                                <div class="c-onboarding-step__help-text form-text">Specific dates when you know you'll be unavailable</div>
+                                {{ onboarding_form.unavailable_dates(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green") }}
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Specific dates when you know you'll be unavailable</p>
                                 {% if onboarding_form.unavailable_dates.errors %}
-                                <div class="invalid-feedback">
-                                    {{ onboarding_form.unavailable_dates.errors[0] }}
-                                </div>
+                                <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.unavailable_dates.errors[0] }}</p>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <div class="row">
-                            <div class="col-12 mb-3">
-                                <label for="{{ onboarding_form.player_notes.id }}" class="c-onboarding-step__label form-label">
-                                    <i class="ti ti-notes me-1"></i>{{ onboarding_form.player_notes.label.text }}
-                                </label>
-                                {{ onboarding_form.player_notes(class="c-onboarding-step__textarea form-control form-control-lg", placeholder="Share any additional information that would help coaches or team managers...", rows="3") }}
-                                <div class="c-onboarding-step__help-text form-text">Include any relevant information about your playing experience or special accommodations</div>
-                                {% if onboarding_form.player_notes.errors %}
-                                <div class="invalid-feedback">
-                                    {{ onboarding_form.player_notes.errors[0] }}
-                                </div>
-                                {% endif %}
-                            </div>
+                        {# Player Notes — full width #}
+                        <div>
+                            <label for="{{ onboarding_form.player_notes.id }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <i class="ti ti-notes mr-1"></i>{{ onboarding_form.player_notes.label.text }}
+                            </label>
+                            {{ onboarding_form.player_notes(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", placeholder="Share any additional information that would help coaches or team managers...", rows="3") }}
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Include any relevant information about your playing experience or special accommodations</p>
+                            {% if onboarding_form.player_notes.errors %}
+                            <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ onboarding_form.player_notes.errors[0] }}</p>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Step 4: Discord Linking -->
-            <div class="c-onboarding-step carousel-item" data-component="onboarding-step" data-step="4">
-                <div class="c-onboarding-step__content">
-                    <div class="c-onboarding-step__header">
-                        <div class="c-onboarding-step__icon text-primary">
+            {# ════════════════════════════════════════════
+               STEP 4 — Discord Integration
+               ════════════════════════════════════════════ #}
+            <div class="carousel-item" data-component="onboarding-step" data-step="4">
+                <div class="space-y-5">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+                        <div class="text-3xl text-ecs-green dark:text-ecs-gold">
                             <i class="fab fa-discord"></i>
                         </div>
-                        <div class="c-onboarding-step__header-text">
-                            <h4 class="c-onboarding-step__heading fw-bold text-primary mb-1">Discord Integration</h4>
-                            <p class="c-onboarding-step__subheading text-muted mb-0">Connect with your team on Discord</p>
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-900 dark:text-white">Discord Integration</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Connect with your team on Discord</p>
                         </div>
                     </div>
 
-                    <div class="c-onboarding-step__card c-card shadow-sm p-4 mb-4">
-                        <div class="row align-items-center">
-                            <div class="col-md-6 text-center mb-4 mb-md-0">
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+                            <div class="text-center">
                                 <img src="{{ url_for('static', filename='img/discord-mark-black.svg') }}"
-                                     alt="Discord"
-                                     class="c-onboarding-step__discord-image">
+                                     alt="Discord" class="w-24 md:w-32 mx-auto dark:invert dark:opacity-80">
                             </div>
-                            <div class="col-md-6">
+                            <div>
                                 {% if player.discord_id %}
                                     {% if player.discord_in_server %}
-                                    <!-- Connected AND in server -->
-                                    <div class="c-onboarding-step__alert alert alert-success mb-4" data-alert>
-                                        <div class="c-onboarding-step__alert-content d-flex align-items-start gap-3">
-                                            <i class="ti ti-check-circle fs-3 flex-shrink-0"></i>
-                                            <div>
-                                                <h5 class="alert-heading mb-1">You're All Set!</h5>
-                                                <p class="mb-0">Discord connected and you're in the ECS server.</p>
-                                            </div>
+                                    <div class="flex items-start gap-3 p-4 rounded-lg border bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border-green-300 dark:border-green-800 mb-4">
+                                        <i class="ti ti-check-circle text-2xl flex-shrink-0"></i>
+                                        <div>
+                                            <h5 class="font-semibold text-lg">You're All Set!</h5>
+                                            <p class="text-sm">Discord connected and you're in the ECS server.</p>
                                         </div>
                                     </div>
                                     {% else %}
-                                    <!-- Connected but NOT in server -->
-                                    <div class="c-onboarding-step__alert alert alert-warning mb-3" data-alert>
-                                        <div class="c-onboarding-step__alert-content d-flex align-items-start gap-3">
-                                            <i class="ti ti-alert-triangle fs-3 flex-shrink-0"></i>
-                                            <div>
-                                                <h5 class="alert-heading mb-1">Join Our Discord Server</h5>
-                                                <p class="mb-2">Your Discord is connected, but you haven't joined the ECS server yet.</p>
-                                            </div>
+                                    <div class="flex items-start gap-3 p-4 rounded-lg border bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-300 border-yellow-300 dark:border-yellow-800 mb-3">
+                                        <i class="ti ti-alert-triangle text-2xl flex-shrink-0"></i>
+                                        <div>
+                                            <h5 class="font-semibold text-lg">Join Our Discord Server</h5>
+                                            <p class="text-sm">Your Discord is connected, but you haven't joined the ECS server yet.</p>
                                         </div>
                                     </div>
-                                    <p class="text-muted small mb-3">Join to get match notifications, chat with teammates, and access team channels.</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Join to get match notifications, chat with teammates, and access team channels.</p>
                                     <a href="https://discord.gg/weareecs"
                                        target="_blank"
                                        rel="noopener noreferrer"
-                                       class="c-btn c-btn--lg w-100 mb-2"
-                                       style="background: #5865F2; color: white;">
-                                        <i class="fab fa-discord me-2"></i> Join ECS Discord Server
+                                       class="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium transition-colors mb-2">
+                                        <i class="fab fa-discord"></i>Join ECS Discord Server
                                     </a>
-                                    <p class="text-muted small text-center mb-0">
-                                        <i class="ti ti-info-circle me-1"></i>Already joined? It may take a moment to sync.
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 text-center">
+                                        <i class="ti ti-info-circle mr-1"></i>Already joined? It may take a moment to sync.
                                     </p>
                                     {% endif %}
                                 {% else %}
-                                <h5 class="c-onboarding-step__subheading fw-bold mb-3">Why Connect Discord?</h5>
-                                <ul class="c-onboarding-step__list mb-4">
-                                    <li>Get match notifications directly in Discord</li>
-                                    <li>Communicate easily with teammates and coaches</li>
-                                    <li>Access team-specific channels and information</li>
-                                    <li>Verify your identity for team servers</li>
+                                <h5 class="font-bold text-gray-900 dark:text-white mb-3">Why Connect Discord?</h5>
+                                <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-300 mb-4">
+                                    <li class="flex items-center gap-2"><i class="ti ti-check text-green-500"></i>Get match notifications directly in Discord</li>
+                                    <li class="flex items-center gap-2"><i class="ti ti-check text-green-500"></i>Communicate easily with teammates and coaches</li>
+                                    <li class="flex items-center gap-2"><i class="ti ti-check text-green-500"></i>Access team-specific channels and information</li>
+                                    <li class="flex items-center gap-2"><i class="ti ti-check text-green-500"></i>Verify your identity for team servers</li>
                                 </ul>
                                 <a href="{{ url_for('auth.discord_login') }}"
-                                   class="c-onboarding-step__button c-onboarding-step__button--primary c-btn c-btn--lg c-btn--primary w-100">
-                                    <i class="fab fa-discord me-2"></i> Connect Discord Account
+                                   class="w-full inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white transition-colors focus:outline-none focus:ring-4 focus:ring-ecs-green/50">
+                                    <i class="fab fa-discord"></i>Connect Discord Account
                                 </a>
                                 {% endif %}
                             </div>
@@ -822,176 +784,168 @@
                 </div>
             </div>
 
-            <!-- Step 5: Notification Settings -->
-            <div class="c-onboarding-step carousel-item" data-component="onboarding-step" data-step="5">
-                <div class="c-onboarding-step__content">
-                    <div class="c-onboarding-step__header">
-                        <div class="c-onboarding-step__icon text-primary">
+            {# ════════════════════════════════════════════
+               STEP 5 — Communication Preferences
+               ════════════════════════════════════════════ #}
+            <div class="carousel-item" data-component="onboarding-step" data-step="5">
+                <div class="space-y-5">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+                        <div class="text-3xl text-ecs-green dark:text-ecs-gold">
                             <i class="ti ti-bell"></i>
                         </div>
-                        <div class="c-onboarding-step__header-text">
-                            <h4 class="c-onboarding-step__heading fw-bold text-primary mb-1">Communication Preferences</h4>
-                            <p class="c-onboarding-step__subheading text-muted mb-0">How would you like to be notified?</p>
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-900 dark:text-white">Communication Preferences</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">How would you like to be notified?</p>
                         </div>
                     </div>
 
-                    <div class="c-onboarding-step__card c-card shadow-sm p-4 mb-4">
-                        <div class="c-notification-group mb-4">
-                            <h5 class="c-notification-group__heading fw-bold mb-3">Notification Channels</h5>
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                        <h5 class="font-bold text-gray-900 dark:text-white">Notification Channels</h5>
 
-                            <!-- Email Notifications -->
-                            <div class="c-notification-channel c-card mb-3 border">
-                                <div class="c-notification-channel__body c-card__body">
-                                    <div class="c-notification-channel__check form-check">
-                                        <label class="c-notification-channel__label form-check-label fw-semibold" for="emailNotifications">
-                                            {{ onboarding_form.email_notifications(class="c-notification-channel__input form-check-input", id="emailNotifications") }}
-                                            <div class="c-notification-channel__info">
-                                                <div class="c-notification-channel__title">
-                                                    <i class="ti ti-mail me-2 text-primary"></i>Email Notifications
-                                                </div>
-                                                <p class="c-notification-channel__description text-muted mb-0 small">Match schedules, team updates, and important announcements</p>
-                                            </div>
-                                        </label>
+                        {# Email Notifications #}
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                            <label class="flex items-start gap-3 cursor-pointer" for="emailNotifications">
+                                {{ onboarding_form.email_notifications(class="mt-0.5 w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700", id="emailNotifications") }}
+                                <div>
+                                    <div class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                                        <i class="ti ti-mail text-ecs-green dark:text-ecs-gold"></i>Email Notifications
                                     </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Match schedules, team updates, and important announcements</p>
                                 </div>
-                            </div>
+                            </label>
+                        </div>
 
-                            <!-- SMS Notifications -->
-                            <div class="c-notification-channel c-card mb-3 border">
-                                <div class="c-notification-channel__body c-card__body">
-                                    <div class="c-notification-channel__check form-check">
-                                        <label class="c-notification-channel__label form-check-label fw-semibold" for="smsNotifications">
-                                            <input class="c-notification-channel__input form-check-input"
-                                                   type="checkbox"
-                                                   id="smsNotifications"
-                                                   name="sms_notifications"
-                                                   data-on-change="onboarding-toggle-sms">
-                                            <div class="c-notification-channel__info">
-                                                <div class="c-notification-channel__title">
-                                                    <i class="ti ti-message me-2 text-primary"></i>SMS Notifications
-                                                </div>
-                                                <p class="c-notification-channel__description text-muted mb-0 small">Game day reminders, last-minute changes, and quick RSVPs</p>
-                                            </div>
-                                        </label>
+                        {# SMS Notifications #}
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                            <label class="flex items-start gap-3 cursor-pointer" for="smsNotifications">
+                                <input class="mt-0.5 w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700"
+                                       type="checkbox"
+                                       id="smsNotifications"
+                                       name="sms_notifications"
+                                       data-on-change="onboarding-toggle-sms">
+                                <div>
+                                    <div class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                                        <i class="ti ti-message text-ecs-green dark:text-ecs-gold"></i>SMS Notifications
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Game day reminders, last-minute changes, and quick RSVPs</p>
+                                </div>
+                            </label>
+
+                            {# SMS Opt-in Section (initially hidden) #}
+                            <div id="smsOptInSection" class="hidden mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-4">
+                                    <div>
+                                        <h6 class="font-bold text-gray-900 dark:text-white">Verify Your Phone Number</h6>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">We'll send a verification code to confirm your phone number.</p>
                                     </div>
 
-                                    <!-- SMS Opt-in Section (Initially hidden) -->
-                                    <div id="smsOptInSection" class="c-sms-optin u-hidden">
-                                        <hr>
-                                        <div class="c-sms-optin__alert alert alert-light border p-3" data-alert>
-                                            <h6 class="c-sms-optin__heading fw-bold">Verify Your Phone Number</h6>
-                                            <p class="c-sms-optin__text small mb-3">We'll send a verification code to confirm your phone number.</p>
-
-                                            <div class="row">
-                                                <div class="col-md-8 mb-2">
-                                                    <label for="phoneNumber" class="c-sms-optin__label form-label small">Phone Number</label>
-                                                    <input type="tel"
-                                                           class="c-sms-optin__input form-control"
-                                                           id="phoneNumber"
-                                                           name="phone_number"
-                                                           placeholder="(555) 555-5555"
-                                                           inputmode="tel"
-                                                           data-form-control>
-                                                </div>
-                                                <div class="col-md-4 mb-2 d-flex align-items-end">
-                                                    <button type="button"
-                                                            id="sendVerificationCode"
-                                                            class="c-sms-optin__button c-btn c-btn--primary w-100"
-                                                            data-action="send-verification-code">Send Code</button>
-                                                </div>
-                                            </div>
-
-                                            <div class="c-sms-optin__consent form-check mb-3">
-                                                <input type="checkbox"
-                                                       class="c-sms-optin__consent-input form-check-input"
-                                                       id="smsConsent"
-                                                       name="sms_consent">
-                                                <label class="c-sms-optin__consent-label form-check-label small" for="smsConsent">
-                                                    I consent to receive SMS messages. Standard rates may apply.
-                                                </label>
-                                            </div>
-
-                                            <!-- Verification Code Input (Initially hidden) -->
-                                            <div id="verificationCodeSection" class="c-sms-verification u-hidden">
-                                                <div class="row">
-                                                    <div class="col-md-8 mb-2">
-                                                        <label for="verificationCode" class="c-sms-verification__label form-label small">Verification Code</label>
-                                                        <input type="text"
-                                                               class="c-sms-verification__input form-control"
-                                                               id="verificationCode"
-                                                               name="verification_code"
-                                                               placeholder="Enter verification code"
-                                                               data-form-control>
-                                                    </div>
-                                                    <div class="col-md-4 mb-2 d-flex align-items-end">
-                                                        <button type="button"
-                                                                id="verifyCode"
-                                                                class="c-sms-verification__button c-btn c-btn--success w-100"
-                                                                data-action="verify-code">Verify</button>
-                                                    </div>
-                                                </div>
-                                                <button type="button"
-                                                        id="resendCode"
-                                                        class="c-sms-verification__resend c-btn c-btn--link c-btn--sm p-0"
-                                                        data-action="resend-code">Resend Code</button>
-                                            </div>
+                                    {# Phone + Send Code #}
+                                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                                        <div>
+                                            <label for="phoneNumber" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
+                                            <input type="tel"
+                                                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                                                   id="phoneNumber"
+                                                   name="phone_number"
+                                                   placeholder="(555) 555-5555"
+                                                   inputmode="tel"
+                                                   data-form-control>
+                                        </div>
+                                        <div class="flex items-end">
+                                            <button type="button"
+                                                    id="sendVerificationCode"
+                                                    class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white font-medium text-sm transition-colors whitespace-nowrap"
+                                                    data-action="send-code">Send Code</button>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <!-- Discord Notifications -->
-                            <div class="c-notification-channel c-card mb-3 border">
-                                <div class="c-notification-channel__body c-card__body">
-                                    <div class="c-notification-channel__check form-check">
-                                        <label class="c-notification-channel__label form-check-label fw-semibold" for="discordNotifications">
-                                            {{ onboarding_form.discord_notifications(class="c-notification-channel__input form-check-input", id="discordNotifications") }}
-                                            <div class="c-notification-channel__info">
-                                                <div class="c-notification-channel__title">
-                                                    <i class="fab fa-discord me-2 text-primary"></i>Discord Notifications
-                                                </div>
-                                                <p class="c-notification-channel__description text-muted mb-0 small">Get notified in Discord channels for team communications</p>
+                                    {# Consent checkbox #}
+                                    <label class="flex items-start gap-3 cursor-pointer">
+                                        <input type="checkbox"
+                                               class="mt-0.5 w-4 h-4 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700"
+                                               id="smsConsent"
+                                               name="sms_consent"
+                                               data-on-change="onboarding-sms-consent">
+                                        <span class="text-sm text-gray-600 dark:text-gray-300">
+                                            I consent to receive SMS messages. Standard rates may apply.
+                                        </span>
+                                    </label>
+
+                                    {# Verification Code Input (initially hidden) #}
+                                    <div id="verificationCodeSection" class="hidden space-y-2">
+                                        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                                            <div>
+                                                <label for="verificationCode" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Verification Code</label>
+                                                <input type="text"
+                                                       class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                                                       id="verificationCode"
+                                                       name="verification_code"
+                                                       placeholder="Enter verification code"
+                                                       data-form-control>
                                             </div>
-                                        </label>
+                                            <div class="flex items-end">
+                                                <button type="button"
+                                                        id="verifyCode"
+                                                        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium text-sm transition-colors whitespace-nowrap"
+                                                        data-action="verify-code">Verify</button>
+                                            </div>
+                                        </div>
+                                        <button type="button"
+                                                id="resendCode"
+                                                class="text-sm text-ecs-green hover:text-ecs-green/80 dark:text-ecs-gold dark:hover:text-ecs-gold/80 font-medium"
+                                                data-action="resend-code">Resend Code</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="c-privacy-group">
-                            <h5 class="c-privacy-group__heading fw-bold mb-3">Privacy Settings</h5>
-
-                            <!-- Profile Visibility -->
-                            <div class="c-privacy-setting c-card border">
-                                <div class="c-privacy-setting__body c-card__body">
-                                    <label for="{{ onboarding_form.profile_visibility.id }}"
-                                           class="c-privacy-setting__label form-label fw-semibold">
-                                        <i class="ti ti-eye me-2 text-primary"></i>Profile Visibility
-                                    </label>
-                                    <p class="c-privacy-setting__description text-muted small mb-2">Control who can see your profile information</p>
-                                    {{ onboarding_form.profile_visibility(class="c-privacy-setting__select form-select form-select-lg") }}
+                        {# Discord Notifications #}
+                        <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                            <label class="flex items-start gap-3 cursor-pointer" for="discordNotifications">
+                                {{ onboarding_form.discord_notifications(class="mt-0.5 w-5 h-5 rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green dark:bg-gray-700", id="discordNotifications") }}
+                                <div>
+                                    <div class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">
+                                        <i class="fab fa-discord text-ecs-green dark:text-ecs-gold"></i>Discord Notifications
+                                    </div>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Get notified in Discord channels for team communications</p>
                                 </div>
+                            </label>
+                        </div>
+
+                        {# Privacy Settings #}
+                        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                            <h5 class="font-bold text-gray-900 dark:text-white mb-3">Privacy Settings</h5>
+                            <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+                                <label for="{{ onboarding_form.profile_visibility.id }}" class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">
+                                    <i class="ti ti-eye mr-1 text-ecs-green dark:text-ecs-gold"></i>Profile Visibility
+                                </label>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Control who can see your profile information</p>
+                                {{ onboarding_form.profile_visibility(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-base text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green") }}
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
-        <!-- END carousel-inner -->
 
-        <!-- Navigation Buttons - OUTSIDE carousel-inner to avoid overflow:hidden clipping -->
-        <div class="c-onboarding-controls" id="carouselControls" data-component="onboarding-controls">
-            <button class="c-onboarding-controls__button c-onboarding-controls__button--previous c-btn c-btn--lg c-btn--outline-secondary touch-target"
+        </div>{# END carousel-inner #}
+    </div>{# END carousel #}
+    </div>{# END scrollable content #}
+
+    {# ── Navigation Controls (always visible at bottom) ── #}
+    <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4 py-3 md:px-5 md:py-4 rounded-b-lg"
+         id="carouselControls" data-component="onboarding-controls">
+        <div class="flex justify-between gap-3">
+            <button class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg border border-gray-300 dark:border-gray-600 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 transition-colors"
                     type="button"
                     id="previousButton"
                     data-action="onboarding-previous">
-                <i class="ti ti-chevron-left me-1"></i> Back
+                <i class="ti ti-chevron-left"></i> Back
             </button>
-            <button class="c-onboarding-controls__button c-onboarding-controls__button--next c-btn c-btn--lg c-btn--primary touch-target"
+            <button class="flex-1 inline-flex items-center justify-center gap-2 px-6 py-3 text-base font-medium rounded-lg bg-ecs-green hover:bg-ecs-green/90 text-white transition-colors focus:outline-none focus:ring-4 focus:ring-ecs-green/50"
                     type="button"
                     id="nextOrSaveButton"
                     data-action="onboarding-next">
-                Next <i class="ti ti-chevron-right ms-1"></i>
+                Next <i class="ti ti-chevron-right"></i>
             </button>
         </div>
     </div>

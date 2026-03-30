@@ -17,30 +17,29 @@ export function toggleSmsConsent(show) {
         smsOptInSection.classList.remove('hidden');
     } else {
         smsOptInSection.classList.add('hidden');
-        // If SMS is disabled, also hide verification
-        const smsVerificationSection = document.getElementById('smsVerificationSection');
-        if (smsVerificationSection) {
-            smsVerificationSection.classList.add('hidden');
+        const verificationSection = document.getElementById('verificationCodeSection');
+        if (verificationSection) {
+            verificationSection.classList.add('hidden');
         }
     }
 }
 
 export function toggleSmsVerification(show) {
-    const smsVerificationSection = document.getElementById('smsVerificationSection');
-    if (!smsVerificationSection) return;
+    const verificationSection = document.getElementById('verificationCodeSection');
+    if (!verificationSection) return;
 
     if (show) {
-        smsVerificationSection.classList.remove('hidden');
+        verificationSection.classList.remove('hidden');
     } else {
-        smsVerificationSection.classList.add('hidden');
+        verificationSection.classList.add('hidden');
     }
 }
 
 export function sendVerificationCode() {
     // console.log("Sending verification code");
-    var phoneInput = document.querySelector('input[name="phone"]');
-    var sendButton = document.getElementById('sendVerificationBtn');
-    var verificationCodeInput = document.getElementById('verificationCodeInput');
+    var phoneInput = document.querySelector('input[name="phone"]') || document.getElementById('phoneNumber');
+    var sendButton = document.getElementById('sendVerificationCode');
+    var verificationCodeInput = document.getElementById('verificationCodeSection');
 
     if (!phoneInput || !phoneInput.value.trim()) {
         window.Swal.fire({
@@ -121,9 +120,9 @@ export function sendVerificationCode() {
 export function verifyCode() {
     // console.log("Verifying code");
     var codeInput = document.getElementById('verificationCode');
-    var verifyButton = document.getElementById('verifyCodeBtn');
-    var verificationCodeInput = document.getElementById('verificationCodeInput');
-    var sendButton = document.getElementById('sendVerificationBtn');
+    var verifyButton = document.getElementById('verifyCode');
+    var verificationCodeInput = document.getElementById('verificationCodeSection');
+    var sendButton = document.getElementById('sendVerificationCode');
     var verifiedFlagInput = document.getElementById('smsVerified');
 
     if (!codeInput || !codeInput.value.trim()) {
@@ -216,8 +215,8 @@ window.adminSetVerificationCode = function() {
             cancelButtonText: 'Cancel'
         }).then(function(result) {
             if (result.isConfirmed) {
-                var phoneInput = document.querySelector('input[name="phone"]');
-                var verificationCodeInput = document.getElementById('verificationCodeInput');
+                var phoneInput = document.querySelector('input[name="phone"]') || document.getElementById('phoneNumber');
+                var verificationCodeInput = document.getElementById('verificationCodeSection');
 
                 if (!phoneInput || !phoneInput.value.trim()) {
                     // console.error("Phone number is required");

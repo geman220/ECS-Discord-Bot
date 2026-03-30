@@ -113,70 +113,8 @@ export function initOnboarding() {
             observer.observe(modalEl, { attributes: true, attributeFilter: ['class'] });
         }
 
-        // Single delegated change listener for image input - uses Cropper.js
-        document.addEventListener('change', function(e) {
-            // Guard: ensure e.target is an Element with closest method
-            if (!e.target || typeof e.target.closest !== 'function') return;
-            if (e.target.id === 'image' && e.target.closest('#onboardingSlideModal')) {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    const imgElement = document.getElementById('onboardingCropperImage');
-                    if (!imgElement) {
-                        console.error('[onboarding] Cropper image element not found');
-                        return;
-                    }
-                    imgElement.src = event.target.result;
-
-                    // Show cropper interface, hide preview and instructions
-                    const profilePreview = document.getElementById('profilePicturePreview');
-                    const uploadInstructions = document.getElementById('uploadInstructions');
-                    const cropperInterface = document.getElementById('cropperInterface');
-                    const cropperControls = document.getElementById('cropperControls');
-
-                    if (profilePreview) profilePreview.classList.add('hidden');
-                    if (uploadInstructions) uploadInstructions.classList.add('hidden');
-                    if (cropperInterface) cropperInterface.classList.remove('hidden');
-                    if (cropperControls) cropperControls.classList.remove('hidden');
-
-                    // Destroy existing cropper instance if any
-                    if (window.onboardingCropper) {
-                        window.onboardingCropper.destroy();
-                        window.onboardingCropper = null;
-                    }
-
-                    // Initialize Cropper.js after a short delay to ensure image is loaded
-                    setTimeout(() => {
-                        if (typeof window.Cropper === 'undefined') {
-                            console.error('[onboarding] Cropper.js library not loaded');
-                            return;
-                        }
-
-                        window.onboardingCropper = new window.Cropper(imgElement, {
-                            aspectRatio: 1,
-                            viewMode: 1,
-                            dragMode: 'move',
-                            autoCropArea: 0.8,
-                            cropBoxMovable: true,
-                            cropBoxResizable: true,
-                            guides: true,
-                            center: true,
-                            highlight: true,
-                            background: false,
-                            responsive: true,
-                            restore: false,
-                            rotatable: false,
-                            scalable: false,
-                            toggleDragModeOnDblclick: false,
-                            checkOrientation: false
-                        });
-                    }, 50);
-                };
-                reader.readAsDataURL(file);
-            }
-        });
+        // Cropper.js file input listener is handled by onboarding-wizard.js
+        // (initOnboardingCropperListener) which also validates file type/size
     }
 
     // Note: Crop & Save handling is done via event delegation in onboarding-wizard.js using Cropper.js
@@ -239,11 +177,9 @@ export function initOnboarding() {
     if (smsToggle && smsOptInSection) {
         // Set initial visibility based on checkbox state
         if (!smsToggle.checked) {
-            smsOptInSection.classList.add('sms-section-hide');
-            smsOptInSection.classList.remove('sms-section-show', 'sms-section-entering');
+            smsOptInSection.classList.add('hidden');
         } else {
-            smsOptInSection.classList.add('sms-section-show');
-            smsOptInSection.classList.remove('sms-section-hide', 'sms-section-entering');
+            smsOptInSection.classList.remove('hidden');
         }
     }
 
@@ -252,43 +188,23 @@ export function initOnboarding() {
         const smsOptInSection = document.getElementById('smsOptInSection');
         if (!smsOptInSection) return;
 
-        // Find phone number and consent elements within the section
         const phoneNumberInput = smsOptInSection.querySelector('#phoneNumber');
         const smsConsentInput = smsOptInSection.querySelector('#smsConsent');
 
         if (checkbox.checked) {
-            // Show the SMS opt-in section with animation
-            // 1. Remove hide class and add entering class (display:block, opacity:0)
-            smsOptInSection.classList.remove('sms-section-hide');
-            smsOptInSection.classList.add('sms-section-entering');
-
-            // 2. Force reflow to ensure the entering state is applied
-            void smsOptInSection.offsetWidth;
-
-            // 3. After a small delay, transition to show state (opacity:1)
-            setTimeout(() => {
-                smsOptInSection.classList.remove('sms-section-entering');
-                smsOptInSection.classList.add('sms-section-show');
-            }, 10);
-
-            // Mark fields as required if they exist
+            smsOptInSection.classList.remove('hidden');
             if (phoneNumberInput) phoneNumberInput.setAttribute('required', 'true');
             if (smsConsentInput) smsConsentInput.setAttribute('required', 'true');
         } else {
-            // Hide the SMS opt-in section with animation
-            // 1. Add exiting class to start fade-out (opacity:0 with transition)
-            smsOptInSection.classList.remove('sms-section-show');
-            smsOptInSection.classList.add('sms-section-exiting');
-
-            // 2. After transition completes, add hide class (display:none)
-            setTimeout(() => {
-                smsOptInSection.classList.remove('sms-section-exiting');
-                smsOptInSection.classList.add('sms-section-hide');
-            }, 300);
-
-            // Remove required constraints if they exist
+            smsOptInSection.classList.add('hidden');
+            // Also hide verification section and uncheck consent
+            const verificationSection = document.getElementById('verificationCodeSection');
+            if (verificationSection) verificationSection.classList.add('hidden');
+            if (smsConsentInput) {
+                smsConsentInput.checked = false;
+                smsConsentInput.removeAttribute('required');
+            }
             if (phoneNumberInput) phoneNumberInput.removeAttribute('required');
-            if (smsConsentInput) smsConsentInput.removeAttribute('required');
         }
     };
 
@@ -311,34 +227,28 @@ export function initOnboarding() {
     function updateNavButtons() {
         const step = getCurrentStep();
 
-        // Update visibility of carousel controls
+        // Hide controls on intro step (step 0)
         if (step === 0 && carouselControls) {
             carouselControls.classList.add('hidden');
         } else if (carouselControls) {
             carouselControls.classList.remove('hidden');
 
-            // On first step, hide previous button
+            // Hide back button on first real step
             if (step === 1 && previousButton) {
                 previousButton.classList.add('hidden');
             } else if (previousButton) {
                 previousButton.classList.remove('hidden');
             }
 
-            // On final step, change next button to submit
+            // Final step: switch to "Save and Finish" style
             if (step === totalSteps && nextOrSaveButton) {
                 nextOrSaveButton.innerHTML = 'Save and Finish';
-                nextOrSaveButton.type = 'button';  // Keep as button, not submit
-                nextOrSaveButton.classList.remove('text-white', 'bg-ecs-green', 'hover:bg-ecs-green-dark', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
-                nextOrSaveButton.classList.add('text-white', 'bg-green-600', 'hover:bg-green-700', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
-                nextOrSaveButton.removeAttribute('data-carousel-slide');
-                nextOrSaveButton.removeAttribute('data-carousel-target');
+                nextOrSaveButton.classList.remove('bg-ecs-green', 'hover:bg-ecs-green/90', 'focus:ring-ecs-green/50');
+                nextOrSaveButton.classList.add('bg-green-600', 'hover:bg-green-700', 'focus:ring-green-500/50');
             } else if (nextOrSaveButton) {
-                nextOrSaveButton.innerHTML = 'Next <i class="ti ti-chevron-right ms-2"></i>';
-                nextOrSaveButton.type = 'button';
-                nextOrSaveButton.classList.remove('text-white', 'bg-green-600', 'hover:bg-green-700', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
-                nextOrSaveButton.classList.add('text-white', 'bg-ecs-green', 'hover:bg-ecs-green-dark', 'focus:ring-4', 'focus:ring-green-300', 'font-medium', 'rounded-lg', 'text-sm', 'px-5', 'py-2.5');
-                nextOrSaveButton.removeAttribute('data-carousel-slide');  // Remove Flowbite carousel control
-                nextOrSaveButton.removeAttribute('data-carousel-target'); // Remove Flowbite carousel target
+                nextOrSaveButton.innerHTML = 'Next <i class="ti ti-chevron-right"></i>';
+                nextOrSaveButton.classList.remove('bg-green-600', 'hover:bg-green-700', 'focus:ring-green-500/50');
+                nextOrSaveButton.classList.add('bg-ecs-green', 'hover:bg-ecs-green/90', 'focus:ring-ecs-green/50');
             }
         }
     }
@@ -394,7 +304,6 @@ export function initOnboarding() {
                     });
                 }
             }
-            form.classList.add('was-validated');
         }, true);
 
         // Single delegated input listener for real-time validation feedback removal
@@ -404,9 +313,10 @@ export function initOnboarding() {
             if (!e.target.closest('#onboardingSlideModal')) return;
             if (e.target.matches('input[required], select[required], textarea[required]')) {
                 if (e.target.checkValidity()) {
-                    e.target.classList.remove('is-invalid');
+                    e.target.classList.remove('border-red-500', 'focus:border-red-500', 'focus:ring-red-500');
+                    delete e.target.dataset.invalid;
                     const feedback = e.target.nextElementSibling;
-                    if (feedback && feedback.classList.contains('invalid-feedback')) {
+                    if (feedback && feedback.dataset.validationFeedback) {
                         feedback.remove();
                     }
                 }
