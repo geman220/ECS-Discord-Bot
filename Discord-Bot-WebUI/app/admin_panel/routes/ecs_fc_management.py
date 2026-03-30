@@ -208,6 +208,9 @@ def normalize_csv_columns(row):
         'away_shirt_color': ['opponent shirt color', 'opponent_shirt_color', 'their color', 'their_color', 'opp jersey', 'opp kit'],
         # Notes
         'notes': ['notes', 'comments', 'memo', 'info'],
+        # Coordinates
+        'latitude': ['latitude', 'lat'],
+        'longitude': ['longitude', 'lng', 'lon', 'long'],
     }
 
     normalized = {}
@@ -465,6 +468,10 @@ def ecs_fc_match_create():
             if rsvp_deadline_str:
                 rsvp_deadline = datetime.strptime(rsvp_deadline_str, '%Y-%m-%dT%H:%M')
 
+            # Parse optional coordinates
+            lat_str = request.form.get('latitude')
+            lng_str = request.form.get('longitude')
+
             # Create match
             match = EcsFcMatch(
                 team_id=team_id,
@@ -474,6 +481,8 @@ def ecs_fc_match_create():
                 match_time=match_time,
                 location=request.form.get('location', ''),
                 field_name=request.form.get('field_name'),
+                latitude=float(lat_str) if lat_str else None,
+                longitude=float(lng_str) if lng_str else None,
                 is_home_match=request.form.get('is_home_match') == 'true',
                 notes=request.form.get('notes'),
                 status='SCHEDULED',
@@ -577,6 +586,10 @@ def ecs_fc_match_edit(match_id):
 
             match.location = request.form.get('location', match.location)
             match.field_name = request.form.get('field_name')
+            lat_str = request.form.get('latitude')
+            lng_str = request.form.get('longitude')
+            match.latitude = float(lat_str) if lat_str else None
+            match.longitude = float(lng_str) if lng_str else None
             match.is_home_match = request.form.get('is_home_match') == 'true'
             match.notes = request.form.get('notes')
             match.status = request.form.get('status', match.status)
@@ -862,6 +875,10 @@ def ecs_fc_import():
                     # Notes
                     notes = normalized.get('notes', '')
 
+                    # Coordinates
+                    lat_str = normalized.get('latitude')
+                    lng_str = normalized.get('longitude')
+
                     match = EcsFcMatch(
                         team_id=team_id,
                         opponent_name=opponent_name,
@@ -869,6 +886,8 @@ def ecs_fc_import():
                         match_time=match_time,
                         location=location,
                         field_name=field_name,
+                        latitude=float(lat_str) if lat_str else None,
+                        longitude=float(lng_str) if lng_str else None,
                         is_home_match=is_home_match,
                         home_shirt_color=home_shirt_color,
                         away_shirt_color=away_shirt_color,

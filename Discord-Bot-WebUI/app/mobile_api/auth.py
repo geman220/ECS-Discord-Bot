@@ -19,7 +19,7 @@ from sqlalchemy.orm import joinedload
 
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
-from app.models import User, Player, Season, player_teams
+from app.models import User, Player, Season, player_teams, QuickProfile, QuickProfileStatus
 from app.app_api_helpers import (
     generate_pkce_codes,
     exchange_discord_code,
@@ -33,6 +33,60 @@ from app.etag_utils import make_etag_response, CACHE_DURATIONS
 from app.utils.session_utils import create_user_session
 
 logger = logging.getLogger(__name__)
+
+
+def _process_claim_code(session_db, user, discord_id, claim_code):
+    """
+    Process a quick profile claim code during mobile registration.
+
+    Finds the quick profile, creates a Player if needed, and merges
+    the profile data. Returns a result dict for the API response.
+
+    Claim failures never raise — they return a status dict so that
+    account creation is never blocked.
+    """
+    try:
+        profile = session_db.query(QuickProfile).filter_by(
+            claim_code=claim_code.upper().strip()
+        ).first()
+
+        if not profile:
+            return {"status": "not_found", "message": "Invalid claim code"}
+
+        if profile.status == QuickProfileStatus.CLAIMED.value:
+            return {"status": "already_claimed", "message": "This code has already been used"}
+
+        if profile.status == QuickProfileStatus.LINKED.value:
+            return {"status": "already_claimed", "message": "This code has already been linked to a player"}
+
+        if not profile.is_valid():
+            return {"status": "expired", "message": "This code has expired"}
+
+        # Find or create Player record
+        player = session_db.query(Player).filter_by(user_id=user.id).first()
+        if not player:
+            player = Player(
+                name=user.username,
+                user_id=user.id,
+                discord_id=discord_id,
+                is_current_player=True,
+                is_sub=True
+            )
+            session_db.add(player)
+            session_db.flush()  # Need player.id for claim()
+
+        profile.claim(player)
+
+        logger.info(f"Quick profile {profile.id} claimed via mobile OAuth by user {user.id}")
+        return {
+            "status": "claimed",
+            "message": "Profile claimed successfully",
+            "player_name": profile.player_name
+        }
+
+    except Exception as e:
+        logger.error(f"Error processing claim code '{claim_code}' for user {user.id}: {e}", exc_info=True)
+        return {"status": "error", "message": "Failed to process claim code"}
 
 
 @mobile_api_v2.route('/get_discord_auth_url', methods=['GET'])
@@ -114,9 +168,11 @@ def discord_callback():
         redirect_uri: The redirect URI used in the auth request
         code_verifier: The PKCE code verifier
         state: The state parameter from the original auth request
+        claim_code: (optional) 6-character quick profile claim code
 
     Returns:
-        JSON with JWT access token on success
+        JSON with JWT access token on success.
+        If claim_code provided, includes claim_result with status.
     """
     try:
         data = request.json
@@ -124,6 +180,7 @@ def discord_callback():
             return jsonify({"msg": "Missing request data"}), 400
 
         code = data.get('code')
+        claim_code = data.get('claim_code', '').strip().upper() if data.get('claim_code') else None
         if 'redirect_uri' not in data:
             return jsonify({"msg": "Missing redirect_uri parameter from original authorization request"}), 400
 
@@ -166,6 +223,11 @@ def discord_callback():
             if not user:
                 return jsonify({"msg": "Failed to process Discord user"}), 500
 
+            # Process claim code if provided (before commit so it's in same transaction)
+            claim_result = None
+            if claim_code:
+                claim_result = _process_claim_code(session_db, user, discord_user['id'], claim_code)
+
             # Create session record and JWT tokens
             session_id = create_user_session(session_db, user.id)
             session_db.commit()
@@ -173,13 +235,17 @@ def discord_callback():
             access_token = create_access_token(identity=str(user.id), additional_claims={'sid': session_id})
             refresh_token = create_refresh_token(identity=str(user.id), additional_claims={'sid': session_id})
 
-            return jsonify({
+            response = {
                 "access_token": access_token,
                 "refresh_token": refresh_token,
                 "user_id": user.id,
                 "username": user.username,
                 "discord_id": discord_user['id']
-            }), 200
+            }
+            if claim_result is not None:
+                response["claim_result"] = claim_result
+
+            return jsonify(response), 200
 
     except Exception as e:
         logger.exception(f"Error in Discord callback: {e}")

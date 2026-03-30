@@ -33,7 +33,9 @@ class EcsFcScheduleManager:
         is_home_match: bool = True,
         notes: str = None,
         created_by: int = None,
-        rsvp_deadline: datetime = None
+        rsvp_deadline: datetime = None,
+        latitude: float = None,
+        longitude: float = None
     ) -> Tuple[bool, str, Optional[EcsFcMatch]]:
         """
         Create a new ECS FC match.
@@ -80,6 +82,8 @@ class EcsFcScheduleManager:
                 match_time=match_time,
                 location=location.strip(),
                 field_name=field_name.strip() if field_name else None,
+                latitude=latitude,
+                longitude=longitude,
                 is_home_match=is_home_match,
                 notes=notes.strip() if notes else None,
                 created_by=created_by,
@@ -127,7 +131,8 @@ class EcsFcScheduleManager:
             updatable_fields = [
                 'opponent_name', 'match_date', 'match_time', 'location',
                 'field_name', 'is_home_match', 'notes', 'status',
-                'home_score', 'away_score', 'rsvp_deadline'
+                'home_score', 'away_score', 'rsvp_deadline',
+                'latitude', 'longitude'
             ]
             
             changes_made = False

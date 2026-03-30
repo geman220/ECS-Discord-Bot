@@ -116,7 +116,9 @@ def create_match():
             is_home_match=data.get('is_home_match', True),
             notes=data.get('notes'),
             created_by=current_user.id,
-            rsvp_deadline=rsvp_deadline
+            rsvp_deadline=rsvp_deadline,
+            latitude=data.get('latitude'),
+            longitude=data.get('longitude')
         )
         
         if success and match:

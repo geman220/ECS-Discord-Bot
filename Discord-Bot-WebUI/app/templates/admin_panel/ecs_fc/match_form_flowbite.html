@@ -143,6 +143,24 @@
                                    value="{% if match %}{{ match.field_name }}{% endif %}">
                         </div>
                     </div>
+
+                    <!-- Coordinates (Optional) -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="latitude" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Latitude</label>
+                            <input type="number" name="latitude" id="latitude" step="any"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   placeholder="e.g., 47.6062"
+                                   value="{% if match and match.latitude is not none %}{{ match.latitude }}{% endif %}">
+                        </div>
+                        <div>
+                            <label for="longitude" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Longitude</label>
+                            <input type="number" name="longitude" id="longitude" step="any"
+                                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                                   placeholder="e.g., -122.3321"
+                                   value="{% if match and match.longitude is not none %}{{ match.longitude }}{% endif %}">
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Right Column -->

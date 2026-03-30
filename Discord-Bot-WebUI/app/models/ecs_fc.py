@@ -79,6 +79,8 @@ class EcsFcMatch(db.Model):
     match_time = db.Column(db.Time, nullable=False)
     location = db.Column(db.String(100), nullable=False)
     field_name = db.Column(db.String(100), nullable=True)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     is_home_match = db.Column(db.Boolean, nullable=False)
     home_shirt_color = db.Column(db.String(50), nullable=True)
     away_shirt_color = db.Column(db.String(50), nullable=True)
@@ -152,6 +154,8 @@ class EcsFcMatch(db.Model):
             'match_time': self.match_time.isoformat() if self.match_time else None,
             'location': self.location,
             'field_name': self.field_name,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
             'is_home_match': self.is_home_match,
             'home_shirt_color': self.home_shirt_color,
             'away_shirt_color': self.away_shirt_color,

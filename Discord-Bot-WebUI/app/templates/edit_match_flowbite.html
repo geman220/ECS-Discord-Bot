@@ -92,6 +92,34 @@
                     </div>
                 </div>
 
+                <!-- Coordinates (Optional) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="edit-match-latitude" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Latitude
+                        </label>
+                        <input type="number"
+                               id="edit-match-latitude"
+                               name="latitude"
+                               step="any"
+                               value="{% if match.latitude is not none %}{{ match.latitude }}{% endif %}"
+                               placeholder="e.g., 47.6062"
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                    <div>
+                        <label for="edit-match-longitude" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Longitude
+                        </label>
+                        <input type="number"
+                               id="edit-match-longitude"
+                               name="longitude"
+                               step="any"
+                               value="{% if match.longitude is not none %}{{ match.longitude }}{% endif %}"
+                               placeholder="e.g., -122.3321"
+                               class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-ecs-green focus:ring-ecs-green">
+                    </div>
+                </div>
+
                 <!-- Actions -->
                 <div class="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"

@@ -116,6 +116,9 @@ class ScheduleManager:
                     'matches': []
                 }
 
+            # Get associated match record for coordinates
+            match_record = self.session.query(Match).filter_by(schedule_id=schedule.id).first()
+
             formatted[schedule.week]['matches'].append({
                 'id': schedule.id,
                 'team_a': schedule.team.name,
@@ -123,7 +126,9 @@ class ScheduleManager:
                 'team_b': opponent.name,
                 'team_b_id': opponent.id,
                 'time': schedule.time.strftime('%I:%M %p'),
-                'location': schedule.location
+                'location': schedule.location,
+                'latitude': match_record.latitude if match_record else None,
+                'longitude': match_record.longitude if match_record else None
             })
 
         # Sort weeks numerically before returning
@@ -171,6 +176,9 @@ class ScheduleManager:
         schedule.week = data['week']
         objects_to_update.append(schedule)
 
+        latitude = float(data['latitude']) if data.get('latitude') else None
+        longitude = float(data['longitude']) if data.get('longitude') else None
+
         match = self.session.query(Match).filter_by(schedule_id=match_id).first()
         if not match:
             match = Match(
@@ -178,6 +186,8 @@ class ScheduleManager:
                 date=match_date,
                 time=match_time,
                 location=data['location'],
+                latitude=latitude,
+                longitude=longitude,
                 home_team_id=data['team_a'],
                 away_team_id=data['team_b']
             )
@@ -187,6 +197,8 @@ class ScheduleManager:
             match.date = match_date
             match.time = match_time
             match.location = data['location']
+            match.latitude = latitude
+            match.longitude = longitude
             match.home_team_id = data['team_a']
             match.away_team_id = data['team_b']
             objects_to_update.append(match)
@@ -213,6 +225,8 @@ class ScheduleManager:
                 paired_match.date = match_date
                 paired_match.time = match_time
                 paired_match.location = data['location']
+                paired_match.latitude = latitude
+                paired_match.longitude = longitude
                 # Also update the match teams (swapped from main match)
                 paired_match.home_team_id = data['team_b']
                 paired_match.away_team_id = data['team_a']
@@ -312,6 +326,8 @@ class ScheduleManager:
             date=match_date,
             time=match_time,
             location=data['location'],
+            latitude=float(data['latitude']) if data.get('latitude') else None,
+            longitude=float(data['longitude']) if data.get('longitude') else None,
             home_team_id=data['team_a'],
             away_team_id=data['team_b'],
             schedule=schedule_a,

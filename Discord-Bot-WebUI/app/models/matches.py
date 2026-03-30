@@ -47,6 +47,8 @@ class Match(db.Model):
     date = db.Column(db.Date, nullable=False)
     time = db.Column(db.Time, nullable=False)
     location = db.Column(db.String(100), nullable=False)
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
     home_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     away_team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     home_team_message_id = db.Column(db.String(100), nullable=True)
@@ -99,6 +101,8 @@ class Match(db.Model):
             'date': self.date.isoformat() if self.date else None,
             'time': self.time.isoformat() if self.time else None,
             'location': self.location,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
             'home_team_id': self.home_team_id,
             'away_team_id': self.away_team_id,
             'home_team_score': self.home_team_score,
