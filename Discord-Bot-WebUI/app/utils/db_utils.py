@@ -135,12 +135,20 @@ def transactional(f=None, max_retries=3, base_delay=0.5):
                         session = db.session
 
                     result = func(*args, **kwargs)
-                    
+
                     # Commit the session
                     try:
                         # Flush first to catch integrity errors early
                         session.flush()
                         session.commit()
+                        # Also commit Flask-SQLAlchemy's scoped session (db.session)
+                        # if it differs from g.db_session. Routes often use db.session
+                        # directly for ORM operations, but g.db_session may be a
+                        # separate SessionLocal() created by before_request handlers.
+                        # Without this, changes on db.session are silently lost.
+                        if session is not db.session:
+                            db.session.flush()
+                            db.session.commit()
                     except Exception as e:
                         logger.error(f"Error committing session in transactional: {e}")
                         raise
