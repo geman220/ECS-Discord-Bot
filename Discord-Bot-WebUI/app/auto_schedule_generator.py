@@ -1319,6 +1319,7 @@ class AutoScheduleGenerator:
                 'team_a': template.home_team_id,
                 'team_b': template.away_team_id,
                 'week': str(template.week_number),
+                'season_id': self.season_id,
                 # Add special week information from template
                 'week_type': template.week_type,
                 'is_special_week': template.is_special_week,

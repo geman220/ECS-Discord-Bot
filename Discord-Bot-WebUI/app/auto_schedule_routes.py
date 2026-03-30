@@ -376,17 +376,19 @@ def add_week(league_id):
                 time=match_time,
                 location=field,
                 team_id=home_team_id,
-                opponent=away_team_id
+                opponent=away_team_id,
+                season_id=league.season_id
             )
             session.add(home_schedule)
-            
+
             away_schedule = Schedule(
                 week=new_week_num,
                 date=week_date,
                 time=match_time,
                 location=field,
                 team_id=away_team_id,
-                opponent=home_team_id
+                opponent=home_team_id,
+                season_id=league.season_id
             )
             session.add(away_schedule)
             
@@ -1116,7 +1118,11 @@ def add_match():
         # Parse date and time
         match_date = datetime.strptime(date_str, '%Y-%m-%d').date()
         match_time = datetime.strptime(time_str, '%H:%M').time()
-        
+
+        # Get league for season_id
+        league = session.query(League).get(league_id)
+        effective_season_id = league.season_id if league else None
+
         # Create schedule entries for both teams
         home_schedule = Schedule(
             week=week_number,
@@ -1124,17 +1130,19 @@ def add_match():
             time=match_time,
             location=field,
             team_id=home_team_id,
-            opponent=away_team_id
+            opponent=away_team_id,
+            season_id=effective_season_id
         )
         session.add(home_schedule)
-        
+
         away_schedule = Schedule(
             week=week_number,
             date=match_date,
             time=match_time,
             location=field,
             team_id=away_team_id,
-            opponent=home_team_id
+            opponent=home_team_id,
+            season_id=effective_season_id
         )
         session.add(away_schedule)
         
@@ -1258,7 +1266,8 @@ def toggle_classic_practice():
                         time=match.time,
                         location=match.location,
                         team_id=new_away,
-                        opponent=new_home
+                        opponent=new_home,
+                        season_id=classic_league.season_id
                     )
                     session.add(paired)
 

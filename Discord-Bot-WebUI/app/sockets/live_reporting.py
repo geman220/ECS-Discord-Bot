@@ -29,7 +29,7 @@ from app.database.db_models import (
     ActiveMatchReporter, LiveMatch, MatchEvent, PlayerShift
 )
 from app.models import Match, Team, Player, User, PlayerEventType, PlayerEvent
-from app.teams_helpers import update_player_stats
+from app.teams_helpers import update_player_stats, update_standings
 from app.services.event_deduplication import (
     check_duplicate_match_event,
     find_near_duplicate_match_events,
@@ -1299,7 +1299,14 @@ def on_submit_report(data):
             # Now that match is reported, we can create PlayerEvent records
             # for each goal, card, etc. that occurred during the match
             create_player_events_from_match_events(session, match_id)
-            
+
+            # Update standings after match is reported
+            if match:
+                try:
+                    update_standings(session, match)
+                except Exception as standings_error:
+                    logger.error(f"Failed to update standings for match {match_id}: {standings_error}")
+
             # Notify all connected clients
             emit('report_submitted', {
                 'submitted_by': user_id,
@@ -1552,6 +1559,15 @@ def create_player_events_from_match_events(session, match_id):
                 if event.idempotency_key:
                     derived_idempotency_key = f"pe_{event.idempotency_key}"
 
+                # Skip if PlayerEvent already exists (deduplication guard)
+                if derived_idempotency_key:
+                    existing = session.query(PlayerEvent).filter_by(
+                        match_id=match_id, idempotency_key=derived_idempotency_key
+                    ).first()
+                    if existing:
+                        logger.info(f"Skipping duplicate PlayerEvent: idempotency_key={derived_idempotency_key}")
+                        continue
+
                 player_event = PlayerEvent(
                     player_id=event.player_id,
                     match_id=match_id,
@@ -1564,8 +1580,9 @@ def create_player_events_from_match_events(session, match_id):
                 session.add(player_event)
 
                 # Update aggregated stats for league-separated tracking
+                # Use .value to get lowercase string matching PlayerEventType enum values
                 try:
-                    update_player_stats(session, event.player_id, event.event_type, match, increment=True)
+                    update_player_stats(session, event.player_id, event_type_map[event.event_type].value, match, increment=True)
                 except Exception as stats_error:
                     logger.error(f"Failed to update player stats for event {event.id}: {stats_error}")
 
@@ -1574,6 +1591,16 @@ def create_player_events_from_match_events(session, match_id):
                     assist_player_id = event.additional_data['assist_player_id']
                     # Generate derived idempotency key for assist
                     assist_idempotency_key = f"assist_{event.idempotency_key}" if event.idempotency_key else None
+
+                    # Skip if assist PlayerEvent already exists
+                    if assist_idempotency_key:
+                        existing_assist = session.query(PlayerEvent).filter_by(
+                            match_id=match_id, idempotency_key=assist_idempotency_key
+                        ).first()
+                        if existing_assist:
+                            logger.info(f"Skipping duplicate assist PlayerEvent: idempotency_key={assist_idempotency_key}")
+                            continue
+
                     assist_event = PlayerEvent(
                         player_id=assist_player_id,
                         match_id=match_id,
@@ -1585,9 +1612,9 @@ def create_player_events_from_match_events(session, match_id):
                     )
                     session.add(assist_event)
 
-                    # Update assist stats
+                    # Update assist stats (use lowercase value)
                     try:
-                        update_player_stats(session, assist_player_id, 'ASSIST', match, increment=True)
+                        update_player_stats(session, assist_player_id, 'assist', match, increment=True)
                     except Exception as stats_error:
                         logger.error(f"Failed to update assist stats for player {assist_player_id}: {stats_error}")
         

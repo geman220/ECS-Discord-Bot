@@ -290,7 +290,8 @@ class ScheduleManager:
             time=match_time,
             location=data['location'],
             team_id=data['team_a'],
-            opponent=data['team_b']
+            opponent=data['team_b'],
+            season_id=data.get('season_id')
         )
         self.session.add(schedule_a)
         objects_to_create.append(schedule_a)
@@ -301,7 +302,8 @@ class ScheduleManager:
             time=match_time,
             location=data['location'],
             team_id=data['team_b'],
-            opponent=data['team_a']
+            opponent=data['team_a'],
+            season_id=data.get('season_id')
         )
         self.session.add(schedule_b)
         objects_to_create.append(schedule_b)

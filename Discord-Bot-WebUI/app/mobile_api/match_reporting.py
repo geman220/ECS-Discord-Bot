@@ -20,7 +20,7 @@ from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, Match, player_teams
 from app.models.stats import PlayerEvent, PlayerEventType
-from app.teams_helpers import update_player_stats
+from app.teams_helpers import update_player_stats, update_standings
 from app.services.event_deduplication import (
     check_duplicate_player_event,
     find_near_duplicate_player_events,
@@ -778,6 +778,12 @@ def report_match(match_id: int):
 
         session.commit()
 
+        # Update standings after match is reported
+        try:
+            update_standings(session, match)
+        except Exception as standings_error:
+            logger.error(f"Failed to update standings for match {match_id}: {standings_error}")
+
         logger.info(f"Match {match_id} reported by user {current_user_id}: {home_score}-{away_score}")
 
         # Count created vs duplicate events
@@ -874,6 +880,12 @@ def update_match_score(match_id: int):
         match.home_team_score = home_score
         match.away_team_score = away_score
         session.commit()
+
+        # Update standings after score change
+        try:
+            update_standings(session, match)
+        except Exception as standings_error:
+            logger.error(f"Failed to update standings for match {match_id}: {standings_error}")
 
         return jsonify({
             "success": True,
