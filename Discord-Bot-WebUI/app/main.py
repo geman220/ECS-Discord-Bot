@@ -714,7 +714,7 @@ def index():
             teams=user_teams,
             start_date=today,
             end_date=today + timedelta(days=30),  # Look ahead a month
-            match_limit=4,  # Show up to 4 upcoming matches
+            match_limit=None,  # Rely on date range filtering
             order='asc'
         )
         
@@ -723,7 +723,7 @@ def index():
             teams=user_teams,
             start_date=today - timedelta(days=14),  # Look back 2 weeks
             end_date=today - timedelta(days=1),     # Yesterday
-            match_limit=4,
+            match_limit=None,
             include_past_matches=True,
             order='desc'
         )
@@ -861,8 +861,8 @@ def index():
                         team_matches[home_id]['next'][date] = []
                     team_matches[home_id]['next'][date].append(match_data)
                 
-                # Add to away team if relevant
-                if away_id in team_matches:
+                # Add to away team if relevant (skip if same as home to avoid BYE duplication)
+                if away_id in team_matches and away_id != home_id:
                     if date not in team_matches[away_id]['next']:
                         team_matches[away_id]['next'][date] = []
                     team_matches[away_id]['next'][date].append(match_data)
@@ -882,8 +882,8 @@ def index():
                         team_matches[home_id]['prev'][date] = []
                     team_matches[home_id]['prev'][date].append(match_data)
                 
-                # Add to away team if relevant
-                if away_id in team_matches:
+                # Add to away team if relevant (skip if same as home to avoid BYE duplication)
+                if away_id in team_matches and away_id != home_id:
                     if date not in team_matches[away_id]['prev']:
                         team_matches[away_id]['prev'][date] = []
                     team_matches[away_id]['prev'][date].append(match_data)
