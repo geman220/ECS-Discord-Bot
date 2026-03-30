@@ -21,12 +21,9 @@ window.EventDelegation.register('onboarding-create-profile', function(element, e
     const formActionInput = document.getElementById('form_action');
     if (formActionInput) formActionInput.value = 'create_profile';
 
-    // Get Flowbite carousel instance and advance to next slide
-    const carouselElement = document.getElementById('modalCarouselControls');
-    if (carouselElement && window.Carousel) {
-        const flowbiteCarousel = window.Carousel.getInstance(carouselElement) ||
-                                 new window.Carousel(carouselElement);
-        flowbiteCarousel.next();
+    // Advance to step 1 using manual step management
+    if (window.OnboardingWizard) {
+        window.OnboardingWizard.nextStep();
     }
 });
 
@@ -60,7 +57,7 @@ window.EventDelegation.register('onboarding-next', function(element, e) {
         return;
     }
 
-    const { form, formActionInput, croppedImageHiddenInput, carouselElement, bootstrapCarousel, totalSteps } =
+    const { form, formActionInput, croppedImageHiddenInput, carouselElement, totalSteps } =
         window.OnboardingWizard.getFormElements();
 
     const step = window.OnboardingWizard.getCurrentStep();
@@ -143,8 +140,8 @@ window.EventDelegation.register('onboarding-next', function(element, e) {
         if (isValid) {
             // Clear form action and manually move to next step
             if (formActionInput) formActionInput.value = '';
-            if (bootstrapCarousel) {
-                bootstrapCarousel.next();
+            if (window.OnboardingWizard) {
+                window.OnboardingWizard.nextStep();
             }
         } else {
             // Focus first invalid field
@@ -167,10 +164,8 @@ window.EventDelegation.register('onboarding-next', function(element, e) {
 window.EventDelegation.register('onboarding-previous', function(element, e) {
     e.preventDefault();
 
-    const carouselElement = document.getElementById('modalCarouselControls');
-    if (carouselElement && window.Carousel) {
-        const flowbiteCarousel = window.Carousel.getInstance(carouselElement);
-        if (flowbiteCarousel) flowbiteCarousel.prev();
+    if (window.OnboardingWizard) {
+        window.OnboardingWizard.prevStep();
     }
 });
 

@@ -403,7 +403,7 @@
                  style="width: 0%"
                  aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
         </div>
-        <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-0" id="currentStep">Step 1 of 5</p>
+        <p class="text-center text-sm text-gray-500 dark:text-gray-400 mb-0" id="currentStep">Step 1 of 6</p>
     </div>
 
     {# ── Scrollable Content ── #}
@@ -506,9 +506,91 @@
             </div>
 
             {# ════════════════════════════════════════════
-               STEP 2 — Profile Picture
+               STEP 2 — League Selection
                ════════════════════════════════════════════ #}
             <div class="carousel-item" data-component="onboarding-step" data-step="2">
+                <div class="space-y-5">
+                    <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
+                        <div class="text-3xl text-ecs-green dark:text-ecs-gold">
+                            <i class="ti ti-trophy"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-bold text-gray-900 dark:text-white">League Selection</h4>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Which league are you interested in?</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 space-y-4">
+                        <div class="flex items-start gap-3 p-3 text-blue-800 dark:text-blue-200 bg-blue-50 dark:bg-blue-900/50 rounded-lg">
+                            <i class="ti ti-info-circle flex-shrink-0 mt-0.5"></i>
+                            <p class="text-sm">Select the league that best matches your skill level. Not sure yet? No worries — you can decide later.</p>
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3">
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="preferred_league" value="pub_league_classic" required class="peer sr-only">
+                                <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+                                    <i class="ti ti-check text-sm"></i>
+                                </div>
+                                <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
+                                    <div class="text-2xl flex-shrink-0">&#x1F3C6;</div>
+                                    <div class="flex-1 min-w-0">
+                                        <h6 class="font-semibold text-gray-900 dark:text-white">Pub League Classic</h6>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Beginner-friendly — all about having fun and improving your game</p>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="preferred_league" value="pub_league_premier" required class="peer sr-only">
+                                <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+                                    <i class="ti ti-check text-sm"></i>
+                                </div>
+                                <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
+                                    <div class="text-2xl flex-shrink-0">&#x1F31F;</div>
+                                    <div class="flex-1 min-w-0">
+                                        <h6 class="font-semibold text-gray-900 dark:text-white">Pub League Premier</h6>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Low to intermediate recreational players — bring your C game!</p>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="preferred_league" value="ecs_fc" required class="peer sr-only">
+                                <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+                                    <i class="ti ti-check text-sm"></i>
+                                </div>
+                                <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
+                                    <div class="text-2xl flex-shrink-0">&#x26BD;</div>
+                                    <div class="flex-1 min-w-0">
+                                        <h6 class="font-semibold text-gray-900 dark:text-white">ECS FC</h6>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">Club team for dedicated players in organized competition</p>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="relative cursor-pointer">
+                                <input type="radio" name="preferred_league" value="not_sure" required class="peer sr-only">
+                                <div class="absolute top-3 right-3 z-10 w-6 h-6 rounded-full bg-ecs-green text-white flex items-center justify-center opacity-0 peer-checked:opacity-100 transition-opacity">
+                                    <i class="ti ti-check text-sm"></i>
+                                </div>
+                                <div class="flex items-center gap-3 p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 peer-checked:border-ecs-green peer-checked:bg-ecs-green/10 dark:peer-checked:bg-ecs-green/20 transition-all hover:border-gray-300 dark:hover:border-gray-500">
+                                    <div class="text-2xl flex-shrink-0">&#x1F914;</div>
+                                    <div class="flex-1 min-w-0">
+                                        <h6 class="font-semibold text-gray-900 dark:text-white">Not Sure Yet</h6>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">No problem — we'll help you find the right fit</p>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {# ════════════════════════════════════════════
+               STEP 3 — Profile Picture
+               ════════════════════════════════════════════ #}
+            <div class="carousel-item" data-component="onboarding-step" data-step="3">
                 <div class="space-y-5">
                     <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
                         <div class="text-3xl text-ecs-green dark:text-ecs-gold">
@@ -582,9 +664,9 @@
             </div>
 
             {# ════════════════════════════════════════════
-               STEP 3 — Player Preferences
+               STEP 4 — Player Preferences
                ════════════════════════════════════════════ #}
-            <div class="carousel-item" data-component="onboarding-step" data-step="3">
+            <div class="carousel-item" data-component="onboarding-step" data-step="4">
                 <div class="space-y-5">
                     <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
                         <div class="text-3xl text-ecs-green dark:text-ecs-gold">
@@ -716,9 +798,9 @@
             </div>
 
             {# ════════════════════════════════════════════
-               STEP 4 — Discord Integration
+               STEP 5 — Discord Integration
                ════════════════════════════════════════════ #}
-            <div class="carousel-item" data-component="onboarding-step" data-step="4">
+            <div class="carousel-item" data-component="onboarding-step" data-step="5">
                 <div class="space-y-5">
                     <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
                         <div class="text-3xl text-ecs-green dark:text-ecs-gold">
@@ -785,9 +867,9 @@
             </div>
 
             {# ════════════════════════════════════════════
-               STEP 5 — Communication Preferences
+               STEP 6 — Communication Preferences
                ════════════════════════════════════════════ #}
-            <div class="carousel-item" data-component="onboarding-step" data-step="5">
+            <div class="carousel-item" data-component="onboarding-step" data-step="6">
                 <div class="space-y-5">
                     <div class="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
                         <div class="text-3xl text-ecs-green dark:text-ecs-gold">
@@ -822,6 +904,7 @@
                                        type="checkbox"
                                        id="smsNotifications"
                                        name="sms_notifications"
+                                       value="y"
                                        data-on-change="onboarding-toggle-sms">
                                 <div>
                                     <div class="flex items-center gap-2 font-semibold text-gray-900 dark:text-white">

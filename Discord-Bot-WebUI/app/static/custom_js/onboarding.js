@@ -61,8 +61,19 @@ export function initOnboarding() {
     // State variables
     let selectedFile = null;
     let isCropping = false;
-    let totalSteps = document.querySelectorAll('.carousel-item').length;
-    let bootstrapCarousel;
+    const allSteps = carouselElement
+        ? Array.from(carouselElement.querySelectorAll('.carousel-item[data-step]'))
+        : [];
+    let totalSteps = allSteps.length > 0
+        ? Math.max(...allSteps.map(el => parseInt(el.getAttribute('data-step'), 10)))
+        : 0;
+    let currentStepIndex = (() => {
+        const activeItem = carouselElement
+            ? carouselElement.querySelector('.carousel-item.active')
+            : null;
+        if (!activeItem) return 0;
+        return parseInt(activeItem.getAttribute('data-step'), 10) || 0;
+    })();
 
     // =====================
     //  Modal initialization
@@ -120,26 +131,40 @@ export function initOnboarding() {
     // Note: Crop & Save handling is done via event delegation in onboarding-wizard.js using Cropper.js
 
     // ======================
-    //  Carousel initialization (Flowbite)
+    //  Step navigation (manual, replacing Flowbite Carousel)
     // ======================
-    if (carouselElement && typeof window.Carousel !== 'undefined') {
-        // Flowbite Carousel initialization
-        bootstrapCarousel = new window.Carousel(carouselElement, {
-            interval: 0, // don't auto-slide
-            indicators: { items: [] }, // No indicators
-            onNext: () => {
-                if (!isCropping) {
-                    updateNavButtons();
-                    updateProgress();
-                }
-            },
-            onPrev: () => {
-                if (!isCropping) {
-                    updateNavButtons();
-                    updateProgress();
-                }
+    function showStep(stepNumber) {
+        if (!carouselElement) return;
+        carouselElement.querySelectorAll('.carousel-item[data-step]')
+            .forEach(item => item.classList.remove('active'));
+        const target = carouselElement.querySelector(
+            `.carousel-item[data-step="${stepNumber}"]`
+        );
+        if (target) {
+            target.classList.add('active');
+            currentStepIndex = stepNumber;
+        }
+    }
+
+    function nextStep() {
+        if (currentStepIndex < totalSteps) {
+            showStep(currentStepIndex + 1);
+            if (!isCropping) {
+                updateNavButtons();
+                updateProgress();
             }
-        });
+        }
+    }
+
+    function prevStep() {
+        const minStep = carouselElement?.querySelector('.carousel-item[data-step="0"]') ? 0 : 1;
+        if (currentStepIndex > minStep) {
+            showStep(currentStepIndex - 1);
+            if (!isCropping) {
+                updateNavButtons();
+                updateProgress();
+            }
+        }
     }
 
     // ======================
@@ -154,12 +179,14 @@ export function initOnboarding() {
         getCurrentStep: getCurrentStep,
         updateNavButtons: updateNavButtons,
         updateProgress: updateProgress,
+        nextStep: nextStep,
+        prevStep: prevStep,
+        showStep: showStep,
         getFormElements: () => ({
             form,
             formActionInput,
             croppedImageHiddenInput,
             carouselElement,
-            bootstrapCarousel,
             totalSteps
         })
     };
@@ -212,16 +239,7 @@ export function initOnboarding() {
     //  Helper functions
     // ======================
     function getCurrentStep() {
-        if (!carouselElement) {
-            return -1;
-        }
-        const activeItem = carouselElement.querySelector('.carousel-item.active');
-        if (!activeItem) {
-            return -1;
-        }
-        const stepAttr = activeItem.getAttribute('data-step');
-        const step = stepAttr ? parseFloat(stepAttr) : null;
-        return step ? Math.floor(step) : -1;
+        return currentStepIndex;
     }
 
     function updateNavButtons() {

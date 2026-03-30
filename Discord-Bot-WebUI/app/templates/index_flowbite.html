@@ -502,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script src="{{ url_for('static', filename='custom_js/tour.js') }}"></script>
 <script src="{{ url_for('static', filename='custom_js/home.js') }}"></script>
 {% if show_onboarding or session.get('force_onboarding') %}
-<script src="{{ url_for('static', filename='custom_js/onboarding.js') }}"></script>
+{# onboarding.js is already bundled via main-entry.js/Vite - no separate script tag needed #}
 {% endif %}
 {% if player %}
 <script src="{{ url_for('static', filename='custom_js/rsvp.js') }}"></script>

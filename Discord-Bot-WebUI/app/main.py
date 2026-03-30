@@ -236,6 +236,13 @@ def create_player_profile(onboarding_form):
                 logger.error(f"Failed to save cropped profile picture: {e}")
                 # Continue without profile picture rather than failing onboarding
 
+        # Save notification preferences to User model (same as handle_profile_update)
+        safe_current_user.email_notifications = onboarding_form.email_notifications.data
+        safe_current_user.sms_notifications = onboarding_form.sms_notifications.data
+        safe_current_user.discord_notifications = onboarding_form.discord_notifications.data
+        safe_current_user.profile_visibility = onboarding_form.profile_visibility.data
+        safe_current_user.email = onboarding_form.email.data
+
         session.add(safe_current_user)
         logger.info(f"Created player profile for user {safe_current_user.id}")
         return player
@@ -568,6 +575,14 @@ def index():
                         else:
                             handle_profile_update(player, onboarding_form)
 
+                        # Process league selection (if present)
+                        preferred_league = request.form.get('preferred_league')
+                        if preferred_league == 'not_sure':
+                            preferred_league = None
+                        if preferred_league:
+                            safe_current_user.preferred_league = preferred_league
+                            safe_current_user.league_selection_method = 'onboarding'
+
                         # Check SMS verification status for users who opted in
                         if player:
                             # If user wants SMS but didn't verify their phone, don't complete onboarding
@@ -628,6 +643,16 @@ def index():
                 else:
                     logger.warning(f"Form validation failed: {onboarding_form.errors}")
                     show_error('Form validation failed. Please check the form inputs.')
+
+            elif form_action == 'skip_profile':
+                try:
+                    with session.begin():
+                        safe_current_user.has_skipped_profile_creation = True
+                        session.add(safe_current_user)
+                    return redirect(url_for('main.index'))
+                except Exception as e:
+                    logger.error(f"Error skipping profile: {str(e)}", exc_info=True)
+                    return redirect(url_for('main.index'))
 
             elif form_action == 'reset_skip_profile':
                 try:
@@ -1080,6 +1105,8 @@ def onboarding():
             
             # Process league selection
             preferred_league = request.form.get('preferred_league')
+            if preferred_league == 'not_sure':
+                preferred_league = None
             if preferred_league:
                 safe_current_user.preferred_league = preferred_league
                 safe_current_user.league_selection_method = 'onboarding'
