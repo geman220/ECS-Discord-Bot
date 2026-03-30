@@ -687,7 +687,6 @@ def report_match(match_id: int):
         # Update scores
         match.home_team_score = home_score
         match.away_team_score = away_score
-        match.reported = True
 
         # Add notes if provided
         notes = data.get('notes')
