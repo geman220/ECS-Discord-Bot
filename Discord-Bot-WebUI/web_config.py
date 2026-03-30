@@ -26,6 +26,7 @@ class Config:
     
     # Mobile API settings
     MOBILE_API_KEY = os.getenv('MOBILE_API_KEY', 'ecs-soccer-mobile-key')
+    BUILD_API_TOKEN = os.getenv('BUILD_API_TOKEN', '')  # Token for CI build scripts to update latest_build_number
     # Set MOBILE_APP_ALLOWED_NETWORKS='' in production to allow access from any IP with valid API key
     # For local development, restrict to local networks
     MOBILE_APP_ALLOWED_NETWORKS = os.getenv('MOBILE_APP_ALLOWED_NETWORKS', '192.168.1.0/24,192.168.0.0/24')

@@ -715,6 +715,101 @@ def get_mobile_user_details():
         return jsonify({'success': False, 'message': 'Error loading user details'})
 
 
+# =============================================================================
+# APP VERSION / UPDATE CONFIG
+# =============================================================================
+
+APP_CONFIG_FIELDS = [
+    {'key': 'app_min_build_number', 'label': 'Minimum Build Number', 'data_type': 'integer',
+     'description': 'Builds below this number cannot use the app (set when older builds have breaking issues)',
+     'default': '1'},
+    {'key': 'app_latest_build_number', 'label': 'Latest Build Number', 'data_type': 'integer',
+     'description': 'The newest build available — update this when you upload a new build',
+     'default': '1'},
+    {'key': 'app_update_message', 'label': 'Update Message', 'data_type': 'string',
+     'description': 'Message shown to users when an update is available',
+     'default': 'A new version is available. Please update for the best experience.'},
+    {'key': 'app_force_update', 'label': 'Force Update', 'data_type': 'boolean',
+     'description': 'When enabled, users MUST update before they can continue using the app',
+     'default': 'false'},
+    {'key': 'app_ios_update_url', 'label': 'iOS Update URL (TestFlight)', 'data_type': 'string',
+     'description': 'TestFlight or App Store URL for iOS updates',
+     'default': ''},
+    {'key': 'app_android_update_url', 'label': 'Android Update URL', 'data_type': 'string',
+     'description': 'Google Play Store URL for Android updates',
+     'default': ''},
+]
+
+
+@admin_panel_bp.route('/mobile-features/app-version-config')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def app_version_config():
+    """View and manage mobile app version/update configuration."""
+    settings = []
+    for field in APP_CONFIG_FIELDS:
+        setting = AdminConfig.query.filter_by(key=field['key']).first()
+        settings.append({
+            'key': field['key'],
+            'label': field['label'],
+            'description': field['description'],
+            'data_type': field['data_type'],
+            'value': setting.value if setting else field['default'],
+            'updated_at': setting.updated_at if setting else None,
+            'updated_by_user': setting.updated_by_user if setting else None,
+        })
+
+    return render_template(
+        'admin_panel/mobile_features/app_version_config_flowbite.html',
+        settings=settings,
+    )
+
+
+@admin_panel_bp.route('/mobile-features/app-version-config/save', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def save_app_version_config():
+    """Save mobile app version/update configuration."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'No data received'}), 400
+
+    valid_keys = {f['key']: f for f in APP_CONFIG_FIELDS}
+    changes = []
+
+    for key, value in data.items():
+        if key not in valid_keys:
+            continue
+
+        field = valid_keys[key]
+        old_setting = AdminConfig.query.filter_by(key=key).first()
+        old_value = old_setting.value if old_setting else None
+
+        AdminConfig.set_setting(
+            key=key,
+            value=str(value),
+            description=field['description'],
+            category='mobile_app',
+            data_type=field['data_type'],
+            user_id=current_user.id,
+        )
+        changes.append(f'{key}: {old_value} -> {value}')
+
+    if changes:
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='update_app_version_config',
+            resource_type='mobile_features',
+            resource_id='app_version_config',
+            new_value='; '.join(changes),
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+        )
+
+    return jsonify({'success': True, 'message': 'App version configuration saved'})
+
+
 # Helper Functions
 
 def _get_mobile_features_last_updated():

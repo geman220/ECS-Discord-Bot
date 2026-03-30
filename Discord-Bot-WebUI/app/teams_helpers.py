@@ -14,7 +14,7 @@ from flask import g
 from sqlalchemy import func, or_
 from app.models import (
     db, Player, PlayerSeasonStats, PlayerCareerStats, Season, Standings,
-    Match, PlayerEvent, PlayerEventType, Team, League, player_teams
+    Match, PlayerEvent, PlayerEventType, Team, League, player_teams, Schedule
 )
 
 logger = logging.getLogger(__name__)
@@ -70,71 +70,65 @@ def populate_team_stats(team, season):
 
 
 def update_standings(session, match, old_home_score=None, old_away_score=None):
+    """Recompute standings from all match results for both teams involved."""
     home_team = match.home_team
     away_team = match.away_team
     season = home_team.league.season
 
-    def get_standing(team):
-        standing = session.query(Standings).filter_by(team_id=team.id, season_id=season.id).first()
-        if not standing:
-            standing = Standings(team_id=team.id, season_id=season.id)
-            # Set the team relationship so that standing.team is not None.
-            standing.team = team
-            session.add(standing)
-            logger.info(f"Created new standings record for team_id={team.id}, season_id={season.id}")
-        return standing
+    for team in (home_team, away_team):
+        recompute_team_standings(session, team, season)
 
-    home_standing = get_standing(home_team)
-    away_standing = get_standing(away_team)
-
-    # Revert old match result if previous scores are provided.
-    if old_home_score is not None and old_away_score is not None:
-        logger.info(f"Reverting old result for Match ID: {match.id}, old scores: {old_home_score}-{old_away_score}")
-        adjust_standings(home_standing, away_standing, old_home_score, old_away_score, subtract=True)
-
-    logger.info(f"Applying new result for Match ID: {match.id}, new scores: {match.home_team_score}-{match.away_team_score}")
-    adjust_standings(home_standing, away_standing, match.home_team_score, match.away_team_score)
-    
     session.commit()
-    logger.info(f"Standings updated and committed for Match ID: {match.id}")
+    logger.info(f"Standings recomputed and committed for Match ID: {match.id}")
 
 
-def adjust_standings(home_standing, away_standing, home_score, away_score, subtract=False):
-    logger.info(f"Adjusting standings: home_score={home_score}, away_score={away_score}, subtract={subtract}")
-    logger.info(f"Before adjustment: home_standing={home_standing.to_dict() if hasattr(home_standing, 'to_dict') else home_standing}, away_standing={away_standing.to_dict() if hasattr(away_standing, 'to_dict') else away_standing}")
-    
-    multiplier = -1 if subtract else 1
+def recompute_team_standings(session, team, season):
+    """Recompute a single team's standings from all reported matches in the season."""
+    standing = session.query(Standings).filter_by(team_id=team.id, season_id=season.id).first()
+    if not standing:
+        standing = Standings(team_id=team.id, season_id=season.id)
+        standing.team = team
+        session.add(standing)
+        logger.info(f"Created new standings record for team_id={team.id}, season_id={season.id}")
 
-    def safe_update(obj, attr, delta):
-        current = getattr(obj, attr) or 0
-        setattr(obj, attr, current + delta)
+    # Query all reported matches for this team in this season
+    matches = (
+        session.query(Match)
+        .join(Schedule, Match.schedule_id == Schedule.id)
+        .filter(
+            Schedule.season_id == season.id,
+            or_(Match.home_team_id == team.id, Match.away_team_id == team.id),
+            Match.home_team_score.isnot(None),
+            Match.away_team_score.isnot(None),
+        )
+        .all()
+    )
 
-    if home_score > away_score:
-        safe_update(home_standing, 'wins', 1 * multiplier)
-        safe_update(away_standing, 'losses', 1 * multiplier)
-    elif home_score < away_score:
-        safe_update(home_standing, 'losses', 1 * multiplier)
-        safe_update(away_standing, 'wins', 1 * multiplier)
-    else:
-        safe_update(home_standing, 'draws', 1 * multiplier)
-        safe_update(away_standing, 'draws', 1 * multiplier)
+    wins = draws = losses = gf = ga = 0
+    for m in matches:
+        is_home = m.home_team_id == team.id
+        team_goals = m.home_team_score if is_home else m.away_team_score
+        opp_goals = m.away_team_score if is_home else m.home_team_score
+        gf += team_goals
+        ga += opp_goals
+        if team_goals > opp_goals:
+            wins += 1
+        elif team_goals == opp_goals:
+            draws += 1
+        else:
+            losses += 1
 
-    safe_update(home_standing, 'goals_for', home_score * multiplier)
-    safe_update(home_standing, 'goals_against', away_score * multiplier)
-    safe_update(away_standing, 'goals_for', away_score * multiplier)
-    safe_update(away_standing, 'goals_against', home_score * multiplier)
+    standing.played = len(matches)
+    standing.wins = wins
+    standing.draws = draws
+    standing.losses = losses
+    standing.goals_for = gf
+    standing.goals_against = ga
+    standing.goal_difference = gf - ga
+    standing.points = (wins * 3) + draws
 
-    # Recalculate goal difference and points using safe defaults.
-    home_standing.goal_difference = (home_standing.goals_for or 0) - (home_standing.goals_against or 0)
-    away_standing.goal_difference = (away_standing.goals_for or 0) - (away_standing.goals_against or 0)
+    logger.info(f"Recomputed standings for team_id={team.id}: P={standing.played} W={wins} D={draws} L={losses} GF={gf} GA={ga} Pts={standing.points}")
 
-    home_standing.points = (home_standing.wins or 0) * 3 + (home_standing.draws or 0)
-    away_standing.points = (away_standing.wins or 0) * 3 + (away_standing.draws or 0)
-
-    safe_update(home_standing, 'played', 1 * multiplier)
-    safe_update(away_standing, 'played', 1 * multiplier)
-
-    logger.info(f"After adjustment: home_standing={home_standing.to_dict() if hasattr(home_standing, 'to_dict') else home_standing}, away_standing={away_standing.to_dict() if hasattr(away_standing, 'to_dict') else away_standing}")
 
 
 def process_own_goals(session, match, data, add_key, remove_key):

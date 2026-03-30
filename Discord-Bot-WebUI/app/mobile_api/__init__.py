@@ -30,6 +30,7 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
 - pitch_view: Unified pitch view for draft and match lineups
 - quick_profiles: Quick profiles for tryout players (claim codes)
 - feedback: Feedback submission and management
+- app_config: App version/update configuration (unauthenticated)
 
 All endpoints are CSRF-exempt and use JWT authentication where required.
 """
@@ -74,6 +75,7 @@ def register_mobile_api_routes():
         pitch_view,
         quick_profiles,
         feedback,
+        app_config,
     )
 
 

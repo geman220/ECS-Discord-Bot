@@ -44,8 +44,9 @@ def get_leaderboard():
     stat_type = request.args.get('stat_type', 'goals')
     limit = min(request.args.get('limit', 10, type=int), 50)
 
-    if stat_type not in ['goals', 'assists']:
-        return jsonify({"msg": "stat_type must be 'goals' or 'assists'"}), 400
+    valid_stat_types = ['goals', 'assists', 'yellow_cards', 'red_cards']
+    if stat_type not in valid_stat_types:
+        return jsonify({"msg": f"stat_type must be one of: {', '.join(valid_stat_types)}"}), 400
 
     with managed_session() as session:
         # Get current season if not specified
@@ -67,7 +68,7 @@ def get_leaderboard():
                 league_info = {"id": league.id, "name": league.name}
 
         # Build query based on stat type
-        stat_column = PlayerSeasonStats.goals if stat_type == 'goals' else PlayerSeasonStats.assists
+        stat_column = getattr(PlayerSeasonStats, stat_type)
 
         query = session.query(
             Player.id,
@@ -377,4 +378,89 @@ def get_ecs_fc_leaderboard():
             "team": team_info,
             "leaderboard": leaderboard,
             "count": len(leaderboard)
+        }), 200
+
+
+@mobile_api_v2.route('/stats/season-awards', methods=['GET'])
+@jwt_required()
+def get_season_awards():
+    """
+    Get all season awards (golden boot, silver boot, cards) for a league.
+
+    Query Parameters:
+        league_id: League ID (required)
+        season_id: Season ID (defaults to current season)
+        limit: Max results per category (default: 10, max: 50)
+
+    Returns:
+        JSON with top_scorers, top_assisters, yellow_cards, red_cards
+    """
+    from sqlalchemy import func
+    from app.models import player_teams
+
+    league_id = request.args.get('league_id', type=int)
+    season_id = request.args.get('season_id', type=int)
+    limit = min(request.args.get('limit', 10, type=int), 50)
+
+    if not league_id:
+        return jsonify({"msg": "league_id is required"}), 400
+
+    with managed_session() as session:
+        if not season_id:
+            current_season = session.query(Season).filter(
+                Season.is_current == True,
+                Season.league_type == 'Pub League'
+            ).first()
+            if current_season:
+                season_id = current_season.id
+            else:
+                return jsonify({"msg": "No current season found"}), 404
+
+        league = session.query(League).get(league_id)
+        if not league:
+            return jsonify({"msg": "League not found"}), 404
+
+        def _build_leaderboard(stat_attr):
+            stat_column = getattr(PlayerSeasonStats, stat_attr)
+            results = (
+                session.query(
+                    Player.id,
+                    Player.name,
+                    Player.profile_picture_url,
+                    Team.name.label('team_name'),
+                    func.sum(stat_column).label('total'),
+                )
+                .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)
+                .join(player_teams, Player.id == player_teams.c.player_id)
+                .join(Team, player_teams.c.team_id == Team.id)
+                .filter(
+                    PlayerSeasonStats.season_id == season_id,
+                    PlayerSeasonStats.league_id == league_id,
+                    stat_column > 0,
+                    Team.league_id == league_id,
+                )
+                .group_by(Player.id, Player.name, Player.profile_picture_url, Team.name)
+                .order_by(func.sum(stat_column).desc())
+                .limit(limit)
+                .all()
+            )
+            entries = []
+            for rank, (pid, name, photo, team_name, total) in enumerate(results, 1):
+                entries.append({
+                    "rank": rank,
+                    "player_id": pid,
+                    "player_name": name,
+                    "profile_picture_url": photo,
+                    "team_name": team_name,
+                    "value": total,
+                })
+            return entries
+
+        return jsonify({
+            "league": {"id": league.id, "name": league.name},
+            "season_id": season_id,
+            "golden_boot": _build_leaderboard('goals'),
+            "silver_boot": _build_leaderboard('assists'),
+            "yellow_cards": _build_leaderboard('yellow_cards'),
+            "red_cards": _build_leaderboard('red_cards'),
         }), 200

@@ -987,9 +987,9 @@ def view_standings():
 
     # Check Redis cache for standings first
     from app.performance_cache import cache_standings_data, set_standings_cache
-    
+
     cached_standings = cache_standings_data(league_id=None)  # Cache all standings together
-    
+
     if cached_standings:
         logger.debug("Using cached standings data")
         premier_stats = cached_standings.get('premier_stats', {})
@@ -1006,7 +1006,7 @@ def view_standings():
         premier_stats = {s.team.id: populate_team_stats(s.team, season) for s in premier_standings}
         classic_stats = {s.team.id: populate_team_stats(s.team, season) for s in classic_standings}
         ecsfc_stats = {s.team.id: populate_team_stats(s.team, season) for s in ecsfc_standings}
-        
+
         # Cache the results
         standings_data = {
             'premier_stats': premier_stats,
@@ -1014,6 +1014,42 @@ def view_standings():
             'ecsfc_stats': ecsfc_stats
         }
         set_standings_cache(standings_data, league_id=None, ttl=300)  # Cache for 5 minutes
+
+    # Season awards / leaderboards per league
+    leagues = session.query(League).filter(League.season_id == season.id).all()
+    league_map = {league.name: league for league in leagues}
+
+    def _top_stat(league_name, stat_attr, limit=10):
+        league = league_map.get(league_name)
+        if not league:
+            return []
+        return (
+            session.query(
+                Player,
+                func.sum(getattr(PlayerSeasonStats, stat_attr)).label('total')
+            )
+            .join(PlayerSeasonStats, Player.id == PlayerSeasonStats.player_id)
+            .join(player_teams, Player.id == player_teams.c.player_id)
+            .join(Team, player_teams.c.team_id == Team.id)
+            .filter(
+                PlayerSeasonStats.season_id == season.id,
+                PlayerSeasonStats.league_id == league.id,
+                getattr(PlayerSeasonStats, stat_attr) > 0,
+                Team.league_id == league.id,
+            )
+            .group_by(Player.id)
+            .order_by(func.sum(getattr(PlayerSeasonStats, stat_attr)).desc())
+            .limit(limit)
+            .all()
+        )
+
+    award_data = {}
+    for div in ('Premier', 'Classic', 'ECS FC'):
+        prefix = div.lower().replace(' ', '_')
+        award_data[f'{prefix}_top_scorers'] = _top_stat(div, 'goals')
+        award_data[f'{prefix}_top_assisters'] = _top_stat(div, 'assists')
+        award_data[f'{prefix}_yellow_cards'] = _top_stat(div, 'yellow_cards')
+        award_data[f'{prefix}_red_cards'] = _top_stat(div, 'red_cards')
 
     return render_template(
         'view_standings_flowbite.html',
@@ -1023,7 +1059,8 @@ def view_standings():
         ecsfc_standings=ecsfc_standings,
         premier_stats=premier_stats,
         classic_stats=classic_stats,
-        ecsfc_stats=ecsfc_stats
+        ecsfc_stats=ecsfc_stats,
+        **award_data
     )
 
 

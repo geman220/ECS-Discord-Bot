@@ -20,7 +20,7 @@ from sqlalchemy import func, and_, or_
 from .. import admin_panel_bp
 from app.decorators import role_required
 from app.utils.db_utils import transactional
-from app.models import Feedback, FeedbackReply, Note, Match, Player, Availability, User, Season
+from app.models import Feedback, FeedbackReply, Note, Match, Player, Availability, User, Season, Schedule
 from app.models_ecs import EcsFcMatch, EcsFcAvailability
 from app.models.admin_config import AdminAuditLog
 from app.forms import AdminFeedbackForm, FeedbackReplyForm, NoteForm
@@ -536,42 +536,14 @@ def recalculate_statistics():
         recalc_count = 0
 
         if scope in ('all', 'standings'):
+            from app.teams_helpers import recompute_team_standings
+
             standings = session.query(Standings).filter_by(season_id=current_season.id).all()
             for standing in standings:
                 team = session.query(Team).get(standing.team_id)
                 if not team:
                     continue
-
-                matches = session.query(Match).filter(
-                    and_(
-                        or_(Match.home_team_id == team.id, Match.away_team_id == team.id),
-                        Match.home_team_score.isnot(None),
-                        Match.away_team_score.isnot(None)
-                    )
-                ).all()
-
-                wins = draws = losses = gf = ga = 0
-                for m in matches:
-                    is_home = m.home_team_id == team.id
-                    team_goals = m.home_team_score if is_home else m.away_team_score
-                    opp_goals = m.away_team_score if is_home else m.home_team_score
-                    gf += team_goals
-                    ga += opp_goals
-                    if team_goals > opp_goals:
-                        wins += 1
-                    elif team_goals == opp_goals:
-                        draws += 1
-                    else:
-                        losses += 1
-
-                standing.played = len(matches)
-                standing.wins = wins
-                standing.draws = draws
-                standing.losses = losses
-                standing.goals_for = gf
-                standing.goals_against = ga
-                standing.goal_difference = gf - ga
-                standing.points = (wins * 3) + draws
+                recompute_team_standings(session, team, current_season)
                 recalc_count += 1
 
         if scope in ('all', 'attendance'):

@@ -1,0 +1,136 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}App Version Config{% endblock %}
+{% block panel_description %}Manage mobile app build numbers, update URLs, and force-update settings{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mobile_features') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Mobile Features</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">App Version Config</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="max-w-3xl">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div>
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-device-mobile-up mr-2"></i>App Version &amp; Update Settings
+                </h5>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                    Controls what the mobile app sees at <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">GET /api/v1/app_config</code>
+                </p>
+            </div>
+        </div>
+        <div class="p-5 space-y-6" id="app-version-form">
+            {% for s in settings %}
+            <div>
+                <label for="{{ s.key }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ s.label }}</label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ s.description }}</p>
+
+                {% if s.data_type == 'boolean' %}
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="{{ s.key }}" data-key="{{ s.key }}" class="sr-only peer app-config-input"
+                           {{ 'checked' if s.value and s.value|lower in ('true', '1', 'yes', 'on') else '' }}>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-red-600"></div>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                        {{ 'Enabled' if s.value and s.value|lower in ('true', '1', 'yes', 'on') else 'Disabled' }}
+                    </span>
+                </label>
+                {% elif s.data_type == 'integer' %}
+                <input type="number" id="{{ s.key }}" data-key="{{ s.key }}"
+                       value="{{ s.value or '' }}" min="0"
+                       class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white app-config-input">
+                {% else %}
+                <input type="text" id="{{ s.key }}" data-key="{{ s.key }}"
+                       value="{{ s.value or '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white app-config-input">
+                {% endif %}
+
+                {% if s.updated_at %}
+                <p class="text-xs text-gray-400 mt-1">
+                    Last updated {{ s.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC
+                    {% if s.updated_by_user %} by {{ s.updated_by_user.username }}{% endif %}
+                </p>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" id="save-app-config"
+                        class="px-5 py-2.5 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 rounded-lg dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800">
+                    <i class="ti ti-device-floppy mr-1"></i> Save Configuration
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Reference -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow mt-6">
+        <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+            <h6 class="font-semibold text-gray-900 dark:text-white"><i class="ti ti-info-circle mr-1"></i> Quick Reference</h6>
+        </div>
+        <div class="p-5 text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p><strong>Normal update:</strong> Set <em>Latest Build Number</em> to the new build. Keep <em>Force Update</em> off. Users see a soft prompt.</p>
+            <p><strong>Breaking change:</strong> Set <em>Min Build Number</em> to the new build number. Turn on <em>Force Update</em>. Users on older builds are blocked until they update.</p>
+            <p><strong>After rollout stabilizes:</strong> Turn <em>Force Update</em> back off.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+{{ super() }}
+<script>
+document.getElementById('save-app-config').addEventListener('click', async () => {
+    const inputs = document.querySelectorAll('.app-config-input');
+    const payload = {};
+    inputs.forEach(el => {
+        const key = el.dataset.key;
+        if (el.type === 'checkbox') {
+            payload[key] = el.checked ? 'true' : 'false';
+        } else {
+            payload[key] = el.value;
+        }
+    });
+
+    const btn = document.getElementById('save-app-config');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader animate-spin mr-1"></i> Saving...';
+
+    try {
+        const resp = await fetch('{{ url_for("admin_panel.save_app_version_config") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.content || '',
+            },
+            body: JSON.stringify(payload),
+        });
+        const result = await resp.json();
+        if (result.success) {
+            window.Swal?.fire?.({icon: 'success', title: 'Saved', text: result.message, timer: 2000, showConfirmButton: false})
+                || alert(result.message);
+        } else {
+            window.Swal?.fire?.({icon: 'error', title: 'Error', text: result.message})
+                || alert(result.message);
+        }
+    } catch (err) {
+        window.Swal?.fire?.({icon: 'error', title: 'Error', text: 'Failed to save configuration'})
+            || alert('Failed to save configuration');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-device-floppy mr-1"></i> Save Configuration';
+    }
+});
+</script>
+{% endblock %}

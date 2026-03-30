@@ -428,131 +428,131 @@ class TestGetScheduleDisplayInfo:
 # =============================================================================
 
 @pytest.mark.unit
-class TestAdjustStandings:
-    """Test adjust_standings function for standings calculations."""
+class TestRecomputeTeamStandings:
+    """Test recompute_team_standings function for standings calculations."""
 
-    def test_adjust_standings_increments_wins_for_home_victory(self, db, app, season, league, team, opponent_team):
+    def _create_match(self, db, schedule, home_team, away_team, home_score, away_score):
+        """Helper to create a reported match."""
+        m = Match(
+            date=schedule.date,
+            time=schedule.time,
+            location=schedule.location,
+            home_team_id=home_team.id,
+            away_team_id=away_team.id,
+            schedule_id=schedule.id,
+            home_team_score=home_score,
+            away_team_score=away_score,
+        )
+        db.session.add(m)
+        db.session.flush()
+        return m
+
+    def test_recompute_home_victory(self, db, app, season, league, team, opponent_team, schedule):
         """
         GIVEN a home team victory
-        WHEN adjust_standings is called
-        THEN it should increment home wins and away losses
+        WHEN recompute_team_standings is called
+        THEN it should show 1 win for home, 1 loss for away
         """
-        from app.teams_helpers import adjust_standings
+        from app.teams_helpers import recompute_team_standings
 
-        home_standing = Standings(team_id=team.id, season_id=season.id, wins=0, losses=0, draws=0, played=0, goals_for=0, goals_against=0)
-        away_standing = Standings(team_id=opponent_team.id, season_id=season.id, wins=0, losses=0, draws=0, played=0, goals_for=0, goals_against=0)
-        home_standing.team = team
-        away_standing.team = opponent_team
+        self._create_match(db, schedule, team, opponent_team, 3, 1)
 
-        adjust_standings(home_standing, away_standing, home_score=3, away_score=1)
+        recompute_team_standings(db.session, team, season)
+        standing = db.session.query(Standings).filter_by(team_id=team.id, season_id=season.id).one()
 
-        assert home_standing.wins == 1
-        assert home_standing.losses == 0
-        assert away_standing.wins == 0
-        assert away_standing.losses == 1
+        assert standing.wins == 1
+        assert standing.losses == 0
+        assert standing.draws == 0
+        assert standing.played == 1
+        assert standing.points == 3
 
-    def test_adjust_standings_increments_wins_for_away_victory(self, db, app, season, league, team, opponent_team):
+    def test_recompute_away_victory(self, db, app, season, league, team, opponent_team, schedule):
         """
         GIVEN an away team victory
-        WHEN adjust_standings is called
-        THEN it should increment away wins and home losses
+        WHEN recompute_team_standings is called for the away team
+        THEN it should show 1 win
         """
-        from app.teams_helpers import adjust_standings
+        from app.teams_helpers import recompute_team_standings
 
-        home_standing = Standings(team_id=team.id, season_id=season.id, wins=0, losses=0, draws=0, played=0, goals_for=0, goals_against=0)
-        away_standing = Standings(team_id=opponent_team.id, season_id=season.id, wins=0, losses=0, draws=0, played=0, goals_for=0, goals_against=0)
-        home_standing.team = team
-        away_standing.team = opponent_team
+        self._create_match(db, schedule, team, opponent_team, 1, 2)
 
-        adjust_standings(home_standing, away_standing, home_score=1, away_score=2)
+        recompute_team_standings(db.session, opponent_team, season)
+        standing = db.session.query(Standings).filter_by(team_id=opponent_team.id, season_id=season.id).one()
 
-        assert home_standing.wins == 0
-        assert home_standing.losses == 1
-        assert away_standing.wins == 1
-        assert away_standing.losses == 0
+        assert standing.wins == 1
+        assert standing.losses == 0
+        assert standing.points == 3
 
-    def test_adjust_standings_increments_draws_for_tie(self, db, app, season, league, team, opponent_team):
+    def test_recompute_draw(self, db, app, season, league, team, opponent_team, schedule):
         """
-        GIVEN a tied match
-        WHEN adjust_standings is called
-        THEN it should increment draws for both teams
+        GIVEN a drawn match
+        WHEN recompute_team_standings is called
+        THEN it should show 1 draw for both teams
         """
-        from app.teams_helpers import adjust_standings
+        from app.teams_helpers import recompute_team_standings
 
-        home_standing = Standings(team_id=team.id, season_id=season.id, wins=0, losses=0, draws=0, played=0, goals_for=0, goals_against=0)
-        away_standing = Standings(team_id=opponent_team.id, season_id=season.id, wins=0, losses=0, draws=0, played=0, goals_for=0, goals_against=0)
-        home_standing.team = team
-        away_standing.team = opponent_team
+        self._create_match(db, schedule, team, opponent_team, 2, 2)
 
-        adjust_standings(home_standing, away_standing, home_score=2, away_score=2)
+        recompute_team_standings(db.session, team, season)
+        standing = db.session.query(Standings).filter_by(team_id=team.id, season_id=season.id).one()
 
-        assert home_standing.draws == 1
-        assert away_standing.draws == 1
-        assert home_standing.wins == 0
-        assert away_standing.wins == 0
+        assert standing.draws == 1
+        assert standing.wins == 0
+        assert standing.points == 1
 
-    def test_adjust_standings_calculates_goal_difference_correctly(self, db, app, season, league, team, opponent_team):
+    def test_recompute_goal_difference(self, db, app, season, league, team, opponent_team, schedule):
         """
         GIVEN a match result
-        WHEN adjust_standings is called
+        WHEN recompute_team_standings is called
         THEN it should calculate goal difference correctly
         """
-        from app.teams_helpers import adjust_standings
+        from app.teams_helpers import recompute_team_standings
 
-        home_standing = Standings(team_id=team.id, season_id=season.id, wins=0, losses=0, draws=0, played=0, goals_for=0, goals_against=0)
-        away_standing = Standings(team_id=opponent_team.id, season_id=season.id, wins=0, losses=0, draws=0, played=0, goals_for=0, goals_against=0)
-        home_standing.team = team
-        away_standing.team = opponent_team
+        self._create_match(db, schedule, team, opponent_team, 4, 1)
 
-        adjust_standings(home_standing, away_standing, home_score=4, away_score=1)
+        recompute_team_standings(db.session, team, season)
+        standing = db.session.query(Standings).filter_by(team_id=team.id, season_id=season.id).one()
 
-        assert home_standing.goals_for == 4
-        assert home_standing.goals_against == 1
-        assert home_standing.goal_difference == 3
-        assert away_standing.goals_for == 1
-        assert away_standing.goals_against == 4
-        assert away_standing.goal_difference == -3
+        assert standing.goals_for == 4
+        assert standing.goals_against == 1
+        assert standing.goal_difference == 3
 
-    def test_adjust_standings_calculates_points_correctly(self, db, app, season, league, team, opponent_team):
+    def test_recompute_is_idempotent(self, db, app, season, league, team, opponent_team, schedule):
         """
-        GIVEN match results
-        WHEN adjust_standings is called
-        THEN it should calculate points (3 for win, 1 for draw)
+        GIVEN standings already computed
+        WHEN recompute_team_standings is called again
+        THEN results should be identical (no drift)
         """
-        from app.teams_helpers import adjust_standings
+        from app.teams_helpers import recompute_team_standings
 
-        home_standing = Standings(team_id=team.id, season_id=season.id, wins=0, losses=0, draws=0, played=0, goals_for=0, goals_against=0)
-        away_standing = Standings(team_id=opponent_team.id, season_id=season.id, wins=0, losses=0, draws=0, played=0, goals_for=0, goals_against=0)
-        home_standing.team = team
-        away_standing.team = opponent_team
+        self._create_match(db, schedule, team, opponent_team, 3, 1)
 
-        # Home team wins
-        adjust_standings(home_standing, away_standing, home_score=2, away_score=0)
+        recompute_team_standings(db.session, team, season)
+        recompute_team_standings(db.session, team, season)
+        standing = db.session.query(Standings).filter_by(team_id=team.id, season_id=season.id).one()
 
-        assert home_standing.points == 3
-        assert away_standing.points == 0
+        assert standing.wins == 1
+        assert standing.played == 1
+        assert standing.points == 3
 
-    def test_adjust_standings_subtracts_correctly_when_reverting(self, db, app, season, league, team, opponent_team):
+    def test_recompute_never_produces_negative_values(self, db, app, season, league, team, opponent_team, schedule):
         """
-        GIVEN standings that need to be reverted
-        WHEN adjust_standings is called with subtract=True
-        THEN it should subtract the stats correctly
+        GIVEN any set of matches
+        WHEN recompute_team_standings is called
+        THEN draws, wins, losses, and played should never be negative
         """
-        from app.teams_helpers import adjust_standings
+        from app.teams_helpers import recompute_team_standings
 
-        # Start with existing standings
-        home_standing = Standings(team_id=team.id, season_id=season.id, wins=1, losses=0, draws=0, played=1, goals_for=3, goals_against=1, goal_difference=2, points=3)
-        away_standing = Standings(team_id=opponent_team.id, season_id=season.id, wins=0, losses=1, draws=0, played=1, goals_for=1, goals_against=3, goal_difference=-2, points=0)
-        home_standing.team = team
-        away_standing.team = opponent_team
+        self._create_match(db, schedule, team, opponent_team, 1, 0)
 
-        # Revert the 3-1 result
-        adjust_standings(home_standing, away_standing, home_score=3, away_score=1, subtract=True)
+        recompute_team_standings(db.session, team, season)
+        standing = db.session.query(Standings).filter_by(team_id=team.id, season_id=season.id).one()
 
-        assert home_standing.wins == 0
-        assert home_standing.played == 0
-        assert home_standing.goals_for == 0
-        assert away_standing.losses == 0
+        assert standing.wins >= 0
+        assert standing.draws >= 0
+        assert standing.losses >= 0
+        assert standing.played >= 0
+        assert standing.points >= 0
 
 
 # =============================================================================
