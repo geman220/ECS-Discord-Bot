@@ -205,6 +205,8 @@ def notification_preferences():
                 "email_notifications": getattr(user, 'email_notifications', True),
                 "sms_notifications": getattr(user, 'sms_notifications', False),
                 "discord_notifications": getattr(user, 'discord_notifications', True),
+                "push_notifications": getattr(user, 'push_notifications', True),
+                "dm_notifications": getattr(user, 'dm_notifications', True),
             }
 
             # Add player-specific preferences if available
@@ -236,6 +238,10 @@ def notification_preferences():
                 user.sms_notifications = data['sms_notifications']
             if 'discord_notifications' in data:
                 user.discord_notifications = data['discord_notifications']
+            if 'push_notifications' in data:
+                user.push_notifications = bool(data['push_notifications'])
+            if 'dm_notifications' in data:
+                user.dm_notifications = bool(data['dm_notifications'])
 
             # Update player-level preferences if available
             if player:
@@ -255,6 +261,8 @@ def notification_preferences():
                 "email_notifications": getattr(user, 'email_notifications', True),
                 "sms_notifications": getattr(user, 'sms_notifications', False),
                 "discord_notifications": getattr(user, 'discord_notifications', True),
+                "push_notifications": getattr(user, 'push_notifications', True),
+                "dm_notifications": getattr(user, 'dm_notifications', True),
             }
 
             if player:

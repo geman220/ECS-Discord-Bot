@@ -99,6 +99,7 @@ class User(UserMixin, db.Model):
     team_update_notifications = db.Column(db.Boolean, default=True)  # Team/roster updates
     announcement_notifications = db.Column(db.Boolean, default=True)  # Admin announcements
     general_announcements = db.Column(db.Boolean, default=True)  # General/app-wide announcements
+    dm_notifications = db.Column(db.Boolean, default=True)  # Direct message notifications
 
     profile_visibility = db.Column(db.String(20), default='everyone')
     notifications = db.relationship('Notification', back_populates='user', lazy='select')

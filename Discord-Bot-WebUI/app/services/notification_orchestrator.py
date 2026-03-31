@@ -352,6 +352,9 @@ class NotificationOrchestrator:
         if notification_type in (NotificationType.LEAGUE_ANNOUNCEMENT, NotificationType.ADMIN_ANNOUNCEMENT):
             return preferences.get('announcements', True)
 
+        if notification_type == NotificationType.DIRECT_MESSAGE:
+            return preferences.get('dm_notifications', True)
+
         # Default: send
         return True
 

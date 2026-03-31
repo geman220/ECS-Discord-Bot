@@ -363,6 +363,7 @@ def get_notification_preferences():
             "team_notifications": user.team_update_notifications,
             "league_announcements": user.announcement_notifications,
             "general_announcements": user.general_announcements,
+            "dm_notifications": getattr(user, 'dm_notifications', True),
         }), 200
 
 
@@ -423,6 +424,8 @@ def update_notification_preferences():
             user.announcement_notifications = bool(data['league_announcements'])
         if 'general_announcements' in data:
             user.general_announcements = bool(data['general_announcements'])
+        if 'dm_notifications' in data:
+            user.dm_notifications = bool(data['dm_notifications'])
 
         session.commit()
 
@@ -439,6 +442,7 @@ def update_notification_preferences():
             "team_notifications": user.team_update_notifications,
             "league_announcements": user.announcement_notifications,
             "general_announcements": user.general_announcements,
+            "dm_notifications": getattr(user, 'dm_notifications', True),
         }), 200
 
 

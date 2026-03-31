@@ -65,32 +65,35 @@
 
         <!-- Step 1: Contact Information -->
         <div class="step" id="step1" data-step="1">
-            <!-- Registration Code (Optional) -->
-            <div class="bg-ecs-green/10 dark:bg-ecs-green/20 border border-ecs-green/30 rounded-lg p-4 mb-4">
-                <div class="flex items-start gap-3">
-                    <div class="flex-shrink-0 w-10 h-10 bg-ecs-green/20 rounded-full flex items-center justify-center">
-                        <i class="ti ti-ticket text-ecs-green text-xl"></i>
+            <!-- Registration Code (Optional — collapsed by default) -->
+            <details class="bg-ecs-green/10 dark:bg-ecs-green/20 border border-ecs-green/30 rounded-lg mb-4 group"
+                     {{ 'open' if claim_code else '' }}>
+                <summary class="flex items-center gap-3 p-4 cursor-pointer list-none">
+                    <i class="ti ti-ticket text-ecs-green text-lg"></i>
+                    <span class="flex-1 font-medium text-gray-900 dark:text-white text-sm">
+                        Have a Pub League claim code? <span class="font-normal text-gray-500 dark:text-gray-400">(Optional)</span>
+                    </span>
+                    <i class="ti ti-chevron-down text-gray-400 text-sm transition-transform group-open:rotate-180"></i>
+                </summary>
+                <div class="px-4 pb-4">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                        If a Pub League coach gave you a 6-character code at an event like PLOP, enter it here to link your player profile.
+                        No code? No problem — just skip this.
+                    </p>
+                    <div class="flex gap-2">
+                        <input type="text" name="claim_code" id="claim_code"
+                               maxlength="6" pattern="[A-Za-z0-9]{6}"
+                               placeholder="A7X9K2"
+                               value="{{ claim_code or '' }}"
+                               class="flex-1 max-w-[200px] px-3 py-2 rounded-lg border-2 border-ecs-green/50 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
+                        <button type="button" id="validate-code-btn"
+                                class="px-4 py-2 rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors font-medium">
+                            <i class="ti ti-check"></i> Verify
+                        </button>
                     </div>
-                    <div class="flex-1">
-                        <h6 class="font-semibold text-gray-900 dark:text-white mb-1">Were you given a code?</h6>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                            If a coach or admin gave you a 6-character code, enter it below to link your profile information.
-                        </p>
-                        <div class="flex gap-2">
-                            <input type="text" name="claim_code" id="claim_code"
-                                   maxlength="6" pattern="[A-Za-z0-9]{6}"
-                                   placeholder="e.g., A7X9K2"
-                                   value="{{ claim_code or '' }}"
-                                   class="flex-1 max-w-[180px] px-3 py-2 rounded-lg border-2 border-ecs-green/50 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 uppercase font-mono text-lg tracking-wider focus:ring-2 focus:ring-ecs-green focus:border-ecs-green">
-                            <button type="button" id="validate-code-btn"
-                                    class="px-4 py-2 rounded-lg bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors font-medium">
-                                <i class="ti ti-check"></i> Verify
-                            </button>
-                        </div>
-                        <div id="code-validation-result" class="mt-2 text-sm hidden"></div>
-                    </div>
+                    <div id="code-validation-result" class="mt-2 text-sm hidden"></div>
                 </div>
-            </div>
+            </details>
 
             <!-- Waitlist Notice -->
             <div class="flex items-start gap-3 p-4 mb-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
