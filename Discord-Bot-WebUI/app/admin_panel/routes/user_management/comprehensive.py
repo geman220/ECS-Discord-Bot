@@ -1051,14 +1051,46 @@ def delete_user_comprehensive(user_id):
     # missing or if NOT NULL constraints block nullification).
     db.session.expunge(user)
 
-    # Delete player first (player.user_id is NOT NULL so can't cascade)
-    if player_id:
-        db.session.execute(
-            db.text("DELETE FROM player WHERE id = :pid"),
-            {"pid": player_id}
-        )
+    # Dynamically find and clean up ALL foreign key references to this
+    # user. Many FK constraints lack ON DELETE CASCADE, so we must
+    # delete or nullify referencing rows before we can delete the user.
+    fk_refs = db.session.execute(db.text("""
+        SELECT tc.table_name, kcu.column_name, rc.delete_rule
+        FROM information_schema.referential_constraints rc
+        JOIN information_schema.table_constraints tc
+            ON tc.constraint_name = rc.constraint_name
+            AND tc.constraint_schema = rc.constraint_schema
+        JOIN information_schema.key_column_usage kcu
+            ON kcu.constraint_name = rc.constraint_name
+            AND kcu.constraint_schema = rc.constraint_schema
+        JOIN information_schema.constraint_column_usage ccu
+            ON ccu.constraint_name = rc.unique_constraint_name
+            AND ccu.constraint_schema = rc.constraint_schema
+        WHERE ccu.table_name = 'users' AND ccu.column_name = 'id'
+    """)).fetchall()
 
-    # Delete the user row directly — DB-level cascades handle the rest
+    for table_name, column_name, delete_rule in fk_refs:
+        if delete_rule in ('CASCADE', 'SET NULL', 'SET DEFAULT'):
+            continue  # DB will handle these automatically
+        # For RESTRICT / NO ACTION: delete from association tables,
+        # nullify nullable FKs in regular tables.
+        is_nullable = db.session.execute(db.text("""
+            SELECT is_nullable FROM information_schema.columns
+            WHERE table_name = :tbl AND column_name = :col
+        """), {"tbl": table_name, "col": column_name}).scalar()
+
+        if is_nullable == 'YES':
+            db.session.execute(
+                db.text(f'UPDATE "{table_name}" SET "{column_name}" = NULL WHERE "{column_name}" = :uid'),
+                {"uid": user_id}
+            )
+        else:
+            db.session.execute(
+                db.text(f'DELETE FROM "{table_name}" WHERE "{column_name}" = :uid'),
+                {"uid": user_id}
+            )
+
+    # Delete the user row — all references are now cleared
     db.session.execute(
         db.text("DELETE FROM users WHERE id = :uid"),
         {"uid": user_id}
