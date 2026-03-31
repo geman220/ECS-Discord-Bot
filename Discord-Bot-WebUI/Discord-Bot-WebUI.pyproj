@@ -40,8 +40,6 @@
     <Compile Include="app\admin_panel\routes\communication\messaging_settings.py" />
     <Compile Include="app\admin_panel\routes\communication\notification_groups.py" />
     <Compile Include="app\admin_panel\routes\communication\push.py" />
-    <Compile Include="app\admin_panel\routes\communication\push_admin.py" />
-    <Compile Include="app\admin_panel\routes\communication\push_enhanced.py" />
     <Compile Include="app\admin_panel\routes\communication\scheduled.py" />
     <Compile Include="app\admin_panel\routes\communication\sms_analytics.py" />
     <Compile Include="app\admin_panel\routes\communication\templates.py" />
@@ -62,7 +60,6 @@
     <Compile Include="app\admin_panel\routes\match_operations\substitute_contact.py" />
     <Compile Include="app\admin_panel\routes\match_operations\substitute_pools.py" />
     <Compile Include="app\admin_panel\routes\match_operations\teams.py" />
-    <Compile Include="app\admin_panel\routes\match_operations\transfers.py" />
     <Compile Include="app\admin_panel\routes\match_operations\verification.py" />
     <Compile Include="app\admin_panel\routes\match_operations\views.py" />
     <Compile Include="app\admin_panel\routes\match_operations\__init__.py" />
@@ -255,8 +252,6 @@
     <Content Include="app\admin_panel\routes\communication\__pycache__\messaging_settings.cpython-310.pyc" />
     <Content Include="app\admin_panel\routes\communication\__pycache__\notification_groups.cpython-310.pyc" />
     <Content Include="app\admin_panel\routes\communication\__pycache__\push.cpython-310.pyc" />
-    <Content Include="app\admin_panel\routes\communication\__pycache__\push_admin.cpython-310.pyc" />
-    <Content Include="app\admin_panel\routes\communication\__pycache__\push_enhanced.cpython-310.pyc" />
     <Content Include="app\admin_panel\routes\communication\__pycache__\scheduled.cpython-310.pyc" />
     <Content Include="app\admin_panel\routes\communication\__pycache__\sms_analytics.cpython-310.pyc" />
     <Content Include="app\admin_panel\routes\communication\__pycache__\templates.cpython-310.pyc" />

@@ -1536,7 +1536,7 @@ def _clean_device_tokens():
 
 
 def _update_match_times():
-    """Update match times (placeholder)."""
+    """Set default time (7:00 PM) for matches that don't have a time assigned."""
     try:
         # Update matches that don't have times set
         matches_without_times = Match.query.filter(Match.time.is_(None)).all()

@@ -93,9 +93,17 @@ def substitute_management():
                 requested_teams_by_match[match_id] = {}
             requested_teams_by_match[match_id][sub_request.team_id] = sub_request
 
-        # Get available weeks (placeholder)
-        weeks = list(range(1, 21))  # Assuming 20 weeks in a season
-        current_week = week_filter or 1
+        # Get available weeks from Schedule model
+        weeks = []
+        try:
+            from app.models.matches import Schedule
+            current_season = Season.query.filter_by(is_current=True).first()
+            if current_season:
+                schedules = Schedule.query.filter_by(season_id=current_season.id).order_by(Schedule.week_number).all()
+                weeks = sorted(set(s.week_number for s in schedules if s.week_number))
+        except Exception:
+            weeks = list(range(1, 21))
+        current_week = week_filter or (weeks[0] if weeks else 1)
 
         return render_template(
             'admin_panel/substitute_management_flowbite.html',

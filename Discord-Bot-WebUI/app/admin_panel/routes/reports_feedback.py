@@ -24,7 +24,6 @@ from app.models import Feedback, FeedbackReply, Note, Match, Player, Availabilit
 from app.models_ecs import EcsFcMatch, EcsFcAvailability
 from app.models.admin_config import AdminAuditLog
 from app.forms import AdminFeedbackForm, FeedbackReplyForm, NoteForm
-from app.email import send_email
 from app.services.notification_orchestrator import orchestrator, NotificationPayload, NotificationType
 from app.admin_helpers import get_rsvp_status_data, get_ecs_fc_rsvp_status_data
 from app.ecs_fc_schedule import EcsFcScheduleManager

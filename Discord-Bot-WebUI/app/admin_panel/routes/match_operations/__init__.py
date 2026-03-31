@@ -8,9 +8,8 @@ This package splits the monolithic match_operations.py into focused modules:
 - scheduling.py - Match scheduling and auto-scheduling
 - views.py - Match view pages (upcoming, results, live, reports)
 - leagues.py - League management and standings
-- seasons.py - Season management
-- teams.py - Team management and rosters
-- transfers.py - Player transfers
+- seasons.py - Season management (redirects to league_management)
+- teams.py - Team management and rosters (view redirects to league_management)
 - ajax.py - AJAX utility routes
 - substitutes.py - Substitute management
 - verification.py - Match verification
@@ -32,7 +31,6 @@ def register_match_operations_routes():
         leagues,
         seasons,
         teams,
-        transfers,
         ajax,
         substitutes,
         verification,

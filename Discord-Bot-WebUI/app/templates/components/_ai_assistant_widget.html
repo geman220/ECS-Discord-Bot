@@ -1,0 +1,74 @@
+{# AI Assistant Widget - Floating chat panel #}
+<div id="ai-assistant-widget" class="fixed bottom-4 right-4 z-[70]" data-page="ai-assistant">
+    {# Trigger Button #}
+    <button type="button" data-action="ai-assistant-toggle"
+            class="flex items-center justify-center w-14 h-14 rounded-full bg-ecs-green text-white shadow-lg hover:bg-ecs-green/90 transition-all hover:scale-105 focus:outline-none focus:ring-4 focus:ring-ecs-green/30"
+            aria-label="Open AI Assistant" id="ai-assistant-trigger">
+        <i class="ti ti-sparkles text-2xl"></i>
+    </button>
+
+    {# Chat Panel #}
+    <div id="ai-assistant-panel"
+         class="hidden fixed bottom-20 right-4 w-[95vw] max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden"
+         style="max-height: calc(100vh - 120px); height: 560px;"
+         role="dialog" aria-label="AI Assistant">
+
+        {# Header #}
+        <div class="flex items-center justify-between px-4 py-3 bg-ecs-green text-white flex-shrink-0">
+            <div class="flex items-center gap-2">
+                <i class="ti ti-sparkles text-lg"></i>
+                <span class="font-semibold text-sm">AI Assistant</span>
+                <span id="ai-assistant-provider-badge" class="text-[10px] bg-white/20 px-1.5 py-0.5 rounded-full hidden"></span>
+            </div>
+            <div class="flex items-center gap-1">
+                <span id="ai-assistant-usage-badge" class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full"></span>
+                <button type="button" data-action="ai-assistant-toggle" class="p-1 hover:bg-white/20 rounded-lg transition-colors" aria-label="Close">
+                    <i class="ti ti-x text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        {# Suggestion Chips #}
+        <div id="ai-assistant-suggestions" class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Quick questions:</p>
+            <div class="flex flex-wrap gap-1.5" id="ai-assistant-chips"></div>
+        </div>
+
+        {# Messages Area #}
+        <div id="ai-assistant-messages" class="flex-1 overflow-y-auto px-4 py-3 space-y-3 min-h-0">
+            <div class="text-center text-sm text-gray-400 dark:text-gray-500 py-8">
+                <i class="ti ti-sparkles text-3xl mb-2 block"></i>
+                <p>Ask me anything about the portal</p>
+            </div>
+        </div>
+
+        {# Input Area #}
+        <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+            <div class="flex items-end gap-2">
+                <div class="flex-1 relative">
+                    <textarea id="ai-assistant-input"
+                              data-action="ai-assistant-input-keydown"
+                              rows="1"
+                              placeholder="Ask a question..."
+                              maxlength="2000"
+                              class="w-full resize-none rounded-xl border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm px-4 py-2.5 pr-12 focus:ring-ecs-green focus:border-ecs-green placeholder-gray-400"
+                              style="max-height: 100px;"></textarea>
+                    <span id="ai-assistant-char-count" class="absolute right-3 bottom-2 text-[10px] text-gray-400"></span>
+                </div>
+                <button type="button" data-action="ai-assistant-send"
+                        class="flex-shrink-0 p-2.5 rounded-xl bg-ecs-green text-white hover:bg-ecs-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        id="ai-assistant-send-btn" disabled aria-label="Send">
+                    <i class="ti ti-send text-lg"></i>
+                </button>
+            </div>
+            <div class="flex items-center justify-between mt-2">
+                <span class="text-[10px] text-gray-400 dark:text-gray-500">
+                    Powered by AI &middot; Responses may be inaccurate
+                </span>
+                <button type="button" data-action="ai-assistant-clear" class="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                    Clear chat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

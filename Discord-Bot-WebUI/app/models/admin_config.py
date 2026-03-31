@@ -403,6 +403,70 @@ class AdminConfig(db.Model):
                 'description': 'Minutes without updates before deactivating session (default: 30)',
                 'category': 'mls',
                 'data_type': 'integer'
+            },
+            # AI Assistant settings
+            {
+                'key': 'ai_assistant_enabled',
+                'value': 'true',
+                'description': 'Enable or disable the AI assistant globally',
+                'category': 'ai_assistant',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'ai_assistant_primary_provider',
+                'value': 'claude',
+                'description': 'Primary AI provider (claude or openai)',
+                'category': 'ai_assistant',
+                'data_type': 'string'
+            },
+            {
+                'key': 'ai_assistant_claude_model',
+                'value': 'claude-sonnet-4-20250514',
+                'description': 'Claude model to use for AI assistant',
+                'category': 'ai_assistant',
+                'data_type': 'string'
+            },
+            {
+                'key': 'ai_assistant_openai_model',
+                'value': 'gpt-4o',
+                'description': 'OpenAI model to use as fallback',
+                'category': 'ai_assistant',
+                'data_type': 'string'
+            },
+            {
+                'key': 'ai_assistant_max_tokens',
+                'value': '1024',
+                'description': 'Maximum tokens per AI response',
+                'category': 'ai_assistant',
+                'data_type': 'integer'
+            },
+            {
+                'key': 'ai_assistant_rate_limit_per_hour',
+                'value': '20',
+                'description': 'Max AI requests per user per hour',
+                'category': 'ai_assistant',
+                'data_type': 'integer'
+            },
+            {
+                'key': 'ai_assistant_rate_limit_per_day',
+                'value': '100',
+                'description': 'Max AI requests per user per day',
+                'category': 'ai_assistant',
+                'data_type': 'integer'
+            },
+            {
+                'key': 'ai_assistant_global_rate_limit_per_day',
+                'value': '1000',
+                'description': 'Max total AI requests per day across all users',
+                'category': 'ai_assistant',
+                'data_type': 'integer'
+            },
+            {
+                'key': 'ai_assistant_monthly_budget_usd',
+                'value': '50.00',
+                'description': 'Monthly budget cap for AI API costs in USD',
+                'category': 'ai_assistant',
+                'data_type': 'string'
             }
         ]
 

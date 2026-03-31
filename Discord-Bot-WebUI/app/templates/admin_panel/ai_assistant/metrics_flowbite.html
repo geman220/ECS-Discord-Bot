@@ -1,0 +1,157 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, badge %}
+
+{% block admin_title %}AI Assistant{% endblock %}
+{% block panel_description %}Usage metrics, budget tracking, and configuration{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400 mx-1"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">AI Assistant</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-6">
+    <!-- Stats Cards (loaded via JS) -->
+    <div id="ai-metrics-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Provider Breakdown -->
+        {% call card(title="Provider Usage", subtitle="Requests by AI provider") %}
+        <div id="ai-metrics-providers" class="space-y-3">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
+        {% endcall %}
+
+        <!-- Top Questions -->
+        {% call card(title="Top Questions", subtitle="Most asked questions") %}
+        <div id="ai-metrics-questions" class="space-y-2">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
+        {% endcall %}
+    </div>
+
+    <!-- Configuration -->
+    {% call card(title="Configuration", subtitle="AI Assistant settings") %}
+    <div id="ai-metrics-config" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Loading configuration...</p>
+    </div>
+    {% endcall %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const resp = await fetch('/api/ai-assistant/admin/metrics/data?period=30');
+        const data = await resp.json();
+        if (!data.success) return;
+
+        // Stats cards
+        const statsEl = document.getElementById('ai-metrics-stats');
+        statsEl.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">${data.total_requests || 0}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Total Requests (30d)</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">${data.unique_users || 0}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Unique Users</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">$${(data.monthly_cost || 0).toFixed(2)}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Monthly Cost / $${(data.monthly_budget || 50).toFixed(2)} budget</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+                <p class="text-3xl font-bold text-gray-900 dark:text-white">${data.global_today || 0}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Requests Today / ${data.global_limit || 1000} limit</p>
+            </div>
+        `;
+
+        // Provider breakdown
+        const provEl = document.getElementById('ai-metrics-providers');
+        const providers = data.provider_breakdown || {};
+        if (Object.keys(providers).length) {
+            provEl.innerHTML = Object.entries(providers).map(([name, count]) => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                    <span class="text-sm font-medium text-gray-900 dark:text-white capitalize">${name}</span>
+                    <span class="text-sm text-gray-500 dark:text-gray-400">${count} requests</span>
+                </div>
+            `).join('');
+        } else {
+            provEl.innerHTML = '<p class="text-sm text-gray-400">No data yet</p>';
+        }
+
+        // Top questions
+        const qEl = document.getElementById('ai-metrics-questions');
+        const questions = data.top_questions || [];
+        if (questions.length) {
+            qEl.innerHTML = questions.map((q, i) => `
+                <div class="flex items-start gap-2 p-2 ${i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/30' : ''} rounded">
+                    <span class="text-xs font-mono text-gray-400 mt-0.5">${q.count}x</span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">${q.question}</span>
+                </div>
+            `).join('');
+        } else {
+            qEl.innerHTML = '<p class="text-sm text-gray-400">No questions asked yet</p>';
+        }
+
+        // Config display
+        const confEl = document.getElementById('ai-metrics-config');
+        confEl.innerHTML = `
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Status</span>
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">Enabled</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Avg Response</span>
+                    <span class="text-sm font-mono text-gray-500 dark:text-gray-400">${(data.avg_response_ms || 0).toFixed(0)}ms</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Tokens (30d)</span>
+                    <span class="text-sm font-mono text-gray-500 dark:text-gray-400">${((data.total_input_tokens || 0) + (data.total_output_tokens || 0)).toLocaleString()}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Rejected</span>
+                    <span class="text-sm font-mono text-gray-500 dark:text-gray-400">${data.rejected_requests || 0}</span>
+                </div>
+            </div>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Tokens Today</span>
+                    <span class="text-sm font-mono text-gray-500 dark:text-gray-400">${(data.tokens_today || 0).toLocaleString()}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Total Cost (30d)</span>
+                    <span class="text-sm font-mono text-gray-500 dark:text-gray-400">$${(data.total_cost_usd || 0).toFixed(4)}</span>
+                </div>
+            </div>
+        `;
+    } catch (e) {
+        console.error('[AI Metrics] Error loading:', e);
+    }
+});
+</script>
+{% endblock %}

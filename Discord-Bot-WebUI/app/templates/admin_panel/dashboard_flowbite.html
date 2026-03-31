@@ -1,49 +1,70 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge, alert, stat_card, empty_state %}
+{% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
 
-{% block admin_title %}Admin Panel - Dashboard{% endblock %}
+{% block admin_title %}Dashboard{% endblock %}
+{% block panel_description %}Operational overview and quick access{% endblock %}
 
 {% block panel_content %}
 <div class="space-y-6">
-    <!-- Quick Stats -->
+    <!-- Row 1: Operational Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- System Settings -->
-        <a href="{{ url_for('admin_panel.feature_toggles') }}" class="block">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all cursor-pointer">
+        <!-- Current Season -->
+        <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="block">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all">
+                <div class="flex items-center justify-between">
+                    <div class="min-w-0">
+                        {% if current_pub_league %}
+                        <p class="text-lg font-bold text-gray-900 dark:text-white truncate">{{ current_pub_league.name }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ league_count }} leagues, {{ team_count }} teams</p>
+                        {% else %}
+                        <p class="text-lg font-bold text-gray-400 dark:text-gray-500">No Active Season</p>
+                        <p class="text-sm text-gray-400 dark:text-gray-500">Create one in Season Builder</p>
+                        {% endif %}
+                    </div>
+                    <div class="p-3 bg-ecs-green/10 rounded-full flex-shrink-0">
+                        <i class="ti ti-tournament text-2xl text-ecs-green"></i>
+                    </div>
+                </div>
+            </div>
+        </a>
+
+        <!-- Upcoming Matches -->
+        <a href="{{ url_for('admin_panel.match_operations') }}" class="block">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.total_settings }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">System Settings</p>
+                        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ upcoming_matches|length }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Matches This Week</p>
                     </div>
                     <div class="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
-                        <i class="ti ti-adjustments-horizontal text-2xl text-blue-600 dark:text-blue-400"></i>
+                        <i class="ti ti-calendar-event text-2xl text-blue-600 dark:text-blue-400"></i>
                     </div>
                 </div>
             </div>
         </a>
 
-        <!-- Active Features -->
-        <a href="{{ url_for('admin_panel.feature_toggles') }}" class="block">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all cursor-pointer">
+        <!-- Pending Approvals -->
+        <a href="{{ url_for('admin_panel.user_approvals') }}" class="block">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.active_features }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Active Features</p>
+                        <p class="text-3xl font-bold {{ 'text-red-600 dark:text-red-400' if pending_approvals > 0 else 'text-gray-900 dark:text-white' }}">{{ pending_approvals }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Pending Approvals</p>
                     </div>
-                    <div class="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
-                        <i class="ti ti-toggle-right text-2xl text-green-600 dark:text-green-400"></i>
+                    <div class="p-3 {{ 'bg-red-100 dark:bg-red-900/30' if pending_approvals > 0 else 'bg-green-100 dark:bg-green-900/30' }} rounded-full">
+                        <i class="ti ti-user-check text-2xl {{ 'text-red-600 dark:text-red-400' if pending_approvals > 0 else 'text-green-600 dark:text-green-400' }}"></i>
                     </div>
                 </div>
             </div>
         </a>
 
-        <!-- Total Users -->
-        <a href="{{ url_for('admin_panel.user_management') }}" class="block">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all cursor-pointer">
+        <!-- Active Players -->
+        <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="block">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.total_users }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Total Users</p>
+                        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ active_players }}</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Active Players</p>
                     </div>
                     <div class="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-full">
                         <i class="ti ti-users text-2xl text-purple-600 dark:text-purple-400"></i>
@@ -51,243 +72,144 @@
                 </div>
             </div>
         </a>
+    </div>
 
-        <!-- Recent Changes -->
-        <a href="{{ url_for('admin_panel.audit_logs') }}" class="block">
-            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-ecs-green dark:hover:border-ecs-green transition-all cursor-pointer">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ stats.recent_changes }}</p>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Changes (7 days)</p>
-                    </div>
-                    <div class="p-3 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
-                        <i class="ti ti-history text-2xl text-yellow-600 dark:text-yellow-400"></i>
-                    </div>
-                </div>
-            </div>
+    <!-- Row 2: Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Pub League Quick Links -->
+        {% call card(title="Pub League", subtitle="Season and team management") %}
+        <div class="space-y-1">
+            <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-wand text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">Season Builder</span>
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-calendar-stats text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">All Seasons</span>
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.league_management_teams') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-shirt-sport text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">All Teams</span>
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.match_operations') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-trophy text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">Match Dashboard</span>
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+            </a>
+        </div>
+        {% endcall %}
+
+        <!-- Communication Quick Links -->
+        {% call card(title="Communication", subtitle="Messaging and notifications") %}
+        <div class="space-y-1">
+            <a href="{{ url_for('admin_panel.communication_hub') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-message-circle text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">Communication Hub</span>
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.push_notifications') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-bell text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">Push Notifications</span>
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.announcements') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-speakerphone text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">Announcements</span>
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.email_broadcasts_list') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-mail-forward text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">Email Broadcasts</span>
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+            </a>
+        </div>
+        {% endcall %}
+
+        <!-- Users Quick Links -->
+        {% call card(title="Users", subtitle="User management and approvals") %}
+        <div class="space-y-1">
+            <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-users text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">User Search</span>
+                <span class="ml-auto text-xs text-gray-400">{{ total_users }} total</span>
+            </a>
+            <a href="{{ url_for('admin_panel.user_approvals') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-user-check text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">Approvals</span>
+                {% if pending_approvals > 0 %}
+                <span class="ml-auto">{{ badge(pending_approvals|string, variant="danger") }}</span>
+                {% else %}
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-shield-check text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">Roles Management</span>
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+            </a>
+            <a href="{{ url_for('admin_panel.user_waitlist') }}" class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+                <i class="ti ti-clock text-gray-400 group-hover:text-ecs-green"></i>
+                <span class="text-gray-700 dark:text-gray-300">Waitlist</span>
+                <i class="ti ti-chevron-right text-gray-300 ml-auto"></i>
+            </a>
+        </div>
+        {% endcall %}
+    </div>
+
+    <!-- Row 3: Upcoming Matches -->
+    {% call card(title="Upcoming Matches", subtitle="Next 5 matches across Pub League") %}
+    {% if upcoming_matches %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-3">Date</th>
+                    <th scope="col" class="px-4 py-3">Home</th>
+                    <th scope="col" class="px-4 py-3">Away</th>
+                    <th scope="col" class="px-4 py-3">Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for match in upcoming_matches %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ match.date.strftime('%b %d') if match.date else 'TBD' }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+                    </td>
+                    <td class="px-4 py-3">
+                        <span class="text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <span class="text-xs text-gray-500 dark:text-gray-400">{{ match.time.strftime('%I:%M %p') if match.time else 'TBD' }}</span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="text-center py-8">
+        <i class="ti ti-calendar-off text-4xl text-gray-300 dark:text-gray-600 mb-3"></i>
+        <p class="text-gray-500 dark:text-gray-400">No upcoming matches in the next 7 days</p>
+        {% if current_pub_league %}
+        <a href="{{ url_for('auto_schedule.current_season_schedule') }}" class="inline-flex items-center mt-3 text-sm text-ecs-green hover:underline">
+            View Full Schedule <i class="ti ti-arrow-right ml-1"></i>
         </a>
+        {% else %}
+        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="inline-flex items-center mt-3 text-sm text-ecs-green hover:underline">
+            Create a Season <i class="ti ti-arrow-right ml-1"></i>
+        </a>
+        {% endif %}
     </div>
+    {% endif %}
+    {% endcall %}
 
-    <!-- Admin Sections Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <!-- Feature Management -->
-        {% call card(title="Feature Management", subtitle="Control system features and functionality") %}
-        <div class="space-y-2">
-            <a href="{{ url_for('admin_panel.feature_toggles') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-toggle-right text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Feature Toggles</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    {{ badge(stats.active_features|string, variant="primary") }}
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </div>
-            </a>
-            <a href="{{ url_for('admin_panel.appearance') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-palette text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Theme Settings</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-        </div>
-        {% endcall %}
-
-        <!-- Communication Hub -->
-        {% call card(title="Communication Hub", subtitle="Manage all communication channels") %}
-        <div class="space-y-2">
-            <a href="{{ url_for('admin_panel.communication_hub') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-template text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Message Templates</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('admin_panel.push_notifications') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-bell text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Push Notifications</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('admin_panel.scheduled_messages_queue') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-clock text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Scheduled Messages</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-        </div>
-        {% endcall %}
-
-        <!-- User Management -->
-        {% call card(title="User Management", subtitle="Manage users, roles, and permissions") %}
-        <div class="space-y-2">
-            <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-users text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">User Management</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    {% if pending_approvals > 0 %}
-                    {{ badge(pending_approvals|string, variant="danger") }}
-                    {% endif %}
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </div>
-            </a>
-            <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-shield-check text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Role Management</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('admin_panel.user_approvals') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-user-check text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">User Approvals</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-        </div>
-        {% endcall %}
-
-        <!-- System Monitoring -->
-        {% call card(title="System Monitoring", subtitle="Monitor system health and performance") %}
-        <div class="space-y-2">
-            <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-activity text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">System Information</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <i class="ti ti-chevron-right text-gray-400"></i>
-                </div>
-            </a>
-            <a href="{{ url_for('admin_panel.cache_management') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-database text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Cache Management</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-heartbeat text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">System Health</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-        </div>
-        {% endcall %}
-
-        <!-- Match & League Operations -->
-        {% call card(title="Match & League Ops", subtitle="Manage matches and league operations") %}
-        <div class="space-y-2">
-            <a href="{{ url_for('admin_panel.match_verification') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-clipboard-check text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Match Verification</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('admin_panel.match_operations') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-trophy text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Match Operations</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-broadcast text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Live Reporting</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('ai_prompts.list_prompts') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-brain text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">AI Commentary Config</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-        </div>
-        {% endcall %}
-
-        <!-- League Management -->
-        {% call card(title="League Management", subtitle="Manage seasons, teams, and schedules") %}
-        <div class="space-y-2">
-            <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-wand text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Season Builder</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('admin_panel.league_management_teams') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-users-group text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Teams</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-trophy text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Seasons</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-receipt text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Pub League Orders</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-        </div>
-        {% endcall %}
-
-        <!-- Mobile & Engagement -->
-        {% call card(title="Mobile & Engagement", subtitle="Mobile app, wallets, and member engagement") %}
-        <div class="space-y-2">
-            <a href="{{ url_for('wallet_admin.wallet_management') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-wallet text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Apple Wallet Passes</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            <a href="{{ url_for('wallet_admin.wallet_players') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-user-cog text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Player Eligibility</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            {% if user_roles and 'Global Admin' in user_roles %}
-            <a href="{{ url_for('wallet_admin.wallet_config') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-settings-2 text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">Wallet Configuration</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-            {% endif %}
-            <a href="{{ url_for('admin_panel.ispy_management') }}" class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
-                <div class="flex items-center gap-3">
-                    <i class="ti ti-eye text-gray-400 group-hover:text-ecs-green"></i>
-                    <span class="text-gray-700 dark:text-gray-300">I-Spy Game Management</span>
-                </div>
-                <i class="ti ti-chevron-right text-gray-400"></i>
-            </a>
-        </div>
-        {% endcall %}
-    </div>
-
-    <!-- Recent Activity -->
+    <!-- Row 4: Recent Activity -->
     {% call card(title="Recent Admin Activity") %}
     {% if recent_actions %}
     <div class="overflow-x-auto">
@@ -332,7 +254,7 @@
                         <span class="text-xs">
                             {% if action.resource_id %}{{ action.resource_id }}{% endif %}
                             {% if action.old_value and action.new_value %}
-                                <br>{{ action.old_value }} → {{ action.new_value }}
+                                <br>{{ action.old_value }} &rarr; {{ action.new_value }}
                             {% elif action.new_value %}
                                 <br>Set to: {{ action.new_value }}
                             {% endif %}
@@ -345,8 +267,7 @@
     </div>
     <div class="mt-4 flex justify-end">
         <a href="{{ url_for('admin_panel.audit_logs') }}" class="inline-flex items-center text-sm text-ecs-green hover:underline">
-            View All Logs
-            <i class="ti ti-arrow-right ml-1"></i>
+            View All Logs <i class="ti ti-arrow-right ml-1"></i>
         </a>
     </div>
     {% else %}
@@ -357,18 +278,5 @@
     ) }}
     {% endif %}
     {% endcall %}
-
-    <!-- Initialize Settings Warning -->
-    {% if stats.total_settings == 0 %}
-    {{ alert(
-        message="Setup Required: Admin settings have not been initialized yet.",
-        variant="warning",
-        title="Action Needed"
-    ) }}
-    <form method="POST" action="{{ url_for('admin_panel.initialize_settings') }}" class="mt-4">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        {{ button("Initialize Settings", variant="warning", type="submit", icon="settings") }}
-    </form>
-    {% endif %}
 </div>
 {% endblock %}

@@ -92,6 +92,7 @@ import './swal-contextual.js';
 // Chat and messaging
 import './chat-widget.js';
 import './messenger-widget.js';
+import './ai-assistant.js';
 
 // Player features (player-profile.js and profile-form.js are in custom_js, loaded per-page)
 import './profile-wizard.js';

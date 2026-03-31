@@ -237,18 +237,35 @@ def test_api_endpoint_legacy():
         method = data.get('method', 'GET')
         parameters = data.get('parameters', {})
         
-        # NOTE: This is a mock implementation for testing
-        # In a real implementation, you would make actual HTTP requests
-        # to test the endpoints, but that requires careful security considerations
-        
-        result = {
-            'success': True,
-            'status_code': 200,
-            'response_time': 0.123,
-            'response_data': {'message': 'Endpoint test successful (mock)'},
-            'headers': {'Content-Type': 'application/json'},
-            'timestamp': datetime.utcnow().isoformat()
-        }
+        # Test the endpoint locally via Flask test client
+        import time as time_mod
+        try:
+            from flask import current_app
+            with current_app.test_client() as client:
+                start = time_mod.time()
+                if method.upper() == 'GET':
+                    test_resp = client.get(endpoint_path)
+                else:
+                    test_resp = client.post(endpoint_path, json=parameters)
+                elapsed = round(time_mod.time() - start, 4)
+
+                result = {
+                    'success': test_resp.status_code < 500,
+                    'status_code': test_resp.status_code,
+                    'response_time': elapsed,
+                    'response_data': {'content_length': test_resp.content_length or 0},
+                    'headers': dict(test_resp.headers),
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+        except Exception as test_err:
+            result = {
+                'success': False,
+                'status_code': 0,
+                'response_time': 0,
+                'response_data': {'error': str(test_err)},
+                'headers': {},
+                'timestamp': datetime.utcnow().isoformat()
+            }
         
         AdminAuditLog.log_action(
             user_id=current_user.id,

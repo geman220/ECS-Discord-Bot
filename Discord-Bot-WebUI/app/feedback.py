@@ -19,7 +19,6 @@ from sqlalchemy.orm import joinedload
 from app.forms import FeedbackForm, FeedbackReplyForm
 from app.models import Feedback, User, FeedbackReply, Role
 from app.alert_helpers import show_success, show_error, show_warning, show_info
-from app.email import send_email
 from app.services.notification_orchestrator import orchestrator, NotificationPayload, NotificationType
 from app.utils.db_utils import transactional
 from app.core import db
@@ -74,7 +73,7 @@ def create_feedback_entry(form_data, user_id=None, username=None):
         raise
 
 
-def get_user_feedbacks(user_id, page, per_page, search_query):
+def get_user_feedbacks(user_id, page, per_page, search_query, status_filter=''):
     """
     Retrieves paginated feedback entries for a specific user.
 
@@ -83,19 +82,23 @@ def get_user_feedbacks(user_id, page, per_page, search_query):
         page (int): The current page number.
         per_page (int): Number of feedbacks per page.
         search_query (str): Optional search query to filter feedbacks by title or category.
+        status_filter (str): Optional status filter ('Open', 'In Progress', 'Closed', or '' for all).
 
     Returns:
         Pagination: A paginated object containing the user's feedback entries.
     """
     try:
         feedback_query = Feedback.query.filter_by(user_id=user_id if user_id else None)
-        
+
         if search_query:
             feedback_query = feedback_query.filter(
                 Feedback.title.ilike(f'%{search_query}%') |
                 Feedback.category.ilike(f'%{search_query}%')
             )
-        
+
+        if status_filter:
+            feedback_query = feedback_query.filter(Feedback.status == status_filter)
+
         feedback_query = feedback_query.order_by(Feedback.created_at.desc())
         return feedback_query.paginate(page=page, per_page=per_page, error_out=False)
     except Exception as e:
@@ -118,11 +121,12 @@ def submit_feedback():
         page = request.args.get('page', 1, type=int)
         per_page = 10
         search_query = request.args.get('q', '', type=str).strip()
-        
+        status_filter = request.args.get('status', '', type=str).strip()
+
         user_id = safe_current_user.id if safe_current_user.is_authenticated else None
         username = safe_current_user.username if safe_current_user.is_authenticated else None
-        
-        user_feedbacks = get_user_feedbacks(user_id, page, per_page, search_query)
+
+        user_feedbacks = get_user_feedbacks(user_id, page, per_page, search_query, status_filter)
         
         if form.validate_on_submit():
             try:
@@ -168,6 +172,7 @@ def submit_feedback():
             form=form,
             feedbacks=user_feedbacks,
             search_query=search_query,
+            status_filter=status_filter,
             total_count=user_feedbacks.total,
             per_page=per_page,
             page=page

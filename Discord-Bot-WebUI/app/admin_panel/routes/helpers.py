@@ -874,7 +874,7 @@ def _get_system_performance_metrics():
             'active_connections': connections
         }
     except ImportError:
-        logger.warning("psutil not available, using placeholder metrics")
+        logger.warning("psutil not available, returning zero metrics")
         return {
             'cpu_usage': 0,
             'memory_usage': 0,

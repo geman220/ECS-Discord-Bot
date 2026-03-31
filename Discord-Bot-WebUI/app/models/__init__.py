@@ -127,6 +127,10 @@ from .api_logs import (
     APIRequestLog
 )
 
+from .ai_assistant import (
+    AIAssistantLog
+)
+
 from .security import (
     IPBan, SecurityEvent
 )
@@ -258,6 +262,7 @@ __all__ = [
 
     # API logging models
     'APIRequestLog',
+    'AIAssistantLog',
 
     # Security models
     'IPBan', 'SecurityEvent',

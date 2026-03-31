@@ -283,20 +283,28 @@ function showToast(title, icon = 'success') {
     });
 }
 
-// Placeholder functions - implement actual API calls
-function clearCache() { showToast('Cache cleared successfully'); }
-function checkDbHealth() { showToast('Database is healthy', 'info'); }
-function initializeSettings() { showToast('Settings initialized'); }
-function restartBot() { showToast('Bot restart initiated'); }
-function approveAllPending() { showToast('All pending users approved'); }
-function processWaitlist() { showToast('Waitlist processed'); }
-function showBulkNotificationModal() { showToast('Opening notification modal', 'info'); }
-function syncTemplates() { showToast('Templates synchronized'); }
-function testNotifications() { showToast('Test notification sent'); }
-function sendEmergencyAlert() { showToast('Emergency alert sent', 'warning'); }
-function exportSystemData() { showToast('Export started', 'info'); }
-function toggleMaintenanceMode() { showToast('Maintenance mode toggled'); }
-function clearLogs() { showToast('Logs cleared'); }
+async function quickAction(url, successMsg, errorMsg) {
+    try {
+        const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } });
+        const data = await resp.json();
+        showToast(data.message || successMsg, data.success ? 'success' : 'error');
+    } catch (e) {
+        showToast(errorMsg || 'Action failed', 'error');
+    }
+}
+function clearCache() { quickAction('{{ url_for("admin_panel.clear_all_caches") }}', 'Cache cleared'); }
+function checkDbHealth() { window.location.href = '{{ url_for("admin_panel.health_dashboard") }}'; }
+function initializeSettings() { quickAction('{{ url_for("admin_panel.initialize_settings") }}', 'Settings initialized'); }
+function restartBot() { showToast('Use the Discord Bot management page', 'info'); window.location.href = '{{ url_for("admin_panel.discord_bot_management") }}'; }
+function approveAllPending() { window.location.href = '{{ url_for("admin_panel.user_approvals") }}'; }
+function processWaitlist() { window.location.href = '{{ url_for("admin_panel.user_waitlist") }}'; }
+function showBulkNotificationModal() { window.location.href = '{{ url_for("admin_panel.push_notifications") }}'; }
+function syncTemplates() { window.location.href = '{{ url_for("admin_panel.message_templates") }}'; }
+function testNotifications() { quickAction('/api/ai-assistant/ask', 'Test sent', 'Test failed'); }
+function sendEmergencyAlert() { window.location.href = '{{ url_for("admin_panel.push_notifications") }}'; }
+function exportSystemData() { window.location.href = '{{ url_for("admin_panel.system_monitoring") }}'; }
+function toggleMaintenanceMode() { showToast('Navigate to Feature Toggles', 'info'); window.location.href = '{{ url_for("admin_panel.feature_toggles") }}'; }
+function clearLogs() { showToast('Navigate to System Monitoring', 'info'); window.location.href = '{{ url_for("admin_panel.system_monitoring") }}'; }
 function generateSystemReport() { showToast('Report generation started', 'info'); }
 function executeCustomAction() {
     const confirm = document.getElementById('confirmBeforeExecution').checked;

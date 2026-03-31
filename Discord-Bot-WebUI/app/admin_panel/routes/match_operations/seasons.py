@@ -28,51 +28,8 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def seasons():
-    """Manage seasons."""
-    try:
-        from app.models import Season, League, Match
-
-        # Get all seasons (ordered by id since Season has no created_at)
-        seasons = db.session.query(Season).order_by(Season.id.desc()).all()
-
-        # Get season statistics
-        current_season = db.session.query(Season).filter_by(is_current=True).first()
-
-        stats = {
-            'total_seasons': len(seasons),
-            'current_season': current_season.name if current_season else 'None',
-            'active_seasons': len([s for s in seasons if s.is_current]),
-            'upcoming_seasons': 0,
-            'past_seasons': len([s for s in seasons if not s.is_current])
-        }
-
-        # Add season details
-        for season in seasons:
-            # Get match count for each season
-            if hasattr(Match, 'season_id'):
-                season.match_count = db.session.query(Match).filter_by(season_id=season.id).count()
-            else:
-                season.match_count = 0
-
-            # Calculate season status
-            today = datetime.utcnow().date()
-            if season.start_date and season.end_date:
-                if today < season.start_date:
-                    season.status = 'upcoming'
-                    stats['upcoming_seasons'] += 1
-                elif season.start_date <= today <= season.end_date:
-                    season.status = 'active'
-                else:
-                    season.status = 'completed'
-            else:
-                season.status = 'active' if season.is_current else 'unknown'
-
-        return render_template('admin_panel/match_operations/seasons_flowbite.html',
-                               seasons=seasons, stats=stats)
-    except Exception as e:
-        logger.error(f"Error loading seasons: {e}")
-        flash('Seasons data unavailable. Verify database connection and season configuration.', 'error')
-        return redirect(url_for('admin_panel.match_operations'))
+    """Redirect to canonical seasons management in league_management."""
+    return redirect(url_for('admin_panel.league_management_seasons', **request.args), code=302)
 
 
 @admin_panel_bp.route('/match-operations/seasons/create', methods=['POST'])

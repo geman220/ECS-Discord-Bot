@@ -8,14 +8,16 @@ This package contains routes for communication management:
 - Message template management (CRUD)
 - Message category management (CRUD)
 - Scheduled messages management
-- Push notifications management
+- Push notifications management (consolidated: views, send, admin, targeting APIs)
 - Announcements management
 - Direct messaging (SMS & Discord DM)
-
-Refactored from monolithic communication.py for better maintainability.
-
-To rollback: Rename communication_legacy.py back to communication.py
-and update the import in app/admin_panel/routes/__init__.py
+- Notification groups
+- Campaigns (push notification campaigns)
+- Email broadcasts (email campaigns)
+- Email templates
+- Messaging settings (DM permissions)
+- League settings (Discord bot league config)
+- SMS analytics
 """
 
 
@@ -27,7 +29,6 @@ def register_communication_routes():
     Each module contains related routes that were extracted from the original
     monolithic communication.py file.
     """
-    # Import all route modules to register them with the blueprint
     from app.admin_panel.routes.communication import (
         hub,
         templates,
@@ -35,15 +36,13 @@ def register_communication_routes():
         announcements,
         scheduled,
         push,
-        push_admin,
-        push_enhanced,
         notification_groups,
         campaigns,
         direct_messaging,
         messaging_settings,
-        league_settings,  # League-specific settings for Discord bot
-        sms_analytics,  # SMS cost tracking & analytics dashboard
-        email_broadcasts,  # Bulk email campaign management
-        email_templates,  # Email wrapper template management
+        league_settings,
+        sms_analytics,
+        email_broadcasts,
+        email_templates,
         ajax,
     )

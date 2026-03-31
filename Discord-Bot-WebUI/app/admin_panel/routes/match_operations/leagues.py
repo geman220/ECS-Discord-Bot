@@ -113,16 +113,32 @@ def league_standings():
             home_matches = Match.query.filter_by(home_team_id=team.id).all()
             away_matches = Match.query.filter_by(away_team_id=team.id).all() if hasattr(Match, 'away_team_id') else []
 
-            wins = losses = draws = goals_for = goals_against = 0
-            matches_played = len(home_matches) + len(away_matches)
+            wins = losses = draws = goals_for = goals_against = matches_played = 0
 
-            # Calculate stats (this would need actual match results)
-            # For now, using placeholder calculations
-            wins = matches_played // 3 if matches_played > 0 else 0
-            draws = matches_played // 3 if matches_played > 0 else 0
-            losses = matches_played - wins - draws
-            goals_for = wins * 2 + draws
-            goals_against = losses * 2 + draws
+            # Calculate real stats from reported matches
+            for m in home_matches:
+                if m.home_team_score is not None and m.away_team_score is not None:
+                    matches_played += 1
+                    goals_for += m.home_team_score
+                    goals_against += m.away_team_score
+                    if m.home_team_score > m.away_team_score:
+                        wins += 1
+                    elif m.home_team_score < m.away_team_score:
+                        losses += 1
+                    else:
+                        draws += 1
+
+            for m in away_matches:
+                if m.home_team_score is not None and m.away_team_score is not None:
+                    matches_played += 1
+                    goals_for += m.away_team_score
+                    goals_against += m.home_team_score
+                    if m.away_team_score > m.home_team_score:
+                        wins += 1
+                    elif m.away_team_score < m.home_team_score:
+                        losses += 1
+                    else:
+                        draws += 1
 
             points = wins * 3 + draws
             goal_difference = goals_for - goals_against

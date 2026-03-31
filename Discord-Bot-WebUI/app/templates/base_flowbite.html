@@ -475,6 +475,11 @@
     {% include 'components/_chat_widget.html' %}
     {% endif %}
 
+    {# AI Assistant Widget #}
+    {% if safe_current_user.is_authenticated %}
+    {% include 'components/_ai_assistant_widget.html' %}
+    {% endif %}
+
     <!-- Chat Widget JS -->
     {% if not (vite_production_mode is defined and vite_production_mode()) and not (vite_dev_mode is defined and vite_dev_mode()) %}
     <script type="module" src="{{ url_for('static', filename='js/chat-widget.js') }}"></script>

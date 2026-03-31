@@ -67,6 +67,7 @@ def _import_blueprints():
     from app.monitoring import monitoring_bp
     from app.user_api import user_bp
     from app.help import help_bp
+    from app.ai_assistant import ai_assistant_bp
     from app.search import search_bp
     from app.mobile_api.predictions import predictions_api
     from app.design_routes import design as design_bp
@@ -120,6 +121,7 @@ def _import_blueprints():
         'monitoring_bp': monitoring_bp,
         'user_bp': user_bp,
         'help_bp': help_bp,
+        'ai_assistant_bp': ai_assistant_bp,
         'search_bp': search_bp,
         'predictions_api': predictions_api,
         'design_bp': design_bp,
@@ -202,6 +204,7 @@ def _register_api_blueprints(app, bp, csrf):
     app.register_blueprint(bp['monitoring_bp'])
 
     app.register_blueprint(bp['help_bp'], url_prefix='/help')
+    app.register_blueprint(bp['ai_assistant_bp'])
     app.register_blueprint(bp['search_bp'])
     app.register_blueprint(bp['design_bp'], url_prefix='/design')
     app.register_blueprint(bp['modals_bp'], url_prefix='/modals')

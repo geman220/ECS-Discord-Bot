@@ -115,7 +115,7 @@ NOTIFICATION_ICONS = {
     NotificationType.DIRECT_MESSAGE: 'ti ti-message-circle',
     NotificationType.FEEDBACK_NEW: 'ti ti-message-plus',
     NotificationType.FEEDBACK_REPLY: 'ti ti-message-reply',
-    NotificationType.FEEDBACK_STATUS_CHANGE: 'ti ti-status-change',
+    NotificationType.FEEDBACK_STATUS_CHANGE: 'ti ti-exchange',
     NotificationType.FEEDBACK_CLOSED: 'ti ti-message-off',
 }
 

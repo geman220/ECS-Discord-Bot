@@ -19,12 +19,6 @@ from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
-from app.utils.db_utils import transactional
-try:
-    from app.tasks.tasks_discord import create_team_discord_resources_task, update_team_discord_resources_task
-except ImportError:
-    create_team_discord_resources_task = None
-    update_team_discord_resources_task = None
 
 logger = logging.getLogger(__name__)
 
@@ -33,112 +27,8 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def manage_teams():
-    """Manage teams across all league types (Pub League and ECS FC)."""
-    try:
-        from app.models import Team, League, Player, Season
-
-        # Get filter parameters
-        league_filter = request.args.get('league_id', type=int)
-        league_type_filter = request.args.get('league_type', '')  # 'Pub League', 'ECS FC', or '' for all
-
-        # Get ALL current seasons (both Pub League and ECS FC)
-        current_seasons = db.session.query(Season).filter_by(is_current=True).all()
-        current_season_ids = [s.id for s in current_seasons]
-
-        # Build a display name for current seasons
-        if current_seasons:
-            season_names = [s.name for s in current_seasons]
-            current_season_display = ' & '.join(season_names)
-        else:
-            current_season_display = 'All Seasons'
-
-        # Get all leagues from current seasons, grouped by league type
-        # Eagerly load season for display in dropdown
-        if current_season_ids:
-            leagues_query = db.session.query(League).options(
-                joinedload(League.season)
-            ).filter(League.season_id.in_(current_season_ids))
-
-            # Apply league type filter if specified
-            if league_type_filter:
-                leagues_query = leagues_query.join(Season).filter(Season.league_type == league_type_filter)
-
-            leagues = leagues_query.order_by(League.name.asc()).all()
-        else:
-            leagues = db.session.query(League).options(
-                joinedload(League.season)
-            ).order_by(League.name.asc()).all()
-
-        # Build teams query - show teams from all current seasons
-        # Use eager loading to avoid N+1 queries
-        if current_season_ids:
-            teams_query = db.session.query(Team).options(
-                joinedload(Team.league).joinedload(League.season),
-                selectinload(Team.players)
-            ).join(
-                League, Team.league_id == League.id
-            ).filter(
-                League.season_id.in_(current_season_ids)
-            )
-
-            # Apply league type filter if specified
-            if league_type_filter:
-                teams_query = teams_query.join(Season, League.season_id == Season.id).filter(
-                    Season.league_type == league_type_filter
-                )
-        else:
-            from sqlalchemy.orm import selectinload
-            teams_query = db.session.query(Team).options(
-                joinedload(Team.league).joinedload(League.season),
-                selectinload(Team.players)
-            )
-
-        # Apply specific league filter if specified
-        if league_filter:
-            teams_query = teams_query.filter(Team.league_id == league_filter)
-
-        teams = teams_query.order_by(Team.name.asc()).all()
-
-        # Get team statistics
-        stats = {
-            'total_teams': len(teams),
-            'active_teams': len([t for t in teams if getattr(t, 'is_active', True)]),
-            'teams_by_league': {},
-            'teams_by_league_type': {'Pub League': 0, 'ECS FC': 0},
-            'teams_with_players': 0,
-            'current_season': current_season_display
-        }
-
-        # Group teams by league and league type
-        for team in teams:
-            league_name = team.league.name if team.league else 'No League'
-            if league_name not in stats['teams_by_league']:
-                stats['teams_by_league'][league_name] = 0
-            stats['teams_by_league'][league_name] += 1
-
-            # Track by league type
-            if team.league and team.league.season:
-                league_type = team.league.season.league_type
-                if league_type in stats['teams_by_league_type']:
-                    stats['teams_by_league_type'][league_type] += 1
-
-            # Count teams that have players (if player-team relationship exists)
-            if hasattr(team, 'players') and team.players:
-                stats['teams_with_players'] += 1
-
-        return render_template(
-            'admin_panel/match_operations/manage_teams_flowbite.html',
-            teams=teams,
-            leagues=leagues,
-            stats=stats,
-            current_league_id=league_filter,
-            current_league_type=league_type_filter,
-            current_seasons=current_seasons
-        )
-    except Exception as e:
-        logger.error(f"Error loading manage teams: {e}")
-        flash('Team management unavailable. Check database connectivity and team data.', 'error')
-        return redirect(url_for('admin_panel.match_operations'))
+    """Redirect to canonical teams management in league_management."""
+    return redirect(url_for('admin_panel.league_management_teams', **request.args), code=302)
 
 
 @admin_panel_bp.route('/match-operations/rosters')

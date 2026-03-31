@@ -296,7 +296,7 @@ function viewAllProducts() {
     Swal.fire({
         title: 'All Products',
         html: `
-            <div class="text-left">
+            <div class="text-left overflow-x-auto">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
                         <tr><th class="p-2">Name</th><th class="p-2">Category</th><th class="p-2">Price</th><th class="p-2">Stock</th></tr>
@@ -355,7 +355,7 @@ function viewPendingOrders() {
     Swal.fire({
         title: 'Pending Orders',
         html: `
-            <div class="text-left">
+            <div class="text-left overflow-x-auto">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
                         <tr><th class="p-2">ID</th><th class="p-2">Customer</th><th class="p-2">Items</th><th class="p-2">Actions</th></tr>
@@ -385,7 +385,7 @@ function viewCompletedOrders() {
     Swal.fire({
         title: 'Completed Orders',
         html: `
-            <div class="text-left">
+            <div class="text-left overflow-x-auto">
                 <table class="w-full text-sm text-left">
                     <thead class="text-xs uppercase bg-gray-100 dark:bg-gray-700">
                         <tr><th class="p-2">ID</th><th class="p-2">Customer</th><th class="p-2">Items</th><th class="p-2">Date</th></tr>

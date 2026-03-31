@@ -2219,6 +2219,8 @@ def get_ecs_fc_substitute_pool():
     Browse ECS FC substitute pool members (coach or admin).
 
     Coaches use this to see available subs they can contact.
+    Reads from the SubstitutePool table (league_type='ECS FC') which is
+    populated when an admin approves a player via the admin panel.
 
     Query Parameters:
         active_only: If 'true', only return active members (default: true)
@@ -2227,7 +2229,7 @@ def get_ecs_fc_substitute_pool():
     Returns:
         JSON with list of pool members
     """
-    from app.models.substitutes import EcsFcSubPool
+    from app.models.substitutes import SubstitutePool
 
     current_user_id = int(get_jwt_identity())
     active_only = request.args.get('active_only', 'true').lower() == 'true'
@@ -2239,12 +2241,14 @@ def get_ecs_fc_substitute_pool():
         if not coach_team_ids and not is_admin_user(session, current_user_id):
             return jsonify({"msg": "You are not authorized to view the substitute pool"}), 403
 
-        query = session.query(EcsFcSubPool).options(
-            joinedload(EcsFcSubPool.player)
+        query = session.query(SubstitutePool).options(
+            joinedload(SubstitutePool.player)
+        ).filter(
+            SubstitutePool.league_type == 'ECS FC'
         )
 
         if active_only:
-            query = query.filter(EcsFcSubPool.is_active == True)
+            query = query.filter(SubstitutePool.is_active == True)
 
         pool_members = query.all()
 
@@ -2261,6 +2265,8 @@ def get_ecs_fc_substitute_pool():
         members_data = []
         for member in pool_members:
             player = member.player
+            if not player:
+                continue
             members_data.append({
                 "pool_id": member.id,
                 "player_id": player.id,

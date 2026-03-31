@@ -45,133 +45,101 @@ def dashboard():
     ):
         return redirect(url_for('admin_panel.ecs_fc_dashboard'))
     try:
-        # Get overview statistics with caching and fallbacks
-        try:
-            stats = admin_stats_cache.get_stats('dashboard_stats', lambda: {
-                'total_settings': AdminConfig.query.filter_by(is_enabled=True).count(),
-                'recent_changes': AdminAuditLog.query.filter(
-                    AdminAuditLog.timestamp >= datetime.utcnow() - timedelta(days=7)
-                ).count(),
-                'active_features': AdminConfig.query.filter_by(
-                    is_enabled=True, data_type='boolean'
-                ).filter(AdminConfig.value == 'true').count(),
-                'total_users': User.query.count()
-            })
-        except Exception as e:
-            logger.warning(f"Error getting dashboard stats: {e}")
-            stats = {
-                'total_settings': 0,
-                'recent_changes': 0,
-                'active_features': 0,
-                'total_users': 0
-            }
+        from app.models import Season, League, Team, Player
+        from app.models.players import PlayerTeamSeason
 
-        # Get recent admin actions - NO caching to avoid detached session issues
-        # ORM objects cannot be safely cached as they become detached from the session
+        # Current seasons (Pub League and ECS FC)
         try:
-            recent_actions = AdminAuditLog.get_recent_logs(limit=10)
+            current_pub_league = Season.query.filter_by(is_current=True, league_type='Pub League').first()
+            current_ecs_fc = Season.query.filter_by(is_current=True, league_type='ECS FC').first()
         except Exception as e:
-            logger.warning(f"Error getting recent actions: {e}")
-            recent_actions = []
+            logger.warning(f"Error getting current seasons: {e}")
+            current_pub_league = None
+            current_ecs_fc = None
 
-        # Get settings by category with fallbacks
+        # Team and league counts for current Pub League season
         try:
-            navigation_settings = AdminConfig.get_settings_by_category('navigation')
+            if current_pub_league:
+                league_count = League.query.filter_by(season_id=current_pub_league.id).count()
+                team_count = Team.query.join(League).filter(League.season_id == current_pub_league.id).count()
+            else:
+                league_count = 0
+                team_count = 0
         except Exception as e:
-            logger.warning(f"Error getting navigation settings: {e}")
-            navigation_settings = []
-            
+            logger.warning(f"Error getting league/team counts: {e}")
+            league_count = 0
+            team_count = 0
+
+        # Upcoming matches (next 7 days) - Pub League
+        upcoming_matches = []
         try:
-            registration_settings = AdminConfig.get_settings_by_category('registration')
+            from app.models.matches import Match, Schedule
+            if current_pub_league:
+                upcoming_matches = (
+                    db.session.query(Match)
+                    .join(Schedule)
+                    .filter(
+                        Schedule.season_id == current_pub_league.id,
+                        Match.date >= datetime.utcnow().date(),
+                        Match.date <= (datetime.utcnow() + timedelta(days=7)).date()
+                    )
+                    .order_by(Match.date)
+                    .limit(5)
+                    .all()
+                )
         except Exception as e:
-            logger.warning(f"Error getting registration settings: {e}")
-            registration_settings = []
-            
+            logger.warning(f"Error getting upcoming matches: {e}")
+
+        # Active players for current season
         try:
-            feature_settings = AdminConfig.get_settings_by_category('features')
+            if current_pub_league:
+                active_players = PlayerTeamSeason.query.join(
+                    Team, PlayerTeamSeason.team_id == Team.id
+                ).join(
+                    League, Team.league_id == League.id
+                ).filter(
+                    League.season_id == current_pub_league.id
+                ).count()
+            else:
+                active_players = 0
         except Exception as e:
-            logger.warning(f"Error getting feature settings: {e}")
-            feature_settings = []
-            
+            logger.warning(f"Error getting active players: {e}")
+            active_players = 0
+
+        # Total users and pending approvals
         try:
-            system_settings = AdminConfig.get_settings_by_category('system')
+            total_users = User.query.count()
         except Exception as e:
-            logger.warning(f"Error getting system settings: {e}")
-            system_settings = []
-        
-        # Get pending approvals count with fallback
+            logger.warning(f"Error getting total users: {e}")
+            total_users = 0
+
         try:
             pending_approvals = User.query.filter_by(is_approved=False).count()
         except Exception as e:
             logger.warning(f"Error getting pending approvals: {e}")
             pending_approvals = 0
 
+        # Recent admin actions
+        try:
+            recent_actions = AdminAuditLog.get_recent_logs(limit=10)
+        except Exception as e:
+            logger.warning(f"Error getting recent actions: {e}")
+            recent_actions = []
+
         return render_template(
             'admin_panel/dashboard_flowbite.html',
-            stats=stats,
-            recent_actions=recent_actions,
-            navigation_settings=navigation_settings,
-            registration_settings=registration_settings,
-            feature_settings=feature_settings,
-            system_settings=system_settings,
-            pending_approvals=pending_approvals
+            current_pub_league=current_pub_league,
+            current_ecs_fc=current_ecs_fc,
+            league_count=league_count,
+            team_count=team_count,
+            upcoming_matches=upcoming_matches,
+            active_players=active_players,
+            total_users=total_users,
+            pending_approvals=pending_approvals,
+            recent_actions=recent_actions
         )
     except Exception as e:
         logger.error(f"Error loading admin panel dashboard: {e}")
-        flash('Unable to load admin panel dashboard. Check system logs for details.', 'error')
-        return redirect(url_for('main.index'))
-
-
-@admin_panel_bp.route('/dashboard-flowbite')
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-@optimize_admin_queries()
-def dashboard_flowbite():
-    """Main admin panel dashboard - Flowbite/Tailwind version (test)."""
-    try:
-        # Get overview statistics with caching and fallbacks
-        try:
-            stats = admin_stats_cache.get_stats('dashboard_stats', lambda: {
-                'total_settings': AdminConfig.query.filter_by(is_enabled=True).count(),
-                'recent_changes': AdminAuditLog.query.filter(
-                    AdminAuditLog.timestamp >= datetime.utcnow() - timedelta(days=7)
-                ).count(),
-                'active_features': AdminConfig.query.filter_by(
-                    is_enabled=True, data_type='boolean'
-                ).filter(AdminConfig.value == 'true').count(),
-                'total_users': User.query.count()
-            })
-        except Exception as e:
-            logger.warning(f"Error getting dashboard stats: {e}")
-            stats = {
-                'total_settings': 0,
-                'recent_changes': 0,
-                'active_features': 0,
-                'total_users': 0
-            }
-
-        # Get recent admin actions
-        try:
-            recent_actions = AdminAuditLog.get_recent_logs(limit=10)
-        except Exception as e:
-            logger.warning(f"Error getting recent actions: {e}")
-            recent_actions = []
-
-        # Get pending approvals count
-        try:
-            pending_approvals = User.query.filter_by(is_approved=False).count()
-        except Exception as e:
-            logger.warning(f"Error getting pending approvals: {e}")
-            pending_approvals = 0
-
-        return render_template(
-            'admin_panel/dashboard_flowbite.html',
-            stats=stats,
-            recent_actions=recent_actions,
-            pending_approvals=pending_approvals
-        )
-    except Exception as e:
-        logger.error(f"Error loading admin panel dashboard (flowbite): {e}")
         flash('Unable to load admin panel dashboard. Check system logs for details.', 'error')
         return redirect(url_for('main.index'))
 
@@ -805,27 +773,33 @@ def quick_bulk_approve():
 @login_required
 @role_required(['Global Admin'])
 def quick_system_backup():
-    """Create system backup."""
+    """Trigger a database backup via pg_dump in the Docker container."""
     try:
         import subprocess
         import os
-        
+
         backup_filename = f"backup_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.sql"
         backup_path = f"/tmp/{backup_filename}"
-        
-        # Simple backup simulation - in production would use actual pg_dump
+
+        # Attempt real pg_dump backup
+        db_url = str(db.engine.url)
         try:
-            # Get database URL from config
-            db_url = db.engine.url
-            # For security, we'll just create a placeholder file
-            with open(backup_path, 'w') as f:
-                f.write(f"-- Database backup created at {datetime.utcnow()}\n")
-                f.write("-- This is a placeholder backup file\n")
-        except Exception as backup_error:
-            logger.warning(f"Backup creation error: {backup_error}")
-            # Continue with logging even if backup fails
-        
-        # Log the backup
+            result = subprocess.run(
+                ['pg_dump', db_url, '-f', backup_path],
+                capture_output=True, text=True, timeout=120
+            )
+            if result.returncode != 0:
+                logger.warning(f"pg_dump failed: {result.stderr[:200]}")
+                return jsonify({
+                    'success': False,
+                    'message': 'Backup failed. Use Docker exec to run pg_dump manually.'
+                }), 500
+        except FileNotFoundError:
+            return jsonify({
+                'success': False,
+                'message': 'pg_dump not available. Run backups via Docker: docker exec -it db pg_dump -U postgres > backup.sql'
+            }), 500
+
         AdminAuditLog.log_action(
             user_id=current_user.id,
             action='system_backup',
@@ -835,10 +809,10 @@ def quick_system_backup():
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
+
         return jsonify({
             'success': True,
-            'message': 'System backup created successfully',
+            'message': f'Backup created: {backup_filename}',
             'filename': backup_filename
         })
         

@@ -21,7 +21,6 @@ from sqlalchemy.orm import joinedload
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import User, Feedback, FeedbackReply, Role
-from app.email import send_email
 from app.services.notification_orchestrator import orchestrator, NotificationPayload, NotificationType
 
 logger = logging.getLogger(__name__)

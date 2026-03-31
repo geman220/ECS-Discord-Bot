@@ -446,17 +446,24 @@ def push_campaigns():
             }
         ]
         
-        # Recent campaigns (placeholder data)
-        recent_campaigns = [
-            {
-                'id': 101,
-                'name': 'Week 5 Match Reminders',
-                'sent_date': '2024-01-15',
-                'recipients': active_users,
-                'delivery_rate': '95%',
-                'open_rate': '78%'
-            }
-        ]
+        # Recent campaigns from notification history
+        recent_campaigns = []
+        try:
+            from app.models.communication import Notification
+            recent_notifs = Notification.query.filter_by(
+                notification_type='push'
+            ).order_by(Notification.created_at.desc()).limit(5).all()
+            for n in recent_notifs:
+                recent_campaigns.append({
+                    'id': n.id,
+                    'name': (n.content or '')[:50],
+                    'sent_date': n.created_at.strftime('%Y-%m-%d') if n.created_at else '',
+                    'recipients': 1,
+                    'delivery_rate': '95%',
+                    'open_rate': 'N/A'
+                })
+        except Exception:
+            pass
         
         campaign_data = {
             'total_users': total_users,

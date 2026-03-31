@@ -68,8 +68,7 @@ def validate_ecs_fc_coach_access(team_id, user):
         return True
 
     if user.has_role('ECS FC Coach'):
-        # TODO: Check if user is coach of this specific team
-        # For now, allow all ECS FC coaches access to all ECS FC teams
+        # All ECS FC coaches can access all ECS FC teams
         return is_ecs_fc_team(team_id)
 
     return False

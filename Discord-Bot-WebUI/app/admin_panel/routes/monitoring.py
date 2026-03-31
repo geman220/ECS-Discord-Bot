@@ -561,33 +561,84 @@ def cancel_task():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def system_performance():
-    """System performance metrics page."""
+    """System performance metrics page with real data."""
     try:
-        # Create placeholder performance data
-        performance_metrics = {
-            'cpu_usage': 45,
-            'memory_usage': 68,
-            'disk_usage': 23,
-            'network_in': '1.2 MB/s',
-            'network_out': '0.8 MB/s',
-            'load_average': [1.2, 1.1, 0.9],
-            'response_times': {
-                'avg': '120ms',
-                'p95': '250ms',
-                'p99': '500ms'
+        import psutil
+        import os
+
+        # Real system metrics via psutil
+        cpu_usage = psutil.cpu_percent(interval=0.5)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        load_avg = os.getloadavg() if hasattr(os, 'getloadavg') else [0, 0, 0]
+
+        # Network I/O
+        net_io = psutil.net_io_counters()
+        net_in_mb = round(net_io.bytes_recv / (1024 * 1024), 1)
+        net_out_mb = round(net_io.bytes_sent / (1024 * 1024), 1)
+
+        # Database connection pool stats
+        db_pool_info = {}
+        try:
+            pool = db.engine.pool
+            db_pool_info = {
+                'size': pool.size() if hasattr(pool, 'size') else 'N/A',
+                'checked_in': pool.checkedin() if hasattr(pool, 'checkedin') else 'N/A',
+                'checked_out': pool.checkedout() if hasattr(pool, 'checkedout') else 'N/A',
+                'overflow': pool.overflow() if hasattr(pool, 'overflow') else 'N/A',
             }
+        except Exception:
+            pass
+
+        # Redis stats
+        redis_info = {}
+        try:
+            from app.utils.redis_manager import UnifiedRedisManager
+            rm = UnifiedRedisManager()
+            if rm.redis_client:
+                info = rm.redis_client.info('memory')
+                redis_info = {
+                    'used_memory_human': info.get('used_memory_human', 'N/A'),
+                    'connected_clients': rm.redis_client.info('clients').get('connected_clients', 0),
+                    'uptime_days': round(rm.redis_client.info('server').get('uptime_in_seconds', 0) / 86400, 1),
+                }
+        except Exception:
+            pass
+
+        # Celery task queue stats
+        celery_info = {}
+        try:
+            from app.celery_app import celery
+            inspector = celery.control.inspect(timeout=2)
+            active = inspector.active() or {}
+            reserved = inspector.reserved() or {}
+            celery_info = {
+                'active_tasks': sum(len(v) for v in active.values()),
+                'reserved_tasks': sum(len(v) for v in reserved.values()),
+                'workers': len(active),
+            }
+        except Exception:
+            celery_info = {'active_tasks': 0, 'reserved_tasks': 0, 'workers': 0}
+
+        performance_metrics = {
+            'cpu_usage': round(cpu_usage),
+            'memory_usage': round(memory.percent),
+            'memory_total_gb': round(memory.total / (1024**3), 1),
+            'memory_used_gb': round(memory.used / (1024**3), 1),
+            'disk_usage': round(disk.percent),
+            'disk_total_gb': round(disk.total / (1024**3), 1),
+            'disk_used_gb': round(disk.used / (1024**3), 1),
+            'network_in': f'{net_in_mb} MB',
+            'network_out': f'{net_out_mb} MB',
+            'load_average': [round(x, 2) for x in load_avg],
+            'db_pool': db_pool_info,
+            'redis': redis_info,
+            'celery': celery_info,
         }
-        
-        # Historical data (placeholder)
-        historical_data = {
-            'cpu': [30, 35, 40, 45, 42, 38, 45],
-            'memory': [60, 62, 65, 68, 66, 64, 68],
-            'response_time': [100, 110, 115, 120, 118, 112, 120]
-        }
-        
+
         return render_template('admin_panel/monitoring/system_performance_flowbite.html',
                              performance_metrics=performance_metrics,
-                             historical_data=historical_data)
+                             historical_data={})
     except Exception as e:
         logger.error(f"Error loading system performance: {e}")
         flash('System performance data unavailable. Verify monitoring tools and system access.', 'error')
@@ -598,51 +649,105 @@ def system_performance():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def system_logs():
-    """System logs page."""
+    """System logs page with real log file data."""
     try:
-        # Get filter parameters
+        import os
+        import re
+
         log_level = request.args.get('level', 'all')
-        date_from = request.args.get('date_from')
-        date_to = request.args.get('date_to')
         search_term = request.args.get('search', '')
-        
-        # Create placeholder log data
-        logs = [
-            {
-                'timestamp': datetime.utcnow() - timedelta(minutes=5),
-                'level': 'INFO',
-                'message': 'System monitoring check completed successfully',
-                'source': 'monitoring.py'
-            },
-            {
-                'timestamp': datetime.utcnow() - timedelta(minutes=10),
-                'level': 'WARNING',
-                'message': 'High memory usage detected: 85%',
-                'source': 'system_monitor.py'
-            },
-            {
-                'timestamp': datetime.utcnow() - timedelta(minutes=15),
-                'level': 'ERROR',
-                'message': 'Failed to connect to external API',
-                'source': 'api_client.py'
-            }
+        page = request.args.get('page', 1, type=int)
+        per_page = 100
+
+        logs = []
+        log_pattern = re.compile(
+            r'(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}(?:,\d+)?)\s+-\s+(\w+)\s+-\s+(\S+)\s+-\s+(.*)',
+            re.DOTALL
+        )
+
+        # Read from the application log file
+        log_paths = [
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'logs', 'app.log'),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', '..', 'app.log'),
+            '/var/log/ecs-portal/app.log',
         ]
-        
-        # Apply filters (placeholder logic)
-        if log_level != 'all':
-            logs = [log for log in logs if log['level'].lower() == log_level.lower()]
-        
-        if search_term:
-            logs = [log for log in logs if search_term.lower() in log['message'].lower()]
-        
+
+        log_file = None
+        for path in log_paths:
+            resolved = os.path.abspath(path)
+            if os.path.exists(resolved):
+                log_file = resolved
+                break
+
+        if log_file:
+            try:
+                with open(log_file, 'r', encoding='utf-8', errors='replace') as f:
+                    # Read last 2000 lines for performance
+                    lines = f.readlines()[-2000:]
+
+                for line in reversed(lines):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    match = log_pattern.match(line)
+                    if match:
+                        timestamp_str, level, source, message = match.groups()
+                        try:
+                            timestamp = datetime.strptime(timestamp_str.split(',')[0], '%Y-%m-%d %H:%M:%S')
+                        except ValueError:
+                            timestamp = datetime.utcnow()
+
+                        entry = {
+                            'timestamp': timestamp,
+                            'level': level.upper(),
+                            'message': message.strip(),
+                            'source': source
+                        }
+
+                        if log_level != 'all' and entry['level'].lower() != log_level.lower():
+                            continue
+                        if search_term and search_term.lower() not in entry['message'].lower():
+                            continue
+
+                        logs.append(entry)
+                        if len(logs) >= per_page * page:
+                            break
+            except PermissionError:
+                logs.append({
+                    'timestamp': datetime.utcnow(),
+                    'level': 'WARNING',
+                    'message': f'Permission denied reading log file: {log_file}',
+                    'source': 'monitoring'
+                })
+        else:
+            # Fallback: show recent admin audit logs as activity log
+            try:
+                audit_logs = AdminAuditLog.query.order_by(
+                    AdminAuditLog.timestamp.desc()
+                ).limit(per_page).all()
+                for al in audit_logs:
+                    logs.append({
+                        'timestamp': al.timestamp,
+                        'level': 'INFO',
+                        'message': f'{al.action} on {al.resource_type} ({al.resource_id or ""}): {al.new_value or ""}',
+                        'source': 'audit_log'
+                    })
+            except Exception:
+                pass
+
+        # Paginate
+        start = (page - 1) * per_page
+        paginated_logs = logs[start:start + per_page]
+
         return render_template('admin_panel/monitoring/system_logs_flowbite.html',
-                             logs=logs,
+                             logs=paginated_logs,
                              current_filters={
                                  'level': log_level,
-                                 'date_from': date_from,
-                                 'date_to': date_to,
+                                 'date_from': request.args.get('date_from'),
+                                 'date_to': request.args.get('date_to'),
                                  'search': search_term
-                             })
+                             },
+                             log_file_path=log_file or 'No log file found')
     except Exception as e:
         logger.error(f"Error loading system logs: {e}")
         flash('System logs unavailable. Check log file access and monitoring configuration.', 'error')
@@ -653,50 +758,146 @@ def system_logs():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def system_alerts():
-    """System alerts and notifications page."""
+    """System alerts generated from real system conditions."""
     try:
-        # Create placeholder alert data
-        active_alerts = [
-            {
-                'id': 1,
-                'type': 'warning',
-                'title': 'High Memory Usage',
-                'message': 'System memory usage is above 80%',
-                'created_at': datetime.utcnow() - timedelta(hours=2),
-                'status': 'active'
-            },
-            {
-                'id': 2,
-                'type': 'info',
-                'title': 'Scheduled Maintenance',
-                'message': 'System maintenance scheduled for tomorrow at 2:00 AM',
-                'created_at': datetime.utcnow() - timedelta(hours=6),
-                'status': 'active'
-            }
-        ]
-        
-        resolved_alerts = [
-            {
-                'id': 3,
-                'type': 'error',
-                'title': 'Database Connection Failed',
-                'message': 'Unable to connect to database server',
-                'created_at': datetime.utcnow() - timedelta(days=1),
-                'resolved_at': datetime.utcnow() - timedelta(hours=12),
-                'status': 'resolved'
-            }
-        ]
-        
+        import psutil
+
+        active_alerts = []
+        alert_id = 1
+
+        # Check CPU usage
+        cpu = psutil.cpu_percent(interval=0.5)
+        if cpu > 90:
+            active_alerts.append({
+                'id': alert_id, 'type': 'error', 'title': 'Critical CPU Usage',
+                'message': f'CPU usage is at {cpu}% - system may be unresponsive',
+                'created_at': datetime.utcnow(), 'status': 'active'
+            })
+            alert_id += 1
+        elif cpu > 75:
+            active_alerts.append({
+                'id': alert_id, 'type': 'warning', 'title': 'High CPU Usage',
+                'message': f'CPU usage is at {cpu}%',
+                'created_at': datetime.utcnow(), 'status': 'active'
+            })
+            alert_id += 1
+
+        # Check memory
+        memory = psutil.virtual_memory()
+        if memory.percent > 90:
+            active_alerts.append({
+                'id': alert_id, 'type': 'error', 'title': 'Critical Memory Usage',
+                'message': f'Memory usage is at {memory.percent}% ({round(memory.used / (1024**3), 1)}GB / {round(memory.total / (1024**3), 1)}GB)',
+                'created_at': datetime.utcnow(), 'status': 'active'
+            })
+            alert_id += 1
+        elif memory.percent > 80:
+            active_alerts.append({
+                'id': alert_id, 'type': 'warning', 'title': 'High Memory Usage',
+                'message': f'Memory usage is at {memory.percent}%',
+                'created_at': datetime.utcnow(), 'status': 'active'
+            })
+            alert_id += 1
+
+        # Check disk
+        disk = psutil.disk_usage('/')
+        if disk.percent > 90:
+            active_alerts.append({
+                'id': alert_id, 'type': 'error', 'title': 'Disk Space Critical',
+                'message': f'Disk usage is at {disk.percent}% - only {round(disk.free / (1024**3), 1)}GB free',
+                'created_at': datetime.utcnow(), 'status': 'active'
+            })
+            alert_id += 1
+        elif disk.percent > 80:
+            active_alerts.append({
+                'id': alert_id, 'type': 'warning', 'title': 'Disk Space Low',
+                'message': f'Disk usage is at {disk.percent}%',
+                'created_at': datetime.utcnow(), 'status': 'active'
+            })
+            alert_id += 1
+
+        # Check Redis connectivity
+        try:
+            from app.utils.redis_manager import UnifiedRedisManager
+            rm = UnifiedRedisManager()
+            if rm.redis_client:
+                rm.redis_client.ping()
+                redis_mem = rm.redis_client.info('memory')
+                used_mb = redis_mem.get('used_memory', 0) / (1024 * 1024)
+                if used_mb > 500:
+                    active_alerts.append({
+                        'id': alert_id, 'type': 'warning', 'title': 'Redis High Memory',
+                        'message': f'Redis is using {round(used_mb)}MB of memory',
+                        'created_at': datetime.utcnow(), 'status': 'active'
+                    })
+                    alert_id += 1
+            else:
+                active_alerts.append({
+                    'id': alert_id, 'type': 'error', 'title': 'Redis Unavailable',
+                    'message': 'Cannot connect to Redis server',
+                    'created_at': datetime.utcnow(), 'status': 'active'
+                })
+                alert_id += 1
+        except Exception:
+            active_alerts.append({
+                'id': alert_id, 'type': 'error', 'title': 'Redis Connection Error',
+                'message': 'Failed to check Redis status',
+                'created_at': datetime.utcnow(), 'status': 'active'
+            })
+            alert_id += 1
+
+        # Check Celery workers
+        try:
+            from app.celery_app import celery
+            inspector = celery.control.inspect(timeout=2)
+            ping_result = inspector.ping()
+            if not ping_result:
+                active_alerts.append({
+                    'id': alert_id, 'type': 'error', 'title': 'Celery Workers Down',
+                    'message': 'No Celery workers are responding',
+                    'created_at': datetime.utcnow(), 'status': 'active'
+                })
+                alert_id += 1
+        except Exception:
+            active_alerts.append({
+                'id': alert_id, 'type': 'warning', 'title': 'Celery Status Unknown',
+                'message': 'Unable to check Celery worker status',
+                'created_at': datetime.utcnow(), 'status': 'active'
+            })
+            alert_id += 1
+
+        # Check pending user approvals
+        try:
+            pending = User.query.filter_by(is_approved=False).count()
+            if pending > 10:
+                active_alerts.append({
+                    'id': alert_id, 'type': 'info', 'title': 'Pending Approvals',
+                    'message': f'{pending} users awaiting approval',
+                    'created_at': datetime.utcnow(), 'status': 'active'
+                })
+                alert_id += 1
+        except Exception:
+            pass
+
+        # If no alerts, show an all-clear info
+        if not active_alerts:
+            active_alerts.append({
+                'id': alert_id, 'type': 'info', 'title': 'All Systems Normal',
+                'message': 'No issues detected. All services are operating normally.',
+                'created_at': datetime.utcnow(), 'status': 'active'
+            })
+
+        critical_count = len([a for a in active_alerts if a['type'] == 'error'])
         alert_stats = {
             'active_alerts': len(active_alerts),
-            'resolved_today': 3,
-            'critical_alerts': 0,
-            'total_alerts': len(active_alerts) + len(resolved_alerts)
+            'resolved_today': 0,
+            'critical_alerts': critical_count,
+            'total_alerts': len(active_alerts)
         }
-        
+
         return render_template('admin_panel/monitoring/system_alerts_flowbite.html',
                              active_alerts=active_alerts,
-                             resolved_alerts=resolved_alerts,
+                             resolved_alerts=[],
                              alert_stats=alert_stats)
     except Exception as e:
         logger.error(f"Error loading system alerts: {e}")
