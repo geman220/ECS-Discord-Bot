@@ -72,6 +72,7 @@ class CeleryConfig:
         'app.tasks.tasks_email_broadcast',  # Email broadcast campaigns
         'app.tasks.tasks_audit',  # Deferred admin audit log writes
         'app.tasks.tasks_data_export',  # User data export (GDPR)
+        'app.tasks.ai_assistant_cleanup',  # AI assistant log retention
     )
 
     # Task Settings - Industry Best Practices
@@ -516,6 +517,16 @@ class CeleryConfig:
                 'expires': 3540,
                 'time_limit': 300,
                 'soft_time_limit': 240
+            }
+        },
+        'cleanup-ai-assistant-logs': {
+            'task': 'app.tasks.ai_assistant_cleanup.cleanup_ai_logs',
+            'schedule': crontab(minute=0, hour=3),  # Daily at 3 AM UTC
+            'options': {
+                'queue': 'celery',
+                'expires': 86400,
+                'time_limit': 120,
+                'soft_time_limit': 90
             }
         },
     }

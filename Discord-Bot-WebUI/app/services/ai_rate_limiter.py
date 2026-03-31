@@ -35,6 +35,14 @@ class AIRateLimiter:
             return True, None
 
         from app.models.admin_config import AdminConfig
+        import time
+
+        # Minimum 2 seconds between requests per user (anti-spam)
+        last_req_key = f'ai:rate:user:{user_id}:last'
+        last_req = self.redis.get(last_req_key)
+        if last_req and (time.time() - float(last_req)) < 2.0:
+            return False, 'Please wait a moment before sending another question.'
+        self.redis.set(last_req_key, str(time.time()), ex=10)
 
         # Global Admins skip per-user limits but still check budget
         if not is_admin:

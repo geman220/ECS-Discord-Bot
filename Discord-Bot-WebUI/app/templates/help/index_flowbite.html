@@ -53,15 +53,32 @@
             </a>
         </li>
         {% else %}
-        <li class="py-12">
-            {{ empty_state(
-                title="No help topics available",
-                description="Help topics will appear here when they are created.",
-                icon="book-off"
-            ) }}
+        <li class="py-12 text-center">
+            <i class="ti ti-book-off text-4xl text-gray-300 dark:text-gray-600 mb-3 block"></i>
+            <p class="text-gray-900 dark:text-white font-medium mb-1">No help topics found</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Can't find what you're looking for?</p>
+            <button type="button" data-action="ai-assistant-toggle"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-sparkles"></i>Ask the AI Assistant
+            </button>
         </li>
         {% endfor %}
     </ul>
+
+    <!-- Ask AI CTA -->
+    <div class="mt-6 p-4 bg-ecs-green/5 border border-ecs-green/20 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <i class="ti ti-sparkles text-2xl text-ecs-green"></i>
+            <div>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">Need more help?</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Ask the AI assistant any question about using the portal</p>
+            </div>
+        </div>
+        <button type="button" data-action="ai-assistant-toggle"
+                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 transition-colors flex-shrink-0">
+            <i class="ti ti-sparkles"></i>Ask AI
+        </button>
+    </div>
     {% endcall %}
 </div>
 {% endblock %}

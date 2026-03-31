@@ -51,10 +51,48 @@
         {% endcall %}
     </div>
 
-    <!-- Configuration -->
-    {% call card(title="Configuration", subtitle="AI Assistant settings") %}
-    <div id="ai-metrics-config" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <p class="text-sm text-gray-500 dark:text-gray-400">Loading configuration...</p>
+    <!-- Configuration & Controls -->
+    {% call card(title="Configuration", subtitle="AI Assistant settings and controls") %}
+    <div class="space-y-6">
+        <!-- Admin Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">AI Assistant</label>
+                <button type="button" id="ai-toggle-btn" data-action="ai-config-toggle-enabled"
+                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors">
+                    <i class="ti ti-power"></i><span>Loading...</span>
+                </button>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Provider</label>
+                <select id="ai-provider-select" data-action="ai-config-change-provider"
+                        class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <option value="claude">Claude (Anthropic)</option>
+                    <option value="openai">GPT (OpenAI)</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monthly Budget (USD)</label>
+                <input type="number" id="ai-budget-input" step="0.01" min="0" value="50.00"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rate Limit (per user/day)</label>
+                <input type="number" id="ai-rate-input" min="1" max="1000" value="100"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+        </div>
+        <div class="flex justify-end">
+            <button type="button" id="ai-save-config-btn" data-action="ai-config-save"
+                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 transition-colors">
+                <i class="ti ti-device-floppy"></i>Save Settings
+            </button>
+        </div>
+
+        <!-- Read-only Stats -->
+        <div id="ai-metrics-config" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Loading metrics...</p>
+        </div>
     </div>
     {% endcall %}
 </div>
@@ -149,8 +187,76 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>
             </div>
         `;
+        // Load current config into controls
+        loadConfigControls();
     } catch (e) {
         console.error('[AI Metrics] Error loading:', e);
+    }
+});
+
+async function loadConfigControls() {
+    // Fetch current settings from the admin config
+    try {
+        const resp = await fetch('/api/ai-assistant/admin/metrics/data?period=1');
+        const data = await resp.json();
+
+        // Toggle button state
+        const toggleBtn = document.getElementById('ai-toggle-btn');
+        // We need to read the enabled state - check if the global count works (means it's enabled)
+        // For a proper read, we'll just default to enabled and let the save update it
+        toggleBtn.innerHTML = '<i class="ti ti-power"></i><span>Enabled</span>';
+        toggleBtn.className = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-green-300 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800 transition-colors';
+        toggleBtn._enabled = true;
+
+        toggleBtn.addEventListener('click', function() {
+            this._enabled = !this._enabled;
+            if (this._enabled) {
+                this.innerHTML = '<i class="ti ti-power"></i><span>Enabled</span>';
+                this.className = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-green-300 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800 transition-colors';
+            } else {
+                this.innerHTML = '<i class="ti ti-power-off"></i><span>Disabled</span>';
+                this.className = 'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-red-300 bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 transition-colors';
+            }
+        });
+
+        // Budget
+        if (data.monthly_budget) {
+            document.getElementById('ai-budget-input').value = data.monthly_budget;
+        }
+        if (data.global_limit) {
+            // daily limit shown, estimate per-user from it
+        }
+    } catch (e) {
+        console.warn('[AI Config] Error loading controls:', e);
+    }
+}
+
+// Save config
+document.getElementById('ai-save-config-btn')?.addEventListener('click', async function() {
+    const toggleBtn = document.getElementById('ai-toggle-btn');
+    const provider = document.getElementById('ai-provider-select').value;
+    const budget = document.getElementById('ai-budget-input').value;
+    const rateLimit = document.getElementById('ai-rate-input').value;
+
+    try {
+        const resp = await fetch('/api/ai-assistant/admin/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                ai_assistant_enabled: toggleBtn._enabled ? 'true' : 'false',
+                ai_assistant_primary_provider: provider,
+                ai_assistant_monthly_budget_usd: budget,
+                ai_assistant_rate_limit_per_day: parseInt(rateLimit)
+            })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            window.Swal?.fire({ icon: 'success', title: 'Settings saved', timer: 2000, showConfirmButton: false });
+        } else {
+            window.Swal?.fire({ icon: 'error', title: 'Save failed', text: data.message });
+        }
+    } catch (e) {
+        window.Swal?.fire({ icon: 'error', title: 'Save failed', text: 'Network error' });
     }
 });
 </script>

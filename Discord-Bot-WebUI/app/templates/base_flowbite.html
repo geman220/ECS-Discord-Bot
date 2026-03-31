@@ -475,8 +475,8 @@
     {% include 'components/_chat_widget.html' %}
     {% endif %}
 
-    {# AI Assistant Widget #}
-    {% if safe_current_user.is_authenticated %}
+    {# AI Assistant Widget - only if enabled in admin config #}
+    {% if safe_current_user.is_authenticated and ai_assistant_enabled %}
     {% include 'components/_ai_assistant_widget.html' %}
     {% endif %}
 

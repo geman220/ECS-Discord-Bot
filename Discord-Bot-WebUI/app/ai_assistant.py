@@ -202,6 +202,14 @@ def ask():
     )
     response_time_ms = round((time.time() - start_time) * 1000, 1)
 
+    # Canary detection: if the AI leaked the system prompt canary token, sanitize and log
+    response_text = result.get('response', '')
+    if 'CANARY_ECS_7f3a9b2c' in response_text:
+        logger.warning(f"CANARY TOKEN LEAKED in AI response for user {current_user.id} - possible prompt extraction attack")
+        response_text = 'I can only help with questions about using the ECS FC Portal. Please ask me about portal features, navigation, or league management.'
+        result['response'] = response_text
+        result['error'] = True
+
     # Track usage
     ai_rate_limiter.increment(current_user.id)
     estimated_cost = ai_rate_limiter.track_cost(

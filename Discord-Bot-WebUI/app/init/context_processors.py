@@ -26,6 +26,7 @@ def init_context_processors(app):
     _register_season_processor(app)
     _register_file_versioning_processor(app)
     _register_theme_colors_processor(app)
+    _register_ai_assistant_processor(app)
 
 
 def _register_utility_processor(app):
@@ -221,6 +222,19 @@ def _register_season_processor(app):
         except Exception as e:
             logger.error(f"Error fetching pub league season: {e}", exc_info=True)
             return dict(current_pub_league_season=None)
+
+
+def _register_ai_assistant_processor(app):
+    """Register AI assistant enabled flag for templates."""
+
+    @app.context_processor
+    def inject_ai_assistant_enabled():
+        try:
+            from app.models.admin_config import AdminConfig
+            enabled = AdminConfig.get_setting('ai_assistant_enabled', True)
+            return dict(ai_assistant_enabled=enabled)
+        except Exception:
+            return dict(ai_assistant_enabled=False)
 
 
 def _register_file_versioning_processor(app):

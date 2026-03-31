@@ -13,6 +13,8 @@ import logging
 from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_login import login_required, current_user
 from sqlalchemy import func
+
+from app.utils.db_utils import transactional
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.admin_panel import admin_panel_bp
