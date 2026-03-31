@@ -1023,7 +1023,12 @@ def activate_user_comprehensive(user_id):
 @role_required(['Global Admin'])
 @transactional
 def delete_user_comprehensive(user_id):
-    """Delete user completely via AJAX from comprehensive management."""
+    """Delete user completely via AJAX from comprehensive management.
+
+    Uses raw SQL to bypass ORM cascade/lazy-load issues with tables or
+    columns that may not yet exist in the database.  DB-level ON DELETE
+    CASCADE / SET NULL handles the remaining foreign-key cleanup.
+    """
     user = User.query.options(joinedload(User.player)).get_or_404(user_id)
     username = user.username
     player_id = user.player.id if user.player else None
@@ -1041,8 +1046,23 @@ def delete_user_comprehensive(user_id):
         user_agent=request.headers.get('User-Agent')
     )
 
-    # Delete the user (cascades to player if configured)
-    db.session.delete(user)
+    # Expunge the user from the session so SQLAlchemy doesn't try to
+    # cascade through every backref (which fails if tables/columns are
+    # missing or if NOT NULL constraints block nullification).
+    db.session.expunge(user)
+
+    # Delete player first (player.user_id is NOT NULL so can't cascade)
+    if player_id:
+        db.session.execute(
+            db.text("DELETE FROM player WHERE id = :pid"),
+            {"pid": player_id}
+        )
+
+    # Delete the user row directly — DB-level cascades handle the rest
+    db.session.execute(
+        db.text("DELETE FROM users WHERE id = :uid"),
+        {"uid": user_id}
+    )
 
     # Remove Discord roles AFTER successful delete
     if player_id and discord_id:
