@@ -37,9 +37,18 @@ def _get_user_profile():
     }
 
     try:
-        profile['roles'] = [r.name for r in current_user.roles]
-    except Exception:
-        pass
+        # Respect role impersonation if active
+        from app.role_impersonation import get_effective_roles
+        effective = get_effective_roles()
+        if effective:
+            profile['roles'] = effective
+        else:
+            profile['roles'] = [r.name for r in current_user.roles]
+    except (ImportError, Exception):
+        try:
+            profile['roles'] = [r.name for r in current_user.roles]
+        except Exception:
+            pass
 
     try:
         from app.models import Season, League, Team
@@ -363,12 +372,39 @@ def admin_metrics_data():
         flask_db.func.count(AIAssistantLog.id).desc()
     ).limit(10).all()
 
+    # Per-user breakdown (top 10 users by request count)
+    from app.models.core import User
+    per_user = flask_db.session.query(
+        AIAssistantLog.user_id,
+        User.username,
+        flask_db.func.count(AIAssistantLog.id).label('count')
+    ).join(User, AIAssistantLog.user_id == User.id).filter(
+        AIAssistantLog.created_at >= cutoff
+    ).group_by(AIAssistantLog.user_id, User.username).order_by(
+        flask_db.func.count(AIAssistantLog.id).desc()
+    ).limit(10).all()
+
+    # Circuit breaker status
+    from app.services.ai_assistant_service import ai_assistant_service
+    circuit_breaker = {
+        'claude': {
+            'failures': ai_assistant_service._failures.get('claude', 0),
+            'open': ai_assistant_service._is_circuit_open('claude'),
+        },
+        'openai': {
+            'failures': ai_assistant_service._failures.get('openai', 0),
+            'open': ai_assistant_service._is_circuit_open('openai'),
+        }
+    }
+
     return jsonify({
         'success': True,
         **db_stats,
         **redis_stats,
         'provider_breakdown': {p: c for p, c in provider_counts if p},
         'top_questions': [{'question': q[:100], 'count': c} for q, c in top_questions],
+        'per_user': [{'username': u, 'count': c} for _, u, c in per_user],
+        'circuit_breaker': circuit_breaker,
     })
 
 

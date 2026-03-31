@@ -175,6 +175,15 @@
                             </div>
                         </div>
 
+                        <!-- AI Assistant Trigger -->
+                        {% if safe_current_user.is_authenticated and ai_assistant_enabled %}
+                        <button type="button" data-action="ai-assistant-toggle"
+                                class="p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700"
+                                title="AI Assistant" aria-label="Open AI Assistant">
+                            <i class="ti ti-sparkles w-5 h-5"></i>
+                        </button>
+                        {% endif %}
+
                         <!-- Dark Mode Toggle -->
                         <button id="theme-toggle" type="button" class="p-2 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700">
                             <i class="ti ti-sun w-5 h-5 hidden dark:block"></i>

@@ -11,8 +11,7 @@ const state = {
 
 function getElements() {
     return {
-        panel: document.getElementById('ai-assistant-panel'),
-        trigger: document.getElementById('ai-assistant-trigger'),
+        widget: document.getElementById('ai-assistant-widget'),
         input: document.getElementById('ai-assistant-input'),
         sendBtn: document.getElementById('ai-assistant-send-btn'),
         charCount: document.getElementById('ai-assistant-char-count'),
@@ -20,24 +19,20 @@ function getElements() {
 }
 
 function togglePanel() {
-    const { panel, trigger } = getElements();
-    if (!panel) return;
+    const { widget } = getElements();
+    if (!widget) return;
 
     state.isOpen = !state.isOpen;
-    panel.classList.toggle('hidden', !state.isOpen);
+    widget.classList.toggle('hidden', !state.isOpen);
+
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = state.isOpen ? 'hidden' : '';
 
     if (state.isOpen) {
-        // On mobile, make panel full-screen
-        if (window.innerWidth < 640) {
-            panel.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;max-height:100vh;height:100vh;border-radius:0;width:100vw;max-width:100vw;';
-        }
         loadSuggestions();
         loadUsage();
         const { input } = getElements();
         if (input) setTimeout(() => input.focus(), 100);
-    } else {
-        // Reset mobile styles
-        panel.style.cssText = '';
     }
 }
 
@@ -185,10 +180,17 @@ if (window.InitSystem) {
             });
         }
 
+        // Escape key closes modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && state.isOpen) {
+                togglePanel();
+            }
+        });
+
         console.log('[AI Assistant] Initialized');
     }, {
         priority: 36,
-        description: 'AI Assistant floating widget',
+        description: 'AI Assistant modal widget',
         reinitializable: true
     });
 }

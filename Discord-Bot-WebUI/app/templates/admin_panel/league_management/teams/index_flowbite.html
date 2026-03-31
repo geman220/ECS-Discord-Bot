@@ -73,6 +73,9 @@
                 <option value="Pub League" {% if current_league_type == 'Pub League' %}selected{% endif %}>Pub League</option>
                 <option value="ECS FC" {% if current_league_type == 'ECS FC' %}selected{% endif %}>ECS FC</option>
             </select>
+            <a href="{{ url_for('admin_panel.team_rosters') }}" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                <i class="ti ti-list-details mr-1"></i>Manage Rosters
+            </a>
             <button onclick="openCreateModal()" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
                 <i class="ti ti-plus mr-1"></i>Add Team
             </button>

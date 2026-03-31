@@ -51,6 +51,22 @@
         {% endcall %}
     </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Per-User Breakdown -->
+        {% call card(title="Top Users", subtitle="Most active AI assistant users") %}
+        <div id="ai-metrics-users" class="space-y-2">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
+        {% endcall %}
+
+        <!-- Circuit Breaker Status -->
+        {% call card(title="Provider Health", subtitle="Circuit breaker status per AI provider") %}
+        <div id="ai-metrics-circuit" class="space-y-3">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+        </div>
+        {% endcall %}
+    </div>
+
     <!-- Configuration & Controls -->
     {% call card(title="Configuration", subtitle="AI Assistant settings and controls") %}
     <div class="space-y-6">
@@ -154,6 +170,36 @@ document.addEventListener('DOMContentLoaded', async function() {
         } else {
             qEl.innerHTML = '<p class="text-sm text-gray-400">No questions asked yet</p>';
         }
+
+        // Per-user breakdown
+        const usersEl = document.getElementById('ai-metrics-users');
+        const perUser = data.per_user || [];
+        if (perUser.length) {
+            usersEl.innerHTML = perUser.map((u, i) => `
+                <div class="flex items-center justify-between p-2 ${i % 2 === 0 ? 'bg-gray-50 dark:bg-gray-700/30' : ''} rounded">
+                    <span class="text-sm text-gray-700 dark:text-gray-300">${u.username}</span>
+                    <span class="text-xs font-mono text-gray-500 dark:text-gray-400">${u.count} requests</span>
+                </div>
+            `).join('');
+        } else {
+            usersEl.innerHTML = '<p class="text-sm text-gray-400">No user data yet</p>';
+        }
+
+        // Circuit breaker status
+        const circuitEl = document.getElementById('ai-metrics-circuit');
+        const cb = data.circuit_breaker || {};
+        circuitEl.innerHTML = Object.entries(cb).map(([provider, status]) => `
+            <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full ${status.open ? 'bg-red-500' : 'bg-green-500'}"></span>
+                    <span class="text-sm font-medium text-gray-900 dark:text-white capitalize">${provider}</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs ${status.open ? 'text-red-600 dark:text-red-400 font-medium' : 'text-green-600 dark:text-green-400'}">${status.open ? 'OPEN (failing over)' : 'Healthy'}</span>
+                    <span class="text-[10px] text-gray-400 block">${status.failures} failures</span>
+                </div>
+            </div>
+        `).join('');
 
         // Config display
         const confEl = document.getElementById('ai-metrics-config');
