@@ -34,9 +34,7 @@
                 </div>
                 <div class="p-6">
                     <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h3>
-                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-300">
-                        {{ feedback.description | replace('\n', '<br>') | safe }}
-                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ feedback.description }}</div>
                 </div>
             </div>
 
@@ -65,9 +63,7 @@
                                     </span>
                                     <span class="text-xs text-gray-400 dark:text-gray-500">{{ reply.created_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
                                 </div>
-                                <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-300">
-                                    {{ reply.content | replace('\n', '<br>') | safe }}
-                                </div>
+                                <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ reply.content }}</div>
                             </div>
                         </div>
                         {% endfor %}
@@ -164,6 +160,20 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300">{{ feedback.priority }}</span>
                                 {% elif feedback.priority == 'High' %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300">{{ feedback.priority }}</span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between">
+                            <dt class="text-gray-500 dark:text-gray-400">Source:</dt>
+                            <dd>
+                                {% if feedback.source == 'app' %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">
+                                    <i class="ti ti-device-mobile text-xs"></i>App
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                                    <i class="ti ti-world text-xs"></i>Web
+                                </span>
                                 {% endif %}
                             </dd>
                         </div>

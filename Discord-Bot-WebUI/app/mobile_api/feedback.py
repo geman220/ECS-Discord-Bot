@@ -22,6 +22,7 @@ from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import User, Feedback, FeedbackReply, Role
 from app.email import send_email
+from app.services.notification_orchestrator import orchestrator, NotificationPayload, NotificationType
 
 logger = logging.getLogger(__name__)
 
@@ -105,20 +106,24 @@ def submit_feedback():
         session.add(feedback)
         session.commit()
 
-        # Send admin email notification (non-blocking)
+        # Send admin notification via all channels (non-blocking)
         try:
             admin_role = session.query(Role).filter_by(name='Global Admin').first()
             if admin_role:
                 admin_users = session.query(User).filter(User.roles.contains(admin_role)).all()
-                admin_emails = [u.email for u in admin_users if u.email]
-                if admin_emails:
-                    send_email(
-                        to=admin_emails,
-                        subject=f"New App Feedback Submitted: {feedback.title}",
-                        body=render_template('emails/new_feedback_notification.html', feedback=feedback)
-                    )
+                admin_user_ids = [u.id for u in admin_users]
+                if admin_user_ids:
+                    orchestrator.send(NotificationPayload(
+                        notification_type=NotificationType.FEEDBACK_NEW,
+                        title=f"New App Feedback: {feedback.title}",
+                        message=f"New {feedback.category} feedback from {feedback.name}: {feedback.title}",
+                        user_ids=admin_user_ids,
+                        data={'feedback_id': str(feedback.id)},
+                        email_subject=f"New App Feedback Submitted: {feedback.title}",
+                        email_html_body=render_template('emails/new_feedback_notification.html', feedback=feedback),
+                    ))
         except Exception as e:
-            logger.error(f"Failed to send feedback notification email: {e}")
+            logger.error(f"Failed to send feedback notification: {e}")
 
         return jsonify(_feedback_to_dict(feedback)), 201
 

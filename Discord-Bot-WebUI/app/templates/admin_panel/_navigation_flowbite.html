@@ -319,93 +319,98 @@
     </div>
 
     {# ---- Desktop: Original horizontal nav (hidden on mobile) ---- #}
-    <div class="hidden md:block overflow-x-auto">
-        <ul class="flex flex-nowrap items-center text-sm font-medium text-gray-500 dark:text-gray-400">
+    <div class="hidden md:block overflow-hidden">
+        <ul class="flex flex-nowrap items-center text-sm font-medium text-gray-500 dark:text-gray-400" data-nav-overflow-list>
             {# Dashboard #}
-            <li>
+            <li data-nav-item="dashboard">
                 <a href="{{ url_for('admin_panel.dashboard') }}"
-                   class="inline-flex items-center gap-2 px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
+                   class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors
                    {{ 'text-ecs-green border-ecs-green' if request.endpoint == 'admin_panel.dashboard' else 'border-transparent' }}">
                     <i class="ti ti-dashboard"></i>
-                    <span>Dashboard</span>
+                    <span class="hidden lg:inline">Dashboard</span>
                 </a>
             </li>
 
             {# League Operations #}
-            <li class="relative" data-dropdown-wrapper>
+            <li class="relative" data-dropdown-wrapper data-nav-item="league-ops">
                 <button type="button" data-admin-dropdown="dropdown-league-ops-nav"
-                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-tournament"></i>
-                    <span>League Ops</span>
-                    <i class="ti ti-chevron-down text-xs"></i>
+                    <span class="hidden lg:inline">League Ops</span>
+                    <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
                 </button>
-                <div id="dropdown-league-ops-nav" class="hidden absolute left-0 z-50 mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                    <div class="py-2">
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">League Management</div>
-                        <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-wand text-gray-400"></i>Season Builder
-                        </a>
-                        <a href="{{ url_for('auto_schedule.current_season_schedule') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-calendar-event text-gray-400"></i>Current Schedule
-                        </a>
-                        <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-calendar-stats text-gray-400"></i>All Seasons
-                        </a>
-                        <a href="{{ url_for('admin_panel.league_management_teams') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-shirt-sport text-gray-400"></i>All Teams
-                        </a>
-                        <a href="{{ url_for('admin_panel.coach_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-clipboard-list text-gray-400"></i>Coach Dashboard
-                        </a>
-                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Match Management</div>
-                        <a href="{{ url_for('admin_panel.match_operations') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-dashboard text-gray-400"></i>Match Dashboard
-                        </a>
-                        <a href="{{ url_for('admin_panel.manage_leagues') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-trophy text-gray-400"></i>Leagues
-                        </a>
-                        <a href="{{ url_for('admin_panel.match_verification') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-check text-gray-400"></i>Match Verification
-                        </a>
-                        <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-live-view text-gray-400"></i>Live Reporting
-                        </a>
-                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Substitutes</div>
-                        <a href="{{ url_for('admin_panel.substitute_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-user-plus text-gray-400"></i>Manage Substitutes
-                        </a>
-                        <a href="{{ url_for('admin_panel.substitute_pools') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-users text-gray-400"></i>Substitute Pools
-                        </a>
-                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Draft</div>
-                        <a href="{{ url_for('admin_panel.draft_overview') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-layout-grid text-gray-400"></i>Draft Overview
-                        </a>
-                        <a href="{{ url_for('admin_panel.draft_history') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-history text-gray-400"></i>Draft History
-                        </a>
-                        <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-chart-dots text-gray-400"></i>Draft Predictions
-                        </a>
-                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Pub League</div>
-                        <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-receipt text-gray-400"></i>Pub League Orders
-                        </a>
+                <div id="dropdown-league-ops-nav" class="hidden absolute left-0 z-50 mt-1 w-[32rem] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2 grid grid-cols-2 gap-x-2">
+                        {# Left Column #}
+                        <div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">League Management</div>
+                            <a href="{{ url_for('auto_schedule.schedule_manager') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-wand text-gray-400"></i>Season Builder
+                            </a>
+                            <a href="{{ url_for('auto_schedule.current_season_schedule') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-calendar-event text-gray-400"></i>Current Schedule
+                            </a>
+                            <a href="{{ url_for('admin_panel.league_management_seasons') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-calendar-stats text-gray-400"></i>All Seasons
+                            </a>
+                            <a href="{{ url_for('admin_panel.league_management_teams') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-shirt-sport text-gray-400"></i>All Teams
+                            </a>
+                            <a href="{{ url_for('admin_panel.coach_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-clipboard-list text-gray-400"></i>Coach Dashboard
+                            </a>
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Match Management</div>
+                            <a href="{{ url_for('admin_panel.match_operations') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-dashboard text-gray-400"></i>Match Dashboard
+                            </a>
+                            <a href="{{ url_for('admin_panel.manage_leagues') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-trophy text-gray-400"></i>Leagues
+                            </a>
+                            <a href="{{ url_for('admin_panel.match_verification') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-check text-gray-400"></i>Match Verification
+                            </a>
+                            <a href="{{ url_for('admin_panel.live_reporting_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-live-view text-gray-400"></i>Live Reporting
+                            </a>
+                        </div>
+                        {# Right Column #}
+                        <div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Substitutes</div>
+                            <a href="{{ url_for('admin_panel.substitute_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-user-plus text-gray-400"></i>Manage Substitutes
+                            </a>
+                            <a href="{{ url_for('admin_panel.substitute_pools') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-users text-gray-400"></i>Substitute Pools
+                            </a>
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Draft</div>
+                            <a href="{{ url_for('admin_panel.draft_overview') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-layout-grid text-gray-400"></i>Draft Overview
+                            </a>
+                            <a href="{{ url_for('admin_panel.draft_history') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-history text-gray-400"></i>Draft History
+                            </a>
+                            <a href="{{ url_for('draft_predictions.admin_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-chart-dots text-gray-400"></i>Draft Predictions
+                            </a>
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Pub League</div>
+                            <a href="{{ url_for('pub_league_orders_admin.orders_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-receipt text-gray-400"></i>Pub League Orders
+                            </a>
+                        </div>
                     </div>
                 </div>
             </li>
 
             {# MLS #}
-            <li class="relative" data-dropdown-wrapper>
+            <li class="relative" data-dropdown-wrapper data-nav-item="mls">
                 <button type="button" data-admin-dropdown="dropdown-mls-nav"
-                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-soccer-field"></i>
-                    <span>MLS</span>
-                    <i class="ti ti-chevron-down text-xs"></i>
+                    <span class="hidden lg:inline">MLS</span>
+                    <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
                 </button>
                 <div id="dropdown-mls-nav" class="hidden absolute left-0 z-50 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                     <div class="py-2">
@@ -434,12 +439,12 @@
             </li>
 
             {# ECS FC #}
-            <li class="relative" data-dropdown-wrapper>
+            <li class="relative" data-dropdown-wrapper data-nav-item="ecs-fc">
                 <button type="button" data-admin-dropdown="dropdown-ecsfc-nav"
-                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-shield"></i>
-                    <span>ECS FC</span>
-                    <i class="ti ti-chevron-down text-xs"></i>
+                    <span class="hidden lg:inline">ECS FC</span>
+                    <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
                 </button>
                 <div id="dropdown-ecsfc-nav" class="hidden absolute left-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                     <div class="py-2">
@@ -476,12 +481,12 @@
             </li>
 
             {# Discord #}
-            <li class="relative" data-dropdown-wrapper>
+            <li class="relative" data-dropdown-wrapper data-nav-item="discord">
                 <button type="button" data-admin-dropdown="dropdown-discord-nav"
-                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-brand-discord"></i>
-                    <span>Discord</span>
-                    <i class="ti ti-chevron-down text-xs"></i>
+                    <span class="hidden lg:inline">Discord</span>
+                    <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
                 </button>
                 <div id="dropdown-discord-nav" class="hidden absolute left-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                     <div class="py-2">
@@ -519,12 +524,12 @@
             </li>
 
             {# Members #}
-            <li class="relative" data-dropdown-wrapper>
+            <li class="relative" data-dropdown-wrapper data-nav-item="members">
                 <button type="button" data-admin-dropdown="dropdown-members-nav"
-                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-heart-handshake"></i>
-                    <span>Members</span>
-                    <i class="ti ti-chevron-down text-xs"></i>
+                    <span class="hidden lg:inline">Members</span>
+                    <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
                 </button>
                 <div id="dropdown-members-nav" class="hidden absolute left-0 z-50 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                     <div class="py-2">
@@ -568,12 +573,12 @@
             </li>
 
             {# Communications #}
-            <li class="relative" data-dropdown-wrapper>
+            <li class="relative" data-dropdown-wrapper data-nav-item="comms">
                 <button type="button" data-admin-dropdown="dropdown-comms-nav"
-                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-message-circle"></i>
-                    <span>Comms</span>
-                    <i class="ti ti-chevron-down text-xs"></i>
+                    <span class="hidden lg:inline">Comms</span>
+                    <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
                 </button>
                 <div id="dropdown-comms-nav" class="hidden absolute left-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                     <div class="py-2">
@@ -614,12 +619,12 @@
             </li>
 
             {# Users #}
-            <li class="relative" data-dropdown-wrapper>
+            <li class="relative" data-dropdown-wrapper data-nav-item="users">
                 <button type="button" data-admin-dropdown="dropdown-users-nav"
-                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-users"></i>
-                    <span>Users</span>
-                    <i class="ti ti-chevron-down text-xs"></i>
+                    <span class="hidden lg:inline">Users</span>
+                    <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
                 </button>
                 <div id="dropdown-users-nav" class="hidden absolute left-0 z-50 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                     <div class="py-2">
@@ -651,62 +656,86 @@
             </li>
 
             {# Admin/System #}
-            <li class="relative" data-dropdown-wrapper>
+            <li class="relative" data-dropdown-wrapper data-nav-item="admin">
                 <button type="button" data-admin-dropdown="dropdown-admin-nav"
-                        class="inline-flex items-center gap-2 px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
                     <i class="ti ti-settings"></i>
-                    <span>Admin</span>
-                    <i class="ti ti-chevron-down text-xs"></i>
+                    <span class="hidden lg:inline">Admin</span>
+                    <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
                 </button>
-                <div id="dropdown-admin-nav" class="hidden absolute right-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
-                    <div class="py-2 max-h-96 overflow-y-auto">
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Reports</div>
-                        <a href="{{ url_for('admin_panel.reports_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-file-analytics text-gray-400"></i>Reports Dashboard
-                        </a>
-                        <a href="{{ url_for('admin_panel.feedback_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-message text-gray-400"></i>Feedback
-                        </a>
-                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Appearance</div>
-                        <a href="{{ url_for('admin_panel.appearance') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-palette text-gray-400"></i>Theme Settings
-                        </a>
-                        <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                        <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">System</div>
-                        <a href="{{ url_for('admin_panel.feature_toggles') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-toggle-left text-gray-400"></i>Feature Toggles
-                        </a>
-                        <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-activity text-gray-400"></i>System Monitoring
-                        </a>
-                        <a href="{{ url_for('admin_panel.cache_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-database text-gray-400"></i>Cache Management
-                        </a>
-                        <a href="{{ url_for('admin_panel.api_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-api text-gray-400"></i>API Management
-                        </a>
-                        <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-heartbeat text-gray-400"></i>System Health
-                        </a>
-                        <a href="{{ url_for('admin_panel.redis_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-database text-gray-400"></i>Redis Management
-                        </a>
-                        <a href="{{ url_for('admin_panel.docker_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-box text-gray-400"></i>Docker Management
-                        </a>
-                        <a href="{{ url_for('admin_panel.performance_monitoring') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-chart-line text-gray-400"></i>Performance Monitor
-                        </a>
-                        <a href="{{ url_for('admin_panel.security_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-shield-check text-gray-400"></i>Security Dashboard
-                        </a>
-                        <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-list-check text-gray-400"></i>Task Monitor
-                        </a>
-                        <a href="{{ url_for('admin_panel.audit_logs') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-file-text text-gray-400"></i>Audit Logs
-                        </a>
+                <div id="dropdown-admin-nav" class="hidden absolute right-0 z-50 mt-1 w-[28rem] bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2 grid grid-cols-2 gap-x-2">
+                        {# Left Column: Reports + Appearance #}
+                        <div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Reports</div>
+                            <a href="{{ url_for('admin_panel.reports_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-file-analytics text-gray-400"></i>Reports Dashboard
+                            </a>
+                            <a href="{{ url_for('admin_panel.feedback_list') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-message text-gray-400"></i>Feedback
+                            </a>
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Appearance</div>
+                            <a href="{{ url_for('admin_panel.appearance') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-palette text-gray-400"></i>Theme Settings
+                            </a>
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Monitoring</div>
+                            <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-activity text-gray-400"></i>System Monitoring
+                            </a>
+                            <a href="{{ url_for('admin_panel.performance_monitoring') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-chart-line text-gray-400"></i>Performance Monitor
+                            </a>
+                            <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-list-check text-gray-400"></i>Task Monitor
+                            </a>
+                            <a href="{{ url_for('admin_panel.audit_logs') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-file-text text-gray-400"></i>Audit Logs
+                            </a>
+                        </div>
+                        {# Right Column: System #}
+                        <div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">System</div>
+                            <a href="{{ url_for('admin_panel.feature_toggles') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-toggle-left text-gray-400"></i>Feature Toggles
+                            </a>
+                            <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-heartbeat text-gray-400"></i>System Health
+                            </a>
+                            <a href="{{ url_for('admin_panel.security_dashboard') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-shield-check text-gray-400"></i>Security Dashboard
+                            </a>
+                            <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                            <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Infrastructure</div>
+                            <a href="{{ url_for('admin_panel.cache_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-database text-gray-400"></i>Cache Management
+                            </a>
+                            <a href="{{ url_for('admin_panel.redis_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-database text-gray-400"></i>Redis Management
+                            </a>
+                            <a href="{{ url_for('admin_panel.docker_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-box text-gray-400"></i>Docker Management
+                            </a>
+                            <a href="{{ url_for('admin_panel.api_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-api text-gray-400"></i>API Management
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </li>
+
+            {# More overflow menu (populated by JS when items don't fit) #}
+            <li class="relative hidden" data-dropdown-wrapper data-nav-overflow-trigger>
+                <button type="button" data-admin-dropdown="dropdown-more-nav"
+                        class="inline-flex items-center gap-2 px-2 lg:px-4 py-3 border-b-2 border-transparent whitespace-nowrap hover:text-ecs-green hover:border-ecs-green transition-colors">
+                    <i class="ti ti-dots"></i>
+                    <span class="hidden lg:inline">More</span>
+                    <i class="ti ti-chevron-down text-xs hidden lg:inline"></i>
+                </button>
+                <div id="dropdown-more-nav" class="hidden absolute right-0 z-50 mt-1 w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+                    <div class="py-2" data-nav-overflow-items>
+                        {# JS will populate this with overflow items #}
                     </div>
                 </div>
             </li>
@@ -799,6 +828,97 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close dropdowns on scroll/resize
     window.addEventListener('scroll', closeAllDropdowns, { passive: true });
     window.addEventListener('resize', closeAllDropdowns, { passive: true });
+
+    // ---- Overflow detection: "More" menu for items that don't fit ----
+    var navList = navWrapper.querySelector('[data-nav-overflow-list]');
+    var overflowTrigger = navWrapper.querySelector('[data-nav-overflow-trigger]');
+    var overflowItems = navWrapper.querySelector('[data-nav-overflow-items]');
+
+    if (navList && overflowTrigger && overflowItems) {
+        // Map of nav-item names to their labels and icons for the More menu
+        var navItemMeta = {};
+        navList.querySelectorAll('[data-nav-item]').forEach(function(li) {
+            var btn = li.querySelector('button, a');
+            if (!btn) return;
+            var icon = btn.querySelector('i');
+            var span = btn.querySelector('span');
+            navItemMeta[li.getAttribute('data-nav-item')] = {
+                label: span ? span.textContent.trim() : '',
+                iconClass: icon ? icon.className : ''
+            };
+        });
+
+        function recalcOverflow() {
+            // Reset: show all items, hide More
+            var allItems = navList.querySelectorAll('[data-nav-item]');
+            allItems.forEach(function(li) { li.classList.remove('hidden'); });
+            overflowTrigger.classList.add('hidden');
+            overflowItems.innerHTML = '';
+
+            var containerWidth = navList.clientWidth;
+            // Reserve space for the More button (~60px)
+            var moreWidth = 60;
+            var overflowed = [];
+
+            for (var i = 0; i < allItems.length; i++) {
+                var li = allItems[i];
+                if (li.offsetLeft + li.offsetWidth > containerWidth - moreWidth) {
+                    // This item and all after it overflow
+                    for (var j = i; j < allItems.length; j++) {
+                        allItems[j].classList.add('hidden');
+                        overflowed.push(allItems[j]);
+                    }
+                    break;
+                }
+            }
+
+            if (overflowed.length > 0) {
+                overflowTrigger.classList.remove('hidden');
+
+                // Check if any overflowed item is active
+                var hasActive = overflowed.some(function(li) {
+                    var btn = li.querySelector('button, a');
+                    return btn && btn.classList.contains('text-ecs-green');
+                });
+                var moreBtnEl = overflowTrigger.querySelector('button');
+                if (moreBtnEl) {
+                    if (hasActive) {
+                        moreBtnEl.classList.add('text-ecs-green');
+                        moreBtnEl.classList.remove('border-transparent');
+                        moreBtnEl.classList.add('border-ecs-green');
+                    } else {
+                        moreBtnEl.classList.remove('text-ecs-green');
+                        moreBtnEl.classList.add('border-transparent');
+                        moreBtnEl.classList.remove('border-ecs-green');
+                    }
+                }
+
+                // Build More dropdown items
+                overflowed.forEach(function(li) {
+                    var name = li.getAttribute('data-nav-item');
+                    var meta = navItemMeta[name] || { label: name, iconClass: 'ti ti-circle' };
+
+                    // Find the first link in this item's dropdown (or the direct link)
+                    var firstLink = li.querySelector('.py-2 a') || li.querySelector('a');
+                    var href = firstLink ? firstLink.getAttribute('href') : '#';
+
+                    var a = document.createElement('a');
+                    a.href = href;
+                    a.className = 'flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700';
+                    a.innerHTML = '<i class="' + meta.iconClass + '"></i>' + meta.label;
+                    overflowItems.appendChild(a);
+                });
+            }
+        }
+
+        // Run on load and debounced resize
+        recalcOverflow();
+        var resizeTimer;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(recalcOverflow, 100);
+        });
+    }
 });
 
 // Mobile admin nav: toggle menu and accordion sections

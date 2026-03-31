@@ -20,6 +20,7 @@ from app.forms import FeedbackForm, FeedbackReplyForm
 from app.models import Feedback, User, FeedbackReply, Role
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.email import send_email
+from app.services.notification_orchestrator import orchestrator, NotificationPayload, NotificationType
 from app.utils.db_utils import transactional
 from app.core import db
 from app.utils.user_helpers import safe_current_user
@@ -135,15 +136,23 @@ def submit_feedback():
                 new_feedback = create_feedback_entry(form_data, user_id, username)
                 
                 try:
-                    admin_emails = get_admin_emails()
-                    if admin_emails:
-                        send_email(
-                            to=admin_emails,
-                            subject=f"New Feedback Submitted: {new_feedback.title}",
-                            body=render_template('emails/new_feedback_notification.html', feedback=new_feedback)
-                        )
-                except Exception as email_error:
-                    logger.error(f"Failed to send notification email: {str(email_error)}")
+                    admin_role = Role.query.filter_by(name='Global Admin').first()
+                    if admin_role:
+                        admin_users = User.query.filter(User.roles.contains(admin_role)).all()
+                        admin_user_ids = [u.id for u in admin_users]
+                        if admin_user_ids:
+                            orchestrator.send(NotificationPayload(
+                                notification_type=NotificationType.FEEDBACK_NEW,
+                                title=f"New Feedback: {new_feedback.title}",
+                                message=f"New {new_feedback.category} feedback from {new_feedback.name or 'Anonymous'}: {new_feedback.title}",
+                                user_ids=admin_user_ids,
+                                data={'feedback_id': str(new_feedback.id)},
+                                email_subject=f"New Feedback Submitted: {new_feedback.title}",
+                                email_html_body=render_template('emails/new_feedback_notification.html', feedback=new_feedback),
+                                action_url=url_for('admin_panel.view_feedback', feedback_id=new_feedback.id, _external=True),
+                            ))
+                except Exception as notify_error:
+                    logger.error(f"Failed to send feedback notification: {str(notify_error)}")
                 
                 show_success('Your feedback has been submitted successfully!')
                 return redirect(url_for('feedback.view_feedback', feedback_id=new_feedback.id))
@@ -195,13 +204,31 @@ def view_feedback(feedback_id):
             try:
                 reply = FeedbackReply(
                     feedback_id=feedback.id,
-                    user_id=safe_current_user.id, 
+                    user_id=safe_current_user.id,
                     content=form.content.data,
                     created_at=datetime.utcnow()
                 )
                 g.db_session.add(reply)
                 feedback.replies.append(reply)
-                
+
+                # Notify admins that user replied
+                try:
+                    admin_role = Role.query.filter_by(name='Global Admin').first()
+                    if admin_role:
+                        admin_users = User.query.filter(User.roles.contains(admin_role)).all()
+                        admin_user_ids = [u.id for u in admin_users]
+                        if admin_user_ids:
+                            orchestrator.send(NotificationPayload(
+                                notification_type=NotificationType.FEEDBACK_REPLY,
+                                title=f"User Reply: {feedback.title}",
+                                message=f"{safe_current_user.username} replied to feedback #{feedback.id}: {feedback.title}",
+                                user_ids=admin_user_ids,
+                                data={'feedback_id': str(feedback.id)},
+                                action_url=url_for('admin_panel.view_feedback', feedback_id=feedback.id, _external=True),
+                            ))
+                except Exception as notify_err:
+                    logger.error(f"Failed to notify admins of user reply: {notify_err}")
+
                 show_success('Reply added successfully!')
                 return redirect(url_for('feedback.view_feedback', feedback_id=feedback.id))
                 

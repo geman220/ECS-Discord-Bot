@@ -34,7 +34,7 @@
             <div class="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                     <i class="ti ti-message-circle mr-2 text-ecs-green"></i>
-                    {{ feedback.subject }}
+                    {{ feedback.title }}
                 </h3>
                 <div class="flex flex-wrap gap-2">
                     {% if feedback.status == 'Open' %}
@@ -49,12 +49,22 @@
                     {% elif feedback.priority == 'Medium' %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Medium Priority</span>
                     {% endif %}
+                    {# Source badge #}
+                    {% if feedback.source == 'app' %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
+                        <i class="ti ti-device-mobile text-xs"></i>Mobile App
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                        <i class="ti ti-world text-xs"></i>Web
+                    </span>
+                    {% endif %}
                 </div>
             </div>
             <div class="p-6">
                 <div class="mb-6">
                     <h6 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Description</h6>
-                    <p class="text-gray-900 dark:text-white">{{ feedback.description or feedback.content or 'No description provided.' }}</p>
+                    <p class="text-gray-900 dark:text-white whitespace-pre-wrap">{{ feedback.description or feedback.content or 'No description provided.' }}</p>
                 </div>
                 <hr class="border-gray-200 dark:border-gray-700 my-4">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500 dark:text-gray-400">
@@ -64,6 +74,27 @@
                     <div>
                         <span class="font-medium">Created:</span> {{ feedback.created_at.strftime('%b %d, %Y at %I:%M %p') if feedback.created_at else 'N/A' }}
                     </div>
+                    <div>
+                        <span class="font-medium">Category:</span>
+                        {% if feedback.category == 'Bug' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                            <i class="ti ti-bug text-xs mr-1"></i>Bug
+                        </span>
+                        {% elif feedback.category == 'Feature Request' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            <i class="ti ti-bulb text-xs mr-1"></i>Feature Request
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                            {{ feedback.category }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if feedback.closed_at %}
+                    <div>
+                        <span class="font-medium">Closed:</span> {{ feedback.closed_at.strftime('%b %d, %Y at %I:%M %p') }}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -93,7 +124,7 @@
                                 </p>
                             </div>
                         </div>
-                        <p class="mt-2 text-gray-700 dark:text-gray-300">{{ reply.content }}</p>
+                        <p class="mt-2 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ reply.content }}</p>
                     </div>
                     {% endfor %}
                 {% else %}
@@ -125,6 +156,50 @@
                     </button>
                 </form>
                 {% endif %}
+            </div>
+        </div>
+
+        <!-- Internal Notes Card (Admin Only) -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-yellow-200 dark:border-yellow-800/50">
+            <div class="px-6 py-4 border-b border-yellow-200 dark:border-yellow-800/50 bg-yellow-50 dark:bg-yellow-900/10 rounded-t-lg">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+                    <i class="ti ti-note mr-2 text-yellow-500"></i>
+                    Internal Notes ({{ feedback.notes|length }})
+                    <span class="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">Admin only - not visible to submitter</span>
+                </h3>
+            </div>
+            <div class="p-6">
+                {% if feedback.notes %}
+                    {% for note in feedback.notes %}
+                    <div class="mb-4 pb-4 {{ 'border-b border-gray-200 dark:border-gray-700' if not loop.last }}">
+                        <div class="flex justify-between items-start">
+                            <span class="font-medium text-gray-900 dark:text-white">{{ note.author.username if note.author else 'Unknown' }}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ note.created_at.strftime('%b %d, %Y at %I:%M %p') if note.created_at else '' }}</span>
+                        </div>
+                        <p class="mt-1 text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ note.content }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">No internal notes yet.</p>
+                {% endif %}
+
+                <!-- Add Note Form -->
+                <form method="post">
+                    <input type="hidden" name="add_note" value="1">
+                    {{ note_form.hidden_tag() if note_form }}
+                    <div class="mb-3">
+                        <textarea
+                            name="content"
+                            rows="2"
+                            required
+                            placeholder="Add internal note..."
+                            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500"
+                        ></textarea>
+                    </div>
+                    <button type="submit" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-lg hover:bg-yellow-100 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800 dark:hover:bg-yellow-900/40">
+                        <i class="ti ti-note mr-1"></i>Add Note
+                    </button>
+                </form>
             </div>
         </div>
     </div>
@@ -225,14 +300,14 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const isDark = document.documentElement.classList.contains('dark');
+    var isDark = document.documentElement.classList.contains('dark');
 
     // Form submission confirmation delegation
     document.addEventListener('submit', function(e) {
-        const form = e.target;
+        var form = e.target;
         if (form.classList.contains('js-confirm-form')) {
             e.preventDefault();
-            const confirmMsg = form.dataset.confirm;
+            var confirmMsg = form.dataset.confirm;
 
             Swal.fire({
                 title: 'Confirm Action',
@@ -244,7 +319,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 cancelButtonText: 'Cancel',
                 background: isDark ? '#1f2937' : '#ffffff',
                 color: isDark ? '#f3f4f6' : '#111827'
-            }).then((result) => {
+            }).then(function(result) {
                 if (result.isConfirmed) {
                     form.submit();
                 }

@@ -58,36 +58,8 @@ def csrf_exempt(route_func):
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def admin_reports():
-    """
-    Render the admin reports view, including filtering and pagination
-    for feedback reports.
-    """
-    session = g.db_session
-    page = request.args.get('page', 1, type=int)
-    per_page = 20
-    filters = {
-        'status': request.args.get('status', ''),
-        'priority': request.args.get('priority', ''),
-        'sort_by': request.args.get('sort_by', 'created_at'),
-        'order': request.args.get('order', 'desc')
-    }
-
-    query = session.query(Feedback)
-    if filters['status']:
-        query = query.filter(Feedback.status == filters['status'])
-    if filters['priority']:
-        query = query.filter(Feedback.priority == filters['priority'])
-
-    sort_col = getattr(Feedback, filters['sort_by'], Feedback.created_at)
-    if filters['order'] == 'asc':
-        query = query.order_by(sort_col.asc())
-    else:
-        query = query.order_by(sort_col.desc())
-
-    total = query.count()
-    feedbacks = query.offset((page - 1) * per_page).limit(per_page).all()
-
-    return render_template('admin_reports_flowbite.html', title='Admin Reports', feedbacks=feedbacks, page=page, total=total, per_page=per_page)
+    """Redirect to admin panel reports dashboard."""
+    return redirect(url_for('admin_panel.reports_dashboard'), code=301)
 
 
 @admin_bp.route('/admin/rsvp_status/<match_id>', endpoint='rsvp_status')

@@ -25,6 +25,7 @@ from app.models_ecs import EcsFcMatch, EcsFcAvailability
 from app.models.admin_config import AdminAuditLog
 from app.forms import AdminFeedbackForm, FeedbackReplyForm, NoteForm
 from app.email import send_email
+from app.services.notification_orchestrator import orchestrator, NotificationPayload, NotificationType
 from app.admin_helpers import get_rsvp_status_data, get_ecs_fc_rsvp_status_data
 from app.ecs_fc_schedule import EcsFcScheduleManager
 from app.utils.user_helpers import safe_current_user
@@ -40,9 +41,22 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def reports_dashboard():
-    """Redirect to unified feedback management page."""
-    # Redirect to the feedback list page - they show the same data
-    return redirect(url_for('admin_panel.feedback_list'))
+    """Reports overview dashboard with feedback stats and recent items."""
+    session = g.db_session
+
+    stats = {
+        'total': session.query(Feedback).count(),
+        'open': session.query(Feedback).filter(Feedback.status == 'Open').count(),
+        'in_progress': session.query(Feedback).filter(Feedback.status == 'In Progress').count(),
+        'closed': session.query(Feedback).filter(Feedback.status == 'Closed').count()
+    }
+
+    feedbacks = session.query(Feedback).options(
+        joinedload(Feedback.user)
+    ).order_by(Feedback.created_at.desc()).limit(10).all()
+
+    return render_template('admin_panel/reports/dashboard_flowbite.html',
+                         stats=stats, feedbacks=feedbacks)
 
 
 @admin_panel_bp.route('/reports/api/stats')
@@ -260,13 +274,27 @@ def feedback_list():
     per_page = 20
     status_filter = request.args.get('status', '')
     priority_filter = request.args.get('priority', '')
+    source_filter = request.args.get('source', '')
+    category_filter = request.args.get('category', '')
+    show_closed = request.args.get('show_closed', '0')
 
-    query = session.query(Feedback).options(joinedload(Feedback.user))
+    query = session.query(Feedback).options(
+        joinedload(Feedback.user),
+        joinedload(Feedback.replies)
+    )
 
+    # Status filtering: hide closed by default unless explicitly requested
     if status_filter:
         query = query.filter(Feedback.status == status_filter)
+    elif show_closed != '1':
+        query = query.filter(Feedback.status.in_(['Open', 'In Progress']))
+
     if priority_filter:
         query = query.filter(Feedback.priority == priority_filter)
+    if source_filter:
+        query = query.filter(Feedback.source == source_filter)
+    if category_filter:
+        query = query.filter(Feedback.category == category_filter)
 
     query = query.order_by(Feedback.created_at.desc())
 
@@ -278,7 +306,9 @@ def feedback_list():
         'total': session.query(Feedback).count(),
         'open': session.query(Feedback).filter(Feedback.status == 'Open').count(),
         'in_progress': session.query(Feedback).filter(Feedback.status == 'In Progress').count(),
-        'closed': session.query(Feedback).filter(Feedback.status == 'Closed').count()
+        'closed': session.query(Feedback).filter(Feedback.status == 'Closed').count(),
+        'web': session.query(Feedback).filter(Feedback.source == 'web').count(),
+        'app': session.query(Feedback).filter(Feedback.source == 'app').count()
     }
 
     pages = (total + per_page - 1) // per_page
@@ -298,6 +328,9 @@ def feedback_list():
                          pagination=pagination,
                          status_filter=status_filter,
                          priority_filter=priority_filter,
+                         source_filter=source_filter,
+                         category_filter=category_filter,
+                         show_closed=show_closed,
                          stats=stats)
 
 
@@ -310,7 +343,8 @@ def view_feedback(feedback_id):
 
     feedback = session.query(Feedback).options(
         joinedload(Feedback.replies).joinedload(FeedbackReply.user),
-        joinedload(Feedback.user)
+        joinedload(Feedback.user),
+        joinedload(Feedback.notes).joinedload(Note.author)
     ).get(feedback_id)
 
     if not feedback:
@@ -322,6 +356,8 @@ def view_feedback(feedback_id):
 
     if request.method == 'POST':
         if 'update_feedback' in request.form and form.validate():
+            old_status = feedback.status
+            old_priority = feedback.priority
             form.populate_obj(feedback)
             session.commit()
 
@@ -330,10 +366,28 @@ def view_feedback(feedback_id):
                 action='feedback_update',
                 resource_type='feedback',
                 resource_id=str(feedback_id),
-                new_value=f'Updated feedback status to {feedback.status}',
+                new_value=f'Updated feedback: status={feedback.status}, priority={feedback.priority}',
                 ip_address=request.remote_addr,
                 user_agent=request.headers.get('User-Agent')
             )
+
+            # Notify user of status change (except Close which has its own handler)
+            if feedback.user_id and old_status != feedback.status and feedback.status != 'Closed':
+                try:
+                    status_messages = {
+                        'In Progress': f"Your feedback is now being worked on: {feedback.title}",
+                        'Open': f"Your feedback has been reopened: {feedback.title}",
+                    }
+                    orchestrator.send(NotificationPayload(
+                        notification_type=NotificationType.FEEDBACK_STATUS_CHANGE,
+                        title=f"Feedback Update: {feedback.title}",
+                        message=status_messages.get(feedback.status, f"Your feedback status changed to {feedback.status}: {feedback.title}"),
+                        user_ids=[feedback.user_id],
+                        data={'feedback_id': str(feedback.id)},
+                        action_url=url_for('feedback.view_feedback', feedback_id=feedback.id, _external=True),
+                    ))
+                except Exception as e:
+                    logger.error(f"Failed to send status change notification: {e}")
 
             return redirect(url_for('admin_panel.view_feedback', feedback_id=feedback.id))
 
@@ -347,17 +401,32 @@ def view_feedback(feedback_id):
             session.add(reply)
             session.commit()
 
-            if feedback.user and feedback.user.email:
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='feedback_reply',
+                resource_type='feedback',
+                resource_id=str(feedback_id),
+                new_value=f'Admin reply added to feedback #{feedback_id}',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
+            if feedback.user_id:
                 try:
-                    send_email(
-                        to=feedback.user.email,
-                        subject=f"New admin reply to your Feedback #{feedback.id}",
-                        body=render_template('emails/new_reply_admin.html',
-                                           feedback=feedback,
-                                           reply=reply)
-                    )
+                    orchestrator.send(NotificationPayload(
+                        notification_type=NotificationType.FEEDBACK_REPLY,
+                        title=f"Reply to: {feedback.title}",
+                        message=f"An admin has replied to your feedback: {feedback.title}",
+                        user_ids=[feedback.user_id],
+                        data={'feedback_id': str(feedback.id)},
+                        email_subject=f"New admin reply to your Feedback #{feedback.id}",
+                        email_html_body=render_template('emails/new_reply_admin.html',
+                                                       feedback=feedback,
+                                                       reply=reply),
+                        action_url=url_for('feedback.view_feedback', feedback_id=feedback.id, _external=True),
+                    ))
                 except Exception as e:
-                    logger.error(f"Failed to send reply notification email: {e}")
+                    logger.error(f"Failed to send reply notification: {e}")
 
             return redirect(url_for('admin_panel.view_feedback', feedback_id=feedback.id))
 
@@ -369,6 +438,17 @@ def view_feedback(feedback_id):
             )
             session.add(note)
             session.commit()
+
+            AdminAuditLog.log_action(
+                user_id=current_user.id,
+                action='feedback_note',
+                resource_type='feedback',
+                resource_id=str(feedback_id),
+                new_value=f'Internal note added to feedback #{feedback_id}',
+                ip_address=request.remote_addr,
+                user_agent=request.headers.get('User-Agent')
+            )
+
             return redirect(url_for('admin_panel.view_feedback', feedback_id=feedback.id))
 
     return render_template('admin_panel/reports/feedback_detail_flowbite.html',
@@ -393,15 +473,20 @@ def close_feedback(feedback_id):
     feedback.status = 'Closed'
     feedback.closed_at = datetime.utcnow()
 
-    if feedback.user and feedback.user.email:
+    if feedback.user_id:
         try:
-            send_email(
-                to=feedback.user.email,
-                subject=f"Your Feedback #{feedback.id} has been closed",
-                body=render_template("emails/feedback_closed.html", feedback=feedback)
-            )
+            orchestrator.send(NotificationPayload(
+                notification_type=NotificationType.FEEDBACK_CLOSED,
+                title=f"Feedback Closed: {feedback.title}",
+                message=f"Your feedback has been closed: {feedback.title}",
+                user_ids=[feedback.user_id],
+                data={'feedback_id': str(feedback.id)},
+                email_subject=f"Your Feedback #{feedback.id} has been closed",
+                email_html_body=render_template("emails/feedback_closed.html", feedback=feedback),
+                action_url=url_for('feedback.view_feedback', feedback_id=feedback.id, _external=True),
+            ))
         except Exception as e:
-            logger.error(f"Failed to send closure email: {e}")
+            logger.error(f"Failed to send closure notification: {e}")
 
     AdminAuditLog.log_action(
         user_id=current_user.id,

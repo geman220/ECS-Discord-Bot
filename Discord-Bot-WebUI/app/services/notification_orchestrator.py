@@ -61,6 +61,12 @@ class NotificationType(Enum):
     # Direct Messaging
     DIRECT_MESSAGE = 'direct_message'
 
+    # Feedback-related
+    FEEDBACK_NEW = 'feedback_new'
+    FEEDBACK_REPLY = 'feedback_reply'
+    FEEDBACK_STATUS_CHANGE = 'feedback_status_change'
+    FEEDBACK_CLOSED = 'feedback_closed'
+
 
 @dataclass
 class NotificationPayload:
@@ -107,6 +113,10 @@ NOTIFICATION_ICONS = {
     NotificationType.SUB_REQUEST: 'ti ti-hand-stop',
     NotificationType.SUB_FILLED: 'ti ti-user-check',
     NotificationType.DIRECT_MESSAGE: 'ti ti-message-circle',
+    NotificationType.FEEDBACK_NEW: 'ti ti-message-plus',
+    NotificationType.FEEDBACK_REPLY: 'ti ti-message-reply',
+    NotificationType.FEEDBACK_STATUS_CHANGE: 'ti ti-status-change',
+    NotificationType.FEEDBACK_CLOSED: 'ti ti-message-off',
 }
 
 
@@ -559,12 +569,14 @@ class NotificationOrchestrator:
                 for key, value in payload.data.items():
                     data[key] = str(value) if value is not None else ''
 
-            # Add deep link if match_id present
+            # Add deep links based on notification type
             if 'match_id' in data:
                 if payload.notification_type == NotificationType.RSVP_REMINDER:
                     data['deep_link'] = f"ecs-fc-scheme://rsvp/{data['match_id']}"
                 else:
                     data['deep_link'] = f"ecs-fc-scheme://match/{data['match_id']}"
+            elif 'feedback_id' in data:
+                data['deep_link'] = f"ecs-fc-scheme://feedback/{data['feedback_id']}"
 
             # Send via push service
             push_service = self._get_push_service()
