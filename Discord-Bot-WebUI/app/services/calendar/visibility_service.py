@@ -11,9 +11,9 @@ import logging
 from datetime import datetime, timedelta
 from typing import List, Optional, Set, Tuple
 
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, aliased, joinedload
 
-from app.models import User, Player, Match, Team, Season, LeagueEvent
+from app.models import User, Player, Match, Team, League, Season, LeagueEvent
 from app.models_ecs import EcsFcMatch
 
 logger = logging.getLogger(__name__)
@@ -190,6 +190,16 @@ class VisibilityService:
         """
         return self.is_admin(user)
 
+    def _get_current_season_league_ids(self) -> List[int]:
+        """Get league IDs for all current seasons."""
+        leagues = (
+            self.session.query(League.id)
+            .join(Season, League.season_id == Season.id)
+            .filter(Season.is_current == True)
+            .all()
+        )
+        return [league_id for (league_id,) in leagues]
+
     def get_visible_match_query(
         self,
         user: User,
@@ -212,6 +222,18 @@ class VisibilityService:
             joinedload(Match.away_team),
             joinedload(Match.ref)
         )
+
+        # Filter to current season only via home_team's league
+        current_league_ids = self._get_current_season_league_ids()
+        if current_league_ids:
+            home_team_filter = aliased(Team)
+            query = query.join(
+                home_team_filter, Match.home_team_id == home_team_filter.id
+            ).filter(
+                home_team_filter.league_id.in_(current_league_ids)
+            )
+        else:
+            query = query.filter(False)
 
         # Apply date filters if provided
         if start_date:
@@ -359,6 +381,15 @@ class VisibilityService:
         query = self.session.query(EcsFcMatch).options(
             joinedload(EcsFcMatch.team)
         )
+
+        # Filter to current season only via team's league
+        current_league_ids = self._get_current_season_league_ids()
+        if current_league_ids:
+            query = query.filter(EcsFcMatch.team_id.in_(
+                self.session.query(Team.id).filter(Team.league_id.in_(current_league_ids))
+            ))
+        else:
+            query = query.filter(False)
 
         # Apply date filters if provided
         if start_date:
