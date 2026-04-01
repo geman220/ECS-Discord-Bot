@@ -20,6 +20,12 @@
                 </div>
                 <div class="flex items-center gap-1">
                     <span id="ai-assistant-usage-badge" class="text-[10px] bg-white/20 px-2 py-0.5 rounded-full"></span>
+                    <button type="button" data-action="ai-assistant-new-chat" class="p-1 hover:bg-white/20 rounded-lg transition-colors" title="New conversation" aria-label="New conversation">
+                        <i class="ti ti-message-plus text-lg"></i>
+                    </button>
+                    <button type="button" data-action="ai-assistant-history-toggle" class="p-1 hover:bg-white/20 rounded-lg transition-colors" title="Chat history" aria-label="Chat history">
+                        <i class="ti ti-history text-lg"></i>
+                    </button>
                     <button type="button" data-action="ai-assistant-toggle" class="p-1 hover:bg-white/20 rounded-lg transition-colors" aria-label="Close">
                         <i class="ti ti-x text-lg"></i>
                     </button>
@@ -40,6 +46,18 @@
                 </div>
             </div>
 
+            {# History Panel (hidden by default, toggles with messages area) #}
+            <div id="ai-assistant-history" class="hidden flex-1 overflow-y-auto px-4 py-3 min-h-0">
+                <div class="flex items-center gap-2 mb-3">
+                    <button type="button" data-action="ai-assistant-history-toggle"
+                            class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <i class="ti ti-arrow-left text-sm text-gray-600 dark:text-gray-300"></i>
+                    </button>
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">Chat History</span>
+                </div>
+                <div class="space-y-1" id="ai-assistant-history-list"></div>
+            </div>
+
             {# Input Area #}
             <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
                 <div class="flex items-end gap-2">
@@ -58,13 +76,10 @@
                         <i class="ti ti-send text-lg"></i>
                     </button>
                 </div>
-                <div class="flex items-center justify-between mt-2">
+                <div class="mt-2">
                     <span class="text-[10px] text-gray-400 dark:text-gray-500">
                         Powered by AI &middot; Responses may be inaccurate
                     </span>
-                    <button type="button" data-action="ai-assistant-clear" class="text-[10px] text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-                        Clear chat
-                    </button>
                 </div>
             </div>
         </div>

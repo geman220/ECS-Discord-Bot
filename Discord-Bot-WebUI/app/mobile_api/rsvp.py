@@ -106,7 +106,7 @@ def update_availability():
             session=session_db,
             match_id=match_id,
             player_id=player.id,
-            response=availability_response
+            new_response=availability_response
         )
 
         # Notify other systems of the update
@@ -152,7 +152,7 @@ def update_availability_web():
             session=session_db,
             match_id=match_id,
             player_id=player.id,
-            response=availability_response
+            new_response=availability_response
         )
 
         notify_availability_update(match_id, player.id, availability_response)
@@ -217,7 +217,7 @@ def bulk_availability_update():
                     session=session_db,
                     match_id=match_id,
                     player_id=player.id,
-                    response=availability_response
+                    new_response=availability_response
                 )
                 results.append({
                     "match_id": match_id,

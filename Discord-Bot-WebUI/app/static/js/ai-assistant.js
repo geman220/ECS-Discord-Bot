@@ -1,12 +1,16 @@
 // ai-assistant.js - AI Assistant main module
 import { askQuestion, getSuggestions, getUsage, rateResponse } from './ai-assistant/api.js';
-import { renderUserMessage, renderAssistantMessage, renderTypingIndicator, renderError, renderSuggestionChips, clearMessages, updateUsageBadge } from './ai-assistant/render.js';
+import { renderUserMessage, renderAssistantMessage, renderTypingIndicator, renderError, renderSuggestionChips, clearMessages, updateUsageBadge, renderRestoredMessages, renderHistoryList } from './ai-assistant/render.js';
 import { AI_CONFIG } from './ai-assistant/config.js';
+import { loadConversations, getActiveConversation, createConversation, addMessage, switchConversation, deleteConversation, getConversationList } from './ai-assistant/storage.js';
 
 const state = {
     isOpen: false,
     isLoading: false,
     conversationHistory: [],
+    activeConversationId: null,
+    storageData: null,
+    historyVisible: false,
 };
 
 function getElements() {
@@ -15,7 +19,25 @@ function getElements() {
         input: document.getElementById('ai-assistant-input'),
         sendBtn: document.getElementById('ai-assistant-send-btn'),
         charCount: document.getElementById('ai-assistant-char-count'),
+        messagesArea: document.getElementById('ai-assistant-messages'),
+        historyPanel: document.getElementById('ai-assistant-history'),
+        suggestionsArea: document.getElementById('ai-assistant-suggestions'),
     };
+}
+
+function initStorage() {
+    state.storageData = loadConversations();
+    const active = getActiveConversation(state.storageData);
+
+    if (active && active.messages.length > 0) {
+        // Restore active conversation
+        state.activeConversationId = state.storageData.activeConversationId;
+        state.conversationHistory = active.messages.map(m => ({ role: m.role, content: m.content }));
+        renderRestoredMessages(active.messages);
+    } else {
+        // Start a fresh conversation
+        state.activeConversationId = createConversation(state.storageData);
+    }
 }
 
 function togglePanel() {
@@ -29,11 +51,80 @@ function togglePanel() {
     document.body.style.overflow = state.isOpen ? 'hidden' : '';
 
     if (state.isOpen) {
+        // Hide history if it was open
+        if (state.historyVisible) toggleHistory();
         loadSuggestions();
         loadUsage();
         const { input } = getElements();
         if (input) setTimeout(() => input.focus(), 100);
     }
+}
+
+function toggleHistory() {
+    const { messagesArea, historyPanel, suggestionsArea } = getElements();
+    if (!messagesArea || !historyPanel) return;
+
+    state.historyVisible = !state.historyVisible;
+
+    if (state.historyVisible) {
+        messagesArea.classList.add('hidden');
+        if (suggestionsArea) suggestionsArea.classList.add('hidden');
+        historyPanel.classList.remove('hidden');
+        // Populate history list
+        const convList = getConversationList(state.storageData);
+        renderHistoryList(convList);
+    } else {
+        historyPanel.classList.add('hidden');
+        messagesArea.classList.remove('hidden');
+        if (suggestionsArea) suggestionsArea.classList.remove('hidden');
+    }
+}
+
+function startNewChat() {
+    state.conversationHistory = [];
+    state.activeConversationId = createConversation(state.storageData);
+    clearMessages();
+    loadSuggestions();
+
+    // If history panel is visible, switch back to messages
+    if (state.historyVisible) toggleHistory();
+
+    const { input } = getElements();
+    if (input) {
+        input.value = '';
+        updateCharCount();
+        input.focus();
+    }
+}
+
+function loadConversationById(id) {
+    if (!switchConversation(state.storageData, id)) return;
+
+    state.activeConversationId = id;
+    const conv = getActiveConversation(state.storageData);
+    if (!conv) return;
+
+    state.conversationHistory = conv.messages.map(m => ({ role: m.role, content: m.content }));
+    renderRestoredMessages(conv.messages);
+
+    // Switch back to messages view
+    if (state.historyVisible) toggleHistory();
+}
+
+function deleteConversationById(id) {
+    const wasActive = id === state.activeConversationId;
+    deleteConversation(state.storageData, id);
+
+    if (wasActive) {
+        // Start a fresh conversation
+        state.conversationHistory = [];
+        state.activeConversationId = createConversation(state.storageData);
+        clearMessages();
+    }
+
+    // Refresh history list
+    const convList = getConversationList(state.storageData);
+    renderHistoryList(convList);
 }
 
 async function loadSuggestions() {
@@ -68,6 +159,8 @@ async function sendMessage() {
     // Render user message and clear input
     renderUserMessage(message);
     state.conversationHistory.push({ role: 'user', content: message });
+    addMessage(state.storageData, 'user', message);
+
     input.value = '';
     input.style.height = 'auto';
     updateCharCount();
@@ -83,6 +176,7 @@ async function sendMessage() {
         if (data.success) {
             renderAssistantMessage(data.response, data.log_id);
             state.conversationHistory.push({ role: 'assistant', content: data.response });
+            addMessage(state.storageData, 'assistant', data.response, data.log_id);
         } else {
             renderError(data.message || 'An error occurred.');
         }
@@ -134,9 +228,22 @@ function registerHandlers() {
         }
     });
 
-    window.EventDelegation.register('ai-assistant-clear', () => {
-        state.conversationHistory = [];
-        clearMessages();
+    window.EventDelegation.register('ai-assistant-new-chat', () => {
+        startNewChat();
+    });
+
+    window.EventDelegation.register('ai-assistant-history-toggle', () => {
+        toggleHistory();
+    });
+
+    window.EventDelegation.register('ai-assistant-load-conv', (element) => {
+        const convId = element.dataset.convId;
+        if (convId) loadConversationById(convId);
+    });
+
+    window.EventDelegation.register('ai-assistant-delete-conv', (element) => {
+        const convId = element.dataset.convId;
+        if (convId) deleteConversationById(convId);
     });
 
     window.EventDelegation.register('ai-assistant-rate', async (element) => {
@@ -164,6 +271,7 @@ if (window.InitSystem) {
         if (!widget) return;
 
         registerHandlers();
+        initStorage();
 
         // Input event listeners
         const input = document.getElementById('ai-assistant-input');

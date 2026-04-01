@@ -71,13 +71,22 @@ def _build_navigation_guide(context_type, user_roles):
             if is_admin:
                 lines.append("  - [Draft History](/admin-panel/draft/history)")
         if can_view_teams:
-            lines.append("- [Teams Overview](/teams/overview) — View all teams and rosters")
+            lines.append("- [Teams Overview](/teams/overview) — View all teams and rosters. Click any team name to see their full roster, schedule, and match history.")
         if can_view_standings:
             lines.append("- [Standings](/teams/standings) — League standings and rankings")
         if is_admin or ('Pub League Coach' in roles_set):
             lines.append("- [League Store](/store) — Order league merchandise (coaches & admins)")
         if can_view_calendar:
             lines.append("- [Calendar](/calendar) — Match schedule and events")
+
+    # Common workflows that aren't in the sidebar but users frequently ask about
+    if is_league_member or is_coach or is_admin:
+        lines.append("")
+        lines.append("## Common Workflows")
+        lines.append("- **RSVP for a match**: RSVP links are sent via email/SMS before each match. Click the link in the notification to RSVP. You can also RSVP from your team's match page in [Calendar](/calendar).")
+        lines.append("- **View your player profile**: Click your avatar in the top-right, then 'My Profile'. You can also find any player by searching their name using the search bar in the top navbar.")
+        lines.append("- **Change your password or settings**: Go to [Settings](/account/settings) from the user menu (top-right avatar dropdown).")
+        lines.append("- **Link your Discord account**: Go to [Settings](/account/settings), then the Discord section to connect your Discord account.")
 
     # Administration section
     if is_admin:
@@ -86,7 +95,7 @@ def _build_navigation_guide(context_type, user_roles):
         lines.append("- [Admin Panel](/admin-panel/) — The main admin hub with ALL management tools (users, roles, leagues, Discord, reports, monitoring, etc.)")
         lines.append("- Digital Wallets (dropdown): [Setup Wizard](/wallet/config/setup), [Dashboard](/wallet/admin), [Pass Studio](/pass-studio), [Manage Passes](/wallet/admin/passes), [Scanner](/wallet/admin/scanner), [Check-ins](/wallet/admin/checkins)")
         lines.append("")
-        lines.append("NOTE: ALL admin features (user management, Discord, reports, monitoring, security, etc.) are accessed through the [Admin Panel](/admin-panel/). There is no separate admin section.")
+        lines.append("NOTE: ALL admin features are accessed through the [Admin Panel](/admin-panel/). NEVER direct admins to just '/admin-panel/' — use the specific sub-page URLs from the admin pages list below.")
 
     # User menu (top-right)
     lines.append("")
@@ -106,6 +115,23 @@ def _build_navigation_guide(context_type, user_roles):
     lines.append("- The AI Assistant (this chat) is opened from the sparkles icon in the TOP NAVBAR.")
 
     return "\n".join(lines)
+
+
+def _build_intent_map(admin_search_index):
+    """Build keyword-to-page reverse index for intent matching.
+    Groups admin pages by common user intents so the AI can quickly
+    match questions like 'change roles' to the right page."""
+    if not admin_search_index:
+        return ""
+    intent_groups = {}
+    for item in admin_search_index:
+        for kw in item.get('keywords', []):
+            intent_groups.setdefault(kw, []).append(f"[{item['name']}]({item['url']})")
+    lines = ["## Common Task Quick-Reference"]
+    for intent, pages in sorted(intent_groups.items()):
+        if 1 <= len(pages) <= 3:
+            lines.append(f"- \"{intent}\": {', '.join(pages)}")
+    return "\n".join(lines[:50])
 
 
 def _build_app_feature_map(context_type='user_help'):
@@ -447,9 +473,12 @@ def ask():
         except Exception:
             help_topics = []
 
+    # Build intent map for admin contexts (keyword-to-page reverse index)
+    intent_map = _build_intent_map(admin_search_index) if admin_search_index else None
+
     system_prompt = ai_assistant_service.build_system_prompt(
         context_type, user_profile, admin_search_index, help_topics, user_page_index,
-        navigation_guide=navigation_guide
+        navigation_guide=navigation_guide, intent_map=intent_map
     )
 
     # Call the AI

@@ -6,4 +6,7 @@ export const AI_CONFIG = {
     rateUrl: '/api/ai-assistant/rate',
     maxMessageLength: 2000,
     maxHistoryTurns: 10,
+    storageKey: 'ecs-ai-conversations',
+    maxConversations: 20,
+    maxConversationAgeDays: 30,
 };

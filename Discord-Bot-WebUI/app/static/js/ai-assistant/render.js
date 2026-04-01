@@ -7,7 +7,7 @@ function linkify(text) {
     // Convert markdown links [text](url) to clickable HTML links
     return text.replace(
         /\[([^\]]+)\]\(([^)]+)\)/g,
-        '<a href="$2" class="text-ecs-green hover:underline font-medium">$1</a>'
+        '<a href="$2" class="text-ecs-green dark:text-ecs-green-400 hover:underline font-medium">$1</a>'
     );
 }
 
@@ -204,4 +204,89 @@ export function updateUsageBadge(daily, dailyLimit) {
         const remaining = dailyLimit - daily;
         badge.textContent = `${remaining} left today`;
     }
+}
+
+export function renderRestoredMessages(messages) {
+    const container = messagesEl();
+    if (!container) return;
+
+    // Clear the default placeholder
+    container.innerHTML = '';
+
+    for (const msg of messages) {
+        const div = document.createElement('div');
+        if (msg.role === 'user') {
+            div.className = 'flex justify-end';
+            div.innerHTML = `
+                <div class="max-w-[80%] bg-ecs-green text-white rounded-2xl rounded-br-md px-4 py-2.5 text-sm">
+                    ${escapeHtml(msg.content)}
+                </div>
+            `;
+        } else {
+            div.className = 'flex justify-start';
+            div.innerHTML = `
+                <div class="max-w-[90%]">
+                    <div class="bg-gray-100 dark:bg-gray-700 rounded-2xl rounded-bl-md px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 leading-relaxed">
+                        ${simpleMarkdown(msg.content)}
+                    </div>
+                    ${msg.logId ? `
+                    <div class="flex items-center gap-2 mt-1 ml-2">
+                        <button data-action="ai-assistant-rate" data-log-id="${msg.logId}" data-rating="5"
+                                class="text-gray-400 hover:text-green-500 transition-colors p-0.5" title="Helpful">
+                            <i class="ti ti-thumb-up text-xs"></i>
+                        </button>
+                        <button data-action="ai-assistant-rate" data-log-id="${msg.logId}" data-rating="1"
+                                class="text-gray-400 hover:text-red-500 transition-colors p-0.5" title="Not helpful">
+                            <i class="ti ti-thumb-down text-xs"></i>
+                        </button>
+                    </div>` : ''}
+                </div>
+            `;
+        }
+        container.appendChild(div);
+    }
+
+    container.scrollTop = container.scrollHeight;
+}
+
+function formatTimeAgo(timestamp) {
+    const now = Date.now();
+    const diff = now - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return `${days}d ago`;
+
+    const date = new Date(timestamp);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return `${months[date.getMonth()]} ${date.getDate()}`;
+}
+
+export function renderHistoryList(conversations) {
+    const container = document.getElementById('ai-assistant-history-list');
+    if (!container) return;
+
+    if (conversations.length === 0) {
+        container.innerHTML = `<p class="text-sm text-gray-400 dark:text-gray-500 text-center py-8">No previous conversations</p>`;
+        return;
+    }
+
+    container.innerHTML = conversations.map(conv => `
+        <div class="flex items-center gap-1">
+            <button type="button" data-action="ai-assistant-load-conv" data-conv-id="${escapeHtml(conv.id)}"
+                    class="flex-1 text-left p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-w-0">
+                <p class="text-sm font-medium text-gray-900 dark:text-white truncate">${escapeHtml(conv.title)}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">${conv.messageCount} messages &middot; ${formatTimeAgo(conv.updatedAt)}</p>
+            </button>
+            <button type="button" data-action="ai-assistant-delete-conv" data-conv-id="${escapeHtml(conv.id)}"
+                    class="flex-shrink-0 p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg" title="Delete">
+                <i class="ti ti-trash text-sm"></i>
+            </button>
+        </div>
+    `).join('');
 }
