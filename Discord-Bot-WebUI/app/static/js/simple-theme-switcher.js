@@ -46,8 +46,8 @@ class SimpleThemeSwitcher {
    * Load theme from localStorage or default to light
    */
   loadSavedTheme() {
-    // Use consistent localStorage key with template
-    const savedTheme = localStorage.getItem('template-style') || 'light';
+    // Use consistent localStorage key with template and FOUC script
+    const savedTheme = localStorage.getItem('theme') || localStorage.getItem('template-style') || 'light';
     this.setTheme(savedTheme, false); // Don't save again on load
   }
 
@@ -73,6 +73,13 @@ class SimpleThemeSwitcher {
     document.documentElement.setAttribute('data-style', effectiveTheme);
     document.documentElement.setAttribute('data-theme', effectiveTheme);
 
+    // Toggle Tailwind dark class (darkMode: 'class')
+    if (effectiveTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+
     // Also update the class for CSS targeting
     document.documentElement.className = document.documentElement.className.replace(/\b(light|dark)-style\b/g, '');
     document.documentElement.classList.add(`${effectiveTheme}-style`);
@@ -82,7 +89,8 @@ class SimpleThemeSwitcher {
     this.updateActiveMenuItem(theme);
 
     if (save) {
-      // Save to localStorage with consistent key
+      // Save to localStorage with consistent key (matches FOUC script and navbar toggle)
+      localStorage.setItem('theme', theme);
       localStorage.setItem('template-style', theme);
 
       // Save to cookie for server-side rendering (prevents FOUC)

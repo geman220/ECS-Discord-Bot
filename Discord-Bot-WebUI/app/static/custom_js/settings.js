@@ -261,7 +261,7 @@ let _initialized = false;
    */
   function initThemeSelection() {
     // Set initial state based on stored theme
-    const currentTheme = localStorage.getItem('color-theme') || 'system';
+    const currentTheme = localStorage.getItem('theme') || 'system';
     document.querySelectorAll('.theme-option').forEach(option => {
         const input = option.querySelector('input');
         if (input && input.value === currentTheme) {
@@ -280,7 +280,7 @@ let _initialized = false;
         if (!input || input.name !== 'theme') return;
 
         const theme = input.value;
-        localStorage.setItem('color-theme', theme);
+        localStorage.setItem('theme', theme);
 
         // Apply theme
         if (theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
