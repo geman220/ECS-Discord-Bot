@@ -1156,7 +1156,7 @@ async def update_discord_embed(
             return {"success": False, "error": "No permission to access message"}
         
         # Determine team ID from the channel or message context
-        team_id = await get_team_id_for_message(request.channel_id, request.message_id)
+        _, team_id = await get_team_id_for_message(request.message_id, request.channel_id)
         if not team_id:
             logger.warning(f"Could not determine team ID for channel {request.channel_id}")
             return {"success": False, "error": "Could not determine team ID"}
