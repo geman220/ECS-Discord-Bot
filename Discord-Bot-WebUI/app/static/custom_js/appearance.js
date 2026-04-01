@@ -834,7 +834,6 @@ function createPresetCard(preset) {
     }
 
     card.appendChild(actionsDiv);
-    }
 
     return card;
 }
