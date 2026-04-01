@@ -59,7 +59,14 @@ def substitute_management():
         upcoming_matches = upcoming_matches_query.limit(20).all()
 
         # Get substitute requests (OPEN = created by mobile/web, PENDING/APPROVED = legacy statuses)
-        sub_requests_query = SubstituteRequest.query.filter(
+        from sqlalchemy.orm import joinedload, selectinload
+        sub_requests_query = SubstituteRequest.query.options(
+            joinedload(SubstituteRequest.match).joinedload(Match.home_team),
+            joinedload(SubstituteRequest.match).joinedload(Match.away_team),
+            joinedload(SubstituteRequest.team),
+            selectinload(SubstituteRequest.assignments),
+            selectinload(SubstituteRequest.responses)
+        ).filter(
             SubstituteRequest.status.in_(['OPEN', 'PENDING', 'APPROVED'])
         ).order_by(SubstituteRequest.created_at.desc())
 

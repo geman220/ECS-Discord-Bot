@@ -132,7 +132,7 @@
         {% if sub_requests %}
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {% for request in sub_requests %}
-            {% if request.status in ['PENDING', 'APPROVED'] %}
+            {% if request.status in ['OPEN', 'PENDING', 'APPROVED'] %}
             <div class="bg-white dark:bg-gray-800 rounded-lg border-l-4 border-yellow-500 shadow-md p-4">
                 <div class="flex justify-between items-start mb-3">
                     <h4 class="font-semibold text-gray-900 dark:text-white">{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</h4>
@@ -154,7 +154,7 @@
                     {% endif %}
                 </div>
                 <div class="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-700">
-                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ request.assignments_count or 0 }}/{{ request.substitutes_needed }} assigned</span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">{{ request.assignments|length if request.assignments else 0 }}/{{ request.substitutes_needed }} assigned</span>
                     <div class="flex gap-1">
                         <button class="p-2 text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50"
                                 data-action="show-contact-subs" data-request-id="{{ request.id }}" data-league="{{ request.team.league.name if request.team.league else 'Premier' }}" title="Contact Subs">

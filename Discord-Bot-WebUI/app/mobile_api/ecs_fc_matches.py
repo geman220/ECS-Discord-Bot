@@ -1536,11 +1536,26 @@ def create_ecs_fc_substitute_request():
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
-        team_id = data.get('team_id') or match.team_id
+        # Always use the match's team — never trust client-provided team_id
+        # (client may send their pub league team_id if they coach in both leagues)
+        team_id = match.team_id
 
         # Verify coach access
         if not is_coach_for_team(session, current_user_id, team_id) and not is_admin_user(session, current_user_id):
             return jsonify({"msg": "You are not authorized to create requests for this team"}), 403
+
+        # Check for existing open request for this match
+        existing = session.query(EcsFcSubRequest).filter(
+            EcsFcSubRequest.match_id == match_id,
+            EcsFcSubRequest.status == 'OPEN'
+        ).first()
+
+        if existing:
+            return jsonify({
+                "success": False,
+                "msg": "An open substitute request already exists for this match",
+                "existing_request_id": existing.id
+            }), 400
 
         subs_needed = data.get('subs_needed') or data.get('substitutes_needed', 1)
 

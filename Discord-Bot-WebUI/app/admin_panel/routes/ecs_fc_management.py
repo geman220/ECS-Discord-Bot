@@ -992,11 +992,35 @@ def ecs_fc_rsvp_status(match_id):
         if response_type in responses:
             responses[response_type].append(availability)
 
+    # Get sub request data for this match
+    from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse, EcsFcSubAssignment
+    sub_request = session.query(EcsFcSubRequest).filter(
+        EcsFcSubRequest.match_id == match_id,
+        EcsFcSubRequest.status.in_(['OPEN', 'FILLED'])
+    ).order_by(EcsFcSubRequest.created_at.desc()).first()
+
+    sub_responses = []
+    sub_assignments = []
+    if sub_request:
+        sub_responses = session.query(EcsFcSubResponse).options(
+            joinedload(EcsFcSubResponse.player)
+        ).filter(
+            EcsFcSubResponse.request_id == sub_request.id
+        ).order_by(EcsFcSubResponse.responded_at.desc().nullslast()).all()
+        sub_assignments = session.query(EcsFcSubAssignment).options(
+            joinedload(EcsFcSubAssignment.player)
+        ).filter(
+            EcsFcSubAssignment.request_id == sub_request.id
+        ).all()
+
     return render_template(
         'admin_panel/ecs_fc/rsvp_status_flowbite.html',
         match=match,
         responses=responses,
-        rsvp_counts=get_rsvp_counts(match)
+        rsvp_counts=get_rsvp_counts(match),
+        sub_request=sub_request,
+        sub_responses=sub_responses,
+        sub_assignments=sub_assignments,
     )
 
 

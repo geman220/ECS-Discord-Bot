@@ -14,7 +14,7 @@ from sqlalchemy import and_, or_
 
 from app.core import db
 from app.decorators import role_required
-from app.alert_helpers import show_success, show_error, show_info
+from app.alert_helpers import show_success, show_error, show_info, show_warning
 from app.utils.db_utils import transactional
 from app.models import User, Player, Role
 from app.models_ecs import EcsFcMatch
@@ -84,6 +84,15 @@ def create_sub_request(match_id):
         except (ValueError, TypeError):
             substitutes_needed = 1
         
+        # Check for existing open request
+        existing = g.db_session.query(EcsFcSubRequest).filter(
+            EcsFcSubRequest.match_id == match.id,
+            EcsFcSubRequest.status == 'OPEN'
+        ).first()
+        if existing:
+            show_warning(f"An open substitute request already exists for this match (Request #{existing.id}).")
+            return redirect(url_for('admin.rsvp_status', match_id=f'ecs_{match_id}'))
+
         sub_request = EcsFcSubRequest(
             match_id=match.id,
             team_id=match.team_id,
@@ -92,7 +101,7 @@ def create_sub_request(match_id):
             notes=notes,
             status='OPEN'
         )
-        
+
         g.db_session.add(sub_request)
         g.db_session.flush()  # Get the ID without committing (@transactional handles commit)
 
