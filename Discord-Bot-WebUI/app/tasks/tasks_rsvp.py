@@ -1473,7 +1473,7 @@ def update_discord_embed_task(self, session, match_id: int, player_id: int, avai
             return {'success': True, 'message': 'No Discord messages to update', 'skipped': True}
 
         # Call Discord bot's embed update endpoint for each team
-        bot_base_url = os.getenv('DISCORD_BOT_BASE_URL', 'http://localhost:5001')
+        bot_base_url = os.getenv('BOT_API_URL', os.getenv('DISCORD_BOT_BASE_URL', 'http://localhost:5001'))
         update_url = f"{bot_base_url}/api/update_embed"
 
         success_count = 0
