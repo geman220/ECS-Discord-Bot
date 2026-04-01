@@ -1116,8 +1116,8 @@ def ecs_fc_sub_requests():
             joinedload(EcsFcSubRequest.match).joinedload(EcsFcMatch.team),
             joinedload(EcsFcSubRequest.team),
             joinedload(EcsFcSubRequest.requester),
-            selectinload(EcsFcSubRequest.responses),
-            selectinload(EcsFcSubRequest.assignments)
+            selectinload(EcsFcSubRequest.responses).joinedload(EcsFcSubResponse.player),
+            selectinload(EcsFcSubRequest.assignments).joinedload(EcsFcSubAssignment.player)
         )
 
         if status_filter != 'all':
@@ -1128,18 +1128,20 @@ def ecs_fc_sub_requests():
 
         sub_requests = query.order_by(EcsFcSubRequest.created_at.desc()).limit(100).all()
 
-        # Build request data with response counts
+        # Build request data with response counts and available players
         requests_data = []
         for req in sub_requests:
             responses = req.responses or []
-            available = sum(1 for r in responses if r.responded_at and r.is_available)
+            assigned_player_ids = [a.player_id for a in (req.assignments or [])]
+            available_players = [r for r in responses if r.responded_at and r.is_available and r.player_id not in assigned_player_ids]
             unavailable = sum(1 for r in responses if r.responded_at and not r.is_available)
             pending = sum(1 for r in responses if not r.responded_at)
             assigned = len(req.assignments) if req.assignments else 0
 
             requests_data.append({
                 'request': req,
-                'available': available,
+                'available': len(available_players),
+                'available_players': available_players,
                 'unavailable': unavailable,
                 'pending': pending,
                 'assigned': assigned,

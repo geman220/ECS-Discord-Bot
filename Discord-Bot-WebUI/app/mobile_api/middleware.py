@@ -95,16 +95,13 @@ def register_api_middleware(blueprint: Blueprint):
         except Exception:
             pass
 
-        log_msg = f"[API] {request.method} {request.path} → {response.status_code} | user={user_id}"
+        log_msg = f"[API] {request.method} {request.path} -> {response.status_code} | user={user_id}"
         if request.args:
             log_msg += f" | params={dict(request.args)}"
 
-        if is_sub_or_rsvp:
-            logger.info(log_msg)
-        elif response.status_code >= 400:
-            logger.warning(log_msg)
-        else:
-            logger.debug(log_msg)
+        # Use print() to guarantee output to gunicorn/docker logs
+        if is_sub_or_rsvp or response.status_code >= 400:
+            print(log_msg, flush=True)
 
         return response
 

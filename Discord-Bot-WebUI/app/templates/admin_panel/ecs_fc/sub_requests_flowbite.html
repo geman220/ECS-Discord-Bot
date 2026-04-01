@@ -167,7 +167,7 @@
                         {% endif %}
                     </td>
                     <td class="px-6 py-4">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 mb-1">
                             {% if item.available > 0 %}
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
                                 <i class="ti ti-check text-xs"></i>{{ item.available }}
@@ -187,6 +187,24 @@
                             <span class="text-xs text-gray-400">No contacts</span>
                             {% endif %}
                         </div>
+                        {% if item.available_players and req.status == 'OPEN' %}
+                        <div class="space-y-1 mt-2">
+                            {% for resp in item.available_players %}
+                            <div class="flex items-center justify-between gap-2">
+                                <span class="text-xs text-green-700 dark:text-green-400 font-medium truncate">{{ resp.player.name if resp.player else 'Unknown' }}</span>
+                                <form method="POST" action="{{ url_for('admin.ecs_fc_subs.assign_substitute', request_id=req.id) }}"
+                                      onsubmit="return confirm('Assign {{ resp.player.name if resp.player else 'this player' }}?');" class="inline flex-shrink-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="player_id" value="{{ resp.player_id }}">
+                                    <input type="hidden" name="response_id" value="{{ resp.id }}">
+                                    <button type="submit" class="px-2 py-0.5 text-xs font-medium text-white bg-ecs-green rounded hover:bg-green-700">
+                                        Assign
+                                    </button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </td>
                     <td class="px-6 py-4">
                         <span class="font-medium {% if item.assigned >= (req.substitutes_needed or 1) %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">
