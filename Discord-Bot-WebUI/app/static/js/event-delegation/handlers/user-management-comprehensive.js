@@ -149,7 +149,7 @@ function populateEditForm(user) {
     const rolesContainer = document.getElementById('editRolesContainer');
     const userRoleIds = user.roles || [];
     if (rolesContainer) {
-        rolesContainer.querySelectorAll('[data-role-checkbox]').forEach(checkbox => {
+        rolesContainer.querySelectorAll('[data-role-id]').forEach(checkbox => {
             checkbox.checked = userRoleIds.includes(parseInt(checkbox.value));
         });
     }

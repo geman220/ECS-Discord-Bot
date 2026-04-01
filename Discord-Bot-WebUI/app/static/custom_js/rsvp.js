@@ -236,6 +236,82 @@ export function initRsvp() {
 
     // Load initial RSVP values
     setInitialRSVPs(csrfToken);
+
+    // Set up real-time RSVP updates via WebSocket
+    _setupRealtimeRsvpUpdates(playerId);
+}
+
+/**
+ * Set up WebSocket listeners for real-time RSVP updates from other sources
+ * (Discord, mobile app, other browser sessions)
+ * @param {string} playerId - Current user's player ID
+ */
+function _setupRealtimeRsvpUpdates(playerId) {
+    if (!window.SocketManager) return;
+
+    const matchIds = _getMatchIdsFromDom();
+    if (matchIds.length === 0) return;
+
+    // Join match rooms and listen for updates once connected
+    window.SocketManager.onConnect('rsvp-realtime', (socket) => {
+        // Join each match room so we receive rsvp_update events
+        matchIds.forEach(matchId => {
+            socket.emit('join_match_rsvp', { match_id: parseInt(matchId) });
+        });
+    });
+
+    // Listen for rsvp_update events
+    window.SocketManager.on('rsvp-realtime', 'rsvp_update', (data) => {
+        if (!data || !data.match_id) return;
+
+        const matchId = String(data.match_id);
+
+        // Only update the radio button if this is about the current user
+        if (String(data.player_id) === String(playerId)) {
+            const availability = data.availability || data.response || 'no_response';
+            _updateRsvpRadioButton(matchId, availability);
+        }
+    });
+}
+
+/**
+ * Get all match IDs from RSVP radio buttons in the DOM
+ * @returns {string[]}
+ */
+function _getMatchIdsFromDom() {
+    const inputs = document.querySelectorAll('.rsvp-input');
+    return [...new Set(
+        [...inputs]
+        .map(input => {
+            const parts = input.name ? input.name.split('-') : [];
+            return parts.length > 1 ? parts[1] : null;
+        })
+        .filter(id => id && id !== 'undefined' && id.trim() !== '')
+    )];
+}
+
+/**
+ * Update RSVP radio button visual state for a match
+ * @param {string} matchId
+ * @param {string} availability - 'yes', 'no', 'maybe', or 'no_response'
+ */
+function _updateRsvpRadioButton(matchId, availability) {
+    // Uncheck all radio buttons for this match first
+    const allInputs = document.querySelectorAll(`input[name="response-${matchId}"]`);
+    allInputs.forEach(input => { input.checked = false; });
+
+    if (availability && availability !== 'no_response') {
+        const radioButton = document.querySelector(`input[name="response-${matchId}"][value="${availability}"]`);
+        if (radioButton) {
+            _settingInitialValues = true;
+            radioButton.checked = true;
+            radioButton.dispatchEvent(new Event('change', { bubbles: true }));
+            _settingInitialValues = false;
+            lastSelected[matchId] = availability;
+        }
+    } else {
+        lastSelected[matchId] = null;
+    }
 }
 
 // Register with window.InitSystem (primary)
