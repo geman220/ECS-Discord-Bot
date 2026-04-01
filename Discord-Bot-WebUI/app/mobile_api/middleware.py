@@ -99,27 +99,10 @@ def register_api_middleware(blueprint: Blueprint):
         if request.args:
             log_msg += f" | params={dict(request.args)}"
 
-        # Use print() to guarantee output to gunicorn/docker logs
-        if is_sub_or_rsvp or response.status_code >= 400:
-            print(log_msg, flush=True)
-            # Log response body for sub endpoints to debug data issues
-            if '/substitutes/' in request.path and response.status_code == 200:
-                try:
-                    data = response.get_json(silent=True)
-                    if data:
-                        # Summarize: count of items in key arrays
-                        summary_parts = []
-                        for key in ['requests', 'responses', 'assignments', 'count']:
-                            if key in data:
-                                val = data[key]
-                                if isinstance(val, list):
-                                    summary_parts.append(f"{key}={len(val)}")
-                                else:
-                                    summary_parts.append(f"{key}={val}")
-                        if summary_parts:
-                            print(f"  -> {', '.join(summary_parts)}", flush=True)
-                except Exception:
-                    pass
+        if is_sub_or_rsvp:
+            logger.info(log_msg)
+        elif response.status_code >= 400:
+            logger.warning(log_msg)
 
         return response
 
