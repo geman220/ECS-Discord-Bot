@@ -88,176 +88,130 @@ def store_management_overview():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def cache_management():
-    """Cache management hub."""
-    try:
-        from app.utils.redis_manager import get_redis_manager
-
-        # Initialize cache utilities
-        redis_mgr = get_redis_manager()
-
-        # Get real Redis statistics
-        redis_status = 'disconnected'
-        total_keys = 0
-        memory_usage = '0MB'
-        memory_usage_bytes = 0
-        hit_rate = '0%'
-        cache_operations_today = 0
-        keyspace_stats = {}
-
-        try:
-            # Test Redis connection
-            redis_mgr.client.ping()
-            redis_status = 'connected'
-
-            # Get Redis info via the underlying client (SafeRedisClient lacks .info())
-            redis_info = redis_mgr.client.info()
-            
-            # Total keys
-            total_keys = redis_info.get('db0', {}).get('keys', 0) if isinstance(redis_info.get('db0'), dict) else 0
-            if total_keys == 0:
-                # Fallback - count keys manually
-                total_keys = len(redis_mgr.client.keys('*'))
-            
-            # Memory usage
-            memory_usage_bytes = redis_info.get('used_memory', 0)
-            memory_usage_mb = memory_usage_bytes / (1024 * 1024)
-            memory_usage = f'{memory_usage_mb:.1f}MB'
-            
-            # Hit rate calculation
-            keyspace_hits = redis_info.get('keyspace_hits', 0)
-            keyspace_misses = redis_info.get('keyspace_misses', 0)
-            total_requests = keyspace_hits + keyspace_misses
-            if total_requests > 0:
-                hit_rate_percent = (keyspace_hits / total_requests) * 100
-                hit_rate = f'{hit_rate_percent:.1f}%'
-            
-            # Operations today (simplified - using total commands processed)
-            cache_operations_today = redis_info.get('total_commands_processed', 0)
-            
-            # Keyspace statistics by database
-            for key, value in redis_info.items():
-                if key.startswith('db') and isinstance(value, dict):
-                    keyspace_stats[key] = {
-                        'keys': value.get('keys', 0),
-                        'expires': value.get('expires', 0),
-                        'avg_ttl': value.get('avg_ttl', 0)
-                    }
-            
-        except Exception as e:
-            logger.error(f"Error getting Redis statistics: {e}")
-            redis_status = 'error'
-        
-        # Get cache key patterns and sizes
-        cache_key_stats = []
-        try:
-            if redis_status == 'connected':
-                # Sample some common cache key patterns
-                patterns = [
-                    'ref:*',      # Reference data cache
-                    'rsvp:*',     # RSVP cache
-                    'session:*',  # Session cache
-                    'task:*',     # Task cache
-                    'user:*',     # User cache
-                    'match:*',    # Match cache
-                ]
-                
-                for pattern in patterns:
-                    keys = redis_mgr.client.keys(pattern)
-                    if keys:
-                        total_size = 0
-                        for key in keys[:10]:  # Sample first 10 keys for size
-                            try:
-                                # Get memory usage for this key
-                                size = redis_mgr.client.memory_usage(key) or 0
-                                total_size += size
-                            except Exception:
-                                total_size += len(str(redis_mgr.client.get(key) or ''))
-                        
-                        avg_size = total_size / len(keys) if keys else 0
-                        cache_key_stats.append({
-                            'pattern': pattern,
-                            'count': len(keys),
-                            'avg_size_bytes': avg_size,
-                            'total_size_mb': (total_size * len(keys) / len(keys[:10])) / (1024 * 1024)
-                        })
-        except Exception as e:
-            logger.warning(f"Error getting cache key statistics: {e}")
-        
-        stats = {
-            'redis_status': redis_status,
-            'total_keys': total_keys,
-            'memory_usage': memory_usage,
-            'memory_usage_bytes': memory_usage_bytes,
-            'hit_rate': hit_rate,
-            'cache_operations_today': cache_operations_today,
-            'keyspace_stats': keyspace_stats,
-            'cache_key_stats': cache_key_stats,
-            'redis_info': redis_info if redis_status == 'connected' else {}
-        }
-        
-        return render_template('admin_panel/cache_management_flowbite.html', stats=stats)
-    except Exception as e:
-        logger.error(f"Error loading cache management: {e}")
-        flash('Cache management unavailable. Verify Redis connection and cache configuration.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+    """Redirect to consolidated cache & redis page."""
+    return redirect(url_for('admin_panel.cache_redis_consolidated'), code=302)
 
 
-@admin_panel_bp.route('/cache-flowbite')
+@admin_panel_bp.route('/cache-redis')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-def cache_management_flowbite():
-    """Cache management hub - Flowbite/Tailwind version (test)."""
+def cache_redis_consolidated():
+    """Consolidated cache operations and Redis connection management."""
+    from app.utils.redis_manager import get_redis_manager, get_redis_connection
+
+    redis_mgr = get_redis_manager()
+
+    # --- Cache statistics ---
+    redis_status = 'disconnected'
+    total_keys = 0
+    memory_usage = '0MB'
+    memory_usage_bytes = 0
+    hit_rate = '0%'
+    cache_operations_today = 0
+    keyspace_stats = {}
+    redis_info = {}
+
     try:
-        from app.utils.safe_redis import get_safe_redis
+        redis_mgr.client.ping()
+        redis_status = 'connected'
+        redis_info = redis_mgr.client.info()
 
-        redis_client = get_safe_redis()
+        total_keys = redis_info.get('db0', {}).get('keys', 0) if isinstance(redis_info.get('db0'), dict) else 0
+        if total_keys == 0:
+            total_keys = len(redis_mgr.client.keys('*'))
 
-        redis_status = 'disconnected'
-        total_keys = 0
-        memory_usage = '0MB'
-        hit_rate = '0%'
-        cache_operations_today = 0
-        active_connections = 1
-        uptime = '99.9%'
+        memory_usage_bytes = redis_info.get('used_memory', 0)
+        memory_usage = f'{memory_usage_bytes / (1024 * 1024):.1f}MB'
 
-        try:
-            redis_client.ping()
-            redis_status = 'connected'
+        keyspace_hits = redis_info.get('keyspace_hits', 0)
+        keyspace_misses = redis_info.get('keyspace_misses', 0)
+        total_requests = keyspace_hits + keyspace_misses
+        if total_requests > 0:
+            hit_rate = f'{(keyspace_hits / total_requests) * 100:.1f}%'
 
-            redis_info = redis_client.info()
-            total_keys = redis_info.get('db0', {}).get('keys', 0) if isinstance(redis_info.get('db0'), dict) else len(redis_client.keys('*'))
+        cache_operations_today = redis_info.get('total_commands_processed', 0)
 
-            memory_usage_bytes = redis_info.get('used_memory', 0)
-            memory_usage = f'{memory_usage_bytes / (1024 * 1024):.1f}MB'
+        for key, value in redis_info.items():
+            if key.startswith('db') and isinstance(value, dict):
+                keyspace_stats[key] = {
+                    'keys': value.get('keys', 0),
+                    'expires': value.get('expires', 0),
+                    'avg_ttl': value.get('avg_ttl', 0)
+                }
+    except Exception as e:
+        logger.error(f"Error getting Redis statistics: {e}")
+        redis_status = 'error'
 
-            keyspace_hits = redis_info.get('keyspace_hits', 0)
-            keyspace_misses = redis_info.get('keyspace_misses', 0)
-            total_requests = keyspace_hits + keyspace_misses
-            if total_requests > 0:
-                hit_rate = f'{(keyspace_hits / total_requests) * 100:.1f}%'
+    # Cache key pattern analysis
+    cache_key_stats = []
+    try:
+        if redis_status == 'connected':
+            for pattern in ['ref:*', 'rsvp:*', 'session:*', 'task:*', 'user:*', 'match:*']:
+                keys = redis_mgr.client.keys(pattern)
+                if keys:
+                    total_size = 0
+                    sample = keys[:10]
+                    for key in sample:
+                        try:
+                            total_size += redis_mgr.client.memory_usage(key) or 0
+                        except Exception:
+                            total_size += len(str(redis_mgr.client.get(key) or ''))
+                    avg_size = total_size / len(sample)
+                    cache_key_stats.append({
+                        'pattern': pattern,
+                        'count': len(keys),
+                        'avg_size_bytes': avg_size,
+                        'total_size_mb': (avg_size * len(keys)) / (1024 * 1024)
+                    })
+    except Exception as e:
+        logger.warning(f"Error getting cache key statistics: {e}")
 
-            cache_operations_today = redis_info.get('total_commands_processed', 0)
-            active_connections = redis_info.get('connected_clients', 1)
+    cache_stats = {
+        'redis_status': redis_status,
+        'total_keys': total_keys,
+        'memory_usage': memory_usage,
+        'memory_usage_bytes': memory_usage_bytes,
+        'hit_rate': hit_rate,
+        'cache_operations_today': cache_operations_today,
+        'keyspace_stats': keyspace_stats,
+        'cache_key_stats': cache_key_stats,
+        'redis_info': redis_info,
+    }
 
-        except Exception as e:
-            logger.error(f"Error getting Redis statistics: {e}")
-            redis_status = 'error'
+    # --- Connection pool stats ---
+    try:
+        pool_stats = redis_mgr.get_connection_stats()
+    except Exception as e:
+        logger.error(f"Error getting connection pool stats: {e}")
+        pool_stats = {}
 
-        stats = {
-            'redis_status': redis_status,
-            'total_keys': total_keys,
-            'memory_usage': memory_usage,
-            'hit_rate': hit_rate,
-            'cache_operations_today': cache_operations_today,
-            'active_connections': active_connections,
-            'uptime': uptime
+    try:
+        decoded_ping = redis_mgr.client.ping()
+        raw_ping = redis_mgr.raw_client.ping()
+        connection_health = {
+            'decoded_client': decoded_ping,
+            'raw_client': raw_ping,
+            'overall': decoded_ping and raw_ping,
+        }
+    except Exception:
+        connection_health = {
+            'decoded_client': False,
+            'raw_client': False,
+            'overall': False,
         }
 
-        return render_template('admin_panel/cache_management_flowbite.html', stats=stats)
+    server_info = {}
+    try:
+        redis_client = get_redis_connection()
+        server_info = redis_client.info()
     except Exception as e:
-        logger.error(f"Error loading cache management (flowbite): {e}")
-        flash('Cache management unavailable. Verify Redis connection and cache configuration.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+        server_info = {'error': f'Could not get server info: {e}'}
+
+    return render_template('admin_panel/system/cache_redis_flowbite.html',
+                         cache_stats=cache_stats,
+                         pool_stats=pool_stats,
+                         connection_health=connection_health,
+                         server_info=server_info)
 
 
 @admin_panel_bp.route('/cache-management/clear', methods=['POST'])

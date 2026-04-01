@@ -21,6 +21,7 @@ from app.models import db as database
 from app.sms_helpers import send_sms
 from app.email import send_email
 from app.tasks.tasks_ecs_fc_rsvp_helpers import send_ecs_fc_dm_sync
+from app.models.notifications import UserFCMToken
 
 logger = logging.getLogger(__name__)
 
@@ -170,7 +171,7 @@ def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]
                 <br>
                 <p>If you are available to substitute, please respond via SMS or Discord.</p>
                 """
-                
+
                 try:
                     send_email(
                         user.email,
@@ -183,7 +184,46 @@ def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]
                 except Exception as e:
                     logger.error(f"Error sending email to {player.name}: {e}")
                     results['errors'].append(f"Email to {player.name}: {str(e)}")
-            
+
+            # Send push notification if user has FCM tokens
+            if hasattr(user, 'push_notifications') and user.push_notifications:
+                fcm_tokens = session.query(UserFCMToken).filter_by(
+                    user_id=user.id, is_active=True
+                ).all()
+                if fcm_tokens:
+                    try:
+                        from app.services.notification_orchestrator import (
+                            orchestrator, NotificationType, NotificationPayload
+                        )
+                        payload = NotificationPayload(
+                            notification_type=NotificationType.SUB_REQUEST,
+                            title="ECS FC Substitute Request",
+                            message=f"{team_name} needs a sub on {match_date} at {match_time}",
+                            user_ids=[user.id],
+                            data={
+                                'type': 'sub_request',
+                                'request_id': str(request_id),
+                                'match_id': str(match.id),
+                                'deep_link': f'ecs-fc-scheme://sub-request/{request_id}',
+                                'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                                'priority': 'high'
+                            },
+                            force_push=True,
+                            force_in_app=False,
+                            force_email=False,
+                            force_sms=False,
+                            force_discord=False
+                        )
+                        result = orchestrator.send(payload)
+                        if result.get('push', {}).get('success', 0) > 0:
+                            results.setdefault('push_sent', 0)
+                            results['push_sent'] += 1
+                            notification_methods.append('PUSH')
+                            logger.info(f"Push notification sent for sub request to user {user.id}")
+                    except Exception as e:
+                        logger.error(f"Error sending push notification to {player.name}: {e}")
+                        results['errors'].append(f"Push to {player.name}: {str(e)}")
+
             # Update pool stats
             pool_entry.requests_received += 1
             pool_entry.last_active_at = datetime.utcnow()
@@ -673,7 +713,45 @@ def notify_sub_pool_with_slots(self, session, request_id: int) -> Dict[str, Any]
                     except Exception as e:
                         logger.error(f"Error sending email to {player.name}: {e}")
                         results['errors'].append(f"Email to {player.name}: {str(e)}")
-                
+
+                # Send push notification if user has FCM tokens
+                if hasattr(user, 'push_notifications') and user.push_notifications:
+                    fcm_tokens = session.query(UserFCMToken).filter_by(
+                        user_id=user.id, is_active=True
+                    ).all()
+                    if fcm_tokens:
+                        try:
+                            from app.services.notification_orchestrator import (
+                                orchestrator, NotificationType, NotificationPayload
+                            )
+                            payload = NotificationPayload(
+                                notification_type=NotificationType.SUB_REQUEST,
+                                title="ECS FC Substitute Request",
+                                message=f"{message_header} for {team_name} on {match_date} at {match_time}",
+                                user_ids=[user.id],
+                                data={
+                                    'type': 'sub_request',
+                                    'request_id': str(request_id),
+                                    'match_id': str(match.id),
+                                    'deep_link': f'ecs-fc-scheme://sub-request/{request_id}',
+                                    'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                                    'priority': 'high'
+                                },
+                                force_push=True,
+                                force_in_app=False,
+                                force_email=False,
+                                force_sms=False,
+                                force_discord=False
+                            )
+                            result = orchestrator.send(payload)
+                            if result.get('push', {}).get('success', 0) > 0:
+                                gender_results.setdefault('push', 0)
+                                gender_results['push'] += 1
+                                notification_methods.append('PUSH')
+                        except Exception as e:
+                            logger.error(f"Error sending push notification to {player.name}: {e}")
+                            results['errors'].append(f"Push to {player.name}: {str(e)}")
+
                 # Update pool stats
                 pool_entry.requests_received += 1
                 pool_entry.last_active_at = datetime.utcnow()

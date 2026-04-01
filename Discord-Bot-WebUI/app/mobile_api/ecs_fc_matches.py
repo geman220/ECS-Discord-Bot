@@ -1547,9 +1547,17 @@ def create_ecs_fc_substitute_request():
 
         logger.info(f"ECS FC sub request created: {sub_request.id} for match {match_id}")
 
+        # Auto-trigger notifications to the sub pool
+        try:
+            from app.tasks.tasks_ecs_fc_subs import notify_sub_pool_of_request
+            notify_sub_pool_of_request.delay(sub_request.id)
+            logger.info(f"Queued sub pool notifications for request {sub_request.id}")
+        except Exception as e:
+            logger.error(f"Failed to queue sub pool notifications for request {sub_request.id}: {e}")
+
         return jsonify({
             "success": True,
-            "message": "Substitute request created",
+            "message": "Substitute request created and notifications queued",
             "request_id": sub_request.id
         }), 201
 

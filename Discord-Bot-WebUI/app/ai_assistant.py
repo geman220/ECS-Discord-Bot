@@ -26,6 +26,46 @@ logger = logging.getLogger(__name__)
 ai_assistant_bp = Blueprint('ai_assistant', __name__, url_prefix='/api/ai-assistant')
 
 
+@ai_assistant_bp.context_processor
+def inject_admin_nav_context():
+    """Provide admin nav variables when rendering admin panel templates from this blueprint.
+
+    The admin_panel_bp context processors only fire for admin_panel routes, but the
+    AI Assistant metrics page renders admin_panel/base_flowbite.html which needs these.
+    """
+    ctx = {}
+    # nav counts (pending approvals, waitlist)
+    try:
+        from sqlalchemy import func
+        from app.core import db
+        from app.models.core import User, Role
+        ctx['nav_pending_approvals'] = db.session.query(func.count(User.id)).filter(
+            User.approval_status == 'pending'
+        ).scalar() or 0
+        ctx['nav_waitlist_count'] = db.session.query(User).join(User.roles).filter(
+            Role.name == 'pl-waitlist'
+        ).count()
+    except Exception:
+        ctx['nav_pending_approvals'] = 0
+        ctx['nav_waitlist_count'] = 0
+
+    # ECS FC teams for nav dropdown
+    try:
+        from app.models.ecs_fc import get_ecs_fc_teams
+        ctx['ecs_fc_teams'] = get_ecs_fc_teams()
+    except Exception:
+        ctx['ecs_fc_teams'] = []
+
+    # Admin search index
+    try:
+        from app.admin_panel import _build_admin_search_index
+        ctx['admin_search_index'] = _build_admin_search_index()
+    except Exception:
+        ctx['admin_search_index'] = []
+
+    return ctx
+
+
 def _build_navigation_guide(context_type, user_roles):
     """Build a structured description of the portal's UI layout so the AI
     knows exactly WHERE things are (sidebar, navbar, user menu) and can give

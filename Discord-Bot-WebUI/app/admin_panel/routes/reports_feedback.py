@@ -40,22 +40,8 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def reports_dashboard():
-    """Reports overview dashboard with feedback stats and recent items."""
-    session = g.db_session
-
-    stats = {
-        'total': session.query(Feedback).count(),
-        'open': session.query(Feedback).filter(Feedback.status == 'Open').count(),
-        'in_progress': session.query(Feedback).filter(Feedback.status == 'In Progress').count(),
-        'closed': session.query(Feedback).filter(Feedback.status == 'Closed').count()
-    }
-
-    feedbacks = session.query(Feedback).options(
-        joinedload(Feedback.user)
-    ).order_by(Feedback.created_at.desc()).limit(10).all()
-
-    return render_template('admin_panel/reports/dashboard_flowbite.html',
-                         stats=stats, feedbacks=feedbacks)
+    """Redirect to consolidated feedback page."""
+    return redirect(url_for('admin_panel.feedback_list'), code=302)
 
 
 @admin_panel_bp.route('/reports/api/stats')

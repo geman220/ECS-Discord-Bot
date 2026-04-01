@@ -13,7 +13,7 @@ This module contains routes for system monitoring functionality:
 
 import logging
 from datetime import datetime, timedelta
-from flask import render_template, request, jsonify, flash, redirect, url_for
+from flask import render_template, request, jsonify, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
 
 from .. import admin_panel_bp
@@ -34,145 +34,87 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def system_monitoring():
-    """System monitoring hub page."""
-    try:
-        # Get system services health checks
-        services = []
-        
-        # Check Discord API
-        services.append(_check_discord_api_status())
-        
-        # Check Push Notifications
-        services.append(_check_push_service_status())
-        
-        # Check Email Service
-        services.append(_check_email_service_status())
-        
-        # Check Redis Cache
-        services.append(_check_redis_service_status())
-        
-        # Check Database
-        services.append(_check_database_service_status())
-        
-        # Calculate system statistics
-        healthy_services = len([s for s in services if s['status'] == 'healthy'])
-        warning_services = len([s for s in services if s['status'] == 'warning'])
-        error_services = len([s for s in services if s['status'] == 'error'])
-        disabled_services = len([s for s in services if s['status'] == 'disabled'])
-        
-        system_health = 'healthy'
-        if error_services > 0:
-            system_health = 'critical'
-        elif warning_services > 0:
-            system_health = 'warning'
-        
-        # Get system statistics with real performance metrics
-        performance_metrics = _get_system_performance_metrics()
-        stats = {
-            'total_services': len(services),
-            'healthy_services': healthy_services,
-            'warning_services': warning_services,
-            'error_services': error_services,
-            'disabled_services': disabled_services,
-            'system_health': system_health,
-            'uptime': performance_metrics.get('uptime', 'Unknown'),
-            'last_check': datetime.utcnow(),
-            'api_calls_today': _estimate_api_calls_today(),
-            'avg_response_time': _calculate_avg_response_time(),
-            'cpu_usage': performance_metrics.get('cpu_usage', 0),
-            'memory_usage': performance_metrics.get('memory_usage', 0),
-            'disk_usage': performance_metrics.get('disk_usage', 0),
-            'load_average': performance_metrics.get('load_average', 'Unknown'),
-            'active_connections': performance_metrics.get('active_connections', 0)
-        }
-        
-        # Convert services list to dictionary for template access
-        services_dict = {}
-        for service in services:
-            service_name_key = service['name'].lower().replace(' ', '_').replace('api', 'api').replace('notifications', 'notifications').replace('service', '').replace('cache', '')
-            if service['name'] == 'Discord API':
-                services_dict['discord_api'] = service
-            elif service['name'] == 'Push Notifications':
-                services_dict['push_notifications'] = service
-            elif service['name'] == 'Email Service':
-                services_dict['email'] = service
-            elif service['name'] == 'Redis Cache':
-                services_dict['redis'] = service
-            elif service['name'] == 'Database':
-                services_dict['database'] = service
-        
-        return render_template('admin_panel/monitoring/system_monitoring_flowbite.html',
-                             services=services_dict,
-                             services_list=services,
-                             stats=stats)
-    except Exception as e:
-        logger.error(f"Error loading system monitoring: {e}")
-        flash('System monitoring unavailable. Check service health checks and database connectivity.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+    """Redirect to consolidated system health page."""
+    return redirect(url_for('admin_panel.system_health_consolidated'), code=302)
 
 
-@admin_panel_bp.route('/system-monitoring-flowbite')
+@admin_panel_bp.route('/system-health')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-def system_monitoring_flowbite():
-    """System monitoring hub page - Flowbite/Tailwind version (test)."""
+def system_health_consolidated():
+    """Consolidated system health, monitoring, and performance dashboard."""
+    from .system_infrastructure import _check_system_health
+    from ..performance import get_performance_report
+
+    # --- Health status (components: DB, Redis, Celery, Docker) ---
     try:
-        # Get system services health checks
-        services = []
+        health_status = _check_system_health()
+    except Exception as e:
+        logger.error(f"Error getting health status: {e}")
+        health_status = {'status': 'unhealthy', 'timestamp': datetime.utcnow().isoformat(), 'components': {}}
 
-        services.append(_check_discord_api_status())
-        services.append(_check_push_service_status())
-        services.append(_check_email_service_status())
-        services.append(_check_redis_service_status())
-        services.append(_check_database_service_status())
+    # --- Service checks (Discord, Push, Email, Redis, DB) ---
+    services_dict = {}
+    try:
+        service_checks = [
+            _check_discord_api_status(),
+            _check_push_service_status(),
+            _check_email_service_status(),
+            _check_redis_service_status(),
+            _check_database_service_status(),
+        ]
+        for svc in service_checks:
+            if svc['name'] == 'Discord API':
+                services_dict['discord_api'] = svc
+            elif svc['name'] == 'Push Notifications':
+                services_dict['push_notifications'] = svc
+            elif svc['name'] == 'Email Service':
+                services_dict['email'] = svc
+            elif svc['name'] == 'Redis Cache':
+                services_dict['redis'] = svc
+            elif svc['name'] == 'Database':
+                services_dict['database'] = svc
+    except Exception as e:
+        logger.error(f"Error running service checks: {e}")
 
-        healthy_services = len([s for s in services if s['status'] == 'healthy'])
-        warning_services = len([s for s in services if s['status'] == 'warning'])
-        error_services = len([s for s in services if s['status'] == 'error'])
+    # --- System performance metrics (CPU, Memory, Disk) ---
+    try:
+        perf_metrics = _get_system_performance_metrics()
+    except Exception as e:
+        logger.error(f"Error getting performance metrics: {e}")
+        perf_metrics = {}
 
-        system_health = 'healthy'
-        if error_services > 0:
-            system_health = 'critical'
-        elif warning_services > 0:
-            system_health = 'warning'
+    stats = {
+        'cpu_usage': perf_metrics.get('cpu_usage', 0),
+        'memory_usage': perf_metrics.get('memory_usage', 0),
+        'disk_usage': perf_metrics.get('disk_usage', 0),
+        'uptime': perf_metrics.get('uptime', 'Unknown'),
+        'load_average': perf_metrics.get('load_average', 'Unknown'),
+        'active_connections': perf_metrics.get('active_connections', 0),
+    }
 
-        performance_metrics = _get_system_performance_metrics()
-        stats = {
-            'total_services': len(services),
-            'healthy_services': healthy_services,
-            'warning_services': warning_services,
-            'error_services': error_services,
-            'system_health': system_health,
-            'uptime': performance_metrics.get('uptime', 'Unknown'),
-            'last_check': datetime.utcnow(),
-            'cpu_usage': performance_metrics.get('cpu_usage', 0),
-            'memory_usage': performance_metrics.get('memory_usage', 0),
-            'disk_usage': performance_metrics.get('disk_usage', 0),
-            'load_average': performance_metrics.get('load_average', 'Unknown'),
-            'active_connections': performance_metrics.get('active_connections', 0)
+    # --- DB / Cache performance report ---
+    try:
+        performance = get_performance_report()
+    except Exception as e:
+        logger.error(f"Error getting performance report: {e}")
+        performance = {
+            'database': {'avg_query_time': 0, 'slow_queries': 0, 'total_queries': 0, 'min_time': 0, 'max_time': 0},
+            'cache': {'active_entries': 0, 'cache_size_mb': 0, 'expired_entries': 0, 'total_entries': 0}
         }
 
-        services_dict = {}
-        for service in services:
-            if service['name'] == 'Discord API':
-                services_dict['discord_api'] = service
-            elif service['name'] == 'Push Notifications':
-                services_dict['push_notifications'] = service
-            elif service['name'] == 'Email Service':
-                services_dict['email'] = service
-            elif service['name'] == 'Redis Cache':
-                services_dict['redis'] = service
-            elif service['name'] == 'Database':
-                services_dict['database'] = service
+    diagnostics = {
+        'timestamp': datetime.utcnow().isoformat(),
+        'environment': current_app.config.get('ENV', 'production'),
+        'debug_mode': current_app.debug,
+    }
 
-        return render_template('admin_panel/monitoring/system_monitoring_flowbite.html',
-                             services=services_dict,
-                             services_list=services,
-                             stats=stats)
-    except Exception as e:
-        logger.error(f"Error loading system monitoring (flowbite): {e}")
-        flash('System monitoring unavailable. Check service health checks and database connectivity.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+    return render_template('admin_panel/monitoring/system_health_flowbite.html',
+                         health_status=health_status,
+                         services=services_dict,
+                         stats=stats,
+                         performance=performance,
+                         diagnostics=diagnostics)
 
 
 @admin_panel_bp.route('/monitoring/tasks')

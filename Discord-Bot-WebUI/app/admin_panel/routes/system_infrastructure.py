@@ -36,24 +36,8 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def health_dashboard():
-    """System health dashboard with comprehensive health checks."""
-    try:
-        health_status = _check_system_health()
-
-        # Get additional diagnostics
-        diagnostics = {
-            'timestamp': datetime.now().isoformat(),
-            'environment': current_app.config.get('ENV', 'production'),
-            'debug_mode': current_app.debug
-        }
-
-        return render_template('admin_panel/system/health_dashboard_flowbite.html',
-                             health_status=health_status,
-                             diagnostics=diagnostics)
-    except Exception as e:
-        logger.error(f"Error loading health dashboard: {e}")
-        flash('Health dashboard unavailable. Check system connectivity.', 'error')
-        return redirect(url_for('admin_panel.system_monitoring'))
+    """Redirect to consolidated system health page."""
+    return redirect(url_for('admin_panel.system_health_consolidated'), code=302)
 
 
 @admin_panel_bp.route('/system/health/api')
@@ -210,46 +194,8 @@ def test_twilio_config():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def redis_management():
-    """Redis connection management dashboard."""
-    try:
-        from app.utils.redis_manager import get_redis_manager, get_redis_connection
-
-        redis_manager = get_redis_manager()
-        stats = redis_manager.get_connection_stats()
-
-        # Test connection health
-        try:
-            decoded_ping = redis_manager.client.ping()
-            raw_ping = redis_manager.raw_client.ping()
-            connection_health = {
-                'decoded_client': decoded_ping,
-                'raw_client': raw_ping,
-                'overall': decoded_ping and raw_ping
-            }
-        except Exception as e:
-            connection_health = {
-                'decoded_client': False,
-                'raw_client': False,
-                'overall': False,
-                'error': 'Internal Server Error'
-            }
-
-        # Get Redis server info
-        server_info = {}
-        try:
-            redis_client = get_redis_connection()
-            server_info = redis_client.info()
-        except Exception as e:
-            server_info = {'error': f'Could not get server info: {e}'}
-
-        return render_template('admin_panel/system/redis_management_flowbite.html',
-                             stats=stats,
-                             connection_health=connection_health,
-                             server_info=server_info)
-    except Exception as e:
-        logger.error(f"Error loading Redis management: {e}")
-        flash('Redis management unavailable. Check Redis connectivity.', 'error')
-        return redirect(url_for('admin_panel.system_monitoring'))
+    """Redirect to consolidated cache & redis page."""
+    return redirect(url_for('admin_panel.cache_redis_consolidated'), code=302)
 
 
 @admin_panel_bp.route('/system/redis/api/stats')

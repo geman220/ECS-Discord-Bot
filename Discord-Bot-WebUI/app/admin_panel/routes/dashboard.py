@@ -144,64 +144,6 @@ def dashboard():
         return redirect(url_for('main.index'))
 
 
-@admin_panel_bp.route('/audit-logs-flowbite')
-@login_required
-@role_required(['Global Admin', 'Pub League Admin'])
-def audit_logs_flowbite():
-    """View admin audit logs - Flowbite/Tailwind version (test)."""
-    try:
-        page = request.args.get('page', 1, type=int)
-        per_page = 50
-
-        # Get filter parameters
-        user_id = request.args.get('user_id', type=int)
-        resource_type = request.args.get('resource_type')
-        date_from = request.args.get('date_from')
-        date_to = request.args.get('date_to')
-
-        # Build query
-        query = AdminAuditLog.query
-
-        if user_id:
-            query = query.filter(AdminAuditLog.user_id == user_id)
-        if resource_type:
-            query = query.filter(AdminAuditLog.resource_type == resource_type)
-        if date_from:
-            query = query.filter(AdminAuditLog.timestamp >= date_from)
-        if date_to:
-            query = query.filter(AdminAuditLog.timestamp <= date_to)
-
-        # Order by timestamp descending
-        query = query.order_by(AdminAuditLog.timestamp.desc())
-
-        # Paginate
-        logs = query.paginate(page=page, per_page=per_page, error_out=False)
-
-        # Get all users for filter dropdown
-        users = User.query.order_by(User.username).all()
-
-        # Get unique resource types for filter
-        resource_types = [r[0] for r in db.session.query(AdminAuditLog.resource_type).distinct().all() if r[0]]
-
-        # Current filters for pagination
-        current_filters = {
-            'user_id': user_id,
-            'resource_type': resource_type,
-            'date_from': date_from,
-            'date_to': date_to
-        }
-
-        return render_template('admin_panel/audit_logs_flowbite.html',
-                             logs=logs,
-                             users=users,
-                             resource_types=resource_types,
-                             current_filters=current_filters)
-    except Exception as e:
-        logger.error(f"Error loading audit logs (flowbite): {e}")
-        flash('Audit logs unavailable. Database or logging service may be offline.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
-
-
 @admin_panel_bp.route('/features')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
@@ -564,17 +506,8 @@ def clear_flashes():
 @login_required
 @role_required(['Global Admin'])  # Only Global Admins can view performance metrics
 def performance_monitoring():
-    """Performance monitoring dashboard."""
-    try:
-        performance_report = get_performance_report()
-        
-        return render_template('admin_panel/performance_flowbite.html',
-                             report=performance_report,
-                             title='Performance Monitoring')
-    except Exception as e:
-        logger.error(f"Error loading performance monitoring: {e}")
-        flash('Performance monitoring data unavailable. Check system resources.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+    """Redirect to consolidated system health page."""
+    return redirect(url_for('admin_panel.system_health_consolidated'), code=302)
 
 
 @admin_panel_bp.route('/performance/clear-cache', methods=['POST'])

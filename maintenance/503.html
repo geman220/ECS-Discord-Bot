@@ -364,16 +364,55 @@
         var IC_SPIN  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10"/></svg>';
         var IC_DOT   = '<svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="2" fill="currentColor" opacity=".35"/></svg>';
 
-        /* ── State (persisted across refreshes) ────────────────────── */
-        var STORAGE_KEY = 'ecs_maint_start';
-        var stored = null;
-        try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) {}
-        var t0 = stored ? parseInt(stored, 10) : Date.now();
-        if (!stored) { try { localStorage.setItem(STORAGE_KEY, t0); } catch (e) {} }
+        /* ── State ─────────────────────────────────────────────────── */
+        var t0 = null;       // deploy start time (ms) — set from server
         var done = false;
+        var ready_to_render = false;
 
         /* ── DOM shortcuts ─────────────────────────────────────────── */
         function $(id) { return document.getElementById(id); }
+
+        /* ── Fetch server-authoritative deploy start time ──────────── */
+        function fetchDeployTime(cb) {
+            var x = new XMLHttpRequest();
+            x.open('GET', '/data/deploy_time.json?_=' + Date.now(), true);
+            x.timeout = 3000;
+            x.onload = function () {
+                if (x.status === 200) {
+                    try {
+                        var data = JSON.parse(x.responseText);
+                        if (data && data.start) {
+                            cb(data.start);
+                            return;
+                        }
+                    } catch (e) {}
+                }
+                cb(null);
+            };
+            x.onerror = x.ontimeout = function () { cb(null); };
+            x.send();
+        }
+
+        /* ── Initialize start time ─────────────────────────────────── */
+        // Try server first, fall back to localStorage, then Date.now()
+        var STORAGE_KEY = 'ecs_maint_start';
+
+        fetchDeployTime(function (serverStart) {
+            if (serverStart) {
+                // Server has the authoritative deploy timestamp — use it
+                t0 = serverStart;
+                try { localStorage.setItem(STORAGE_KEY, t0); } catch (e) {}
+            } else {
+                // Server timestamp unavailable — fall back to localStorage
+                var stored = null;
+                try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+                t0 = stored ? parseInt(stored, 10) : Date.now();
+                if (!stored) {
+                    try { localStorage.setItem(STORAGE_KEY, t0); } catch (e) {}
+                }
+            }
+            ready_to_render = true;
+        });
 
         /* ── Particles ─────────────────────────────────────────────── */
         (function () {
@@ -421,6 +460,7 @@
 
         /* ── Simulated progress (exponential ease, caps at 95%) ──── */
         function simProg() {
+            if (!t0) return 0;
             var r = (Date.now() - t0) / EST;
             return Math.min(0.95, 1 - Math.exp(-2.8 * r));
         }
@@ -448,6 +488,7 @@
         /* ── Render loop ───────────────────────────────────────────── */
         function tick() {
             if (done) return;
+            if (!ready_to_render) { requestAnimationFrame(tick); return; }
             var p = simProg();
             $('bar').style.width = Math.round(p * 100) + '%';
             $('pct').textContent  = Math.round(p * 100) + '%';

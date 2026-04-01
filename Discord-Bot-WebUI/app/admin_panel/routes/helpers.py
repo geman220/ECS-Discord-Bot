@@ -377,28 +377,29 @@ def _check_push_service_status():
             push_enabled = False
         
         # Check if UserFCMToken table exists and is accessible
+        total_tokens = 0
+        active_tokens = 0
+        service_available = False
         try:
-            from app.models.communication import UserFCMToken
+            from app.models.notifications import UserFCMToken
             total_tokens = UserFCMToken.query.count()
             active_tokens = UserFCMToken.query.filter_by(is_active=True).count()
             service_available = True
+        except ImportError:
+            logger.debug("UserFCMToken model not available")
         except Exception as e:
-            # UserFCMToken table might not exist or there's a database issue
-            logger.debug(f"UserFCMToken access failed: {e}")
-            total_tokens = 0
-            active_tokens = 0
-            service_available = False
-        
+            logger.debug(f"UserFCMToken access failed (table may need migration): {e}")
+
         # Count configured mobile services
         mobile_configured = bool(mobile_config['api_key'] and mobile_config['webui_base_url'])
         wallet_configured = all(wallet_config.values())
-        
+
         active_services = []
         if mobile_configured:
             active_services.append(f"Mobile API ({mobile_config['webui_base_url']})")
         if wallet_configured:
             active_services.append(f"Apple Wallet ({wallet_config['pass_type_id']})")
-        
+
         # Determine status based on configuration and device registrations
         if not mobile_configured and not wallet_configured and not push_enabled:
             return {
@@ -408,24 +409,18 @@ def _check_push_service_status():
                 'last_check': datetime.utcnow(),
                 'response_time': 'N/A'
             }
-        
-        if not service_available:
-            if active_services:
-                return {
-                    'name': 'Push Notifications',
-                    'status': 'warning',
-                    'message': f'Services configured but DB unavailable: {", ".join(active_services)}',
-                    'last_check': datetime.utcnow(),
-                    'response_time': 'N/A'
-                }
-            else:
-                return {
-                    'name': 'Push Notifications',
-                    'status': 'warning',
-                    'message': 'Service not configured or DB unavailable',
-                    'last_check': datetime.utcnow(),
-                    'response_time': 'N/A'
-                }
+
+        # If services are configured but device table isn't available,
+        # still attempt the API health check rather than stopping here
+        if not service_available and not mobile_config.get('webui_api_url'):
+            return {
+                'name': 'Push Notifications',
+                'status': 'healthy',
+                'message': f'Services configured: {", ".join(active_services)}. Device tracking pending setup.',
+                'details': 'FCM token table needs migration',
+                'last_check': datetime.utcnow(),
+                'response_time': 'N/A'
+            }
         
         # If mobile services are configured, test API availability
         if mobile_config['webui_api_url']:

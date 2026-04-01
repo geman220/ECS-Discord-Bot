@@ -1,0 +1,569 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}Cache & Redis{% endblock %}
+{% block panel_description %}Cache operations and Redis connection management{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.system_health_consolidated') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">System</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Cache & Redis</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Status Overview Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <!-- Redis Status -->
+    <div class="rounded-lg p-5 {{ 'bg-green-500' if cache_stats.redis_status == 'connected' else 'bg-red-500' }} text-white">
+        <div class="flex flex-col items-center text-center">
+            <i class="ti ti-server text-3xl mb-2"></i>
+            <h3 class="text-lg font-bold capitalize">{{ cache_stats.redis_status|default('unknown') }}</h3>
+            <span class="text-sm text-white/80">Redis Status</span>
+        </div>
+    </div>
+    <!-- Total Keys -->
+    <div class="rounded-lg p-5 bg-blue-500 text-white">
+        <div class="flex flex-col items-center text-center">
+            <i class="ti ti-key text-3xl mb-2"></i>
+            <h3 class="text-lg font-bold">{{ cache_stats.total_keys|default(0) }}</h3>
+            <span class="text-sm text-white/80">Total Keys</span>
+        </div>
+    </div>
+    <!-- Memory Usage -->
+    <div class="rounded-lg p-5 bg-yellow-500 text-white">
+        <div class="flex flex-col items-center text-center">
+            <i class="ti ti-cpu text-3xl mb-2"></i>
+            <h3 class="text-lg font-bold">{{ cache_stats.memory_usage|default('N/A') }}</h3>
+            <span class="text-sm text-white/80">Memory Usage</span>
+        </div>
+    </div>
+    <!-- Hit Rate -->
+    <div class="rounded-lg p-5 bg-ecs-green text-white">
+        <div class="flex flex-col items-center text-center">
+            <i class="ti ti-target-arrow text-3xl mb-2"></i>
+            <h3 class="text-lg font-bold">{{ cache_stats.hit_rate|default('N/A') }}</h3>
+            <span class="text-sm text-white/80">Hit Rate</span>
+        </div>
+    </div>
+</div>
+
+<!-- Tab Navigation -->
+<div class="mb-6">
+    <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700" id="cache-redis-tabs">
+        <button type="button"
+                class="cache-redis-tab px-4 py-3 text-sm font-medium border-b-2 border-ecs-green text-ecs-green"
+                data-action="switch-cache-tab"
+                data-tab-target="cache-operations">
+            <i class="ti ti-database mr-1"></i> Cache Operations
+        </button>
+        <button type="button"
+                class="cache-redis-tab px-4 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 border-b-2 border-transparent hover:text-gray-700 dark:hover:text-gray-200"
+                data-action="switch-cache-tab"
+                data-tab-target="connection-pool">
+            <i class="ti ti-plug mr-1"></i> Connection Pool
+        </button>
+    </div>
+</div>
+
+<!-- Tab Content -->
+<!-- ========== TAB 1: Cache Operations ========== -->
+<div id="cache-operations" class="cache-redis-pane">
+    <!-- Cache Actions -->
+    <div class="flex flex-wrap gap-3 mb-6">
+        <button type="button"
+                data-action="clear-all-cache"
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-red-600 hover:bg-red-700 text-white focus:ring-red-500/50 px-4 py-2 text-sm">
+            <i class="ti ti-trash mr-2"></i>Clear All Cache
+        </button>
+        <button type="button"
+                data-action="clear-user-cache"
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500/50 px-4 py-2 text-sm">
+            <i class="ti ti-user-off mr-2"></i>Clear User Cache
+        </button>
+        <button type="button"
+                data-action="refresh-cache-stats"
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500/50 px-4 py-2 text-sm">
+            <i class="ti ti-refresh mr-2"></i>Refresh Stats
+        </button>
+    </div>
+
+    <!-- Cache Analytics -->
+    {% call card(title="Cache Analytics", subtitle="Current cache performance metrics") %}
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div class="text-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ cache_stats.cache_operations_today|default(0) }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Operations Today</div>
+        </div>
+        <div class="text-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div class="text-2xl font-bold text-ecs-green">{{ cache_stats.hit_rate|default('N/A') }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Hit Rate</div>
+        </div>
+        <div class="text-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div class="text-2xl font-bold text-yellow-500">{{ cache_stats.memory_usage|default('N/A') }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Memory Used</div>
+        </div>
+        <div class="text-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div class="text-2xl font-bold text-blue-500">{{ cache_stats.redis_info.connected_clients|default('N/A') }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Connected Clients</div>
+        </div>
+        <div class="text-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            {% set uptime = cache_stats.redis_info.uptime_in_seconds|default(0)|int %}
+            {% set days = uptime // 86400 %}
+            {% set hours = (uptime % 86400) // 3600 %}
+            {% set minutes = (uptime % 3600) // 60 %}
+            <div class="text-2xl font-bold text-gray-900 dark:text-white">
+                {% if days > 0 %}{{ days }}d {{ hours }}h{% elif hours > 0 %}{{ hours }}h {{ minutes }}m{% else %}{{ minutes }}m{% endif %}
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Uptime</div>
+        </div>
+    </div>
+    {% endcall %}
+
+    <!-- Keyspace Stats -->
+    {% if cache_stats.keyspace_stats %}
+    <div class="mt-6">
+        {% call card(title="Keyspace Statistics", subtitle="Per-database key distribution") %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Database</th>
+                        <th scope="col" class="px-4 py-3">Keys</th>
+                        <th scope="col" class="px-4 py-3">Expires</th>
+                        <th scope="col" class="px-4 py-3">Avg TTL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for db_name, db_info in cache_stats.keyspace_stats.items() %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                            <i class="ti ti-database mr-1 text-blue-500"></i>{{ db_name }}
+                        </td>
+                        <td class="px-4 py-3">{{ db_info.keys|default(0) }}</td>
+                        <td class="px-4 py-3">{{ db_info.expires|default(0) }}</td>
+                        <td class="px-4 py-3">{{ db_info.avg_ttl|default(0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endcall %}
+    </div>
+    {% endif %}
+
+    <!-- Cache Key Patterns -->
+    {% if cache_stats.cache_key_stats %}
+    <div class="mt-6">
+        {% call card(title="Cache Key Patterns", subtitle="Key distribution by pattern") %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-4 py-3">Pattern</th>
+                        <th scope="col" class="px-4 py-3">Key Count</th>
+                        <th scope="col" class="px-4 py-3">Avg Size</th>
+                        <th scope="col" class="px-4 py-3">Total Size</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in cache_stats.cache_key_stats %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                            <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">{{ entry.pattern }}</code>
+                        </td>
+                        <td class="px-4 py-3">{{ entry.count }}</td>
+                        <td class="px-4 py-3">{{ entry.avg_size_bytes }} B</td>
+                        <td class="px-4 py-3">{{ entry.total_size_mb }} MB</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endcall %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- ========== TAB 2: Connection Pool ========== -->
+<div id="connection-pool" class="cache-redis-pane hidden">
+    <!-- Connection Health -->
+    {% call card(title="Connection Health", subtitle="Redis client connection status") %}
+    <div class="space-y-4">
+        <!-- Overall Status -->
+        <div class="flex items-center justify-between p-4 rounded-lg {{ 'bg-green-50 dark:bg-green-900/20' if connection_health.overall else 'bg-red-50 dark:bg-red-900/20' }}">
+            <div class="flex items-center gap-3">
+                <i class="ti {{ 'ti-circle-check text-green-500' if connection_health.overall else 'ti-circle-x text-red-500' }} text-2xl"></i>
+                <div>
+                    <div class="font-medium text-gray-900 dark:text-white">Overall Status</div>
+                    <div class="text-sm {{ 'text-green-600 dark:text-green-400' if connection_health.overall else 'text-red-600 dark:text-red-400' }}">
+                        {{ 'All connections healthy' if connection_health.overall else 'Connection issues detected' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Individual Clients -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <i class="ti {{ 'ti-circle-check text-green-500' if connection_health.decoded_client else 'ti-circle-x text-red-500' }} text-xl"></i>
+                <div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">Decoded Client</div>
+                    <div class="text-xs {{ 'text-green-600 dark:text-green-400' if connection_health.decoded_client else 'text-red-600 dark:text-red-400' }}">
+                        {{ 'Connected' if connection_health.decoded_client else 'Disconnected' }}
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <i class="ti {{ 'ti-circle-check text-green-500' if connection_health.raw_client else 'ti-circle-x text-red-500' }} text-xl"></i>
+                <div>
+                    <div class="text-sm font-medium text-gray-900 dark:text-white">Raw Client</div>
+                    <div class="text-xs {{ 'text-green-600 dark:text-green-400' if connection_health.raw_client else 'text-red-600 dark:text-red-400' }}">
+                        {{ 'Connected' if connection_health.raw_client else 'Disconnected' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endcall %}
+
+    <!-- Pool Statistics -->
+    <div class="mt-6">
+        {% call card(title="Pool Statistics", subtitle="Connection pool metrics") %}
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for key, value in pool_stats.items() %}
+            <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ key|replace('_', ' ')|title }}</div>
+                <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endcall %}
+    </div>
+
+    <!-- Server Info -->
+    <div class="mt-6">
+        {% call card(title="Server Information", subtitle="Key Redis server details") %}
+        <div class="overflow-x-auto max-h-96 overflow-y-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <tbody>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 pr-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Redis Version</td>
+                        <td class="py-3">{{ server_info.redis_version|default('N/A') }}</td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 pr-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Uptime (seconds)</td>
+                        <td class="py-3">{{ server_info.uptime_in_seconds|default('N/A') }}</td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 pr-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Connected Clients</td>
+                        <td class="py-3">{{ server_info.connected_clients|default('N/A') }}</td>
+                    </tr>
+                    <tr class="border-b dark:border-gray-700">
+                        <td class="py-3 pr-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Memory Usage</td>
+                        <td class="py-3">{{ server_info.used_memory_human|default('N/A') }}</td>
+                    </tr>
+                    <tr>
+                        <td class="py-3 pr-4 font-medium text-gray-900 dark:text-white whitespace-nowrap">Total Connections Received</td>
+                        <td class="py-3">{{ server_info.total_connections_received|default('N/A') }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        {% endcall %}
+    </div>
+
+    <!-- Connection Pool Actions -->
+    <div class="mt-6 flex flex-wrap items-center gap-3">
+        <button id="redis-mgmt-refresh-btn" type="button"
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500/50 px-4 py-2 text-sm">
+            <i class="ti ti-refresh mr-2"></i>Refresh
+        </button>
+        <button id="cleanup-btn" type="button"
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-yellow-500 hover:bg-yellow-600 text-white focus:ring-yellow-500/50 px-4 py-2 text-sm">
+            <i class="ti ti-trash mr-2"></i>Cleanup Connections
+        </button>
+        <button id="test-btn" type="button"
+                class="inline-flex items-center justify-center font-medium rounded-lg transition-colors focus:outline-none focus:ring-4 bg-cyan-500 hover:bg-cyan-600 text-white focus:ring-cyan-500/50 px-4 py-2 text-sm">
+            <i class="ti ti-plug mr-2"></i>Test Connection
+        </button>
+        <label class="relative inline-flex items-center cursor-pointer ml-2">
+            <input type="checkbox" id="auto-refresh" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+            <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Auto-refresh</span>
+        </label>
+        <span id="last-updated" class="text-sm text-gray-500 dark:text-gray-400"></span>
+    </div>
+
+    <!-- Connection Test Results -->
+    <div class="mt-6">
+        {% call card(title="Connection Test Results", subtitle="Click Test Connection to run diagnostics") %}
+        <div id="test-results">
+            <p class="text-gray-500 dark:text-gray-400">
+                <i class="ti ti-info-circle mr-2"></i>Click "Test Connection" to run connection tests
+            </p>
+        </div>
+        {% endcall %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const isDark = document.documentElement.classList.contains('dark');
+    let autoRefreshInterval;
+
+    // ==================== Tab Switching ====================
+    function initTabs() {
+        const tabs = document.querySelectorAll('.cache-redis-tab');
+        const panes = document.querySelectorAll('.cache-redis-pane');
+
+        tabs.forEach(function(tab) {
+            tab.addEventListener('click', function() {
+                const target = this.getAttribute('data-tab-target');
+
+                // Update tab styles
+                tabs.forEach(function(t) {
+                    t.classList.remove('border-ecs-green', 'text-ecs-green');
+                    t.classList.add('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+                });
+                this.classList.remove('text-gray-500', 'dark:text-gray-400', 'border-transparent');
+                this.classList.add('border-ecs-green', 'text-ecs-green');
+
+                // Show/hide panes
+                panes.forEach(function(p) {
+                    p.classList.add('hidden');
+                });
+                var targetPane = document.getElementById(target);
+                if (targetPane) {
+                    targetPane.classList.remove('hidden');
+                }
+            });
+        });
+    }
+
+    // ==================== Cache Clear Actions ====================
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+
+    function clearCache(pattern) {
+        var swalOptions = {
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        };
+
+        var title = pattern === 'all' ? 'Clear All Cache' : 'Clear User Cache';
+        var text = pattern === 'all'
+            ? 'This will remove all cached data. Are you sure?'
+            : 'This will remove all user-related cached data. Are you sure?';
+
+        window.Swal.fire(Object.assign({}, swalOptions, {
+            title: title,
+            text: text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, clear it'
+        })).then(function(result) {
+            if (!result.isConfirmed) return;
+
+            fetch('/admin-panel/cache-management/clear', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ pattern: pattern })
+            })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    window.Swal.fire(Object.assign({}, swalOptions, {
+                        icon: 'success',
+                        title: 'Cleared',
+                        text: data.message || 'Cache cleared successfully'
+                    }));
+                } else {
+                    window.Swal.fire(Object.assign({}, swalOptions, {
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to clear cache'
+                    }));
+                }
+            })
+            .catch(function(error) {
+                window.Swal.fire(Object.assign({}, swalOptions, {
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Request failed: ' + error
+                }));
+            });
+        });
+    }
+
+    // ==================== Connection Pool Actions ====================
+    function testConnection() {
+        var testButton = document.getElementById('test-btn');
+        if (!testButton) return;
+
+        var originalText = testButton.innerHTML;
+        testButton.innerHTML = '<i class="ti ti-loader animate-spin mr-2"></i>Testing...';
+        testButton.disabled = true;
+
+        fetch('{{ url_for("admin_panel.redis_test_connection") }}')
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                var resultsDiv = document.getElementById('test-results');
+                if (!resultsDiv) return;
+
+                if (data.error) {
+                    resultsDiv.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-400">' + data.error + '</div>';
+                } else {
+                    var html = '<div class="grid grid-cols-1 md:grid-cols-3 gap-4">';
+                    for (var testName in data.tests) {
+                        if (!data.tests.hasOwnProperty(testName)) continue;
+                        var result = data.tests[testName];
+                        var badgeClass = result.status === 'success'
+                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+                        var iconClass = result.status === 'success' ? 'ti-circle-check text-green-500' : 'ti-circle-x text-red-500';
+                        html += '<div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4">' +
+                            '<div class="flex items-center mb-2">' +
+                            '<i class="ti ' + iconClass + ' mr-2"></i>' +
+                            '<h6 class="font-medium text-gray-900 dark:text-white capitalize">' + testName.replace(/_/g, ' ') + '</h6>' +
+                            '</div>' +
+                            '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + badgeClass + '">' + result.status + '</span>' +
+                            '<p class="mt-2 text-sm text-gray-500 dark:text-gray-400">' + result.message + '</p>' +
+                            '</div>';
+                    }
+                    html += '</div>';
+                    resultsDiv.innerHTML = html;
+                }
+            })
+            .catch(function(error) {
+                var resultsDiv = document.getElementById('test-results');
+                if (resultsDiv) {
+                    resultsDiv.innerHTML = '<div class="p-4 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-400">Error running tests: ' + error + '</div>';
+                }
+            })
+            .finally(function() {
+                testButton.innerHTML = originalText;
+                testButton.disabled = false;
+            });
+    }
+
+    function cleanupConnections() {
+        var cleanupButton = document.getElementById('cleanup-btn');
+        if (!cleanupButton) return;
+
+        var originalText = cleanupButton.innerHTML;
+        cleanupButton.innerHTML = '<i class="ti ti-loader animate-spin mr-2"></i>Cleaning...';
+        cleanupButton.disabled = true;
+
+        var swalOptions = {
+            background: isDark ? '#1f2937' : '#ffffff',
+            color: isDark ? '#f3f4f6' : '#111827'
+        };
+
+        fetch('{{ url_for("admin_panel.redis_cleanup_connections") }}', { method: 'POST' })
+            .then(function(response) { return response.json(); })
+            .then(function(data) {
+                if (data.error) {
+                    window.Swal.fire(Object.assign({}, swalOptions, {
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error during cleanup: ' + data.error
+                    }));
+                } else {
+                    window.Swal.fire(Object.assign({}, swalOptions, {
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Connection cleanup completed successfully'
+                    }));
+                }
+            })
+            .catch(function(error) {
+                window.Swal.fire(Object.assign({}, swalOptions, {
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Error during cleanup: ' + error
+                }));
+            })
+            .finally(function() {
+                cleanupButton.innerHTML = originalText;
+                cleanupButton.disabled = false;
+            });
+    }
+
+    function updateLastUpdated() {
+        var el = document.getElementById('last-updated');
+        if (el) {
+            el.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+        }
+    }
+
+    // ==================== Init ====================
+    document.addEventListener('DOMContentLoaded', function() {
+        initTabs();
+
+        // Cache operations buttons
+        document.querySelectorAll('[data-action="clear-all-cache"]').forEach(function(btn) {
+            btn.addEventListener('click', function() { clearCache('all'); });
+        });
+
+        document.querySelectorAll('[data-action="clear-user-cache"]').forEach(function(btn) {
+            btn.addEventListener('click', function() { clearCache('user:*'); });
+        });
+
+        document.querySelectorAll('[data-action="refresh-cache-stats"]').forEach(function(btn) {
+            btn.addEventListener('click', function() { location.reload(); });
+        });
+
+        // Connection pool buttons
+        var refreshBtn = document.getElementById('redis-mgmt-refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() { location.reload(); });
+        }
+
+        var testBtn = document.getElementById('test-btn');
+        if (testBtn) {
+            testBtn.addEventListener('click', testConnection);
+        }
+
+        var cleanupBtn = document.getElementById('cleanup-btn');
+        if (cleanupBtn) {
+            cleanupBtn.addEventListener('click', cleanupConnections);
+        }
+
+        // Auto-refresh toggle
+        var autoRefreshToggle = document.getElementById('auto-refresh');
+        if (autoRefreshToggle) {
+            autoRefreshToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    autoRefreshInterval = setInterval(function() {
+                        location.reload();
+                    }, 30000);
+                    updateLastUpdated();
+                } else {
+                    clearInterval(autoRefreshInterval);
+                }
+            });
+        }
+
+        updateLastUpdated();
+    });
+})();
+</script>
+{% endblock %}

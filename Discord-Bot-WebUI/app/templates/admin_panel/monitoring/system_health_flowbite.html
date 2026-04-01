@@ -1,0 +1,585 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}System Health{% endblock %}
+{% block panel_description %}Consolidated system health, performance, and diagnostics{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">System</span>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">System Health</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div class="space-y-6">
+
+    {# ================================================================
+       SECTION 1: Overall Status Banner
+       ================================================================ #}
+    {% set status_val = health_status.status|default('healthy') %}
+    <div class="rounded-lg shadow-md border p-6
+        {% if status_val == 'healthy' %}bg-green-50 border-green-300 dark:bg-green-900/20 dark:border-green-800
+        {% elif status_val == 'degraded' %}bg-yellow-50 border-yellow-300 dark:bg-yellow-900/20 dark:border-yellow-800
+        {% else %}bg-red-50 border-red-300 dark:bg-red-900/20 dark:border-red-800{% endif %}">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="p-3 rounded-full
+                    {% if status_val == 'healthy' %}bg-green-100 dark:bg-green-900/40
+                    {% elif status_val == 'degraded' %}bg-yellow-100 dark:bg-yellow-900/40
+                    {% else %}bg-red-100 dark:bg-red-900/40{% endif %}">
+                    <i class="ti
+                        {% if status_val == 'healthy' %}ti-heart-rate-monitor text-green-600 dark:text-green-400
+                        {% elif status_val == 'degraded' %}ti-alert-triangle text-yellow-600 dark:text-yellow-400
+                        {% else %}ti-alert-octagon text-red-600 dark:text-red-400{% endif %} text-3xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-bold
+                        {% if status_val == 'healthy' %}text-green-800 dark:text-green-300
+                        {% elif status_val == 'degraded' %}text-yellow-800 dark:text-yellow-300
+                        {% else %}text-red-800 dark:text-red-300{% endif %}">
+                        System {{ status_val|title }}
+                    </h2>
+                    <p class="text-sm
+                        {% if status_val == 'healthy' %}text-green-600 dark:text-green-400
+                        {% elif status_val == 'degraded' %}text-yellow-600 dark:text-yellow-400
+                        {% else %}text-red-600 dark:text-red-400{% endif %}">
+                        Last checked: {{ health_status.timestamp|default('N/A') }}
+                    </p>
+                </div>
+            </div>
+            <button type="button" data-action="refresh-status"
+                    class="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border transition-colors
+                    {% if status_val == 'healthy' %}text-green-700 border-green-400 hover:bg-green-100 dark:text-green-300 dark:border-green-700 dark:hover:bg-green-900/40
+                    {% elif status_val == 'degraded' %}text-yellow-700 border-yellow-400 hover:bg-yellow-100 dark:text-yellow-300 dark:border-yellow-700 dark:hover:bg-yellow-900/40
+                    {% else %}text-red-700 border-red-400 hover:bg-red-100 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-900/40{% endif %}">
+                <i class="ti ti-refresh"></i>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    {# ================================================================
+       SECTION 2: Service Status Cards
+       ================================================================ #}
+    {% if health_status.components %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for comp_name, comp_data in health_status.components.items() %}
+        {% set comp_status = comp_data.status|default('unknown') %}
+        <div class="rounded-lg p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600">
+            <div class="flex items-start justify-between">
+                <div class="flex items-center gap-3">
+                    <span class="w-3 h-3 rounded-full flex-shrink-0
+                        {% if comp_status == 'healthy' %}bg-green-500
+                        {% elif comp_status == 'degraded' or comp_status == 'warning' %}bg-yellow-500
+                        {% elif comp_status == 'disabled' %}bg-gray-400
+                        {% else %}bg-red-500{% endif %}"></span>
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white">{{ comp_name|replace('_', ' ')|title }}</h4>
+                        {% if comp_data.message %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ comp_data.message }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    {% if comp_data.worker_count is defined %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                        {{ comp_data.worker_count }} workers
+                    </span>
+                    {% endif %}
+                    {% if comp_data.running_count is defined and comp_data.container_count is defined %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                        {{ comp_data.running_count }}/{{ comp_data.container_count }}
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {# ================================================================
+       SECTION 3: Tabbed Content Area
+       ================================================================ #}
+    <div>
+        <!-- Tab Buttons -->
+        <div class="border-b border-gray-200 dark:border-gray-700">
+            <ul class="flex flex-wrap -mb-px text-sm font-medium text-center">
+                <li class="mr-2">
+                    <button type="button" data-action="switch-tab" data-tab="performance"
+                            id="tab-btn-performance"
+                            class="inline-flex items-center gap-2 px-4 py-3 border-b-2 rounded-t-lg border-ecs-green text-ecs-green"
+                            aria-current="page">
+                        <i class="ti ti-gauge"></i>
+                        Performance
+                    </button>
+                </li>
+                <li class="mr-2">
+                    <button type="button" data-action="switch-tab" data-tab="services"
+                            id="tab-btn-services"
+                            class="inline-flex items-center gap-2 px-4 py-3 border-b-2 rounded-t-lg border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        <i class="ti ti-server"></i>
+                        Services
+                    </button>
+                </li>
+                <li class="mr-2">
+                    <button type="button" data-action="switch-tab" data-tab="diagnostics"
+                            id="tab-btn-diagnostics"
+                            class="inline-flex items-center gap-2 px-4 py-3 border-b-2 rounded-t-lg border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300">
+                        <i class="ti ti-stethoscope"></i>
+                        Diagnostics
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Tab Content Panels -->
+
+        {# ============================================================
+           TAB 1: Performance (default active)
+           ============================================================ #}
+        <div id="tab-performance" class="pt-6 space-y-6">
+            <!-- Resource Usage Progress Bars -->
+            {% call card(title="Resource Usage") %}
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- CPU Usage -->
+                {% set cpu = stats.cpu_usage|default(0)|float %}
+                <div class="flex items-start gap-4">
+                    <div class="p-3 bg-ecs-green/10 rounded-lg flex-shrink-0">
+                        <i class="ti ti-cpu text-2xl text-ecs-green"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center mb-2">
+                            <h6 class="text-sm font-medium text-gray-900 dark:text-white">CPU Usage</h6>
+                            <span class="text-xs font-medium
+                                {% if cpu < 70 %}text-green-600 dark:text-green-400
+                                {% elif cpu <= 85 %}text-yellow-600 dark:text-yellow-400
+                                {% else %}text-red-600 dark:text-red-400{% endif %}">{{ stats.cpu_usage }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                            <div class="h-2.5 rounded-full transition-all duration-500
+                                {% if cpu < 70 %}bg-green-500
+                                {% elif cpu <= 85 %}bg-yellow-500
+                                {% else %}bg-red-500{% endif %}"
+                                 style="width: {{ stats.cpu_usage }}%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Memory Usage -->
+                {% set mem = stats.memory_usage|default(0)|float %}
+                <div class="flex items-start gap-4">
+                    <div class="p-3 bg-blue-500/10 rounded-lg flex-shrink-0">
+                        <i class="ti ti-memory text-2xl text-blue-500"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center mb-2">
+                            <h6 class="text-sm font-medium text-gray-900 dark:text-white">Memory Usage</h6>
+                            <span class="text-xs font-medium
+                                {% if mem < 70 %}text-green-600 dark:text-green-400
+                                {% elif mem <= 85 %}text-yellow-600 dark:text-yellow-400
+                                {% else %}text-red-600 dark:text-red-400{% endif %}">{{ stats.memory_usage }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                            <div class="h-2.5 rounded-full transition-all duration-500
+                                {% if mem < 70 %}bg-green-500
+                                {% elif mem <= 85 %}bg-yellow-500
+                                {% else %}bg-red-500{% endif %}"
+                                 style="width: {{ stats.memory_usage }}%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Disk Usage -->
+                {% set disk = stats.disk_usage|default(0)|float %}
+                <div class="flex items-start gap-4">
+                    <div class="p-3 bg-green-500/10 rounded-lg flex-shrink-0">
+                        <i class="ti ti-hard-drive text-2xl text-green-500"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center mb-2">
+                            <h6 class="text-sm font-medium text-gray-900 dark:text-white">Disk Usage</h6>
+                            <span class="text-xs font-medium
+                                {% if disk < 70 %}text-green-600 dark:text-green-400
+                                {% elif disk <= 85 %}text-yellow-600 dark:text-yellow-400
+                                {% else %}text-red-600 dark:text-red-400{% endif %}">{{ stats.disk_usage }}%</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+                            <div class="h-2.5 rounded-full transition-all duration-500
+                                {% if disk < 70 %}bg-green-500
+                                {% elif disk <= 85 %}bg-yellow-500
+                                {% else %}bg-red-500{% endif %}"
+                                 style="width: {{ stats.disk_usage }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endcall %}
+
+            <!-- System Stats Row -->
+            {% call card(title="System Stats") %}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <i class="ti ti-clock text-lg text-ecs-green"></i>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Uptime</span>
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                        {{ stats.uptime|default('N/A') }}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <i class="ti ti-activity text-lg text-blue-500"></i>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Load Average</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ stats.load_average|default('N/A') }}</span>
+                </div>
+                <div class="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <i class="ti ti-plug-connected text-lg text-purple-500"></i>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Active Connections</span>
+                    </div>
+                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ stats.active_connections|default('N/A') }}</span>
+                </div>
+            </div>
+            {% endcall %}
+
+            <!-- Database and Cache Performance -->
+            {% if performance %}
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {% if performance.database %}
+                {% call card(title="Database Performance") %}
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">
+                            {{ "%.1f"|format(performance.database.avg_query_time * 1000) }}ms
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Avg Query Time</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
+                        {% set slow_q = performance.database.slow_queries|default(0)|int %}
+                        <p class="text-2xl font-bold
+                            {% if slow_q <= 2 %}text-green-600 dark:text-green-400
+                            {% elif slow_q <= 5 %}text-yellow-600 dark:text-yellow-400
+                            {% else %}text-red-600 dark:text-red-400{% endif %}">
+                            {{ performance.database.slow_queries }}
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Slow Queries</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ performance.database.total_queries }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Queries</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            {{ "%.1f"|format(performance.database.min_time * 1000) }}ms /
+                            {{ "%.1f"|format(performance.database.max_time * 1000) }}ms
+                        </p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Min / Max Time</p>
+                    </div>
+                </div>
+                {% endcall %}
+                {% endif %}
+
+                {% if performance.cache %}
+                {% call card(title="Cache Performance") %}
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ performance.cache.active_entries }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Active Entries</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ performance.cache.cache_size_mb }}MB</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Cache Size</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
+                        <p class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ performance.cache.expired_entries }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Expired Entries</p>
+                    </div>
+                    <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
+                        <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ performance.cache.total_entries }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Total Entries</p>
+                    </div>
+                </div>
+                {% endcall %}
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        {# ============================================================
+           TAB 2: Services
+           ============================================================ #}
+        <div id="tab-services" class="pt-6 hidden">
+            {% call card(title="Service Details", subtitle="Status and connectivity for all monitored services") %}
+            <div class="space-y-3">
+                {% for service_name, service_data in services.items() %}
+                <div class="flex justify-between items-start p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex-1 mr-4">
+                        <h6 class="font-medium text-gray-900 dark:text-white">{{ service_name|replace('_', ' ')|title }}</h6>
+                        {% if service_data.message %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ service_data.message }}</p>
+                        {% endif %}
+                        {% if service_data.details %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ service_data.details }}</p>
+                        {% endif %}
+                        {% if service_data.response_time and service_data.response_time != 'N/A' %}
+                        <p class="text-xs text-green-500 mt-1">
+                            <i class="ti ti-clock text-xs"></i>
+                            Response: {{ service_data.response_time }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0
+                        {% if service_data.status == 'healthy' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                        {% elif service_data.status == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                        {% elif service_data.status == 'disabled' %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300
+                        {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% endif %}">
+                        {{ service_data.status|title }}
+                    </span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endcall %}
+        </div>
+
+        {# ============================================================
+           TAB 3: Diagnostics
+           ============================================================ #}
+        <div id="tab-diagnostics" class="pt-6 space-y-6 hidden">
+            <!-- Task Status (populated via AJAX) -->
+            {% call card(title="Task Status", subtitle="Background task worker status") %}
+            <div id="task-status-content">
+                <div class="flex items-center justify-center py-8">
+                    <svg class="animate-spin h-8 w-8 text-ecs-green" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="ml-3 text-sm text-gray-500 dark:text-gray-400">Loading task status...</span>
+                </div>
+            </div>
+            {% endcall %}
+
+            <!-- System Diagnostics Info -->
+            {% call card(title="System Diagnostics") %}
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <i class="ti ti-world text-lg text-blue-500"></i>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Environment</span>
+                    </div>
+                    {% if diagnostics and diagnostics.environment %}
+                    {{ badge(diagnostics.environment, variant="info") }}
+                    {% else %}
+                    {{ badge("unknown", variant="default") }}
+                    {% endif %}
+                </div>
+                <div class="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <i class="ti ti-bug text-lg text-yellow-500"></i>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Debug Mode</span>
+                    </div>
+                    {% if diagnostics and diagnostics.debug_mode %}
+                    {{ badge("Enabled", variant="warning") }}
+                    {% else %}
+                    {{ badge("Disabled", variant="success") }}
+                    {% endif %}
+                </div>
+                <div class="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                    <div class="flex items-center gap-3">
+                        <i class="ti ti-calendar-time text-lg text-gray-500"></i>
+                        <span class="text-sm text-gray-700 dark:text-gray-300">Last Check</span>
+                    </div>
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+                        {{ diagnostics.timestamp|default('N/A') if diagnostics else 'N/A' }}
+                    </span>
+                </div>
+            </div>
+            {% endcall %}
+
+            <!-- Quick Actions -->
+            {% call card(title="Quick Actions") %}
+            <div class="flex flex-wrap gap-3">
+                <button type="button" data-action="refresh-status"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-ecs-green bg-white border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors dark:bg-gray-800 dark:border-ecs-green">
+                    <i class="ti ti-refresh"></i>
+                    Refresh All
+                </button>
+                <button type="button" id="twilio-test-btn"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-blue-600 bg-white border border-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-colors dark:bg-gray-800 dark:border-blue-500 dark:text-blue-400">
+                    <i class="ti ti-phone-check"></i>
+                    Test Twilio
+                </button>
+            </div>
+            {% endcall %}
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    var isDark = document.documentElement.classList.contains('dark');
+
+    // -----------------------------------------------------------------
+    // Tab switching
+    // -----------------------------------------------------------------
+    var tabs = ['performance', 'services', 'diagnostics'];
+    var activeTabClasses = ['border-ecs-green', 'text-ecs-green'];
+    var inactiveTabClasses = ['border-transparent', 'text-gray-500', 'hover:text-gray-600', 'hover:border-gray-300', 'dark:text-gray-400', 'dark:hover:text-gray-300'];
+
+    function switchTab(tabName) {
+        tabs.forEach(function(t) {
+            var panel = document.getElementById('tab-' + t);
+            var btn = document.getElementById('tab-btn-' + t);
+            if (!panel || !btn) return;
+
+            if (t === tabName) {
+                panel.classList.remove('hidden');
+                inactiveTabClasses.forEach(function(c) { btn.classList.remove(c); });
+                activeTabClasses.forEach(function(c) { btn.classList.add(c); });
+                btn.setAttribute('aria-current', 'page');
+            } else {
+                panel.classList.add('hidden');
+                activeTabClasses.forEach(function(c) { btn.classList.remove(c); });
+                inactiveTabClasses.forEach(function(c) { btn.classList.add(c); });
+                btn.removeAttribute('aria-current');
+            }
+        });
+    }
+
+    // -----------------------------------------------------------------
+    // Delegated click handler
+    // -----------------------------------------------------------------
+    document.addEventListener('click', function(e) {
+        var target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        var action = target.dataset.action;
+
+        if (action === 'switch-tab') {
+            switchTab(target.dataset.tab);
+            return;
+        }
+
+        if (action === 'refresh-status') {
+            Swal.fire({
+                title: 'Refreshing...',
+                text: 'Updating system health status',
+                allowOutsideClick: false,
+                background: isDark ? '#1f2937' : '#ffffff',
+                color: isDark ? '#f3f4f6' : '#111827',
+                didOpen: function() {
+                    Swal.showLoading();
+                    setTimeout(function() { location.reload(); }, 1000);
+                }
+            });
+            return;
+        }
+    });
+
+    // -----------------------------------------------------------------
+    // Load task status via AJAX
+    // -----------------------------------------------------------------
+    function loadTaskStatus() {
+        var container = document.getElementById('task-status-content');
+        if (!container) return;
+
+        fetch('/admin-panel/system/health/task-status')
+            .then(function(resp) {
+                if (!resp.ok) throw new Error('Failed to load task status');
+                return resp.text();
+            })
+            .then(function(html) {
+                container.innerHTML = html;
+            })
+            .catch(function() {
+                container.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Unable to load task status.</p>';
+            });
+    }
+
+    // -----------------------------------------------------------------
+    // Auto-refresh health status every 30 seconds
+    // -----------------------------------------------------------------
+    function refreshHealthBadges() {
+        fetch('/admin-panel/system/health/api')
+            .then(function(resp) {
+                if (!resp.ok) throw new Error('Health API error');
+                return resp.json();
+            })
+            .then(function(data) {
+                if (!data) return;
+
+                // Update overall status banner text if available
+                if (data.status) {
+                    var bannerHeading = document.querySelector('#tab-performance')
+                        ? document.querySelector('[data-action="refresh-status"]')
+                        : null;
+                    // A lightweight indicator that data was fetched (no full re-render)
+                }
+
+                // Update service badges in the Services tab
+                if (data.services) {
+                    var serviceRows = document.querySelectorAll('#tab-services .rounded-lg.bg-gray-50');
+                    var serviceKeys = Object.keys(data.services);
+                    serviceRows.forEach(function(row, idx) {
+                        if (idx < serviceKeys.length) {
+                            var svc = data.services[serviceKeys[idx]];
+                            var badge = row.querySelector('.rounded-full.text-xs');
+                            if (badge && svc.status) {
+                                badge.textContent = svc.status.charAt(0).toUpperCase() + svc.status.slice(1);
+                                badge.className = 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ' +
+                                    (svc.status === 'healthy' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' :
+                                     svc.status === 'warning' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' :
+                                     svc.status === 'disabled' ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' :
+                                     'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300');
+                            }
+                        }
+                    });
+                }
+
+                // Update component status dots in Section 2
+                if (data.components) {
+                    var compCards = document.querySelectorAll('.grid .rounded-full.w-3.h-3');
+                    var compKeys = Object.keys(data.components);
+                    compCards.forEach(function(dot, idx) {
+                        if (idx < compKeys.length) {
+                            var comp = data.components[compKeys[idx]];
+                            if (comp.status) {
+                                dot.className = 'w-3 h-3 rounded-full flex-shrink-0 ' +
+                                    (comp.status === 'healthy' ? 'bg-green-500' :
+                                     (comp.status === 'degraded' || comp.status === 'warning') ? 'bg-yellow-500' :
+                                     comp.status === 'disabled' ? 'bg-gray-400' :
+                                     'bg-red-500');
+                            }
+                        }
+                    });
+                }
+            })
+            .catch(function() {
+                // Silently ignore refresh errors to avoid disrupting the user
+            });
+    }
+
+    // -----------------------------------------------------------------
+    // Initialize on DOMContentLoaded
+    // -----------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', function() {
+        loadTaskStatus();
+        setInterval(refreshHealthBadges, 30000);
+    });
+})();
+</script>
+{% endblock %}

@@ -302,6 +302,7 @@ services:
     volumes:
       - ./maintenance/503.html:/usr/share/nginx/html/503.html:ro
       - ./maintenance/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./maintenance/data:/usr/share/nginx/html/data:ro
     labels:
       - "traefik.enable=true"
       # HTTPS fallback router (priority 1 — only active when webui routers are gone)
