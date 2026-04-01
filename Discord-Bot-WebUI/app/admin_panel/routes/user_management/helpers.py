@@ -188,7 +188,9 @@ def get_user_analytics():
         users_with_roles = db.session.query(func.count(func.distinct(User.id))).join(
             User.roles
         ).scalar() or 0
-        discord_connected = User.query.filter(User.discord_id.isnot(None)).count()
+        discord_connected = db.session.query(func.count(func.distinct(Player.user_id))).filter(
+            Player.discord_id.isnot(None)
+        ).scalar() or 0
 
         # Admin activity (recent 30d)
         try:

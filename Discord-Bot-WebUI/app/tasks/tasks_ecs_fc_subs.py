@@ -185,8 +185,9 @@ def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]
                     logger.error(f"Error sending email to {player.name}: {e}")
                     results['errors'].append(f"Email to {player.name}: {str(e)}")
 
-            # Send push notification if user has FCM tokens
-            if hasattr(user, 'push_notifications') and user.push_notifications:
+            # Send push notification if user has FCM tokens and pool entry allows it
+            push_enabled = getattr(pool_entry, 'push_for_sub_requests', True)
+            if push_enabled and hasattr(user, 'push_notifications') and user.push_notifications:
                 fcm_tokens = session.query(UserFCMToken).filter_by(
                     user_id=user.id, is_active=True
                 ).all()
@@ -195,6 +196,12 @@ def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]
                         from app.services.notification_orchestrator import (
                             orchestrator, NotificationType, NotificationPayload
                         )
+                        # Get rsvp_token from existing response if available
+                        existing_resp = session.query(EcsFcSubResponse).filter_by(
+                            request_id=request_id, player_id=player.id
+                        ).first()
+                        rsvp_token = getattr(existing_resp, 'rsvp_token', None) or ''
+
                         payload = NotificationPayload(
                             notification_type=NotificationType.SUB_REQUEST,
                             title="ECS FC Substitute Request",
@@ -204,6 +211,8 @@ def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]
                                 'type': 'sub_request',
                                 'request_id': str(request_id),
                                 'match_id': str(match.id),
+                                'league_type': 'ecs_fc',
+                                'rsvp_token': rsvp_token,
                                 'deep_link': f'ecs-fc-scheme://sub-request/{request_id}',
                                 'click_action': 'FLUTTER_NOTIFICATION_CLICK',
                                 'priority': 'high'
@@ -714,8 +723,9 @@ def notify_sub_pool_with_slots(self, session, request_id: int) -> Dict[str, Any]
                         logger.error(f"Error sending email to {player.name}: {e}")
                         results['errors'].append(f"Email to {player.name}: {str(e)}")
 
-                # Send push notification if user has FCM tokens
-                if hasattr(user, 'push_notifications') and user.push_notifications:
+                # Send push notification if user has FCM tokens and pool entry allows it
+                push_enabled = getattr(pool_entry, 'push_for_sub_requests', True)
+                if push_enabled and hasattr(user, 'push_notifications') and user.push_notifications:
                     fcm_tokens = session.query(UserFCMToken).filter_by(
                         user_id=user.id, is_active=True
                     ).all()
@@ -733,6 +743,8 @@ def notify_sub_pool_with_slots(self, session, request_id: int) -> Dict[str, Any]
                                     'type': 'sub_request',
                                     'request_id': str(request_id),
                                     'match_id': str(match.id),
+                                    'league_type': 'ecs_fc',
+                                    'rsvp_token': '',
                                     'deep_link': f'ecs-fc-scheme://sub-request/{request_id}',
                                     'click_action': 'FLUTTER_NOTIFICATION_CLICK',
                                     'priority': 'high'

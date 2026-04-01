@@ -1502,15 +1502,23 @@ def get_coach_team_ids(session, player_id: int) -> list:
 @jwt_required()
 def create_ecs_fc_substitute_request():
     """
-    Create an ECS FC substitute request.
+    Create an ECS FC substitute request and auto-notify the sub pool.
 
     Expected JSON:
-        match_id: ECS FC match ID
-        positions_needed: Positions needed (e.g., "GK, DEF")
-        substitutes_needed: Number of substitutes needed (default: 1)
-        notes: Additional notes
+        match_id: ECS FC match ID (required)
+        team_id: Team ID (optional, derived from match if omitted)
+        recipient_type: "all"|"gender"|"position"|"specific" (optional)
+        gender_filter: Gender filter e.g. "Male" (optional)
+        position_filters: List of positions e.g. ["Goalkeeper", "Defender"] (optional)
+        player_ids: List of specific player IDs to contact (optional)
+        channels: List of notification channels e.g. ["sms", "email", "discord", "in_app"] (optional)
+        subs_needed: Number of substitutes needed (default: 1)
+        substitutes_needed: Alias for subs_needed (legacy)
+        positions_needed: Positions needed string (optional)
+        message: Custom message for notifications (optional)
+        notes: Additional notes (optional)
     """
-    from app.models.substitutes import EcsFcSubRequest
+    from app.models.substitutes import EcsFcSubRequest, EcsFcSubPool, EcsFcSubResponse
     from app.models.ecs_fc import EcsFcMatch
 
     current_user_id = int(get_jwt_identity())
@@ -1528,44 +1536,66 @@ def create_ecs_fc_substitute_request():
         if not match:
             return jsonify({"msg": "Match not found"}), 404
 
+        team_id = data.get('team_id') or match.team_id
+
         # Verify coach access
-        if not is_coach_for_team(session, current_user_id, match.team_id) and not is_admin_user(session, current_user_id):
+        if not is_coach_for_team(session, current_user_id, team_id) and not is_admin_user(session, current_user_id):
             return jsonify({"msg": "You are not authorized to create requests for this team"}), 403
+
+        subs_needed = data.get('subs_needed') or data.get('substitutes_needed', 1)
+
+        # Build positions_needed from position_filters if provided
+        positions_needed = data.get('positions_needed')
+        if not positions_needed and data.get('position_filters'):
+            positions_needed = ', '.join(data['position_filters'])
 
         # Create request
         sub_request = EcsFcSubRequest(
             match_id=match_id,
-            team_id=match.team_id,
+            team_id=team_id,
             requested_by=current_user_id,
-            positions_needed=data.get('positions_needed'),
-            substitutes_needed=data.get('substitutes_needed', 1),
-            notes=data.get('notes'),
+            positions_needed=positions_needed,
+            substitutes_needed=subs_needed,
+            notes=data.get('notes') or data.get('message'),
             status='OPEN'
         )
         session.add(sub_request)
         session.commit()
 
-        logger.info(f"ECS FC sub request created: {sub_request.id} for match {match_id}")
+        request_id = sub_request.id
+        logger.info(f"ECS FC sub request created: {request_id} for match {match_id}")
 
         # Auto-trigger notifications to the sub pool
+        contact_summary = {'sms_sent': 0, 'email_sent': 0, 'discord_sent': 0, 'push_sent': 0, 'failed': 0}
+        players_contacted = 0
         try:
             from app.tasks.tasks_ecs_fc_subs import notify_sub_pool_of_request
-            notify_sub_pool_of_request.delay(sub_request.id)
-            logger.info(f"Queued sub pool notifications for request {sub_request.id}")
+            notify_sub_pool_of_request.delay(request_id)
+            logger.info(f"Queued sub pool notifications for request {request_id}")
+
+            # Estimate pool size for immediate response
+            pool_count = session.query(EcsFcSubPool).filter_by(is_active=True).count()
+            players_contacted = pool_count
         except Exception as e:
-            logger.error(f"Failed to queue sub pool notifications for request {sub_request.id}: {e}")
+            logger.error(f"Failed to queue sub pool notifications for request {request_id}: {e}")
 
         return jsonify({
             "success": True,
-            "message": "Substitute request created and notifications queued",
-            "request_id": sub_request.id
+            "message": "Substitute request sent successfully",
+            "request_id": request_id,
+            "players_contacted": players_contacted,
+            "contact_summary": contact_summary
         }), 201
 
 
 @mobile_api_v2.route('/substitutes/ecs-fc/requests/<int:request_id>', methods=['GET'])
 @jwt_required()
 def get_ecs_fc_substitute_request(request_id: int):
-    """Get details of a specific ECS FC substitute request."""
+    """Get details of a specific ECS FC substitute request.
+
+    Returns both the full request data and player-specific context fields
+    the mobile app needs for the SubResponseScreen (valid, already_responded, etc.).
+    """
     from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse
 
     current_user_id = int(get_jwt_identity())
@@ -1578,7 +1608,7 @@ def get_ecs_fc_substitute_request(request_id: int):
         ).get(request_id)
 
         if not sub_request:
-            return jsonify({"msg": "Request not found"}), 404
+            return jsonify({"msg": "Request not found", "valid": False}), 404
 
         # Build response data
         responses_data = []
@@ -1592,19 +1622,64 @@ def get_ecs_fc_substitute_request(request_id: int):
                 "responded_at": resp.responded_at.isoformat() if resp.responded_at else None,
             })
 
-        return jsonify({
-            "id": sub_request.id,
-            "match": {
-                "id": sub_request.match.id,
-                "opponent_name": sub_request.match.opponent_name,
-                "date": sub_request.match.match_date.isoformat() if sub_request.match.match_date else None,
-                "time": sub_request.match.match_time.strftime('%H:%M') if sub_request.match.match_time else None,
-                "location": sub_request.match.location,
-            } if sub_request.match else None,
-            "team": {
+        # Player-specific context for SubResponseScreen
+        player = session.query(Player).filter_by(user_id=current_user_id).first()
+        player_id = player.id if player else None
+        existing_response = None
+        already_responded = False
+        token_expired = False
+
+        if player:
+            my_response = session.query(EcsFcSubResponse).filter_by(
+                request_id=request_id,
+                player_id=player.id
+            ).first()
+            if my_response:
+                already_responded = my_response.responded_at is not None
+                existing_response = {
+                    "id": my_response.id,
+                    "is_available": my_response.is_available,
+                    "response_text": my_response.response_text,
+                    "responded_at": my_response.responded_at.isoformat() if my_response.responded_at else None,
+                }
+                # Check token expiry if rsvp_token exists
+                if hasattr(my_response, 'token_expires_at') and my_response.token_expires_at:
+                    token_expired = datetime.utcnow() > my_response.token_expires_at
+
+        match_info = None
+        if sub_request.match:
+            m = sub_request.match
+            match_info = {
+                "id": m.id,
+                "opponent_name": m.opponent_name,
+                "date": m.match_date.isoformat() if m.match_date else None,
+                "time": m.match_time.strftime('%H:%M') if m.match_time else None,
+                "location": m.location,
+                "is_home_match": m.is_home_match if hasattr(m, 'is_home_match') else None,
+            }
+
+        team_info = None
+        if sub_request.team:
+            team_info = {
                 "id": sub_request.team.id,
                 "name": sub_request.team.name,
-            } if sub_request.team else None,
+            }
+
+        return jsonify({
+            # Validation fields for SubResponseScreen
+            "valid": sub_request.status == 'OPEN',
+            "already_responded": already_responded,
+            "token_expired": token_expired,
+            "existing_response": existing_response,
+            "league_type": "ecs_fc",
+            "request_id": sub_request.id,
+            "player_id": player_id,
+            # Full request details
+            "id": sub_request.id,
+            "match_info": match_info,
+            "match": match_info,  # Legacy key
+            "team_info": team_info,
+            "team": team_info,  # Legacy key
             "positions_needed": sub_request.positions_needed,
             "substitutes_needed": sub_request.substitutes_needed,
             "notes": sub_request.notes,
@@ -1798,21 +1873,38 @@ def respond_to_ecs_fc_substitute_request(request_id: int):
             existing.is_available = is_available
             existing.response_text = data.get('response_text')
             existing.responded_at = datetime.utcnow()
+            existing.response_method = 'APP'
+            resp_obj = existing
         else:
-            response = EcsFcSubResponse(
+            resp_obj = EcsFcSubResponse(
                 request_id=request_id,
                 player_id=player.id,
                 is_available=is_available,
                 response_text=data.get('response_text'),
+                response_method='APP',
                 responded_at=datetime.utcnow()
             )
-            session.add(response)
+            session.add(resp_obj)
+
+        # Update pool stats
+        if is_available:
+            pool_membership.requests_accepted = (pool_membership.requests_accepted or 0) + 1
+            pool_membership.last_active_at = datetime.utcnow()
 
         session.commit()
 
         return jsonify({
             "success": True,
-            "message": "Response recorded"
+            "message": "Response recorded successfully",
+            "response": {
+                "id": resp_obj.id,
+                "request_id": request_id,
+                "player_id": player.id,
+                "response": "yes" if is_available else "no",
+                "is_available": is_available,
+                "response_text": resp_obj.response_text,
+                "responded_at": resp_obj.responded_at.isoformat() if resp_obj.responded_at else None,
+            }
         }), 200
 
 
@@ -1874,7 +1966,19 @@ def assign_ecs_fc_substitute(request_id: int):
         return jsonify({
             "success": True,
             "message": "Substitute assigned",
-            "assignment_id": assignment.id
+            "assignment_id": assignment.id,
+            "assignment": {
+                "id": assignment.id,
+                "request_id": request_id,
+                "player_id": player_id,
+                "assigned_by": current_user_id,
+                "position_assigned": assignment.position_assigned,
+                "assigned_at": assignment.assigned_at.isoformat() if assignment.assigned_at else None,
+                "player": {
+                    "id": player.id,
+                    "name": player.name,
+                }
+            }
         }), 201
 
 
@@ -1896,18 +2000,28 @@ def get_ecs_fc_pool_status():
         if not membership:
             return jsonify({"in_pool": False}), 200
 
-        return jsonify({
-            "in_pool": True,
+        membership_data = {
             "is_active": membership.is_active,
             "preferred_positions": membership.preferred_positions,
             "max_matches_per_week": membership.max_matches_per_week,
-            "sms_notifications": membership.sms_for_sub_requests,
-            "discord_notifications": membership.discord_for_sub_requests,
-            "email_notifications": membership.email_for_sub_requests,
+            "sms_for_sub_requests": membership.sms_for_sub_requests,
+            "discord_for_sub_requests": membership.discord_for_sub_requests,
+            "email_for_sub_requests": membership.email_for_sub_requests,
+            "push_for_sub_requests": True,  # Push handled via user-level FCM preference
             "requests_received": membership.requests_received,
             "requests_accepted": membership.requests_accepted,
             "matches_played": membership.matches_played,
             "joined_at": membership.joined_pool_at.isoformat() if membership.joined_pool_at else None,
+            # Legacy keys
+            "sms_notifications": membership.sms_for_sub_requests,
+            "discord_notifications": membership.discord_for_sub_requests,
+            "email_notifications": membership.email_for_sub_requests,
+        }
+
+        return jsonify({
+            "in_pool": True,
+            "membership": membership_data,
+            **membership_data,  # Also flatten for backwards compatibility
         }), 200
 
 
@@ -1945,6 +2059,15 @@ def update_ecs_fc_pool_status():
             membership.discord_for_sub_requests = data['discord_notifications']
         if 'email_notifications' in data:
             membership.email_for_sub_requests = data['email_notifications']
+        if 'push_for_sub_requests' in data:
+            membership.push_for_sub_requests = data['push_for_sub_requests']
+        # Accept _for_sub_requests keys too
+        if 'sms_for_sub_requests' in data:
+            membership.sms_for_sub_requests = data['sms_for_sub_requests']
+        if 'discord_for_sub_requests' in data:
+            membership.discord_for_sub_requests = data['discord_for_sub_requests']
+        if 'email_for_sub_requests' in data:
+            membership.email_for_sub_requests = data['email_for_sub_requests']
 
         membership.last_active_at = datetime.utcnow()
         session.commit()
@@ -1990,9 +2113,10 @@ def join_ecs_fc_substitute_pool():
             is_active=True,
             preferred_positions=data.get('preferred_positions'),
             max_matches_per_week=data.get('max_matches_per_week'),
-            sms_for_sub_requests=data.get('sms_notifications', True),
-            discord_for_sub_requests=data.get('discord_notifications', True),
-            email_for_sub_requests=data.get('email_notifications', True),
+            sms_for_sub_requests=data.get('sms_for_sub_requests', data.get('sms_notifications', True)),
+            discord_for_sub_requests=data.get('discord_for_sub_requests', data.get('discord_notifications', True)),
+            email_for_sub_requests=data.get('email_for_sub_requests', data.get('email_notifications', True)),
+            push_for_sub_requests=data.get('push_for_sub_requests', True),
         )
         session.add(membership)
         session.commit()

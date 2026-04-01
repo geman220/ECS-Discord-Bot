@@ -282,8 +282,8 @@
                     </div>
                     <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50 text-center">
                         <p class="text-sm font-medium text-gray-900 dark:text-white">
-                            {{ "%.1f"|format(performance.database.min_time * 1000) }}ms /
-                            {{ "%.1f"|format(performance.database.max_time * 1000) }}ms
+                            {{ "%.1f"|format(performance.database.min_query_time * 1000) }}ms /
+                            {{ "%.1f"|format(performance.database.max_query_time * 1000) }}ms
                         </p>
                         <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Min / Max Time</p>
                     </div>

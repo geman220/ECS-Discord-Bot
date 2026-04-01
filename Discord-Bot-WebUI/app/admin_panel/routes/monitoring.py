@@ -99,7 +99,7 @@ def system_health_consolidated():
     except Exception as e:
         logger.error(f"Error getting performance report: {e}")
         performance = {
-            'database': {'avg_query_time': 0, 'slow_queries': 0, 'total_queries': 0, 'min_time': 0, 'max_time': 0},
+            'database': {'avg_query_time': 0, 'slow_queries': 0, 'total_queries': 0, 'min_query_time': 0, 'max_query_time': 0},
             'cache': {'active_entries': 0, 'cache_size_mb': 0, 'expired_entries': 0, 'total_entries': 0}
         }
 

@@ -121,7 +121,7 @@ class EcsFcSubAssignment(db.Model):
 class EcsFcSubPool(db.Model):
     """Model for ECS FC substitute pool."""
     __tablename__ = 'ecs_fc_sub_pool'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=False, unique=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
@@ -132,6 +132,7 @@ class EcsFcSubPool(db.Model):
     sms_for_sub_requests = db.Column(db.Boolean, nullable=False, default=True)
     discord_for_sub_requests = db.Column(db.Boolean, nullable=False, default=True)
     email_for_sub_requests = db.Column(db.Boolean, nullable=False, default=True)
+    push_for_sub_requests = db.Column(db.Boolean, nullable=False, default=True)
     requests_received = db.Column(db.Integer, nullable=False, default=0)
     requests_accepted = db.Column(db.Integer, nullable=False, default=0)
     matches_played = db.Column(db.Integer, nullable=False, default=0)
