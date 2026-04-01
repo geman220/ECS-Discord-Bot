@@ -365,16 +365,16 @@
         var IC_DOT   = '<svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="2" fill="currentColor" opacity=".35"/></svg>';
 
         /* ── State ─────────────────────────────────────────────────── */
-        var t0 = null;       // deploy start time (ms) — set from server
+        var t0 = Date.now(); // start with client time; server will override
         var done = false;
-        var ready_to_render = false;
+        var ready_to_render = true;
 
         /* ── DOM shortcuts ─────────────────────────────────────────── */
         function $(id) { return document.getElementById(id); }
 
         /* ── Fetch server-authoritative deploy start time ──────────── */
-        // Retries until it gets the server timestamp — no client fallback.
-        // All clients MUST use the same server-provided time.
+        // Syncs to server-authoritative time when available.
+        // Timer already runs with client time as fallback.
         (function syncTime() {
             var x = new XMLHttpRequest();
             x.open('GET', '/data/deploy_time.json?_=' + Date.now(), true);

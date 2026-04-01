@@ -2442,7 +2442,7 @@ def notify_ecs_fc_substitute_pool(request_id: int):
     if not data:
         return jsonify({"msg": "Missing request data"}), 400
 
-    custom_message = data.get('custom_message', '').strip()
+    custom_message = (data.get('custom_message') or data.get('message') or '').strip()
     if not custom_message:
         return jsonify({"msg": "custom_message is required"}), 400
 
@@ -2506,7 +2506,7 @@ def notify_ecs_fc_individual_substitute(request_id: int):
         return jsonify({"msg": "Missing request data"}), 400
 
     player_id = data.get('player_id')
-    custom_message = data.get('custom_message', '').strip()
+    custom_message = (data.get('custom_message') or data.get('message') or '').strip()
 
     if not player_id:
         return jsonify({"msg": "player_id is required"}), 400

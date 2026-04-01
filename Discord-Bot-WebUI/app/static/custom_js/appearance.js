@@ -759,57 +759,66 @@ function renderPresets(presets) {
  */
 function createPresetCard(preset) {
     const card = document.createElement('div');
-    card.className = `c-preset-card${preset.is_default ? ' c-preset-card--default' : ''}${preset.is_system ? ' c-preset-card--system' : ''}`;
+    card.className = 'relative p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600 transition-colors';
     card.setAttribute('data-preset-card', '');
     card.setAttribute('data-preset-slug', preset.slug);
     card.setAttribute('data-preset-id', preset.id);
 
-    // Get preview colors (primary, accent, success, info)
+    // Badge (top-right)
+    const badgeLabel = preset.is_default ? 'Default' : preset.is_system ? 'System' : null;
+    if (badgeLabel) {
+        const badge = document.createElement('span');
+        badge.className = 'absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded';
+        badge.textContent = badgeLabel;
+        card.appendChild(badge);
+    }
+
+    // Color swatches
     const colors = preset.colors?.light || {};
-
-    // Build swatches container
-    const swatchesDiv = document.createElement('div');
-    swatchesDiv.className = 'c-preset-card__swatches';
-
-    // Create swatches with direct style application (no inline style attr)
     const swatchColors = [
         colors.primary || '#7C3AED',
-        colors.accent || '#F59E0B',
-        colors.success || '#10B981',
-        colors.info || '#3B82F6'
+        colors.accent || '#D97706',
+        colors.success || '#059669',
+        colors.info || '#2563EB'
     ];
 
+    const swatchesDiv = document.createElement('div');
+    swatchesDiv.className = 'flex gap-1 mb-3';
     swatchColors.forEach(color => {
         const swatch = document.createElement('span');
-        swatch.className = 'c-preset-card__swatch';
+        swatch.className = 'w-6 h-6 rounded-full';
         swatch.style.backgroundColor = color;
         swatchesDiv.appendChild(swatch);
     });
+    card.appendChild(swatchesDiv);
 
-    // Build content container
-    const contentDiv = document.createElement('div');
-    contentDiv.className = 'c-preset-card__content';
-    contentDiv.innerHTML = `
-        <h6 class="c-preset-card__name">${escapeHtml(preset.name)}</h6>
-        <p class="c-preset-card__description">${escapeHtml(preset.description || 'Custom color scheme')}</p>
-    `;
+    // Name and description
+    const name = document.createElement('h6');
+    name.className = 'font-semibold text-gray-900 dark:text-white';
+    name.textContent = preset.name;
+    card.appendChild(name);
 
-    // Build actions container
+    const desc = document.createElement('p');
+    desc.className = 'text-xs text-gray-500 dark:text-gray-400 mb-3';
+    desc.textContent = preset.description || 'Custom color scheme';
+    card.appendChild(desc);
+
+    // Action buttons
     const actionsDiv = document.createElement('div');
-    actionsDiv.className = 'c-preset-card__actions';
+    actionsDiv.className = 'flex gap-2';
 
     const applyBtn = document.createElement('button');
     applyBtn.type = 'button';
-    applyBtn.className = 'c-btn c-btn--sm c-btn--primary';
+    applyBtn.className = 'flex-1 px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors';
     applyBtn.setAttribute('data-action', 'apply-preset');
     applyBtn.setAttribute('data-preset-slug', preset.slug);
-    applyBtn.innerHTML = '<i class="ti ti-check"></i>Apply';
+    applyBtn.innerHTML = '<i class="ti ti-check mr-1"></i>Apply';
     actionsDiv.appendChild(applyBtn);
 
     if (!preset.is_system) {
         const editBtn = document.createElement('button');
         editBtn.type = 'button';
-        editBtn.className = 'c-btn c-btn--sm c-btn--secondary';
+        editBtn.className = 'px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 rounded-lg transition-colors';
         editBtn.setAttribute('data-action', 'edit-preset');
         editBtn.setAttribute('data-preset-id', preset.id);
         editBtn.innerHTML = '<i class="ti ti-edit"></i>';
@@ -817,31 +826,14 @@ function createPresetCard(preset) {
 
         const deleteBtn = document.createElement('button');
         deleteBtn.type = 'button';
-        deleteBtn.className = 'c-btn c-btn--sm c-btn--outline-danger';
+        deleteBtn.className = 'px-3 py-1.5 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 rounded-lg transition-colors';
         deleteBtn.setAttribute('data-action', 'delete-preset');
         deleteBtn.setAttribute('data-preset-id', preset.id);
         deleteBtn.innerHTML = '<i class="ti ti-trash"></i>';
         actionsDiv.appendChild(deleteBtn);
     }
 
-    // Build badge if needed
-    let badge = null;
-    if (preset.is_default) {
-        badge = document.createElement('span');
-        badge.className = 'c-preset-card__badge';
-        badge.textContent = 'Default';
-    } else if (preset.is_system) {
-        badge = document.createElement('span');
-        badge.className = 'c-preset-card__badge';
-        badge.textContent = 'System';
-    }
-
-    // Assemble card
-    card.appendChild(swatchesDiv);
-    card.appendChild(contentDiv);
     card.appendChild(actionsDiv);
-    if (badge) {
-        card.appendChild(badge);
     }
 
     return card;

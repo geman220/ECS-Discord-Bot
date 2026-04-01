@@ -424,6 +424,43 @@ def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, A
                 logger.error(f"Error sending assignment email: {e}")
                 results['errors'].append(f"Email: {str(e)}")
         
+        # Send push notification
+        push_enabled = getattr(pool_entry, 'push_for_sub_requests', True) if pool_entry else True
+        if push_enabled:
+            try:
+                from app.services.notification_orchestrator import (
+                    orchestrator, NotificationType, NotificationPayload
+                )
+                push_payload = NotificationPayload(
+                    notification_type=NotificationType.SUB_REQUEST,
+                    title="You've Been Assigned as a Substitute!",
+                    message=f"{team_name} on {match_date} at {match_time} at {location}",
+                    user_ids=[user.id],
+                    data={
+                        'type': 'substitute_assignment',
+                        'request_id': str(assignment.request_id),
+                        'match_id': str(match.id),
+                        'assignment_id': str(assignment.id),
+                        'league_type': 'ecs_fc',
+                        'deep_link': f'ecs-fc-scheme://sub-request/{assignment.request_id}',
+                        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                        'priority': 'high'
+                    },
+                    force_push=True,
+                    force_in_app=False,
+                    force_email=False,
+                    force_sms=False,
+                    force_discord=False
+                )
+                push_result = orchestrator.send(push_payload)
+                if push_result.get('push', {}).get('success', 0) > 0:
+                    results['methods_attempted'].append('Push')
+                    results['methods_successful'].append('Push')
+                    logger.info(f"Push notification sent for assignment to user {user.id}")
+            except Exception as e:
+                logger.error(f"Error sending assignment push notification: {e}")
+                results['errors'].append(f"Push: {str(e)}")
+
         # Update assignment notification status
         assignment.notification_sent = True
         assignment.notification_sent_at = datetime.utcnow()
