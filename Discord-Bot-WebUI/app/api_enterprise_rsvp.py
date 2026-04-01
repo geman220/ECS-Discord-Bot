@@ -78,12 +78,12 @@ def update_rsvp_enterprise_from_discord():
             player = None
             source = data.get('source', 'unknown')
             
-            if source == 'discord':
-                # Discord bot authentication via discord_id
+            if source in ('discord', 'web'):
+                # Discord ID authentication (bot or web portal)
                 discord_id = data.get('discord_id')
                 if not discord_id:
-                    return jsonify({"error": "Missing discord_id for Discord source"}), 400
-                    
+                    return jsonify({"error": "Missing discord_id"}), 400
+
                 player = session_db.query(Player).filter_by(discord_id=discord_id).first()
                 if not player:
                     return jsonify({"error": f"Player not found with discord_id: {discord_id}"}), 404
@@ -135,7 +135,7 @@ def update_rsvp_enterprise_from_discord():
                 match_id=match_id,
                 player_id=player.id,
                 new_response=availability_status,
-                source=RSVPSource.DISCORD if source == 'discord' else RSVPSource.MOBILE,
+                source={'discord': RSVPSource.DISCORD, 'web': RSVPSource.WEB, 'mobile': RSVPSource.MOBILE}.get(source, RSVPSource.WEB),
                 operation_id=operation_id,
                 user_context=user_context
             )
@@ -173,7 +173,7 @@ def update_rsvp_enterprise_from_discord():
                         match_id=match_id,
                         player_id=player.id,
                         availability=availability_status,
-                        source='discord' if source == 'discord' else 'mobile',
+                        source=source,
                         player_name=player.name,
                         team_id=team_id
                     )

@@ -42,7 +42,7 @@ function submitRSVP(matchId, response, csrfToken, discordId, retryCount = 0) {
             match_id: parseInt(matchId),
             availability: response,
             operation_id: operationId,
-            source: 'discord',
+            source: 'web',
             discord_id: discordId
         })
     })

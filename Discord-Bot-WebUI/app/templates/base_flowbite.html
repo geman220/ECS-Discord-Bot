@@ -479,6 +479,7 @@
 
     {% block modals %}{% endblock %}
 
+    {% block chat_widgets %}
     {# Floating Chat Widget - Facebook Messenger style #}
     {% if safe_current_user.is_authenticated %}
     {% include 'components/_chat_widget.html' %}
@@ -495,6 +496,7 @@
     <script type="module" src="{{ url_for('static', filename='js/messenger-widget.js') }}"></script>
     <script type="module" src="{{ url_for('static', filename='js/online-status.js') }}"></script>
     {% endif %}
+    {% endblock %}
 
     {% block custom_js %}{% endblock %}
     {% block scripts %}{{ super() if super is defined else '' }}{% endblock %}

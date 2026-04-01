@@ -12,14 +12,77 @@ function linkify(text) {
 }
 
 function simpleMarkdown(text) {
-    let html = escapeHtml(text);
+    const escaped = escapeHtml(text);
+    const lines = escaped.split('\n');
+    const result = [];
+    let inUl = false;
+    let inOl = false;
+
+    for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+
+        // Headers
+        if (line.match(/^###\s+(.+)/)) {
+            if (inUl) { result.push('</ul>'); inUl = false; }
+            if (inOl) { result.push('</ol>'); inOl = false; }
+            result.push(`<h4 class="font-semibold text-sm mt-3 mb-1">${line.replace(/^###\s+/, '')}</h4>`);
+            continue;
+        }
+        if (line.match(/^##\s+(.+)/)) {
+            if (inUl) { result.push('</ul>'); inUl = false; }
+            if (inOl) { result.push('</ol>'); inOl = false; }
+            result.push(`<h3 class="font-semibold text-base mt-3 mb-1">${line.replace(/^##\s+/, '')}</h3>`);
+            continue;
+        }
+
+        // Unordered list items (- or *)
+        const ulMatch = line.match(/^[-*]\s+(.+)/);
+        if (ulMatch) {
+            if (inOl) { result.push('</ol>'); inOl = false; }
+            if (!inUl) { result.push('<ul class="list-disc list-inside ml-2 space-y-1 my-2">'); inUl = true; }
+            result.push(`<li>${formatInline(ulMatch[1])}</li>`);
+            continue;
+        }
+
+        // Ordered list items (1. 2. etc.)
+        const olMatch = line.match(/^\d+\.\s+(.+)/);
+        if (olMatch) {
+            if (inUl) { result.push('</ul>'); inUl = false; }
+            if (!inOl) { result.push('<ol class="list-decimal list-inside ml-2 space-y-1 my-2">'); inOl = true; }
+            result.push(`<li>${formatInline(olMatch[1])}</li>`);
+            continue;
+        }
+
+        // Close any open lists
+        if (inUl) { result.push('</ul>'); inUl = false; }
+        if (inOl) { result.push('</ol>'); inOl = false; }
+
+        // Regular line
+        if (line.trim() === '') {
+            result.push('<br>');
+        } else {
+            result.push(formatInline(line));
+            // Add <br> unless next line is a list/header/blank
+            const next = lines[i + 1];
+            if (next !== undefined && !next.match(/^[-*]\s/) && !next.match(/^\d+\.\s/) && !next.match(/^##/) && next.trim() !== '') {
+                result.push('<br>');
+            }
+        }
+    }
+
+    if (inUl) result.push('</ul>');
+    if (inOl) result.push('</ol>');
+
+    return result.join('\n');
+}
+
+function formatInline(text) {
+    let html = text;
     // Bold
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     // Inline code
     html = html.replace(/`([^`]+)`/g, '<code class="px-1 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs">$1</code>');
-    // Line breaks
-    html = html.replace(/\n/g, '<br>');
-    // Links (after escaping, restore markdown links)
+    // Links
     html = linkify(html);
     return html;
 }
@@ -50,7 +113,7 @@ export function renderAssistantMessage(text, logId) {
     const div = document.createElement('div');
     div.className = 'flex justify-start';
     div.innerHTML = `
-        <div class="max-w-[85%]">
+        <div class="max-w-[90%]">
             <div class="bg-gray-100 dark:bg-gray-700 rounded-2xl rounded-bl-md px-4 py-2.5 text-sm text-gray-900 dark:text-gray-100 leading-relaxed">
                 ${simpleMarkdown(text)}
             </div>

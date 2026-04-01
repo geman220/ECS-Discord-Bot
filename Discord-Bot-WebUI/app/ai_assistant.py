@@ -26,6 +26,90 @@ logger = logging.getLogger(__name__)
 ai_assistant_bp = Blueprint('ai_assistant', __name__, url_prefix='/api/ai-assistant')
 
 
+def _build_navigation_guide(context_type, user_roles):
+    """Build a structured description of the portal's UI layout so the AI
+    knows exactly WHERE things are (sidebar, navbar, user menu) and can give
+    accurate navigation directions. Role-filtered to match what the user sees."""
+
+    roles_set = set(user_roles)
+    is_admin = bool(roles_set & {'Global Admin', 'Pub League Admin'})
+    is_coach = bool(roles_set & {'Pub League Coach', 'ECS FC Coach'})
+    is_league_member = bool(roles_set & {'pl-classic', 'pl-premier', 'pl-ecs-fc'})
+
+    lines = [
+        "## Portal Layout",
+        "The portal has three navigation areas:",
+        "- LEFT SIDEBAR: The main navigation menu on the left side of the screen.",
+        "- TOP NAVBAR: A horizontal bar at the top with search, AI assistant, dark mode, notifications, and your user avatar.",
+        "- USER MENU: Click your avatar/profile picture in the TOP-RIGHT corner to open a dropdown with My Profile, Settings, and Sign Out.",
+        "",
+        "## Sidebar Navigation (left side)",
+        "",
+        "### MAIN section (visible to all users)",
+        "- [Dashboard](/) — Your home page with an overview",
+        "- [Submit Feedback](/feedback) — Send feedback to the league admins",
+    ]
+
+    if is_coach or is_admin:
+        lines.append("- [Coach Dashboard](/teams/coach-dashboard) — Manage your team, view lineups")
+
+    lines.append("- [Help Topics](/help) — Browse help articles and FAQs")
+
+    # ECS FC League section
+    can_view_draft = is_admin or is_coach
+    can_view_teams = is_admin or is_coach or is_league_member
+    can_view_standings = is_admin or is_coach
+    can_view_calendar = is_admin or is_coach or is_league_member or ('Pub League Ref' in roles_set)
+
+    if can_view_draft or can_view_teams or can_view_standings or can_view_calendar:
+        lines.append("")
+        lines.append("### ECS FC LEAGUE section")
+        if can_view_draft:
+            lines.append("- Draft (dropdown): [Classic Division](/draft/classic), [Premier Division](/draft/premier), [ECS FC Division](/draft/ecs_fc)")
+            if is_admin or ('Pub League Coach' in roles_set):
+                lines.append("  - [Draft Predictions](/draft-predictions)")
+            if is_admin:
+                lines.append("  - [Draft History](/admin/draft-history)")
+        if can_view_teams:
+            lines.append("- [Teams Overview](/teams/overview) — View all teams and rosters")
+        if can_view_standings:
+            lines.append("- [Standings](/teams/standings) — League standings and rankings")
+        if is_admin or ('Pub League Coach' in roles_set):
+            lines.append("- [League Store](/store) — Order league merchandise (coaches & admins)")
+        if can_view_calendar:
+            lines.append("- [Calendar](/calendar) — Match schedule and events")
+
+    # Administration section
+    if is_admin:
+        lines.append("")
+        lines.append("### ADMINISTRATION section (admins only)")
+        lines.append("- [Admin Panel](/admin/dashboard) — The main admin hub with all management tools")
+        lines.append("- Digital Wallets (dropdown): [Setup Wizard](/wallet/config/setup), [Dashboard](/wallet/admin), [Pass Studio](/pass-studio), [Manage Passes](/wallet/admin/passes), [Scanner](/wallet/admin/scanner), [Check-ins](/wallet/admin/checkins)")
+
+    # Directory section
+    lines.append("")
+    lines.append("### DIRECTORY section (visible to all users)")
+    lines.append("- [All Players](/players) — Player directory and profiles")
+
+    # User menu (top-right)
+    lines.append("")
+    lines.append("## User Menu (top-right avatar dropdown)")
+    lines.append("Click your profile picture/avatar in the top-right corner of the navbar:")
+    lines.append("- [My Profile](/players/<your_id>) — View and edit your player profile")
+    lines.append("- [Settings](/account/settings) — Account settings, password, 2FA, notifications, Discord linking")
+    lines.append("- Sign Out — Log out of the portal")
+
+    # Key navigation facts to prevent common AI mistakes
+    lines.append("")
+    lines.append("## IMPORTANT Navigation Facts")
+    lines.append("- The Admin Panel is in the LEFT SIDEBAR under the 'ADMINISTRATION' section header. It is NOT in the user profile/avatar dropdown.")
+    lines.append("- Account Settings and My Profile are in the USER MENU (top-right avatar dropdown). They are NOT in the sidebar.")
+    lines.append("- The sidebar is on the LEFT side of the screen. On mobile, tap the hamburger menu icon to reveal it.")
+    lines.append("- The AI Assistant (this chat) is opened from the sparkles icon in the TOP NAVBAR.")
+
+    return "\n".join(lines)
+
+
 def _build_app_feature_map(context_type='user_help'):
     """Auto-discover portal features by scanning Flask's live route map.
     Reads real route URLs and docstrings -- no manual maintenance needed.
@@ -118,6 +202,8 @@ def _get_user_profile():
         'team_name': None,
         'league_name': None,
         'is_captain': False,
+        'profile_url': None,
+        'settings_url': '/account/settings',
     }
 
     try:
@@ -141,6 +227,8 @@ def _get_user_profile():
 
         # UserAuthData has player_id (int), not player (relationship)
         player_id = getattr(current_user, 'player_id', None)
+        if player_id:
+            profile['profile_url'] = f'/players/{player_id}'
         if player_id:
             current_season = Season.query.filter_by(is_current=True).first()
             if current_season:
@@ -326,6 +414,9 @@ def ask():
     help_topics = None
     user_page_index = None
 
+    # Build navigation guide (all context types)
+    navigation_guide = _build_navigation_guide(context_type, user_profile.get('roles', []))
+
     # Admin search index (admin + coach contexts)
     if context_type in ('admin_panel', 'coach'):
         try:
@@ -359,7 +450,8 @@ def ask():
             help_topics = []
 
     system_prompt = ai_assistant_service.build_system_prompt(
-        context_type, user_profile, admin_search_index, help_topics, user_page_index
+        context_type, user_profile, admin_search_index, help_topics, user_page_index,
+        navigation_guide=navigation_guide
     )
 
     # Call the AI
@@ -564,6 +656,18 @@ def admin_metrics_data():
         }
     }
 
+    # Poorly rated responses (thumbs down) for review
+    poorly_rated = flask_db.session.query(
+        AIAssistantLog.id,
+        AIAssistantLog.user_message,
+        AIAssistantLog.assistant_response,
+        User.username,
+        AIAssistantLog.created_at
+    ).join(User, AIAssistantLog.user_id == User.id).filter(
+        AIAssistantLog.created_at >= cutoff,
+        AIAssistantLog.user_rating == 1
+    ).order_by(AIAssistantLog.created_at.desc()).limit(20).all()
+
     return jsonify({
         'success': True,
         **db_stats,
@@ -572,6 +676,16 @@ def admin_metrics_data():
         'top_questions': [{'question': q[:100], 'count': c} for q, c in top_questions],
         'per_user': [{'username': u, 'count': c} for _, u, c in per_user],
         'circuit_breaker': circuit_breaker,
+        'poorly_rated': [
+            {
+                'id': log_id,
+                'question': msg[:150],
+                'response': (resp or '')[:200],
+                'username': uname,
+                'date': dt.strftime('%Y-%m-%d %H:%M') if dt else '',
+            }
+            for log_id, msg, resp, uname, dt in poorly_rated
+        ],
     })
 
 

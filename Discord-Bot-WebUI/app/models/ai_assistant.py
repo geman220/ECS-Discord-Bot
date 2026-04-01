@@ -81,6 +81,12 @@ class AIAssistantLog(db.Model):
             db.func.avg(cls.response_time_ms)
         ).filter(cls.created_at >= cutoff, cls.was_rejected == False).scalar()
 
+        # Rating/feedback stats
+        thumbs_up = cls.query.filter(cls.created_at >= cutoff, cls.user_rating == 5).count()
+        thumbs_down = cls.query.filter(cls.created_at >= cutoff, cls.user_rating == 1).count()
+        total_rated = thumbs_up + thumbs_down
+        satisfaction_rate = round((thumbs_up / total_rated * 100), 1) if total_rated > 0 else None
+
         return {
             'total_requests': total,
             'rejected_requests': rejected,
@@ -89,6 +95,10 @@ class AIAssistantLog(db.Model):
             'total_output_tokens': token_stats[1] or 0,
             'total_cost_usd': round(float(token_stats[2] or 0), 4),
             'avg_response_ms': round(float(avg_response or 0), 1),
+            'thumbs_up': thumbs_up,
+            'thumbs_down': thumbs_down,
+            'unrated': total - rejected - total_rated,
+            'satisfaction_rate': satisfaction_rate,
         }
 
     @classmethod

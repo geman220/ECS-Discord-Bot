@@ -16,7 +16,11 @@
 {% block panel_content %}
 <div class="space-y-6">
     <!-- Stats Cards (loaded via JS) -->
-    <div id="ai-metrics-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div id="ai-metrics-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+        </div>
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 animate-pulse">
             <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
             <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
@@ -66,6 +70,13 @@
         </div>
         {% endcall %}
     </div>
+
+    <!-- Poorly Rated Responses -->
+    {% call card(title="Poorly Rated Responses", subtitle="Thumbs-down responses for review") %}
+    <div id="ai-metrics-poorly-rated" class="space-y-2">
+        <p class="text-sm text-gray-500 dark:text-gray-400">Loading...</p>
+    </div>
+    {% endcall %}
 
     <!-- Configuration & Controls -->
     {% call card(title="Configuration", subtitle="AI Assistant settings and controls") %}
@@ -123,6 +134,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (!data.success) return;
 
         // Stats cards
+        const satRate = data.satisfaction_rate;
+        const satDisplay = satRate !== null && satRate !== undefined ? `${satRate}%` : 'N/A';
+        const satColor = satRate === null || satRate === undefined ? 'text-gray-900 dark:text-white'
+            : satRate >= 80 ? 'text-green-600 dark:text-green-400'
+            : satRate >= 50 ? 'text-yellow-600 dark:text-yellow-400'
+            : 'text-red-600 dark:text-red-400';
+
         const statsEl = document.getElementById('ai-metrics-stats');
         statsEl.innerHTML = `
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
@@ -140,6 +158,10 @@ document.addEventListener('DOMContentLoaded', async function() {
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
                 <p class="text-3xl font-bold text-gray-900 dark:text-white">${data.global_today || 0}</p>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Requests Today / ${data.global_limit || 1000} limit</p>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700">
+                <p class="text-3xl font-bold ${satColor}">${satDisplay}</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Satisfaction (${data.thumbs_up || 0} <i class="ti ti-thumb-up text-green-500"></i> / ${data.thumbs_down || 0} <i class="ti ti-thumb-down text-red-500"></i>)</p>
             </div>
         `;
 
@@ -200,6 +222,38 @@ document.addEventListener('DOMContentLoaded', async function() {
                 </div>
             </div>
         `).join('');
+
+        // Poorly rated responses
+        const poorlyEl = document.getElementById('ai-metrics-poorly-rated');
+        const poorly = data.poorly_rated || [];
+        if (poorly.length) {
+            poorlyEl.innerHTML = `
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th class="px-4 py-2">Date</th>
+                                <th class="px-4 py-2">User</th>
+                                <th class="px-4 py-2">Question</th>
+                                <th class="px-4 py-2">Response (snippet)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${poorly.map(r => `
+                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                    <td class="px-4 py-2 whitespace-nowrap text-xs">${r.date}</td>
+                                    <td class="px-4 py-2 whitespace-nowrap">${r.username}</td>
+                                    <td class="px-4 py-2 text-gray-900 dark:text-white">${r.question}</td>
+                                    <td class="px-4 py-2 text-xs text-gray-500">${r.response}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        } else {
+            poorlyEl.innerHTML = '<p class="text-sm text-gray-400">No thumbs-down responses yet — great job!</p>';
+        }
 
         // Config display
         const confEl = document.getElementById('ai-metrics-config');
