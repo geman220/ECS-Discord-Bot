@@ -76,6 +76,7 @@
             {% if light.bg_input %}--color-bg-input: {{ light.bg_input }};{% endif %}
             {% if light.border %}--color-border: {{ light.border }};{% endif %}
             {% if light.border_input %}--color-border-input: {{ light.border_input }};{% endif %}
+            {% if light.bg_sidebar %}--color-bg-sidebar: {{ light.bg_sidebar }};{% endif %}
             {% if light.primary %}--color-primary-rgb: {{ hex_to_rgb(light.primary) }};{% endif %}
             {% if light.accent %}--color-accent-rgb: {{ hex_to_rgb(light.accent) }};{% endif %}
         }
@@ -123,6 +124,10 @@
         {% if dark.text_muted %}.dark .dark\:text-gray-400 { color: {{ dark.text_muted }}; }{% endif %}
         {% if dark.border %}.dark .dark\:border-gray-700 { border-color: {{ dark.border }}; }{% endif %}
         {% if dark.border_input %}.dark .dark\:border-gray-600 { border-color: {{ dark.border_input }}; }{% endif %}
+
+        /* Sidebar background override (higher specificity than .bg-white remapping) */
+        {% if light.bg_sidebar %}#sidebar > div { background-color: {{ light.bg_sidebar }}; }{% endif %}
+        {% if dark.bg_sidebar %}.dark #sidebar > div { background-color: {{ dark.bg_sidebar }}; }{% endif %}
     </style>
     {% endif %}
 </head>

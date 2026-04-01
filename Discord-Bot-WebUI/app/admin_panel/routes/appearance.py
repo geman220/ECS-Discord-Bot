@@ -30,45 +30,46 @@ from typing import Dict, Any, Optional
 # Flowbite Dark Mode: bg #111827, card #1f2937, border #374151
 DEFAULT_COLORS = {
     "light": {
-        "primary": "#1a472a",           # ECS Green (brand primary)
-        "primary_light": "#15803d",     # Green-700 for hover
-        "primary_dark": "#14532d",      # Green-900 for pressed
-        "secondary": "#6b7280",         # Gray-500
-        "accent": "#c9a227",            # ECS Gold (brand accent)
-        "success": "#16a34a",           # Green-600
-        "warning": "#d97706",           # Amber-600
+        "primary": "#7c3aed",           # Violet-600
+        "primary_light": "#8b5cf6",     # Violet-500 for hover
+        "primary_dark": "#6d28d9",      # Violet-700 for pressed
+        "secondary": "#64748b",         # Slate-500
+        "accent": "#d97706",            # Amber-600 (warm gold)
+        "success": "#059669",           # Emerald-600
+        "warning": "#ea580c",           # Orange-600 (distinct from accent)
         "danger": "#dc2626",            # Red-600
         "info": "#2563eb",              # Blue-600
-        "text_heading": "#111827",      # Gray-900
-        "text_body": "#374151",         # Gray-700
-        "text_muted": "#6b7280",        # Gray-500
-        "text_link": "#1a472a",         # ECS Green
-        "bg_body": "#f9fafb",           # Gray-50
+        "text_heading": "#18181b",      # Zinc-900
+        "text_body": "#3f3f46",         # Zinc-700
+        "text_muted": "#71717a",        # Zinc-500
+        "text_link": "#7c3aed",         # Violet-600
+        "bg_body": "#fafafa",           # Zinc-50
         "bg_card": "#ffffff",           # White
-        "bg_input": "#ffffff",          # White
-        "border": "#e5e7eb",            # Gray-200
-        "border_input": "#d1d5db"       # Gray-300
+        "bg_input": "#fafafa",          # Zinc-50
+        "bg_sidebar": "#ffffff",        # White
+        "border": "#e4e4e7",            # Zinc-200
+        "border_input": "#d4d4d8"       # Zinc-300
     },
     "dark": {
-        "primary": "#22c55e",           # Green-500 (brighter for dark mode)
-        "primary_light": "#4ade80",     # Green-400 for hover
-        "primary_dark": "#16a34a",      # Green-600 for pressed
-        "secondary": "#9ca3af",         # Gray-400
-        "accent": "#facc15",            # Yellow-400 (gold for dark mode)
-        "success": "#22c55e",           # Green-500
-        "warning": "#fbbf24",           # Amber-400
+        "primary": "#a78bfa",           # Violet-400 (brighter for dark mode)
+        "primary_light": "#c4b5fd",     # Violet-300 for hover
+        "primary_dark": "#8b5cf6",      # Violet-500 for pressed
+        "secondary": "#a1a1aa",         # Zinc-400
+        "accent": "#fbbf24",            # Amber-400 (gold)
+        "success": "#34d399",           # Emerald-400
+        "warning": "#fb923c",           # Orange-400 (distinct from accent)
         "danger": "#f87171",            # Red-400
         "info": "#60a5fa",              # Blue-400
-        "text_heading": "#f9fafb",      # Gray-50
-        "text_body": "#d1d5db",         # Gray-300
-        "text_muted": "#9ca3af",        # Gray-400
-        "text_link": "#4ade80",         # Green-400
-        "bg_body": "#111827",           # Gray-900 (Flowbite dark bg)
-        "bg_card": "#1f2937",           # Gray-800 (Flowbite dark card)
-        "bg_input": "#374151",          # Gray-700
-        "bg_sidebar": "#111827",        # Gray-900 (same as body)
-        "border": "#374151",            # Gray-700 (Flowbite dark border)
-        "border_input": "#4b5563"       # Gray-600
+        "text_heading": "#fafafa",      # Zinc-50
+        "text_body": "#d4d4d8",         # Zinc-300
+        "text_muted": "#a1a1aa",        # Zinc-400
+        "text_link": "#a78bfa",         # Violet-400
+        "bg_body": "#18181b",           # Zinc-900 (warm neutral, no blue)
+        "bg_card": "#27272a",           # Zinc-800 (elevated surface)
+        "bg_input": "#3f3f46",          # Zinc-700
+        "bg_sidebar": "#18181b",        # Zinc-900 (matches body)
+        "border": "#3f3f46",            # Zinc-700
+        "border_input": "#52525b"       # Zinc-600
     }
 }
 

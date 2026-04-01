@@ -547,8 +547,8 @@ class SimpleThemeSwitcher {
       'danger': '--color-danger',
       'info': '--color-info',
       // Text colors
-      'text_heading': '--color-text-primary',
-      'text_body': '--color-text-secondary',
+      'text_heading': '--color-text-heading',
+      'text_body': '--color-text-body',
       'text_muted': '--color-text-muted',
       'text_link': '--color-text-link',
       // Background colors
@@ -557,7 +557,7 @@ class SimpleThemeSwitcher {
       'bg_input': '--color-bg-input',
       'bg_sidebar': '--color-bg-sidebar',
       // Border colors
-      'border': '--color-border-primary',
+      'border': '--color-border',
       'border_input': '--color-border-input'
     };
 

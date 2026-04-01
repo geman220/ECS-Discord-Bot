@@ -21,7 +21,7 @@ const lightColorFields = [
     'primary', 'primary_light', 'primary_dark', 'secondary', 'accent',
     'success', 'warning', 'danger', 'info',
     'text_heading', 'text_body', 'text_muted', 'text_link',
-    'bg_body', 'bg_card', 'bg_input',
+    'bg_body', 'bg_card', 'bg_input', 'bg_sidebar',
     'border', 'border_input'
 ];
 
@@ -348,44 +348,44 @@ function updateDarkPreview() {
     const getValue = (id) => document.getElementById(id)?.value;
 
     // Background
-    area.style.background = getValue('dark-bg_body') || '#0F172A';
+    area.style.background = getValue('dark-bg_body') || '#18181B';
 
     // Navbar
     const navbar = area.querySelector('.preview-navbar-dark');
     if (navbar) {
-        navbar.style.background = getValue('dark-bg_card') || '#1E293B';
-        navbar.style.borderColor = getValue('dark-border') || '#475569';
+        navbar.style.background = getValue('dark-bg_card') || '#27272A';
+        navbar.style.borderColor = getValue('dark-border') || '#3F3F46';
     }
 
     // Navbar title
     const navTitle = area.querySelector('.preview-heading-dark');
-    if (navTitle) navTitle.style.color = getValue('dark-text_heading') || '#F8FAFC';
+    if (navTitle) navTitle.style.color = getValue('dark-text_heading') || '#FAFAFA';
 
     // Input
     const input = area.querySelector('.preview-input-dark');
     if (input) {
-        input.style.background = getValue('dark-bg_input') || '#334155';
-        input.style.borderColor = getValue('dark-border_input') || '#475569';
-        input.style.color = getValue('dark-text_body') || '#CBD5E1';
+        input.style.background = getValue('dark-bg_input') || '#3F3F46';
+        input.style.borderColor = getValue('dark-border_input') || '#52525B';
+        input.style.color = getValue('dark-text_body') || '#D4D4D8';
     }
 
     // Card
     const card = area.querySelector('.preview-c-card-dark');
     if (card) {
-        card.style.background = getValue('dark-bg_card') || '#1E293B';
-        card.style.borderColor = getValue('dark-border') || '#475569';
+        card.style.background = getValue('dark-bg_card') || '#27272A';
+        card.style.borderColor = getValue('dark-border') || '#3F3F46';
         card.style.borderLeftColor = getValue('dark-primary') || '#A78BFA';
     }
 
     // Text
     area.querySelectorAll('.preview-heading-dark').forEach(el => {
-        el.style.color = getValue('dark-text_heading') || '#F8FAFC';
+        el.style.color = getValue('dark-text_heading') || '#FAFAFA';
     });
     area.querySelectorAll('.preview-body-dark').forEach(el => {
-        el.style.color = getValue('dark-text_body') || '#CBD5E1';
+        el.style.color = getValue('dark-text_body') || '#D4D4D8';
     });
     area.querySelectorAll('.preview-muted-dark').forEach(el => {
-        el.style.color = getValue('dark-text_muted') || '#94A3B8';
+        el.style.color = getValue('dark-text_muted') || '#A1A1AA';
     });
     area.querySelectorAll('.preview-link-dark').forEach(el => {
         el.style.color = getValue('dark-text_link') || '#A78BFA';
@@ -399,8 +399,8 @@ function updateDarkPreview() {
     }
     const btnSecondary = area.querySelector('.preview-btn-secondary-dark');
     if (btnSecondary) {
-        btnSecondary.style.background = getValue('dark-secondary') || '#94A3B8';
-        btnSecondary.style.borderColor = getValue('dark-secondary') || '#94A3B8';
+        btnSecondary.style.background = getValue('dark-secondary') || '#A1A1AA';
+        btnSecondary.style.borderColor = getValue('dark-secondary') || '#A1A1AA';
     }
     const btnAccent = area.querySelector('.preview-btn-accent-dark');
     if (btnAccent) {
@@ -412,7 +412,7 @@ function updateDarkPreview() {
     const badgeSuccess = area.querySelector('.preview-badge-success-dark');
     if (badgeSuccess) badgeSuccess.style.background = getValue('dark-success') || '#34D399';
     const badgeWarning = area.querySelector('.preview-badge-warning-dark');
-    if (badgeWarning) badgeWarning.style.background = getValue('dark-warning') || '#FBBF24';
+    if (badgeWarning) badgeWarning.style.background = getValue('dark-warning') || '#FB923C';
     const badgeDanger = area.querySelector('.preview-badge-danger-dark');
     if (badgeDanger) badgeDanger.style.background = getValue('dark-danger') || '#F87171';
     const badgeInfo = area.querySelector('.preview-badge-info-dark');
@@ -424,56 +424,56 @@ function updateDarkPreview() {
         // Modal container
         const modal = modalSection.querySelector('.preview-modal');
         if (modal) {
-            modal.style.background = getValue('dark-bg_card') || '#1E293B';
-            modal.style.borderColor = getValue('dark-border') || '#475569';
+            modal.style.background = getValue('dark-bg_card') || '#27272A';
+            modal.style.borderColor = getValue('dark-border') || '#3F3F46';
         }
 
         // Modal header
         const modalHeader = modalSection.querySelector('.preview-modal__header');
         if (modalHeader) {
-            modalHeader.style.background = getValue('dark-bg_card') || '#1E293B';
-            modalHeader.style.borderColor = getValue('dark-border') || '#475569';
+            modalHeader.style.background = getValue('dark-bg_card') || '#27272A';
+            modalHeader.style.borderColor = getValue('dark-border') || '#3F3F46';
         }
 
         // Modal title
         const modalTitle = modalSection.querySelector('.preview-modal__title');
-        if (modalTitle) modalTitle.style.color = getValue('dark-text_heading') || '#F8FAFC';
+        if (modalTitle) modalTitle.style.color = getValue('dark-text_heading') || '#FAFAFA';
 
         // Modal close button
         const modalClose = modalSection.querySelector('.preview-modal__close');
-        if (modalClose) modalClose.style.color = getValue('dark-text_muted') || '#94A3B8';
+        if (modalClose) modalClose.style.color = getValue('dark-text_muted') || '#A1A1AA';
 
         // Modal body
         const modalBody = modalSection.querySelector('.preview-modal__body');
-        if (modalBody) modalBody.style.background = getValue('dark-bg_card') || '#1E293B';
+        if (modalBody) modalBody.style.background = getValue('dark-bg_card') || '#27272A';
 
         // Modal footer
         const modalFooter = modalSection.querySelector('.preview-modal__footer');
         if (modalFooter) {
-            modalFooter.style.background = getValue('dark-bg_card') || '#1E293B';
-            modalFooter.style.borderColor = getValue('dark-border') || '#475569';
+            modalFooter.style.background = getValue('dark-bg_card') || '#27272A';
+            modalFooter.style.borderColor = getValue('dark-border') || '#3F3F46';
         }
 
         // Elevated sections
         modalSection.querySelectorAll('.preview-section-elevated').forEach(el => {
-            el.style.background = getValue('dark-bg_body') || '#0F172A';
-            el.style.borderColor = getValue('dark-border') || '#475569';
+            el.style.background = getValue('dark-bg_body') || '#18181B';
+            el.style.borderColor = getValue('dark-border') || '#3F3F46';
         });
 
         // Input groups
         modalSection.querySelectorAll('.preview-input-group').forEach(el => {
-            el.style.background = getValue('dark-bg_input') || '#334155';
-            el.style.borderColor = getValue('dark-border_input') || '#475569';
+            el.style.background = getValue('dark-bg_input') || '#3F3F46';
+            el.style.borderColor = getValue('dark-border_input') || '#52525B';
         });
 
         // Input group icons
         modalSection.querySelectorAll('.preview-input-group__icon').forEach(el => {
-            el.style.color = getValue('dark-text_muted') || '#94A3B8';
+            el.style.color = getValue('dark-text_muted') || '#A1A1AA';
         });
 
         // Input group inputs
         modalSection.querySelectorAll('.preview-input-group__input').forEach(el => {
-            el.style.color = getValue('dark-text_body') || '#CBD5E1';
+            el.style.color = getValue('dark-text_body') || '#D4D4D8';
         });
 
         // Toggle tracks
@@ -483,14 +483,14 @@ function updateDarkPreview() {
 
         // Toggle labels
         modalSection.querySelectorAll('.preview-toggle__label').forEach(el => {
-            el.style.color = getValue('dark-text_body') || '#CBD5E1';
+            el.style.color = getValue('dark-text_body') || '#D4D4D8';
         });
 
         // Role badges (inactive)
         modalSection.querySelectorAll('.preview-role-badge:not(.preview-role-badge--active)').forEach(el => {
-            el.style.background = getValue('dark-bg_input') || '#334155';
-            el.style.borderColor = getValue('dark-border_input') || '#475569';
-            el.style.color = getValue('dark-text_body') || '#CBD5E1';
+            el.style.background = getValue('dark-bg_input') || '#3F3F46';
+            el.style.borderColor = getValue('dark-border_input') || '#52525B';
+            el.style.color = getValue('dark-text_body') || '#D4D4D8';
         });
 
         // Role badges (active)
@@ -502,7 +502,7 @@ function updateDarkPreview() {
 
         // Ghost button
         const ghostBtn = modalSection.querySelector('.preview-btn-ghost');
-        if (ghostBtn) ghostBtn.style.color = getValue('dark-text_muted') || '#94A3B8';
+        if (ghostBtn) ghostBtn.style.color = getValue('dark-text_muted') || '#A1A1AA';
 
         // Primary button in modal
         const modalPrimaryBtn = modalSection.querySelector('.preview-btn-primary-dark');
@@ -513,7 +513,7 @@ function updateDarkPreview() {
 
         // Labels (muted text)
         modalSection.querySelectorAll('.preview-muted-dark').forEach(el => {
-            el.style.color = getValue('dark-text_muted') || '#94A3B8';
+            el.style.color = getValue('dark-text_muted') || '#A1A1AA';
         });
     }
 }
