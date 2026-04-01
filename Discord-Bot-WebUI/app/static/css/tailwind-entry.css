@@ -345,7 +345,7 @@
   /* Scrollbar styling for dark mode */
   .scrollbar-dark {
     scrollbar-width: thin;
-    scrollbar-color: #4B5563 #1F2937;
+    scrollbar-color: var(--color-border, #3f3f46) var(--color-bg-card, #27272a);
   }
 
   .scrollbar-dark::-webkit-scrollbar {
@@ -354,16 +354,16 @@
   }
 
   .scrollbar-dark::-webkit-scrollbar-track {
-    background: #1F2937;
+    background: var(--color-bg-card, #27272a);
   }
 
   .scrollbar-dark::-webkit-scrollbar-thumb {
-    background: #4B5563;
+    background: var(--color-border, #3f3f46);
     border-radius: 4px;
   }
 
   .scrollbar-dark::-webkit-scrollbar-thumb:hover {
-    background: #6B7280;
+    background: var(--color-border-input, #52525b);
   }
 
   /* ============================================

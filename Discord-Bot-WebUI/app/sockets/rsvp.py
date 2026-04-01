@@ -377,7 +377,7 @@ def handle_join_match_rsvp(data):
             if is_ecs_fc:
                 match_info = {
                     'team_id': ecs_fc_match.team_id,
-                    'date': ecs_fc_match.date.isoformat() if ecs_fc_match.date else None,
+                    'date': ecs_fc_match.match_date.isoformat() if ecs_fc_match.match_date else None,
                     'match_type': 'ecs_fc'
                 }
                 # Also join the team room for ECS FC matches

@@ -45,18 +45,18 @@
   --bs-body-line-height: 1.5;
 
   /* Body colors - mapped to our token system */
-  --bs-body-color: var(--color-text-primary, var(--color-secondary-900, #1e293b));
-  --bs-body-bg: var(--color-bg-primary, #f8fafc);
+  --bs-body-color: var(--color-text-body, #3f3f46);
+  --bs-body-bg: var(--color-bg-body, #fafafa);
 
   /* Link colors */
-  --bs-link-color: var(--color-primary, var(--color-primary-600, #2563EB));
-  --bs-link-hover-color: var(--color-primary-hover, #1d4ed8);
+  --bs-link-color: var(--color-primary, #7c3aed);
+  --bs-link-hover-color: var(--color-primary-dark, #6d28d9);
 }
 
 /* Dark mode overrides */
 [data-style="dark"] {
-  --bs-body-color: var(--ecs-dark-text-primary, #f8fafc);
-  --bs-body-bg: var(--ecs-dark-bg, #0f172a);
+  --bs-body-color: var(--color-text-body, #d4d4d8);
+  --bs-body-bg: var(--color-bg-body, #18181b);
 }
 
 /* ============================================================================

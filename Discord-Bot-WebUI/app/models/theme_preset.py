@@ -170,55 +170,20 @@ class ThemePreset(db.Model):
 
     @classmethod
     def initialize_system_presets(cls):
-        """Initialize default system presets if they don't exist."""
+        """Initialize or update system presets.
+
+        Uses DEFAULT_COLORS from appearance.py as the single source of truth
+        for the 'Default Purple' preset. Creates missing presets and updates
+        existing system presets to stay in sync.
+        """
+        # Import here to avoid circular imports
+        from app.admin_panel.routes.appearance import DEFAULT_COLORS
+
         system_presets = [
             {
                 'name': 'Default Purple',
                 'description': 'The default ECS theme with purple accents',
-                'colors': {
-                    'light': {
-                        'primary': '#7C3AED',
-                        'primary_light': '#8B5CF6',
-                        'primary_dark': '#6D28D9',
-                        'secondary': '#64748B',
-                        'accent': '#D97706',
-                        'success': '#059669',
-                        'warning': '#EA580C',
-                        'danger': '#DC2626',
-                        'info': '#2563EB',
-                        'text_heading': '#18181B',
-                        'text_body': '#3F3F46',
-                        'text_muted': '#71717A',
-                        'text_link': '#7C3AED',
-                        'bg_body': '#FAFAFA',
-                        'bg_card': '#FFFFFF',
-                        'bg_input': '#FAFAFA',
-                        'bg_sidebar': '#FFFFFF',
-                        'border': '#E4E4E7',
-                        'border_input': '#D4D4D8'
-                    },
-                    'dark': {
-                        'primary': '#A78BFA',
-                        'primary_light': '#C4B5FD',
-                        'primary_dark': '#8B5CF6',
-                        'secondary': '#A1A1AA',
-                        'accent': '#FBBF24',
-                        'success': '#34D399',
-                        'warning': '#FB923C',
-                        'danger': '#F87171',
-                        'info': '#60A5FA',
-                        'text_heading': '#FAFAFA',
-                        'text_body': '#D4D4D8',
-                        'text_muted': '#A1A1AA',
-                        'text_link': '#A78BFA',
-                        'bg_body': '#18181B',
-                        'bg_card': '#27272A',
-                        'bg_input': '#3F3F46',
-                        'bg_sidebar': '#18181B',
-                        'border': '#3F3F46',
-                        'border_input': '#52525B'
-                    }
-                },
+                'colors': DEFAULT_COLORS,  # Single source of truth
                 'is_default': True
             },
             {
@@ -322,7 +287,13 @@ class ThemePreset(db.Model):
         try:
             for preset_data in system_presets:
                 existing = cls.query.filter_by(name=preset_data['name']).first()
-                if not existing:
+                if existing:
+                    # Update existing system presets to stay in sync
+                    if existing.is_system:
+                        existing.colors = preset_data['colors']
+                        existing.description = preset_data['description']
+                        db.session.commit()
+                else:
                     preset = cls.create_preset(
                         name=preset_data['name'],
                         colors=preset_data['colors'],
@@ -333,7 +304,7 @@ class ThemePreset(db.Model):
                         preset.is_default = True
                         db.session.commit()
 
-            logger.info("System theme presets initialized")
+            logger.info("System theme presets initialized/updated")
         except Exception as e:
             logger.error(f"Error initializing system presets: {e}")
             db.session.rollback()

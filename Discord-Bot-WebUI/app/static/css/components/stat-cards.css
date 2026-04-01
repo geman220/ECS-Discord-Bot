@@ -228,18 +228,14 @@
    ============================================================================ */
 
 [data-style="dark"] .c-stat-card {
-  /* #1e293b = Slate-800, guaranteed dark background */
-  background: var(--color-bg-elevated, #1e293b);
-  background-color: #1e293b;
-  background-color: var(--color-bg-elevated, #1e293b);
+  background-color: var(--color-bg-card, #27272a);
   border-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
 }
 
 /* High specificity dark mode rule to ensure it wins over any light mode styles */
 html[data-style="dark"] .c-stat-card,
 [data-theme-variant="modern"][data-style="dark"] .c-stat-card {
-  background: #1e293b;
-  background: var(--color-bg-elevated, #1e293b);
+  background-color: var(--color-bg-card, #27272a);
   border-color: rgba(255, 255, 255, 0.06);
 }
 

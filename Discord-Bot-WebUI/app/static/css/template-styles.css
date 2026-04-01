@@ -177,9 +177,9 @@ html.dark .form-control,
 [data-theme="dark"] .form-control,
 [data-style="dark"] .form-select,
 [data-style="dark"] .form-control {
-    background-color: #374151;
-    border-color: #4b5563;
-    color: #f3f4f6;
+    background-color: var(--color-bg-input, #3f3f46);
+    border-color: var(--color-border-input, #52525b);
+    color: var(--color-text-body, #d4d4d8);
 }
 
 .dark .form-select:focus,
@@ -190,8 +190,8 @@ html.dark .form-control:focus,
 [data-theme="dark"] .form-control:focus,
 [data-style="dark"] .form-select:focus,
 [data-style="dark"] .form-control:focus {
-    border-color: #1a472a;
-    box-shadow: 0 0 0 2px rgba(26, 71, 42, 0.4);
+    border-color: var(--color-primary, #a78bfa);
+    box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.4);
 }
 
 /* Form-select dropdown arrow in dark mode */
@@ -211,8 +211,8 @@ html.dark .form-select,
 html.dark .form-select option,
 [data-theme="dark"] .form-select option,
 [data-style="dark"] .form-select option {
-    background-color: #374151;
-    color: #f3f4f6;
+    background-color: var(--color-bg-input, #3f3f46);
+    color: var(--color-text-body, #d4d4d8);
 }
 
 /* Input group text (indicators) */
@@ -235,9 +235,9 @@ html.dark .form-select option,
 html.dark .input-group-text,
 [data-theme="dark"] .input-group-text,
 [data-style="dark"] .input-group-text {
-    background-color: #4b5563;
-    border-color: #4b5563;
-    color: #d1d5db;
+    background-color: var(--color-bg-input, #3f3f46);
+    border-color: var(--color-border-input, #52525b);
+    color: var(--color-text-body, #d4d4d8);
 }
 
 /* Card indicators */
