@@ -20,7 +20,8 @@ from flask_login import login_required, current_user
 from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
-from app.models.communication import DeviceToken, Notification
+from app.models.communication import Notification
+from app.models.notifications import UserFCMToken
 from app.models.core import User
 from app.decorators import role_required
 from app.utils.db_utils import transactional
@@ -42,10 +43,10 @@ def push_notifications():
             notification_type='push'
         ).order_by(Notification.created_at.desc()).limit(20).all()
 
-        total_subscribers = DeviceToken.query.filter_by(is_active=True).count()
-        active_subscribers = DeviceToken.query.filter(
-            DeviceToken.is_active == True,
-            DeviceToken.updated_at >= datetime.utcnow() - timedelta(days=30)
+        total_subscribers = UserFCMToken.query.filter_by(is_active=True).count()
+        active_subscribers = UserFCMToken.query.filter(
+            UserFCMToken.is_active == True,
+            UserFCMToken.updated_at >= datetime.utcnow() - timedelta(days=30)
         ).count()
 
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -55,12 +56,12 @@ def push_notifications():
         ).count()
 
         week_start = datetime.utcnow() - timedelta(days=7)
-        new_subscribers_week = DeviceToken.query.filter(
-            DeviceToken.created_at >= week_start,
-            DeviceToken.is_active == True
+        new_subscribers_week = UserFCMToken.query.filter(
+            UserFCMToken.created_at >= week_start,
+            UserFCMToken.is_active == True
         ).count()
 
-        unsubscribed_count = DeviceToken.query.filter_by(is_active=False).count()
+        unsubscribed_count = UserFCMToken.query.filter_by(is_active=False).count()
         total_notifications = Notification.query.filter_by(notification_type='push').count()
         delivery_rate = '95%' if total_subscribers > 0 else '0%'
         click_rate = '12%' if total_notifications > 0 else '0%'
@@ -109,10 +110,10 @@ def push_notifications():
 def push_notifications_dashboard():
     """Push notifications dashboard with overview stats."""
     try:
-        total_subscribers = DeviceToken.query.filter_by(is_active=True).count()
-        active_subscribers = DeviceToken.query.filter(
-            DeviceToken.is_active == True,
-            DeviceToken.updated_at >= datetime.utcnow() - timedelta(days=30)
+        total_subscribers = UserFCMToken.query.filter_by(is_active=True).count()
+        active_subscribers = UserFCMToken.query.filter(
+            UserFCMToken.is_active == True,
+            UserFCMToken.updated_at >= datetime.utcnow() - timedelta(days=30)
         ).count()
 
         today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -132,9 +133,9 @@ def push_notifications_dashboard():
         ).order_by(Notification.created_at.desc()).limit(10).all()
 
         platform_stats = db.session.query(
-            DeviceToken.platform,
-            db.func.count(DeviceToken.id)
-        ).filter_by(is_active=True).group_by(DeviceToken.platform).all()
+            UserFCMToken.platform,
+            db.func.count(UserFCMToken.id)
+        ).filter_by(is_active=True).group_by(UserFCMToken.platform).all()
 
         stats = {
             'total_subscribers': total_subscribers,
@@ -179,19 +180,19 @@ def send_push_notification_form():
 
         if target_type == 'coaches':
             from app.models import UserRole, Role
-            target_users = User.query.join(UserRole).join(Role).join(DeviceToken).filter(
+            target_users = User.query.join(UserRole).join(Role).join(UserFCMToken).filter(
                 Role.name.in_(['Pub League Coach', 'ECS FC Coach']),
-                DeviceToken.is_active == True
+                UserFCMToken.is_active == True
             ).distinct().all()
         elif target_type == 'admins':
             from app.models import UserRole, Role
-            target_users = User.query.join(UserRole).join(Role).join(DeviceToken).filter(
+            target_users = User.query.join(UserRole).join(Role).join(UserFCMToken).filter(
                 Role.name.in_(['Global Admin', 'Pub League Admin']),
-                DeviceToken.is_active == True
+                UserFCMToken.is_active == True
             ).distinct().all()
         else:
-            target_users = User.query.join(DeviceToken).filter(
-                DeviceToken.is_active == True
+            target_users = User.query.join(UserFCMToken).filter(
+                UserFCMToken.is_active == True
             ).distinct().all()
 
         notifications_created = 0
@@ -320,8 +321,8 @@ def send_push_notification():
             flash('Title and body are required.', 'error')
             return redirect(url_for('admin_panel.push_notifications'))
 
-        target_users = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True
+        target_users = User.query.join(UserFCMToken).filter(
+            UserFCMToken.is_active == True
         ).distinct().all()
 
         notifications_created = 0
@@ -362,7 +363,7 @@ def push_notification_broadcast():
             from app.models import UserFCMToken
             token_model = UserFCMToken
         except ImportError:
-            token_model = DeviceToken
+            token_model = UserFCMToken
 
         data = request.get_json()
         title = data.get('title', 'ECS Soccer')
@@ -524,7 +525,7 @@ def push_notification_test():
             from app.models import UserFCMToken
             token_model = UserFCMToken
         except ImportError:
-            token_model = DeviceToken
+            token_model = UserFCMToken
 
         user_tokens = token_model.query.filter_by(user_id=current_user.id, is_active=True).all()
         if not user_tokens:
@@ -555,7 +556,7 @@ def push_notification_cleanup_tokens():
             from app.models import UserFCMToken
             token_model = UserFCMToken
         except ImportError:
-            token_model = DeviceToken
+            token_model = UserFCMToken
 
         cutoff_date = datetime.utcnow() - timedelta(days=90)
         old_tokens = token_model.query.filter(token_model.updated_at < cutoff_date).all()
@@ -586,7 +587,7 @@ def push_notification_tokens():
             from app.models import UserFCMToken
             token_model = UserFCMToken
         except ImportError:
-            token_model = DeviceToken
+            token_model = UserFCMToken
 
         page = request.args.get('page', 1, type=int)
         tokens = token_model.query.join(User).paginate(page=page, per_page=50, error_out=False)
@@ -624,7 +625,7 @@ def push_notification_status():
             from app.models import UserFCMToken
             token_model = UserFCMToken
         except ImportError:
-            token_model = DeviceToken
+            token_model = UserFCMToken
 
         total_tokens = token_model.query.filter_by(is_active=True).count()
         ios_tokens = token_model.query.filter_by(is_active=True, platform='ios').count() if hasattr(token_model, 'platform') else 0

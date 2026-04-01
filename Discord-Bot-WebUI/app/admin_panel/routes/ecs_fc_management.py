@@ -1068,6 +1068,5 @@ def ecs_fc_post_rsvp(match_id):
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
 def ecs_fc_sub_pool():
-    """Redirect to existing ECS FC sub pool page."""
-    # This links to the existing sub pool functionality in admin.ecs_fc_subs blueprint
-    return redirect(url_for('admin.ecs_fc_subs.manage_sub_pool'))
+    """Redirect to substitute pools dashboard filtered to ECS FC."""
+    return redirect(url_for('admin_panel.substitute_pools', context='ecs-fc'))

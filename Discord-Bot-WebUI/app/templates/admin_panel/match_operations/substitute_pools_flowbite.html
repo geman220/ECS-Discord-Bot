@@ -1,10 +1,24 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, modal_info %}
 
-{% block admin_title %}Substitute Pools{% endblock %}
-{% block panel_description %}Manage substitute player pools{% endblock %}
+{% block admin_title %}{% if pool_context == 'ecs-fc' %}ECS FC Substitute Pool{% elif pool_context == 'pub-league' %}Pub League Substitute Pools{% else %}Substitute Pools{% endif %}{% endblock %}
+{% block panel_description %}{% if pool_context == 'ecs-fc' %}Manage the ECS FC substitute player pool{% elif pool_context == 'pub-league' %}Manage Classic and Premier substitute pools{% else %}Manage substitute player pools{% endif %}{% endblock %}
 
 {% block breadcrumb_items %}
+{% if pool_context == 'ecs-fc' %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">ECS FC</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Substitute Pool</span>
+    </div>
+</li>
+{% else %}
 <li>
     <div class="flex items-center">
         <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
@@ -17,6 +31,7 @@
         <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Substitute Pools</span>
     </div>
 </li>
+{% endif %}
 {% endblock %}
 
 {% block panel_content %}
@@ -26,13 +41,19 @@
         <i class="ti ti-users-group text-lg mr-3 mt-0.5"></i>
         <div>
             <strong>Substitute Pool Management</strong><br>
+            {% if pool_context == 'ecs-fc' %}
+            Manage the ECS FC substitute pool. Add players, track availability, and manage substitute requests.
+            {% elif pool_context == 'pub-league' %}
+            Manage substitute pools for Classic and Premier divisions. Add players to pools, track availability, and manage substitute requests.
+            {% else %}
             Manage substitute pools for ECS FC, Classic, and Premier divisions. Add players to pools, track availability, and manage substitute requests.
+            {% endif %}
         </div>
     </div>
 </div>
 
 <!-- League Pool Cards -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+<div class="grid grid-cols-1 {% if pools_data|length == 1 %}md:grid-cols-1 max-w-lg{% elif pools_data|length == 2 %}md:grid-cols-2{% else %}md:grid-cols-3{% endif %} gap-6 mb-6">
     {% for league_type, data in pools_data.items() %}
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700" style="border-left: 4px solid {{ data.config.color }}">
@@ -133,7 +154,7 @@
             </div>
             <div class="text-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                 <div class="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{{ pools_data|length }}</div>
-                <small class="text-gray-500 dark:text-gray-400">Active Leagues</small>
+                <small class="text-gray-500 dark:text-gray-400">{% if pools_data|length == 1 %}Active Pool{% else %}Active Pools{% endif %}</small>
             </div>
         </div>
     </div>

@@ -1197,7 +1197,8 @@ def quick_actions():
         from app.models.players import Team
         from app.models.matches import Match
         from app.models.communication import Notification
-        from app.models.communication import ScheduledMessage, DeviceToken
+        from app.models.communication import ScheduledMessage
+        from app.models.notifications import UserFCMToken
         
         # Get quick statistics for quick actions dashboard
         stats = {
@@ -1223,7 +1224,7 @@ def quick_actions():
                 Notification.created_at < datetime.utcnow() - timedelta(days=30),
                 Notification.read == True
             ).count(),
-            'inactive_device_tokens': DeviceToken.query.filter_by(is_active=False).count(),
+            'inactive_device_tokens': UserFCMToken.query.filter_by(is_active=False).count(),
         }
         
         # Available quick actions
@@ -1514,8 +1515,8 @@ def _mark_old_notifications_read():
 def _clean_device_tokens():
     """Clean inactive device tokens."""
     try:
-        from app.models.communication import DeviceToken
-        inactive_tokens = DeviceToken.query.filter_by(is_active=False).all()
+        from app.models.notifications import UserFCMToken
+        inactive_tokens = UserFCMToken.query.filter_by(is_active=False).all()
         count = len(inactive_tokens)
         
         for token in inactive_tokens:

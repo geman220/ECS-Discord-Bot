@@ -62,7 +62,7 @@ def _build_coach_search_index():
         {'name': 'Import Schedule', 'category': 'ECS FC', 'description': 'Import match schedules from file',
          'keywords': ['upload', 'csv', 'import'], 'url': url_for('admin_panel.ecs_fc_import'), 'icon': 'ti-file-import'},
         {'name': 'Substitute Pool', 'category': 'ECS FC', 'description': 'Manage ECS FC substitute player pool',
-         'keywords': ['subs', 'reserves', 'bench'], 'url': url_for('admin_panel.ecs_fc_sub_pool'), 'icon': 'ti-user-plus'},
+         'keywords': ['subs', 'reserves', 'bench'], 'url': url_for('admin_panel.substitute_pools', context='ecs-fc'), 'icon': 'ti-user-plus'},
     ]
 
     try:
@@ -194,7 +194,7 @@ def _build_admin_search_index():
         {'name': 'ECS FC Substitute Pool', 'category': 'ECS FC',
          'description': 'Manage ECS FC substitute player pool',
          'keywords': ['subs', 'reserves', 'bench', 'available'],
-         'url': url_for('admin_panel.ecs_fc_sub_pool'), 'icon': 'ti-user-plus'},
+         'url': url_for('admin_panel.substitute_pools', context='ecs-fc'), 'icon': 'ti-user-plus'},
 
         # --- Discord ---
         {'name': 'Discord Hub', 'category': 'Discord', 'description': 'Discord integration overview and management',

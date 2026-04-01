@@ -56,11 +56,23 @@ LEAGUE_TYPES = {
 def substitute_pools():
     """
     Main substitute pool management page.
-    Shows all league types and their respective pools.
+    Shows league pools filtered by context query param:
+    - ?context=ecs-fc → ECS FC only
+    - ?context=pub-league → Classic + Premier only
+    - no context → all leagues
     """
     try:
         from app.models import Player, User, Role, Team, League, Season
         from app.models_substitute_pools import SubstitutePool, get_eligible_players
+
+        # Determine which leagues to show based on context
+        context = request.args.get('context', '')
+        if context == 'ecs-fc':
+            filtered_types = {k: v for k, v in LEAGUE_TYPES.items() if k == 'ECS FC'}
+        elif context == 'pub-league':
+            filtered_types = {k: v for k, v in LEAGUE_TYPES.items() if k in ('Classic', 'Premier')}
+        else:
+            filtered_types = LEAGUE_TYPES
 
         # Log access
         AdminAuditLog.log_action(
@@ -68,14 +80,14 @@ def substitute_pools():
             action='access_substitute_pools',
             resource_type='match_operations',
             resource_id='substitute_pools',
-            new_value='Accessed substitute pools dashboard',
+            new_value=f'Accessed substitute pools dashboard (context={context or "all"})',
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
 
-        # Get data for all league types
+        # Get data for filtered league types
         pools_data = {}
-        for league_type, config in LEAGUE_TYPES.items():
+        for league_type, config in filtered_types.items():
             try:
                 # Get active pools by league_type directly
                 active_pools = SubstitutePool.query.options(
@@ -101,7 +113,8 @@ def substitute_pools():
         return render_template(
             'admin_panel/match_operations/substitute_pools_flowbite.html',
             pools_data=pools_data,
-            league_types=LEAGUE_TYPES
+            league_types=filtered_types,
+            pool_context=context
         )
 
     except ImportError as ie:

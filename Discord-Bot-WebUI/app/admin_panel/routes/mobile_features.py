@@ -22,7 +22,7 @@ from .. import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminConfig, AdminAuditLog
 from app.models.core import User
-from app.models.communication import DeviceToken
+from app.models.notifications import UserFCMToken
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 
@@ -40,18 +40,18 @@ def mobile_features():
         # Get real mobile feature statistics
         
         # Device tokens represent push subscriptions
-        push_subscriptions = DeviceToken.query.filter_by(is_active=True).count()
+        push_subscriptions = UserFCMToken.query.filter_by(is_active=True).count()
         
         # Count users with device tokens as mobile users
-        mobile_users = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True
+        mobile_users = User.query.join(UserFCMToken).filter(
+            UserFCMToken.is_active == True
         ).distinct().count()
         
         # Active mobile users (those who have used the app in last 30 days)
         thirty_days_ago = datetime.utcnow() - timedelta(days=30)
-        active_mobile_users = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True,
-            DeviceToken.updated_at >= thirty_days_ago
+        active_mobile_users = User.query.join(UserFCMToken).filter(
+            UserFCMToken.is_active == True,
+            UserFCMToken.updated_at >= thirty_days_ago
         ).distinct().count()
         
         # Mobile app configuration status
@@ -69,7 +69,7 @@ def mobile_features():
             push_service_status = 'unknown'
 
         # Mobile app downloads/installs (estimated from device tokens)
-        total_app_installs = DeviceToken.query.count()
+        total_app_installs = UserFCMToken.query.count()
 
         # Get mobile app version from AdminConfig
         try:
@@ -179,22 +179,22 @@ def mobile_app_config():
     version_dist = []
     try:
         rows = db.session.query(
-            DeviceToken.app_version,
-            DeviceToken.device_type,
-            func.count(DeviceToken.id).label('count')
+            UserFCMToken.app_version,
+            UserFCMToken.platform,
+            func.count(UserFCMToken.id).label('count')
         ).filter(
-            DeviceToken.is_active == True,
-            DeviceToken.app_version.isnot(None)
+            UserFCMToken.is_active == True,
+            UserFCMToken.app_version.isnot(None)
         ).group_by(
-            DeviceToken.app_version, DeviceToken.device_type
-        ).order_by(func.count(DeviceToken.id).desc()).all()
+            UserFCMToken.app_version, UserFCMToken.platform
+        ).order_by(func.count(UserFCMToken.id).desc()).all()
 
         total_devices = sum(r.count for r in rows) or 1
         for r in rows:
             version_dist.append({
                 'version': r.app_version or 'Unknown',
                 'platform': {'ios': 'iOS', 'android': 'Android'}.get(
-                    (r.device_type or '').lower(), 'Unknown'),
+                    (r.platform or '').lower(), 'Unknown'),
                 'count': r.count,
                 'pct': round((r.count / total_devices) * 100, 1),
             })
@@ -256,8 +256,8 @@ def mobile_users():
         page = request.args.get('page', 1, type=int)
         per_page = 20
         
-        mobile_users_query = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True
+        mobile_users_query = User.query.join(UserFCMToken).filter(
+            UserFCMToken.is_active == True
         ).distinct()
         
         mobile_users = mobile_users_query.order_by(User.created_at.desc()).paginate(
@@ -266,14 +266,14 @@ def mobile_users():
         
         # Get mobile user statistics
         total_mobile_users = mobile_users_query.count()
-        active_last_week = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True,
-            DeviceToken.updated_at >= datetime.utcnow() - timedelta(days=7)
+        active_last_week = User.query.join(UserFCMToken).filter(
+            UserFCMToken.is_active == True,
+            UserFCMToken.updated_at >= datetime.utcnow() - timedelta(days=7)
         ).distinct().count()
         
-        active_last_month = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True,
-            DeviceToken.updated_at >= datetime.utcnow() - timedelta(days=30)
+        active_last_month = User.query.join(UserFCMToken).filter(
+            UserFCMToken.is_active == True,
+            UserFCMToken.updated_at >= datetime.utcnow() - timedelta(days=30)
         ).distinct().count()
         
         recent_signups = 0
@@ -287,8 +287,8 @@ def mobile_users():
             'active_last_week': active_last_week,
             'active_last_month': active_last_month,
             'retention_rate': f"{(active_last_month / total_mobile_users * 100):.1f}%" if total_mobile_users > 0 else "0%",
-            'new_installs_week': DeviceToken.query.filter(
-                DeviceToken.created_at >= datetime.utcnow() - timedelta(days=7)
+            'new_installs_week': UserFCMToken.query.filter(
+                UserFCMToken.created_at >= datetime.utcnow() - timedelta(days=7)
             ).count(),
             'recent_signups': recent_signups,
         }
@@ -407,17 +407,17 @@ def push_subscriptions():
     """Manage push subscriptions."""
     try:
         # Get device token statistics
-        device_tokens = DeviceToken.query.order_by(DeviceToken.created_at.desc()).limit(100).all()
+        device_tokens = UserFCMToken.query.order_by(UserFCMToken.created_at.desc()).limit(100).all()
         
         # Calculate statistics
-        active_subscriptions = DeviceToken.query.filter_by(is_active=True).count()
-        inactive_subscriptions = DeviceToken.query.filter_by(is_active=False).count()
+        active_subscriptions = UserFCMToken.query.filter_by(is_active=True).count()
+        inactive_subscriptions = UserFCMToken.query.filter_by(is_active=False).count()
         
         # Get subscription trends
         week_ago = datetime.utcnow() - timedelta(days=7)
-        new_subscriptions_week = DeviceToken.query.filter(
-            DeviceToken.created_at >= week_ago,
-            DeviceToken.is_active == True
+        new_subscriptions_week = UserFCMToken.query.filter(
+            UserFCMToken.created_at >= week_ago,
+            UserFCMToken.is_active == True
         ).count()
         
         stats = {
@@ -534,17 +534,17 @@ def mobile_analytics():
     """View mobile analytics."""
     try:
         # Get mobile analytics data
-        mobile_users_count = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True
+        mobile_users_count = User.query.join(UserFCMToken).filter(
+            UserFCMToken.is_active == True
         ).distinct().count()
         
-        # Device platform breakdown from device_type field
+        # Device platform breakdown from platform field
         platform_stats = {'iOS': 0, 'Android': 0, 'unknown': 0}
         try:
-            device_tokens = DeviceToken.query.filter_by(is_active=True).all()
+            device_tokens = UserFCMToken.query.filter_by(is_active=True).all()
             for token in device_tokens:
                 key = {'ios': 'iOS', 'android': 'Android'}.get(
-                    (token.device_type or '').lower(), 'unknown'
+                    (token.platform or '').lower(), 'unknown'
                 )
                 platform_stats[key] = platform_stats.get(key, 0) + 1
         except Exception:
@@ -698,7 +698,7 @@ def deactivate_device_token():
         if not token_id:
             return jsonify({'success': False, 'message': 'Token ID is required'})
 
-        device_token = DeviceToken.query.get_or_404(token_id)
+        device_token = UserFCMToken.query.get_or_404(token_id)
 
         # Deactivate the token
         device_token.is_active = False
@@ -740,7 +740,7 @@ def get_mobile_user_details():
         user = User.query.get_or_404(user_id)
         
         # Get user's device tokens
-        device_tokens = DeviceToken.query.filter_by(user_id=user_id).all()
+        device_tokens = UserFCMToken.query.filter_by(user_id=user_id).all()
         
         # Build user details
         user_data = {
@@ -751,8 +751,8 @@ def get_mobile_user_details():
             'device_tokens': [
                 {
                     'id': token.id,
-                    'token': token.device_token[:20] + '...' if len(token.device_token) > 20 else token.device_token,
-                    'platform': token.device_type or 'unknown',
+                    'token': token.fcm_token[:20] + '...' if len(token.fcm_token) > 20 else token.fcm_token,
+                    'platform': token.platform or 'unknown',
                     'is_active': token.is_active,
                     'created_at': token.created_at.isoformat() if token.created_at else None,
                     'updated_at': token.updated_at.isoformat() if token.updated_at else None
@@ -884,8 +884,8 @@ def _get_mobile_app_installs():
     """Get mobile app install count from device tokens"""
     try:
         # Count device tokens as proxy for app installs
-        total_installs = DeviceToken.query.count()
-        active_installs = DeviceToken.query.filter_by(is_active=True).count()
+        total_installs = UserFCMToken.query.count()
+        active_installs = UserFCMToken.query.filter_by(is_active=True).count()
         
         return {
             'total_installs': total_installs,
@@ -1020,7 +1020,7 @@ def _calculate_mobile_analytics(total_users, platform_stats, days=7):
                 for d in daily_data
             ]
         else:
-            # Fall back to DeviceToken-based estimates
+            # Fall back to UserFCMToken-based estimates
             result.update(_fallback_token_analytics(one_day_ago, one_week_ago, one_month_ago))
             result['data_source'] = 'device_tokens'
 
@@ -1036,17 +1036,17 @@ def _calculate_mobile_analytics(total_users, platform_stats, days=7):
 
 
 def _fallback_token_analytics(one_day_ago, one_week_ago, one_month_ago):
-    """Fallback analytics from DeviceToken activity when no telemetry data exists."""
+    """Fallback analytics from UserFCMToken activity when no telemetry data exists."""
     from sqlalchemy import func
 
-    dau = db.session.query(func.count(func.distinct(DeviceToken.user_id))).filter(
-        DeviceToken.is_active == True, DeviceToken.updated_at >= one_day_ago
+    dau = db.session.query(func.count(func.distinct(UserFCMToken.user_id))).filter(
+        UserFCMToken.is_active == True, UserFCMToken.updated_at >= one_day_ago
     ).scalar() or 0
-    wau = db.session.query(func.count(func.distinct(DeviceToken.user_id))).filter(
-        DeviceToken.is_active == True, DeviceToken.updated_at >= one_week_ago
+    wau = db.session.query(func.count(func.distinct(UserFCMToken.user_id))).filter(
+        UserFCMToken.is_active == True, UserFCMToken.updated_at >= one_week_ago
     ).scalar() or 0
-    mau = db.session.query(func.count(func.distinct(DeviceToken.user_id))).filter(
-        DeviceToken.is_active == True, DeviceToken.updated_at >= one_month_ago
+    mau = db.session.query(func.count(func.distinct(UserFCMToken.user_id))).filter(
+        UserFCMToken.is_active == True, UserFCMToken.updated_at >= one_month_ago
     ).scalar() or 0
 
     retention = round((wau / mau) * 100, 1) if mau > 0 else 0
@@ -1076,22 +1076,22 @@ def mobile_analytics_api():
         from app.models.core import User
 
         # Build platform stats
-        mobile_users_count = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True
+        mobile_users_count = User.query.join(UserFCMToken).filter(
+            UserFCMToken.is_active == True
         ).distinct().count()
 
         platform_stats = {'iOS': 0, 'Android': 0, 'unknown': 0}
-        for token in DeviceToken.query.filter_by(is_active=True).all():
+        for token in UserFCMToken.query.filter_by(is_active=True).all():
             key = {'ios': 'iOS', 'android': 'Android'}.get(
-                (token.device_type or '').lower(), 'unknown'
+                (token.platform or '').lower(), 'unknown'
             )
             platform_stats[key] = platform_stats.get(key, 0) + 1
 
         analytics = _calculate_mobile_analytics(mobile_users_count, platform_stats)
 
         analytics.update({
-            'mobile_installs': DeviceToken.query.count(),
-            'push_subscribers': DeviceToken.query.filter_by(is_active=True).count(),
+            'mobile_installs': UserFCMToken.query.count(),
+            'push_subscribers': UserFCMToken.query.filter_by(is_active=True).count(),
         })
         
         return jsonify(analytics)

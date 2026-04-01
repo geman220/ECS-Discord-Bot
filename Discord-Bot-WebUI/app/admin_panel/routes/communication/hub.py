@@ -14,7 +14,8 @@ from flask_login import login_required
 
 from app.admin_panel import admin_panel_bp
 from app.models import MessageCategory, MessageTemplate
-from app.models.communication import ScheduledMessage, DeviceToken, Notification
+from app.models.communication import ScheduledMessage, Notification
+from app.models.notifications import UserFCMToken
 from app.decorators import role_required
 
 logger = logging.getLogger(__name__)
@@ -36,7 +37,7 @@ def communication_hub():
         scheduled_messages_failed = ScheduledMessage.query.filter_by(status='FAILED').count()
 
         # Get notification statistics from device tokens (approximation of push notification capability)
-        push_subscriptions = DeviceToken.query.filter_by(is_active=True).count()
+        push_subscriptions = UserFCMToken.query.filter_by(is_active=True).count()
 
         # Get recent notification activity
         recent_notifications = Notification.query.filter(

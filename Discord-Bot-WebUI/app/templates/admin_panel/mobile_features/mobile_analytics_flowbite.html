@@ -99,7 +99,9 @@
         </div>
         <div class="p-5">
             {% if analytics_data.daily_engagement %}
-            <canvas id="engagementChart" height="300"></canvas>
+            <div class="relative" style="height: 300px;">
+            <canvas id="engagementChart"></canvas>
+            </div>
             {% else %}
             <div class="flex flex-col items-center justify-center h-64 text-gray-400 dark:text-gray-500">
                 <i class="ti ti-chart-line-off text-4xl mb-2"></i>
@@ -118,7 +120,9 @@
             </h5>
         </div>
         <div class="p-5">
-            <canvas id="platformChart" height="200"></canvas>
+            <div class="relative" style="height: 200px;">
+            <canvas id="platformChart"></canvas>
+            </div>
             <div class="mt-4 space-y-3">
                 <div class="flex justify-between items-center">
                     <span class="flex items-center">
@@ -263,6 +267,9 @@
         // Engagement chart (only if data exists)
         const engagementEl = document.getElementById('engagementChart');
         if (engagementEl && analyticsData.daily_engagement && analyticsData.daily_engagement.length > 0) {
+            const existingEngagement = Chart.getChart(engagementEl);
+            if (existingEngagement) existingEngagement.destroy();
+
             const labels = analyticsData.daily_engagement.map(d => d.date);
             const dauData = analyticsData.daily_engagement.map(d => d.dau);
             const sessionsData = analyticsData.daily_engagement.map(d => d.sessions);
@@ -302,6 +309,9 @@
         // Platform chart
         const platformEl = document.getElementById('platformChart');
         if (platformEl) {
+            const existingPlatform = Chart.getChart(platformEl);
+            if (existingPlatform) existingPlatform.destroy();
+
             new Chart(platformEl.getContext('2d'), {
                 type: 'doughnut',
                 data: {

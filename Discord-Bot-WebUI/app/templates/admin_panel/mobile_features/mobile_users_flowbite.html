@@ -167,26 +167,26 @@
                         </div>
                     </td>
                     <td class="px-4 py-3">
-                        {% set platform = 'iOS' if 'iOS' in (user.device_tokens[0].token if user.device_tokens else '') else 'Android' %}
+                        {% set platform = 'iOS' if user.fcm_tokens and user.fcm_tokens[0].platform == 'ios' else 'Android' %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if platform == 'iOS' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' }}">
                             <i class="ti ti-{{ 'brand-apple' if platform == 'iOS' else 'brand-android' }} mr-1"></i>
                             {{ platform }}
                         </span>
                     </td>
                     <td class="px-4 py-3 text-gray-600 dark:text-gray-400">
-                        {% if user.device_tokens and user.device_tokens[0].updated_at %}
-                            {{ user.device_tokens[0].updated_at.strftime('%Y-%m-%d %H:%M') }}
+                        {% if user.fcm_tokens and user.fcm_tokens[0].updated_at %}
+                            {{ user.fcm_tokens[0].updated_at.strftime('%Y-%m-%d %H:%M') }}
                         {% else %}
                             <span class="text-gray-400 dark:text-gray-500">Unknown</span>
                         {% endif %}
                     </td>
                     <td class="px-4 py-3">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
-                            {{ user.device_tokens|length or 0 }} devices
+                            {{ user.fcm_tokens|length or 0 }} devices
                         </span>
                     </td>
                     <td class="px-4 py-3">
-                        {% if user.device_tokens and user.device_tokens[0].is_active %}
+                        {% if user.fcm_tokens and user.fcm_tokens[0].is_active %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                             <i class="ti ti-check mr-1"></i>Enabled
                         </span>

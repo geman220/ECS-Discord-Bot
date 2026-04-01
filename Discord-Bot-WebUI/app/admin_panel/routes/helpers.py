@@ -19,7 +19,8 @@ from flask import current_app
 
 from app.core import db
 from app.models.core import User
-from app.models.communication import Notification, ScheduledMessage, DeviceToken
+from app.models.communication import Notification, ScheduledMessage
+from app.models.notifications import UserFCMToken
 
 # Set up the module logger
 logger = logging.getLogger(__name__)
@@ -375,15 +376,15 @@ def _check_push_service_status():
         except Exception:
             push_enabled = False
         
-        # Check if DeviceToken table exists and is accessible
+        # Check if UserFCMToken table exists and is accessible
         try:
-            from app.models.communication import DeviceToken
-            total_tokens = DeviceToken.query.count()
-            active_tokens = DeviceToken.query.filter_by(is_active=True).count()
+            from app.models.communication import UserFCMToken
+            total_tokens = UserFCMToken.query.count()
+            active_tokens = UserFCMToken.query.filter_by(is_active=True).count()
             service_available = True
         except Exception as e:
-            # DeviceToken table might not exist or there's a database issue
-            logger.debug(f"DeviceToken access failed: {e}")
+            # UserFCMToken table might not exist or there's a database issue
+            logger.debug(f"UserFCMToken access failed: {e}")
             total_tokens = 0
             active_tokens = 0
             service_available = False
