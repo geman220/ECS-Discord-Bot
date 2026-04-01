@@ -109,46 +109,135 @@ def user_to_dict(user):
 
 
 def get_user_analytics():
-    """Generate comprehensive user analytics data."""
+    """Generate comprehensive user analytics data structured for the analytics template.
+
+    Returns a dict with nested keys: overview, approvals, approval_analytics,
+    role_distribution, league_distribution, engagement, activity.
+    """
     try:
+        from app.models.admin_config import AdminAuditLog
+
         now = datetime.utcnow()
         thirty_days_ago = now - timedelta(days=30)
-        seven_days_ago = now - timedelta(days=7)
 
         # Basic counts
         total_users = User.query.count()
         active_users = User.query.filter_by(is_active=True).count()
+        new_users_30d = User.query.filter(User.created_at >= thirty_days_ago).count()
 
-        # Registration trends
-        registrations_30d = User.query.filter(User.created_at >= thirty_days_ago).count()
-        registrations_7d = User.query.filter(User.created_at >= seven_days_ago).count()
+        # Growth rate
+        prev_30d_start = thirty_days_ago - timedelta(days=30)
+        prev_30d_count = User.query.filter(
+            User.created_at >= prev_30d_start,
+            User.created_at < thirty_days_ago
+        ).count()
+        growth_rate = round(((new_users_30d - prev_30d_count) / max(prev_30d_count, 1)) * 100, 1)
 
-        # Approval trends
+        # Approval counts
+        pending = User.query.filter_by(approval_status='pending').count()
+        approved = User.query.filter_by(approval_status='approved').count()
+        denied = User.query.filter_by(approval_status='denied').count()
+        total_decided = approved + denied
+        approval_rate = round((approved / max(total_decided, 1)) * 100, 1)
+
+        # Approval analytics
         approvals_30d = User.query.filter(
             User.approved_at >= thirty_days_ago,
             User.approval_status == 'approved'
         ).count()
+        processing_rate = f"{approvals_30d} in 30d"
+
+        # Avg processing time
+        avg_time_query = db.session.query(
+            func.avg(func.extract('epoch', User.approved_at - User.created_at))
+        ).filter(
+            User.approved_at.isnot(None),
+            User.approved_at >= thirty_days_ago
+        ).scalar()
+        if avg_time_query:
+            avg_hours = round(avg_time_query / 3600, 1)
+            avg_processing_time = f"{avg_hours}h" if avg_hours < 48 else f"{round(avg_hours / 24, 1)}d"
+        else:
+            avg_processing_time = "N/A"
+
+        # Backlog trend
+        prev_pending = User.query.filter(
+            User.approval_status == 'pending',
+            User.created_at < thirty_days_ago
+        ).count()
+        if pending > prev_pending:
+            backlog_trend = "Increasing"
+        elif pending < prev_pending:
+            backlog_trend = "Decreasing"
+        else:
+            backlog_trend = "Stable"
 
         # Role distribution
         roles = Role.query.all()
         role_distribution = {role.name: len(role.users) for role in roles}
 
-        # Status distribution
-        status_distribution = {
-            'pending': User.query.filter_by(approval_status='pending').count(),
-            'approved': User.query.filter_by(approval_status='approved').count(),
-            'denied': User.query.filter_by(approval_status='denied').count()
-        }
+        # League distribution
+        league_roles = ['pl-classic', 'pl-premier', 'pl-ecs-fc']
+        league_distribution = {}
+        for role in roles:
+            if role.name in league_roles:
+                league_distribution[role.name] = len(role.users)
+
+        # Engagement metrics
+        users_with_players = db.session.query(func.count(func.distinct(Player.user_id))).scalar() or 0
+        users_with_roles = db.session.query(func.count(func.distinct(User.id))).join(
+            User.roles
+        ).scalar() or 0
+        discord_connected = User.query.filter(User.discord_id.isnot(None)).count()
+
+        # Admin activity (recent 30d)
+        try:
+            recent_activity = AdminAuditLog.query.filter(
+                AdminAuditLog.timestamp >= thirty_days_ago
+            ).count()
+            admin_activity = db.session.query(
+                AdminAuditLog.user_id,
+                func.count(AdminAuditLog.id).label('count')
+            ).filter(
+                AdminAuditLog.timestamp >= thirty_days_ago
+            ).group_by(AdminAuditLog.user_id).order_by(
+                func.count(AdminAuditLog.id).desc()
+            ).limit(5).all()
+            admin_activity_list = [{'user_id': a.user_id, 'count': a.count} for a in admin_activity]
+        except Exception:
+            recent_activity = 0
+            admin_activity_list = []
 
         return {
-            'total_users': total_users,
-            'active_users': active_users,
-            'registrations_30d': registrations_30d,
-            'registrations_7d': registrations_7d,
-            'approvals_30d': approvals_30d,
+            'overview': {
+                'total_users': total_users,
+                'active_users': active_users,
+                'new_users_30d': new_users_30d,
+                'growth_rate_30d': growth_rate,
+            },
+            'approvals': {
+                'pending': pending,
+                'approved': approved,
+                'denied': denied,
+                'approval_rate': approval_rate,
+            },
+            'approval_analytics': {
+                'processing_rate': processing_rate,
+                'avg_processing_time': avg_processing_time,
+                'backlog_trend': backlog_trend,
+            },
             'role_distribution': role_distribution,
-            'status_distribution': status_distribution,
-            'generated_at': now.isoformat()
+            'league_distribution': league_distribution,
+            'engagement': {
+                'users_with_players': users_with_players,
+                'users_with_roles': users_with_roles,
+                'discord_connected': discord_connected,
+            },
+            'activity': {
+                'recent_activity': recent_activity,
+                'admin_activity': admin_activity_list,
+            },
+            'generated_at': now.isoformat(),
         }
 
     except Exception as e:

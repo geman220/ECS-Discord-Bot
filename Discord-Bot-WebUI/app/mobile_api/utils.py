@@ -99,7 +99,11 @@ def receive_mobile_logs():
     Returns:
         JSON with acknowledgment
     """
-    data = request.get_json()
+    try:
+        data = request.get_json()
+    except Exception:
+        # Client disconnected mid-request (common on mobile with poor network)
+        return jsonify({"msg": "Request body unreadable"}), 400
 
     if not data:
         return jsonify({"msg": "Missing request data"}), 400
