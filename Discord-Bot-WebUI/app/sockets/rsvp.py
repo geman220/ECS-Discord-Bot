@@ -182,6 +182,45 @@ def emit_rsvp_update(match_id, player_id, availability, source='system', player_
         logger.error(f"Error emitting RSVP update: {str(e)}", exc_info=True)
 
 
+def emit_ecs_fc_rsvp_update(match_id, player_id, response, team_id, source='system', player_name=None):
+    """
+    Emit an RSVP update for ECS FC matches to all clients in the team room.
+
+    Similar to emit_rsvp_update() but for ECS FC matches which use a different
+    model (EcsFcMatch vs Match) and different Discord embed update pipeline.
+
+    Args:
+        match_id: ID of the ECS FC match
+        player_id: ID of the player who RSVP'd
+        response: 'yes', 'no', 'maybe', or 'no_response'
+        team_id: Team ID for the match
+        source: Origin of the update ('web', 'mobile', 'discord', 'system')
+        player_name: Optional player name to include in event data
+    """
+    try:
+        event_data = {
+            'match_id': match_id,
+            'player_id': player_id,
+            'response': response,
+            'match_type': 'ecs_fc',
+            'timestamp': datetime.utcnow().isoformat(),
+            'source': source,
+        }
+        if player_name:
+            event_data['player_name'] = player_name
+        if team_id:
+            event_data['team_id'] = team_id
+
+        room = f'team_{team_id}'
+        socketio.emit('rsvp_update', event_data, room=room, namespace='/')
+        socketio.emit('rsvp_update', event_data, room=room, namespace='/live')
+
+        logger.debug(f"Emitted ECS FC RSVP update to room {room}: player {player_id} -> {response} (source: {source})")
+
+    except Exception as e:
+        logger.error(f"Error emitting ECS FC RSVP update: {str(e)}", exc_info=True)
+
+
 def emit_rsvp_summary(match_id):
     """
     Emit a summary of current RSVPs for a match.

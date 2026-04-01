@@ -367,8 +367,23 @@ class EcsFcScheduleManager:
                 g.db_session.add(availability)
             
             g.db_session.commit()
-            
+
             logger.info(f"RSVP submitted for match {match_id}, player {player_id}: {response}")
+
+            # Emit WebSocket update for dashboard real-time refresh
+            try:
+                from app.sockets.rsvp import emit_ecs_fc_rsvp_update
+                emit_ecs_fc_rsvp_update(match_id, player_id, response, match.team_id, source='web')
+            except Exception as e:
+                logger.warning(f"Failed to emit WebSocket RSVP update: {e}")
+
+            # Queue Discord embed update
+            try:
+                from app.tasks.tasks_rsvp_ecs import notify_ecs_fc_discord_of_rsvp_change_task
+                notify_ecs_fc_discord_of_rsvp_change_task.delay(match_id)
+            except Exception as e:
+                logger.warning(f"Failed to queue Discord embed update: {e}")
+
             return True, "RSVP submitted successfully"
             
         except Exception as e:

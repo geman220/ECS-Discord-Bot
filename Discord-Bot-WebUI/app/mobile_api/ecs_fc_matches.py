@@ -532,6 +532,21 @@ def update_ecs_fc_match_rsvp(match_id: int):
 
         logger.info(f"ECS FC RSVP updated: player {player.id} -> {response_value} for match {match_id}")
 
+        # Emit WebSocket update for dashboard real-time refresh
+        try:
+            from app.sockets.rsvp import emit_ecs_fc_rsvp_update
+            emit_ecs_fc_rsvp_update(match_id, player.id, response_value, match.team_id,
+                                    source='mobile', player_name=player.name)
+        except Exception as e:
+            logger.warning(f"Failed to emit WebSocket RSVP update: {e}")
+
+        # Queue Discord embed update
+        try:
+            from app.tasks.tasks_rsvp_ecs import notify_ecs_fc_discord_of_rsvp_change_task
+            notify_ecs_fc_discord_of_rsvp_change_task.delay(match_id)
+        except Exception as e:
+            logger.warning(f"Failed to queue Discord embed update: {e}")
+
         return jsonify({
             "success": True,
             "message": "RSVP updated",
@@ -578,6 +593,7 @@ def bulk_update_ecs_fc_rsvp(match_id: int):
 
         valid_responses = ['yes', 'no', 'maybe', 'no_response']
         results = []
+        successful_updates = []
 
         for update in updates:
             player_id = update.get('player_id')
@@ -633,8 +649,26 @@ def bulk_update_ecs_fc_rsvp(match_id: int):
                 "success": True,
                 "response": response_value
             })
+            successful_updates.append((player_id, response_value, player.name))
 
         session.commit()
+
+        # Emit WebSocket updates for each successful RSVP change
+        if successful_updates:
+            try:
+                from app.sockets.rsvp import emit_ecs_fc_rsvp_update
+                for pid, resp, pname in successful_updates:
+                    emit_ecs_fc_rsvp_update(match_id, pid, resp, match.team_id,
+                                            source='mobile', player_name=pname)
+            except Exception as e:
+                logger.warning(f"Failed to emit WebSocket RSVP updates: {e}")
+
+            # Queue single Discord embed update for all changes
+            try:
+                from app.tasks.tasks_rsvp_ecs import notify_ecs_fc_discord_of_rsvp_change_task
+                notify_ecs_fc_discord_of_rsvp_change_task.delay(match_id)
+            except Exception as e:
+                logger.warning(f"Failed to queue Discord embed update: {e}")
 
         return jsonify({
             "success": True,

@@ -10,6 +10,8 @@ let _initialized = false;
 
 export const ViewStandings = {
     init() {
+        // Page guard - only run on standings page
+        if (!document.querySelector('.league-content')) return;
         if (_initialized) return;
         _initialized = true;
         this.initializeBootstrapComponents();
