@@ -215,7 +215,13 @@ def emit_ecs_fc_rsvp_update(match_id, player_id, response, team_id, source='syst
         socketio.emit('rsvp_update', event_data, room=room, namespace='/')
         socketio.emit('rsvp_update', event_data, room=room, namespace='/live')
 
-        logger.debug(f"Emitted ECS FC RSVP update to room {room}: player {player_id} -> {response} (source: {source})")
+        # Also emit to match-specific rooms so dashboard clients receive updates
+        # (dashboard joins match_{id} rooms, not team rooms)
+        match_room = f'match_{match_id}'
+        socketio.emit('rsvp_update', event_data, room=match_room, namespace='/')
+        socketio.emit('rsvp_update', event_data, room=match_room, namespace='/live')
+
+        logger.debug(f"Emitted ECS FC RSVP update to rooms {room} & {match_room}: player {player_id} -> {response} (source: {source})")
 
     except Exception as e:
         logger.error(f"Error emitting ECS FC RSVP update: {str(e)}", exc_info=True)
@@ -318,20 +324,25 @@ def handle_join_match_rsvp(data):
         # Join the match room
         room = f'match_{match_id}'
         join_room(room)
-        
+
         # Get player info and current RSVPs
         with managed_session() as session:
-            # Verify match exists
+            # Check both regular Match and ECS FC Match models
             match = session.query(Match).get(match_id)
+            is_ecs_fc = False
             if not match:
-                emit('error', {'message': 'Match not found'})
-                return
-            
+                ecs_fc_match = session.query(EcsFcMatch).get(match_id)
+                if not ecs_fc_match:
+                    leave_room(room)
+                    emit('error', {'message': 'Match not found'})
+                    return
+                is_ecs_fc = True
+
             # Get player info
             player = session.query(Player).filter(Player.user_id == user_id).first()
             player_name = player.name if player else username
             player_id = player.id if player else None
-            
+
             # Track user in room with SID for disconnect cleanup
             import time
             global _room_cleanup_counter
@@ -360,27 +371,39 @@ def handle_join_match_rsvp(data):
             if _room_cleanup_counter >= _ROOM_CLEANUP_INTERVAL:
                 _room_cleanup_counter = 0
                 _cleanup_stale_room_users()
-            
-            # Get current RSVPs for initial state
-            current_rsvps = get_match_rsvps_data(match_id, team_id, session)
-            
-            # Send success response with initial data
-            emit('joined_match_rsvp', {
-                'match_id': match_id,
-                'room': room,
-                'team_id': team_id,
-                'current_rsvps': current_rsvps,
-                'match_info': {
+
+            # Build response based on match type
+            current_rsvps = {}
+            if is_ecs_fc:
+                match_info = {
+                    'team_id': ecs_fc_match.team_id,
+                    'date': ecs_fc_match.date.isoformat() if ecs_fc_match.date else None,
+                    'match_type': 'ecs_fc'
+                }
+                # Also join the team room for ECS FC matches
+                team_room = f'team_{ecs_fc_match.team_id}'
+                join_room(team_room)
+            else:
+                current_rsvps = get_match_rsvps_data(match_id, team_id, session)
+                match_info = {
                     'home_team_id': match.home_team_id,
                     'home_team_name': match.home_team.name,
                     'away_team_id': match.away_team_id,
                     'away_team_name': match.away_team.name,
                     'date': match.date.isoformat(),
                     'time': match.time.isoformat() if match.time else None
-                },
+                }
+
+            # Send success response with initial data
+            emit('joined_match_rsvp', {
+                'match_id': match_id,
+                'room': room,
+                'team_id': team_id,
+                'current_rsvps': current_rsvps,
+                'match_info': match_info,
                 'message': 'Successfully joined match RSVP updates'
             })
-            
+
             # Notify others in room (optional, for presence awareness)
             emit('user_joined_rsvp', {
                 'user_id': user_id,

@@ -649,6 +649,8 @@ def edit_user_comprehensive(user_id):
 
                 new_roles = Role.query.filter(Role.id.in_(role_ids)).all()
                 user.roles = new_roles
+                # Flush so the new roles are persisted before any refresh
+                db.session.flush()
 
             # Auto-manage league roles based on league assignments
             if user.player:
