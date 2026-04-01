@@ -291,9 +291,12 @@ def reset_colors():
     Reset colors to default values.
     """
     try:
-        file_path = get_colors_file_path()
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        colors_path = get_colors_file_path()
+        tokens_path = get_design_tokens_file_path()
+        if os.path.exists(colors_path):
+            os.remove(colors_path)
+        if os.path.exists(tokens_path):
+            os.remove(tokens_path)
 
         return jsonify({
             "success": True,

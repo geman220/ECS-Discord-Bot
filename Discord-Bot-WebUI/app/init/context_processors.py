@@ -260,6 +260,19 @@ def _register_file_versioning_processor(app):
         return {'asset_version': asset_version}
 
 
+def _hex_to_rgb_channels(hex_color):
+    """Convert '#1a472a' to '26 71 42' for CSS rgb() channel syntax."""
+    if not hex_color:
+        return None
+    hex_color = hex_color.lstrip('#')
+    if len(hex_color) == 6:
+        r = int(hex_color[0:2], 16)
+        g = int(hex_color[2:4], 16)
+        b = int(hex_color[4:6], 16)
+        return f'{r} {g} {b}'
+    return None
+
+
 def _register_theme_colors_processor(app):
     """Register theme colors context processor for custom color palette."""
 
@@ -271,7 +284,8 @@ def _register_theme_colors_processor(app):
         result = {
             'site_settings': None,
             'preset_colors': None,
-            'preset_colors_json': 'null'
+            'preset_colors_json': 'null',
+            'hex_to_rgb': _hex_to_rgb_channels
         }
 
         try:

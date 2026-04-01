@@ -693,6 +693,15 @@ def assign_substitute(request_id: int):
 
         logger.info(f"Substitute assigned: player {player_id} to request {request_id}")
 
+        # Send notification to assigned sub if requested
+        if send_notification:
+            try:
+                from app.services.substitute_notification_service import SubstituteNotificationService
+                notification_service = SubstituteNotificationService()
+                notification_service.send_confirmation(assignment.id)
+            except Exception as e:
+                logger.error(f"Failed to send assignment notification: {e}")
+
         return jsonify({
             "success": True,
             "message": f"{player.name} assigned as substitute",
@@ -1082,9 +1091,54 @@ def respond_to_request(request_id: int):
                 pool_membership.requests_accepted = (pool_membership.requests_accepted or 0) + 1
             pool_membership.last_active_at = datetime.utcnow()
 
+        # Capture data for admin notification before commit
+        player_name = player.name
+        team_name = sub_request.team.name if sub_request.team else 'Unknown Team'
+        match_date_str = None
+        if sub_request.match and sub_request.match.date:
+            match_date_str = sub_request.match.date.strftime('%A, %B %d')
+
         session.commit()
 
         logger.info(f"Substitute response: player {player.id} responded to request {request_id}")
+
+        # Notify admins (Pub League admins manage subs, not the coach)
+        try:
+            from app.models.core import Role
+            from app.services.notification_orchestrator import (
+                orchestrator, NotificationType, NotificationPayload
+            )
+
+            # Get all Pub League Admin and Global Admin user IDs
+            admin_roles = session.query(Role).filter(
+                Role.name.in_(['Global Admin', 'Pub League Admin'])
+            ).all()
+            admin_user_ids = []
+            for role in admin_roles:
+                admin_user_ids.extend([u.id for u in role.users])
+            admin_user_ids = list(set(admin_user_ids))
+
+            if admin_user_ids:
+                availability_text = "is available" if is_available else "is NOT available"
+                match_text = f" for {team_name} on {match_date_str}" if match_date_str else f" for {team_name}"
+
+                orchestrator.send(NotificationPayload(
+                    notification_type=NotificationType.SUB_REQUEST,
+                    title="Sub Response Received",
+                    message=f"{player_name} {availability_text}{match_text}",
+                    user_ids=admin_user_ids,
+                    data={
+                        'type': 'sub_response',
+                        'request_id': str(request_id),
+                        'player_name': player_name,
+                        'is_available': str(is_available).lower(),
+                        'league_type': 'pub_league',
+                        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                    },
+                ))
+                logger.info(f"Notified {len(admin_user_ids)} admins of sub response from {player_name}")
+        except Exception as e:
+            logger.error(f"Failed to notify admins of sub response: {e}")
 
         return jsonify({
             "success": True,

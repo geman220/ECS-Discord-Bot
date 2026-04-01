@@ -969,7 +969,44 @@ def submit_sub_response(token: str):
         if pool_entry and is_available:
             pool_entry.requests_accepted = (pool_entry.requests_accepted or 0) + 1
 
+        # Capture coach notification data before commit
+        coach_user_id = response.request.requested_by if response.request else None
+        player_name = response.player.name if response.player else 'Unknown'
+        match_info_text = ""
+        if response.request and response.request.match:
+            m = response.request.match
+            opponent = m.opponent_name or 'TBD'
+            match_date = m.match_date.strftime('%A, %B %d') if m.match_date else 'TBD'
+            match_info_text = f" for the match vs {opponent} on {match_date}"
+        request_id_val = response.request_id
+
         session.commit()
+
+        # Notify the coach who created the request
+        if coach_user_id:
+            try:
+                from app.services.notification_orchestrator import (
+                    orchestrator, NotificationType, NotificationPayload
+                )
+                availability_text = "is available" if is_available else "is NOT available"
+                orchestrator.send(NotificationPayload(
+                    notification_type=NotificationType.SUB_REQUEST,
+                    title="Sub Response Received",
+                    message=f"{player_name} {availability_text}{match_info_text}",
+                    user_ids=[coach_user_id],
+                    data={
+                        'type': 'sub_response',
+                        'request_id': str(request_id_val),
+                        'player_name': player_name,
+                        'is_available': str(is_available).lower(),
+                        'league_type': 'ecs_fc',
+                        'response_method': 'web',
+                        'deep_link': f'ecs-fc-scheme://sub-request/{request_id_val}',
+                        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                    },
+                ))
+            except Exception as e:
+                logger.error(f"Failed to notify coach of web sub response: {e}")
 
         flash('Response submitted successfully!', 'success')
         return redirect(url_for('ecs_fc.sub_response_page', token=token))

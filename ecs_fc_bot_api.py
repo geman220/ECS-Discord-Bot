@@ -41,6 +41,8 @@ class RSVPMessageRequest(BaseModel):
     rsvp_deadline: Optional[str] = None  # ISO format
     notes: Optional[str] = None
     field_name: Optional[str] = None
+    home_shirt_color: Optional[str] = None
+    away_shirt_color: Optional[str] = None
     rsvp_details: Dict[str, List[Dict[str, Any]]] = Field(default_factory=lambda: {"yes": [], "no": [], "maybe": []})
 
 class RSVPMessageResponse(BaseModel):
@@ -146,6 +148,12 @@ def create_ecs_fc_embed(request: RSVPMessageRequest, rsvp_details: Dict[str, Lis
     # Add field name if provided
     if request.field_name:
         embed.add_field(name="🥅 Field", value=request.field_name, inline=True)
+
+    # Add jersey color if provided
+    if request.home_shirt_color:
+        embed.add_field(name="👕 WEAR", value=f"**{request.home_shirt_color.upper()}**", inline=True)
+    if request.away_shirt_color:
+        embed.add_field(name="🎽 Opponent", value=request.away_shirt_color, inline=True)
 
     # Add empty field for formatting
     embed.add_field(name="\u200b", value="\u200b", inline=True)

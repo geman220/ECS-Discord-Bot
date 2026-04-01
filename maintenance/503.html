@@ -373,7 +373,9 @@
         function $(id) { return document.getElementById(id); }
 
         /* ── Fetch server-authoritative deploy start time ──────────── */
-        function fetchDeployTime(cb) {
+        // Retries until it gets the server timestamp — no client fallback.
+        // All clients MUST use the same server-provided time.
+        (function syncTime() {
             var x = new XMLHttpRequest();
             x.open('GET', '/data/deploy_time.json?_=' + Date.now(), true);
             x.timeout = 3000;
@@ -382,37 +384,20 @@
                     try {
                         var data = JSON.parse(x.responseText);
                         if (data && data.start) {
-                            cb(data.start);
+                            t0 = data.start;
+                            ready_to_render = true;
                             return;
                         }
                     } catch (e) {}
                 }
-                cb(null);
+                // Server doesn't have the timestamp yet — retry in 2s
+                setTimeout(syncTime, 2000);
             };
-            x.onerror = x.ontimeout = function () { cb(null); };
+            x.onerror = x.ontimeout = function () {
+                setTimeout(syncTime, 2000);
+            };
             x.send();
-        }
-
-        /* ── Initialize start time ─────────────────────────────────── */
-        // Try server first, fall back to localStorage, then Date.now()
-        var STORAGE_KEY = 'ecs_maint_start';
-
-        fetchDeployTime(function (serverStart) {
-            if (serverStart) {
-                // Server has the authoritative deploy timestamp — use it
-                t0 = serverStart;
-                try { localStorage.setItem(STORAGE_KEY, t0); } catch (e) {}
-            } else {
-                // Server timestamp unavailable — fall back to localStorage
-                var stored = null;
-                try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) {}
-                t0 = stored ? parseInt(stored, 10) : Date.now();
-                if (!stored) {
-                    try { localStorage.setItem(STORAGE_KEY, t0); } catch (e) {}
-                }
-            }
-            ready_to_render = true;
-        });
+        })();
 
         /* ── Particles ─────────────────────────────────────────────── */
         (function () {
@@ -513,7 +498,6 @@
         function ready() {
             if (done) return;
             done = true;
-            try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
 
             $('card').classList.add('ok');
             $('bar').style.width  = '100%';

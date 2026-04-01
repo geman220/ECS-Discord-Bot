@@ -21,7 +21,7 @@ export default {
       colors: {
         // ECS Brand Colors
         'ecs-green': {
-          DEFAULT: '#1a472a',
+          DEFAULT: 'rgb(var(--color-primary-rgb, 26 71 42) / <alpha-value>)',
           50: '#f0fdf4',
           100: '#dcfce7',
           200: '#bbf7d0',
@@ -34,7 +34,7 @@ export default {
           900: '#14532d',
         },
         'ecs-gold': {
-          DEFAULT: '#c9a227',
+          DEFAULT: 'rgb(var(--color-accent-rgb, 201 162 39) / <alpha-value>)',
           50: '#fefce8',
           100: '#fef9c3',
           200: '#fef08a',

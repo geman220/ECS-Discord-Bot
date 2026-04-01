@@ -76,6 +76,8 @@
             {% if light.bg_input %}--color-bg-input: {{ light.bg_input }};{% endif %}
             {% if light.border %}--color-border: {{ light.border }};{% endif %}
             {% if light.border_input %}--color-border-input: {{ light.border_input }};{% endif %}
+            {% if light.primary %}--color-primary-rgb: {{ hex_to_rgb(light.primary) }};{% endif %}
+            {% if light.accent %}--color-accent-rgb: {{ hex_to_rgb(light.accent) }};{% endif %}
         }
 
         .dark {
@@ -99,7 +101,28 @@
             {% if dark.bg_sidebar %}--color-bg-sidebar: {{ dark.bg_sidebar }};{% endif %}
             {% if dark.border %}--color-border: {{ dark.border }};{% endif %}
             {% if dark.border_input %}--color-border-input: {{ dark.border_input }};{% endif %}
+            {% if dark.primary %}--color-primary-rgb: {{ hex_to_rgb(dark.primary) }};{% endif %}
+            {% if dark.accent %}--color-accent-rgb: {{ hex_to_rgb(dark.accent) }};{% endif %}
         }
+
+        /* Light mode: remap neutral Tailwind utilities to theme tokens */
+        {% if light.bg_card %}.bg-white { background-color: {{ light.bg_card }}; }{% endif %}
+        {% if light.bg_body %}.bg-gray-50 { background-color: {{ light.bg_body }}; }{% endif %}
+        {% if light.text_heading %}.text-gray-900 { color: {{ light.text_heading }}; }{% endif %}
+        {% if light.text_body %}.text-gray-700 { color: {{ light.text_body }}; }{% endif %}
+        {% if light.text_muted %}.text-gray-500 { color: {{ light.text_muted }}; }{% endif %}
+        {% if light.border %}.border-gray-200 { border-color: {{ light.border }}; }{% endif %}
+        {% if light.border_input %}.border-gray-300 { border-color: {{ light.border_input }}; }{% endif %}
+
+        /* Dark mode: remap neutral Tailwind utilities to theme tokens */
+        {% if dark.bg_card %}.dark .dark\:bg-gray-800 { background-color: {{ dark.bg_card }}; }{% endif %}
+        {% if dark.bg_body %}.dark .dark\:bg-gray-900 { background-color: {{ dark.bg_body }}; }{% endif %}
+        {% if dark.bg_input %}.dark .dark\:bg-gray-700 { background-color: {{ dark.bg_input }}; }{% endif %}
+        {% if dark.text_heading %}.dark .dark\:text-white { color: {{ dark.text_heading }}; }{% endif %}
+        {% if dark.text_body %}.dark .dark\:text-gray-300 { color: {{ dark.text_body }}; }{% endif %}
+        {% if dark.text_muted %}.dark .dark\:text-gray-400 { color: {{ dark.text_muted }}; }{% endif %}
+        {% if dark.border %}.dark .dark\:border-gray-700 { border-color: {{ dark.border }}; }{% endif %}
+        {% if dark.border_input %}.dark .dark\:border-gray-600 { border-color: {{ dark.border_input }}; }{% endif %}
     </style>
     {% endif %}
 </head>

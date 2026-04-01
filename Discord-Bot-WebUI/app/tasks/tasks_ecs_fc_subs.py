@@ -21,7 +21,6 @@ from app.models import db as database
 from app.sms_helpers import send_sms
 from app.email import send_email
 from app.tasks.tasks_ecs_fc_rsvp_helpers import send_ecs_fc_dm_sync
-from app.models.notifications import UserFCMToken
 
 logger = logging.getLogger(__name__)
 
@@ -185,53 +184,55 @@ def notify_sub_pool_of_request(self, session, request_id: int) -> Dict[str, Any]
                     logger.error(f"Error sending email to {player.name}: {e}")
                     results['errors'].append(f"Email to {player.name}: {str(e)}")
 
-            # Send push notification if user has FCM tokens and pool entry allows it
+            # Send push notification (follows same pattern as feedback notifications)
             push_enabled = getattr(pool_entry, 'push_for_sub_requests', True)
-            if push_enabled and hasattr(user, 'push_notifications') and user.push_notifications:
-                fcm_tokens = session.query(UserFCMToken).filter_by(
-                    user_id=user.id, is_active=True
-                ).all()
-                if fcm_tokens:
-                    try:
-                        from app.services.notification_orchestrator import (
-                            orchestrator, NotificationType, NotificationPayload
-                        )
-                        # Get rsvp_token from existing response if available
-                        existing_resp = session.query(EcsFcSubResponse).filter_by(
-                            request_id=request_id, player_id=player.id
-                        ).first()
-                        rsvp_token = getattr(existing_resp, 'rsvp_token', None) or ''
+            if push_enabled:
+                try:
+                    from app.services.notification_orchestrator import (
+                        orchestrator, NotificationType, NotificationPayload
+                    )
+                    # Get rsvp_token from existing response if available
+                    existing_resp = session.query(EcsFcSubResponse).filter_by(
+                        request_id=request_id, player_id=player.id
+                    ).first()
+                    rsvp_token = getattr(existing_resp, 'rsvp_token', None) or ''
 
-                        payload = NotificationPayload(
-                            notification_type=NotificationType.SUB_REQUEST,
-                            title="ECS FC Substitute Request",
-                            message=f"{team_name} needs a sub on {match_date} at {match_time}",
-                            user_ids=[user.id],
-                            data={
-                                'type': 'sub_request',
-                                'request_id': str(request_id),
-                                'match_id': str(match.id),
-                                'league_type': 'ecs_fc',
-                                'rsvp_token': rsvp_token,
-                                'deep_link': f'ecs-fc-scheme://sub-request/{request_id}',
-                                'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-                                'priority': 'high'
-                            },
-                            force_push=True,
-                            force_in_app=False,
-                            force_email=False,
-                            force_sms=False,
-                            force_discord=False
-                        )
-                        result = orchestrator.send(payload)
-                        if result.get('push', {}).get('success', 0) > 0:
-                            results.setdefault('push_sent', 0)
-                            results['push_sent'] += 1
-                            notification_methods.append('PUSH')
-                            logger.info(f"Push notification sent for sub request to user {user.id}")
-                    except Exception as e:
-                        logger.error(f"Error sending push notification to {player.name}: {e}")
-                        results['errors'].append(f"Push to {player.name}: {str(e)}")
+                    push_payload = NotificationPayload(
+                        notification_type=NotificationType.SUB_REQUEST,
+                        title="ECS FC Substitute Request",
+                        message=f"{team_name} needs a sub on {match_date} at {match_time}",
+                        user_ids=[user.id],
+                        data={
+                            'type': 'sub_request',
+                            'request_id': str(request_id),
+                            'match_id': str(match.id),
+                            'league_type': 'ecs_fc',
+                            'rsvp_token': rsvp_token,
+                            'deep_link': f'ecs-fc-scheme://sub-request/{request_id}',
+                            'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                            'priority': 'high'
+                        },
+                        force_push=True,
+                        force_in_app=False,
+                        force_email=False,
+                        force_sms=False,
+                        force_discord=False
+                    )
+                    push_result = orchestrator.send(push_payload)
+                    push_success = push_result.get('push', {}).get('success', 0)
+                    push_failure = push_result.get('push', {}).get('failure', 0)
+                    if push_success > 0:
+                        results.setdefault('push_sent', 0)
+                        results['push_sent'] += 1
+                        notification_methods.append('PUSH')
+                        logger.info(f"Push notification sent for sub request to user {user.id}")
+                    elif push_failure > 0:
+                        logger.warning(f"Push notification failed for user {user.id}: {push_failure} failures")
+                    else:
+                        logger.info(f"No FCM tokens for user {user.id}, push skipped")
+                except Exception as e:
+                    logger.error(f"Error sending push notification to {player.name}: {e}")
+                    results['errors'].append(f"Push to {player.name}: {str(e)}")
 
             # Update pool stats
             pool_entry.requests_received += 1
@@ -490,22 +491,63 @@ def process_sub_response(self, session, player_id: int, response_text: str, resp
         response.response_method = response_method
         response.response_text = response_text
         response.responded_at = datetime.utcnow()
-        
+
         # Update pool stats
         pool_entry = session.query(EcsFcSubPool).filter_by(
             player_id=player_id,
             is_active=True
         ).first()
-        
+
         if pool_entry and is_available:
             pool_entry.requests_accepted += 1
-        
+
+        # Get data for coach notification before session may close
+        sub_request = session.query(EcsFcSubRequest).get(response.request_id)
+        coach_user_id = sub_request.requested_by if sub_request else None
+        player = session.query(Player).get(player_id)
+        player_name = player.name if player else f"Player {player_id}"
+        match_info_text = ""
+        if sub_request and sub_request.match:
+            m = sub_request.match
+            opponent = m.opponent_name or 'TBD'
+            match_date = m.match_date.strftime('%A, %B %d') if m.match_date else 'TBD'
+            match_info_text = f" for the match vs {opponent} on {match_date}"
+
+        request_id_val = response.request_id
+
+        # Notify the coach who created the request
+        if coach_user_id:
+            try:
+                from app.services.notification_orchestrator import (
+                    orchestrator, NotificationType, NotificationPayload
+                )
+                availability_text = "is available" if is_available else "is NOT available"
+                orchestrator.send(NotificationPayload(
+                    notification_type=NotificationType.SUB_REQUEST,
+                    title="Sub Response Received",
+                    message=f"{player_name} {availability_text}{match_info_text}",
+                    user_ids=[coach_user_id],
+                    data={
+                        'type': 'sub_response',
+                        'request_id': str(request_id_val),
+                        'player_name': player_name,
+                        'is_available': str(is_available).lower(),
+                        'league_type': 'ecs_fc',
+                        'response_method': response_method,
+                        'deep_link': f'ecs-fc-scheme://sub-request/{request_id_val}',
+                        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                    },
+                ))
+                logger.info(f"Notified coach (user {coach_user_id}) of {response_method} sub response from {player_name}")
+            except Exception as e:
+                logger.error(f"Failed to notify coach of sub response: {e}")
+
         # Session will be committed by decorator
-        
+
         return {
             'success': True,
             'is_available': is_available,
-            'request_id': response.request_id,
+            'request_id': request_id_val,
             'message': f"Response recorded: {'Available' if is_available else 'Not available'}"
         }
         
@@ -723,46 +765,42 @@ def notify_sub_pool_with_slots(self, session, request_id: int) -> Dict[str, Any]
                         logger.error(f"Error sending email to {player.name}: {e}")
                         results['errors'].append(f"Email to {player.name}: {str(e)}")
 
-                # Send push notification if user has FCM tokens and pool entry allows it
+                # Send push notification
                 push_enabled = getattr(pool_entry, 'push_for_sub_requests', True)
-                if push_enabled and hasattr(user, 'push_notifications') and user.push_notifications:
-                    fcm_tokens = session.query(UserFCMToken).filter_by(
-                        user_id=user.id, is_active=True
-                    ).all()
-                    if fcm_tokens:
-                        try:
-                            from app.services.notification_orchestrator import (
-                                orchestrator, NotificationType, NotificationPayload
-                            )
-                            payload = NotificationPayload(
-                                notification_type=NotificationType.SUB_REQUEST,
-                                title="ECS FC Substitute Request",
-                                message=f"{message_header} for {team_name} on {match_date} at {match_time}",
-                                user_ids=[user.id],
-                                data={
-                                    'type': 'sub_request',
-                                    'request_id': str(request_id),
-                                    'match_id': str(match.id),
-                                    'league_type': 'ecs_fc',
-                                    'rsvp_token': '',
-                                    'deep_link': f'ecs-fc-scheme://sub-request/{request_id}',
-                                    'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-                                    'priority': 'high'
-                                },
-                                force_push=True,
-                                force_in_app=False,
-                                force_email=False,
-                                force_sms=False,
-                                force_discord=False
-                            )
-                            result = orchestrator.send(payload)
-                            if result.get('push', {}).get('success', 0) > 0:
-                                gender_results.setdefault('push', 0)
-                                gender_results['push'] += 1
-                                notification_methods.append('PUSH')
-                        except Exception as e:
-                            logger.error(f"Error sending push notification to {player.name}: {e}")
-                            results['errors'].append(f"Push to {player.name}: {str(e)}")
+                if push_enabled:
+                    try:
+                        from app.services.notification_orchestrator import (
+                            orchestrator, NotificationType, NotificationPayload
+                        )
+                        push_payload = NotificationPayload(
+                            notification_type=NotificationType.SUB_REQUEST,
+                            title="ECS FC Substitute Request",
+                            message=f"{message_header} for {team_name} on {match_date} at {match_time}",
+                            user_ids=[user.id],
+                            data={
+                                'type': 'sub_request',
+                                'request_id': str(request_id),
+                                'match_id': str(match.id),
+                                'league_type': 'ecs_fc',
+                                'rsvp_token': '',
+                                'deep_link': f'ecs-fc-scheme://sub-request/{request_id}',
+                                'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                                'priority': 'high'
+                            },
+                            force_push=True,
+                            force_in_app=False,
+                            force_email=False,
+                            force_sms=False,
+                            force_discord=False
+                        )
+                        push_result = orchestrator.send(push_payload)
+                        if push_result.get('push', {}).get('success', 0) > 0:
+                            gender_results.setdefault('push', 0)
+                            gender_results['push'] += 1
+                            notification_methods.append('PUSH')
+                    except Exception as e:
+                        logger.error(f"Error sending push notification to {player.name}: {e}")
+                        results['errors'].append(f"Push to {player.name}: {str(e)}")
 
                 # Update pool stats
                 pool_entry.requests_received += 1

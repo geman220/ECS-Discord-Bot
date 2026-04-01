@@ -483,23 +483,66 @@ def process_substitute_response(self, session, player_id: int, response_text: st
         response.response_method = response_method
         response.response_text = response_text
         response.responded_at = datetime.utcnow()
-        
+
         # Update pool stats
         pool_entry = session.query(SubstitutePool).filter_by(
             player_id=player_id,
             league_type=response.request.league_type,
             is_active=True
         ).first()
-        
+
         if pool_entry and is_available:
             pool_entry.requests_accepted += 1
-        
+
+        # Get data for admin notification
+        request_id_val = response.request_id
+        player = session.query(Player).get(player_id)
+        player_name = player.name if player else f"Player {player_id}"
+        sub_request = response.request
+        team_name = sub_request.team.name if sub_request and sub_request.team else 'Unknown Team'
+        match_date_str = ''
+        if sub_request and sub_request.match and sub_request.match.date:
+            match_date_str = f" on {sub_request.match.date.strftime('%A, %B %d')}"
+
+        # Notify admins (Pub League admins manage subs)
+        try:
+            from app.models.core import Role
+            from app.services.notification_orchestrator import (
+                orchestrator, NotificationType, NotificationPayload
+            )
+            admin_roles = session.query(Role).filter(
+                Role.name.in_(['Global Admin', 'Pub League Admin'])
+            ).all()
+            admin_user_ids = list(set(
+                u.id for role in admin_roles for u in role.users
+            ))
+            if admin_user_ids:
+                availability_text = "is available" if is_available else "is NOT available"
+                orchestrator.send(NotificationPayload(
+                    notification_type=NotificationType.SUB_REQUEST,
+                    title="Sub Response Received",
+                    message=f"{player_name} {availability_text} for {team_name}{match_date_str}",
+                    user_ids=admin_user_ids,
+                    data={
+                        'type': 'sub_response',
+                        'request_id': str(request_id_val),
+                        'player_name': player_name,
+                        'is_available': str(is_available).lower(),
+                        'league_type': 'pub_league',
+                        'response_method': response_method,
+                        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                    },
+                ))
+                logger.info(f"Notified {len(admin_user_ids)} admins of {response_method} sub response from {player_name}")
+        except Exception as e:
+            logger.error(f"Failed to notify admins of sub response: {e}")
+
         # Session will be committed by decorator
-        
+
         return {
             'success': True,
             'is_available': is_available,
-            'request_id': response.request_id,
+            'request_id': request_id_val,
             'message': f"Response recorded: {'Available' if is_available else 'Not available'}"
         }
         

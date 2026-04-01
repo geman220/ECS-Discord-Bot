@@ -183,6 +183,20 @@ def get_user_analytics():
             if role.name in league_roles:
                 league_distribution[role.name] = len(role.users)
 
+        # Registration trends (daily counts for last 30 days)
+        registration_trends = []
+        for i in range(29, -1, -1):
+            day_start = (now - timedelta(days=i)).replace(hour=0, minute=0, second=0, microsecond=0)
+            day_end = day_start + timedelta(days=1)
+            day_count = User.query.filter(
+                User.created_at >= day_start,
+                User.created_at < day_end
+            ).count()
+            registration_trends.append({
+                'date': day_start.strftime('%b %d'),
+                'count': day_count,
+            })
+
         # Engagement metrics
         users_with_players = db.session.query(func.count(func.distinct(Player.user_id))).scalar() or 0
         users_with_roles = db.session.query(func.count(func.distinct(User.id))).join(
@@ -228,6 +242,7 @@ def get_user_analytics():
                 'avg_processing_time': avg_processing_time,
                 'backlog_trend': backlog_trend,
             },
+            'registration_trends': registration_trends,
             'role_distribution': role_distribution,
             'league_distribution': league_distribution,
             'engagement': {
@@ -243,7 +258,7 @@ def get_user_analytics():
         }
 
     except Exception as e:
-        logger.error(f"Error generating user analytics: {e}")
+        logger.error(f"Error generating user analytics: {e}", exc_info=True)
         return {}
 
 

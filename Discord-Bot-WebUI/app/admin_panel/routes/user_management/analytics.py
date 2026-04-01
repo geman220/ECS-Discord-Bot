@@ -33,10 +33,14 @@ def user_analytics():
         # Get comprehensive analytics data
         analytics_data = get_user_analytics()
 
+        if not analytics_data:
+            flash('User analytics returned no data. Check application logs for details.', 'error')
+            return redirect(url_for('admin_panel.users_comprehensive'))
+
         return render_template('admin_panel/users/analytics_flowbite.html',
                                analytics_data=analytics_data)
     except Exception as e:
-        logger.error(f"Error loading user analytics: {e}")
+        logger.error(f"Error loading user analytics: {e}", exc_info=True)
         flash('User analytics unavailable. Verify database connection and analytics data.', 'error')
         return redirect(url_for('admin_panel.users_comprehensive'))
 

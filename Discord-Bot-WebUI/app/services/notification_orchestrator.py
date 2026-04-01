@@ -547,15 +547,17 @@ class NotificationOrchestrator:
 
             db = self._get_db()
 
-            # Get active FCM tokens for users
+            # Get active FCM tokens for users, excluding debug/simulator tokens
             tokens = db.session.query(UserFCMToken.fcm_token).filter(
                 UserFCMToken.user_id.in_(user_ids),
-                UserFCMToken.is_active == True
+                UserFCMToken.is_active == True,
+                ~UserFCMToken.fcm_token.like('DEBUG_SIMULATOR_TOKEN_%')
             ).all()
 
             token_list = [t[0] for t in tokens if t[0]]
 
             if not token_list:
+                logger.info(f"No active FCM tokens for users {user_ids}, skipping push")
                 return {'success': 0, 'failure': 0}
 
             # Build data payload

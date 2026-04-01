@@ -45,6 +45,11 @@ def register_fcm_token():
     if not fcm_token:
         return jsonify({"msg": "Missing fcm_token"}), 400
 
+    # Reject debug/simulator tokens in non-debug environments
+    if fcm_token.startswith('DEBUG_SIMULATOR_TOKEN_'):
+        logger.debug(f"Ignoring debug simulator token for user {current_user_id}")
+        return jsonify({"msg": "Token registered successfully"}), 200
+
     if platform not in ('ios', 'android', 'web', 'unknown'):
         platform = 'unknown'
 
@@ -68,6 +73,22 @@ def register_fcm_token():
                 existing.updated_at = datetime.utcnow()
                 existing.last_used = datetime.utcnow()
             else:
+                # Deactivate stale tokens for this user on the same platform
+                # (device got a new token, old one is no longer valid)
+                stale_count = session_db.query(UserFCMToken).filter(
+                    UserFCMToken.user_id == current_user_id,
+                    UserFCMToken.platform == platform,
+                    UserFCMToken.is_active == True,
+                    UserFCMToken.fcm_token != fcm_token
+                ).update({
+                    'is_active': False,
+                    'deactivated_reason': 'replaced_by_new_token',
+                    'updated_at': datetime.utcnow()
+                }, synchronize_session=False)
+
+                if stale_count:
+                    logger.info(f"Deactivated {stale_count} old {platform} tokens for user {current_user_id}")
+
                 new_token = UserFCMToken(
                     user_id=current_user_id,
                     fcm_token=fcm_token,

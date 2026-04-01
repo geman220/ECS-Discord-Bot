@@ -1891,7 +1891,47 @@ def respond_to_ecs_fc_substitute_request(request_id: int):
             pool_membership.requests_accepted = (pool_membership.requests_accepted or 0) + 1
             pool_membership.last_active_at = datetime.utcnow()
 
+        # Capture data for notification before commit
+        coach_user_id = sub_request.requested_by
+        player_name = player.name
+        match_info = None
+        if sub_request.match:
+            m = sub_request.match
+            match_info = {
+                'opponent': m.opponent_name,
+                'date': m.match_date.strftime('%A, %B %d') if m.match_date else 'TBD',
+                'time': m.match_time.strftime('%I:%M %p').lstrip('0') if m.match_time else 'TBD',
+            }
+
         session.commit()
+
+        # Notify the coach who created the request
+        if coach_user_id:
+            try:
+                from app.services.notification_orchestrator import (
+                    orchestrator, NotificationType, NotificationPayload
+                )
+                availability_text = "is available" if is_available else "is NOT available"
+                match_text = f" for the match vs {match_info['opponent']} on {match_info['date']}" if match_info else ""
+
+                orchestrator.send(NotificationPayload(
+                    notification_type=NotificationType.SUB_REQUEST,
+                    title="Sub Response Received",
+                    message=f"{player_name} {availability_text}{match_text}",
+                    user_ids=[coach_user_id],
+                    data={
+                        'type': 'sub_response',
+                        'request_id': str(request_id),
+                        'player_name': player_name,
+                        'is_available': str(is_available).lower(),
+                        'league_type': 'ecs_fc',
+                        'deep_link': f'ecs-fc-scheme://sub-request/{request_id}',
+                        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                    },
+                ))
+                logger.info(f"Notified coach (user {coach_user_id}) of sub response from {player_name}")
+            except Exception as e:
+                logger.error(f"Failed to notify coach of sub response: {e}")
 
         return jsonify({
             "success": True,
@@ -1962,6 +2002,13 @@ def assign_ecs_fc_substitute(request_id: int):
         session.commit()
 
         logger.info(f"ECS FC substitute assigned: player {player_id} to request {request_id}")
+
+        # Notify the assigned sub
+        try:
+            from app.tasks.tasks_ecs_fc_subs import notify_assigned_substitute
+            notify_assigned_substitute.delay(assignment.id)
+        except Exception as e:
+            logger.error(f"Failed to queue assignment notification: {e}")
 
         return jsonify({
             "success": True,
@@ -2244,6 +2291,124 @@ def get_my_ecs_fc_targeted_requests():
             "requests": requests_data,
             "count": len(requests_data),
             "pending_count": sum(1 for r in requests_data if not r['has_responded'])
+        }), 200
+
+
+@mobile_api_v2.route('/substitutes/ecs-fc/my-responses', methods=['GET'])
+@jwt_required()
+def get_my_ecs_fc_responses():
+    """
+    Get the current user's ECS FC substitute response history.
+
+    Returns:
+        JSON with list of user's responses to ECS FC sub requests
+    """
+    from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        player = session.query(Player).filter_by(user_id=current_user_id).first()
+        if not player:
+            return jsonify({"msg": "Player profile not found"}), 404
+
+        responses = session.query(EcsFcSubResponse).options(
+            joinedload(EcsFcSubResponse.request).joinedload(EcsFcSubRequest.match),
+            joinedload(EcsFcSubResponse.request).joinedload(EcsFcSubRequest.team)
+        ).filter(
+            EcsFcSubResponse.player_id == player.id,
+            EcsFcSubResponse.responded_at.isnot(None)
+        ).order_by(EcsFcSubResponse.responded_at.desc()).limit(50).all()
+
+        responses_data = []
+        for resp in responses:
+            match_data = None
+            if resp.request and resp.request.match:
+                m = resp.request.match
+                match_data = {
+                    "id": m.id,
+                    "opponent_name": m.opponent_name,
+                    "date": m.match_date.isoformat() if m.match_date else None,
+                    "time": m.match_time.strftime('%H:%M') if m.match_time else None,
+                    "location": m.location,
+                }
+
+            responses_data.append({
+                "id": resp.id,
+                "request": {
+                    "id": resp.request.id,
+                    "match": match_data,
+                    "team_name": resp.request.team.name if resp.request and resp.request.team else None,
+                    "status": resp.request.status if resp.request else None,
+                    "positions_needed": resp.request.positions_needed if resp.request else None,
+                } if resp.request else None,
+                "is_available": resp.is_available,
+                "response_text": resp.response_text,
+                "response_method": resp.response_method,
+                "responded_at": resp.responded_at.isoformat() if resp.responded_at else None,
+                "contacted_at": resp.notification_sent_at.isoformat() if resp.notification_sent_at else None,
+            })
+
+        return jsonify({
+            "responses": responses_data,
+            "count": len(responses_data)
+        }), 200
+
+
+@mobile_api_v2.route('/substitutes/ecs-fc/my-assignments', methods=['GET'])
+@jwt_required()
+def get_my_ecs_fc_assignments():
+    """
+    Get the current user's ECS FC substitute assignments.
+
+    Returns:
+        JSON with list of user's assignments as an ECS FC substitute
+    """
+    from app.models.substitutes import EcsFcSubRequest, EcsFcSubAssignment
+
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session:
+        player = session.query(Player).filter_by(user_id=current_user_id).first()
+        if not player:
+            return jsonify({"msg": "Player profile not found"}), 404
+
+        assignments = session.query(EcsFcSubAssignment).options(
+            joinedload(EcsFcSubAssignment.request).joinedload(EcsFcSubRequest.match),
+            joinedload(EcsFcSubAssignment.request).joinedload(EcsFcSubRequest.team)
+        ).filter(
+            EcsFcSubAssignment.player_id == player.id
+        ).order_by(EcsFcSubAssignment.assigned_at.desc()).limit(50).all()
+
+        assignments_data = []
+        for assign in assignments:
+            match_data = None
+            if assign.request and assign.request.match:
+                m = assign.request.match
+                match_data = {
+                    "id": m.id,
+                    "opponent_name": m.opponent_name,
+                    "date": m.match_date.isoformat() if m.match_date else None,
+                    "time": m.match_time.strftime('%H:%M') if m.match_time else None,
+                    "location": m.location,
+                }
+
+            assignments_data.append({
+                "id": assign.id,
+                "request": {
+                    "id": assign.request.id,
+                    "match": match_data,
+                    "team_name": assign.request.team.name if assign.request and assign.request.team else None,
+                    "status": assign.request.status if assign.request else None,
+                } if assign.request else None,
+                "position_assigned": assign.position_assigned,
+                "assigned_at": assign.assigned_at.isoformat() if assign.assigned_at else None,
+                "notes": assign.notes,
+            })
+
+        return jsonify({
+            "assignments": assignments_data,
+            "count": len(assignments_data)
         }), 200
 
 
