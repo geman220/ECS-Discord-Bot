@@ -33,6 +33,9 @@ class DiscordRSVPWebSocketManager:
     def __init__(self, flask_url: str = None, api_key: str = None):
         """Initialize the WebSocket manager."""
         self.flask_url = flask_url or os.getenv('WEBUI_API_URL', 'http://webui:5000')
+        # Strip /api suffix — Socket.IO is served at root, not under /api
+        if self.flask_url.endswith('/api'):
+            self.flask_url = self.flask_url[:-4]
         self.api_key = api_key or os.getenv('DISCORD_BOT_API_KEY', 'discord-bot-internal-key')
         
         # Socket.IO client
