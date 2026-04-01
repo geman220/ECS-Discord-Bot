@@ -1,18 +1,11 @@
 # app/monitoring/__init__.py
 
 """
-Monitoring Package
+DEPRECATED 2026-03-31 — Blueprint unregistered, routes return 404.
+All functionality migrated to admin_panel monitoring (app/admin_panel/routes/monitoring.py).
+Safe to delete once no url_for('monitoring.*') references remain in codebase.
 
-This package provides endpoints and utilities for application monitoring, including:
-- Task monitoring (Celery tasks, scheduled tasks)
-- Queue monitoring (queue lengths, health status)
-- Redis monitoring (key inspection, connection testing)
-- Database monitoring (connections, stats, cleanup)
-- Debug utilities (logs, queries, system stats)
-- Worker monitoring (Celery workers info)
-- Session monitoring (active sessions, cleanup)
-
-All endpoints require Global Admin role unless otherwise specified.
+Original: Monitoring Package — task, queue, Redis, database, debug, worker, session monitoring.
 """
 
 from flask import Blueprint

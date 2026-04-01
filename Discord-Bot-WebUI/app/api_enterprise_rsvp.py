@@ -183,7 +183,15 @@ def update_rsvp_enterprise_from_discord():
                 except Exception as e:
                     logger.error(f"⚠️ Failed to emit WebSocket RSVP update: {e}")
                     # Don't fail the request - database update was successful
-                
+
+                # Trigger Discord embed update via Celery (reliable path)
+                if source != 'discord':
+                    try:
+                        from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task
+                        notify_discord_of_rsvp_change_task.delay(match_id=match_id)
+                    except Exception as e:
+                        logger.error(f"⚠️ Failed to queue Discord notification task: {e}")
+
                 # PERFORMANCE: Prepare response immediately and return fast
                 response_data = {
                     "message": message,

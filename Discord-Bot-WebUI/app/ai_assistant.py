@@ -69,7 +69,7 @@ def _build_navigation_guide(context_type, user_roles):
             if is_admin or ('Pub League Coach' in roles_set):
                 lines.append("  - [Draft Predictions](/draft-predictions)")
             if is_admin:
-                lines.append("  - [Draft History](/admin/draft-history)")
+                lines.append("  - [Draft History](/admin-panel/draft/history)")
         if can_view_teams:
             lines.append("- [Teams Overview](/teams/overview) — View all teams and rosters")
         if can_view_standings:
@@ -83,13 +83,10 @@ def _build_navigation_guide(context_type, user_roles):
     if is_admin:
         lines.append("")
         lines.append("### ADMINISTRATION section (admins only)")
-        lines.append("- [Admin Panel](/admin/dashboard) — The main admin hub with all management tools")
+        lines.append("- [Admin Panel](/admin-panel/) — The main admin hub with ALL management tools (users, roles, leagues, Discord, reports, monitoring, etc.)")
         lines.append("- Digital Wallets (dropdown): [Setup Wizard](/wallet/config/setup), [Dashboard](/wallet/admin), [Pass Studio](/pass-studio), [Manage Passes](/wallet/admin/passes), [Scanner](/wallet/admin/scanner), [Check-ins](/wallet/admin/checkins)")
-
-    # Directory section
-    lines.append("")
-    lines.append("### DIRECTORY section (visible to all users)")
-    lines.append("- [All Players](/players) — Player directory and profiles")
+        lines.append("")
+        lines.append("NOTE: ALL admin features (user management, Discord, reports, monitoring, security, etc.) are accessed through the [Admin Panel](/admin-panel/). There is no separate admin section.")
 
     # User menu (top-right)
     lines.append("")
@@ -103,6 +100,7 @@ def _build_navigation_guide(context_type, user_roles):
     lines.append("")
     lines.append("## IMPORTANT Navigation Facts")
     lines.append("- The Admin Panel is in the LEFT SIDEBAR under the 'ADMINISTRATION' section header. It is NOT in the user profile/avatar dropdown.")
+    lines.append("- The Admin Panel URL is /admin-panel/ — all admin features are inside the Admin Panel.")
     lines.append("- Account Settings and My Profile are in the USER MENU (top-right avatar dropdown). They are NOT in the sidebar.")
     lines.append("- The sidebar is on the LEFT side of the screen. On mobile, tap the hamburger menu icon to reveal it.")
     lines.append("- The AI Assistant (this chat) is opened from the sparkles icon in the TOP NAVBAR.")

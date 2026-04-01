@@ -141,9 +141,9 @@ class EnterpriseRSVPSystem:
                 pub_health = await self.event_publisher.health_check()
                 health["components"]["event_publisher"] = pub_health
             
-            # Check consumer health
+            # Check consumer health (sync function, no await)
             from app.services.event_consumer import get_consumer_health
-            consumer_health = await get_consumer_health()
+            consumer_health = get_consumer_health()
             health["components"]["consumers"] = consumer_health
             
             # Check circuit breakers

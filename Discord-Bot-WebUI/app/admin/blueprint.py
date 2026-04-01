@@ -1,8 +1,11 @@
 # app/admin/blueprint.py
 
 """
-Shared admin blueprint for all admin routes.
-This prevents circular imports by providing a single source for the admin blueprint.
+DEPRECATED 2026-03-31 — Blueprint unregistered, routes return 404.
+All functionality migrated to admin_panel (app/admin_panel/).
+Safe to delete once no url_for('admin.*') references remain in codebase.
+
+Original: Shared admin blueprint for all admin routes.
 """
 
 from flask import Blueprint

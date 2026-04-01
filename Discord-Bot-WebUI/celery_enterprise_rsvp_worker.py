@@ -121,29 +121,52 @@ def setup_signal_handlers():
 
 def main():
     """Main entry point for the enterprise RSVP worker."""
+    import threading
+    import time
+
     logger.info("🏗️ Initializing enterprise RSVP event consumer worker...")
-    
+
     # Setup signal handlers
     setup_signal_handlers()
-    
-    # Start enterprise RSVP consumers in background
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    
+
+    # Create a dedicated event loop for the consumer thread.
+    # asyncio event loops are NOT thread-safe, so the consumer loop
+    # must be created and run entirely within its own thread.
+    consumer_loop = asyncio.new_event_loop()
+    consumer_ready = threading.Event()
+
+    def run_consumer_thread():
+        """Run async consumers in a dedicated thread with its own event loop."""
+        asyncio.set_event_loop(consumer_loop)
+        try:
+            consumer_loop.run_until_complete(start_enterprise_rsvp_consumers())
+            logger.info("✅ Enterprise RSVP consumers started in background thread")
+            consumer_ready.set()
+            consumer_loop.run_forever()
+        except Exception as e:
+            logger.error(f"❌ Consumer thread error: {e}", exc_info=True)
+            consumer_ready.set()  # Unblock main thread even on failure
+        finally:
+            # Clean up consumers before closing the loop
+            try:
+                consumer_loop.run_until_complete(stop_enterprise_rsvp_consumers())
+            except Exception:
+                pass
+            consumer_loop.close()
+
+    # Start consumers in a background thread
+    consumer_thread = threading.Thread(
+        target=run_consumer_thread, daemon=True, name="rsvp-event-consumer"
+    )
+    consumer_thread.start()
+
+    # Wait for consumers to initialize (max 10 seconds)
+    consumer_ready.wait(timeout=10)
+
+    logger.info("🎉 Enterprise RSVP worker ready to process events")
+
     try:
-        loop.run_until_complete(start_enterprise_rsvp_consumers())
-        
-        # Keep the event loop running for async consumers
-        def run_consumers():
-            loop.run_forever()
-        
-        import threading
-        consumer_thread = threading.Thread(target=run_consumers, daemon=True)
-        consumer_thread.start()
-        
-        logger.info("🎉 Enterprise RSVP worker ready to process events")
-        
-        # Start Celery worker
+        # Start Celery worker in the main thread
         celery_app.worker_main([
             'worker',
             '--loglevel=info',
@@ -151,16 +174,16 @@ def main():
             '--concurrency=2',
             '--hostname=enterprise-rsvp-worker@%h',
         ])
-        
+
     except KeyboardInterrupt:
         logger.info("📡 Received keyboard interrupt")
     except Exception as e:
         logger.error(f"❌ Worker startup failed: {e}")
         raise
     finally:
-        # Cleanup
-        loop.run_until_complete(stop_enterprise_rsvp_consumers())
-        loop.close()
+        # Signal the consumer loop to stop
+        consumer_loop.call_soon_threadsafe(consumer_loop.stop)
+        consumer_thread.join(timeout=10)
 
 
 if __name__ == '__main__':

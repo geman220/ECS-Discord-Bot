@@ -1,6 +1,9 @@
 """
-Security status monitoring endpoint.
-Provides information about security features and current threats.
+DEPRECATED 2026-03-31 — Blueprint unregistered, routes return 404.
+All functionality migrated to admin_panel (app/admin_panel/routes/system_infrastructure.py).
+Safe to delete once no url_for('security_status.*') references remain in codebase.
+
+Original: Security status monitoring endpoint — security features and current threats.
 """
 import time
 import logging

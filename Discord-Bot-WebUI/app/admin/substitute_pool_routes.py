@@ -1,8 +1,9 @@
 """
-Unified Substitute Pool Management Routes
+DEPRECATED 2026-03-31 — Blueprint unregistered, routes return 404.
+All functionality migrated to admin_panel substitute management (app/admin_panel/routes/).
+Safe to delete once no url_for('admin.substitute_pool.*') references remain in codebase.
 
-This module handles all routes for managing substitute pools across
-ECS FC, Classic, and Premier divisions.
+Original: Unified Substitute Pool Management Routes for ECS FC, Classic, and Premier divisions.
 """
 
 import logging

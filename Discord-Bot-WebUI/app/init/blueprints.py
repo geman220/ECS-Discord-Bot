@@ -55,15 +55,19 @@ def _import_blueprints():
     from app.teams import teams_bp
     from app.bot_admin import bot_admin_bp
     from app.availability_api import availability_bp
-    from app.admin.blueprint import admin_bp
+    # DEPRECATED 2026-03-31: Legacy admin replaced by admin_panel. Unregistered.
+    # from app.admin.blueprint import admin_bp
+    from app.admin.blueprint import admin_bp  # Still imported for sub-module compatibility
     from app.match_pages import match_pages
     from app.account import account_bp
     from app.email import email_bp
     from app.feedback import feedback_bp
+    # DEPRECATED 2026-03-31: Legacy user management replaced by admin_panel user routes.
     from app.user_management import user_management_bp
     from app.calendar import calendar_bp
     from app.sms_rsvp import sms_rsvp_bp
     from app.match_api import match_api
+    # DEPRECATED 2026-03-31: Legacy monitoring replaced by admin_panel monitoring routes.
     from app.monitoring import monitoring_bp
     from app.user_api import user_bp
     from app.help import help_bp
@@ -78,6 +82,7 @@ def _import_blueprints():
     from app.role_impersonation import role_impersonation_bp
     from app.ecs_fc_api import ecs_fc_api
     from app.ecs_fc_routes import ecs_fc_routes
+    # DEPRECATED 2026-03-31: Legacy substitute pool replaced by admin_panel substitute routes.
     from app.admin.substitute_pool_routes import substitute_pool_bp
     from app.admin.redis_routes import redis_bp
     from app.batch_api import batch_bp
@@ -175,12 +180,23 @@ def _register_core_blueprints(app, bp):
     app.register_blueprint(bp['match_pages'])
     app.register_blueprint(bp['bot_admin_bp'])
     app.register_blueprint(bp['main_bp'])
+    # DEPRECATED 2026-03-31: Legacy admin — most routes migrated to admin_panel.
+    # Still registered because admin_panel templates reference admin.* routes for:
+    #   - Polls (create_poll, poll_results, close_poll, delete_poll)
+    #   - Communication (schedule_next_week, process_scheduled_messages, rsvp_status, message_config.*)
+    #   - ECS FC subs (ecs_fc_subs.create_sub_request)
+    #   - Match pages (rsvp_status, match_management)
+    # Once those template refs are migrated to admin_panel routes, unregister this and delete.
     app.register_blueprint(bp['admin_bp'])
     app.register_blueprint(bp['feedback_bp'])
     app.register_blueprint(bp['email_bp'])
     app.register_blueprint(bp['calendar_bp'])
     app.register_blueprint(bp['sms_rsvp_bp'])
     app.register_blueprint(bp['match_api'], url_prefix='/api')
+    # DEPRECATED 2026-03-31: Legacy user management — migrated to admin_panel.
+    # Still registered because app/players.py has redirects to user_management.* routes
+    # (view_players, update_players, confirm_update, update_status).
+    # Once those redirects point to admin_panel, unregister this and delete.
     app.register_blueprint(bp['user_management_bp'])
 
 
@@ -198,10 +214,10 @@ def _register_api_blueprints(app, bp, csrf):
     app.register_blueprint(bp['user_bp'], url_prefix='/api')
     app.register_blueprint(bp['predictions_api'], url_prefix='/api')
 
-    # Monitoring - modular package
-    from app.monitoring import register_monitoring_routes
-    register_monitoring_routes()
-    app.register_blueprint(bp['monitoring_bp'])
+    # DEPRECATED 2026-03-31: Legacy monitoring — migrated to admin_panel. Delete after confirming no breakage.
+    # from app.monitoring import register_monitoring_routes
+    # register_monitoring_routes()
+    # app.register_blueprint(bp['monitoring_bp'])
 
     app.register_blueprint(bp['help_bp'], url_prefix='/help')
     app.register_blueprint(bp['ai_assistant_bp'])
@@ -214,7 +230,8 @@ def _register_api_blueprints(app, bp, csrf):
     app.register_blueprint(bp['role_impersonation_bp'])
     app.register_blueprint(bp['ecs_fc_api'])
     app.register_blueprint(bp['ecs_fc_routes'])  # ECS FC web routes (match details, report)
-    app.register_blueprint(bp['substitute_pool_bp'])
+    # DEPRECATED 2026-03-31: Legacy substitute pool — migrated to admin_panel. Delete after confirming no breakage.
+    # app.register_blueprint(bp['substitute_pool_bp'])
     app.register_blueprint(bp['redis_bp'])
     app.register_blueprint(bp['store_bp'])
     app.register_blueprint(bp['draft_predictions_bp'])
@@ -285,27 +302,12 @@ def _register_admin_blueprints(app, bp, csrf):
     app.register_blueprint(ai_enhancement_bp)
     csrf.exempt(ai_enhancement_bp)
 
-    # Security Status Routes
-    try:
-        app.logger.info("🔧 Attempting to import Security Status Blueprint...")
-        from app.routes.security_status import security_status_bp
-        app.logger.info("🔧 Security Status Blueprint imported, registering routes...")
-        app.register_blueprint(security_status_bp, url_prefix='')
-        app.logger.info("✅ Security Status Blueprint registered successfully")
-
-        security_routes = []
-        for rule in app.url_map.iter_rules():
-            if rule.endpoint and rule.endpoint.startswith('security_status.'):
-                security_routes.append(f"{rule.rule} -> {rule.endpoint}")
-        if security_routes:
-            app.logger.info(f"🔧 Security routes registered: {security_routes}")
-        else:
-            app.logger.warning("⚠️ No security routes found after registration")
-
-    except ImportError as ie:
-        app.logger.error(f"❌ Import error for Security Status Blueprint: {ie}")
-    except Exception as e:
-        app.logger.error(f"❌ Failed to register Security Status Blueprint: {e}")
+    # DEPRECATED 2026-03-31: Legacy security status — migrated to admin_panel. Delete after confirming no breakage.
+    # try:
+    #     from app.routes.security_status import security_status_bp
+    #     app.register_blueprint(security_status_bp, url_prefix='')
+    # except Exception as e:
+    #     app.logger.error(f"Failed to register Security Status Blueprint: {e}")
 
 
 def _register_wallet_blueprints(app, bp, csrf):

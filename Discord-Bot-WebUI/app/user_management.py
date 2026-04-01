@@ -1,12 +1,11 @@
 # app/user_management.py
 
 """
-User Management Module
+DEPRECATED 2026-03-31 — Blueprint unregistered, routes return 404.
+All functionality migrated to admin_panel user management (app/admin_panel/routes/user_management/).
+Safe to delete once no url_for('user_management.*') references remain in codebase.
 
-This module defines the blueprint endpoints for handling user management tasks,
-including creation, editing, deletion, and approval of users. It also provides endpoints
-for retrieving user data and filtering users based on criteria such as role, league, and approval status.
-The module interacts with the database and enforces role-based access control for sensitive operations.
+Original: User Management Module — blueprint endpoints for user CRUD, approval, and filtering.
 """
 
 import logging
