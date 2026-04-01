@@ -1163,11 +1163,11 @@ async def update_discord_embed(
         
         # Update the embed with fresh RSVP data
         success = await update_embed_for_message(
-            channel_id=request.channel_id,
             message_id=request.message_id,
-            team_id=team_id,
+            channel_id=request.channel_id,
             match_id=request.match_id,
-            source=f"cross_platform_sync_{request.trigger_source}"
+            team_id=team_id,
+            bot=bot
         )
         
         if success:
