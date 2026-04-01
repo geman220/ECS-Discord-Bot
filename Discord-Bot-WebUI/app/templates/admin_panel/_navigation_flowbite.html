@@ -169,7 +169,7 @@
             </div>
 
             {# ECS FC #}
-            {% set ecsfc_active = request.endpoint and (request.endpoint in ['admin_panel.ecs_fc_dashboard', 'admin_panel.ecs_fc_matches', 'admin_panel.ecs_fc_opponents', 'admin_panel.ecs_fc_import', 'admin_panel.ecs_fc_team_schedule'] or (request.endpoint == 'admin_panel.substitute_pools' and request.args.get('context') == 'ecs-fc')) %}
+            {% set ecsfc_active = request.endpoint and (request.endpoint in ['admin_panel.ecs_fc_dashboard', 'admin_panel.ecs_fc_matches', 'admin_panel.ecs_fc_opponents', 'admin_panel.ecs_fc_import', 'admin_panel.ecs_fc_team_schedule', 'admin_panel.ecs_fc_sub_requests'] or (request.endpoint == 'admin_panel.substitute_pools' and request.args.get('context') == 'ecs-fc')) %}
             <div>
                 <button type="button" data-action="admin-nav-mobile-accordion"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors
@@ -190,6 +190,7 @@
                     <a href="{{ url_for('admin_panel.ecs_fc_opponents') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users-group text-gray-400 text-xs"></i>Opponents Library</a>
                     <a href="{{ url_for('admin_panel.ecs_fc_import') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-file-import text-gray-400 text-xs"></i>Import Schedule</a>
                     <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-plus text-gray-400 text-xs"></i>Substitute Pool</a>
+                    <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-clipboard-list text-gray-400 text-xs"></i>Sub Requests</a>
                 </div>
             </div>
 
@@ -477,6 +478,9 @@
                         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                         <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                             <i class="ti ti-user-plus text-gray-400"></i>Substitute Pool
+                        </a>
+                        <a href="{{ url_for('admin_panel.ecs_fc_sub_requests') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-clipboard-list text-gray-400"></i>Sub Requests
                         </a>
                     </div>
                 </div>

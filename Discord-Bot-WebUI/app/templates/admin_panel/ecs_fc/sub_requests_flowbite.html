@@ -1,0 +1,237 @@
+{% extends "admin_panel/base_flowbite.html" %}
+{% from 'macros/flowbite.html' import card, button, badge, alert %}
+
+{% block admin_title %}ECS FC Sub Requests{% endblock %}
+{% block panel_description %}Manage substitute requests for ECS FC matches{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">ECS FC Hub</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Sub Requests</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<!-- Stats Cards -->
+<div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                <i class="ti ti-clipboard-list text-xl text-blue-600 dark:text-blue-400"></i>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">Total</p>
+                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ stats.total }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg">
+                <i class="ti ti-clock text-xl text-yellow-600 dark:text-yellow-400"></i>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">Open</p>
+                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ stats.open }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                <i class="ti ti-check text-xl text-green-600 dark:text-green-400"></i>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">Filled</p>
+                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ stats.filled }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                <i class="ti ti-x text-xl text-red-600 dark:text-red-400"></i>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">Cancelled</p>
+                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ stats.cancelled }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                <i class="ti ti-users text-xl text-purple-600 dark:text-purple-400"></i>
+            </div>
+            <div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 uppercase font-medium">Pool Size</p>
+                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ stats.pool_size }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-4 flex flex-wrap items-center gap-4">
+        <form method="get" class="flex flex-wrap items-center gap-3">
+            <select name="status" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
+                <option value="filled" {% if status_filter == 'filled' %}selected{% endif %}>Filled</option>
+                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+            </select>
+            <select name="team_id" onchange="this.form.submit()" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="">All Teams</option>
+                {% for team in teams %}
+                <option value="{{ team.id }}" {% if team_filter == team.id %}selected{% endif %}>{{ team.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}" class="ml-auto px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+            <i class="ti ti-users mr-1"></i>Manage Pool
+        </a>
+    </div>
+</div>
+
+<!-- Requests Table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
+            <i class="ti ti-clipboard-list mr-2"></i>Substitute Requests
+            <span class="ml-2 px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full dark:bg-blue-900 dark:text-blue-300">{{ requests_data|length }}</span>
+        </h5>
+    </div>
+
+    {% if requests_data %}
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-6 py-3">Match</th>
+                    <th scope="col" class="px-6 py-3">Team</th>
+                    <th scope="col" class="px-6 py-3">Status</th>
+                    <th scope="col" class="px-6 py-3">Needed</th>
+                    <th scope="col" class="px-6 py-3">Responses</th>
+                    <th scope="col" class="px-6 py-3">Assigned</th>
+                    <th scope="col" class="px-6 py-3">Created</th>
+                    <th scope="col" class="px-6 py-3">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in requests_data %}
+                {% set req = item.request %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-6 py-4">
+                        {% if req.match %}
+                        <div class="font-medium text-gray-900 dark:text-white">
+                            vs {{ req.match.opponent_name or 'TBD' }}
+                        </div>
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ req.match.match_date.strftime('%b %d, %Y') if req.match.match_date else 'TBD' }}
+                            {% if req.match.match_time %}at {{ req.match.match_time.strftime('%I:%M %p').lstrip('0') }}{% endif %}
+                        </div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500">
+                            {{ req.match.location or '' }}
+                        </div>
+                        {% else %}
+                        <span class="text-gray-400">No match</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ req.team.name if req.team else 'Unknown' }}</span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if req.status == 'OPEN' %}
+                        <span class="px-2.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full dark:bg-yellow-900 dark:text-yellow-300">Open</span>
+                        {% elif req.status == 'FILLED' %}
+                        <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full dark:bg-green-900 dark:text-green-300">Filled</span>
+                        {% elif req.status == 'CANCELLED' %}
+                        <span class="px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded-full dark:bg-red-900 dark:text-red-300">Cancelled</span>
+                        {% else %}
+                        <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-full dark:bg-gray-700 dark:text-gray-300">{{ req.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ req.substitutes_needed or 1 }}</span>
+                        {% if req.positions_needed %}
+                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ req.positions_needed }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            {% if item.available > 0 %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
+                                <i class="ti ti-check text-xs"></i>{{ item.available }}
+                            </span>
+                            {% endif %}
+                            {% if item.unavailable > 0 %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300">
+                                <i class="ti ti-x text-xs"></i>{{ item.unavailable }}
+                            </span>
+                            {% endif %}
+                            {% if item.pending > 0 %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">
+                                <i class="ti ti-clock text-xs"></i>{{ item.pending }}
+                            </span>
+                            {% endif %}
+                            {% if item.total_contacted == 0 %}
+                            <span class="text-xs text-gray-400">No contacts</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-medium {% if item.assigned >= (req.substitutes_needed or 1) %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">
+                            {{ item.assigned }} / {{ req.substitutes_needed or 1 }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ req.created_at.strftime('%b %d, %Y') if req.created_at else '' }}
+                        </div>
+                        <div class="text-xs text-gray-400 dark:text-gray-500">
+                            {{ req.created_at.strftime('%I:%M %p').lstrip('0') if req.created_at else '' }}
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            {% if req.match %}
+                            <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=req.match.id) }}"
+                               class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                               title="View RSVP & manage subs">
+                                <i class="ti ti-eye mr-1"></i>View
+                            </a>
+                            {% endif %}
+                            {% if req.status == 'OPEN' %}
+                            <form method="POST" action="{{ url_for('admin.ecs_fc_subs.cancel_sub_request', request_id=req.id) }}"
+                                  onsubmit="return confirm('Cancel this substitute request?');" class="inline">
+                                <button type="submit" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50">
+                                    <i class="ti ti-x mr-1"></i>Cancel
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="p-12 text-center">
+        <i class="ti ti-clipboard-off text-5xl text-gray-300 dark:text-gray-600"></i>
+        <p class="mt-4 text-gray-500 dark:text-gray-400">No substitute requests found</p>
+        <p class="text-sm text-gray-400 dark:text-gray-500 mt-1">Requests are created from the match RSVP status page when a team needs subs</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

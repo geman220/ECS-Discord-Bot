@@ -78,6 +78,36 @@ def register_api_middleware(blueprint: Blueprint):
         logger.warning(f"API access denied for host: {request.host}")
         return jsonify({'error': 'Access Denied'}), 403
 
+    @blueprint.after_request
+    def log_api_request(response):
+        """Log mobile API requests with user, endpoint, status, and timing."""
+        # Skip noisy endpoints
+        skip_paths = ['/api/v1/logs/mobile', '/api/v1/notifications/ping']
+        if any(request.path.startswith(p) for p in skip_paths):
+            return response
+
+        # Only log substitute and RSVP endpoints at INFO level, others at DEBUG
+        is_sub_or_rsvp = '/substitutes/' in request.path or '/rsvp' in request.path
+        user_id = None
+        try:
+            from flask_jwt_extended import get_jwt_identity
+            user_id = get_jwt_identity()
+        except Exception:
+            pass
+
+        log_msg = f"[API] {request.method} {request.path} → {response.status_code} | user={user_id}"
+        if request.args:
+            log_msg += f" | params={dict(request.args)}"
+
+        if is_sub_or_rsvp:
+            logger.info(log_msg)
+        elif response.status_code >= 400:
+            logger.warning(log_msg)
+        else:
+            logger.debug(log_msg)
+
+        return response
+
 
 def jwt_or_discord_auth_required(f):
     """

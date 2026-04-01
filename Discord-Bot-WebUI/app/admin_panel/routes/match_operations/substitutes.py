@@ -58,9 +58,9 @@ def substitute_management():
 
         upcoming_matches = upcoming_matches_query.limit(20).all()
 
-        # Get substitute requests
+        # Get substitute requests (OPEN = created by mobile/web, PENDING/APPROVED = legacy statuses)
         sub_requests_query = SubstituteRequest.query.filter(
-            SubstituteRequest.status.in_(['PENDING', 'APPROVED'])
+            SubstituteRequest.status.in_(['OPEN', 'PENDING', 'APPROVED'])
         ).order_by(SubstituteRequest.created_at.desc())
 
         if show_requested == 'requested':
@@ -79,7 +79,7 @@ def substitute_management():
         stats = {
             'total_requests': SubstituteRequest.query.count(),
             'active_requests': SubstituteRequest.query.filter(
-                SubstituteRequest.status.in_(['PENDING', 'APPROVED'])
+                SubstituteRequest.status.in_(['OPEN', 'PENDING', 'APPROVED'])
             ).count(),
             'available_subs': len(available_subs),
             'upcoming_matches': len(upcoming_matches)

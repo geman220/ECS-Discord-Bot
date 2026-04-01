@@ -18,6 +18,7 @@ import logging
 from datetime import datetime, timedelta
 from flask import render_template, request, jsonify, g, redirect, url_for, flash
 from flask_login import login_required, current_user
+from sqlalchemy.orm import joinedload, selectinload
 
 from .. import admin_panel_bp
 from app.decorators import role_required
@@ -1061,8 +1062,90 @@ def ecs_fc_post_rsvp(match_id):
 
 
 # -----------------------------------------------------------
-# Existing Sub Pool Route (link from navigation)
+# ECS FC Substitute Management
 # -----------------------------------------------------------
+
+@admin_panel_bp.route('/ecs-fc/sub-requests')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+def ecs_fc_sub_requests():
+    """ECS FC substitute request management for coaches and admins."""
+    from app.models.substitutes import EcsFcSubRequest, EcsFcSubResponse, EcsFcSubAssignment, EcsFcSubPool
+
+    try:
+        session = g.db_session
+
+        # Filters
+        status_filter = request.args.get('status', 'all')
+        team_filter = request.args.get('team_id', type=int)
+
+        # Get teams this user can manage
+        is_admin = current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin')
+        ecs_fc_teams = get_ecs_fc_teams()
+
+        if not is_admin:
+            # Coaches see all ECS FC teams (per validate_ecs_fc_coach_access logic)
+            pass
+
+        # Build query
+        query = session.query(EcsFcSubRequest).options(
+            joinedload(EcsFcSubRequest.match).joinedload(EcsFcMatch.team),
+            joinedload(EcsFcSubRequest.team),
+            joinedload(EcsFcSubRequest.requester),
+            selectinload(EcsFcSubRequest.responses),
+            selectinload(EcsFcSubRequest.assignments)
+        )
+
+        if status_filter != 'all':
+            query = query.filter(EcsFcSubRequest.status == status_filter.upper())
+
+        if team_filter:
+            query = query.filter(EcsFcSubRequest.team_id == team_filter)
+
+        sub_requests = query.order_by(EcsFcSubRequest.created_at.desc()).limit(100).all()
+
+        # Build request data with response counts
+        requests_data = []
+        for req in sub_requests:
+            responses = req.responses or []
+            available = sum(1 for r in responses if r.responded_at and r.is_available)
+            unavailable = sum(1 for r in responses if r.responded_at and not r.is_available)
+            pending = sum(1 for r in responses if not r.responded_at)
+            assigned = len(req.assignments) if req.assignments else 0
+
+            requests_data.append({
+                'request': req,
+                'available': available,
+                'unavailable': unavailable,
+                'pending': pending,
+                'assigned': assigned,
+                'total_contacted': len(responses),
+            })
+
+        # Stats
+        all_requests = session.query(EcsFcSubRequest).all()
+        stats = {
+            'total': len(all_requests),
+            'open': sum(1 for r in all_requests if r.status == 'OPEN'),
+            'filled': sum(1 for r in all_requests if r.status == 'FILLED'),
+            'cancelled': sum(1 for r in all_requests if r.status == 'CANCELLED'),
+            'pool_size': session.query(EcsFcSubPool).filter_by(is_active=True).count(),
+        }
+
+        return render_template(
+            'admin_panel/ecs_fc/sub_requests_flowbite.html',
+            requests_data=requests_data,
+            stats=stats,
+            teams=ecs_fc_teams,
+            status_filter=status_filter,
+            team_filter=team_filter,
+            is_admin=is_admin,
+        )
+    except Exception as e:
+        logger.error(f"Error loading ECS FC sub requests: {e}", exc_info=True)
+        flash('Unable to load substitute requests.', 'error')
+        return redirect(url_for('admin_panel.ecs_fc_dashboard'))
+
 
 @admin_panel_bp.route('/ecs-fc/sub-pool')
 @login_required
