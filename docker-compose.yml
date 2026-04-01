@@ -313,6 +313,12 @@ services:
       - "traefik.http.routers.maintenance.tls=true"
       - "traefik.http.routers.maintenance.tls.certresolver=myresolver"
       - "traefik.http.routers.maintenance.priority=1"
+      # Deploy-time data router (must bypass webui error middleware to reach maintenance nginx directly)
+      - "traefik.http.routers.maintenance-data.rule=Host(`portal.ecsfc.com`) && Path(`/data/deploy_time.json`)"
+      - "traefik.http.routers.maintenance-data.entrypoints=websecure"
+      - "traefik.http.routers.maintenance-data.tls=true"
+      - "traefik.http.routers.maintenance-data.tls.certresolver=myresolver"
+      - "traefik.http.routers.maintenance-data.priority=100"
       # HTTP fallback router (redirects to HTTPS)
       - "traefik.http.routers.maintenance-http.rule=Host(`portal.ecsfc.com`)"
       - "traefik.http.routers.maintenance-http.entrypoints=web"
