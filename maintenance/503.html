@@ -367,7 +367,8 @@
         /* ── State ─────────────────────────────────────────────────── */
         var t0 = Date.now(); // start with client time; server will override
         var done = false;
-        var ready_to_render = true;
+        var pageLoadedAt = Date.now();
+        var MIN_DISPLAY = 2000; // show counter for at least 2s before redirect
 
         /* ── DOM shortcuts ─────────────────────────────────────────── */
         function $(id) { return document.getElementById(id); }
@@ -375,6 +376,9 @@
         /* ── Fetch server-authoritative deploy start time ──────────── */
         // Syncs to server-authoritative time when available.
         // Timer already runs with client time as fallback.
+        var MAX_AGE = 600000;   // 10 min — reject stale timestamps
+        var MAX_SKEW = 5000;    // 5s — reject future timestamps (clock drift)
+
         (function syncTime() {
             var x = new XMLHttpRequest();
             x.open('GET', '/data/deploy_time.json?_=' + Date.now(), true);
@@ -383,14 +387,23 @@
                 if (x.status === 200) {
                     try {
                         var data = JSON.parse(x.responseText);
-                        if (data && data.start) {
-                            t0 = data.start;
-                            ready_to_render = true;
+                        if (data && typeof data.start === 'number') {
+                            var age = Date.now() - data.start;
+                            if (age >= -MAX_SKEW && age < MAX_AGE) {
+                                t0 = data.start;
+                                return;
+                            }
+                            // Stale or skewed — ignore, keep client t0
                             return;
                         }
                     } catch (e) {}
                 }
-                // Server doesn't have the timestamp yet — retry in 2s
+                // 404 = file not yet created; keep retrying
+                if (x.status === 404 || x.status === 0) {
+                    setTimeout(syncTime, 2000);
+                    return;
+                }
+                // Other status — retry a few times then give up
                 setTimeout(syncTime, 2000);
             };
             x.onerror = x.ontimeout = function () {
@@ -445,8 +458,9 @@
 
         /* ── Simulated progress (exponential ease, caps at 95%) ──── */
         function simProg() {
-            if (!t0) return 0;
-            var r = (Date.now() - t0) / EST;
+            var elapsed = Date.now() - t0;
+            if (elapsed < 0) elapsed = 0; // clock skew guard
+            var r = elapsed / EST;
             return Math.min(0.95, 1 - Math.exp(-2.8 * r));
         }
 
@@ -466,6 +480,7 @@
 
         /* ── Elapsed formatter ─────────────────────────────────────── */
         function fmtEl(ms) {
+            if (ms < 0) ms = 0;
             var s = Math.floor(ms / 1000);
             return s < 60 ? s + 's elapsed' : Math.floor(s / 60) + 'm ' + (s % 60) + 's elapsed';
         }
@@ -473,7 +488,6 @@
         /* ── Render loop ───────────────────────────────────────────── */
         function tick() {
             if (done) return;
-            if (!ready_to_render) { requestAnimationFrame(tick); return; }
             var p = simProg();
             $('bar').style.width = Math.round(p * 100) + '%';
             $('pct').textContent  = Math.round(p * 100) + '%';
@@ -486,10 +500,17 @@
         function poll() {
             if (done) return;
             var x = new XMLHttpRequest();
-            x.open('HEAD', '/?_hc=' + Date.now(), true);
+            x.open('HEAD', '/api/health?_hc=' + Date.now(), true);
             x.timeout = 4000;
             x.onload = function () {
-                if (x.status >= 200 && x.status < 300) ready();
+                if (x.status >= 200 && x.status < 300) {
+                    var waited = Date.now() - pageLoadedAt;
+                    if (waited >= MIN_DISPLAY) {
+                        ready();
+                    } else {
+                        setTimeout(ready, MIN_DISPLAY - waited);
+                    }
+                }
             };
             x.send();
         }
@@ -514,7 +535,7 @@
 
         /* ── Start ─────────────────────────────────────────────────── */
         requestAnimationFrame(tick);
-        poll();
+        setTimeout(poll, 1000);   // 1s delay — let page render before first check
         setInterval(poll, POLL);
     })();
     </script>

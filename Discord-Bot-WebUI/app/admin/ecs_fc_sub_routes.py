@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, flash, g
 from flask_login import login_required, current_user
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import and_, or_
 
 from app.core import db
@@ -187,21 +187,24 @@ def get_available_subs(request_id):
     """Get list of available substitutes for a request."""
     try:
         sub_request = g.db_session.query(EcsFcSubRequest).options(
-            joinedload(EcsFcSubRequest.responses).joinedload(EcsFcSubResponse.player)
+            joinedload(EcsFcSubRequest.responses).joinedload(EcsFcSubResponse.player),
+            selectinload(EcsFcSubRequest.assignments)
         ).get(request_id)
         
         if not sub_request:
             return jsonify({'success': False, 'message': 'Request not found'}), 404
         
         # Get available subs (those who responded positively)
+        assigned_ids = [a.player_id for a in (sub_request.assignments or [])]
         available_subs = []
         for response in sub_request.responses:
-            if response.is_available and response.player:
+            if response.is_available and response.player and response.player_id not in assigned_ids:
                 available_subs.append({
                     'player_id': response.player_id,
-                    'name': response.player.name,
+                    'player_name': response.player.name,
+                    'response_id': response.id,
                     'response_method': response.response_method,
-                    'responded_at': response.responded_at.isoformat(),
+                    'responded_at': response.responded_at.isoformat() if response.responded_at else None,
                     'response_text': response.response_text
                 })
         

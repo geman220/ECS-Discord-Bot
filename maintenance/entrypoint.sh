@@ -7,18 +7,32 @@ DATA_DIR="/usr/share/nginx/html/data"
 TIMESTAMP_FILE="$DATA_DIR/deploy_time.json"
 WEBUI_URL="http://webui:5000/"
 CHECK_INTERVAL=1
+STALE_THRESHOLD=300   # seconds — files older than 5 min are stale
 
 mkdir -p "$DATA_DIR"
 
-# ── Helper ────────────────────────────────────────────────
+# ── Cleanup on exit ──────────────────────────────────────
+cleanup() {
+    rm -f "$TIMESTAMP_FILE" "${TIMESTAMP_FILE}.tmp"
+}
+trap cleanup EXIT TERM INT
+
+# ── Helper: atomic write ─────────────────────────────────
 write_timestamp() {
-    # Keep existing file (deploy script may have pre-seeded it)
-    if [ ! -f "$TIMESTAMP_FILE" ]; then
-        echo "{\"start\": $(date +%s)000}" > "$TIMESTAMP_FILE"
-    fi
+    echo "{\"start\": $(date +%s)000}" > "${TIMESTAMP_FILE}.tmp"
+    mv -f "${TIMESTAMP_FILE}.tmp" "$TIMESTAMP_FILE"
 }
 
-# ── Initial check BEFORE nginx starts ─────────────────────
+# ── Purge stale timestamp from a previous container run ──
+if [ -f "$TIMESTAMP_FILE" ]; then
+    stale_start=$(sed 's/.*"start":[[:space:]]*\([0-9]*\).*/\1/' "$TIMESTAMP_FILE" | head -c 10)
+    now=$(date +%s)
+    if [ $(( now - stale_start )) -gt "$STALE_THRESHOLD" ]; then
+        rm -f "$TIMESTAMP_FILE"
+    fi
+fi
+
+# ── Initial check BEFORE nginx starts ────────────────────
 # If webui is already down, create the file now so the very
 # first 503 page load has a timestamp available.
 if ! wget -q --spider --timeout=2 "$WEBUI_URL" 2>/dev/null; then
