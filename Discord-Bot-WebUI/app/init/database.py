@@ -46,6 +46,23 @@ def init_database(app, db):
         # Ensure the pl-unverified and pl-waitlist roles exist
         _ensure_required_roles(SessionLocal)
 
+        # Initialize/update system theme presets
+        _ensure_system_presets(db)
+
+
+def _ensure_system_presets(db):
+    """Ensure system theme presets exist and are up-to-date."""
+    try:
+        from app.models.theme_preset import ThemePreset
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        if not inspector.has_table('theme_presets'):
+            logger.warning("theme_presets table does not exist yet, skipping preset initialization")
+            return
+        ThemePreset.initialize_system_presets()
+    except Exception as e:
+        logger.error(f"Error initializing theme presets: {e}", exc_info=True)
+
 
 def _ensure_required_roles(SessionLocal):
     """
