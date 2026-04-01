@@ -326,8 +326,8 @@ def get_my_ref_assignments():
                     "id": match.away_team.id,
                     "name": match.away_team.name
                 },
-                "home_team_score": match.home_team_score,
-                "away_team_score": match.away_team_score,
+                "home_team_score": match.home_team_score or 0,
+                "away_team_score": match.away_team_score or 0,
                 "location": match.location if hasattr(match, 'location') else None
             })
 

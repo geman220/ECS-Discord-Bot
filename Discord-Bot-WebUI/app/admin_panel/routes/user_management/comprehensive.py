@@ -203,7 +203,7 @@ def users_comprehensive():
     except Exception as e:
         logger.error(f"Error loading user management: {e}")
         flash('User management unavailable. Verify database connection and user models.', 'error')
-        return redirect(url_for('admin_panel.user_management'))
+        return redirect(url_for('admin_panel.dashboard'))
 
 
 @admin_panel_bp.route('/users/update-status', methods=['POST'])

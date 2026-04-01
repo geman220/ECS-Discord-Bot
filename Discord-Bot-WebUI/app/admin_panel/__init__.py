@@ -31,6 +31,24 @@ def inject_ecs_fc_teams():
 
 
 @admin_panel_bp.context_processor
+def inject_nav_counts():
+    """Inject pending approval and waitlist counts for navigation badges."""
+    try:
+        from sqlalchemy import func
+        from app.core import db
+        from app.models.core import User, Role
+        pending = db.session.query(func.count(User.id)).filter(
+            User.approval_status == 'pending'
+        ).scalar() or 0
+        waitlist = db.session.query(User).join(User.roles).filter(
+            Role.name == 'pl-waitlist'
+        ).count()
+        return {'nav_pending_approvals': pending, 'nav_waitlist_count': waitlist}
+    except Exception:
+        return {'nav_pending_approvals': 0, 'nav_waitlist_count': 0}
+
+
+@admin_panel_bp.context_processor
 def inject_admin_search_index():
     """Build a searchable index of all admin panel pages for universal search."""
     try:
@@ -303,25 +321,19 @@ def _build_admin_search_index():
          'url': url_for('admin_panel.messaging_settings'), 'icon': 'ti-settings'},
 
         # --- Users ---
-        {'name': 'User Management', 'category': 'Users', 'description': 'Manage user accounts and profiles',
-         'keywords': ['accounts', 'profiles', 'members', 'players'],
-         'url': url_for('admin_panel.user_management'), 'icon': 'ti-users'},
-        {'name': 'User Search', 'category': 'Users', 'description': 'Comprehensive user search and lookup',
-         'keywords': ['find user', 'search', 'lookup', 'query'],
-         'url': url_for('admin_panel.users_comprehensive'), 'icon': 'ti-user-search'},
-        {'name': 'User Approvals', 'category': 'Users', 'description': 'Review and approve pending user registrations',
+        {'name': 'Users', 'category': 'Users', 'description': 'Browse, search, and manage all user accounts',
+         'keywords': ['accounts', 'profiles', 'members', 'players', 'all users', 'user list', 'manage', 'search', 'find user', 'lookup'],
+         'url': url_for('admin_panel.users_comprehensive'), 'icon': 'ti-users'},
+        {'name': 'Approvals', 'category': 'Users', 'description': 'Review and approve pending user registrations',
          'keywords': ['pending', 'approve', 'registration', 'new users', 'verify'],
          'url': url_for('admin_panel.user_approvals'), 'icon': 'ti-user-check'},
         {'name': 'Waitlist', 'category': 'Users', 'description': 'Manage user registration waitlist',
          'keywords': ['queue', 'waiting', 'signup', 'waitlist'],
          'url': url_for('admin_panel.user_waitlist'), 'icon': 'ti-user-plus'},
-        {'name': 'Roles Management', 'category': 'Users', 'description': 'Create and manage user roles and permissions',
+        {'name': 'Roles', 'category': 'Users', 'description': 'Create and manage user roles and permissions',
          'keywords': ['permissions', 'access control', 'rbac', 'roles'],
          'url': url_for('admin_panel.roles_comprehensive'), 'icon': 'ti-shield'},
-        {'name': 'Bulk Operations', 'category': 'Users', 'description': 'Perform bulk actions on user accounts',
-         'keywords': ['batch', 'mass update', 'bulk edit', 'multi-select'],
-         'url': url_for('admin_panel.bulk_operations'), 'icon': 'ti-list'},
-        {'name': 'Quick Profiles (Tryouts)', 'category': 'Users', 'description': 'Manage quick profile entries for tryouts',
+        {'name': 'Quick Profiles', 'category': 'Users', 'description': 'Manage quick profile entries for tryouts',
          'keywords': ['tryouts', 'quick profile', 'temporary', 'trial'],
          'url': url_for('admin_panel.quick_profiles_management'), 'icon': 'ti-id-badge'},
         {'name': 'User Analytics', 'category': 'Users', 'description': 'User registration and activity analytics',
@@ -329,7 +341,7 @@ def _build_admin_search_index():
          'url': url_for('admin_panel.user_analytics'), 'icon': 'ti-chart-line'},
         {'name': 'Duplicate Detection', 'category': 'Users', 'description': 'Find and merge duplicate user accounts',
          'keywords': ['duplicates', 'merge', 'dedup', 'double accounts'],
-         'url': url_for('admin_panel.user_duplicates'), 'icon': 'ti-copy'},
+         'url': url_for('admin_panel.duplicate_registrations'), 'icon': 'ti-copy'},
 
         # --- Pub League: Additional ---
         {'name': 'Team Rosters', 'category': 'Pub League', 'subcategory': 'Match Management',

@@ -113,7 +113,7 @@ def user_waitlist():
     except Exception as e:
         logger.error(f"Error loading user waitlist: {e}")
         flash('User waitlist unavailable. Check database connectivity and waitlist data.', 'error')
-        return redirect(url_for('admin_panel.user_management'))
+        return redirect(url_for('admin_panel.users_comprehensive'))
 
 
 @admin_panel_bp.route('/users/waitlist/remove/<int:user_id>', methods=['POST'])

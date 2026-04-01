@@ -81,28 +81,8 @@ def sync_ecs_fc_coach_status(user, is_adding_role: bool):
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def roles_management():
-    """Roles and permissions management page."""
-    try:
-        roles = db.session.query(Role).order_by(Role.name).all()
-        users = db.session.query(User).order_by(User.username).all()
-
-        # Get all permissions from database
-        permissions = Permission.query.order_by(Permission.name).all()
-
-        # Get statistics
-        users_with_roles = db.session.query(User).join(User.roles).distinct().count()
-        admin_roles = len([r for r in roles if 'Admin' in r.name])
-
-        return render_template('admin_panel/users/roles_flowbite.html',
-                               roles=roles,
-                               users=users,
-                               permissions=permissions,
-                               users_with_roles=users_with_roles,
-                               admin_roles=admin_roles)
-    except Exception as e:
-        logger.error(f"Error loading roles management: {e}")
-        flash('Roles management unavailable. Verify database connection and role models.', 'error')
-        return redirect(url_for('admin_panel.user_management'))
+    """Roles management - redirects to comprehensive roles page."""
+    return redirect(url_for('admin_panel.roles_comprehensive'))
 
 
 @admin_panel_bp.route('/users/roles/details')

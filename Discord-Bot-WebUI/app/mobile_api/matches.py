@@ -58,8 +58,8 @@ def normalize_ecs_fc_match(match: EcsFcMatch, player: Player = None,
         'date': match.match_date.isoformat() if match.match_date else None,
         'time': match.match_time.strftime('%H:%M') if match.match_time else None,
         'location': match.location,
-        'latitude': match.latitude,
-        'longitude': match.longitude,
+        'latitude': match.latitude or 0.0,
+        'longitude': match.longitude or 0.0,
         'field': match.field_name or match.location,
         'status': match.status,
         'notes': match.notes,
@@ -69,8 +69,8 @@ def normalize_ecs_fc_match(match: EcsFcMatch, player: Player = None,
         'home_shirt_color': match.home_shirt_color,
         'away_shirt_color': match.away_shirt_color,
         # Scores
-        'home_score': match.home_score,
-        'away_score': match.away_score,
+        'home_score': match.home_score or 0,
+        'away_score': match.away_score or 0,
         # Team info (ECS FC matches have single team + opponent)
         'home_team': {
             'id': match.team.id,
@@ -602,8 +602,8 @@ def get_match_live_updates(match_id: int):
         return jsonify({
             "match_id": match_id,
             "status": match.status if hasattr(match, 'status') else None,
-            "home_score": match.home_team_score,
-            "away_score": match.away_team_score,
+            "home_score": match.home_team_score or 0,
+            "away_score": match.away_team_score or 0,
             "events": events_list[-10:] if events_list else [],  # Last 10 events
             "last_updated": datetime.utcnow().isoformat()
         }), 200

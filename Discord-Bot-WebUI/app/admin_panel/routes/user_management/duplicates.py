@@ -54,7 +54,7 @@ def duplicate_registrations():
     except Exception as e:
         logger.error(f"Error loading duplicate registrations: {e}")
         flash('Duplicate detection unavailable. Check database connectivity.', 'error')
-        return redirect(url_for('admin_panel.user_management'))
+        return redirect(url_for('admin_panel.users_comprehensive'))
 
 
 @admin_panel_bp.route('/users/duplicates/scan', methods=['POST'])

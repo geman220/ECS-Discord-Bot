@@ -266,7 +266,7 @@
             </div>
 
             {# Users #}
-            {% set users_active = request.endpoint and request.endpoint in ['admin_panel.user_management', 'admin_panel.users_comprehensive', 'admin_panel.user_approvals', 'admin_panel.user_waitlist', 'admin_panel.roles_comprehensive', 'admin_panel.bulk_operations', 'admin_panel.quick_profiles_management'] %}
+            {% set users_active = request.endpoint and request.endpoint in ['admin_panel.user_management', 'admin_panel.users_comprehensive', 'admin_panel.user_approvals', 'admin_panel.user_waitlist', 'admin_panel.roles_comprehensive', 'admin_panel.bulk_operations', 'admin_panel.quick_profiles_management', 'admin_panel.user_analytics', 'admin_panel.duplicate_registrations'] %}
             <div>
                 <button type="button" data-action="admin-nav-mobile-accordion"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors
@@ -275,13 +275,21 @@
                     <i class="ti ti-chevron-down text-xs transition-transform duration-200"></i>
                 </button>
                 <div class="{{ '' if users_active else 'hidden' }} pl-4 mt-1 space-y-0.5 border-l-2 border-gray-200 dark:border-gray-600 ml-5">
-                    <a href="{{ url_for('admin_panel.user_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users text-gray-400 text-xs"></i>User Management</a>
-                    <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-search text-gray-400 text-xs"></i>User Search</a>
-                    <a href="{{ url_for('admin_panel.user_approvals') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-check text-gray-400 text-xs"></i>User Approvals</a>
-                    <a href="{{ url_for('admin_panel.user_waitlist') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-plus text-gray-400 text-xs"></i>Waitlist</a>
-                    <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-shield text-gray-400 text-xs"></i>Roles Management</a>
-                    <a href="{{ url_for('admin_panel.bulk_operations') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-list text-gray-400 text-xs"></i>Bulk Operations</a>
-                    <a href="{{ url_for('admin_panel.quick_profiles_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-id-badge text-gray-400 text-xs"></i>Quick Profiles (Tryouts)</a>
+                    <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users text-gray-400 text-xs"></i>Users</a>
+                    <a href="{{ url_for('admin_panel.user_approvals') }}" class="flex items-center justify-between px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <span class="flex items-center gap-2"><i class="ti ti-user-check text-gray-400 text-xs"></i>Approvals</span>
+                        {% if nav_pending_approvals > 0 %}<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">{{ nav_pending_approvals }}</span>{% endif %}
+                    </a>
+                    <a href="{{ url_for('admin_panel.user_waitlist') }}" class="flex items-center justify-between px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <span class="flex items-center gap-2"><i class="ti ti-clock text-gray-400 text-xs"></i>Waitlist</span>
+                        {% if nav_waitlist_count > 0 %}<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-yellow-500 rounded-full">{{ nav_waitlist_count }}</span>{% endif %}
+                    </a>
+                    <div class="border-t border-gray-200 dark:border-gray-600 my-1"></div>
+                    <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-shield text-gray-400 text-xs"></i>Roles</a>
+                    <div class="border-t border-gray-200 dark:border-gray-600 my-1"></div>
+                    <a href="{{ url_for('admin_panel.user_analytics') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-chart-line text-gray-400 text-xs"></i>Analytics</a>
+                    <a href="{{ url_for('admin_panel.duplicate_registrations') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-copy text-gray-400 text-xs"></i>Duplicates</a>
+                    <a href="{{ url_for('admin_panel.quick_profiles_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-id-badge text-gray-400 text-xs"></i>Quick Profiles</a>
                 </div>
             </div>
 
@@ -626,28 +634,30 @@
                 </button>
                 <div id="dropdown-users-nav" class="hidden absolute left-0 z-50 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
                     <div class="py-2">
-                        <a href="{{ url_for('admin_panel.user_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-users text-gray-400"></i>User Management
-                        </a>
                         <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-user-search text-gray-400"></i>User Search
+                            <i class="ti ti-users text-gray-400"></i>Users
                         </a>
-                        <a href="{{ url_for('admin_panel.user_approvals') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-user-check text-gray-400"></i>User Approvals
+                        <a href="{{ url_for('admin_panel.user_approvals') }}" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <span class="flex items-center gap-2"><i class="ti ti-user-check text-gray-400"></i>Approvals</span>
+                            {% if nav_pending_approvals > 0 %}<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full">{{ nav_pending_approvals }}</span>{% endif %}
                         </a>
-                        <a href="{{ url_for('admin_panel.user_waitlist') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-user-plus text-gray-400"></i>Waitlist
+                        <a href="{{ url_for('admin_panel.user_waitlist') }}" class="flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <span class="flex items-center gap-2"><i class="ti ti-clock text-gray-400"></i>Waitlist</span>
+                            {% if nav_waitlist_count > 0 %}<span class="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-yellow-500 rounded-full">{{ nav_waitlist_count }}</span>{% endif %}
                         </a>
                         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
                         <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-shield text-gray-400"></i>Roles Management
-                        </a>
-                        <a href="{{ url_for('admin_panel.bulk_operations') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-list text-gray-400"></i>Bulk Operations
+                            <i class="ti ti-shield text-gray-400"></i>Roles
                         </a>
                         <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                        <a href="{{ url_for('admin_panel.user_analytics') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-chart-line text-gray-400"></i>Analytics
+                        </a>
+                        <a href="{{ url_for('admin_panel.duplicate_registrations') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <i class="ti ti-copy text-gray-400"></i>Duplicates
+                        </a>
                         <a href="{{ url_for('admin_panel.quick_profiles_management') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
-                            <i class="ti ti-id-badge text-gray-400"></i>Quick Profiles (Tryouts)
+                            <i class="ti ti-id-badge text-gray-400"></i>Quick Profiles
                         </a>
                     </div>
                 </div>

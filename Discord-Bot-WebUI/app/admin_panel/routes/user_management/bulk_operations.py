@@ -39,42 +39,8 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def bulk_operations():
-    """Bulk user operations management page."""
-    try:
-        # Get user statistics for bulk operations
-        pending_users = User.query.filter_by(approval_status='pending').count()
-        waitlist_users = User.query.join(User.roles).filter(Role.name == 'pl-waitlist').count()
-
-        # Get role statistics for bulk assignments
-        roles = Role.query.order_by(Role.name).all()
-        role_stats = {}
-        for role in roles:
-            role_stats[role.name] = len(role.users)
-
-        # Get recent bulk operations from audit logs
-        recent_bulk_ops = AdminAuditLog.query.filter(
-            or_(
-                AdminAuditLog.action.contains('bulk'),
-                AdminAuditLog.resource_id == 'bulk'
-            )
-        ).order_by(AdminAuditLog.timestamp.desc()).limit(10).all()
-
-        bulk_stats = {
-            'pending_users': pending_users,
-            'waitlist_users': waitlist_users,
-            'total_roles': len(roles),
-            'recent_operations': len(recent_bulk_ops)
-        }
-
-        return render_template('admin_panel/users/bulk_operations_flowbite.html',
-                               bulk_stats=bulk_stats,
-                               roles=roles,
-                               role_stats=role_stats,
-                               recent_bulk_ops=recent_bulk_ops)
-    except Exception as e:
-        logger.error(f"Error loading bulk operations: {e}")
-        flash('Bulk operations unavailable. Check database connectivity and user models.', 'error')
-        return redirect(url_for('admin_panel.user_management'))
+    """Bulk operations - redirects to comprehensive users page."""
+    return redirect(url_for('admin_panel.users_comprehensive'))
 
 
 @admin_panel_bp.route('/users/bulk-operations/approve', methods=['POST'])

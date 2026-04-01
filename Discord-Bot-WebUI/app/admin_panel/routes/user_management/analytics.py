@@ -38,7 +38,7 @@ def user_analytics():
     except Exception as e:
         logger.error(f"Error loading user analytics: {e}")
         flash('User analytics unavailable. Verify database connection and analytics data.', 'error')
-        return redirect(url_for('admin_panel.user_management'))
+        return redirect(url_for('admin_panel.users_comprehensive'))
 
 
 @admin_panel_bp.route('/users/analytics/export', methods=['POST'])

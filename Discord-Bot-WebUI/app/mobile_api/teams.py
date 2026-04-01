@@ -288,8 +288,8 @@ def get_team_matches(team_id: int):
                     'is_home_match': match.is_home_match,
                     'home_shirt_color': match.home_shirt_color,
                     'away_shirt_color': match.away_shirt_color,
-                    'home_score': match.home_score,
-                    'away_score': match.away_score,
+                    'home_score': match.home_score or 0,
+                    'away_score': match.away_score or 0,
                     'home_team': {
                         'id': match.team.id,
                         'name': match.team.name if match.is_home_match else match.opponent_name,
@@ -437,17 +437,19 @@ def get_team_stats(team_id: int):
 
         form = []
         for match in recent_matches:
+            home = match.home_team_score or 0
+            away = match.away_team_score or 0
             if match.home_team_id == team_id:
-                if match.home_team_score > match.away_team_score:
+                if home > away:
                     form.append("W")
-                elif match.home_team_score < match.away_team_score:
+                elif home < away:
                     form.append("L")
                 else:
                     form.append("D")
             else:  # Away team
-                if match.away_team_score > match.home_team_score:
+                if away > home:
                     form.append("W")
-                elif match.away_team_score < match.home_team_score:
+                elif away < home:
                     form.append("L")
                 else:
                     form.append("D")

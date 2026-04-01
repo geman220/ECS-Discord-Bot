@@ -36,44 +36,8 @@ logger = logging.getLogger(__name__)
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def user_management():
-    """User management hub page."""
-    try:
-        # Get user statistics
-        total_users = db.session.query(User).count()
-        pending_approvals = db.session.query(User).filter_by(approval_status='pending').count()
-        approved_users = db.session.query(User).filter_by(approval_status='approved').count()
-        denied_users = db.session.query(User).filter_by(approval_status='denied').count()
-
-        # Get waitlist statistics
-        waitlist_users = db.session.query(User).join(User.roles).filter(Role.name == 'pl-waitlist').count()
-
-        # Get role statistics
-        total_roles = db.session.query(Role).count()
-        users_with_roles = db.session.query(User).join(User.roles).distinct().count()
-
-        # Get recent admin actions related to users
-        recent_actions = db.session.query(AdminAuditLog).filter(
-            AdminAuditLog.resource_type.in_(['user_approval', 'user_waitlist', 'user_roles'])
-        ).order_by(AdminAuditLog.timestamp.desc()).limit(10).all()
-
-        stats = {
-            'total_users': total_users,
-            'pending_approvals': pending_approvals,
-            'approved_users': approved_users,
-            'denied_users': denied_users,
-            'waitlist_users': waitlist_users,
-            'total_roles': total_roles,
-            'users_with_roles': users_with_roles,
-            'recent_actions': len(recent_actions)
-        }
-
-        return render_template('admin_panel/users/management_flowbite.html',
-                               stats=stats,
-                               recent_actions=recent_actions)
-    except Exception as e:
-        logger.error(f"Error loading user management: {e}")
-        flash('User management dashboard unavailable. Check database connectivity.', 'error')
-        return redirect(url_for('admin_panel.dashboard'))
+    """User management hub - redirects to the main users page."""
+    return redirect(url_for('admin_panel.users_comprehensive'))
 
 
 @admin_panel_bp.route('/users/approvals')
@@ -180,7 +144,7 @@ def user_approvals():
     except Exception as e:
         logger.error(f"Error loading user approvals: {e}")
         flash('User approvals unavailable. Check database connectivity and user models.', 'error')
-        return redirect(url_for('admin_panel.user_management'))
+        return redirect(url_for('admin_panel.users_comprehensive'))
 
 
 @admin_panel_bp.route('/users/approvals/approve/<int:user_id>', methods=['POST'])
