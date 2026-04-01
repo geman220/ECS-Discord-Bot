@@ -661,45 +661,50 @@ class SyncDiscordClient:
                 'error': str(e)
             }
     
-    def invite_user_to_server(self, discord_id: str) -> Dict[str, Any]:
+    def invite_user_to_server(self, discord_id: str, server_id: str = None) -> Dict[str, Any]:
         """
-        Invite a user to the Discord server.
-        
+        Create a Discord server invite for a user.
+
         Args:
             discord_id: Discord user ID to invite.
-            
+            server_id: Discord server (guild) ID. If not provided, uses SERVER_ID from config.
+
         Returns:
             Dictionary with success status and invite details.
         """
-        discord_bot_url = "http://discord-bot:5001/api/invite_user"
-        
+        if not server_id:
+            from flask import current_app
+            server_id = current_app.config.get('SERVER_ID')
+
+        discord_bot_url = f"http://discord-bot:5001/api/server/guilds/{server_id}/invites"
+
         try:
-            logger.info(f"Inviting user {discord_id} to server (synchronous)")
-            
+            logger.info(f"Creating invite for user {discord_id} to server {server_id} (synchronous)")
+
             response = self.session.post(
                 discord_bot_url,
-                json={'discord_id': discord_id},
+                json={'max_uses': 1, 'max_age': 86400},
                 timeout=self.timeout
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
-                logger.info(f"User {discord_id} invited successfully")
+                logger.info(f"Invite created successfully for user {discord_id}")
                 return {
                     'success': True,
                     'invite_code': result.get('invite_code'),
-                    'invite_link': result.get('invite_link'),
-                    'message': result.get('message', 'User invited successfully')
+                    'invite_link': result.get('invite_url'),
+                    'message': 'Invite created successfully'
                 }
             else:
-                error_msg = f"Failed to invite user: {response.status_code} - {response.text}"
+                error_msg = f"Failed to create invite: {response.status_code} - {response.text}"
                 logger.error(error_msg)
                 return {
                     'success': False,
                     'message': error_msg,
                     'status_code': response.status_code
                 }
-                
+
         except requests.Timeout:
             error_msg = f"Discord API call timed out after {self.timeout} seconds"
             logger.error(error_msg)
@@ -709,7 +714,7 @@ class SyncDiscordClient:
                 'timeout': True
             }
         except Exception as e:
-            error_msg = f"Error inviting user: {str(e)}"
+            error_msg = f"Error creating invite: {str(e)}"
             logger.error(error_msg)
             return {
                 'success': False,
@@ -720,36 +725,31 @@ class SyncDiscordClient:
     def assign_role_to_member(self, server_id: str, discord_id: str, role_id: str) -> Dict[str, Any]:
         """
         Assign a role to a Discord server member.
-        
+
         Args:
-            server_id: Discord server ID.
+            server_id: Discord server (guild) ID.
             discord_id: Discord user ID.
             role_id: Discord role ID to assign.
-            
+
         Returns:
             Dictionary with success status.
         """
-        discord_bot_url = "http://discord-bot:5001/api/assign_role"
-        
+        discord_bot_url = f"http://discord-bot:5001/api/server/guilds/{server_id}/members/{discord_id}/roles/{role_id}"
+
         try:
             logger.info(f"Assigning role {role_id} to user {discord_id} in server {server_id} (synchronous)")
-            
-            response = self.session.post(
+
+            response = self.session.put(
                 discord_bot_url,
-                json={
-                    'server_id': server_id,
-                    'discord_id': discord_id,
-                    'role_id': role_id
-                },
                 timeout=self.timeout
             )
-            
+
             if response.status_code == 200:
                 result = response.json()
                 logger.info(f"Role assigned successfully to user {discord_id}")
                 return {
                     'success': True,
-                    'message': result.get('message', 'Role assigned successfully')
+                    'message': result.get('status', 'Role assigned successfully')
                 }
             else:
                 error_msg = f"Failed to assign role: {response.status_code} - {response.text}"
@@ -759,7 +759,7 @@ class SyncDiscordClient:
                     'message': error_msg,
                     'status_code': response.status_code
                 }
-                
+
         except requests.Timeout:
             error_msg = f"Discord API call timed out after {self.timeout} seconds"
             logger.error(error_msg)

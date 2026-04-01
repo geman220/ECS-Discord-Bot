@@ -413,6 +413,7 @@ def team_lookup():
 
 @user_bp.route('/player/by_discord/<discord_id>', methods=['GET'])
 def get_player_by_discord(discord_id: str):
+    """Look up a player profile by their Discord ID."""
     logger.info(f"🔵 [USER_API] get_player_by_discord called for discord_id: {discord_id}")
     
     try:

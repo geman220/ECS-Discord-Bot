@@ -326,15 +326,18 @@
 {# Initialize pitch view after config is set #}
 <script>
   // Trigger pitch view initialization after PitchViewConfig is set
-  if (window.InitSystem && window.InitSystem.run) {
-    window.InitSystem.run('pitch-view');
-  } else {
-    // Fallback if InitSystem hasn't loaded yet
-    document.addEventListener('DOMContentLoaded', function() {
-      if (window.InitSystem && window.InitSystem.run) {
-        window.InitSystem.run('pitch-view');
-      }
-    });
+  // Guard against double-initialization
+  if (!window._pitchViewInitialized) {
+    window._pitchViewInitialized = true;
+    if (window.InitSystem && window.InitSystem.run) {
+      window.InitSystem.run('pitch-view');
+    } else {
+      document.addEventListener('DOMContentLoaded', function() {
+        if (window.InitSystem && window.InitSystem.run) {
+          window.InitSystem.run('pitch-view');
+        }
+      });
+    }
   }
 </script>
 {% endblock %}

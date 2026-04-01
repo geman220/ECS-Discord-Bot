@@ -841,35 +841,13 @@ def send_confirmation_sms(user):
         confirmation_code = generate_confirmation_code()
         logger.info(f"Generated confirmation code for user {user.id}")
         
-        # Save code and timestamp to user
+        # Save code to user
         user.sms_confirmation_code = confirmation_code
-        user.sms_opt_in_timestamp = datetime.utcnow()
         session.add(user)
         
         try:
             session.commit()
             logger.info(f"Saved confirmation code to user {user.id}")
-            
-            # Verify the code was saved using direct SQL
-            from sqlalchemy import text
-            result = session.execute(
-                text("SELECT sms_confirmation_code FROM users WHERE id = :user_id"),
-                {"user_id": user.id}
-            ).fetchone()
-            
-            db_code = result[0] if result else None
-            logger.debug(f"Verification check - code saved to database")
-
-            if db_code != confirmation_code:
-                logger.warning(f"Code mismatch for user {user.id} - database save verification failed")
-                
-                # Try to force save with direct SQL
-                session.execute(
-                    text("UPDATE users SET sms_confirmation_code = :code WHERE id = :user_id"),
-                    {"code": confirmation_code, "user_id": user.id}
-                )
-                session.commit()
-                logger.info(f"Forced save of confirmation code to user {user.id} using direct SQL")
         except Exception as e:
             session.rollback()
             logger.error(f"Failed to save confirmation code: {e}", exc_info=True)
@@ -925,34 +903,7 @@ def verify_sms_confirmation(user, code):
         
         logger.info(f"Verifying SMS code for user {user.id}")
         
-        # Direct database query as a backup check (in case of ORM caching issues)
-        from sqlalchemy import text
-        result = session.execute(
-            text("SELECT sms_confirmation_code FROM users WHERE id = :user_id"),
-            {"user_id": user.id}
-        ).fetchone()
-        
-        db_code = result[0] if result else None
-        logger.debug(f"Retrieved stored confirmation code from database for user {user.id}")
-        
-        # For testing: Allow any 6-digit code if it matches the pattern
-        if code and len(code) == 6 and code.isdigit():
-            # Special case: if the code looks valid but no code is stored,
-            # we'll accept it for a better user experience
-            if not user.sms_confirmation_code:
-                logger.warning(f"No stored code, but accepting valid-looking code for user {user.id}")
-                
-                # Store that code temporarily and use it
-                user.sms_confirmation_code = code
-                session.add(user)
-                try:
-                    session.commit()
-                    logger.info(f"Temporarily saved code for user {user.id}")
-                except Exception as e:
-                    session.rollback()
-                    logger.error(f"Failed to save temporary code: {e}")
-        
-        # If still no confirmation code is stored or code doesn't match
+        # If no confirmation code is stored or code doesn't match
         if not user.sms_confirmation_code:
             logger.warning(f"No confirmation code found for user {user.id}")
             return False
@@ -964,7 +915,6 @@ def verify_sms_confirmation(user, code):
         # Code matches - update user and player records
         user.sms_notifications = True
         user.sms_confirmation_code = None
-        user.sms_opt_in_timestamp = datetime.utcnow()
         session.add(user)
 
         # Mark phone as verified on the player record

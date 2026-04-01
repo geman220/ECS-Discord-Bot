@@ -12,9 +12,10 @@ This module contains routes for mobile app features management:
 - User management for mobile app users
 """
 
+import json
 import logging
 from datetime import datetime, timedelta
-from flask import render_template, request, jsonify, flash, redirect, url_for
+from flask import render_template, request, jsonify, flash, redirect, url_for, Response
 from flask_login import login_required, current_user
 
 from .. import admin_panel_bp
@@ -55,25 +56,25 @@ def mobile_features():
         
         # Mobile app configuration status
         try:
-            mobile_app_enabled = AdminConfig.get_value('mobile_app_enabled', 'true').lower() == 'true'
+            mobile_app_enabled = str(AdminConfig.get_setting('mobile_app_enabled', 'true')).lower() in ('true', '1', 'yes', 'on')
             mobile_config_valid = mobile_app_enabled
-        except:
+        except Exception:
             mobile_config_valid = False
-        
+
         # Check push notification configuration
         try:
-            push_enabled = AdminConfig.get_value('push_notifications_enabled', 'false').lower() == 'true'
+            push_enabled = str(AdminConfig.get_setting('push_notifications_enabled', 'true')).lower() in ('true', '1', 'yes', 'on')
             push_service_status = 'active' if push_enabled else 'inactive'
-        except:
+        except Exception:
             push_service_status = 'unknown'
-        
+
         # Mobile app downloads/installs (estimated from device tokens)
         total_app_installs = DeviceToken.query.count()
-        
+
         # Get mobile app version from AdminConfig
         try:
-            mobile_app_version = AdminConfig.get_value('mobile_app_version', 'v1.0.0')
-        except:
+            mobile_app_version = str(AdminConfig.get_setting('mobile_app_version', 'v1.0.0'))
+        except Exception:
             mobile_app_version = 'v1.0.0'
         
         stats = {
@@ -150,41 +151,9 @@ def mobile_user_management():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def mobile_app_distribution():
-    """Configure mobile app distribution settings."""
+    """Redirect to App Version Config (App Distribution page removed)."""
     try:
-        # Log the access to app distribution configuration
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='access_app_distribution',
-            resource_type='mobile_features',
-            resource_id='app_distribution',
-            new_value='Accessed mobile app distribution interface',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-        
-        # Get current mobile app distribution configuration
-        try:
-            # Configuration settings for mobile app distribution
-            config_data = {
-                'app_name': AdminConfig.get_value('mobile_app_name', 'ECS FC Mobile'),
-                'app_version': AdminConfig.get_value('mobile_app_version', 'v1.0.0'),
-                'app_bundle_id': AdminConfig.get_value('mobile_app_bundle_id', 'com.ecsfc.mobile'),
-                'team_name': AdminConfig.get_value('team_name', 'ECS FC'),
-                'organization_name': AdminConfig.get_value('organization_name', 'ECS Football Club'),
-                'app_description': AdminConfig.get_value('mobile_app_description', 'Official ECS FC Mobile App'),
-                'app_store_url': AdminConfig.get_value('app_store_url', ''),
-                'play_store_url': AdminConfig.get_value('play_store_url', ''),
-                'download_enabled': AdminConfig.get_value('mobile_downloads_enabled', 'true') == 'true',
-                'beta_testing_enabled': AdminConfig.get_value('mobile_beta_testing', 'false') == 'true'
-            }
-            
-            return render_template('admin_panel/mobile_features/app_distribution_flowbite.html',
-                                 config_data=config_data)
-        except Exception as config_error:
-            logger.error(f"Error loading app distribution config: {config_error}")
-            flash('Error loading app distribution configuration. Please check system setup.', 'error')
-            return redirect(url_for('admin_panel.mobile_features'))
+        return redirect(url_for('admin_panel.app_version_config'))
     except Exception as e:
         logger.error(f"Error loading app distribution config: {e}")
         flash('App distribution settings unavailable. Check admin configuration.', 'error')
@@ -240,12 +209,7 @@ def mobile_app_analytics():
                 AdminAuditLog.timestamp >= last_30_days
             ).count(),
             'engagement_rate': f'{(mobile_users_7d / mobile_users_total * 100):.1f}%' if mobile_users_total > 0 else '0%',
-            'popular_features': [
-                {'name': 'Team Schedule', 'usage': 85},
-                {'name': 'Push Notifications', 'usage': 91},
-                {'name': 'Player Stats', 'usage': 72},
-                {'name': 'Match Reports', 'usage': 68}
-            ],
+            'popular_features': [],  # Populated when Flutter telemetry is integrated
             'retention_rate': f'{(mobile_users_30d / mobile_users_total * 100):.1f}%' if mobile_users_total > 0 else '0%'
         }
         
@@ -257,50 +221,126 @@ def mobile_app_analytics():
         return redirect(url_for('admin_panel.mobile_features'))
 
 
+MOBILE_CONFIG_FIELDS = [
+    {'key': 'mobile_app_enabled', 'label': 'Mobile App Enabled', 'data_type': 'boolean',
+     'description': 'Master switch for mobile app functionality', 'default': 'true'},
+    {'key': 'mobile_app_version', 'label': 'App Version', 'data_type': 'string',
+     'description': 'Current mobile app version', 'default': 'v1.0.0'},
+    {'key': 'push_notifications_enabled', 'label': 'Push Notifications', 'data_type': 'boolean',
+     'description': 'Enable push notification delivery', 'default': 'true'},
+    {'key': 'apple_wallet_enabled', 'label': 'Wallet Passes', 'data_type': 'boolean',
+     'description': 'Enable Apple Wallet / Google Pay integration', 'default': 'true'},
+    {'key': 'mobile_offline_sync', 'label': 'Offline Mode', 'data_type': 'boolean',
+     'description': 'Allow offline data caching', 'default': 'false'},
+    {'key': 'mobile_analytics_tracking', 'label': 'Analytics Enabled', 'data_type': 'boolean',
+     'description': 'Enable usage analytics collection from mobile app', 'default': 'true'},
+    {'key': 'mobile_crash_reporting', 'label': 'Crash Reporting', 'data_type': 'boolean',
+     'description': 'Enable crash report collection from mobile app', 'default': 'true'},
+]
+
+
 @admin_panel_bp.route('/mobile-features/mobile-config')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def mobile_config():
     """Configure mobile app settings."""
     try:
-        # Get current mobile app configuration
-        mobile_settings = []
-        try:
-            # Get mobile-related settings from AdminConfig
-            mobile_config_keys = [
-                'mobile_app_enabled',
-                'mobile_push_enabled',
-                'mobile_offline_mode',
-                'mobile_dark_mode_default',
-                'mobile_auto_updates',
-                'mobile_beta_testing'
-            ]
-            
-            for key in mobile_config_keys:
-                setting = AdminConfig.query.filter_by(key=key, is_enabled=True).first()
-                if setting:
-                    mobile_settings.append(setting)
-                    
-        except Exception as e:
-            logger.warning(f"Error loading mobile settings: {e}")
-        
-        # Log the access to mobile configuration
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='access_mobile_config',
-            resource_type='mobile_features',
-            resource_id='mobile_config',
-            new_value='Accessed mobile app configuration interface',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
+        settings = []
+        config_valid = True
+        for field in MOBILE_CONFIG_FIELDS:
+            setting = AdminConfig.query.filter_by(key=field['key']).first()
+            settings.append({
+                'key': field['key'],
+                'label': field['label'],
+                'description': field['description'],
+                'data_type': field['data_type'],
+                'value': setting.value if setting else field['default'],
+                'updated_at': setting.updated_at if setting else None,
+                'updated_by_user': setting.updated_by_user if setting else None,
+            })
+
+        # Check if mobile app is enabled
+        mobile_enabled_val = next(
+            (s['value'] for s in settings if s['key'] == 'mobile_app_enabled'), 'true'
         )
-        
+        config_valid = str(mobile_enabled_val).lower() in ('true', '1', 'yes', 'on')
+
         return render_template('admin_panel/mobile_features/mobile_config_flowbite.html',
-                             mobile_settings=mobile_settings)
+                             settings=settings, config_valid=config_valid)
     except Exception as e:
         logger.error(f"Error loading mobile config: {e}")
         flash('Mobile configuration unavailable. Check admin settings database.', 'error')
         return redirect(url_for('admin_panel.mobile_features'))
+
+
+@admin_panel_bp.route('/mobile-features/mobile-config/save', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+@transactional
+def save_mobile_config():
+    """Save mobile app configuration."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'message': 'No data received'}), 400
+
+    valid_keys = {f['key']: f for f in MOBILE_CONFIG_FIELDS}
+    changes = []
+
+    for key, value in data.items():
+        if key not in valid_keys:
+            continue
+        field = valid_keys[key]
+        old_setting = AdminConfig.query.filter_by(key=key).first()
+        old_value = old_setting.value if old_setting else None
+
+        AdminConfig.set_setting(
+            key=key,
+            value=str(value),
+            description=field['description'],
+            category='mobile_app',
+            data_type=field['data_type'],
+            user_id=current_user.id,
+        )
+        changes.append(f'{key}: {old_value} -> {value}')
+
+    if changes:
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='update_mobile_config',
+            resource_type='mobile_features',
+            resource_id='mobile_config',
+            new_value='; '.join(changes),
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+        )
+
+    return jsonify({'success': True, 'message': 'Mobile configuration saved'})
+
+
+MOBILE_FEATURE_TOGGLES = [
+    {'key': 'mobile_push_notifications', 'label': 'Push Notifications',
+     'description': 'Enable push notifications for users', 'default': 'true', 'category': 'core'},
+    {'key': 'mobile_wallet_passes', 'label': 'Wallet Passes',
+     'description': 'Apple Wallet / Google Pay integration', 'default': 'true', 'category': 'core'},
+    {'key': 'mobile_offline_sync', 'label': 'Offline Sync',
+     'description': 'Allow offline data synchronization', 'default': 'false', 'category': 'core'},
+    {'key': 'mobile_biometric_auth', 'label': 'Biometric Authentication',
+     'description': 'Allow biometric login (Face ID / Fingerprint) as a user option', 'default': 'true', 'category': 'core'},
+    {'key': 'mobile_location_services', 'label': 'Location Services',
+     'description': 'Location-based features and notifications', 'default': 'false', 'category': 'privacy'},
+    {'key': 'mobile_camera_upload', 'label': 'Camera Upload',
+     'description': 'Photo upload from camera roll', 'default': 'true', 'category': 'privacy'},
+    {'key': 'mobile_contact_sync', 'label': 'Contact Sync',
+     'description': 'Sync contacts for team invitations', 'default': 'false', 'category': 'privacy'},
+    {'key': 'mobile_analytics_tracking', 'label': 'Analytics Tracking',
+     'description': 'Usage analytics and crash reporting', 'default': 'true', 'category': 'privacy'},
+    {'key': 'mobile_ar_match_views', 'label': 'AR Match Views',
+     'description': 'Augmented reality match experience', 'default': 'false', 'category': 'experimental'},
+    {'key': 'mobile_voice_commands', 'label': 'Voice Commands',
+     'description': 'Voice-controlled navigation', 'default': 'false', 'category': 'experimental'},
+    {'key': 'mobile_smart_predictions', 'label': 'Smart Predictions',
+     'description': 'AI-powered match predictions', 'default': 'false', 'category': 'experimental'},
+]
 
 
 @admin_panel_bp.route('/mobile-features/feature-toggles')
@@ -309,40 +349,25 @@ def mobile_config():
 def mobile_features_toggle():
     """Configure mobile feature toggles."""
     try:
-        # Get mobile feature toggles
-        mobile_features = []
-        try:
-            # Get feature toggle settings for mobile
-            mobile_feature_keys = [
-                'mobile_push_notifications',
-                'mobile_offline_sync',
-                'mobile_biometric_auth',
-                'mobile_location_services',
-                'mobile_camera_upload',
-                'mobile_dark_mode'
-            ]
-            
-            for key in mobile_feature_keys:
-                setting = AdminConfig.query.filter_by(key=key, is_enabled=True).first()
-                if setting:
-                    mobile_features.append(setting)
-                    
-        except Exception as e:
-            logger.warning(f"Error loading mobile feature toggles: {e}")
-        
-        # Log the access to mobile feature toggles
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='access_mobile_feature_toggles',
-            resource_type='mobile_features',
-            resource_id='feature_toggles',
-            new_value='Accessed mobile feature toggles interface',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-        
+        features = []
+        for ft in MOBILE_FEATURE_TOGGLES:
+            setting = AdminConfig.query.filter_by(key=ft['key']).first()
+            val = setting.value if setting and setting.value else ft['default']
+            features.append({
+                'key': ft['key'],
+                'label': ft['label'],
+                'description': ft['description'],
+                'category': ft['category'],
+                'enabled': str(val).lower() in ('true', '1', 'yes', 'on'),
+            })
+
+        # Group by category for template
+        grouped = {}
+        for f in features:
+            grouped.setdefault(f['category'], []).append(f)
+
         return render_template('admin_panel/mobile_features/feature_toggles_flowbite.html',
-                             mobile_features=mobile_features)
+                             features=features, grouped=grouped)
     except Exception as e:
         logger.error(f"Error loading mobile feature toggles: {e}")
         flash('Feature toggles unavailable. Admin configuration service may be offline.', 'error')
@@ -446,33 +471,46 @@ def push_campaigns():
             }
         ]
         
-        # Recent campaigns from notification history
+        # Recent campaigns from PushNotificationCampaign model
         recent_campaigns = []
         try:
-            from app.models.communication import Notification
-            recent_notifs = Notification.query.filter_by(
-                notification_type='push'
-            ).order_by(Notification.created_at.desc()).limit(5).all()
-            for n in recent_notifs:
+            from app.models.push_campaigns import PushNotificationCampaign
+            campaigns = PushNotificationCampaign.query.order_by(
+                PushNotificationCampaign.created_at.desc()
+            ).limit(10).all()
+            for c in campaigns:
                 recent_campaigns.append({
-                    'id': n.id,
-                    'name': (n.content or '')[:50],
-                    'sent_date': n.created_at.strftime('%Y-%m-%d') if n.created_at else '',
-                    'recipients': 1,
-                    'delivery_rate': '95%',
-                    'open_rate': 'N/A'
+                    'id': c.id,
+                    'name': c.name,
+                    'sent_date': c.actual_send_time.strftime('%Y-%m-%d') if c.actual_send_time else (c.created_at.strftime('%Y-%m-%d') if c.created_at else ''),
+                    'recipients': c.target_count,
+                    'delivery_rate': f'{c.delivery_rate:.0f}%' if c.delivery_rate else 'N/A',
+                    'open_rate': f'{c.click_rate:.0f}%' if c.click_rate else 'N/A',
+                    'status': c.status,
                 })
         except Exception:
             pass
-        
+
+        # Calculate real stats from campaigns
+        total_sent_today = 0
+        try:
+            from app.models.push_campaigns import PushNotificationCampaign
+            today_campaigns = PushNotificationCampaign.query.filter(
+                PushNotificationCampaign.actual_send_time >= datetime.utcnow().replace(hour=0, minute=0, second=0),
+                PushNotificationCampaign.status == 'sent'
+            ).all()
+            total_sent_today = sum(c.sent_count for c in today_campaigns)
+        except Exception:
+            pass
+
         campaign_data = {
             'total_users': total_users,
             'active_users': active_users,
             'templates': campaign_templates,
             'recent_campaigns': recent_campaigns,
-            'total_sent_today': 0,  # Would need tracking
-            'delivery_rate': '95%',  # Would need calculation
-            'avg_open_rate': '78%'  # Would need calculation
+            'total_sent_today': total_sent_today,
+            'delivery_rate': None,
+            'avg_open_rate': None
         }
         
         return render_template('admin_panel/mobile_features/push_campaigns_flowbite.html',
@@ -566,21 +604,29 @@ def mobile_analytics():
             DeviceToken.is_active == True
         ).distinct().count()
         
-        # Device platform breakdown (if platform info is stored)
-        platform_stats = {}
+        # Device platform breakdown from device_type field
+        platform_stats = {'iOS': 0, 'Android': 0, 'unknown': 0}
         try:
             device_tokens = DeviceToken.query.filter_by(is_active=True).all()
             for token in device_tokens:
-                platform = getattr(token, 'platform', 'unknown')
-                platform_stats[platform] = platform_stats.get(platform, 0) + 1
-        except:
-            platform_stats = {'iOS': 0, 'Android': 0, 'unknown': 0}
+                key = {'ios': 'iOS', 'android': 'Android'}.get(
+                    (token.device_type or '').lower(), 'unknown'
+                )
+                platform_stats[key] = platform_stats.get(key, 0) + 1
+        except Exception:
+            pass
         
-        # Usage analytics (real data based on device token activity)
-        analytics_data = _calculate_mobile_analytics(mobile_users_count, platform_stats)
-        
+        # Period filter from query param
+        days = request.args.get('days', 7, type=int)
+        if days not in (7, 30, 90):
+            days = 7
+
+        analytics_data = _calculate_mobile_analytics(mobile_users_count, platform_stats, days=days)
+        analytics_data['period_days'] = days
+
         return render_template('admin_panel/mobile_features/mobile_analytics_flowbite.html',
-                             analytics_data=analytics_data)
+                             analytics_data=analytics_data,
+                             analytics_json=json.dumps(analytics_data, default=str))
     except Exception as e:
         logger.error(f"Error loading mobile analytics: {e}")
         flash('Mobile analytics dashboard unavailable. Analytics service may be down.', 'error')
@@ -592,32 +638,43 @@ def mobile_analytics():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def toggle_mobile_setting():
-    """Toggle a mobile feature setting."""
+    """Toggle a mobile feature setting (upsert — creates key if missing)."""
     try:
         data = request.get_json()
         setting_key = data.get('key')
-        
+        enabled = data.get('enabled')
+
         if not setting_key:
             return jsonify({'success': False, 'message': 'Setting key is required'})
-        
-        setting = AdminConfig.query.filter_by(key=setting_key, is_enabled=True).first()
-        if not setting:
-            return jsonify({'success': False, 'message': 'Setting not found'})
-        
-        if setting.data_type != 'boolean':
-            return jsonify({'success': False, 'message': 'Setting is not a boolean type'})
-        
-        # Toggle the value
-        old_value = setting.value
-        new_value = 'false' if setting.parsed_value else 'true'
-        
+
+        # Validate against known toggle keys
+        valid_keys = {ft['key']: ft for ft in MOBILE_FEATURE_TOGGLES}
+        if setting_key not in valid_keys:
+            return jsonify({'success': False, 'message': 'Unknown setting key'})
+
+        # Get current value for audit log
+        current = AdminConfig.query.filter_by(key=setting_key).first()
+        old_value = current.value if current else None
+
+        # Determine new value
+        if enabled is not None:
+            new_value = 'true' if enabled else 'false'
+        elif current and current.value:
+            new_value = 'false' if str(current.value).lower() in ('true', '1', 'yes', 'on') else 'true'
+        else:
+            default = valid_keys[setting_key]['default']
+            new_value = 'false' if default.lower() == 'true' else 'true'
+
+        ft_info = valid_keys[setting_key]
         AdminConfig.set_setting(
             key=setting_key,
             value=new_value,
-            user_id=current_user.id
+            description=ft_info['description'],
+            category='mobile_features',
+            data_type='boolean',
+            user_id=current_user.id,
         )
-        
-        # Log the action
+
         AdminAuditLog.log_action(
             user_id=current_user.id,
             action='toggle_mobile_setting',
@@ -628,16 +685,71 @@ def toggle_mobile_setting():
             ip_address=request.remote_addr,
             user_agent=request.headers.get('User-Agent')
         )
-        
+
         return jsonify({
             'success': True,
             'new_value': new_value == 'true',
-            'message': f'Mobile setting {setting_key} updated successfully'
+            'message': f'{ft_info["label"]} {"enabled" if new_value == "true" else "disabled"}'
         })
-        
+
     except Exception as e:
         logger.error(f"Error toggling mobile setting: {e}")
         return jsonify({'success': False, 'message': 'Server error occurred'})
+
+
+@admin_panel_bp.route('/mobile-features/kill-switch', methods=['POST'])
+@login_required
+@role_required(['Global Admin'])
+@transactional
+def mobile_kill_switch():
+    """Emergency kill switch — disable all mobile feature toggles."""
+    try:
+        changes = []
+        for ft in MOBILE_FEATURE_TOGGLES:
+            current = AdminConfig.query.filter_by(key=ft['key']).first()
+            old_value = current.value if current else ft['default']
+            AdminConfig.set_setting(
+                key=ft['key'], value='false',
+                description=ft['description'],
+                category='mobile_features', data_type='boolean',
+                user_id=current_user.id,
+            )
+            changes.append(f'{ft["key"]}: {old_value} -> false')
+
+        AdminAuditLog.log_action(
+            user_id=current_user.id,
+            action='mobile_kill_switch',
+            resource_type='mobile_features',
+            resource_id='kill_switch',
+            new_value='All features disabled',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+        )
+        return jsonify({'success': True, 'message': 'All mobile features have been disabled'})
+    except Exception as e:
+        logger.error(f"Error executing kill switch: {e}")
+        return jsonify({'success': False, 'message': 'Server error occurred'})
+
+
+@admin_panel_bp.route('/mobile-features/export-feature-config')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def export_feature_config():
+    """Export current feature toggle configuration as JSON."""
+    config = {}
+    for ft in MOBILE_FEATURE_TOGGLES:
+        setting = AdminConfig.query.filter_by(key=ft['key']).first()
+        val = setting.value if setting and setting.value else ft['default']
+        config[ft['key']] = {
+            'label': ft['label'],
+            'enabled': str(val).lower() in ('true', '1', 'yes', 'on'),
+            'category': ft['category'],
+        }
+    return Response(
+        json.dumps(config, indent=2),
+        mimetype='application/json',
+        headers={'Content-Disposition': 'attachment; filename=mobile_feature_config.json'}
+    )
 
 
 @admin_panel_bp.route('/mobile-features/device-token/deactivate', methods=['POST'])
@@ -705,8 +817,8 @@ def get_mobile_user_details():
             'device_tokens': [
                 {
                     'id': token.id,
-                    'token': token.token[:20] + '...' if len(token.token) > 20 else token.token,
-                    'platform': getattr(token, 'platform', 'unknown'),
+                    'token': token.device_token[:20] + '...' if len(token.device_token) > 20 else token.device_token,
+                    'platform': token.device_type or 'unknown',
                     'is_active': token.is_active,
                     'created_at': token.created_at.isoformat() if token.created_at else None,
                     'updated_at': token.updated_at.isoformat() if token.updated_at else None
@@ -753,6 +865,8 @@ APP_CONFIG_FIELDS = [
 @role_required(['Global Admin', 'Pub League Admin'])
 def app_version_config():
     """View and manage mobile app version/update configuration."""
+    from sqlalchemy import func
+
     settings = []
     for field in APP_CONFIG_FIELDS:
         setting = AdminConfig.query.filter_by(key=field['key']).first()
@@ -766,9 +880,36 @@ def app_version_config():
             'updated_by_user': setting.updated_by_user if setting else None,
         })
 
+    # Device version distribution (real data from DeviceToken.app_version)
+    version_dist = []
+    try:
+        rows = db.session.query(
+            DeviceToken.app_version,
+            DeviceToken.device_type,
+            func.count(DeviceToken.id).label('count')
+        ).filter(
+            DeviceToken.is_active == True,
+            DeviceToken.app_version.isnot(None)
+        ).group_by(
+            DeviceToken.app_version, DeviceToken.device_type
+        ).order_by(func.count(DeviceToken.id).desc()).all()
+
+        total_devices = sum(r.count for r in rows) or 1
+        for r in rows:
+            version_dist.append({
+                'version': r.app_version or 'Unknown',
+                'platform': {'ios': 'iOS', 'android': 'Android'}.get(
+                    (r.device_type or '').lower(), 'Unknown'),
+                'count': r.count,
+                'pct': round((r.count / total_devices) * 100, 1),
+            })
+    except Exception as e:
+        logger.warning(f"Error loading version distribution: {e}")
+
     return render_template(
         'admin_panel/mobile_features/app_version_config_flowbite.html',
         settings=settings,
+        version_dist=version_dist,
     )
 
 
@@ -869,88 +1010,167 @@ def _get_mobile_app_installs():
         }
 
 
-def _calculate_mobile_analytics(total_users, platform_stats):
-    """Calculate real mobile analytics based on device token activity"""
+def _calculate_mobile_analytics(total_users, platform_stats, days=7):
+    """Calculate mobile analytics from real telemetry and device token data."""
+    from sqlalchemy import func
+
+    now = datetime.utcnow()
+    one_day_ago = now - timedelta(days=1)
+    one_week_ago = now - timedelta(days=7)
+    one_month_ago = now - timedelta(days=30)
+    period_start = now - timedelta(days=days)
+
+    result = {
+        'total_mobile_users': total_users,
+        'platform_breakdown': platform_stats,
+    }
+
     try:
-        from app.models.communication import DeviceToken
-        
-        # Calculate time periods
-        now = datetime.utcnow()
-        one_day_ago = now - timedelta(days=1)
-        one_week_ago = now - timedelta(days=7)
-        one_month_ago = now - timedelta(days=30)
-        
-        # Daily active users (tokens updated in last 24 hours)
-        daily_active = DeviceToken.query.filter(
-            DeviceToken.is_active == True,
-            DeviceToken.updated_at >= one_day_ago
-        ).distinct(DeviceToken.user_id).count()
-        
-        # Weekly active users
-        weekly_active = DeviceToken.query.filter(
-            DeviceToken.is_active == True,
-            DeviceToken.updated_at >= one_week_ago
-        ).distinct(DeviceToken.user_id).count()
-        
-        # Monthly active users
-        monthly_active = DeviceToken.query.filter(
-            DeviceToken.is_active == True,
-            DeviceToken.updated_at >= one_month_ago
-        ).distinct(DeviceToken.user_id).count()
-        
-        # Calculate retention rate (weekly active / monthly active)
-        retention_rate = 0
-        if monthly_active > 0:
-            retention_rate = round((weekly_active / monthly_active) * 100, 1)
-        
-        # Estimate push notification metrics from recent audit logs
-        push_notifications_sent = AdminAuditLog.query.filter(
-            AdminAuditLog.action.contains('notification'),
-            AdminAuditLog.timestamp >= one_week_ago
-        ).count()
-        
-        # Estimate open rate based on activity after notifications
-        push_open_rate = 0
-        if push_notifications_sent > 0 and daily_active > 0:
-            # Simple heuristic: if daily active users increased after notifications
-            push_open_rate = min(round((daily_active / push_notifications_sent) * 100, 1), 100)
-        
-        # Calculate average session duration estimate
-        # Based on frequency of token updates (more frequent = longer sessions)
-        avg_session_minutes = max(2, min(daily_active * 2, 15))  # 2-15 minutes
-        avg_session_duration = f"{avg_session_minutes}m {(avg_session_minutes % 1) * 60:.0f}s"
-        
-        # Estimate crash rate (very low for stable apps)
-        crash_rate = "0.1%" if total_users > 100 else "0.0%"
-        
-        return {
-            'total_mobile_users': total_users,
-            'daily_active_users': daily_active,
-            'weekly_active_users': weekly_active,
-            'monthly_active_users': monthly_active,
-            'platform_breakdown': platform_stats,
-            'retention_rate': f'{retention_rate}%',
-            'avg_session_duration': avg_session_duration,
-            'push_open_rate': f'{push_open_rate}%',
-            'crash_rate': crash_rate,
-            'notifications_sent_week': push_notifications_sent
-        }
-        
+        # Try telemetry-based analytics first (real session data)
+        from app.models.mobile_telemetry import MobileSession, MobileScreenView, MobileFeatureUsage
+
+        # DAU/WAU/MAU from real sessions
+        dau = db.session.query(func.count(func.distinct(MobileSession.user_id))).filter(
+            MobileSession.started_at >= one_day_ago
+        ).scalar() or 0
+        wau = db.session.query(func.count(func.distinct(MobileSession.user_id))).filter(
+            MobileSession.started_at >= one_week_ago
+        ).scalar() or 0
+        mau = db.session.query(func.count(func.distinct(MobileSession.user_id))).filter(
+            MobileSession.started_at >= one_month_ago
+        ).scalar() or 0
+
+        has_telemetry = dau > 0 or wau > 0 or mau > 0
+
+        if has_telemetry:
+            result['daily_active_users'] = dau
+            result['weekly_active_users'] = wau
+            result['monthly_active_users'] = mau
+            result['data_source'] = 'telemetry'
+
+            # Retention rate
+            result['retention_rate'] = f'{round((wau / mau) * 100, 1)}%' if mau > 0 else '0%'
+
+            # Average session duration
+            avg_dur = db.session.query(func.avg(MobileSession.duration_seconds)).filter(
+                MobileSession.started_at >= period_start,
+                MobileSession.duration_seconds.isnot(None)
+            ).scalar()
+            if avg_dur:
+                mins = int(avg_dur) // 60
+                secs = int(avg_dur) % 60
+                result['avg_session_duration'] = f'{mins}m {secs}s'
+            else:
+                result['avg_session_duration'] = None
+
+            # Average sessions per user
+            total_sessions = db.session.query(func.count(MobileSession.id)).filter(
+                MobileSession.started_at >= period_start
+            ).scalar() or 0
+            unique_users = db.session.query(func.count(func.distinct(MobileSession.user_id))).filter(
+                MobileSession.started_at >= period_start
+            ).scalar() or 0
+            result['avg_sessions_per_user'] = round(total_sessions / unique_users, 1) if unique_users > 0 else 0
+
+            # Top screens
+            top_screens = db.session.query(
+                MobileScreenView.screen_name,
+                func.count(MobileScreenView.id).label('views'),
+                func.avg(MobileScreenView.duration_seconds).label('avg_time')
+            ).filter(
+                MobileScreenView.entered_at >= period_start
+            ).group_by(MobileScreenView.screen_name).order_by(
+                func.count(MobileScreenView.id).desc()
+            ).limit(5).all()
+            result['top_screens'] = [
+                {
+                    'name': s.screen_name,
+                    'views': s.views,
+                    'avg_time': f'{int(s.avg_time or 0) // 60}m {int(s.avg_time or 0) % 60}s'
+                }
+                for s in top_screens
+            ]
+
+            # Avg screen views per session
+            avg_screens = db.session.query(func.avg(MobileSession.screens_viewed)).filter(
+                MobileSession.started_at >= period_start,
+                MobileSession.screens_viewed > 0
+            ).scalar()
+            result['avg_screen_views_per_session'] = round(avg_screens, 1) if avg_screens else 0
+
+            # Feature usage
+            feature_usage = db.session.query(
+                MobileFeatureUsage.feature_name,
+                func.count(func.distinct(MobileFeatureUsage.user_id)).label('users')
+            ).filter(
+                MobileFeatureUsage.used_at >= period_start
+            ).group_by(MobileFeatureUsage.feature_name).order_by(
+                func.count(func.distinct(MobileFeatureUsage.user_id)).desc()
+            ).limit(5).all()
+            result['feature_usage'] = [
+                {'name': f.feature_name, 'users': f.users,
+                 'pct': round((f.users / unique_users) * 100) if unique_users > 0 else 0}
+                for f in feature_usage
+            ]
+
+            # Daily engagement data for chart (last N days)
+            daily_data = db.session.query(
+                func.date(MobileSession.started_at).label('day'),
+                func.count(func.distinct(MobileSession.user_id)).label('dau'),
+                func.count(MobileSession.id).label('sessions')
+            ).filter(
+                MobileSession.started_at >= period_start
+            ).group_by(func.date(MobileSession.started_at)).order_by(
+                func.date(MobileSession.started_at)
+            ).all()
+            result['daily_engagement'] = [
+                {'date': str(d.day), 'dau': d.dau, 'sessions': d.sessions}
+                for d in daily_data
+            ]
+        else:
+            # Fall back to DeviceToken-based estimates
+            result.update(_fallback_token_analytics(one_day_ago, one_week_ago, one_month_ago))
+            result['data_source'] = 'device_tokens'
+
+    except ImportError:
+        result.update(_fallback_token_analytics(one_day_ago, one_week_ago, one_month_ago))
+        result['data_source'] = 'device_tokens'
     except Exception as e:
         logger.error(f"Error calculating mobile analytics: {e}")
-        # Return fallback data
-        return {
-            'total_mobile_users': total_users,
-            'daily_active_users': max(1, total_users // 4),
-            'weekly_active_users': max(1, total_users // 2),
-            'monthly_active_users': total_users,
-            'platform_breakdown': platform_stats,
-            'retention_rate': '75%',
-            'avg_session_duration': '6m 30s',
-            'push_open_rate': '42%',
-            'crash_rate': '0.1%',
-            'notifications_sent_week': 0
-        }
+        result.update(_fallback_token_analytics(one_day_ago, one_week_ago, one_month_ago))
+        result['data_source'] = 'device_tokens'
+
+    return result
+
+
+def _fallback_token_analytics(one_day_ago, one_week_ago, one_month_ago):
+    """Fallback analytics from DeviceToken activity when no telemetry data exists."""
+    from sqlalchemy import func
+
+    dau = db.session.query(func.count(func.distinct(DeviceToken.user_id))).filter(
+        DeviceToken.is_active == True, DeviceToken.updated_at >= one_day_ago
+    ).scalar() or 0
+    wau = db.session.query(func.count(func.distinct(DeviceToken.user_id))).filter(
+        DeviceToken.is_active == True, DeviceToken.updated_at >= one_week_ago
+    ).scalar() or 0
+    mau = db.session.query(func.count(func.distinct(DeviceToken.user_id))).filter(
+        DeviceToken.is_active == True, DeviceToken.updated_at >= one_month_ago
+    ).scalar() or 0
+
+    retention = round((wau / mau) * 100, 1) if mau > 0 else 0
+
+    return {
+        'daily_active_users': dau,
+        'weekly_active_users': wau,
+        'monthly_active_users': mau,
+        'retention_rate': f'{retention}%',
+        'avg_session_duration': None,
+        'avg_sessions_per_user': None,
+        'top_screens': [],
+        'avg_screen_views_per_session': None,
+        'feature_usage': [],
+        'daily_engagement': [],
+    }
 
 
 # API Endpoints for AJAX operations
@@ -962,21 +1182,24 @@ def mobile_analytics_api():
     """Get mobile app analytics data."""
     try:
         from app.models.core import User
-        
-        # Calculate analytics based on real data
-        total_users = User.query.count()
-        
-        # Get analytics data
-        analytics = _calculate_mobile_analytics()
-        
-        # Add additional computed metrics
+
+        # Build platform stats
+        mobile_users_count = User.query.join(DeviceToken).filter(
+            DeviceToken.is_active == True
+        ).distinct().count()
+
+        platform_stats = {'iOS': 0, 'Android': 0, 'unknown': 0}
+        for token in DeviceToken.query.filter_by(is_active=True).all():
+            key = {'ios': 'iOS', 'android': 'Android'}.get(
+                (token.device_type or '').lower(), 'unknown'
+            )
+            platform_stats[key] = platform_stats.get(key, 0) + 1
+
+        analytics = _calculate_mobile_analytics(mobile_users_count, platform_stats)
+
         analytics.update({
-            'app_downloads': analytics.get('total_mobile_users', total_users),
-            'active_users': analytics.get('daily_active_users', max(1, total_users // 4)),
             'mobile_installs': DeviceToken.query.count(),
             'push_subscribers': DeviceToken.query.filter_by(is_active=True).count(),
-            'retention_rate': analytics.get('retention_rate', '73%'),
-            'avg_session': analytics.get('avg_session_duration', '12m 34s')
         })
         
         return jsonify(analytics)

@@ -344,6 +344,7 @@ def update_mls_match_route(match_id):
 @bot_admin_bp.route('/matches/remove/<match_id>', methods=['POST'])
 @login_required
 def remove_mls_match(match_id):
+    """Remove an MLS match from the system."""
     session_db = g.db_session
     try:
         match = session_db.query(MLSMatch).filter_by(match_id=match_id).first()

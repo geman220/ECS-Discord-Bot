@@ -76,6 +76,7 @@ def register_mobile_api_routes():
         quick_profiles,
         feedback,
         app_config,
+        telemetry,
     )
 
 

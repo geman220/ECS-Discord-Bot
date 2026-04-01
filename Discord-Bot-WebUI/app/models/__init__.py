@@ -176,6 +176,10 @@ from .email_campaigns import (
     EmailCampaign, EmailCampaignRecipient
 )
 
+from .mobile_telemetry import (
+    MobileSession, MobileScreenView, MobileFeatureUsage
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -298,4 +302,7 @@ __all__ = [
 
     # Email campaign models
     'EmailCampaign', 'EmailCampaignRecipient',
+
+    # Mobile telemetry models
+    'MobileSession', 'MobileScreenView', 'MobileFeatureUsage',
 ]

@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ECS FC Portal — Updating</title>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0B1120;
+            --card: rgba(255,255,255,0.035);
+            --border: rgba(255,255,255,0.07);
+            --text: #E2E8F0;
+            --dim: #64748B;
+            --muted: #334155;
+            --blue: #3B82F6;
+            --cyan: #06B6D4;
+            --green: #10B981;
+            --green-lt: #34D399;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Background ────────────────────────────────────────────── */
+        .bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+        }
+
+        .bg-grad {
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 30% 20%, rgba(59,130,246,0.08), transparent),
+                radial-gradient(ellipse 60% 80% at 70% 80%, rgba(6,182,212,0.05), transparent);
+            animation: bgShift 10s ease-in-out infinite alternate;
+        }
+
+        @keyframes bgShift {
+            0%   { opacity: .6; transform: scale(1); }
+            100% { opacity: 1;  transform: scale(1.05); }
+        }
+
+        .bg-grid {
+            position: absolute;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+            mask-image: radial-gradient(ellipse at center, black 30%, transparent 70%);
+        }
+
+        /* ── Floating particles ────────────────────────────────────── */
+        .particles { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(59,130,246,0.25);
+            animation: rise linear infinite;
+        }
+
+        @keyframes rise {
+            0%   { transform: translateY(100vh) scale(0); opacity: 0; }
+            10%  { opacity: 1; }
+            90%  { opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+
+        /* ── Card ──────────────────────────────────────────────────── */
+        .card {
+            position: relative;
+            z-index: 10;
+            width: 90%;
+            max-width: 440px;
+            padding: 2.5rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 1.25rem;
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            box-shadow:
+                0 0 0 1px rgba(255,255,255,0.03) inset,
+                0 20px 40px rgba(0,0,0,0.4);
+            transition: border-color .6s, box-shadow .6s;
+        }
+
+        .card.ok {
+            border-color: rgba(16,185,129,0.25);
+            box-shadow:
+                0 0 0 1px rgba(16,185,129,0.08) inset,
+                0 20px 40px rgba(0,0,0,0.4),
+                0 0 60px rgba(16,185,129,0.08);
+        }
+
+        /* ── Brand ─────────────────────────────────────────────────── */
+        .brand { text-align: center; margin-bottom: 2rem; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .375rem .875rem;
+            background: rgba(59,130,246,0.1);
+            border: 1px solid rgba(59,130,246,0.15);
+            border-radius: 999px;
+            font-size: .6875rem;
+            font-weight: 600;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #60A5FA;
+            margin-bottom: 1.25rem;
+            transition: background .6s, border-color .6s, color .6s;
+        }
+
+        .card.ok .badge {
+            background: rgba(16,185,129,0.1);
+            border-color: rgba(16,185,129,0.15);
+            color: var(--green-lt);
+        }
+
+        .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--blue);
+            animation: pulse 1.5s ease-in-out infinite;
+            transition: background .6s;
+        }
+
+        .card.ok .dot { background: var(--green); animation: none; }
+
+        @keyframes pulse {
+            0%,100% { opacity: .4; transform: scale(.8); }
+            50%     { opacity: 1;  transform: scale(1.2); }
+        }
+
+        .brand h1 {
+            font-size: 1.375rem;
+            font-weight: 700;
+            letter-spacing: -.02em;
+            line-height: 1.3;
+        }
+
+        .brand p {
+            color: var(--dim);
+            font-size: .875rem;
+            margin-top: .5rem;
+            line-height: 1.5;
+        }
+
+        /* ── Progress bar ──────────────────────────────────────────── */
+        .prog { margin: 1.75rem 0; }
+
+        .track {
+            height: 6px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+
+        .fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--blue), var(--cyan));
+            border-radius: 999px;
+            transition: width .4s ease-out;
+            position: relative;
+        }
+
+        .fill::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.25) 50%, transparent 100%);
+            animation: shimmer 2s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%   { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+        }
+
+        .card.ok .fill {
+            background: linear-gradient(90deg, var(--green), var(--green-lt));
+        }
+
+        .card.ok .fill::after { animation: none; opacity: 0; }
+
+        .meta {
+            display: flex;
+            justify-content: space-between;
+            margin-top: .625rem;
+            font-size: .75rem;
+        }
+
+        .pct {
+            font-weight: 600;
+            color: #60A5FA;
+            font-variant-numeric: tabular-nums;
+            transition: color .6s;
+        }
+
+        .card.ok .pct { color: var(--green-lt); }
+
+        .elapsed {
+            color: var(--muted);
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── Phases ────────────────────────────────────────────────── */
+        .phases {
+            display: flex;
+            flex-direction: column;
+            gap: .5rem;
+            margin: 1.5rem 0;
+        }
+
+        .ph {
+            display: flex;
+            align-items: center;
+            gap: .625rem;
+            font-size: .8125rem;
+            color: var(--muted);
+            transition: color .3s;
+        }
+
+        .ph.done   { color: var(--dim); }
+        .ph.active { color: var(--text); }
+
+        .ph-ic {
+            width: 18px; height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .ph.done   .ph-ic svg { color: var(--green); }
+        .ph.active .ph-ic svg { color: var(--blue); animation: spin 1s linear infinite; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Footer ────────────────────────────────────────────────── */
+        .foot {
+            text-align: center;
+            font-size: .6875rem;
+            color: var(--muted);
+            margin-top: 1.5rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid var(--border);
+            letter-spacing: .02em;
+        }
+
+        /* ── Quip (rotating jokes) ─────────────────────────────────── */
+        .quip {
+            text-align: center;
+            font-size: .625rem;
+            color: rgba(100,116,139,0.5);
+            margin-top: .75rem;
+            font-style: italic;
+            min-height: 1.4em;
+            line-height: 1.4;
+            transition: opacity .4s ease;
+        }
+
+        .quip.fade { opacity: 0; }
+
+        /* ── Responsive ────────────────────────────────────────────── */
+        @media (max-width: 480px) {
+            .card { padding: 1.75rem 1.5rem; }
+            .brand h1 { font-size: 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg">
+        <div class="bg-grad"></div>
+        <div class="bg-grid"></div>
+    </div>
+    <div class="particles" id="ptcl"></div>
+
+    <div class="card" id="card">
+        <div class="brand">
+            <div class="badge">
+                <span class="dot"></span>
+                <span id="badge">ECS FC &middot; Deploying Update</span>
+            </div>
+            <h1 id="title">Portal is Updating</h1>
+            <p id="sub">We're rolling out a new version. This usually takes a couple of minutes.</p>
+        </div>
+
+        <div class="prog">
+            <div class="track"><div class="fill" id="bar"></div></div>
+            <div class="meta">
+                <span class="pct" id="pct">0%</span>
+                <span class="elapsed" id="el">0s elapsed</span>
+            </div>
+        </div>
+
+        <div class="phases" id="ph"></div>
+
+        <div class="foot" id="foot">
+            This page checks automatically &mdash; you'll be redirected when the portal is ready
+        </div>
+        <div class="quip" id="quip"></div>
+    </div>
+
+    <noscript>
+        <style>#card{display:none}</style>
+        <div class="card" style="text-align:center;padding:3rem">
+            <h1 style="margin-bottom:1rem">Portal is Updating</h1>
+            <p style="color:#64748B">Please refresh this page in a couple of minutes.</p>
+        </div>
+    </noscript>
+
+    <script>
+    (function () {
+        'use strict';
+
+        /* ── Config ────────────────────────────────────────────────── */
+        var POLL  = 3000;    // ms between health checks
+        var EST   = 150000;  // ~2.5 min typical restart
+
+        var PHASES = [
+            { label: 'Stopping services',       at: 0.08 },
+            { label: 'Starting containers',      at: 0.18 },
+            { label: 'Building assets',          at: 0.48 },
+            { label: 'Initializing application', at: 0.72 },
+            { label: 'Running health checks',    at: 0.88 },
+            { label: 'Ready',                    at: 1.00 }
+        ];
+
+        var QUIPS = [
+            'George said "this will only take a second." That was two minutes ago.',
+            'Someone complained, so George is fixing it. You\'re welcome.',
+            'George is making the portal better. You just don\'t know it yet.',
+            'Someone had a very specific request. Now everyone waits. Thanks, someone.',
+            'The portal is down because George had an idea at 2 AM.',
+            'George promises this update is worth the wait. He also promised it would be quick.',
+            'Fun fact: George has restarted this portal more times than you\'ve refreshed this page.',
+            'George is probably testing in production again. Bold strategy.',
+            'There is an easter egg on the portal that nobody has found yet\u2026 Will it be you?',
+            'George swears he tested this locally first.',
+            'A player asked for one small change. Three rewrites later, here we are.',
+            'Don\'t worry, George is 60% sure this will work on the first try.'
+        ];
+
+        /* ── Inline SVG icons ──────────────────────────────────────── */
+        var IC_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        var IC_SPIN  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10"/></svg>';
+        var IC_DOT   = '<svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="2" fill="currentColor" opacity=".35"/></svg>';
+
+        /* ── State ─────────────────────────────────────────────────── */
+        var t0   = Date.now();
+        var done = false;
+
+        /* ── DOM shortcuts ─────────────────────────────────────────── */
+        function $(id) { return document.getElementById(id); }
+
+        /* ── Particles ─────────────────────────────────────────────── */
+        (function () {
+            var c = $('ptcl');
+            for (var i = 0; i < 25; i++) {
+                var p = document.createElement('div');
+                p.className = 'particle';
+                var size = (1 + Math.random() * 2) + 'px';
+                p.style.cssText =
+                    'left:' + (Math.random() * 100) + '%;' +
+                    'width:' + size + ';height:' + size + ';' +
+                    'animation-duration:' + (8 + Math.random() * 12) + 's;' +
+                    'animation-delay:' + (Math.random() * 10) + 's;';
+                c.appendChild(p);
+            }
+        })();
+
+        /* ── Quip rotation ─────────────────────────────────────────── */
+        (function () {
+            var el = $('quip');
+            var order = shuffle(QUIPS.slice());
+            var idx = 0;
+
+            // Show first quip immediately
+            el.textContent = order[idx];
+
+            setInterval(function () {
+                if (done) return;
+                el.classList.add('fade');
+                setTimeout(function () {
+                    idx = (idx + 1) % order.length;
+                    el.textContent = order[idx];
+                    el.classList.remove('fade');
+                }, 400);
+            }, 8000);
+
+            function shuffle(a) {
+                for (var i = a.length - 1; i > 0; i--) {
+                    var j = Math.floor(Math.random() * (i + 1));
+                    var t = a[i]; a[i] = a[j]; a[j] = t;
+                }
+                return a;
+            }
+        })();
+
+        /* ── Simulated progress (exponential ease, caps at 95%) ──── */
+        function simProg() {
+            var r = (Date.now() - t0) / EST;
+            return Math.min(0.95, 1 - Math.exp(-2.8 * r));
+        }
+
+        /* ── Render phases ─────────────────────────────────────────── */
+        function renderPh(p) {
+            var html = '';
+            for (var i = 0; i < PHASES.length; i++) {
+                var prev = i ? PHASES[i - 1].at : 0;
+                var cls, ic;
+                if (p >= PHASES[i].at)     { cls = 'done';   ic = IC_CHECK; }
+                else if (p >= prev)        { cls = 'active'; ic = IC_SPIN;  }
+                else                       { cls = '';        ic = IC_DOT;   }
+                html += '<div class="ph ' + cls + '"><div class="ph-ic">' + ic + '</div>' + PHASES[i].label + '</div>';
+            }
+            $('ph').innerHTML = html;
+        }
+
+        /* ── Elapsed formatter ─────────────────────────────────────── */
+        function fmtEl(ms) {
+            var s = Math.floor(ms / 1000);
+            return s < 60 ? s + 's elapsed' : Math.floor(s / 60) + 'm ' + (s % 60) + 's elapsed';
+        }
+
+        /* ── Render loop ───────────────────────────────────────────── */
+        function tick() {
+            if (done) return;
+            var p = simProg();
+            $('bar').style.width = Math.round(p * 100) + '%';
+            $('pct').textContent  = Math.round(p * 100) + '%';
+            $('el').textContent   = fmtEl(Date.now() - t0);
+            renderPh(p);
+            requestAnimationFrame(tick);
+        }
+
+        /* ── Health-check poll ─────────────────────────────────────── */
+        function poll() {
+            if (done) return;
+            var x = new XMLHttpRequest();
+            x.open('HEAD', '/?_hc=' + Date.now(), true);
+            x.timeout = 4000;
+            x.onload = function () {
+                if (x.status >= 200 && x.status < 300) ready();
+            };
+            x.send();
+        }
+
+        /* ── Service restored ──────────────────────────────────────── */
+        function ready() {
+            if (done) return;
+            done = true;
+
+            $('card').classList.add('ok');
+            $('bar').style.width  = '100%';
+            $('pct').textContent  = '100%';
+            $('badge').innerHTML  = 'ECS FC &middot; Update Complete';
+            $('title').textContent = 'Portal is Ready';
+            $('sub').textContent   = 'Redirecting you now\u2026';
+            $('foot').textContent  = 'Taking you back in a moment';
+            $('quip').style.display = 'none';
+            renderPh(1);
+
+            setTimeout(function () { window.location.reload(); }, 2000);
+        }
+
+        /* ── Start ─────────────────────────────────────────────────── */
+        requestAnimationFrame(tick);
+        poll();
+        setInterval(poll, POLL);
+    })();
+    </script>
+</body>
+</html>

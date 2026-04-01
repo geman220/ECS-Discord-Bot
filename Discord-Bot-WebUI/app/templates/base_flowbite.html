@@ -254,7 +254,7 @@
 
                         <!-- User Menu -->
                         <button type="button" class="flex items-center gap-2 p-1 text-gray-500 rounded-lg hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700" id="user-menu-button" data-dropdown-toggle="user-dropdown">
-                            <img class="w-8 h-8 rounded-full" src="{{ safe_current_user.player.profile_picture_url if safe_current_user.player else url_for('static', filename='img/default_player.png') }}" alt="User photo" />
+                            <img class="w-8 h-8 rounded-full" src="{{ (safe_current_user.player.profile_picture_url if safe_current_user.player and safe_current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png')) }}" alt="User photo" />
                             <span class="hidden md:block text-sm font-medium text-gray-900 dark:text-white">{{ safe_current_user.player.name if safe_current_user.player else safe_current_user.username }}</span>
                             <i class="ti ti-chevron-down w-4 h-4"></i>
                         </button>

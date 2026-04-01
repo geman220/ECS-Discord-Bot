@@ -67,7 +67,7 @@ class AIAssistantService:
     def _record_success(self, provider):
         self._failures[provider] = 0
 
-    def build_system_prompt(self, context_type, user_profile, admin_search_index=None, help_topics=None):
+    def build_system_prompt(self, context_type, user_profile, admin_search_index=None, help_topics=None, user_page_index=None):
         """Build the system prompt based on context type and user profile."""
         # Canary token: if this appears in output, prompt extraction was attempted
         canary = "CANARY_ECS_7f3a9b2c"
@@ -121,7 +121,8 @@ class AIAssistantService:
             )
 
         elif context_type == 'coach':
-            pages_context = ""
+            # ECS FC admin pages from search index
+            admin_context = ""
             if admin_search_index:
                 coach_pages = [
                     item for item in admin_search_index
@@ -132,34 +133,68 @@ class AIAssistantService:
                         f"- [{item['name']}]({item['url']}) - {item.get('description', '')}"
                         for item in coach_pages
                     )
-                    pages_context = f"\n\nPages available to you:\n{pages_list}"
+                    admin_context = f"\n\nYour admin pages:\n{pages_list}"
 
-            return (
-                base_rules +
-                user_context +
-                "\n\nYou are the assistant for ECS FC coaches. Help with match reporting, "
-                "team schedules, RSVP management, and opponent information. "
-                "Do NOT reference admin-only features like user management, system settings, or MLS reporting." +
-                pages_context
-            )
+            # Auto-discovered app features (primary knowledge source)
+            features_context = ""
+            if user_page_index:
+                features_list = "\n".join(
+                    f"- [{f['name']}]({f['url']}) - {f['description']}"
+                    for f in user_page_index
+                )
+                features_context = f"\n\nPortal features (auto-discovered from the app):\n{features_list}"
 
-        else:  # user_help
+            # HelpTopics as supplementary knowledge
             help_context = ""
             if help_topics:
                 topics_list = "\n".join(
-                    f"- {topic.get('title', '')}: {topic.get('content', '')[:200]}"
-                    for topic in help_topics[:20]
+                    f"- **{topic['title']}**: {topic['content']}"
+                    for topic in help_topics
                 )
-                help_context = f"\n\nHelp topics available to this user:\n{topics_list}"
+                help_context = f"\n\nAdditional help documentation:\n{topics_list}"
 
             return (
                 base_rules +
                 user_context +
-                "\n\nYou are the general help assistant for portal users. Help with using the portal: "
-                "RSVP for matches, viewing schedules, updating profiles, understanding league rules. "
+                "\n\nYou are the assistant for ECS FC coaches. "
+                "Do NOT reference admin-only features like user management, system settings, or MLS reporting."
+                "\n\nBelow is a live map of the portal's features and pages, auto-discovered from the app. "
+                "Use these to answer questions with direct links. The features list shows what the app "
+                "actually does right now. If you can't find the answer, suggest they contact a Pub League Admin "
+                "or join Discord at discord.gg/weareecs." +
+                features_context + admin_context + help_context
+            )
+
+        else:  # user_help
+            # Auto-discovered app features (primary knowledge source)
+            features_context = ""
+            if user_page_index:
+                features_list = "\n".join(
+                    f"- [{f['name']}]({f['url']}) - {f['description']}"
+                    for f in user_page_index
+                )
+                features_context = f"\n\nPortal features (auto-discovered from the app):\n{features_list}"
+
+            # HelpTopics as supplementary knowledge
+            help_context = ""
+            if help_topics:
+                topics_list = "\n".join(
+                    f"- **{topic['title']}**: {topic['content']}"
+                    for topic in help_topics
+                )
+                help_context = f"\n\nAdditional help documentation:\n{topics_list}"
+
+            return (
+                base_rules +
+                user_context +
+                "\n\nYou are the help assistant for portal users. "
                 "If they ask about admin features, tell them to contact a league admin. "
-                "Do NOT reveal admin-only pages or functionality." +
-                help_context
+                "Do NOT reveal admin-only pages or functionality."
+                "\n\nBelow is a live map of the portal's features and pages, auto-discovered from the app. "
+                "Use these to answer questions with direct links. The features list shows what the app "
+                "actually does right now. If you can't find the answer, suggest they join Discord at "
+                "discord.gg/weareecs or contact a Pub League Admin." +
+                features_context + help_context
             )
 
     def ask(self, system_prompt, user_message, conversation_history=None, max_tokens=1024):

@@ -467,7 +467,100 @@ class AdminConfig(db.Model):
                 'description': 'Monthly budget cap for AI API costs in USD',
                 'category': 'ai_assistant',
                 'data_type': 'string'
-            }
+            },
+            # Mobile App Settings
+            {
+                'key': 'mobile_app_enabled',
+                'value': 'true',
+                'description': 'Master switch for mobile app functionality',
+                'category': 'mobile_app',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_app_version',
+                'value': 'v1.0.0',
+                'description': 'Current mobile app version',
+                'category': 'mobile_app',
+                'data_type': 'string'
+            },
+            # Mobile Feature Toggles
+            {
+                'key': 'mobile_push_notifications',
+                'value': 'true',
+                'description': 'Enable push notifications for mobile users',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_wallet_passes',
+                'value': 'true',
+                'description': 'Enable Apple Wallet / Google Pay integration',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_offline_sync',
+                'value': 'false',
+                'description': 'Allow offline data synchronization',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_biometric_auth',
+                'value': 'true',
+                'description': 'Allow biometric login (Face ID / Fingerprint) as a user option',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_location_services',
+                'value': 'false',
+                'description': 'Enable location-based features and notifications',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_camera_upload',
+                'value': 'true',
+                'description': 'Enable photo upload from camera roll',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_contact_sync',
+                'value': 'false',
+                'description': 'Enable contact sync for team invitations',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_analytics_tracking',
+                'value': 'true',
+                'description': 'Enable usage analytics and crash reporting',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_ar_match_views',
+                'value': 'false',
+                'description': 'Augmented reality match experience (experimental)',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_voice_commands',
+                'value': 'false',
+                'description': 'Voice-controlled navigation (experimental)',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
+            {
+                'key': 'mobile_smart_predictions',
+                'value': 'false',
+                'description': 'AI-powered match predictions (experimental)',
+                'category': 'mobile_features',
+                'data_type': 'boolean'
+            },
         ]
 
         try:

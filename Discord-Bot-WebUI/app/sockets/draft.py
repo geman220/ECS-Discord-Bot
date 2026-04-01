@@ -22,17 +22,9 @@ logger = logging.getLogger(__name__)
 @socketio.on('join_draft_room', namespace='/')
 def handle_join_draft_room(data):
     """Handle joining a draft room for a specific league."""
-    print(f"🏠 Join draft room request: {data}")
-    logger.info(f"🏠 Join draft room request: {data}")
-
-    # Check authentication using Flask-Login's current_user
     from flask_login import current_user
 
-    print(f"🔍 Authentication check: current_user.is_authenticated = {current_user.is_authenticated}")
-    logger.info(f"🔍 Authentication check: current_user.is_authenticated = {current_user.is_authenticated}")
-
     if not current_user.is_authenticated:
-        print("🚫 Unauthenticated user tried to join draft room")
         emit('error', {'message': 'Authentication required'})
         return
 
@@ -41,8 +33,7 @@ def handle_join_draft_room(data):
         room = f'draft_{league_name}'
         join_room(room)
         emit('joined_room', {'room': room, 'league': league_name})
-        print(f"🏠 User {current_user.username} joined room: {room}")
-        logger.info(f"🏠 User {current_user.username} joined room: {room}")
+        logger.info(f"User {current_user.username} joined room: {room}")
 
 
 @socketio.on('draft_player_enhanced', namespace='/')

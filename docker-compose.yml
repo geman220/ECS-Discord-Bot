@@ -296,6 +296,39 @@ services:
         limits:
           memory: 300M
 
+  maintenance:
+    image: nginx:alpine
+    restart: always
+    volumes:
+      - ./maintenance/503.html:/usr/share/nginx/html/503.html:ro
+      - ./maintenance/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    labels:
+      - "traefik.enable=true"
+      # HTTPS fallback router (priority 1 — only active when webui routers are gone)
+      - "traefik.http.routers.maintenance.rule=Host(`portal.ecsfc.com`)"
+      - "traefik.http.routers.maintenance.entrypoints=websecure"
+      - "traefik.http.routers.maintenance.tls=true"
+      - "traefik.http.routers.maintenance.tls.certresolver=myresolver"
+      - "traefik.http.routers.maintenance.priority=1"
+      # HTTP fallback router (redirects to HTTPS)
+      - "traefik.http.routers.maintenance-http.rule=Host(`portal.ecsfc.com`)"
+      - "traefik.http.routers.maintenance-http.entrypoints=web"
+      - "traefik.http.routers.maintenance-http.priority=1"
+      - "traefik.http.routers.maintenance-http.middlewares=maint-redirect"
+      # Own redirect middleware (independent of webui's, so it works when webui is down)
+      - "traefik.http.middlewares.maint-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.maint-redirect.redirectscheme.permanent=true"
+      # Service
+      - "traefik.http.services.maintenance.loadbalancer.server.port=80"
+    networks:
+      - web
+    deploy:
+      resources:
+        limits:
+          memory: 32M
+        reservations:
+          memory: 16M
+
   webui:
     build:
       context: ./Discord-Bot-WebUI
@@ -376,7 +409,11 @@ services:
       - "traefik.http.services.webui.loadbalancer.server.port=5000"
       # Apply middlewares to main routes (Socket.IO router has its own middleware config above)
       - "traefik.http.routers.webui.middlewares=redirect-to-https,rate-limit"
-      - "traefik.http.routers.webui-secure.middlewares=secure-headers,rate-limit"
+      - "traefik.http.routers.webui-secure.middlewares=secure-headers,rate-limit,webui-errors"
+      # Error pages — show maintenance page when webui returns 502-504 (starting up)
+      - "traefik.http.middlewares.webui-errors.errors.status=502-504"
+      - "traefik.http.middlewares.webui-errors.errors.service=maintenance@docker"
+      - "traefik.http.middlewares.webui-errors.errors.query=/"
     depends_on:
       redis:
         condition: service_healthy

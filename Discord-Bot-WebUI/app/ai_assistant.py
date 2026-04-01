@@ -26,10 +26,94 @@ logger = logging.getLogger(__name__)
 ai_assistant_bp = Blueprint('ai_assistant', __name__, url_prefix='/api/ai-assistant')
 
 
+def _build_app_feature_map(context_type='user_help'):
+    """Auto-discover portal features by scanning Flask's live route map.
+    Reads real route URLs and docstrings -- no manual maintenance needed.
+    Add a route with a docstring and the AI automatically knows about it."""
+    from flask import current_app
+
+    features = []
+
+    # Admin-only URL patterns (never shown to users/coaches)
+    admin_patterns = [
+        '/admin-panel/', '/admin/', '/admin',
+        '/ispy/admin', '/bot-admin',
+        '/external-api/', '/modals/', '/design/',
+        '/clear-cache',
+    ]
+
+    # API patterns (internal endpoints, not pages)
+    api_patterns = ['/api/', '/mobile-api/', '/ecs-fc-api/']
+
+    if context_type == 'admin_panel':
+        # Admin gets everything via the admin search index, skip here
+        return []
+
+    seen_urls = set()
+
+    for rule in current_app.url_map.iter_rules():
+        # Only GET routes (pages users can visit)
+        if 'GET' not in rule.methods:
+            continue
+
+        url = rule.rule
+
+        # Skip parameterized URLs, static files, bare root, and internal
+        if '<' in url or url.startswith('/static') or url == '/':
+            continue
+
+        # Always hide API endpoints
+        if any(url.startswith(p) for p in api_patterns):
+            continue
+
+        # Role-based filtering
+        if context_type == 'coach':
+            # Coaches can see ECS FC admin pages but nothing else in admin panel
+            is_admin = any(url.startswith(p) for p in admin_patterns)
+            is_ecs_fc_admin = url.startswith('/admin-panel/ecs-fc')
+            if is_admin and not is_ecs_fc_admin:
+                continue
+        else:
+            # Regular users see zero admin pages
+            if any(url.startswith(p) for p in admin_patterns):
+                continue
+
+        # Skip duplicates
+        if url in seen_urls:
+            continue
+        seen_urls.add(url)
+
+        # Get the view function's docstring
+        try:
+            view_func = current_app.view_functions.get(rule.endpoint)
+            docstring = (view_func.__doc__ or '').strip().split('\n')[0] if view_func else ''
+        except Exception:
+            docstring = ''
+
+        if not docstring or len(docstring) < 5:
+            continue
+
+        # Clean up the endpoint name for display
+        name = rule.endpoint.split('.')[-1].replace('_', ' ').title()
+
+        features.append({
+            'name': name,
+            'url': url,
+            'description': docstring[:150]
+        })
+
+    # Sort by URL for readability
+    features.sort(key=lambda x: x['url'])
+
+    # Cap at 60 to avoid prompt bloat
+    return features[:60]
+
+
 def _get_user_profile():
     """Build a rich user profile for system prompt personalization."""
+    # current_user is UserAuthData with .username, .player_name, .roles (list of strings)
     profile = {
-        'name': current_user.name or current_user.username,
+        'name': getattr(current_user, 'player_name', None) or getattr(current_user, 'username', 'User'),
         'roles': [],
         'team_name': None,
         'league_name': None,
@@ -43,10 +127,11 @@ def _get_user_profile():
         if effective:
             profile['roles'] = effective
         else:
-            profile['roles'] = [r.name for r in current_user.roles]
+            # UserAuthData.roles is already a list of strings
+            profile['roles'] = list(current_user.roles) if current_user.roles else []
     except (ImportError, Exception):
         try:
-            profile['roles'] = [r.name for r in current_user.roles]
+            profile['roles'] = list(current_user.roles) if current_user.roles else []
         except Exception:
             pass
 
@@ -54,19 +139,22 @@ def _get_user_profile():
         from app.models import Season, League, Team
         from app.models.players import PlayerTeamSeason
 
-        current_season = Season.query.filter_by(is_current=True).first()
-        if current_season and hasattr(current_user, 'player') and current_user.player:
-            pts = PlayerTeamSeason.query.filter_by(
-                player_id=current_user.player.id
-            ).join(Team).join(League).filter(
-                League.season_id == current_season.id
-            ).first()
+        # UserAuthData has player_id (int), not player (relationship)
+        player_id = getattr(current_user, 'player_id', None)
+        if player_id:
+            current_season = Season.query.filter_by(is_current=True).first()
+            if current_season:
+                pts = PlayerTeamSeason.query.filter_by(
+                    player_id=player_id
+                ).join(Team).join(League).filter(
+                    League.season_id == current_season.id
+                ).first()
 
-            if pts and pts.team:
-                profile['team_name'] = pts.team.name
-                if pts.team.league:
-                    profile['league_name'] = pts.team.league.name
-                profile['is_captain'] = getattr(pts, 'is_captain', False)
+                if pts and pts.team:
+                    profile['team_name'] = pts.team.name
+                    if pts.team.league:
+                        profile['league_name'] = pts.team.league.name
+                    profile['is_captain'] = getattr(pts, 'is_captain', False)
     except Exception:
         pass
 
@@ -74,27 +162,80 @@ def _get_user_profile():
 
 
 def _get_context_type():
-    """Determine context type based on user roles and request."""
+    """Determine context type based on effective user roles and request."""
     requested = request.json.get('context_type', 'auto')
 
+    # Get effective roles (respects impersonation)
+    # UserAuthData.roles is already a list of strings
+    try:
+        from app.role_impersonation import get_effective_roles
+        effective = get_effective_roles()
+        roles = effective if effective else list(current_user.roles or [])
+    except (ImportError, Exception):
+        roles = list(current_user.roles or [])
+
     if requested != 'auto':
-        # Validate: non-admins can't request admin_panel context
         if requested == 'admin_panel':
-            if not (current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin')):
+            if 'Global Admin' not in roles and 'Pub League Admin' not in roles:
                 return 'user_help'
         return requested
 
-    # Auto-detect based on roles
-    if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin'):
-        page_url = request.json.get('current_page_url', '')
-        if '/admin-panel' in page_url:
-            return 'admin_panel'
+    if 'Global Admin' in roles or 'Pub League Admin' in roles:
         return 'admin_panel'
 
-    if current_user.has_role('ECS FC Coach'):
+    if 'ECS FC Coach' in roles:
         return 'coach'
 
     return 'user_help'
+
+
+# Roles that are blocked from AI access entirely
+BLOCKED_ROLES = {'pl-unverified', 'pl-waitlist'}
+
+# Canned response for blocked roles (no API call made)
+BLOCKED_ROLE_RESPONSE = (
+    "Welcome to ECS FC! The AI assistant is available to verified members. "
+    "If you need help, please join our Discord at **discord.gg/weareecs** "
+    "and ask a Pub League Admin. They'll be happy to help you out!"
+)
+
+
+def _is_ai_allowed():
+    """Check if current user's roles allow AI access. Returns (allowed, message)."""
+    roles = list(current_user.roles or [])
+    roles_lower = {r.lower() for r in roles}
+
+    # Block specific roles
+    if roles_lower & {r.lower() for r in BLOCKED_ROLES}:
+        # If they ONLY have blocked roles (no other roles that would grant access)
+        allowed_roles = roles_lower - {r.lower() for r in BLOCKED_ROLES}
+        if not allowed_roles:
+            return False, BLOCKED_ROLE_RESPONSE
+
+    return True, None
+
+
+def _is_on_topic(message):
+    """Pre-API check: reject obviously off-topic questions to save API costs.
+    Returns (on_topic, rejection_message)."""
+    msg_lower = message.lower()
+
+    # Off-topic patterns that have nothing to do with soccer league management
+    off_topic_patterns = [
+        r'\b(write|generate|create)\s+(me\s+)?(a\s+)?(poem|story|essay|song|code|script|program)\b',
+        r'\b(what\s+is|explain|tell\s+me\s+about)\s+(quantum|blockchain|crypto|bitcoin|stock|invest)\b',
+        r'\b(translate|convert)\s+.{0,20}\s+(to|into)\s+(french|spanish|german|chinese|japanese)\b',
+        r'\bact\s+as\s+(a|an)\s+',
+        r'\broleplay\b',
+        r'\b(recipe|cook|bake|ingredient)\b',
+        r'\b(homework|math\s+problem|equation|calculus|algebra)\b',
+    ]
+
+    for pattern in off_topic_patterns:
+        if re.search(pattern, msg_lower):
+            return False, "I can only help with questions about the ECS FC Portal and soccer league management. Please ask about portal features, schedules, teams, or how to use the site."
+
+    return True, None
 
 
 def _validate_message(message):
@@ -107,17 +248,26 @@ def _validate_message(message):
     if len(message) > 2000:
         return None, 'Message is too long (max 2000 characters).'
 
-    # Basic prompt injection patterns
+    # Prompt injection patterns
     injection_patterns = [
         r'ignore\s+(previous|all|above)\s+instructions',
         r'disregard\s+(your|all)\s+(rules|instructions)',
         r'system\s*prompt',
         r'</system>',
         r'<\|im_start\|>',
+        r'you\s+are\s+now\s+',
+        r'pretend\s+(to\s+be|you\s+are)',
+        r'new\s+instructions?\s*:',
+        r'override\s+(your|the)\s+',
     ]
     for pattern in injection_patterns:
         if re.search(pattern, message, re.IGNORECASE):
-            return None, 'Your message was not processed. Please rephrase your question.'
+            return None, 'Your message was not processed. Please rephrase your question about the portal.'
+
+    # Off-topic pre-filter (saves API costs)
+    on_topic, topic_msg = _is_on_topic(message)
+    if not on_topic:
+        return None, topic_msg
 
     return message, None
 
@@ -134,6 +284,11 @@ def ask():
     # Check if AI is enabled
     if not AdminConfig.get_setting('ai_assistant_enabled', True):
         return jsonify({'success': False, 'message': 'The AI assistant is currently disabled.'}), 503
+
+    # Check role-based access (block pl-unverified, pl-waitlist)
+    allowed, blocked_msg = _is_ai_allowed()
+    if not allowed:
+        return jsonify({'success': True, 'response': blocked_msg, 'provider': 'canned', 'log_id': None})
 
     data = request.get_json()
     if not data:
@@ -169,38 +324,42 @@ def ask():
     # Get contextual knowledge
     admin_search_index = None
     help_topics = None
+    user_page_index = None
 
+    # Admin search index (admin + coach contexts)
     if context_type in ('admin_panel', 'coach'):
         try:
             from app.admin_panel import _build_admin_search_index
-            from flask import current_app
-            with current_app.test_request_context():
-                admin_search_index = _build_admin_search_index()
+            admin_search_index = _build_admin_search_index()
         except Exception:
             admin_search_index = []
 
-    if context_type == 'user_help':
+    # User-facing page index (coach + user contexts)
+    if context_type in ('coach', 'user_help'):
+        user_page_index = _build_app_feature_map(context_type)
+
+    # HelpTopics for ALL non-admin contexts (dynamic knowledge base)
+    if context_type in ('coach', 'user_help'):
         try:
             from app.help import get_accessible_roles
             from app.models.external import HelpTopic
-            from app.core import db
+            from app.models.core import Role
 
-            user_roles = [r.name for r in current_user.roles]
-            accessible = get_accessible_roles(user_roles)
+            accessible_role_names = get_accessible_roles(user_profile.get('roles', []))
 
             topics = HelpTopic.query.filter(
-                HelpTopic.roles.any(db.and_(True))
+                HelpTopic.roles.any(Role.name.in_(accessible_role_names))
             ).all()
 
             help_topics = [
-                {'title': t.title, 'content': t.content[:300]}
-                for t in topics[:20]
+                {'title': t.title, 'content': t.content[:500]}
+                for t in topics[:30]
             ]
         except Exception:
             help_topics = []
 
     system_prompt = ai_assistant_service.build_system_prompt(
-        context_type, user_profile, admin_search_index, help_topics
+        context_type, user_profile, admin_search_index, help_topics, user_page_index
     )
 
     # Call the AI
@@ -257,7 +416,15 @@ def ask():
 def suggestions():
     """Get contextual suggestion chips based on user role and current page."""
     page_url = request.args.get('page', '')
-    user_roles = [r.name for r in current_user.roles]
+    # UserAuthData.roles is already a list of strings
+    user_roles = list(current_user.roles) if current_user.roles else []
+    user_roles_lower = {r.lower() for r in user_roles}
+
+    # Blocked roles get no suggestions (widget is hidden, but just in case)
+    if user_roles_lower & {r.lower() for r in BLOCKED_ROLES}:
+        allowed_roles = user_roles_lower - {r.lower() for r in BLOCKED_ROLES}
+        if not allowed_roles:
+            return jsonify({'success': True, 'suggestions': ['Join our Discord for help: discord.gg/weareecs']})
 
     if any(r in user_roles for r in ['Global Admin', 'Pub League Admin']):
         if '/admin-panel' in page_url:

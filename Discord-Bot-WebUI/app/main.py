@@ -1653,7 +1653,7 @@ def test_sms_verification():
             'has_player': player is not None,
             'verification_code': safe_current_user.sms_confirmation_code,
             'sms_notifications_enabled': safe_current_user.sms_notifications,
-            'sms_consent_timestamp': safe_current_user.sms_opt_in_timestamp,
+            'sms_consent_timestamp': None,
         }
         
         if player:
@@ -1712,7 +1712,6 @@ def set_verification_code():
             
         # Set the confirmation code on the user
         safe_current_user.sms_confirmation_code = code
-        safe_current_user.sms_opt_in_timestamp = datetime.utcnow()
         
         # Save to database
         session = g.db_session

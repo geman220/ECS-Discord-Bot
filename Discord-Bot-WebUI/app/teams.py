@@ -593,6 +593,7 @@ def teams_overview():
 @teams_bp.route('/report_match/<match_id>', endpoint='report_match', methods=['GET', 'POST'])
 @login_required
 def report_match(match_id):
+    """Submit a match report with score, goals, assists, and cards."""
     session = g.db_session
 
     # Handle ECS FC matches with ecs_ prefix
@@ -1384,6 +1385,7 @@ def season_overview():
 @teams_bp.route('/upload_team_kit/<int:team_id>', methods=['POST'])
 @login_required
 def upload_team_kit(team_id):
+    """Upload a team kit image."""
     session = g.db_session
     team = session.query(Team).get(team_id)
     if not team:
@@ -1461,6 +1463,7 @@ def upload_team_kit(team_id):
 @teams_bp.route('/upload_team_background/<int:team_id>', methods=['POST'])
 @login_required
 def upload_team_background(team_id):
+    """Upload a team background image."""
     session = g.db_session
     team = session.query(Team).get(team_id)
     if not team:

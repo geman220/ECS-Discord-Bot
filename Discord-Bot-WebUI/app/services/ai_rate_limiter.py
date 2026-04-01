@@ -13,29 +13,43 @@ logger = logging.getLogger(__name__)
 
 
 class AIRateLimiter:
-    """Multi-layer rate limiter for AI assistant requests."""
+    """Multi-layer rate limiter for AI assistant requests.
+    Uses Redis when available, falls back to in-memory counters."""
 
     def __init__(self):
         self._redis = None
+        self._redis_checked = False
+        # In-memory fallback when Redis is unavailable
+        self._mem_counts = {}  # {user_id: {'count': N, 'reset_at': timestamp}}
+        self._mem_global = {'count': 0, 'reset_at': 0}
+        self._mem_last_req = {}  # {user_id: timestamp}
 
     @property
     def redis(self):
-        if self._redis is None:
+        if not self._redis_checked:
+            self._redis_checked = True
             try:
                 from app.utils.redis_manager import UnifiedRedisManager
                 rm = UnifiedRedisManager()
                 self._redis = rm.redis_client
+                if self._redis:
+                    self._redis.ping()  # Verify connection
+                else:
+                    logger.info("Redis not configured - AI rate limiting disabled (unlimited)")
             except Exception:
-                logger.warning("Redis unavailable for AI rate limiting")
+                logger.info("Redis not available - AI rate limiting disabled (unlimited)")
+                self._redis = None
         return self._redis
 
     def check_rate_limit(self, user_id, is_admin=False):
         """Check all rate limit layers. Returns (allowed, message)."""
+        import time
+
+        # If Redis is unavailable, use in-memory fallback
         if not self.redis:
-            return True, None
+            return self._check_memory_rate_limit(user_id, is_admin)
 
         from app.models.admin_config import AdminConfig
-        import time
 
         # Minimum 2 seconds between requests per user (anti-spam)
         last_req_key = f'ai:rate:user:{user_id}:last'
@@ -160,6 +174,42 @@ class AIRateLimiter:
             'monthly_budget': float(AdminConfig.get_setting('ai_assistant_monthly_budget_usd', '50.00')),
             'tokens_today': int(self.redis.get(day_key) or 0),
         }
+
+    def _check_memory_rate_limit(self, user_id, is_admin=False):
+        """In-memory fallback rate limiter when Redis is unavailable.
+        Less precise than Redis (per-process, not shared), but still protects against abuse."""
+        import time
+
+        now = time.time()
+
+        # Anti-spam: 2 seconds between requests
+        last = self._mem_last_req.get(user_id, 0)
+        if (now - last) < 2.0:
+            return False, 'Please wait a moment before sending another question.'
+        self._mem_last_req[user_id] = now
+
+        if not is_admin:
+            # Per-user daily limit (reset every 24 hours)
+            user_data = self._mem_counts.get(user_id, {'count': 0, 'reset_at': now + 86400})
+            if now > user_data['reset_at']:
+                user_data = {'count': 0, 'reset_at': now + 86400}
+
+            if user_data['count'] >= 100:
+                return False, 'Daily limit reached. Please try again tomorrow.'
+
+            user_data['count'] += 1
+            self._mem_counts[user_id] = user_data
+
+        # Global daily limit
+        if now > self._mem_global['reset_at']:
+            self._mem_global = {'count': 0, 'reset_at': now + 86400}
+
+        if self._mem_global['count'] >= 1000:
+            return False, 'The AI assistant has reached its daily usage limit.'
+
+        self._mem_global['count'] += 1
+
+        return True, None
 
 
 ai_rate_limiter = AIRateLimiter()

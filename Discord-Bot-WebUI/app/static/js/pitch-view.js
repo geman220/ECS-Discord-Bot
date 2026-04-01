@@ -89,7 +89,7 @@ class PitchViewSystem {
                 return;
             }
 
-            // Fallback: Direct socket if SocketManager not available
+            // Fallback: Direct socket only if SocketManager not available
             if (typeof window.io === 'undefined') return;
 
             console.log('🏟️ [PitchView] SocketManager not available, using direct socket');
@@ -101,6 +101,7 @@ class PitchViewSystem {
             });
             if (!window.socket) window.socket = this.socket;
 
+            // Only set up direct listeners when SocketManager is NOT available
             this.setupSocketListeners();
 
         } catch (error) {

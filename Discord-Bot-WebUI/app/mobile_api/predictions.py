@@ -212,6 +212,7 @@ def get_predictions(match_id):
 
 @predictions_api.route('/predictions/<match_id>/correct', methods=['GET'])
 def get_correct_predictions(match_id):
+    """Get correct predictions for a specific match."""
     logger.info(f"Received request for correct predictions for match {match_id}")
     try:
         with managed_session() as session:
