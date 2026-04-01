@@ -198,23 +198,33 @@ def _build_app_feature_map(context_type='user_help'):
         except Exception:
             docstring = ''
 
-        if not docstring or len(docstring) < 5:
-            continue
-
         # Clean up the endpoint name for display
         name = rule.endpoint.split('.')[-1].replace('_', ' ').title()
+
+        has_docstring = bool(docstring and len(docstring) >= 5)
+
+        # Generate fallback description from endpoint name if no docstring
+        if not has_docstring:
+            docstring = name
 
         features.append({
             'name': name,
             'url': url,
-            'description': docstring[:150]
+            'description': docstring[:150],
+            '_has_docstring': has_docstring,
         })
 
-    # Sort by URL for readability
-    features.sort(key=lambda x: x['url'])
+    # Prioritize routes with real docstrings, then fill remaining slots with fallback
+    with_docs = [f for f in features if f['_has_docstring']]
+    without_docs = [f for f in features if not f['_has_docstring']]
+    with_docs.sort(key=lambda x: x['url'])
+    without_docs.sort(key=lambda x: x['url'])
 
-    # Cap at 60 to avoid prompt bloat
-    return features[:60]
+    combined = with_docs + without_docs[:max(0, 60 - len(with_docs))]
+    for f in combined:
+        f.pop('_has_docstring', None)
+
+    return combined[:60]
 
 
 def _get_user_profile():
@@ -497,6 +507,17 @@ def ask():
         result['response'] = response_text
         result['error'] = True
 
+    # Validate URLs in response against actual Flask routes
+    urls_fixed = 0
+    urls_stripped = 0
+    if not result.get('error'):
+        try:
+            from app.utils.route_validator import validate_response_urls
+            validated_response, urls_fixed, urls_stripped = validate_response_urls(result['response'])
+            result['response'] = validated_response
+        except Exception as e:
+            logger.warning(f"URL validation failed (passing through): {e}")
+
     # Track usage
     ai_rate_limiter.increment(current_user.id)
     estimated_cost = ai_rate_limiter.track_cost(
@@ -520,6 +541,8 @@ def ask():
         provider=result.get('provider'),
         model_used=result.get('model'),
         was_rejected=result.get('error', False),
+        urls_fixed=urls_fixed,
+        urls_stripped=urls_stripped,
     )
 
     return jsonify({

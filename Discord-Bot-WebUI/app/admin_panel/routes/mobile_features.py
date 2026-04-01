@@ -101,220 +101,113 @@ def mobile_features():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def mobile_user_management():
-    """Manage mobile app users."""
-    try:
-        # Log the access to mobile user management
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='access_mobile_user_management',
-            resource_type='mobile_features',
-            resource_id='user_management',
-            new_value='Accessed mobile user management',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-        
-        # Get users with mobile device tokens (mobile users)
-        mobile_users_query = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True
-        ).distinct()
-        
-        # Pagination
-        page = request.args.get('page', 1, type=int)
-        per_page = 25
-        mobile_users = mobile_users_query.paginate(
-            page=page, per_page=per_page, error_out=False
-        )
-        
-        # Get mobile user statistics
-        stats = {
-            'total_mobile_users': mobile_users_query.count(),
-            'active_users': User.query.filter_by(is_active=True).join(DeviceToken).filter(
-                DeviceToken.is_active == True
-            ).distinct().count(),
-            'inactive_users': mobile_users_query.filter_by(is_active=False).count(),
-            'recent_signups': mobile_users_query.filter(
-                User.created_at >= datetime.utcnow() - timedelta(days=7)
-            ).count() if hasattr(User, 'created_at') else 0
-        }
-        
-        return render_template('admin_panel/mobile_features/user_management_flowbite.html',
-                             mobile_users=mobile_users,
-                             stats=stats)
-    except Exception as e:
-        logger.error(f"Error loading mobile user management: {e}")
-        flash('Mobile user management unavailable. Verify database connection.', 'error')
-        return redirect(url_for('admin_panel.mobile_features'))
+    """Redirect to consolidated mobile users page."""
+    return redirect(url_for('admin_panel.mobile_users'))
 
 
 @admin_panel_bp.route('/mobile-features/app-distribution')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def mobile_app_distribution():
-    """Redirect to App Version Config (App Distribution page removed)."""
-    try:
-        return redirect(url_for('admin_panel.app_version_config'))
-    except Exception as e:
-        logger.error(f"Error loading app distribution config: {e}")
-        flash('App distribution settings unavailable. Check admin configuration.', 'error')
-        return redirect(url_for('admin_panel.mobile_features'))
+    """Redirect to consolidated app config page."""
+    return redirect(url_for('admin_panel.mobile_app_config'))
 
 
 @admin_panel_bp.route('/mobile-features/app-analytics')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def mobile_app_analytics():
-    """View mobile app analytics."""
-    try:
-        # Log the access to mobile app analytics
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='access_mobile_app_analytics',
-            resource_type='mobile_features',
-            resource_id='app_analytics',
-            new_value='Accessed mobile app analytics interface',
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent')
-        )
-        
-        from app.models.core import User
-        
-        # Calculate date ranges for analytics
-        now = datetime.utcnow()
-        last_30_days = now - timedelta(days=30)
-        last_7_days = now - timedelta(days=7)
-        
-        # Get mobile app usage analytics
-        mobile_users_total = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True
-        ).distinct().count()
-        
-        mobile_users_30d = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True,
-            DeviceToken.updated_at >= last_30_days
-        ).distinct().count()
-        
-        mobile_users_7d = User.query.join(DeviceToken).filter(
-            DeviceToken.is_active == True,
-            DeviceToken.updated_at >= last_7_days
-        ).distinct().count()
-        
-        analytics_data = {
-            'total_mobile_users': mobile_users_total,
-            'active_users_30d': mobile_users_30d,
-            'active_users_7d': mobile_users_7d,
-            'app_downloads': DeviceToken.query.count(),
-            'push_notifications_sent': AdminAuditLog.query.filter(
-                AdminAuditLog.action.contains('notification'),
-                AdminAuditLog.timestamp >= last_30_days
-            ).count(),
-            'engagement_rate': f'{(mobile_users_7d / mobile_users_total * 100):.1f}%' if mobile_users_total > 0 else '0%',
-            'popular_features': [],  # Populated when Flutter telemetry is integrated
-            'retention_rate': f'{(mobile_users_30d / mobile_users_total * 100):.1f}%' if mobile_users_total > 0 else '0%'
-        }
-        
-        return render_template('admin_panel/mobile_features/app_analytics_flowbite.html',
-                             analytics_data=analytics_data)
-    except Exception as e:
-        logger.error(f"Error loading mobile app analytics: {e}")
-        flash('Mobile analytics unavailable. Database or analytics service may be down.', 'error')
-        return redirect(url_for('admin_panel.mobile_features'))
+    """Redirect to main mobile analytics page."""
+    return redirect(url_for('admin_panel.mobile_analytics'))
 
 
-MOBILE_CONFIG_FIELDS = [
-    {'key': 'mobile_app_enabled', 'label': 'Mobile App Enabled', 'data_type': 'boolean',
-     'description': 'Master switch for mobile app functionality', 'default': 'true'},
-    {'key': 'mobile_app_version', 'label': 'App Version', 'data_type': 'string',
-     'description': 'Current mobile app version', 'default': 'v1.0.0'},
-    {'key': 'push_notifications_enabled', 'label': 'Push Notifications', 'data_type': 'boolean',
-     'description': 'Enable push notification delivery', 'default': 'true'},
-    {'key': 'apple_wallet_enabled', 'label': 'Wallet Passes', 'data_type': 'boolean',
-     'description': 'Enable Apple Wallet / Google Pay integration', 'default': 'true'},
-    {'key': 'mobile_offline_sync', 'label': 'Offline Mode', 'data_type': 'boolean',
-     'description': 'Allow offline data caching', 'default': 'false'},
-    {'key': 'mobile_analytics_tracking', 'label': 'Analytics Enabled', 'data_type': 'boolean',
-     'description': 'Enable usage analytics collection from mobile app', 'default': 'true'},
-    {'key': 'mobile_crash_reporting', 'label': 'Crash Reporting', 'data_type': 'boolean',
-     'description': 'Enable crash report collection from mobile app', 'default': 'true'},
-]
+# MOBILE_CONFIG_FIELDS removed — its keys were disconnected from what the
+# Flutter app reads via GET /api/v1/app_config.  Useful fields have been
+# moved: mobile_app_enabled → APP_CONFIG_FIELDS, mobile_crash_reporting →
+# MOBILE_FEATURE_TOGGLES.  The remaining keys (push_notifications_enabled,
+# apple_wallet_enabled, mobile_app_version, etc.) duplicated feature-toggle
+# keys under different names and are no longer needed.
 
 
 @admin_panel_bp.route('/mobile-features/mobile-config')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def mobile_config():
-    """Configure mobile app settings."""
-    try:
-        settings = []
-        config_valid = True
-        for field in MOBILE_CONFIG_FIELDS:
-            setting = AdminConfig.query.filter_by(key=field['key']).first()
-            settings.append({
-                'key': field['key'],
-                'label': field['label'],
-                'description': field['description'],
-                'data_type': field['data_type'],
-                'value': setting.value if setting else field['default'],
-                'updated_at': setting.updated_at if setting else None,
-                'updated_by_user': setting.updated_by_user if setting else None,
-            })
-
-        # Check if mobile app is enabled
-        mobile_enabled_val = next(
-            (s['value'] for s in settings if s['key'] == 'mobile_app_enabled'), 'true'
-        )
-        config_valid = str(mobile_enabled_val).lower() in ('true', '1', 'yes', 'on')
-
-        return render_template('admin_panel/mobile_features/mobile_config_flowbite.html',
-                             settings=settings, config_valid=config_valid)
-    except Exception as e:
-        logger.error(f"Error loading mobile config: {e}")
-        flash('Mobile configuration unavailable. Check admin settings database.', 'error')
-        return redirect(url_for('admin_panel.mobile_features'))
+    """Redirect to consolidated app config page."""
+    return redirect(url_for('admin_panel.mobile_app_config'))
 
 
-@admin_panel_bp.route('/mobile-features/mobile-config/save', methods=['POST'])
+@admin_panel_bp.route('/mobile-features/app-config')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
-def save_mobile_config():
-    """Save mobile app configuration."""
-    data = request.get_json()
-    if not data:
-        return jsonify({'success': False, 'message': 'No data received'}), 400
+def mobile_app_config():
+    """Consolidated mobile app configuration: feature toggles + version/update settings."""
+    from sqlalchemy import func
 
-    valid_keys = {f['key']: f for f in MOBILE_CONFIG_FIELDS}
-    changes = []
+    # --- Feature Toggles ---
+    features = []
+    for ft in MOBILE_FEATURE_TOGGLES:
+        setting = AdminConfig.query.filter_by(key=ft['key']).first()
+        val = setting.value if setting and setting.value else ft['default']
+        features.append({
+            'key': ft['key'],
+            'label': ft['label'],
+            'description': ft['description'],
+            'category': ft['category'],
+            'enabled': str(val).lower() in ('true', '1', 'yes', 'on'),
+        })
 
-    for key, value in data.items():
-        if key not in valid_keys:
-            continue
-        field = valid_keys[key]
-        old_setting = AdminConfig.query.filter_by(key=key).first()
-        old_value = old_setting.value if old_setting else None
+    grouped = {}
+    for f in features:
+        grouped.setdefault(f['category'], []).append(f)
 
-        AdminConfig.set_setting(
-            key=key,
-            value=str(value),
-            description=field['description'],
-            category='mobile_app',
-            data_type=field['data_type'],
-            user_id=current_user.id,
-        )
-        changes.append(f'{key}: {old_value} -> {value}')
+    # --- Version / Update Settings ---
+    settings = []
+    for field in APP_CONFIG_FIELDS:
+        setting = AdminConfig.query.filter_by(key=field['key']).first()
+        settings.append({
+            'key': field['key'],
+            'label': field['label'],
+            'description': field['description'],
+            'data_type': field['data_type'],
+            'value': setting.value if setting else field['default'],
+            'updated_at': setting.updated_at if setting else None,
+            'updated_by_user': setting.updated_by_user if setting else None,
+        })
 
-    if changes:
-        AdminAuditLog.log_action(
-            user_id=current_user.id,
-            action='update_mobile_config',
-            resource_type='mobile_features',
-            resource_id='mobile_config',
-            new_value='; '.join(changes),
-            ip_address=request.remote_addr,
-            user_agent=request.headers.get('User-Agent'),
-        )
+    # Device version distribution
+    version_dist = []
+    try:
+        rows = db.session.query(
+            DeviceToken.app_version,
+            DeviceToken.device_type,
+            func.count(DeviceToken.id).label('count')
+        ).filter(
+            DeviceToken.is_active == True,
+            DeviceToken.app_version.isnot(None)
+        ).group_by(
+            DeviceToken.app_version, DeviceToken.device_type
+        ).order_by(func.count(DeviceToken.id).desc()).all()
 
-    return jsonify({'success': True, 'message': 'Mobile configuration saved'})
+        total_devices = sum(r.count for r in rows) or 1
+        for r in rows:
+            version_dist.append({
+                'version': r.app_version or 'Unknown',
+                'platform': {'ios': 'iOS', 'android': 'Android'}.get(
+                    (r.device_type or '').lower(), 'Unknown'),
+                'count': r.count,
+                'pct': round((r.count / total_devices) * 100, 1),
+            })
+    except Exception as e:
+        logger.warning(f"Error loading version distribution: {e}")
+
+    return render_template(
+        'admin_panel/mobile_features/app_config_flowbite.html',
+        features=features,
+        grouped=grouped,
+        settings=settings,
+        version_dist=version_dist,
+    )
 
 
 MOBILE_FEATURE_TOGGLES = [
@@ -333,7 +226,9 @@ MOBILE_FEATURE_TOGGLES = [
     {'key': 'mobile_contact_sync', 'label': 'Contact Sync',
      'description': 'Sync contacts for team invitations', 'default': 'false', 'category': 'privacy'},
     {'key': 'mobile_analytics_tracking', 'label': 'Analytics Tracking',
-     'description': 'Usage analytics and crash reporting', 'default': 'true', 'category': 'privacy'},
+     'description': 'Usage analytics collection from mobile app', 'default': 'true', 'category': 'privacy'},
+    {'key': 'mobile_crash_reporting', 'label': 'Crash Reporting',
+     'description': 'Enable crash report collection from mobile app', 'default': 'true', 'category': 'privacy'},
     {'key': 'mobile_ar_match_views', 'label': 'AR Match Views',
      'description': 'Augmented reality match experience', 'default': 'false', 'category': 'experimental'},
     {'key': 'mobile_voice_commands', 'label': 'Voice Commands',
@@ -347,31 +242,8 @@ MOBILE_FEATURE_TOGGLES = [
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def mobile_features_toggle():
-    """Configure mobile feature toggles."""
-    try:
-        features = []
-        for ft in MOBILE_FEATURE_TOGGLES:
-            setting = AdminConfig.query.filter_by(key=ft['key']).first()
-            val = setting.value if setting and setting.value else ft['default']
-            features.append({
-                'key': ft['key'],
-                'label': ft['label'],
-                'description': ft['description'],
-                'category': ft['category'],
-                'enabled': str(val).lower() in ('true', '1', 'yes', 'on'),
-            })
-
-        # Group by category for template
-        grouped = {}
-        for f in features:
-            grouped.setdefault(f['category'], []).append(f)
-
-        return render_template('admin_panel/mobile_features/feature_toggles_flowbite.html',
-                             features=features, grouped=grouped)
-    except Exception as e:
-        logger.error(f"Error loading mobile feature toggles: {e}")
-        flash('Feature toggles unavailable. Admin configuration service may be offline.', 'error')
-        return redirect(url_for('admin_panel.mobile_features'))
+    """Redirect to consolidated app config page."""
+    return redirect(url_for('admin_panel.mobile_app_config'))
 
 
 @admin_panel_bp.route('/mobile-features/mobile-users')
@@ -404,6 +276,12 @@ def mobile_users():
             DeviceToken.updated_at >= datetime.utcnow() - timedelta(days=30)
         ).distinct().count()
         
+        recent_signups = 0
+        if hasattr(User, 'created_at'):
+            recent_signups = mobile_users_query.filter(
+                User.created_at >= datetime.utcnow() - timedelta(days=7)
+            ).count()
+
         stats = {
             'total_mobile_users': total_mobile_users,
             'active_last_week': active_last_week,
@@ -411,7 +289,8 @@ def mobile_users():
             'retention_rate': f"{(active_last_month / total_mobile_users * 100):.1f}%" if total_mobile_users > 0 else "0%",
             'new_installs_week': DeviceToken.query.filter(
                 DeviceToken.created_at >= datetime.utcnow() - timedelta(days=7)
-            ).count()
+            ).count(),
+            'recent_signups': recent_signups,
         }
         
         return render_template('admin_panel/mobile_features/mobile_users_flowbite.html',
@@ -561,31 +440,86 @@ def push_subscriptions():
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def push_history():
-    """View push notification history."""
+    """View push notification history from both individual notifications and campaigns."""
     try:
         from app.models.communication import Notification
-        
-        # Get push notification history
-        push_notifications = Notification.query.filter_by(
-            notification_type='push'
-        ).order_by(Notification.created_at.desc()).limit(100).all()
-        
-        # Calculate statistics
-        total_sent = len(push_notifications)
-        sent_today = len([n for n in push_notifications 
-                         if n.created_at.date() == datetime.utcnow().date()])
-        sent_this_week = len([n for n in push_notifications 
-                             if n.created_at >= datetime.utcnow() - timedelta(days=7)])
-        
+        from app.models.push_campaigns import PushNotificationCampaign
+
+        now = datetime.utcnow()
+        push_list = []
+
+        # Source 1: Individual push notifications
+        try:
+            individual = Notification.query.filter_by(
+                notification_type='push'
+            ).order_by(Notification.created_at.desc()).limit(50).all()
+            for n in individual:
+                push_list.append({
+                    'id': n.id,
+                    'source': 'individual',
+                    'title': 'Push Notification',
+                    'content': n.content or '',
+                    'notification_type': 'Individual',
+                    'status': 'sent',
+                    'created_at': n.created_at,
+                    'recipients': 1,
+                    'recipient': getattr(n, 'user', None),
+                })
+        except Exception as e:
+            logger.warning(f"Error loading individual push notifications: {e}")
+
+        # Source 2: Push campaigns (primary source of push activity)
+        try:
+            campaigns = PushNotificationCampaign.query.filter(
+                PushNotificationCampaign.status.in_(['sent', 'failed', 'sending', 'cancelled'])
+            ).order_by(PushNotificationCampaign.created_at.desc()).limit(50).all()
+            for c in campaigns:
+                push_list.append({
+                    'id': c.id,
+                    'source': 'campaign',
+                    'title': c.title or c.name or 'Campaign',
+                    'content': c.body or '',
+                    'notification_type': 'Campaign',
+                    'status': c.status,
+                    'created_at': c.actual_send_time or c.created_at,
+                    'recipients': c.sent_count or c.target_count or 0,
+                    'recipient': None,
+                    'delivered_count': c.delivered_count or 0,
+                    'failed_count': c.failed_count or 0,
+                    'click_count': c.click_count or 0,
+                })
+        except Exception as e:
+            logger.warning(f"Error loading push campaigns: {e}")
+
+        # Sort merged list by date descending
+        push_list.sort(key=lambda x: x['created_at'] or datetime.min, reverse=True)
+        push_list = push_list[:100]
+
+        # Calculate statistics from the merged list
+        total_sent = len(push_list)
+        sent_today = sum(1 for p in push_list
+                         if p['created_at'] and p['created_at'].date() == now.date())
+        week_ago = now - timedelta(days=7)
+        sent_this_week = sum(1 for p in push_list
+                             if p['created_at'] and p['created_at'] >= week_ago)
+        total_recipients = sum(p.get('recipients', 0) for p in push_list)
+
         stats = {
             'total_sent': total_sent,
             'sent_today': sent_today,
             'sent_this_week': sent_this_week,
-            'avg_per_day': round(sent_this_week / 7, 1) if sent_this_week > 0 else 0
+            'avg_per_day': round(sent_this_week / 7, 1) if sent_this_week > 0 else 0,
+            'total_recipients': total_recipients,
+            'status_counts': {
+                'sent': sum(1 for p in push_list if p['status'] == 'sent'),
+                'failed': sum(1 for p in push_list if p['status'] == 'failed'),
+                'sending': sum(1 for p in push_list if p['status'] == 'sending'),
+                'cancelled': sum(1 for p in push_list if p['status'] == 'cancelled'),
+            },
         }
-        
+
         return render_template('admin_panel/mobile_features/push_history_flowbite.html',
-                             push_notifications=push_notifications,
+                             push_notifications=push_list,
                              stats=stats)
     except Exception as e:
         logger.error(f"Error loading push history: {e}")
@@ -839,6 +773,9 @@ def get_mobile_user_details():
 # =============================================================================
 
 APP_CONFIG_FIELDS = [
+    {'key': 'mobile_app_enabled', 'label': 'Mobile App Enabled', 'data_type': 'boolean',
+     'description': 'Master switch — disables mobile app access entirely when off',
+     'default': 'true'},
     {'key': 'app_min_build_number', 'label': 'Minimum Build Number', 'data_type': 'integer',
      'description': 'Builds below this number cannot use the app (set when older builds have breaking issues)',
      'default': '1'},
@@ -864,53 +801,8 @@ APP_CONFIG_FIELDS = [
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
 def app_version_config():
-    """View and manage mobile app version/update configuration."""
-    from sqlalchemy import func
-
-    settings = []
-    for field in APP_CONFIG_FIELDS:
-        setting = AdminConfig.query.filter_by(key=field['key']).first()
-        settings.append({
-            'key': field['key'],
-            'label': field['label'],
-            'description': field['description'],
-            'data_type': field['data_type'],
-            'value': setting.value if setting else field['default'],
-            'updated_at': setting.updated_at if setting else None,
-            'updated_by_user': setting.updated_by_user if setting else None,
-        })
-
-    # Device version distribution (real data from DeviceToken.app_version)
-    version_dist = []
-    try:
-        rows = db.session.query(
-            DeviceToken.app_version,
-            DeviceToken.device_type,
-            func.count(DeviceToken.id).label('count')
-        ).filter(
-            DeviceToken.is_active == True,
-            DeviceToken.app_version.isnot(None)
-        ).group_by(
-            DeviceToken.app_version, DeviceToken.device_type
-        ).order_by(func.count(DeviceToken.id).desc()).all()
-
-        total_devices = sum(r.count for r in rows) or 1
-        for r in rows:
-            version_dist.append({
-                'version': r.app_version or 'Unknown',
-                'platform': {'ios': 'iOS', 'android': 'Android'}.get(
-                    (r.device_type or '').lower(), 'Unknown'),
-                'count': r.count,
-                'pct': round((r.count / total_devices) * 100, 1),
-            })
-    except Exception as e:
-        logger.warning(f"Error loading version distribution: {e}")
-
-    return render_template(
-        'admin_panel/mobile_features/app_version_config_flowbite.html',
-        settings=settings,
-        version_dist=version_dist,
-    )
+    """Redirect to consolidated app config page."""
+    return redirect(url_for('admin_panel.mobile_app_config'))
 
 
 @admin_panel_bp.route('/mobile-features/app-version-config/save', methods=['POST'])

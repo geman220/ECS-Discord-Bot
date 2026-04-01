@@ -90,11 +90,11 @@ def store_management_overview():
 def cache_management():
     """Cache management hub."""
     try:
-        from app.utils.safe_redis import get_safe_redis
-        
+        from app.utils.redis_manager import get_redis_manager
+
         # Initialize cache utilities
-        redis_client = get_safe_redis()
-        
+        redis_mgr = get_redis_manager()
+
         # Get real Redis statistics
         redis_status = 'disconnected'
         total_keys = 0
@@ -103,20 +103,20 @@ def cache_management():
         hit_rate = '0%'
         cache_operations_today = 0
         keyspace_stats = {}
-        
+
         try:
             # Test Redis connection
-            redis_client.ping()
+            redis_mgr.client.ping()
             redis_status = 'connected'
-            
-            # Get Redis info
-            redis_info = redis_client.info()
+
+            # Get Redis info via the underlying client (SafeRedisClient lacks .info())
+            redis_info = redis_mgr.client.info()
             
             # Total keys
             total_keys = redis_info.get('db0', {}).get('keys', 0) if isinstance(redis_info.get('db0'), dict) else 0
             if total_keys == 0:
                 # Fallback - count keys manually
-                total_keys = len(redis_client.keys('*'))
+                total_keys = len(redis_mgr.client.keys('*'))
             
             # Memory usage
             memory_usage_bytes = redis_info.get('used_memory', 0)
@@ -162,16 +162,16 @@ def cache_management():
                 ]
                 
                 for pattern in patterns:
-                    keys = redis_client.keys(pattern)
+                    keys = redis_mgr.client.keys(pattern)
                     if keys:
                         total_size = 0
                         for key in keys[:10]:  # Sample first 10 keys for size
                             try:
                                 # Get memory usage for this key
-                                size = redis_client.memory_usage(key) or 0
+                                size = redis_mgr.client.memory_usage(key) or 0
                                 total_size += size
                             except Exception:
-                                total_size += len(str(redis_client.get(key) or ''))
+                                total_size += len(str(redis_mgr.client.get(key) or ''))
                         
                         avg_size = total_size / len(keys) if keys else 0
                         cache_key_stats.append({

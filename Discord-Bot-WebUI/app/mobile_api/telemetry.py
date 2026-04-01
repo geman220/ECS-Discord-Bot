@@ -127,6 +127,17 @@ def telemetry_screens():
 
         received = 0
         with managed_session() as db_session:
+            # Ensure the session exists before inserting screen views
+            existing = db_session.query(MobileSession).filter_by(session_id=session_id).first()
+            if not existing:
+                session = MobileSession(
+                    user_id=int(user_id) if user_id else None,
+                    session_id=session_id,
+                    started_at=datetime.utcnow(),
+                )
+                db_session.add(session)
+                db_session.flush()
+
             for screen in screens[:100]:  # Max 100 per batch
                 screen_name = screen.get('screen_name')
                 if not screen_name:

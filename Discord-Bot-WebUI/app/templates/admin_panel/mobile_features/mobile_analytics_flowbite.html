@@ -253,70 +253,72 @@
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const analyticsData = {{ analytics_json|safe }};
-const platformData = analyticsData.platform_breakdown || {};
+(function() {
+    const analyticsData = {{ analytics_json|safe }};
+    const platformData = analyticsData.platform_breakdown || {};
 
-document.addEventListener('DOMContentLoaded', function() {
-    const isDark = document.documentElement.classList.contains('dark');
+    document.addEventListener('DOMContentLoaded', function() {
+        const isDark = document.documentElement.classList.contains('dark');
 
-    // Engagement chart (only if data exists)
-    const engagementEl = document.getElementById('engagementChart');
-    if (engagementEl && analyticsData.daily_engagement && analyticsData.daily_engagement.length > 0) {
-        const labels = analyticsData.daily_engagement.map(d => d.date);
-        const dauData = analyticsData.daily_engagement.map(d => d.dau);
-        const sessionsData = analyticsData.daily_engagement.map(d => d.sessions);
+        // Engagement chart (only if data exists)
+        const engagementEl = document.getElementById('engagementChart');
+        if (engagementEl && analyticsData.daily_engagement && analyticsData.daily_engagement.length > 0) {
+            const labels = analyticsData.daily_engagement.map(d => d.date);
+            const dauData = analyticsData.daily_engagement.map(d => d.dau);
+            const sessionsData = analyticsData.daily_engagement.map(d => d.sessions);
 
-        new Chart(engagementEl.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Daily Active Users',
-                    data: dauData,
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                    tension: 0.4
-                }, {
-                    label: 'Sessions',
-                    data: sessionsData,
-                    borderColor: 'rgb(255, 99, 132)',
-                    backgroundColor: 'rgba(255, 99, 132, 0.1)',
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true, grid: { color: isDark ? '#374151' : '#e5e7eb' } },
-                    x: { grid: { color: isDark ? '#374151' : '#e5e7eb' } }
+            new Chart(engagementEl.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Daily Active Users',
+                        data: dauData,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                        tension: 0.4
+                    }, {
+                        label: 'Sessions',
+                        data: sessionsData,
+                        borderColor: 'rgb(255, 99, 132)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                        tension: 0.4
+                    }]
                 },
-                plugins: {
-                    legend: { labels: { color: isDark ? '#9ca3af' : '#374151' } }
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: isDark ? '#374151' : '#e5e7eb' } },
+                        x: { grid: { color: isDark ? '#374151' : '#e5e7eb' } }
+                    },
+                    plugins: {
+                        legend: { labels: { color: isDark ? '#9ca3af' : '#374151' } }
+                    }
                 }
-            }
-        });
-    }
+            });
+        }
 
-    // Platform chart
-    const platformEl = document.getElementById('platformChart');
-    if (platformEl) {
-        new Chart(platformEl.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: ['iOS', 'Android', 'Unknown'],
-                datasets: [{
-                    data: [platformData.iOS || 0, platformData.Android || 0, platformData.unknown || 0],
-                    backgroundColor: ['rgb(54, 162, 235)', 'rgb(75, 192, 192)', 'rgb(201, 203, 207)']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
-            }
-        });
-    }
-});
+        // Platform chart
+        const platformEl = document.getElementById('platformChart');
+        if (platformEl) {
+            new Chart(platformEl.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['iOS', 'Android', 'Unknown'],
+                    datasets: [{
+                        data: [platformData.iOS || 0, platformData.Android || 0, platformData.unknown || 0],
+                        backgroundColor: ['rgb(54, 162, 235)', 'rgb(75, 192, 192)', 'rgb(201, 203, 207)']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+    });
+})();
 </script>
 {% endblock %}

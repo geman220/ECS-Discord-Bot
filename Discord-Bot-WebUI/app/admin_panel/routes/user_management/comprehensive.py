@@ -652,36 +652,42 @@ def edit_user_comprehensive(user_id):
                 # Flush so the new roles are persisted before any refresh
                 db.session.flush()
 
-            # Auto-manage league roles based on league assignments
+            # Auto-manage league roles based on league assignments.
+            # Only auto-remove roles that the admin did NOT explicitly select
+            # in the form. This prevents the auto-mapping from overriding
+            # deliberate admin choices (e.g. assigning "ECS FC Sub" to a
+            # player who is only in Premier league).
             if user.player:
                 # Refresh user roles from database to avoid stale data issues
                 db.session.refresh(user, ['roles'])
 
+                # Build set of role names the admin explicitly selected
+                explicitly_selected_role_names = set()
+                if role_ids:
+                    explicit_roles = Role.query.filter(Role.id.in_(role_ids)).all()
+                    explicitly_selected_role_names = {r.name for r in explicit_roles}
+
                 # Determine which league roles the user should have
                 required_league_roles = set()
 
-                # Primary league role
                 if league_id:
                     primary_league = League.query.get(int(league_id))
                     primary_role_name = get_role_for_league(primary_league)
                     if primary_role_name:
                         required_league_roles.add(primary_role_name)
 
-                # Secondary league role
                 if secondary_league_id:
                     secondary_league = League.query.get(int(secondary_league_id))
                     secondary_role_name = get_role_for_league(secondary_league)
                     if secondary_role_name:
                         required_league_roles.add(secondary_role_name)
 
-                # Tertiary league role
                 if tertiary_league_id:
                     tertiary_league = League.query.get(int(tertiary_league_id))
                     tertiary_role_name = get_role_for_league(tertiary_league)
                     if tertiary_role_name:
                         required_league_roles.add(tertiary_role_name)
 
-                # Get current role names for comparison
                 current_role_names = {r.name for r in user.roles}
 
                 # Determine which sub roles should be kept based on leagues
@@ -706,16 +712,22 @@ def edit_user_comprehensive(user_id):
                             required_sub_roles.add(sub_role)
 
                 # Remove league roles that are no longer needed
+                # BUT skip any role the admin explicitly checked in the form
                 for league_role in LEAGUE_ROLES:
                     if league_role in current_role_names and league_role not in required_league_roles:
+                        if league_role in explicitly_selected_role_names:
+                            continue
                         role_to_remove = Role.query.filter_by(name=league_role).first()
                         if role_to_remove and role_to_remove in user.roles:
                             user.roles.remove(role_to_remove)
                             logger.info(f"Auto-removed role {league_role} from user {user.id}")
 
                 # Remove sub roles for leagues the user is no longer in
+                # BUT skip any role the admin explicitly checked in the form
                 for sub_role in SUB_ROLES:
                     if sub_role in current_role_names and sub_role not in required_sub_roles:
+                        if sub_role in explicitly_selected_role_names:
+                            continue
                         role_to_remove = Role.query.filter_by(name=sub_role).first()
                         if role_to_remove and role_to_remove in user.roles:
                             user.roles.remove(role_to_remove)

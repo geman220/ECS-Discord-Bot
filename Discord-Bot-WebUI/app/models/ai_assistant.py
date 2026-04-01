@@ -29,6 +29,8 @@ class AIAssistantLog(db.Model):
     was_rejected = db.Column(db.Boolean, default=False)
     rejection_reason = db.Column(db.String(100), nullable=True)
     user_rating = db.Column(db.Integer, nullable=True)  # 1 (thumbs down) or 5 (thumbs up)
+    urls_fixed = db.Column(db.Integer, default=0)  # URLs corrected by post-processing validator
+    urls_stripped = db.Column(db.Integer, default=0)  # URLs removed by post-processing validator
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     user = db.relationship('User', backref=db.backref('ai_assistant_logs', lazy='dynamic'))
@@ -37,7 +39,8 @@ class AIAssistantLog(db.Model):
     def log_interaction(cls, user_id, context_type, user_message, assistant_response=None,
                         current_page_url=None, input_tokens=None, output_tokens=None,
                         estimated_cost_usd=None, response_time_ms=None, provider=None,
-                        model_used=None, was_rejected=False, rejection_reason=None):
+                        model_used=None, was_rejected=False, rejection_reason=None,
+                        urls_fixed=0, urls_stripped=0):
         """Create a log entry for an AI interaction."""
         log = cls(
             user_id=user_id,
@@ -52,7 +55,9 @@ class AIAssistantLog(db.Model):
             provider=provider,
             model_used=model_used,
             was_rejected=was_rejected,
-            rejection_reason=rejection_reason
+            rejection_reason=rejection_reason,
+            urls_fixed=urls_fixed,
+            urls_stripped=urls_stripped,
         )
         db.session.add(log)
         db.session.commit()
@@ -87,6 +92,18 @@ class AIAssistantLog(db.Model):
         total_rated = thumbs_up + thumbs_down
         satisfaction_rate = round((thumbs_up / total_rated * 100), 1) if total_rated > 0 else None
 
+        # URL hallucination stats
+        url_stats = db.session.query(
+            db.func.coalesce(db.func.sum(cls.urls_fixed), 0),
+            db.func.coalesce(db.func.sum(cls.urls_stripped), 0),
+        ).filter(cls.created_at >= cutoff, cls.was_rejected == False).first()
+
+        responses_with_fixes = cls.query.filter(
+            cls.created_at >= cutoff,
+            cls.was_rejected == False,
+            db.or_(cls.urls_fixed > 0, cls.urls_stripped > 0)
+        ).count()
+
         return {
             'total_requests': total,
             'rejected_requests': rejected,
@@ -99,6 +116,9 @@ class AIAssistantLog(db.Model):
             'thumbs_down': thumbs_down,
             'unrated': total - rejected - total_rated,
             'satisfaction_rate': satisfaction_rate,
+            'total_urls_fixed': int(url_stats[0]),
+            'total_urls_stripped': int(url_stats[1]),
+            'responses_with_url_fixes': responses_with_fixes,
         }
 
     @classmethod

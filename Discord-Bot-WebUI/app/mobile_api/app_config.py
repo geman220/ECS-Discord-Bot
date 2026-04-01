@@ -46,23 +46,26 @@ def get_app_config():
     ios_url = AdminConfig.get_setting('app_ios_update_url', APP_CONFIG_DEFAULTS['app_ios_update_url'])
     android_url = AdminConfig.get_setting('app_android_update_url', APP_CONFIG_DEFAULTS['app_android_update_url'])
 
-    # Feature toggles — read by the app to gate features
-    feature_toggle_keys = [
-        'mobile_push_notifications',
-        'mobile_wallet_passes',
-        'mobile_offline_sync',
-        'mobile_biometric_auth',
-        'mobile_location_services',
-        'mobile_camera_upload',
-        'mobile_contact_sync',
-        'mobile_analytics_tracking',
-        'mobile_ar_match_views',
-        'mobile_voice_commands',
-        'mobile_smart_predictions',
-    ]
+    # Feature toggles — read by the app to gate features.
+    # Defaults must match MOBILE_FEATURE_TOGGLES in mobile_features.py so the
+    # API and the admin panel agree when a key has never been explicitly saved.
+    feature_toggle_defaults = {
+        'mobile_push_notifications': 'true',
+        'mobile_wallet_passes': 'true',
+        'mobile_offline_sync': 'false',
+        'mobile_biometric_auth': 'true',
+        'mobile_location_services': 'false',
+        'mobile_camera_upload': 'true',
+        'mobile_contact_sync': 'false',
+        'mobile_analytics_tracking': 'true',
+        'mobile_crash_reporting': 'true',
+        'mobile_ar_match_views': 'false',
+        'mobile_voice_commands': 'false',
+        'mobile_smart_predictions': 'false',
+    }
     feature_toggles = {}
-    for key in feature_toggle_keys:
-        val = AdminConfig.get_setting(key, 'false')
+    for key, default in feature_toggle_defaults.items():
+        val = AdminConfig.get_setting(key, default)
         feature_toggles[key] = str(val).lower() in ('true', '1', 'yes', 'on')
 
     return jsonify({
