@@ -63,10 +63,10 @@
   "categories": ["productivity", "sports", "social"],
   "shortcuts": [
     {
-      "name": "User Management",
+      "name": "Users",
       "short_name": "Users",
-      "description": "Manage users and player profiles",
-      "url": "/user_management/manage_users",
+      "description": "Browse, search, and manage all users",
+      "url": "/admin-panel/users/manage",
       "icons": [
         {
           "src": "/static/img/icons/icon-96x96.png",

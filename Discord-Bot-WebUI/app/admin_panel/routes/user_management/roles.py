@@ -158,7 +158,7 @@ def assign_user_roles():
 
     if not user_id:
         flash('User ID is required', 'error')
-        return redirect(url_for('admin_panel.roles_management'))
+        return redirect(url_for('admin_panel.roles_comprehensive'))
 
     try:
         # Acquire lock on user to prevent concurrent role modifications
@@ -233,12 +233,12 @@ def assign_user_roles():
         execute_deferred_discord()
 
         flash(f'Roles assigned to "{username}" successfully', 'success')
-        return redirect(url_for('admin_panel.roles_management'))
+        return redirect(url_for('admin_panel.roles_comprehensive'))
 
     except LockAcquisitionError:
         clear_deferred_discord()
         flash('User is currently being modified by another request. Please try again.', 'error')
-        return redirect(url_for('admin_panel.roles_management'))
+        return redirect(url_for('admin_panel.roles_comprehensive'))
 
 
 @admin_panel_bp.route('/users/roles/search', methods=['POST'])
@@ -251,7 +251,7 @@ def search_users_by_role():
 
         if not role_id:
             flash('Role ID is required', 'error')
-            return redirect(url_for('admin_panel.roles_management'))
+            return redirect(url_for('admin_panel.roles_comprehensive'))
 
         role = db.session.query(Role).get_or_404(role_id)
         search_results = role.users
@@ -274,7 +274,7 @@ def search_users_by_role():
     except Exception as e:
         logger.error(f"Error searching users by role: {e}")
         flash('User role search failed. Verify database connection and role data.', 'error')
-        return redirect(url_for('admin_panel.roles_management'))
+        return redirect(url_for('admin_panel.roles_comprehensive'))
 
 
 @admin_panel_bp.route('/users/get-roles')

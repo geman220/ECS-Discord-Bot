@@ -43,7 +43,7 @@ function getUserApprovalsUrl(roleId) {
     if (typeof window.ROLES_CONFIG !== 'undefined' && window.ROLES_CONFIG.userApprovalsUrl) {
         return `${window.ROLES_CONFIG.userApprovalsUrl}?role=${roleId}`;
     }
-    return `/admin-panel/user-management/approvals?role=${roleId}`;
+    return `/admin-panel/users/approvals?role=${roleId}`;
 }
 
 // ============================================================================

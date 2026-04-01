@@ -266,7 +266,7 @@
             </div>
 
             {# Users #}
-            {% set users_active = request.endpoint and request.endpoint in ['admin_panel.user_management', 'admin_panel.users_comprehensive', 'admin_panel.user_approvals', 'admin_panel.user_waitlist', 'admin_panel.roles_comprehensive', 'admin_panel.bulk_operations', 'admin_panel.quick_profiles_management', 'admin_panel.user_analytics', 'admin_panel.duplicate_registrations'] %}
+            {% set users_active = request.endpoint and request.endpoint in ['admin_panel.users_comprehensive', 'admin_panel.user_approvals', 'admin_panel.user_waitlist', 'admin_panel.roles_comprehensive', 'admin_panel.roles_comprehensive_details', 'admin_panel.role_comprehensive_users', 'admin_panel.quick_profiles_management', 'admin_panel.user_analytics', 'admin_panel.duplicate_registrations'] %}
             <div>
                 <button type="button" data-action="admin-nav-mobile-accordion"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors

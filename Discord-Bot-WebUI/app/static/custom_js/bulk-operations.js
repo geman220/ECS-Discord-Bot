@@ -24,7 +24,7 @@ const config = {
         bulkWaitlistProcess: '/admin-panel/users/bulk-operations/waitlist-process',
         userApprovals: '/admin-panel/users/approvals',
         userWaitlist: '/admin-panel/users/waitlist',
-        rolesManagement: '/admin-panel/roles'
+        rolesManagement: '/admin-panel/roles-management'
     }
 };
 
