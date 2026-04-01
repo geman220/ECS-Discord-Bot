@@ -161,59 +161,91 @@ def push_notifications_dashboard():
 @role_required(['Global Admin', 'Pub League Admin'])
 def send_push_notification_form():
     """Send push notification form and handler."""
+    from app.models import Team, League
+    from app.models.players import player_teams
+
     if request.method == 'GET':
-        return render_template('admin_panel/communication/send_push_notification_flowbite.html')
+        teams = Team.query.filter_by(is_active=True).order_by(Team.name).all()
+        leagues = League.query.order_by(League.name).all()
+        total_subscribers = UserFCMToken.query.filter_by(is_active=True).count()
+        return render_template(
+            'admin_panel/communication/send_push_notification_flowbite.html',
+            teams=teams, leagues=leagues, total_subscribers=total_subscribers)
 
     try:
         title = request.form.get('title')
         body = request.form.get('body')
         target_type = request.form.get('target_type', 'all')
-        priority = request.form.get('priority', 'normal')
         notification_type = request.form.get('notification_type', 'push')
         action_url = request.form.get('action_url')
-        badge_count = request.form.get('badge_count', type=int)
-        sound = request.form.get('sound', 'default')
 
         if not title or not body:
             flash('Title and body are required.', 'error')
-            return render_template('admin_panel/communication/send_push_notification_flowbite.html')
+            return redirect(url_for('admin_panel.send_push_notification_form'))
 
-        if target_type == 'coaches':
-            from app.models import UserRole, Role
-            target_users = User.query.join(UserRole).join(Role).join(UserFCMToken).filter(
-                Role.name.in_(['Pub League Coach', 'ECS FC Coach']),
+        # Build target user list based on target_type
+        if target_type == 'team':
+            team_id = request.form.get('team_id', type=int)
+            if not team_id:
+                flash('Please select a team.', 'error')
+                return redirect(url_for('admin_panel.send_push_notification_form'))
+            from app.models import Player
+            target_users = User.query.join(Player, Player.user_id == User.id).join(
+                player_teams, player_teams.c.player_id == Player.id
+            ).join(UserFCMToken).filter(
+                player_teams.c.team_id == team_id,
                 UserFCMToken.is_active == True
             ).distinct().all()
-        elif target_type == 'admins':
-            from app.models import UserRole, Role
-            target_users = User.query.join(UserRole).join(Role).join(UserFCMToken).filter(
-                Role.name.in_(['Global Admin', 'Pub League Admin']),
+        elif target_type == 'league':
+            league_id = request.form.get('league_id', type=int)
+            if not league_id:
+                flash('Please select a league.', 'error')
+                return redirect(url_for('admin_panel.send_push_notification_form'))
+            from app.models import Player
+            target_users = User.query.join(Player, Player.user_id == User.id).join(
+                player_teams, player_teams.c.player_id == Player.id
+            ).join(Team, Team.id == player_teams.c.team_id).join(UserFCMToken).filter(
+                Team.league_id == league_id,
                 UserFCMToken.is_active == True
             ).distinct().all()
-        else:
+        elif target_type == 'role':
+            role = request.form.get('role')
+            role_map = {
+                'captain': ['Pub League Captain'],
+                'coach': ['Pub League Coach', 'ECS FC Coach'],
+                'admin': ['Global Admin', 'Pub League Admin'],
+            }
+            from app.models import UserRole, Role
+            role_names = role_map.get(role, [])
+            target_users = User.query.join(UserRole).join(Role).join(UserFCMToken).filter(
+                Role.name.in_(role_names),
+                UserFCMToken.is_active == True
+            ).distinct().all()
+        elif target_type == 'users':
+            user_ids = request.form.getlist('user_ids')
+            if not user_ids:
+                user_ids_str = request.form.get('user_ids', '')
+                user_ids = [uid.strip() for uid in user_ids_str.split(',') if uid.strip()]
+            target_users = User.query.join(UserFCMToken).filter(
+                User.id.in_([int(uid) for uid in user_ids if uid]),
+                UserFCMToken.is_active == True
+            ).distinct().all()
+        else:  # all
             target_users = User.query.join(UserFCMToken).filter(
                 UserFCMToken.is_active == True
             ).distinct().all()
 
-        notifications_created = 0
-        icon_map = {'push': 'ti ti-bell', 'sms': 'ti ti-message', 'discord': 'ti ti-brand-discord', 'discord_dm': 'ti ti-message-circle'}
-        icon = icon_map.get(notification_type, 'ti ti-bell')
+        if not target_users:
+            flash('No users with active push tokens match the selected target.', 'warning')
+            return redirect(url_for('admin_panel.send_push_notification_form'))
 
+        notifications_created = 0
         for user in target_users:
-            content = f"{title}: {body}"
-            notification_metadata = {
-                'action_url': action_url,
-                'badge_count': badge_count,
-                'sound': sound,
-                'original_type': notification_type
-            }
             notification = Notification(
                 user_id=user.id,
-                content=content,
-                notification_type=notification_type,
-                icon=icon,
-                priority=priority,
-                metadata=str(notification_metadata) if any(notification_metadata.values()) else None
+                content=f"{title}: {body}",
+                notification_type='push',
+                icon='ti ti-bell',
             )
             db.session.add(notification)
             notifications_created += 1
@@ -237,6 +269,36 @@ def send_push_notification_form():
         logger.error(f"Error sending push notification: {e}")
         flash('Failed to send notification. Check push service connectivity.', 'error')
         return render_template('admin_panel/communication/send_push_notification_flowbite.html')
+
+
+@admin_panel_bp.route('/communication/push-notifications/search-users')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def push_search_users():
+    """AJAX endpoint: search users with active push tokens."""
+    q = request.args.get('q', '').strip()
+    if len(q) < 2:
+        return jsonify([])
+
+    from app.models import Player
+    search = f'%{q}%'
+    users = User.query.join(UserFCMToken).filter(
+        UserFCMToken.is_active == True,
+        db.or_(
+            User.username.ilike(search),
+            User.email.ilike(search),
+        )
+    ).distinct().limit(15).all()
+
+    results = []
+    for u in users:
+        player = Player.query.filter_by(user_id=u.id).first()
+        results.append({
+            'id': u.id,
+            'username': u.username,
+            'name': player.name if player else u.username,
+        })
+    return jsonify(results)
 
 
 @admin_panel_bp.route('/communication/push-notifications/settings', methods=['GET', 'POST'])

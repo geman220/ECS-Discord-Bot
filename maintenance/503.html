@@ -364,8 +364,12 @@
         var IC_SPIN  = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0 1 10 10"/></svg>';
         var IC_DOT   = '<svg width="6" height="6" viewBox="0 0 6 6"><circle cx="3" cy="3" r="2" fill="currentColor" opacity=".35"/></svg>';
 
-        /* ── State ─────────────────────────────────────────────────── */
-        var t0   = Date.now();
+        /* ── State (persisted across refreshes) ────────────────────── */
+        var STORAGE_KEY = 'ecs_maint_start';
+        var stored = null;
+        try { stored = localStorage.getItem(STORAGE_KEY); } catch (e) {}
+        var t0 = stored ? parseInt(stored, 10) : Date.now();
+        if (!stored) { try { localStorage.setItem(STORAGE_KEY, t0); } catch (e) {} }
         var done = false;
 
         /* ── DOM shortcuts ─────────────────────────────────────────── */
@@ -468,6 +472,7 @@
         function ready() {
             if (done) return;
             done = true;
+            try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
 
             $('card').classList.add('ok');
             $('bar').style.width  = '100%';

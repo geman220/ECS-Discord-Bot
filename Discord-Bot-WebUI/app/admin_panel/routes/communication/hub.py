@@ -44,6 +44,11 @@ def communication_hub():
             Notification.created_at >= datetime.utcnow() - timedelta(days=7)
         ).count()
 
+        # Check if push notifications are enabled (use the feature toggle key the app reads)
+        from app.models.admin_config import AdminConfig
+        push_enabled_val = AdminConfig.get_setting('mobile_push_notifications', 'true')
+        push_notifications_enabled = str(push_enabled_val).lower() in ('true', '1', 'yes', 'on')
+
         stats = {
             'total_templates': total_templates,
             'total_categories': total_categories,
@@ -55,7 +60,9 @@ def communication_hub():
             'active_channels': 3  # Discord, Email, Push
         }
 
-        return render_template('admin_panel/communication_flowbite.html', stats=stats)
+        return render_template('admin_panel/communication_flowbite.html',
+                             stats=stats,
+                             push_notifications_enabled=push_notifications_enabled)
     except Exception as e:
         logger.error(f"Error loading communication hub: {e}")
         flash('Communication hub unavailable. Check database connectivity and message models.', 'error')
