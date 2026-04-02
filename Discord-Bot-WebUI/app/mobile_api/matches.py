@@ -51,12 +51,15 @@ def normalize_ecs_fc_match(match: EcsFcMatch, player: Player = None,
     Returns:
         Dict in the same format as Pub League match data
     """
-    # Build normalized match data
+    # Build normalized match data matching Pub League Match.to_dict() field names
+    # so the Flutter app can parse both types uniformly
+    has_scores = match.home_score is not None and match.away_score is not None
+
     match_data = {
         'id': match.id,
         'match_type': 'ecs_fc',  # Flag to distinguish from pub league
         'date': match.match_date.isoformat() if match.match_date else None,
-        'time': match.match_time.strftime('%H:%M') if match.match_time else None,
+        'time': match.match_time.isoformat() if match.match_time else None,
         'location': match.location,
         'latitude': match.latitude or 0.0,
         'longitude': match.longitude or 0.0,
@@ -68,19 +71,36 @@ def normalize_ecs_fc_match(match: EcsFcMatch, player: Player = None,
         'is_home_match': match.is_home_match,
         'home_shirt_color': match.home_shirt_color,
         'away_shirt_color': match.away_shirt_color,
-        # Scores
+        # Scores - use both field names for compatibility
         'home_score': match.home_score or 0,
         'away_score': match.away_score or 0,
-        # Team info (ECS FC matches have single team + opponent)
+        'home_team_score': match.home_score or 0,
+        'away_team_score': match.away_score or 0,
+        # Pub league compat fields (Flutter requires non-null team IDs; use 0 for external opponent)
+        'home_team_id': match.team_id if match.is_home_match else 0,
+        'away_team_id': match.team_id if not match.is_home_match else 0,
+        'reported': has_scores,
+        'home_team_verified': has_scores,
+        'away_team_verified': has_scores,
+        'fully_verified': has_scores,
+        'schedule_id': None,
+        'ref_id': None,
+        'week_type': 'REGULAR',
+        'is_special_week': False,
+        'is_playoff_game': False,
+        'playoff_round': None,
+        'version': 1,
+        'updated_at': None,
+        # Team info (ECS FC matches have single team + opponent; use 0 for external opponent ID)
         'home_team': {
-            'id': match.team.id,
+            'id': match.team.id if match.is_home_match else 0,
             'name': match.team.name if match.is_home_match else match.opponent_name,
-            'league_id': match.team.league_id
+            'league_id': match.team.league_id if match.is_home_match else None
         } if match.team else None,
         'away_team': {
-            'id': None,  # External opponent has no ID
+            'id': match.team.id if not match.is_home_match else 0,
             'name': match.opponent_name if match.is_home_match else match.team.name,
-            'league_id': None
+            'league_id': match.team.league_id if not match.is_home_match else None
         } if match.team else None,
         # For display purposes
         'team': {
