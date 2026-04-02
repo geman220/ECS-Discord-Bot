@@ -166,6 +166,7 @@ class CalendarSubscription(db.Model):
     include_team_matches = db.Column(db.Boolean, default=True, nullable=False)
     include_league_events = db.Column(db.Boolean, default=True, nullable=False)
     include_ref_assignments = db.Column(db.Boolean, default=True, nullable=False)
+    include_ecs_fc_matches = db.Column(db.Boolean, default=True, nullable=False)
 
     # Status and tracking
     is_active = db.Column(db.Boolean, default=True, nullable=False)
@@ -233,6 +234,7 @@ class CalendarSubscription(db.Model):
             'include_team_matches': self.include_team_matches,
             'include_league_events': self.include_league_events,
             'include_ref_assignments': self.include_ref_assignments,
+            'include_ecs_fc_matches': self.include_ecs_fc_matches,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'last_accessed': self.last_accessed.isoformat() if self.last_accessed else None,

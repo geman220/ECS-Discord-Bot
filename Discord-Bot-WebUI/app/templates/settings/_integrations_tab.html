@@ -105,6 +105,10 @@
                                 <i class="ti ti-brand-google"></i>
                                 Google
                             </button>
+                            <button type="button" class="c-settings-btn c-settings-btn--secondary c-settings-btn--sm" id="subscribeOutlook" data-action="subscribe-outlook">
+                                <i class="ti ti-brand-windows"></i>
+                                Outlook
+                            </button>
                         </div>
 
                         <div class="c-settings-field mb-3">
@@ -120,6 +124,12 @@
                                     <label class="d-flex align-items-center gap-2 cursor-pointer">
                                         <input class="c-notification-switch__input" type="checkbox" id="subIncludeLeagueEvents" checked data-on-change="update-calendar-preferences">
                                         <span class="c-settings-field__help c-settings-field__help--inline">League Events</span>
+                                    </label>
+                                </div>
+                                <div class="c-notification-switch mb-2" data-component="notification-switch">
+                                    <label class="d-flex align-items-center gap-2 cursor-pointer">
+                                        <input class="c-notification-switch__input" type="checkbox" id="subIncludeEcsFcMatches" checked data-on-change="update-calendar-preferences">
+                                        <span class="c-settings-field__help c-settings-field__help--inline">ECS FC Matches</span>
                                     </label>
                                 </div>
                                 {% if is_referee %}

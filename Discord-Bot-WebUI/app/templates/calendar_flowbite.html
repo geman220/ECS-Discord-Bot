@@ -286,6 +286,15 @@
                         </div>
                     </div>
 
+                    <!-- List view controls (shown only in list view) -->
+                    <div id="listViewControls" class="hidden mb-3">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="showPastEventsToggle" class="sr-only peer">
+                            <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-ecs-green rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:after:border-gray-600 peer-checked:bg-ecs-green dark:peer-checked:bg-green-600"></div>
+                            <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">Show past events</span>
+                        </label>
+                    </div>
+
                     <!-- Schedule content will be loaded here dynamically -->
                     <div id="scheduleContent">
                         <div class="flex flex-col items-center justify-center py-12">
@@ -642,13 +651,23 @@
     </div>
 </div>
 <!-- Custom footer with conditional button -->
-<div class="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700">
-    <button type="button" data-modal-hide="matchDetailsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 modal-close-btn">Close</button>
-    {% if can_assign_referee %}
-    <button type="button" id="openAssignRefBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
-        <i class="ti ti-user-check mr-2"></i> Assign Referee
-    </button>
-    {% endif %}
+<div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700">
+    <div class="flex gap-2">
+        <a id="matchDownloadIcs" href="#" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600" title="Download .ics file">
+            <i class="ti ti-calendar-down mr-1"></i><span class="hidden sm:inline">Add to Calendar</span><span class="sm:hidden">.ics</span>
+        </a>
+        <a id="matchAddToGoogle" href="#" target="_blank" rel="noopener" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600" title="Add to Google Calendar">
+            <i class="ti ti-brand-google mr-1"></i><span class="hidden sm:inline">Google</span>
+        </a>
+    </div>
+    <div class="flex gap-2">
+        <button type="button" data-modal-hide="matchDetailsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 modal-close-btn">Close</button>
+        {% if can_assign_referee %}
+        <button type="button" id="openAssignRefBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
+            <i class="ti ti-user-check mr-2"></i> Assign Referee
+        </button>
+        {% endif %}
+    </div>
 </div>
 {% endcall %}
 
@@ -681,21 +700,31 @@
     </div>
 </div>
 <!-- Custom footer with edit/delete buttons -->
-<div class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 -mx-4 md:-mx-5 -mb-4 mt-4">
-    {% if can_edit_events %}
-    <button type="button" id="deleteLeagueEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-600">
-        <i class="ti ti-trash mr-2"></i> Delete
-    </button>
-    {% else %}
-    <div></div>
-    {% endif %}
+<div class="flex flex-col gap-3 p-4 border-t border-gray-200 dark:border-gray-700 -mx-4 md:-mx-5 -mb-4 mt-4">
     <div class="flex gap-2">
-        <button type="button" data-modal-hide="leagueEventDetailsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 modal-close-btn">Close</button>
+        <a id="leagueEventDownloadIcs" href="#" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600" title="Download .ics file">
+            <i class="ti ti-calendar-down mr-1"></i><span class="hidden sm:inline">Add to Calendar</span><span class="sm:hidden">.ics</span>
+        </a>
+        <a id="leagueEventAddToGoogle" href="#" target="_blank" rel="noopener" class="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600" title="Add to Google Calendar">
+            <i class="ti ti-brand-google mr-1"></i><span class="hidden sm:inline">Google</span>
+        </a>
+    </div>
+    <div class="flex items-center justify-between">
         {% if can_edit_events %}
-        <button type="button" id="editLeagueEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
-            <i class="ti ti-edit mr-2"></i> Edit
+        <button type="button" id="deleteLeagueEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:border-red-500 dark:text-red-400 dark:hover:bg-gray-600">
+            <i class="ti ti-trash mr-2"></i> Delete
         </button>
+        {% else %}
+        <div></div>
         {% endif %}
+        <div class="flex gap-2">
+            <button type="button" data-modal-hide="leagueEventDetailsModal" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 modal-close-btn">Close</button>
+            {% if can_edit_events %}
+            <button type="button" id="editLeagueEventBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-green-800 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800">
+                <i class="ti ti-edit mr-2"></i> Edit
+            </button>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endcall %}
@@ -1033,13 +1062,31 @@ document.addEventListener('DOMContentLoaded', () => {
     updateViewButtonStyles(currentView);
 
     // View toggle click handlers
+    const listViewControls = document.getElementById('listViewControls');
     viewButtons.forEach(btn => {
         btn.addEventListener('click', function() {
             currentView = this.dataset.view;
             updateViewButtonStyles(currentView);
+            if (listViewControls) {
+                listViewControls.classList.toggle('hidden', currentView !== 'list');
+            }
             renderSchedule();
         });
     });
+
+    // Show list view controls if list is the initial view
+    if (listViewControls && currentView === 'list') {
+        listViewControls.classList.remove('hidden');
+    }
+
+    // Past events toggle
+    const showPastToggle = document.getElementById('showPastEventsToggle');
+    if (showPastToggle) {
+        showPastToggle.addEventListener('change', () => {
+            resetListPagination();
+            renderListView();
+        });
+    }
 
     // Set default year for CSV import to current year
     const importYearInput = document.getElementById('importYear');
@@ -1677,18 +1724,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const scheduleContent = document.getElementById('scheduleContent');
         if (!scheduleContent) return;
 
-        const now = new Date();
-        now.setHours(0, 0, 0, 0); // Start of today
+        const showPast = document.getElementById('showPastEventsToggle')?.checked ?? false;
 
-        // Filter to only upcoming events (today or future)
-        const upcomingEvents = currentViewEvents.filter(event => {
-            const eventDate = new Date(event.start);
-            eventDate.setHours(0, 0, 0, 0);
-            return eventDate >= now;
-        });
+        let filteredEvents;
+        if (showPast) {
+            // Show all events
+            filteredEvents = currentViewEvents;
+        } else {
+            // Filter to only upcoming events (today or future)
+            const now = new Date();
+            now.setHours(0, 0, 0, 0);
+            filteredEvents = currentViewEvents.filter(event => {
+                const eventDate = new Date(event.start);
+                eventDate.setHours(0, 0, 0, 0);
+                return eventDate >= now;
+            });
+        }
 
         // Sort by date ascending
-        const sortedEvents = [...upcomingEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+        const sortedEvents = [...filteredEvents].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 
         // Paginate
         const totalEvents = sortedEvents.length;
@@ -1709,8 +1763,8 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `
                 <div class="empty-state py-12">
                     <i class="ti ti-calendar-check empty-state-icon text-4xl text-gray-400 mb-3"></i>
-                    <h5 class="empty-state-text text-gray-500 dark:text-gray-400">No upcoming events</h5>
-                    <p class="empty-state-subtext text-gray-400 dark:text-gray-500">All caught up! Check back later for new events.</p>
+                    <h5 class="empty-state-text text-gray-500 dark:text-gray-400">${showPast ? 'No events found' : 'No upcoming events'}</h5>
+                    <p class="empty-state-subtext text-gray-400 dark:text-gray-500">${showPast ? 'No events match your current filters.' : 'All caught up! Check back later for new events.'}</p>
                 </div>
             `;
         } else {
@@ -1834,7 +1888,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="match-item p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow cursor-pointer ${assignmentClass}" data-event-id="${event.id}" data-event-type="${event.type || 'match'}">
                 <div class="flex justify-between items-center mb-3">
                     <span class="px-2 py-0.5 text-xs font-medium text-white ${divisionBadgeClass} rounded-full">${event.division}</span>
-                    <span class="text-sm text-gray-500 dark:text-gray-400"><i class="ti ti-map-pin mr-1"></i>${event.location}</span>
+                    <div class="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                        ${event.time ? `<span><i class="ti ti-clock mr-1"></i>${event.time}</span>` : ''}
+                        <span><i class="ti ti-map-pin mr-1"></i>${event.location}</span>
+                    </div>
                 </div>
                 <div class="match-teams mb-3">
                     <div class="home-team text-gray-900 dark:text-white">${event.homeTeam}</div>
@@ -1971,6 +2028,42 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.innerHTML = html ?? '';
     }
 
+    // Build a Google Calendar "Add Event" URL from event data
+    function buildGoogleCalendarUrl(title, startDate, endDate, location, description) {
+        const fmt = (d) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+        const params = new URLSearchParams({
+            action: 'TEMPLATE',
+            text: title,
+            dates: `${fmt(startDate)}/${fmt(endDate)}`,
+        });
+        if (location) params.set('location', location);
+        if (description) params.set('details', description);
+        return `https://calendar.google.com/calendar/render?${params.toString()}`;
+    }
+
+    // Populate the "Add to Calendar" links for a match or league event modal
+    function updateAddToCalendarLinks(event, icsLinkId, googleLinkId) {
+        const eventType = event.type === 'ecs_fc' || event.type === 'ecs_fc_match' ? 'ecs_fc_match' :
+                          event.type === 'league_event' ? 'league_event' : 'match';
+        const eventId = event.id;
+
+        // .ics download link
+        const icsLink = document.getElementById(icsLinkId);
+        if (icsLink) {
+            icsLink.href = `/api/calendar/event/${eventType}/${eventId}.ics`;
+        }
+
+        // Google Calendar link
+        const googleLink = document.getElementById(googleLinkId);
+        if (googleLink) {
+            const startDate = event.date || new Date(event.start);
+            const endDate = event.end ? new Date(event.end) : new Date(startDate.getTime() + 90 * 60000);
+            const title = event.teams || event.title || '';
+            const location = event.location || '';
+            googleLink.href = buildGoogleCalendarUrl(title, startDate, endDate, location, '');
+        }
+    }
+
     function showMatchDetailsModal(event) {
         setElementText('detailHomeTeam', event.homeTeam);
         setElementText('detailAwayTeam', event.awayTeam);
@@ -2004,6 +2097,9 @@ document.addEventListener('DOMContentLoaded', () => {
             openAssignRefBtnTop.parentNode?.replaceChild(newBtn, openAssignRefBtnTop);
             newBtn.addEventListener('click', handleAssignRef);
         }
+        // Populate Add to Calendar links
+        updateAddToCalendarLinks(event, 'matchDownloadIcs', 'matchAddToGoogle');
+
         window.ModalManager?.show('matchDetailsModal');
     }
 
@@ -2140,6 +2236,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+
+        // Populate Add to Calendar links
+        updateAddToCalendarLinks(event, 'leagueEventDownloadIcs', 'leagueEventAddToGoogle');
 
         window.ModalManager.show('leagueEventDetailsModal');
     }

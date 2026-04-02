@@ -97,6 +97,11 @@ function renderSubscription() {
         googleBtn.dataset.feedUrl = feedUrl;
     }
 
+    const outlookBtn = document.getElementById('subscribeOutlook');
+    if (outlookBtn && feedUrl) {
+        outlookBtn.dataset.feedUrl = feedUrl;
+    }
+
     // Update preference toggles
     const includeMatches = document.getElementById('subIncludeMatches');
     if (includeMatches) {
@@ -111,6 +116,11 @@ function renderSubscription() {
     const includeRefAssignments = document.getElementById('subIncludeRefAssignments');
     if (includeRefAssignments) {
         includeRefAssignments.checked = subscription.include_ref_assignments !== false;
+    }
+
+    const includeEcsFcMatches = document.getElementById('subIncludeEcsFcMatches');
+    if (includeEcsFcMatches) {
+        includeEcsFcMatches.checked = subscription.include_ecs_fc_matches !== false;
     }
 
     // Update stats
@@ -228,10 +238,11 @@ function getCardHTML(options = {}) {
                                 data-action="subscribe-google">
                             <i class="ti ti-brand-google u-me-1"></i>Google Calendar
                         </button>
+                        <button type="button" class="js-subscribe-outlook u-btn u-btn-outline-secondary" id="subscribeOutlook"
+                                data-action="subscribe-outlook">
+                            <i class="ti ti-brand-windows u-me-1"></i>Outlook
+                        </button>
                     </div>
-                    <small class="u-text-muted u-block u-mt-2">
-                        For Outlook: Copy the URL above and add it as a subscription calendar.
-                    </small>
                 </div>
 
                 <!-- Preferences -->
@@ -249,6 +260,13 @@ function getCardHTML(options = {}) {
                                data-on-change="update-calendar-preferences">
                         <label class="u-form-check-label" for="subIncludeLeagueEvents">
                             <i class="ti ti-calendar-event u-me-1"></i>League Events
+                        </label>
+                    </div>
+                    <div class="u-form-check u-form-switch u-mb-2">
+                        <input class="u-form-check-input" type="checkbox" id="subIncludeEcsFcMatches" checked
+                               data-on-change="update-calendar-preferences">
+                        <label class="u-form-check-label" for="subIncludeEcsFcMatches">
+                            <i class="ti ti-shield u-me-1"></i>ECS FC Matches
                         </label>
                     </div>
                     ${isReferee ? `

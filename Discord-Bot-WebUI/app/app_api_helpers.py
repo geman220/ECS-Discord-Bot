@@ -19,7 +19,7 @@ import base64
 import hashlib
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, date
 from typing import Any, Dict, List, Optional, Tuple
 
 # Third-party imports
@@ -479,16 +479,16 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
                 or_(Match.home_team_id == player.primary_team_id, Match.away_team_id == player.primary_team_id)
             )
 
-    # Filter by match date
-    current_time = datetime.utcnow()
-    
+    # Filter by match date (compare date to date, not date to datetime)
+    today = date.today()
+
     if upcoming:
-        query = query.filter(Match.date >= current_time)
+        query = query.filter(Match.date >= today)
     elif completed:
         query = query.filter(
             or_(
-                Match.date < current_time,
-                and_(Match.home_team_score.isnot(None), Match.away_team_score.isnot(None))
+                Match.date < today,
+                and_(Match.date == today, Match.home_team_score.isnot(None), Match.away_team_score.isnot(None))
             )
         )
 

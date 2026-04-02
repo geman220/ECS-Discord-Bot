@@ -177,7 +177,7 @@ def query_ecs_fc_matches(session, team_ids: list, upcoming: bool = False,
         query = query.filter(
             or_(
                 EcsFcMatch.match_date < today,
-                and_(EcsFcMatch.home_score.isnot(None), EcsFcMatch.away_score.isnot(None))
+                and_(EcsFcMatch.match_date == today, EcsFcMatch.home_score.isnot(None), EcsFcMatch.away_score.isnot(None))
             )
         )
         query = query.order_by(EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc())
@@ -262,8 +262,8 @@ def get_all_matches():
         pub_league_team_ids = []
         team_is_ecs_fc = False
 
-        if team_id:
-            # Check if specific team is ECS FC using the current session
+        if team_id and not all_teams:
+            # Single team mode: only classify the requested team
             team_is_ecs_fc = check_is_ecs_fc_team(session_db, team_id)
             if team_is_ecs_fc:
                 ecs_fc_team_ids = [team_id]
@@ -272,7 +272,7 @@ def get_all_matches():
                 pub_league_team_ids = [team_id]
                 logger.info(f"Team {team_id} is Pub League team")
         elif player and player.teams:
-            # Separate player's teams into ECS FC and Pub League
+            # all_teams mode or no team_id: classify ALL player teams
             for team in player.teams:
                 if team.league and 'ECS FC' in team.league.name:
                     ecs_fc_team_ids.append(team.id)

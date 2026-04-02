@@ -133,6 +133,24 @@ window.EventDelegation.register('subscribe-google', function(element, e) {
 });
 
 /**
+ * Subscribe via Outlook Action
+ * Opens Outlook web calendar subscription page in new tab
+ */
+window.EventDelegation.register('subscribe-outlook', function(element, e) {
+    e.preventDefault();
+
+    const feedUrl = element.dataset.feedUrl;
+
+    if (!feedUrl) {
+        showCalendarToast('warning', 'Subscription URL not available');
+        return;
+    }
+
+    const outlookUrl = 'https://outlook.live.com/calendar/0/addfromweb?url=' + encodeURIComponent(feedUrl);
+    window.open(outlookUrl, '_blank');
+});
+
+/**
  * Update Calendar Preferences Action
  * Updates subscription preferences (which events to include)
  * Triggered by change events on preference checkboxes
@@ -141,7 +159,8 @@ window.EventDelegation.register('update-calendar-preferences', async function(el
     const preferences = {
         include_team_matches: document.getElementById('subIncludeMatches')?.checked ?? true,
         include_league_events: document.getElementById('subIncludeLeagueEvents')?.checked ?? true,
-        include_ref_assignments: document.getElementById('subIncludeRefAssignments')?.checked ?? true
+        include_ref_assignments: document.getElementById('subIncludeRefAssignments')?.checked ?? true,
+        include_ecs_fc_matches: document.getElementById('subIncludeEcsFcMatches')?.checked ?? true
     };
 
     try {

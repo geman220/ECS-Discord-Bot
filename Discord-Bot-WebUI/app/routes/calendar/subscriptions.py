@@ -159,7 +159,8 @@ def update_preferences():
             user_id=current_user.id,
             include_team_matches=data.get('include_team_matches'),
             include_league_events=data.get('include_league_events'),
-            include_ref_assignments=data.get('include_ref_assignments')
+            include_ref_assignments=data.get('include_ref_assignments'),
+            include_ecs_fc_matches=data.get('include_ecs_fc_matches')
         )
 
         if not result.success:
@@ -234,6 +235,45 @@ def serve_ical_feed(token):
             status=500,
             mimetype='text/plain'
         )
+
+
+@subscriptions_bp.route('/event/<event_type>/<int:event_id>.ics', methods=['GET'])
+@login_required
+def download_single_event(event_type, event_id):
+    """
+    Download a single event as an .ics file.
+
+    Allows users to add individual events to their personal calendar
+    without subscribing to the full feed.
+
+    Args:
+        event_type: 'match', 'league_event', or 'ecs_fc_match'
+        event_id: The event's database ID
+
+    Returns:
+        iCalendar file download
+    """
+    try:
+        valid_types = {'match', 'league_event', 'ecs_fc_match'}
+        if event_type not in valid_types:
+            return Response('Invalid event type', status=400, mimetype='text/plain')
+
+        ical_generator = create_ical_generator(g.db_session)
+        ical_content = ical_generator.generate_single_event(event_type, event_id)
+
+        if not ical_content:
+            return Response('Event not found', status=404, mimetype='text/plain')
+
+        response = make_response(ical_content)
+        response.headers['Content-Type'] = 'text/calendar; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename="{event_type}-{event_id}.ics"'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error generating single event iCal: {e}", exc_info=True)
+        return Response('Error generating calendar event', status=500, mimetype='text/plain')
 
 
 @subscriptions_bp.route('/subscription/deactivate', methods=['POST'])

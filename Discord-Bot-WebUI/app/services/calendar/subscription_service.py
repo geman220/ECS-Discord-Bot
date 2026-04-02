@@ -165,7 +165,8 @@ class SubscriptionService(BaseService):
         user_id: int,
         include_team_matches: Optional[bool] = None,
         include_league_events: Optional[bool] = None,
-        include_ref_assignments: Optional[bool] = None
+        include_ref_assignments: Optional[bool] = None,
+        include_ecs_fc_matches: Optional[bool] = None
     ) -> ServiceResult[CalendarSubscription]:
         """
         Update subscription preferences.
@@ -175,6 +176,7 @@ class SubscriptionService(BaseService):
             include_team_matches: Whether to include team matches
             include_league_events: Whether to include league events
             include_ref_assignments: Whether to include ref assignments
+            include_ecs_fc_matches: Whether to include ECS FC matches
 
         Returns:
             ServiceResult containing the updated CalendarSubscription
@@ -198,6 +200,9 @@ class SubscriptionService(BaseService):
 
             if include_ref_assignments is not None:
                 subscription.include_ref_assignments = include_ref_assignments
+
+            if include_ecs_fc_matches is not None:
+                subscription.include_ecs_fc_matches = include_ecs_fc_matches
 
             self._commit()
 

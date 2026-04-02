@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.models import (
     User, Player, Match, LeagueEvent, CalendarSubscription
 )
+from app.models.ecs_fc import EcsFcMatch
 
 logger = logging.getLogger(__name__)
 
@@ -90,6 +91,9 @@ class ICalGenerator:
             if subscription.include_league_events:
                 self._add_league_events(cal, user, start_date, end_date)
 
+            if getattr(subscription, 'include_ecs_fc_matches', True):
+                self._add_ecs_fc_matches(cal, user, start_date, end_date)
+
             return cal.to_ical().decode('utf-8')
 
         except ImportError:
@@ -123,8 +127,11 @@ class ICalGenerator:
         cal.add('x-wr-calname', f'ECS FC - {user.username}')
         cal.add('x-wr-caldesc', 'Your personalized ECS FC schedule')
 
-        # Timezone
+        # Timezone (keep X-WR-TIMEZONE for backward compatibility)
         cal.add('x-wr-timezone', TIMEZONE)
+
+        # Add VTIMEZONE component for RFC 5545 compliance
+        cal.add_component(self._create_vtimezone())
 
         # Refresh interval (RFC 7986)
         # Format: PT{minutes}M for duration
@@ -134,6 +141,39 @@ class ICalGenerator:
         cal.add('x-apple-calendar-color', '#1E88E5')
 
         return cal
+
+    @staticmethod
+    def _create_vtimezone() -> 'Timezone':
+        """
+        Create a VTIMEZONE component for America/Los_Angeles.
+
+        Includes both STANDARD (PST, UTC-8) and DAYLIGHT (PDT, UTC-7)
+        sub-components with US DST transition rules.
+        """
+        from icalendar import Timezone, TimezoneDaylight, TimezoneStandard
+
+        tz = Timezone()
+        tz.add('tzid', TIMEZONE)
+
+        # Daylight saving time (PDT): 2nd Sunday in March at 2:00 AM
+        daylight = TimezoneDaylight()
+        daylight.add('dtstart', datetime(1970, 3, 8, 2, 0, 0))
+        daylight.add('rrule', {'freq': 'yearly', 'bymonth': 3, 'byday': '2SU'})
+        daylight.add('tzoffsetfrom', timedelta(hours=-8))
+        daylight.add('tzoffsetto', timedelta(hours=-7))
+        daylight.add('tzname', 'PDT')
+        tz.add_component(daylight)
+
+        # Standard time (PST): 1st Sunday in November at 2:00 AM
+        standard = TimezoneStandard()
+        standard.add('dtstart', datetime(1970, 11, 1, 2, 0, 0))
+        standard.add('rrule', {'freq': 'yearly', 'bymonth': 11, 'byday': '1SU'})
+        standard.add('tzoffsetfrom', timedelta(hours=-7))
+        standard.add('tzoffsetto', timedelta(hours=-8))
+        standard.add('tzname', 'PST')
+        tz.add_component(standard)
+
+        return tz
 
     def _add_team_matches(
         self,
@@ -268,6 +308,41 @@ class ICalGenerator:
             event = self._league_event_to_event(league_event)
             cal.add_component(event)
 
+    def _add_ecs_fc_matches(
+        self,
+        cal: 'Calendar',
+        user: User,
+        start_date: datetime,
+        end_date: datetime
+    ) -> None:
+        """
+        Add ECS FC matches to the calendar.
+
+        Args:
+            cal: The calendar to add events to
+            user: The user
+            start_date: Start of date range
+            end_date: End of date range
+        """
+        player = user.player if hasattr(user, 'player') else None
+        if not player or not player.teams:
+            return
+
+        team_ids = [team.id for team in player.teams]
+
+        matches = self.session.query(EcsFcMatch).options(
+            joinedload(EcsFcMatch.team)
+        ).filter(
+            EcsFcMatch.match_date >= start_date.date(),
+            EcsFcMatch.match_date <= end_date.date(),
+            EcsFcMatch.team_id.in_(team_ids),
+            EcsFcMatch.status != 'CANCELLED'
+        ).order_by(EcsFcMatch.match_date, EcsFcMatch.match_time).all()
+
+        for match in matches:
+            event = self._ecs_fc_match_to_event(match)
+            cal.add_component(event)
+
     def _match_to_event(
         self,
         match: Match,
@@ -354,6 +429,9 @@ class ICalGenerator:
         if match.updated_at:
             event.add('last-modified', match.updated_at)
 
+        # Reminders: 1 day before and 2 hours before
+        self._add_alarms(event, [timedelta(days=1), timedelta(hours=2)])
+
         return event
 
     def _league_event_to_event(self, league_event: LeagueEvent) -> 'Event':
@@ -416,7 +494,167 @@ class ICalGenerator:
         if league_event.updated_at:
             event.add('last-modified', league_event.updated_at)
 
+        # Reminders: use model fields if set, otherwise default 1 day before
+        if league_event.send_reminder and league_event.reminder_days_before:
+            self._add_alarms(event, [timedelta(days=league_event.reminder_days_before)])
+        else:
+            self._add_alarms(event, [timedelta(days=1)])
+
         return event
+
+    def generate_single_event(self, event_type: str, event_id: int) -> Optional[str]:
+        """
+        Generate an iCal file containing a single event.
+
+        Args:
+            event_type: 'match', 'league_event', or 'ecs_fc_match'
+            event_id: The event's database ID
+
+        Returns:
+            iCalendar formatted string, or None if event not found
+        """
+        try:
+            from icalendar import Calendar
+
+            cal = Calendar()
+            cal.add('prodid', '-//ECS FC//Pub League Calendar//EN')
+            cal.add('version', '2.0')
+            cal.add('calscale', 'GREGORIAN')
+            cal.add('method', 'PUBLISH')
+            cal.add('x-wr-timezone', TIMEZONE)
+
+            if event_type == 'match':
+                match = self.session.query(Match).options(
+                    joinedload(Match.home_team),
+                    joinedload(Match.away_team),
+                    joinedload(Match.ref)
+                ).get(event_id)
+                if not match:
+                    return None
+                event = self._match_to_event(match, player=None, is_ref_assignment=False)
+                cal.add_component(event)
+
+            elif event_type == 'league_event':
+                league_event = self.session.query(LeagueEvent).get(event_id)
+                if not league_event:
+                    return None
+                event = self._league_event_to_event(league_event)
+                cal.add_component(event)
+
+            elif event_type == 'ecs_fc_match':
+                ecs_match = self.session.query(EcsFcMatch).options(
+                    joinedload(EcsFcMatch.team)
+                ).get(event_id)
+                if not ecs_match:
+                    return None
+                event = self._ecs_fc_match_to_event(ecs_match)
+                cal.add_component(event)
+
+            else:
+                return None
+
+            return cal.to_ical().decode('utf-8')
+
+        except ImportError:
+            logger.error("icalendar package not installed")
+            return None
+        except Exception as e:
+            logger.error(f"Error generating single event iCal: {e}", exc_info=True)
+            return None
+
+    def _ecs_fc_match_to_event(self, match: EcsFcMatch) -> 'Event':
+        """
+        Convert an EcsFcMatch to an iCal Event.
+
+        Args:
+            match: The ECS FC match to convert
+
+        Returns:
+            icalendar.Event object
+        """
+        from icalendar import Event
+
+        event = Event()
+
+        team_name = match.team.name if match.team else 'Unknown'
+        opponent = match.opponent_name or 'TBD'
+
+        event.add('uid', f'ecs-fc-match-{match.id}@ecsfc.com')
+
+        if match.status == 'BYE':
+            event.add('summary', f'{team_name} - Bye Week')
+        else:
+            event.add('summary', f'{team_name} vs {opponent}')
+
+        # Date/time
+        start_dt = datetime.combine(match.match_date, match.match_time)
+        event.add('dtstart', start_dt)
+        event.add('dtend', start_dt + timedelta(minutes=90))
+
+        # Location
+        location_parts = []
+        if match.location:
+            location_parts.append(match.location)
+        if match.field_name:
+            location_parts.append(match.field_name)
+        if location_parts:
+            event.add('location', ', '.join(location_parts))
+
+        # Description
+        description_parts = [f'ECS FC Match: {team_name} vs {opponent}']
+        if match.is_home_match is not None:
+            description_parts.append(f'{"Home" if match.is_home_match else "Away"} match')
+        if match.location:
+            description_parts.append(f'Location: {match.location}')
+        if match.field_name:
+            description_parts.append(f'Field: {match.field_name}')
+        if match.notes:
+            description_parts.append(f'Notes: {match.notes}')
+        if match.home_shirt_color or match.away_shirt_color:
+            description_parts.append(f'Kit: Home {match.home_shirt_color or "TBD"} / Away {match.away_shirt_color or "TBD"}')
+
+        event.add('description', '\n'.join(description_parts))
+
+        # Categories
+        event.add('categories', ['ECS FC', 'Match'])
+
+        # Status mapping
+        status_map = {
+            'SCHEDULED': 'TENTATIVE',
+            'IN_PROGRESS': 'CONFIRMED',
+            'COMPLETED': 'CONFIRMED',
+            'CANCELLED': 'CANCELLED',
+            'POSTPONED': 'TENTATIVE',
+            'BYE': 'CONFIRMED',
+        }
+        event.add('status', status_map.get(match.status, 'TENTATIVE'))
+
+        # Timestamps
+        event.add('dtstamp', datetime.utcnow())
+        if match.updated_at:
+            event.add('last-modified', match.updated_at)
+
+        # Reminders: 1 day before and 2 hours before
+        self._add_alarms(event, [timedelta(days=1), timedelta(hours=2)])
+
+        return event
+
+    def _add_alarms(self, event: 'Event', triggers: List[timedelta]) -> None:
+        """
+        Add VALARM reminder components to an event.
+
+        Args:
+            event: The iCal event to add alarms to
+            triggers: List of timedelta values for how long before the event to trigger
+        """
+        from icalendar import Alarm
+
+        for trigger in triggers:
+            alarm = Alarm()
+            alarm.add('action', 'DISPLAY')
+            alarm.add('trigger', -trigger)
+            alarm.add('description', event.get('summary', 'Event reminder'))
+            event.add_component(alarm)
 
     def _create_error_feed(self, message: str) -> str:
         """
