@@ -130,6 +130,7 @@ def create_substitute_request():
 
     match_id = data.get('match_id')
     team_id = data.get('team_id')
+    league_type = data.get('league_type', '')
     positions_needed = data.get('positions_needed', '')
     substitutes_needed = data.get('substitutes_needed', 1)
     gender_preference = data.get('gender_preference')
@@ -178,11 +179,19 @@ def create_substitute_request():
                 "existing_request_id": existing.id
             }), 400
 
+        # Resolve league_type from team if not provided by client
+        if not league_type:
+            team_obj = session.query(Team).options(
+                joinedload(Team.league)
+            ).get(team_id)
+            league_type = team_obj.league.name if team_obj and team_obj.league else 'Premier'
+
         # Create the request
         sub_request = SubstituteRequest(
             match_id=match_id,
             team_id=team_id,
             requested_by=current_user_id,
+            league_type=league_type,
             positions_needed=positions_needed,
             substitutes_needed=substitutes_needed,
             gender_preference=gender_preference,

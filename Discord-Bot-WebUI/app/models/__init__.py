@@ -107,9 +107,12 @@ from .predictions import (
 )
 
 from .league_features import (
-    SubRequest, LeaguePoll, LeaguePollResponse, LeaguePollDiscordMessage,
+    LeaguePoll, LeaguePollResponse, LeaguePollDiscordMessage,
     DraftOrderHistory, MessageCategory, MessageTemplate, LeagueSetting
 )
+
+# Backward-compat alias: legacy SubRequest is now SubstituteRequest
+SubRequest = SubstituteRequest
 
 from .ispy import (
     ISpySeason, ISpyCategory, ISpyShot, ISpyShotTarget, ISpyCooldown,
@@ -253,7 +256,8 @@ __all__ = [
     'DraftSeason', 'DraftPrediction', 'DraftPredictionSummary',
     
     # League features models
-    'SubRequest', 'LeaguePoll', 'LeaguePollResponse', 'LeaguePollDiscordMessage',
+    'SubRequest',  # backward-compat alias for SubstituteRequest
+    'LeaguePoll', 'LeaguePollResponse', 'LeaguePollDiscordMessage',
     'DraftOrderHistory', 'MessageCategory', 'MessageTemplate', 'LeagueSetting',
     
     # I-Spy models

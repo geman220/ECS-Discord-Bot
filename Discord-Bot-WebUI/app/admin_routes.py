@@ -67,7 +67,7 @@ from app.models import (
     Role, Permission, MLSMatch, ScheduledMessage,
     Announcement, Team, Match,
     Player, Availability, User, Schedule, Season, League,
-    TemporarySubAssignment, SubRequest, LeaguePoll, 
+    TemporarySubAssignment, LeaguePoll,
     LeaguePollResponse, LeaguePollDiscordMessage, player_teams
 )
 from app.utils.task_monitor import get_task_info

@@ -36,7 +36,7 @@
                 </div>
                 <div>
                     <h5 class="text-sm text-gray-500 dark:text-gray-400">Pending Requests</h5>
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sub_requests|selectattr('status', 'equalto', 'PENDING')|list|length }}</h3>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sub_requests|selectattr('status', 'equalto', 'OPEN')|list|length }}</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400">Awaiting action</p>
                 </div>
             </div>
@@ -48,7 +48,7 @@
                 </div>
                 <div>
                     <h5 class="text-sm text-gray-500 dark:text-gray-400">Approved</h5>
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sub_requests|selectattr('status', 'equalto', 'APPROVED')|list|length }}</h3>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sub_requests|selectattr('status', 'equalto', 'OPEN')|list|length }}</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400">Need assignment</p>
                 </div>
             </div>
@@ -60,7 +60,7 @@
                 </div>
                 <div>
                     <h5 class="text-sm text-gray-500 dark:text-gray-400">Fulfilled</h5>
-                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sub_requests|selectattr('status', 'equalto', 'FULFILLED')|list|length }}</h3>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ sub_requests|selectattr('status', 'equalto', 'FILLED')|list|length }}</h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400">Completed requests</p>
                 </div>
             </div>
@@ -140,9 +140,9 @@
                             {% if match.home_team_id in requested_teams_by_match[match.id] %}
                                 {% set req = requested_teams_by_match[match.id][match.home_team_id] %}
                                 <span class="px-2 py-1 text-xs font-medium rounded-full
-                                    {% if req.status == 'PENDING' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
-                                    {% elif req.status == 'APPROVED' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400
-                                    {% elif req.status == 'FULFILLED' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
+                                    {% if req.status == 'OPEN' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
+                                    {% elif req.status == 'OPEN' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400
+                                    {% elif req.status == 'FILLED' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
                                     {% else %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400{% endif %}">
                                     {{ req.status }} ({{ req.substitutes_needed }})
                                 </span>
@@ -156,9 +156,9 @@
                             {% if match.away_team_id in requested_teams_by_match[match.id] %}
                                 {% set req = requested_teams_by_match[match.id][match.away_team_id] %}
                                 <span class="px-2 py-1 text-xs font-medium rounded-full
-                                    {% if req.status == 'PENDING' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
-                                    {% elif req.status == 'APPROVED' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400
-                                    {% elif req.status == 'FULFILLED' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
+                                    {% if req.status == 'OPEN' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
+                                    {% elif req.status == 'OPEN' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400
+                                    {% elif req.status == 'FILLED' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
                                     {% else %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400{% endif %}">
                                     {{ req.status }} ({{ req.substitutes_needed }})
                                 </span>
@@ -175,12 +175,12 @@
                         </a>
                         {% set home_req = requested_teams_by_match[match.id][match.home_team_id] if match.home_team_id in requested_teams_by_match[match.id] else None %}
                         {% set away_req = requested_teams_by_match[match.id][match.away_team_id] if match.away_team_id in requested_teams_by_match[match.id] else None %}
-                        {% if home_req and home_req.status == 'PENDING' %}
+                        {% if home_req and home_req.status == 'OPEN' %}
                         <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-modal-toggle="fulfillModal{{ home_req.id }}">
                             <i class="ti ti-user-plus mr-1"></i>Home Sub
                         </button>
                         {% endif %}
-                        {% if away_req and away_req.status == 'PENDING' %}
+                        {% if away_req and away_req.status == 'OPEN' %}
                         <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-modal-toggle="fulfillModal{{ away_req.id }}">
                             <i class="ti ti-user-plus mr-1"></i>Away Sub
                         </button>
@@ -207,7 +207,7 @@
             </h5>
         </div>
         <div class="p-4">
-            {% set pending_requests = sub_requests|selectattr('status', 'equalto', 'PENDING')|list %}
+            {% set pending_requests = sub_requests|selectattr('status', 'equalto', 'OPEN')|list %}
             {% if pending_requests %}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for request in pending_requests %}
@@ -249,7 +249,7 @@
 
 <!-- Fulfill Modals -->
 {% for request in sub_requests %}
-{% if request.status == 'PENDING' or request.status == 'APPROVED' %}
+{% if request.status == 'OPEN' or request.status == 'OPEN' %}
 {% call modal_form('fulfillModal' ~ request.id, 'Assign Substitute', action=url_for('admin.update_sub_request', request_id=request.id), size='md', submit_text='Assign Substitute', submit_color='primary', loading_text='Assigning...') %}
     <input type="hidden" name="action" value="fulfill">
 

@@ -24,9 +24,10 @@ from app.admin_helpers import (
     update_sub_request_status, get_subs_by_match_league_type
 )
 from app.models import (
-    Match, Team, Player, Schedule, Season, SubRequest, 
+    Match, Team, Player, Schedule, Season,
     TemporarySubAssignment
 )
+from app.models.substitutes import SubstituteRequest
 from app.utils.user_helpers import safe_current_user
 
 # Import the shared admin blueprint
@@ -102,15 +103,15 @@ def manage_sub_requests():
     
     # Only get sub requests if we have matches
     if match_ids:
-        sub_requests = session.query(SubRequest).options(
-            joinedload(SubRequest.match),
-            joinedload(SubRequest.team),
-            joinedload(SubRequest.requester),
-            joinedload(SubRequest.fulfiller)
+        sub_requests = session.query(SubstituteRequest).options(
+            joinedload(SubstituteRequest.match),
+            joinedload(SubstituteRequest.team),
+            joinedload(SubstituteRequest.requester),
+            joinedload(SubstituteRequest.fulfiller)
         ).filter(
-            SubRequest.match_id.in_(match_ids)
+            SubstituteRequest.match_id.in_(match_ids)
         ).order_by(
-            SubRequest.created_at.desc()
+            SubstituteRequest.created_at.desc()
         ).all()
     else:
         sub_requests = []
@@ -188,9 +189,9 @@ def update_sub_request(request_id):
         return redirect(url_for('admin.manage_sub_requests'))
     
     # Get the sub request
-    sub_request = session.query(SubRequest).options(
-        joinedload(SubRequest.match),
-        joinedload(SubRequest.team)
+    sub_request = session.query(SubstituteRequest).options(
+        joinedload(SubstituteRequest.match),
+        joinedload(SubstituteRequest.team)
     ).get(request_id)
     
     if not sub_request:
@@ -217,7 +218,7 @@ def update_sub_request(request_id):
             # All substitutes assigned, mark as fulfilled
             success, message = update_sub_request_status(
                 request_id=request_id,
-                status='FULFILLED',
+                status='FILLED',
                 fulfilled_by=safe_current_user.id,
                 session=session
             )
@@ -263,7 +264,7 @@ def request_sub():
     
     # Check if this is an ECS FC match (format: "ecs_123")
     # ECS FC coaches should use the dedicated ECS FC sub request system at /ecs-fc/matches/<id>
-    # which uses the correct EcsFcSubRequest model and allows direct coach-to-sub contact
+    # which uses the correct EcsFcSubstituteRequest model and allows direct coach-to-sub contact
     if match_id_raw.startswith('ecs_'):
         try:
             ecs_match_id = int(match_id_raw[4:])  # Remove "ecs_" prefix

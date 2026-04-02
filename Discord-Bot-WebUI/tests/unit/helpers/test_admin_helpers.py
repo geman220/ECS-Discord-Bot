@@ -1011,7 +1011,7 @@ class TestUpdateSubRequestStatus:
         THEN it should update the status
         """
         from app.admin_helpers import create_sub_request, update_sub_request_status
-        from app.models import SubRequest
+        from app.models.substitutes import SubstituteRequest
 
         # Ensure team is part of the match
         match.home_team_id = team.id
@@ -1037,7 +1037,7 @@ class TestUpdateSubRequestStatus:
         assert result[0] is True
 
         # Verify status was updated
-        sub_request = db.session.query(SubRequest).get(request_id)
+        sub_request = db.session.query(SubstituteRequest).get(request_id)
         assert sub_request.status == 'APPROVED'
 
     def test_update_sub_request_status_fails_for_invalid_request(self, db, app):

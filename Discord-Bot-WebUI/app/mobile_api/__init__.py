@@ -91,12 +91,13 @@ def init_mobile_api(app, csrf):
     # Exempt entire API from CSRF (uses JWT instead)
     csrf.exempt(mobile_api_v2)
 
-    # Register before_request handlers (API key validation, etc.)
-    from app.mobile_api.middleware import register_api_middleware
-    register_api_middleware(mobile_api_v2)
-
-    # Register all routes
-    register_mobile_api_routes()
+    # Guard against re-registration (blueprint is a module-level singleton,
+    # but create_app() may be called multiple times in Celery workers)
+    if not getattr(mobile_api_v2, '_middleware_registered', False):
+        from app.mobile_api.middleware import register_api_middleware
+        register_api_middleware(mobile_api_v2)
+        register_mobile_api_routes()
+        mobile_api_v2._middleware_registered = True
 
     # Register blueprint
     app.register_blueprint(mobile_api_v2)

@@ -225,22 +225,27 @@ class SubstituteRequest(db.Model):
     __tablename__ = 'substitute_requests'
     
     id = db.Column(db.Integer, primary_key=True)
-    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=False)
+    league_type = db.Column(db.String(255), nullable=False)
+    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=True)
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=False)
     requested_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    positions_needed = db.Column(db.String(255), nullable=True)
-    gender_preference = db.Column(db.String(20), nullable=True)
+    positions_needed = db.Column(db.Text, nullable=True)
+    gender_preference = db.Column(db.String(255), nullable=True)
     notes = db.Column(db.Text, nullable=True)
     status = db.Column(db.String(20), nullable=False, default='OPEN')
     substitutes_needed = db.Column(db.Integer, nullable=False, default=1)
     filled_at = db.Column(db.DateTime, nullable=True)
+    cancelled_at = db.Column(db.DateTime, nullable=True)
+    assignments_count = db.Column(db.Integer, nullable=True, default=0)
+    fulfilled_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+
     # Relationships
-    match = db.relationship('Match', backref='substitute_requests')
-    team = db.relationship('Team', backref='substitute_requests')
+    match = db.relationship('Match', backref=db.backref('substitute_requests', lazy='dynamic', passive_deletes=True), passive_deletes=True)
+    team = db.relationship('Team', backref=db.backref('substitute_requests', lazy='dynamic', passive_deletes=True), passive_deletes=True)
     requester = db.relationship('User', foreign_keys=[requested_by], backref='substitute_requests')
+    fulfiller = db.relationship('User', foreign_keys=[fulfilled_by], backref='fulfilled_substitute_requests')
     responses = db.relationship('SubstituteResponse', back_populates='request', cascade='all, delete-orphan')
     assignments = db.relationship('SubstituteAssignment', back_populates='request', cascade='all, delete-orphan')
 

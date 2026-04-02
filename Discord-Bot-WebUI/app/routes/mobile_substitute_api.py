@@ -34,7 +34,6 @@ from app.models.substitutes import (
     get_eligible_players, get_active_substitutes, log_pool_action
 )
 from app.models_ecs import EcsFcMatch
-from app.models.league_features import SubRequest
 from app.utils.mobile_auth import api_key_required
 from app.utils.substitute_helpers import (
     validate_league_type, resolve_league_type_from_match,
@@ -483,10 +482,10 @@ def get_substitute_requests():
         with db.session() as session:
             permissions = get_user_substitute_permissions(current_user_id, session)
 
-            # Use legacy SubRequest table (what the web admin uses)
-            legacy_query = session.query(SubRequest).options(
-                joinedload(SubRequest.match),
-                joinedload(SubRequest.team).joinedload(Team.league)
+            # Query unified SubstituteRequest table (used by both web admin and mobile)
+            query = session.query(SubstituteRequest).options(
+                joinedload(SubstituteRequest.match),
+                joinedload(SubstituteRequest.team).joinedload(Team.league)
             )
 
             # Apply filters based on permissions
@@ -494,34 +493,26 @@ def get_substitute_requests():
                 # Limit to user's teams if they're a coach
                 user_team_ids = permissions.get('coach_team_ids', [])
                 if user_team_ids:
-                    legacy_query = legacy_query.filter(SubRequest.team_id.in_(user_team_ids))
+                    query = query.filter(SubstituteRequest.team_id.in_(user_team_ids))
                 else:
                     # Regular users see open requests they can respond to
-                    legacy_query = legacy_query.filter(SubRequest.status.in_(['PENDING', 'OPEN']))
+                    query = query.filter(SubstituteRequest.status.in_(['OPEN']))
 
-            # Apply status filter - map status values
+            # Apply status filter
             if status:
-                # Map mobile API status to legacy status
-                status_mapping = {
-                    'OPEN': ['PENDING', 'OPEN'],
-                    'FILLED': ['FULFILLED', 'FILLED'],
-                    'CANCELLED': ['CANCELLED'],
-                    'EXPIRED': ['EXPIRED']
-                }
-                legacy_statuses = status_mapping.get(status, [status])
-                legacy_query = legacy_query.filter(SubRequest.status.in_(legacy_statuses))
+                query = query.filter(SubstituteRequest.status == status)
 
             if team_id:
-                legacy_query = legacy_query.filter(SubRequest.team_id == team_id)
+                query = query.filter(SubstituteRequest.team_id == team_id)
 
             # Apply league type filter if specified
             if league_type:
-                legacy_query = legacy_query.join(Match).join(Team).join(League).filter(
+                query = query.join(Match).join(Team).join(League).filter(
                     League.name == league_type
                 )
 
-            legacy_requests = legacy_query.order_by(
-                desc(SubRequest.created_at)
+            legacy_requests = query.order_by(
+                desc(SubstituteRequest.created_at)
             ).limit(limit).offset(offset).all()
 
             # Format response data
@@ -540,7 +531,7 @@ def get_substitute_requests():
                     'league_type': league_name,
                     'status': req.status,
                     'substitutes_needed': req.substitutes_needed or 1,
-                    'positions_needed': 'Any',  # SubRequest doesn't track position, default to Any
+                    'positions_needed': req.positions_needed or 'Any',
                     'gender_preference': None,
                     'notes': req.notes,
                     'created_at': req.created_at.isoformat() if req.created_at else None,
@@ -703,6 +694,7 @@ def create_substitute_request():
                     match_id=match_id,
                     team_id=team_id,
                     requested_by=current_user_id,
+                    league_type=league_type,
                     positions_needed=data.get('positions_needed'),
                     gender_preference=data.get('gender_preference'),
                     notes=data.get('notes'),
@@ -1077,55 +1069,9 @@ def assign_substitute(request_id):
                 sub_request = session.query(SubstituteRequest).get(request_id)
 
                 if not sub_request:
-                    # If not found, check the legacy SubRequest table
-                    legacy_request = session.query(SubRequest).get(request_id)
-                    if not legacy_request:
-                        return jsonify({'error': 'Substitute request not found'}), 404
-
-                    # For legacy requests, we'll create a TemporarySubAssignment instead
-                    # since the legacy system uses a different assignment model
-
-                    # Check for existing legacy assignment
-                    existing_temp = session.query(TemporarySubAssignment).filter_by(
-                        match_id=legacy_request.match_id,
-                        player_id=player_id,
-                        team_id=legacy_request.team_id
-                    ).first()
-
-                    if existing_temp:
-                        return jsonify({'error': 'Assignment already exists'}), 409
-
-                    # Create temporary assignment for legacy request
-                    assignment = TemporarySubAssignment(
-                        match_id=legacy_request.match_id,
-                        player_id=player_id,
-                        team_id=legacy_request.team_id,
-                        assigned_by=current_user_id
-                    )
-
-                    session.add(assignment)
-
-                    # Update legacy request status
-                    legacy_request.status = 'FULFILLED'
-
-                    session.commit()
-
-                    return jsonify({
-                        'success': True,
-                        'message': 'Substitute assigned successfully (legacy)',
-                        'assignment': {
-                            'id': assignment.id,
-                            'match_id': assignment.match_id,
-                            'player_id': assignment.player_id,
-                            'team_id': assignment.team_id,
-                            'position_assigned': position_assigned,  # Include requested position even if not stored
-                            'notes': notes or f'Assigned via mobile app to substitute request {request_id}',
-                            'assigned_at': assignment.created_at.isoformat()
-                        }
-                    }), 201
+                    return jsonify({'error': 'Substitute request not found'}), 404
 
                 else:
-                    # Handle new SubstituteRequest normally
                     # Check for existing assignment
                     existing = session.query(SubstituteAssignment).filter_by(
                         request_id=request_id,

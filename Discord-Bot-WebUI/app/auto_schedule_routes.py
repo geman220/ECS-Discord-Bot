@@ -513,17 +513,17 @@ def _delete_matches_with_dependencies(session, match_ids, schedule_ids):
         match_ids: list of Match IDs to delete
         schedule_ids: list/set of Schedule IDs to delete
     """
-    from app.models import Availability, ScheduledMessage, PlayerEvent, TemporarySubAssignment, SubstituteRequest
+    from app.models import Availability, ScheduledMessage, PlayerEvent, TemporarySubAssignment
+    from app.models.substitutes import SubstituteRequest
     from app.database.db_models import ActiveMatchReporter, LiveMatch, PlayerShift
     from app.models.match_lineup import MatchLineup
-    from app.models.league_features import SubRequest
     from sqlalchemy import text
 
     if match_ids:
         # Delete all child records that reference these matches
         for Model in [LiveMatch, ActiveMatchReporter, PlayerEvent, ScheduledMessage,
                       Availability, SubstituteRequest, TemporarySubAssignment,
-                      MatchLineup, SubRequest, PlayerShift]:
+                      MatchLineup, PlayerShift]:
             session.query(Model).filter(Model.match_id.in_(match_ids)).delete(synchronize_session='fetch')
 
         # Delete the matches themselves

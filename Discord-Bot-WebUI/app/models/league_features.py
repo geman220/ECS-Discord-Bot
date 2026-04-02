@@ -4,7 +4,6 @@
 League Features Models Module
 
 This module contains models for various league features:
-- SubRequest: Substitute requests from coaches
 - LeaguePoll: League-wide polls
 - LeaguePollResponse: Poll responses
 - LeaguePollDiscordMessage: Discord messages for polls
@@ -12,6 +11,9 @@ This module contains models for various league features:
 - MessageCategory: Message categories
 - MessageTemplate: Message templates
 - LeagueSetting: Configurable league-specific settings
+
+Note: SubRequest (sub_requests table) has been unified into SubstituteRequest
+(substitute_requests table) in app/models/substitutes.py.
 """
 
 import logging
@@ -23,37 +25,6 @@ from app.core import db
 from app.models.players import player_teams
 
 logger = logging.getLogger(__name__)
-
-
-class SubRequest(db.Model):
-    """Model representing a substitute request from a coach."""
-    __tablename__ = 'sub_requests'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    match_id = db.Column(db.Integer, db.ForeignKey('matches.id', ondelete='CASCADE'), nullable=False)
-    team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='CASCADE'), nullable=False)
-    requested_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    status = db.Column(db.String(20), default='PENDING')  # PENDING, APPROVED, DECLINED, FULFILLED
-    substitutes_needed = db.Column(db.Integer, default=1, nullable=False)  # Number of substitutes needed
-    notes = db.Column(db.Text, nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
-    fulfilled_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
-    
-    # Define relationships
-    # passive_deletes=True tells SQLAlchemy to trust the database's ON DELETE CASCADE
-    # instead of trying to set match_id=None in Python (which violates NOT NULL constraint)
-    match = db.relationship('Match', backref=db.backref('sub_requests', lazy='dynamic', passive_deletes=True), passive_deletes=True)
-    team = db.relationship('Team', backref=db.backref('sub_requests', lazy='dynamic', passive_deletes=True), passive_deletes=True)
-    requester = db.relationship('User', foreign_keys=[requested_by], backref=db.backref('requested_subs', lazy='dynamic'))
-    fulfiller = db.relationship('User', foreign_keys=[fulfilled_by], backref=db.backref('fulfilled_sub_requests', lazy='dynamic'))
-    
-    __table_args__ = (
-        db.UniqueConstraint('match_id', 'team_id', name='uq_sub_req_match_team'),
-    )
-    
-    def __repr__(self):
-        return f"<SubRequest: {self.team_id} in match {self.match_id}, status: {self.status}>"
 
 
 class LeaguePoll(db.Model):

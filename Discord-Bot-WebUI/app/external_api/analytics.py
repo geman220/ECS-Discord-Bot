@@ -12,8 +12,9 @@ from flask import request, jsonify
 from app.core import db
 from app.models import (
     Player, Team, Match, League, Season, Availability,
-    PlayerSeasonStats, PlayerCareerStats, Standings, TemporarySubAssignment, SubRequest
+    PlayerSeasonStats, PlayerCareerStats, Standings, TemporarySubAssignment
 )
+from app.models.substitutes import SubstituteRequest
 
 from . import external_api_bp
 from .auth import api_key_required
@@ -676,11 +677,11 @@ def get_substitution_needs():
                 needs_subs = urgency in ['critical', 'high', 'medium']
                 
                 # Check if coach has manually requested a substitute
-                manual_sub_request = SubRequest.query.filter(
+                manual_sub_request = SubstituteRequest.query.filter(
                     and_(
-                        SubRequest.match_id == match.id,
-                        SubRequest.team_id == team.id,
-                        SubRequest.status.in_(['PENDING', 'APPROVED'])
+                        SubstituteRequest.match_id == match.id,
+                        SubstituteRequest.team_id == team.id,
+                        SubstituteRequest.status.in_(['OPEN'])
                     )
                 ).first()
                 

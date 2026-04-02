@@ -29,7 +29,8 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload
 from flask import current_app, g
 
-from app.models import User, Role, Player, Team, League, Match, Availability, Announcement, Permission, TemporarySubAssignment, SubRequest, Schedule
+from app.models import User, Role, Player, Team, League, Match, Availability, Announcement, Permission, TemporarySubAssignment, Schedule
+from app.models.substitutes import SubstituteRequest
 from app.discord_utils import get_expected_roles, normalize_name
 from app.core import db
 
@@ -1137,7 +1138,7 @@ def assign_sub_to_team(match_id: int, player_id: int, team_id: int, user_id: int
             return False, "Player is already assigned as a sub for this match"
             
         # Check if team already has enough substitutes assigned
-        sub_request = session.query(SubRequest).filter_by(
+        sub_request = session.query(SubstituteRequest).filter_by(
             match_id=match_id,
             team_id=team_id
         ).first()
@@ -1303,35 +1304,35 @@ def get_sub_requests(filters=None, session=None):
         session: (Optional) A SQLAlchemy session to use for the query.
         
     Returns:
-        A SQLAlchemy query object for SubRequest objects that match the filters.
+        A SQLAlchemy query object for SubstituteRequest objects that match the filters.
     """
     if session is None:
         session = g.db_session
         
-    query = session.query(SubRequest).options(
-        joinedload(SubRequest.match),
-        joinedload(SubRequest.team),
-        joinedload(SubRequest.requester),
-        joinedload(SubRequest.fulfiller)
+    query = session.query(SubstituteRequest).options(
+        joinedload(SubstituteRequest.match),
+        joinedload(SubstituteRequest.team),
+        joinedload(SubstituteRequest.requester),
+        joinedload(SubstituteRequest.fulfiller)
     )
     
     if filters:
         if filters.get('match_id'):
-            query = query.filter(SubRequest.match_id == filters['match_id'])
+            query = query.filter(SubstituteRequest.match_id == filters['match_id'])
         if filters.get('team_id'):
-            query = query.filter(SubRequest.team_id == filters['team_id'])
+            query = query.filter(SubstituteRequest.team_id == filters['team_id'])
         if filters.get('status'):
             if filters['status'] != 'ALL':
-                query = query.filter(SubRequest.status == filters['status'])
+                query = query.filter(SubstituteRequest.status == filters['status'])
         if filters.get('week'):
-            query = query.join(Match, SubRequest.match_id == Match.id)\
+            query = query.join(Match, SubstituteRequest.match_id == Match.id)\
                          .join(Schedule, Match.schedule_id == Schedule.id)\
                          .filter(Schedule.week == filters['week'])
     
     return query
 
 
-def create_sub_request(match_id, team_id, requested_by, notes=None, substitutes_needed=1, session=None):
+def create_sub_request(match_id, team_id, requested_by, notes=None, substitutes_needed=1, league_type=None, session=None):
     """
     Create a new sub request.
     
@@ -1360,22 +1361,28 @@ def create_sub_request(match_id, team_id, requested_by, notes=None, substitutes_
             return False, "Team is not part of this match", None
             
         # Check if there's already a request for this match and team
-        existing_request = session.query(SubRequest).filter(
-            SubRequest.match_id == match_id,
-            SubRequest.team_id == team_id
+        existing_request = session.query(SubstituteRequest).filter(
+            SubstituteRequest.match_id == match_id,
+            SubstituteRequest.team_id == team_id
         ).first()
         
         if existing_request:
             return False, "A sub request already exists for this team and match", None
             
+        # Resolve league_type from team if not provided
+        if not league_type:
+            team_obj = session.query(Team).options(joinedload(Team.league)).get(team_id)
+            league_type = team_obj.league.name if team_obj and team_obj.league else 'Premier'
+
         # Create the request
-        sub_request = SubRequest(
+        sub_request = SubstituteRequest(
             match_id=match_id,
             team_id=team_id,
             requested_by=requested_by,
+            league_type=league_type,
             notes=notes,
             substitutes_needed=substitutes_needed,
-            status='PENDING',
+            status='OPEN',
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -1401,7 +1408,7 @@ def update_sub_request_status(request_id, status, fulfilled_by=None, session=Non
     
     Args:
         request_id: The ID of the request.
-        status: The new status (PENDING, APPROVED, DECLINED, FULFILLED).
+        status: The new status (OPEN, FILLED, CANCELLED).
         fulfilled_by: (Optional) The ID of the user who fulfilled the request.
         session: (Optional) A SQLAlchemy session to use for the query.
         
@@ -1412,7 +1419,7 @@ def update_sub_request_status(request_id, status, fulfilled_by=None, session=Non
         session = g.db_session
         
     try:
-        sub_request = session.query(SubRequest).get(request_id)
+        sub_request = session.query(SubstituteRequest).get(request_id)
         if not sub_request:
             return False, "Sub request not found"
             
@@ -1420,8 +1427,8 @@ def update_sub_request_status(request_id, status, fulfilled_by=None, session=Non
         sub_request.status = status
         sub_request.updated_at = datetime.utcnow()
         
-        # If the request is being fulfilled, update the fulfiller
-        if status == 'FULFILLED' and fulfilled_by:
+        # If the request is being filled, update the fulfiller
+        if status == 'FILLED' and fulfilled_by:
             sub_request.fulfilled_by = fulfilled_by
         
         session.commit()
