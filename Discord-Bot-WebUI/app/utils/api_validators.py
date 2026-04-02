@@ -44,6 +44,13 @@ def validate_field_types(data: Dict[str, Any], field_types: Dict[str, type]) -> 
     for field, expected_type in field_types.items():
         if field in data and data[field] is not None:
             if not isinstance(data[field], expected_type):
+                # Auto-coerce string to int where possible (common with mobile clients)
+                if expected_type is int and isinstance(data[field], str):
+                    try:
+                        data[field] = int(data[field])
+                        continue
+                    except (ValueError, TypeError):
+                        pass
                 return f"Field '{field}' must be of type {expected_type.__name__}, got {type(data[field]).__name__}"
 
     return None
@@ -276,7 +283,7 @@ def validate_substitute_request_data(data: Dict[str, Any]) -> Optional[str]:
         return error
 
     # League type validation
-    valid_league_types = ['ECS FC', 'Classic', 'Premier']
+    valid_league_types = ['ECS FC', 'Classic', 'Premier', 'Pub League']
     error = validate_choice_field(data, 'league_type', valid_league_types)
     if error:
         return error
@@ -332,7 +339,7 @@ def validate_substitute_response_data(data: Dict[str, Any]) -> Optional[str]:
         return error
 
     # League type validation
-    valid_league_types = ['ECS FC', 'Classic', 'Premier']
+    valid_league_types = ['ECS FC', 'Classic', 'Premier', 'Pub League']
     error = validate_choice_field(data, 'league_type', valid_league_types)
     if error:
         return error
@@ -373,7 +380,7 @@ def validate_substitute_assignment_data(data: Dict[str, Any]) -> Optional[str]:
         return error
 
     # League type validation
-    valid_league_types = ['ECS FC', 'Classic', 'Premier']
+    valid_league_types = ['ECS FC', 'Classic', 'Premier', 'Pub League']
     error = validate_choice_field(data, 'league_type', valid_league_types)
     if error:
         return error

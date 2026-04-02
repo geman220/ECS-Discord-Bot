@@ -44,7 +44,8 @@ from .stats import (
 
 from .communication import (
     Notification, Announcement, ScheduledMessage, Feedback,
-    FeedbackReply, Note, DeviceToken, SMSLog
+    FeedbackReply, Note, DeviceToken, SMSLog,
+    RsvpReminderSnooze, RsvpDmReminderLog
 )
 
 from .notifications import (
@@ -210,6 +211,7 @@ __all__ = [
     # Communication models
     'Notification', 'Announcement', 'ScheduledMessage', 'Feedback',
     'FeedbackReply', 'Note', 'DeviceToken', 'SMSLog',
+    'RsvpReminderSnooze', 'RsvpDmReminderLog',
     
     # Push notification models
     'UserFCMToken',

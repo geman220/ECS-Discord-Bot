@@ -2328,6 +2328,188 @@ async def on_raw_reaction_add(payload):
 
 
 @bot.event
+async def on_interaction(interaction: discord.Interaction):
+    """Handle component interactions for RSVP reminder DM buttons."""
+    if interaction.type != discord.InteractionType.component:
+        return
+    custom_id = interaction.data.get('custom_id', '')
+    if custom_id.startswith('rsvp:'):
+        await _handle_rsvp_reminder_interaction(interaction, custom_id)
+
+
+async def _handle_rsvp_reminder_interaction(interaction: discord.Interaction, custom_id: str):
+    """
+    Process button clicks from RSVP reminder DMs.
+
+    Custom ID format: rsvp:{match_type}:{match_id}:{response}
+    Examples: rsvp:pub:123:yes, rsvp:ecs_fc:42:no, rsvp:snooze:open
+    """
+    parts = custom_id.split(':')
+    if len(parts) < 3:
+        return
+
+    discord_id = str(interaction.user.id)
+
+    # Handle snooze button
+    if parts[1] == 'snooze':
+        if parts[2] == 'open':
+            await _handle_snooze_open(interaction)
+        elif parts[2] == 'select':
+            await _handle_snooze_select(interaction, discord_id)
+        return
+
+    # Handle RSVP response (Yes/No/Maybe)
+    if len(parts) != 4:
+        return
+
+    match_type = parts[1]  # 'pub' or 'ecs_fc'
+    match_id_str = parts[2]
+    response = parts[3]  # 'yes', 'no', 'maybe'
+
+    if response not in ('yes', 'no', 'maybe'):
+        return
+
+    try:
+        match_id_int = int(match_id_str)
+    except ValueError:
+        return
+
+    # Defer immediately to avoid 3-second timeout
+    await interaction.response.defer()
+
+    # Build match_id for sync_rsvp_with_web_ui
+    # ECS FC uses 'ecs_' prefix (see line 1091 pattern)
+    if match_type == 'ecs_fc':
+        sync_match_id = f"ecs_{match_id_int}"
+    else:
+        sync_match_id = match_id_int
+
+    try:
+        result = await sync_rsvp_with_web_ui(sync_match_id, discord_id, response)
+
+        if result and result.get('success'):
+            # Update the DM to show confirmation
+            response_emoji = {'yes': '\u2705', 'no': '\u274c', 'maybe': '\u2753'}
+            response_label = {'yes': 'Yes', 'no': 'No', 'maybe': 'Maybe'}
+
+            confirm_embed = discord.Embed(
+                title="\u26bd RSVP Confirmed!",
+                description=f"You responded **{response_label[response]}** {response_emoji[response]}",
+                color=0x4caf50  # Green
+            )
+            confirm_embed.set_footer(text="Your team's RSVP embed has been updated")
+
+            await interaction.edit_original_response(embed=confirm_embed, view=None)
+
+            # Trigger channel embed update
+            try:
+                await update_discord_embed(sync_match_id)
+            except Exception as e:
+                logger.warning(f"Failed to update channel embed after DM RSVP: {e}")
+        else:
+            error_msg = result.get('message', 'Unknown error') if result else 'No response from server'
+            error_embed = discord.Embed(
+                title="RSVP Failed",
+                description=f"Could not process your RSVP: {error_msg}",
+                color=0xf44336  # Red
+            )
+            await interaction.edit_original_response(embed=error_embed, view=None)
+
+    except Exception as e:
+        logger.error(f"Error processing RSVP button click: {e}", exc_info=True)
+        try:
+            error_embed = discord.Embed(
+                title="RSVP Error",
+                description="Something went wrong. Please try using the RSVP embed in your team channel instead.",
+                color=0xf44336
+            )
+            await interaction.edit_original_response(embed=error_embed, view=None)
+        except Exception:
+            pass
+
+
+async def _handle_snooze_open(interaction: discord.Interaction):
+    """Show the snooze duration select menu."""
+    from rsvp_reminder_views import SnoozeSelectView
+
+    try:
+        await interaction.response.edit_message(
+            content="How long would you like to pause RSVP reminders?",
+            embed=None,
+            view=SnoozeSelectView()
+        )
+    except Exception as e:
+        logger.error(f"Error showing snooze select: {e}")
+
+
+async def _handle_snooze_select(interaction: discord.Interaction, discord_id: str):
+    """Process snooze duration selection."""
+    await interaction.response.defer()
+
+    values = interaction.data.get('values', [])
+    if not values:
+        return
+
+    duration_str = values[0]  # "1", "2", "4", or "0" (rest of season)
+    duration_weeks = int(duration_str) if duration_str != "0" else None
+
+    try:
+        session = getattr(bot, 'session', None)
+        if not session or session.closed:
+            session = aiohttp.ClientSession()
+            bot.session = session
+
+        payload = {
+            'discord_id': discord_id,
+            'duration_weeks': duration_weeks,
+            'reason': 'dm_button'
+        }
+
+        async with session.post(
+            f"{WEBUI_API_URL}/api/rsvp-reminder/snooze",
+            json=payload,
+            timeout=aiohttp.ClientTimeout(total=10)
+        ) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                snooze_until = data.get('snooze_until', 'unknown date')
+
+                if duration_weeks:
+                    duration_text = f"{duration_weeks} week{'s' if duration_weeks > 1 else ''}"
+                else:
+                    duration_text = "the rest of the season"
+
+                confirm_embed = discord.Embed(
+                    title="\U0001f634 Reminders Paused",
+                    description=(
+                        f"RSVP reminders paused for **{duration_text}** (until {snooze_until}).\n\n"
+                        "You can resume reminders anytime from your portal settings."
+                    ),
+                    color=0x2196f3  # Blue
+                )
+                await interaction.edit_original_response(
+                    content=None, embed=confirm_embed, view=None
+                )
+            else:
+                resp_text = await resp.text()
+                logger.error(f"Snooze API error: {resp.status} - {resp_text}")
+                await interaction.edit_original_response(
+                    content="Failed to set snooze. Please try again later.",
+                    embed=None, view=None
+                )
+
+    except Exception as e:
+        logger.error(f"Error processing snooze: {e}", exc_info=True)
+        try:
+            await interaction.edit_original_response(
+                content="Something went wrong setting your snooze. Please try again later.",
+                embed=None, view=None
+            )
+        except Exception:
+            pass
+
+
+@bot.event
 async def on_member_update(before: discord.Member, after: discord.Member):
     """
     Event handler for member updates, specifically for role changes.

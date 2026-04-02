@@ -133,29 +133,21 @@ class SecurityMiddleware:
             # Get client IP (handle proxy headers from Traefik)
             client_ip = self._get_client_ip()
 
-            # Rate limiting check - tiered limits based on trust level
-            if is_private_ip(client_ip):
-                # Highest limits for private/local IPs (internal services, Docker containers)
-                limit, window = 1000, 3600
-            else:
+            # Skip rate limiting entirely for private/Docker IPs (reverse proxy, internal services)
+            if not is_private_ip(client_ip):
                 # Check if user is authenticated for higher limits
                 try:
                     from flask_login import current_user
                     if current_user and getattr(current_user, 'is_authenticated', False):
-                        # Authenticated users get more headroom (legitimate users)
                         limit, window = 800, 3600
                     else:
-                        # Anonymous/unauthenticated - stricter limit (potential bots/scrapers)
                         limit, window = 300, 3600
                 except Exception:
-                    # If auth check fails, use conservative limit
                     limit, window = 300, 3600
 
-            if not self.rate_limiter.allow_request(client_ip, limit=limit, window=window):
-                # Don't rate limit private IPs as aggressively
-                if not is_private_ip(client_ip):
+                if not self.rate_limiter.allow_request(client_ip, limit=limit, window=window):
                     logger.warning(f"Rate limit exceeded from {client_ip} for {request.path}")
-                    abort(429)  # Too Many Requests
+                    abort(429)
             
             # Detect attack patterns
             matched = self._detect_attack_patterns()

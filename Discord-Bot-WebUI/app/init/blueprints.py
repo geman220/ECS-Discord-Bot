@@ -273,6 +273,10 @@ def _register_admin_blueprints(app, bp, csrf):
     from app.api_enterprise_rsvp import enterprise_rsvp_bp
     app.register_blueprint(enterprise_rsvp_bp)
 
+    # RSVP Reminder snooze API
+    from app.routes.rsvp_reminder import rsvp_reminder_bp
+    app.register_blueprint(rsvp_reminder_bp)
+
     # Observability
     from app.api_observability import observability_bp
     app.register_blueprint(observability_bp)

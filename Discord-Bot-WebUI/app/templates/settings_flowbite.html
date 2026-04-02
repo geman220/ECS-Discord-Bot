@@ -463,6 +463,69 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- RSVP Reminder Preferences -->
+                {% if safe_current_user.player and safe_current_user.player.discord_id %}
+                <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden" id="rsvpReminderCard">
+                    <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+                        <div class="w-10 h-10 flex items-center justify-center bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 rounded-lg">
+                            <i class="ti ti-bell text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 dark:text-white">RSVP Reminders</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Discord DM reminders for upcoming matches</p>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <p class="text-gray-600 dark:text-gray-400 mb-4">
+                            Every Thursday at noon, you'll receive a Discord DM if you haven't RSVP'd for your upcoming match(es).
+                            You can pause reminders if you're injured or unavailable.
+                        </p>
+
+                        <!-- Snooze Status -->
+                        <div id="rsvpSnoozeStatus" class="mb-4">
+                            <div id="rsvpSnoozeActive" class="hidden p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <i class="ti ti-zzz text-blue-600 dark:text-blue-400 text-2xl"></i>
+                                        <div>
+                                            <p class="font-medium text-blue-700 dark:text-blue-300">Reminders Paused</p>
+                                            <p class="text-sm text-blue-600 dark:text-blue-400">Until <span id="rsvpSnoozeUntilDate"></span></p>
+                                        </div>
+                                    </div>
+                                    <button type="button" id="rsvpResumeBtn"
+                                            class="px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-lg text-sm font-medium">
+                                        Resume Reminders
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="rsvpSnoozeInactive" class="hidden p-4 bg-green-50 dark:bg-green-900/30 rounded-lg">
+                                <div class="flex items-center gap-3">
+                                    <i class="ti ti-check text-green-600 dark:text-green-400 text-2xl"></i>
+                                    <div>
+                                        <p class="font-medium text-green-700 dark:text-green-300">Reminders Active</p>
+                                        <p class="text-sm text-green-600 dark:text-green-400">You'll be reminded on Thursdays if you haven't RSVP'd</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Pause Controls -->
+                        <div id="rsvpSnoozeControls" class="flex flex-wrap gap-3">
+                            <select id="rsvpSnoozeDuration" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-orange-500 focus:ring-orange-500">
+                                <option value="1">1 week</option>
+                                <option value="2">2 weeks</option>
+                                <option value="4" selected>4 weeks</option>
+                                <option value="0">Rest of season</option>
+                            </select>
+                            <button type="button" id="rsvpSnoozeBtn"
+                                    class="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm">
+                                <i class="ti ti-zzz"></i> Pause Reminders
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -553,4 +616,85 @@
 
 {% block custom_js %}
 {{ super() }}
+{% if safe_current_user.player and safe_current_user.player.discord_id %}
+<script>
+(function() {
+    const playerId = {{ safe_current_user.player.id }};
+    const activeEl = document.getElementById('rsvpSnoozeActive');
+    const inactiveEl = document.getElementById('rsvpSnoozeInactive');
+    const dateEl = document.getElementById('rsvpSnoozeUntilDate');
+    const controlsEl = document.getElementById('rsvpSnoozeControls');
+    const snoozeBtn = document.getElementById('rsvpSnoozeBtn');
+    const resumeBtn = document.getElementById('rsvpResumeBtn');
+    const durationSelect = document.getElementById('rsvpSnoozeDuration');
+
+    if (!activeEl) return;
+
+    function showSnoozeState(snoozed, snoozeUntil) {
+        if (snoozed) {
+            activeEl.classList.remove('hidden');
+            inactiveEl.classList.add('hidden');
+            controlsEl.classList.add('hidden');
+            if (dateEl && snoozeUntil) {
+                dateEl.textContent = new Date(snoozeUntil + 'T00:00:00').toLocaleDateString('en-US', {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+            }
+        } else {
+            activeEl.classList.add('hidden');
+            inactiveEl.classList.remove('hidden');
+            controlsEl.classList.remove('hidden');
+        }
+    }
+
+    // Load current status
+    fetch('/api/rsvp-reminder/snooze/' + playerId)
+        .then(r => r.json())
+        .then(data => showSnoozeState(data.snoozed, data.snooze_until))
+        .catch(() => showSnoozeState(false));
+
+    // Pause reminders
+    if (snoozeBtn) {
+        snoozeBtn.addEventListener('click', function() {
+            const val = durationSelect.value;
+            const weeks = val === '0' ? null : parseInt(val);
+            snoozeBtn.disabled = true;
+            snoozeBtn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Saving...';
+
+            fetch('/api/rsvp-reminder/snooze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ player_id: playerId, duration_weeks: weeks, reason: 'web_ui' })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showSnoozeState(true, data.snooze_until);
+                }
+            })
+            .finally(() => {
+                snoozeBtn.disabled = false;
+                snoozeBtn.innerHTML = '<i class="ti ti-zzz"></i> Pause Reminders';
+            });
+        });
+    }
+
+    // Resume reminders
+    if (resumeBtn) {
+        resumeBtn.addEventListener('click', function() {
+            resumeBtn.disabled = true;
+            resumeBtn.textContent = 'Resuming...';
+
+            fetch('/api/rsvp-reminder/snooze/' + playerId, { method: 'DELETE' })
+                .then(r => r.json())
+                .then(() => showSnoozeState(false))
+                .finally(() => {
+                    resumeBtn.disabled = false;
+                    resumeBtn.textContent = 'Resume Reminders';
+                });
+        });
+    }
+})();
+</script>
+{% endif %}
 {% endblock %}

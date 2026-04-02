@@ -73,6 +73,7 @@ class CeleryConfig:
         'app.tasks.tasks_audit',  # Deferred admin audit log writes
         'app.tasks.tasks_data_export',  # User data export (GDPR)
         'app.tasks.ai_assistant_cleanup',  # AI assistant log retention
+        'app.tasks.tasks_rsvp_dm_reminders',  # Thursday RSVP DM reminders
     )
 
     # Task Settings - Industry Best Practices
@@ -199,6 +200,7 @@ class CeleryConfig:
         'app.tasks.tasks_push_notifications.*': {'queue': 'celery'},
         'app.tasks.tasks_email_broadcast.*': {'queue': 'celery'},
         'app.tasks.tasks_audit.*': {'queue': 'celery'},
+        'app.tasks.tasks_rsvp_dm_reminders.*': {'queue': 'discord'},
     }
 
     # Beat Configuration
@@ -527,6 +529,22 @@ class CeleryConfig:
                 'expires': 86400,
                 'time_limit': 120,
                 'soft_time_limit': 90
+            }
+        },
+
+        # =====================================================================
+        # RSVP DM REMINDERS (Thursday Noon PST)
+        # =====================================================================
+        # DMs players who haven't RSVP'd for upcoming weekend matches.
+        # RSVP embeds go out Monday 2am, this reminds stragglers Thursday noon.
+        'send-rsvp-dm-reminders-thursday': {
+            'task': 'app.tasks.tasks_rsvp_dm_reminders.send_rsvp_dm_reminders',
+            'schedule': crontab(day_of_week='4', hour=12, minute=0),  # Thursday noon PST
+            'options': {
+                'queue': 'discord',
+                'expires': 3600,
+                'time_limit': 600,
+                'soft_time_limit': 540
             }
         },
     }

@@ -10,6 +10,8 @@ This module contains models related to communication and notifications:
 - Feedback: User feedback system
 - FeedbackReply: Replies to feedback
 - Note: Notes attached to feedback
+- RsvpReminderSnooze: Snooze/break tracking for RSVP DM reminders
+- RsvpDmReminderLog: Audit log for RSVP reminder DMs sent
 """
 
 import logging
@@ -338,3 +340,47 @@ class SMSLog(db.Model):
             logger.error(f"Failed to update SMS log status: {e}")
             db.session.rollback()
             return None
+
+
+class RsvpReminderSnooze(db.Model):
+    """Tracks players who have snoozed/paused RSVP DM reminders."""
+    __tablename__ = 'rsvp_reminder_snooze'
+
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False, unique=True)
+    snooze_until = db.Column(db.Date, nullable=False)
+    duration_weeks = db.Column(db.Integer, nullable=True)  # null = rest of season
+    reason = db.Column(db.String(50), nullable=True)  # 'dm_button', 'web_ui', 'admin'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)  # null = self-service
+
+    player = db.relationship('Player', backref=db.backref('rsvp_snooze', uselist=False, cascade='all, delete-orphan'))
+    creator = db.relationship('User', backref='rsvp_snoozes_created')
+
+    def __repr__(self):
+        return f'<RsvpReminderSnooze player={self.player_id} until={self.snooze_until}>'
+
+    @property
+    def is_active(self):
+        from datetime import date
+        return self.snooze_until >= date.today()
+
+
+class RsvpDmReminderLog(db.Model):
+    """Audit log for RSVP reminder DMs sent to players."""
+    __tablename__ = 'rsvp_dm_reminder_log'
+
+    id = db.Column(db.Integer, primary_key=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    match_id = db.Column(db.Integer, nullable=False)
+    match_type = db.Column(db.String(10), nullable=False)  # 'pub' or 'ecs_fc'
+    discord_id = db.Column(db.String(100), nullable=False)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    delivery_status = db.Column(db.String(20), default='sent', nullable=False)  # 'sent', 'failed', 'dm_disabled'
+    error_message = db.Column(db.String(255), nullable=True)
+    batch_id = db.Column(db.String(36), nullable=True)  # UUID grouping one beat run
+
+    player = db.relationship('Player', backref='rsvp_dm_logs')
+
+    def __repr__(self):
+        return f'<RsvpDmReminderLog player={self.player_id} match={self.match_type}:{self.match_id} status={self.delivery_status}>'

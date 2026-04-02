@@ -618,7 +618,7 @@ def get_team_upcoming_matches(team_id: int, session=None) -> List[Dict]:
 
     upcoming_matches = session.query(Match).filter(
         ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)) &
-        (Match.date >= datetime.utcnow())
+        (Match.date >= date.today())
     ).order_by(Match.date).limit(5).all()
 
     return [match.to_dict() for match in upcoming_matches]

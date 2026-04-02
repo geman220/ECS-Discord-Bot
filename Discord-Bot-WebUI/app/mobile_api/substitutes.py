@@ -139,6 +139,12 @@ def create_substitute_request():
         return jsonify({"msg": "match_id and team_id are required"}), 400
 
     try:
+        match_id = int(match_id)
+        team_id = int(team_id)
+    except (ValueError, TypeError):
+        return jsonify({"msg": "match_id and team_id must be valid integers"}), 400
+
+    try:
         substitutes_needed = int(substitutes_needed)
         if substitutes_needed < 1:
             substitutes_needed = 1

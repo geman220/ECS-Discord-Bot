@@ -23,7 +23,7 @@ from app.models.substitutes import (
 logger = logging.getLogger(__name__)
 
 # Constants
-LEAGUE_TYPES = ['ECS FC', 'Classic', 'Premier']
+LEAGUE_TYPES = ['ECS FC', 'Classic', 'Premier', 'Pub League']
 LEAGUE_ROLE_MAPPING = {
     'ECS FC': 'ECS FC Sub',
     'Classic': 'Classic Sub',
@@ -32,6 +32,23 @@ LEAGUE_ROLE_MAPPING = {
 
 ADMIN_ROLES = ['Global Admin', 'Pub League Admin']
 COACH_ROLES = ['Pub League Coach', 'ECS FC Coach']
+
+
+def resolve_league_type_from_match(match, session) -> str:
+    """
+    Resolve 'Pub League' to specific division ('Classic' or 'Premier')
+    using match → schedule → season chain.
+    """
+    try:
+        if match.schedule and match.schedule.season:
+            return match.schedule.season.league_type
+        # Fallback via team → league → season
+        team = match.home_team or session.query(Team).get(match.home_team_id)
+        if team and team.league and team.league.season:
+            return team.league.season.league_type
+    except Exception:
+        pass
+    return 'Classic'
 
 
 def validate_league_type(league_type: str) -> bool:
@@ -469,8 +486,8 @@ def get_upcoming_matches_needing_subs(league_type: str = None, days_ahead: int =
             ecs_matches = session.query(EcsFcMatch).join(
                 EcsFcSubRequest, EcsFcMatch.id == EcsFcSubRequest.match_id
             ).filter(
-                EcsFcMatch.date >= datetime.now().date(),
-                EcsFcMatch.date <= end_date,
+                EcsFcMatch.match_date >= datetime.now().date(),
+                EcsFcMatch.match_date <= end_date,
                 EcsFcSubRequest.status == 'OPEN'
             ).options(
                 joinedload(EcsFcMatch.team),
@@ -481,8 +498,8 @@ def get_upcoming_matches_needing_subs(league_type: str = None, days_ahead: int =
                 match_data = {
                     'id': match.id,
                     'league_type': 'ECS FC',
-                    'date': match.date.isoformat(),
-                    'time': match.time.strftime('%H:%M') if match.time else None,
+                    'date': match.match_date.isoformat(),
+                    'time': match.match_time.strftime('%H:%M') if match.match_time else None,
                     'team': {
                         'id': match.team.id,
                         'name': match.team.name

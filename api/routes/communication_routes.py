@@ -17,7 +17,8 @@ from api.utils.discord_utils import get_bot
 from api.models.schemas import (
     LeagueEventAnnouncementRequest,
     LeagueEventUpdateRequest,
-    LeagueEventDeleteRequest
+    LeagueEventDeleteRequest,
+    RSVPReminderDMRequest
 )
 from config import BOT_CONFIG
 
@@ -589,3 +590,65 @@ async def post_plop_reminder(
     except Exception as e:
         logger.error(f"Error posting PLOP reminder: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/rsvp/send_reminder_dm")
+async def send_rsvp_reminder_dm(
+    request: RSVPReminderDMRequest,
+    bot: commands.Bot = Depends(get_bot)
+):
+    """
+    Send an RSVP reminder DM with interactive buttons.
+
+    Called by the Flask Celery task on Thursday noon to remind
+    players who haven't RSVP'd for upcoming matches.
+    """
+    from rsvp_reminder_views import RSVPReminderView, build_rsvp_reminder_embed
+
+    discord_id = request.discord_id
+    matches = [m.model_dump() for m in request.matches]
+
+    if not matches:
+        raise HTTPException(status_code=400, detail="No matches provided")
+
+    # Fetch the Discord user
+    try:
+        user = await bot.fetch_user(int(discord_id))
+    except Exception as e:
+        logger.error(f"Failed to fetch user {discord_id}: {e}")
+        raise HTTPException(status_code=404, detail="User not found or Discord ID invalid")
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Build embed and view
+    embed = build_rsvp_reminder_embed(matches)
+    view = RSVPReminderView(matches)
+
+    # Send DM
+    try:
+        dm_channel = await user.create_dm()
+        message = await dm_channel.send(embed=embed, view=view)
+        logger.info(f"Sent RSVP reminder DM to {discord_id} for {len(matches)} match(es)")
+        return {"status": "sent", "message_id": message.id}
+
+    except discord.Forbidden as e:
+        error_code = getattr(e, 'code', None)
+        if error_code == 50007:
+            detail = "Cannot send DM - user has disabled DMs from server members"
+        elif error_code == 50001:
+            detail = "Cannot send DM - missing access"
+        else:
+            detail = f"Cannot send DM - Discord error {error_code}: {e}"
+
+        logger.warning(f"Failed to send RSVP reminder DM to {discord_id}: {detail}")
+        raise HTTPException(status_code=403, detail=detail)
+
+    except discord.HTTPException as e:
+        error_detail = f"Discord API error {e.status}: {e.text}"
+        logger.error(f"Discord HTTP error sending RSVP reminder DM to {discord_id}: {error_detail}")
+        raise HTTPException(status_code=e.status, detail=error_detail)
+
+    except Exception as e:
+        logger.error(f"Unexpected error sending RSVP reminder DM to {discord_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to send DM: {str(e)}")

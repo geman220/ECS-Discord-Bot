@@ -87,6 +87,11 @@ class NotificationPayload:
     force_discord: Optional[bool] = None
     skip_preferences: bool = False  # For critical system notifications
 
+    # Tiered delivery: only send via the highest-priority enabled channel per user.
+    # Tier order: Push > Discord > Email > SMS (in-app always sent separately).
+    # Ignored when force_* flags are set or skip_preferences=True.
+    tiered: bool = True
+
     # Email-specific fields
     email_subject: Optional[str] = None  # Custom email subject (defaults to title)
     email_html_body: Optional[str] = None  # Custom HTML email body
@@ -124,10 +129,17 @@ class NotificationOrchestrator:
     """
     Central orchestrator for all notification delivery.
 
+    Tiered delivery (default): only the highest-priority channel per user.
+    Tier order: Push > Discord > Email > SMS (in-app always sent).
+
+    When push_discord_shared_tier=True (current default for alpha testing),
+    push and Discord both fire as a shared top tier. Set to False for pure
+    single-channel tiering once app push notifications are validated.
+
     Usage:
         from app.services.notification_orchestrator import orchestrator, NotificationPayload, NotificationType
 
-        # Send a match reminder
+        # Send a match reminder (tiered by default)
         orchestrator.send(NotificationPayload(
             notification_type=NotificationType.MATCH_REMINDER,
             title="Match Tomorrow!",
@@ -140,6 +152,10 @@ class NotificationOrchestrator:
         orchestrator.send_match_reminder(match_id=42, user_ids=[123, 456])
         orchestrator.send_rsvp_reminder(match_id=42, user_ids=[123])
     """
+
+    # Temporary: push and discord share the top tier (both fire when both enabled).
+    # Set to False for pure tier-based delivery once app push is validated.
+    push_discord_shared_tier = True
 
     def __init__(self):
         self._push_service = None
@@ -160,7 +176,14 @@ class NotificationOrchestrator:
 
     def send(self, payload: NotificationPayload) -> Dict[str, Any]:
         """
-        Send notification through all appropriate channels.
+        Send notification through appropriate channels.
+
+        When tiered=True (default), only the highest-priority enabled channel
+        is used per user: Push > Discord > Email > SMS.
+        In-app notifications are always sent (passive channel).
+
+        When force_* flags are set, skip_preferences=True, or tiered=False,
+        falls back to sending through all enabled channels.
 
         Returns:
             Dict with results for each channel
@@ -182,9 +205,8 @@ class NotificationOrchestrator:
             # Get user preferences and contact info
             users_with_prefs = self._get_users_with_preferences(payload.user_ids)
 
-            # Process each user
+            # In-App Notification (always, regardless of tier mode)
             for user_id, preferences in users_with_prefs.items():
-                # In-App Notification
                 if self._should_send_in_app(payload, preferences):
                     if self._create_in_app_notification(user_id, payload):
                         results['in_app']['created'] += 1
@@ -193,66 +215,24 @@ class NotificationOrchestrator:
                 else:
                     results['in_app']['skipped'] += 1
 
-            # Push Notifications (batch for efficiency)
-            push_user_ids = [
-                uid for uid, prefs in users_with_prefs.items()
-                if self._should_send_push(payload, prefs)
-            ]
+            # Determine delivery mode
+            use_tiered = (
+                payload.tiered
+                and not payload.skip_preferences
+                and not self._has_force_overrides(payload)
+            )
 
-            if push_user_ids:
-                push_results = self._send_push_notifications(push_user_ids, payload)
-                results['push']['success'] = push_results.get('success', 0)
-                results['push']['failure'] = push_results.get('failure', 0)
-
-            results['push']['skipped'] = len(payload.user_ids) - len(push_user_ids)
-
-            # Email Notifications
-            for user_id, prefs in users_with_prefs.items():
-                if self._should_send_email(payload, prefs):
-                    email = prefs.get('email')
-                    if email:
-                        if self._send_email_notification(email, payload):
-                            results['email']['success'] += 1
-                        else:
-                            results['email']['failure'] += 1
-                    else:
-                        results['email']['skipped'] += 1
-                else:
-                    results['email']['skipped'] += 1
-
-            # SMS Notifications
-            for user_id, prefs in users_with_prefs.items():
-                if self._should_send_sms(payload, prefs):
-                    phone = prefs.get('phone')
-                    if phone:
-                        if self._send_sms_notification(phone, user_id, payload):
-                            results['sms']['success'] += 1
-                        else:
-                            results['sms']['failure'] += 1
-                    else:
-                        results['sms']['skipped'] += 1
-                else:
-                    results['sms']['skipped'] += 1
-
-            # Discord DM Notifications
-            for user_id, prefs in users_with_prefs.items():
-                if self._should_send_discord(payload, prefs):
-                    discord_id = prefs.get('discord_id')
-                    if discord_id:
-                        if self._send_discord_notification(discord_id, payload):
-                            results['discord']['success'] += 1
-                        else:
-                            results['discord']['failure'] += 1
-                    else:
-                        results['discord']['skipped'] += 1
-                else:
-                    results['discord']['skipped'] += 1
+            if use_tiered:
+                self._send_tiered(payload, users_with_prefs, results)
+            else:
+                self._send_all_channels(payload, users_with_prefs, results)
 
             # Track analytics
             self._track_notification_sent(payload, results)
 
+            tier_label = "tiered" if use_tiered else "all-channels"
             logger.info(
-                f"Notification sent: type={payload.notification_type.value}, "
+                f"Notification sent ({tier_label}): type={payload.notification_type.value}, "
                 f"in_app={results['in_app']['created']}, "
                 f"push={results['push']['success']}, "
                 f"email={results['email']['success']}, "
@@ -265,6 +245,187 @@ class NotificationOrchestrator:
         except Exception as e:
             logger.error(f"Error in notification orchestrator: {e}", exc_info=True)
             return results
+
+    def _has_force_overrides(self, payload: NotificationPayload) -> bool:
+        """Check if any force_* channel overrides are set."""
+        return any(x is not None for x in [
+            payload.force_push, payload.force_in_app,
+            payload.force_email, payload.force_sms, payload.force_discord
+        ])
+
+    def _determine_tier(self, payload: NotificationPayload, preferences: Dict, user_id: int) -> Optional[str]:
+        """
+        Determine the highest-priority notification channel for a user.
+
+        Tier order: push > discord > email > sms
+        Returns the tier name or None if no channel is available.
+        """
+        # 1. Push (highest priority) - need preferences + active FCM tokens
+        if self._should_send_push(payload, preferences):
+            from app.models.notifications import UserFCMToken
+            db = self._get_db()
+            has_tokens = db.session.query(UserFCMToken.id).filter_by(
+                user_id=user_id, is_active=True
+            ).first() is not None
+            if has_tokens:
+                return 'push'
+
+        # 2. Discord DM
+        if self._should_send_discord(payload, preferences):
+            return 'discord'
+
+        # 3. Email
+        if self._should_send_email(payload, preferences):
+            return 'email'
+
+        # 4. SMS (last resort)
+        if self._should_send_sms(payload, preferences):
+            return 'sms'
+
+        return None
+
+    def _send_tiered(self, payload: NotificationPayload, users_with_prefs: Dict, results: Dict):
+        """
+        Send notifications using tiered delivery.
+
+        Each user receives the notification through only their highest-priority
+        enabled channel: Push > Discord > Email > SMS.
+
+        When push_discord_shared_tier=True, push-tier users also get Discord DMs
+        (and vice versa) if both channels are enabled. This is temporary for alpha
+        testing of app push notifications.
+        """
+        tier_push = []
+        tier_discord = []
+        tier_email = []
+        tier_sms = []
+
+        for user_id, prefs in users_with_prefs.items():
+            tier = self._determine_tier(payload, prefs, user_id)
+            if tier == 'push':
+                tier_push.append((user_id, prefs))
+            elif tier == 'discord':
+                tier_discord.append((user_id, prefs))
+            elif tier == 'email':
+                tier_email.append((user_id, prefs))
+            elif tier == 'sms':
+                tier_sms.append((user_id, prefs))
+
+        # When push+discord share the top tier, cross-send to the other channel
+        also_discord = []  # push-tier users who also get Discord
+        also_push = []     # discord-tier users who also get push
+        if self.push_discord_shared_tier:
+            for user_id, prefs in tier_push:
+                if self._should_send_discord(payload, prefs) and prefs.get('discord_id'):
+                    also_discord.append((user_id, prefs))
+            for user_id, prefs in tier_discord:
+                if self._should_send_push(payload, prefs):
+                    from app.models.notifications import UserFCMToken
+                    db = self._get_db()
+                    has_tokens = db.session.query(UserFCMToken.id).filter_by(
+                        user_id=user_id, is_active=True
+                    ).first() is not None
+                    if has_tokens:
+                        also_push.append(user_id)
+
+        # Push (batch all push recipients)
+        push_uids = [uid for uid, _ in tier_push]
+        if also_push:
+            push_uids.extend(also_push)
+        if push_uids:
+            push_results = self._send_push_notifications(push_uids, payload)
+            results['push']['success'] = push_results.get('success', 0)
+            results['push']['failure'] = push_results.get('failure', 0)
+        results['push']['skipped'] = len(users_with_prefs) - len(push_uids)
+
+        # Discord (tier + cross-sends from push tier)
+        all_discord = list(tier_discord) + also_discord
+        for user_id, prefs in all_discord:
+            discord_id = prefs.get('discord_id')
+            if discord_id and self._send_discord_notification(discord_id, payload):
+                results['discord']['success'] += 1
+            else:
+                results['discord']['failure'] += 1
+        results['discord']['skipped'] = len(users_with_prefs) - len(all_discord)
+
+        # Email
+        for user_id, prefs in tier_email:
+            email = prefs.get('email')
+            if email and self._send_email_notification(email, payload):
+                results['email']['success'] += 1
+            else:
+                results['email']['failure'] += 1
+        results['email']['skipped'] = len(users_with_prefs) - len(tier_email)
+
+        # SMS (last resort)
+        for user_id, prefs in tier_sms:
+            phone = prefs.get('phone')
+            if phone and self._send_sms_notification(phone, user_id, payload):
+                results['sms']['success'] += 1
+            else:
+                results['sms']['failure'] += 1
+        results['sms']['skipped'] = len(users_with_prefs) - len(tier_sms)
+
+    def _send_all_channels(self, payload: NotificationPayload, users_with_prefs: Dict, results: Dict):
+        """
+        Send notifications through all enabled channels (original behavior).
+
+        Used when force_* flags are set, skip_preferences=True, or tiered=False.
+        """
+        # Push Notifications (batch for efficiency)
+        push_user_ids = [
+            uid for uid, prefs in users_with_prefs.items()
+            if self._should_send_push(payload, prefs)
+        ]
+
+        if push_user_ids:
+            push_results = self._send_push_notifications(push_user_ids, payload)
+            results['push']['success'] = push_results.get('success', 0)
+            results['push']['failure'] = push_results.get('failure', 0)
+
+        results['push']['skipped'] = len(payload.user_ids) - len(push_user_ids)
+
+        # Email Notifications
+        for user_id, prefs in users_with_prefs.items():
+            if self._should_send_email(payload, prefs):
+                email = prefs.get('email')
+                if email:
+                    if self._send_email_notification(email, payload):
+                        results['email']['success'] += 1
+                    else:
+                        results['email']['failure'] += 1
+                else:
+                    results['email']['skipped'] += 1
+            else:
+                results['email']['skipped'] += 1
+
+        # SMS Notifications
+        for user_id, prefs in users_with_prefs.items():
+            if self._should_send_sms(payload, prefs):
+                phone = prefs.get('phone')
+                if phone:
+                    if self._send_sms_notification(phone, user_id, payload):
+                        results['sms']['success'] += 1
+                    else:
+                        results['sms']['failure'] += 1
+                else:
+                    results['sms']['skipped'] += 1
+            else:
+                results['sms']['skipped'] += 1
+
+        # Discord DM Notifications
+        for user_id, prefs in users_with_prefs.items():
+            if self._should_send_discord(payload, prefs):
+                discord_id = prefs.get('discord_id')
+                if discord_id:
+                    if self._send_discord_notification(discord_id, payload):
+                        results['discord']['success'] += 1
+                    else:
+                        results['discord']['failure'] += 1
+                else:
+                    results['discord']['skipped'] += 1
+            else:
+                results['discord']['skipped'] += 1
 
     def _get_users_with_preferences(self, user_ids: List[int]) -> Dict[int, Dict]:
         """Get users and their notification preferences along with contact info"""

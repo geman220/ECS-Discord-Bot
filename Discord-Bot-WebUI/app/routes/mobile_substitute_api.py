@@ -37,7 +37,8 @@ from app.models_ecs import EcsFcMatch
 from app.models.league_features import SubRequest
 from app.utils.mobile_auth import api_key_required
 from app.utils.substitute_helpers import (
-    validate_league_type, get_user_substitute_permissions,
+    validate_league_type, resolve_league_type_from_match,
+    get_user_substitute_permissions,
     format_substitute_pool_response, format_substitute_request_response,
     format_substitute_assignment_response, can_user_respond_to_request,
     can_user_manage_team_subs
@@ -676,10 +677,14 @@ def create_substitute_request():
 
             else:
                 # Handle Pub League requests
+                # Resolve "Pub League" to specific division (Classic/Premier)
                 # Check if match exists
                 match = session.query(Match).get(match_id)
                 if not match:
                     return jsonify({'error': 'Match not found'}), 404
+
+                if league_type == 'Pub League':
+                    league_type = resolve_league_type_from_match(match, session)
 
                 # Check for existing request
                 existing = session.query(SubstituteRequest).filter_by(

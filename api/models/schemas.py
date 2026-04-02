@@ -136,3 +136,20 @@ class LeagueEventDeleteRequest(BaseModel):
     """Request to delete a league event announcement."""
     message_id: int
     channel_id: int
+
+
+class RSVPReminderMatch(BaseModel):
+    """A single match in an RSVP reminder DM."""
+    match_type: str  # "pub" or "ecs_fc"
+    match_id: int
+    team_name: str
+    opponent_name: str
+    match_date: str  # "Saturday, April 5"
+    match_time: str  # "7:00 PM"
+    location: str
+
+
+class RSVPReminderDMRequest(BaseModel):
+    """Request to send an RSVP reminder DM with interactive buttons."""
+    discord_id: str
+    matches: List[RSVPReminderMatch]

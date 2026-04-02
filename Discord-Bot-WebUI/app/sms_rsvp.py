@@ -11,7 +11,7 @@ sending RSVP requests.
 
 from flask import Blueprint, jsonify, request, render_template, abort, url_for, g
 from flask_wtf import FlaskForm
-from datetime import datetime, timedelta
+from datetime import datetime, date, timedelta
 import secrets
 import logging
 
@@ -137,7 +137,7 @@ def get_next_matches(team_id, limit=2):
     session = g.db_session
     return session.query(Match).filter(
         (Match.home_team_id == team_id) | (Match.away_team_id == team_id),
-        Match.date >= datetime.utcnow()
+        Match.date >= date.today()
     ).order_by(Match.date, Match.time).limit(limit).all()
 
 

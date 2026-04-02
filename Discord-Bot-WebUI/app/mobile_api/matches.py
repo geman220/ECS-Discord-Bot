@@ -216,7 +216,8 @@ def get_all_matches():
 
         player = session_db.query(Player).options(
             joinedload(Player.primary_team),
-            joinedload(Player.league)
+            joinedload(Player.league),
+            joinedload(Player.teams).joinedload(Team.league)
         ).filter_by(user_id=current_user_id).first()
 
         # Get query parameters
@@ -381,7 +382,8 @@ def get_match_schedule():
 
         player = session_db.query(Player).options(
             joinedload(Player.primary_team),
-            joinedload(Player.league)
+            joinedload(Player.league),
+            joinedload(Player.teams).joinedload(Team.league)
         ).filter_by(user_id=current_user_id).first()
 
         # Determine user access level

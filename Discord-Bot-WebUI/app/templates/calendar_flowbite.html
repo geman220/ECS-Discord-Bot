@@ -539,6 +539,41 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Sync Calendar Card -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+                <div class="flex items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-indigo-100 dark:bg-indigo-900/30">
+                        <i class="ti ti-calendar-share text-indigo-600 dark:text-indigo-400"></i>
+                    </div>
+                    <h5 class="font-semibold text-gray-900 dark:text-white">Sync Calendar</h5>
+                </div>
+                <div class="p-4">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Subscribe to your personalized schedule in your favorite calendar app.</p>
+                    <div id="calSyncContent" class="space-y-2">
+                        <div class="flex flex-col gap-2">
+                            <button type="button" id="calSyncWebcal" data-action="subscribe-webcal" class="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                                <i class="ti ti-device-mobile mr-2"></i>iOS / macOS
+                            </button>
+                            <button type="button" id="calSyncGoogle" data-action="subscribe-google" class="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                                <i class="ti ti-brand-google mr-2"></i>Google Calendar
+                            </button>
+                            <button type="button" id="calSyncOutlook" data-action="subscribe-outlook" class="w-full inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                                <i class="ti ti-brand-windows mr-2"></i>Outlook
+                            </button>
+                        </div>
+                        <div class="pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1.5">Feed URL</label>
+                            <div class="flex gap-1">
+                                <input type="text" id="calSyncUrl" readonly class="flex-1 px-2.5 py-1.5 text-xs text-gray-500 bg-gray-50 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400" placeholder="Loading...">
+                                <button type="button" id="calSyncCopyBtn" data-action="copy-subscription-url" class="px-2 py-1.5 text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600" title="Copy URL">
+                                    <i class="ti ti-copy text-sm"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -2804,6 +2839,47 @@ document.addEventListener('DOMContentLoaded', () => {
         loadRefereeAssignments();
         loadRefereeAvailabilityStatus();
     }
+
+    // Load calendar subscription URLs for sidebar sync buttons
+    (async function loadCalendarSync() {
+        try {
+            const response = await fetch('/api/calendar/subscription', {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!response.ok) return;
+            const data = await response.json();
+
+            const feedUrl = data.feed_url;
+            const webcalUrl = data.webcal_url;
+
+            // Populate sidebar sync buttons with data attributes
+            const webcalBtn = document.getElementById('calSyncWebcal');
+            if (webcalBtn && webcalUrl) webcalBtn.dataset.webcalUrl = webcalUrl;
+
+            const googleBtn = document.getElementById('calSyncGoogle');
+            if (googleBtn && feedUrl) googleBtn.dataset.feedUrl = feedUrl;
+
+            const outlookBtn = document.getElementById('calSyncOutlook');
+            if (outlookBtn && feedUrl) outlookBtn.dataset.feedUrl = feedUrl;
+
+            // Populate URL input (shares ID pattern with copy action)
+            const urlInput = document.getElementById('calSyncUrl');
+            if (urlInput) urlInput.value = feedUrl || '';
+
+            // The copy button needs the subscriptionUrl element for the handler
+            // Create a hidden reference if the settings page element doesn't exist
+            if (!document.getElementById('subscriptionUrl') && feedUrl) {
+                const hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.id = 'subscriptionUrl';
+                hidden.value = feedUrl;
+                document.body.appendChild(hidden);
+            }
+        } catch (e) {
+            // Subscription not available - hide sync card
+            console.warn('Calendar subscription not available:', e);
+        }
+    })();
 
     // Expose refreshCalendar globally
     window.refreshCalendar = function() {
