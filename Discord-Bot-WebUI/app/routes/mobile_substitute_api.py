@@ -1148,7 +1148,7 @@ def assign_substitute(request_id):
         }), 500
 
 
-@mobile_substitute_api.route('/substitute-assignments/<int:assignment_id>', methods=['DELETE'])
+@mobile_substitute_api.route('/substitutes/assignments/<int:assignment_id>', methods=['DELETE'])
 @jwt_required()
 @api_key_required
 @jwt_role_required(['Global Admin', 'Pub League Admin'])
