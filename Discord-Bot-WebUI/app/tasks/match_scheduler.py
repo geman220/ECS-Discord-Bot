@@ -381,6 +381,78 @@ def health_check_enterprise_system(self):
         }
 
 
+def _build_espn_description(espn_match_id: str, home_team: str, away_team: str, competition: str) -> str:
+    """
+    Build a factual match thread description from ESPN data.
+
+    Fetches team records, standings positions, and h2h from ESPN.
+    Returns a formatted string or a simple fallback if ESPN data is unavailable.
+    """
+    from app.utils.sync_espn_client import get_sync_espn_client
+
+    fallback = f"{home_team} vs {away_team}"
+
+    try:
+        espn = get_sync_espn_client()
+
+        # Map competition string to ESPN competition code
+        comp_code = competition if '.' in competition else 'usa.1'
+
+        # Get both team IDs from the ESPN event data
+        competitors = espn.get_event_competitors(espn_match_id, comp_code)
+        if not competitors:
+            logger.warning(f"Could not fetch competitors for match {espn_match_id}")
+            return fallback
+
+        # Fetch team info for both sides
+        home_info = espn.get_team_info(competitors['home_team_id'], comp_code)
+        away_info = espn.get_team_info(competitors['away_team_id'], comp_code)
+
+        # Build description lines
+        lines = []
+
+        # Home team line
+        home_line = home_team
+        if home_info:
+            record = f"{home_info['wins']}W-{home_info['ties']}D-{home_info['losses']}L"
+            standing = home_info.get('standing_summary', '')
+            if standing:
+                # standingSummary is like "4th in Western Conference" - shorten to "4th Western"
+                standing_short = standing.replace(' in ', ' ').replace(' Conference', '')
+                home_line = f"{home_team} ({record}, {standing_short})"
+            else:
+                home_line = f"{home_team} ({record})"
+        lines.append(home_line)
+
+        # "vs" separator
+        lines.append("vs")
+
+        # Away team line
+        away_line = away_team
+        if away_info:
+            record = f"{away_info['wins']}W-{away_info['ties']}D-{away_info['losses']}L"
+            standing = away_info.get('standing_summary', '')
+            if standing:
+                standing_short = standing.replace(' in ', ' ').replace(' Conference', '')
+                away_line = f"{away_team} ({record}, {standing_short})"
+            else:
+                away_line = f"{away_team} ({record})"
+        lines.append(away_line)
+
+        # H2H last meeting
+        h2h = espn.get_head_to_head(espn_match_id, comp_code)
+        if h2h:
+            lines.append(f"Last meeting: {h2h}")
+
+        description = "\n".join(lines)
+        logger.info(f"Built ESPN description for match {espn_match_id}: {description[:80]}...")
+        return description
+
+    except Exception as e:
+        logger.warning(f"Error building ESPN description for match {espn_match_id}: {e}")
+        return fallback
+
+
 @celery_task(
     name='app.tasks.match_scheduler.create_mls_match_thread_task',
     queue='discord',
@@ -438,17 +510,25 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
                 utc_time = match_dt.astimezone(ZoneInfo('UTC'))
             pst_time = utc_time.astimezone(ZoneInfo('America/Los_Angeles'))
 
+            home_team = 'Seattle Sounders FC' if match.is_home_game else match.opponent
+            away_team = match.opponent if match.is_home_game else 'Seattle Sounders FC'
+
             match_data = {
                 'id': match.id,
                 'match_id': match.match_id,
-                'home_team': 'Seattle Sounders FC' if match.is_home_game else match.opponent,
-                'away_team': match.opponent if match.is_home_game else 'Seattle Sounders FC',
+                'home_team': home_team,
+                'away_team': away_team,
                 'date': pst_time.strftime('%Y-%m-%d'),
                 'time': pst_time.strftime('%-I:%M %p PST'),
                 'venue': match.venue or 'TBD',
                 'competition': match.competition or 'MLS',
                 'is_home_game': match.is_home_game
             }
+
+            # Fetch factual ESPN data for thread description
+            match_data['description'] = _build_espn_description(
+                match.match_id, home_team, away_team, match.competition or 'usa.1'
+            )
 
             # Use sync Discord client (works reliably)
             discord_client = get_sync_discord_client()

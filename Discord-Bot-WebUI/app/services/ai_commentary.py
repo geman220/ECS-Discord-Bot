@@ -96,110 +96,46 @@ class AICommentaryService:
     
     def _create_prompt(self, event_data: Dict[str, Any], match_context: Dict[str, Any]) -> str:
         """Create the prompt for AI commentary generation."""
-        
-        # Extract key information
+
         event_type = event_data.get('type', 'Event')
         player_name = event_data.get('player_name', 'Unknown')
         team_name = event_data.get('team_name', 'Unknown')
         is_our_team = event_data.get('is_our_team', False)
-        event_time = event_data.get('time', 'Unknown')
-        
+        event_time = event_data.get('time', '')
+        event_text = event_data.get('text', '')
+
         home_team = match_context.get('home_team', {}).get('displayName', 'Home')
         away_team = match_context.get('away_team', {}).get('displayName', 'Away')
         home_score = match_context.get('home_score', '0')
         away_score = match_context.get('away_score', '0')
-        
-        # Determine opponent and special rivalries
+        score = f"{home_score}-{away_score}"
+
         opponent = away_team if home_team == "Seattle Sounders FC" else home_team
         is_portland = "portland" in opponent.lower() or "timber" in opponent.lower()
         is_vancouver = "vancouver" in opponent.lower() or "whitecap" in opponent.lower()
-        
-        # Build context-aware prompt
-        prompt = f"""You are a passionate member of the Emerald City Supporters (ECS), Seattle Sounders FC's most dedicated fan group. You're commentating live on a match event in a Discord channel with other hardcore Sounders fans.
 
-MATCH CONTEXT:
-- Teams: {home_team} vs {away_team}
-- Current Score: {home_score}-{away_score}
-- Time: {event_time}
-- Event: {event_type} by {player_name} ({team_name})
-
-ECS SUPPORTER PERSONALITY:
-- Authentic, passionate, and sometimes profane (swearing is fine)
-- NEVER sound like AI or corporate - sound like a real supporter
-- Use supporter culture language and chants
-- Show proper disdain for rivals, especially Portland and Vancouver
-- Celebrate our players, mock opponents (within reason)
-
-RIVALRY CONTEXT:"""
-        
+        # Build rivalry context line
+        rivalry = ""
         if is_portland:
-            prompt += """
-- This is PORTLAND FUCKING TIMBERS - our biggest rival! Use Portscum, Fuck off Rose City, bonfire references"""
+            rivalry = "This is Portland. Be hostile."
         elif is_vancouver:
-            prompt += """
-- This is Vancouver Whitecaps - cascadia rival! Show proper disdain"""
-        
-        prompt += """
+            rivalry = "This is Vancouver. Show dislike."
 
-EVENT GUIDELINES:"""
+        # Determine team context for the example tone
+        if is_our_team:
+            tone = "Sounders event - be supportive"
+        else:
+            tone = "Opponent event - be dismissive or disappointed"
 
-        # Add event-specific guidance
-        if event_type == "Goal":
-            if is_our_team:
-                prompt += """
-- GOAL FOR SOUNDERS! Be absolutely ecstatic
-- Reference "Can you hear [opponent] sing? We don't hear a fucking thing!" if appropriate
-- Use celebration language like "GET IN!", "FUCKING YES!", "BOOM!"
-- Mention the scorer with love"""
-            else:
-                prompt += """
-- Opponent scored. Be disappointed but not defeated
-- Show some resilience and support for the team
-- Maybe acknowledge the goal but stay positive about comeback"""
-        
-        elif event_type in ["Yellow Card", "Red Card"]:
-            if is_our_team:
-                prompt += """
-- Our player got carded. Be frustrated but supportive
-- Maybe question the ref or call it soft
-- Support the player, show it is not their fault"""
-            else:
-                prompt += """
-- Opponent got carded! Be satisfied and a bit smug
-- This is good for us - enjoy their indiscipline
-- Reference how dirty/undisciplined they are"""
-        
-        elif event_type == "Substitution":
-            if is_our_team:
-                prompt += """
-- Our tactical change. Support the decision and new player
-- Believe it will help us get the result we need
-- Show faith in the coaching"""
-            else:
-                prompt += """
-- They are making changes. Maybe mock their desperation
-- Or acknowledge if they are bringing on dangerous players
-- Stay confident in our ability to handle it"""
-        
-        prompt += f"""
+        prompt = f"""Rewrite this match event as a short casual reaction. Use the specific details from the ESPN text. One sentence, two max. Under 200 characters.
 
-RESPONSE REQUIREMENTS:
-- Maximum 200 characters (Discord-friendly)  
-- 1-2 sentences max
-- Sound like a real ECS member, not AI
-- Use appropriate emotion for the event
-- Include swearing if it fits naturally
-- Reference specific rivalries when relevant
-- NO corporate speak, NO generic nonsense
-- NO hashtags (never use #SoundersPride, #ECS, etc.)
-- NO em dashes - use regular dashes (-) or periods
-- For hearts use blue and green hearts not other colors
-- Avoid obvious AI phrases like "That's what you get", "Let's see if they", "Keep it up"
-- Sound like someone actually at the stadium, not watching on TV
-- Use natural supporter language, not manufactured excitement
-- Avoid cringy corporate enthusiasm
+Match: {home_team} vs {away_team} | Score: {score} | Minute: {event_time}
+{rivalry}
+Tone: {tone}
 
-Generate a raw, authentic ECS supporter reaction to this {event_type}:"""
+ESPN event: "{event_text if event_text else f'{event_type} - {player_name} ({team_name})'}"
+
+Write only the reaction, nothing else."""
 
         return prompt
     
@@ -355,26 +291,26 @@ class EnhancedAICommentaryService(AICommentaryService):
         }
         
         # Use database configuration or fallback to defaults
-        temperature = config.temperature if config and config.temperature is not None else 0.7
-        max_tokens = config.max_tokens if config and config.max_tokens else 150
-        system_prompt = config.system_prompt if config and config.system_prompt else "You are an authentic soccer supporter generating genuine reactions."
-        
+        temperature = config.temperature if config and config.temperature is not None else 0.4
+        max_tokens = config.max_tokens if config and config.max_tokens else 60
+        system_prompt = config.system_prompt if config and config.system_prompt else "You write short, casual match reactions. Never use em dashes. One or two sentences max."
+
         payload = {
             "model": self.model,
             "messages": [
                 {
-                    "role": "system", 
+                    "role": "system",
                     "content": system_prompt
                 },
                 {
-                    "role": "user", 
+                    "role": "user",
                     "content": prompt
                 }
             ],
             "max_tokens": max_tokens,
             "temperature": temperature,
             "top_p": 0.95,
-            "frequency_penalty": 0.3,
+            "frequency_penalty": 0.5,
             "presence_penalty": 0.3
         }
         
@@ -598,7 +534,7 @@ class EnhancedAICommentaryService(AICommentaryService):
     
     def _create_pre_match_prompt(self, match_context: Dict[str, Any]) -> str:
         """Create prompt for pre-match hype message."""
-        
+
         home_team_raw = match_context.get('home_team', 'Home')
         home_team = home_team_raw.get('displayName', 'Home') if isinstance(home_team_raw, dict) else home_team_raw
         away_team_raw = match_context.get('away_team', 'Away')
@@ -606,143 +542,84 @@ class EnhancedAICommentaryService(AICommentaryService):
         opponent = away_team if home_team == "Seattle Sounders FC" else home_team
         competition = match_context.get('competition', 'MLS')
         venue = match_context.get('venue', 'Unknown Venue')
-        
-        # Determine match importance
-        is_playoff = 'playoff' in competition.lower() or 'cup' in competition.lower()
-        is_final = 'final' in competition.lower()
+
         is_portland = "portland" in opponent.lower() or "timber" in opponent.lower()
         is_vancouver = "vancouver" in opponent.lower() or "whitecap" in opponent.lower()
-        
-        prompt = f"""You are a passionate ECS member posting a pre-match hype message 5 minutes before kickoff. The team is about to take the field and energy is building!
+        is_home = home_team == "Seattle Sounders FC"
 
-MATCH DETAILS:
-- Teams: {home_team} vs {away_team}
-- Competition: {competition}
-- Venue: {venue}
-- It's GAME TIME in 5 minutes!"""
-
-        if is_final:
-            prompt += f"\n- THIS IS A FINAL! Massive match with silverware on the line!"
-        elif is_playoff:
-            prompt += f"\n- This is a playoff match - season on the line!"
-            
+        rivalry = ""
         if is_portland:
-            prompt += f"\n- Against our biggest rivals PORTLAND! Cascadia Cup implications!"
+            rivalry = "Rivalry match vs Portland. Be hostile."
         elif is_vancouver:
-            prompt += f"\n- Cascadia rivalry match against Vancouver!"
+            rivalry = "Cascadia match vs Vancouver. Show dislike."
 
-        prompt += f"""
+        prompt = f"""Write a short pre-kickoff message for a Sounders Discord channel. 5 minutes to kick. One or two sentences. Under 280 characters. No em dashes.
 
-TONE & STYLE:
-- 5 minutes to kickoff energy - fans are pumped and ready!
-- Authentic ECS supporter voice - passionate, not corporate
-- Build excitement and rally the troops
-- Reference the atmosphere, the supporters, the anticipation
-- Use supporter culture language
-- Swearing is fine if it fits naturally
-- NO corporate speak or hashtags
+Match: {home_team} vs {away_team} at {venue}
+Competition: {competition}
+{"Home match." if is_home else "Away match."}
+{rivalry}
 
-RESPONSE REQUIREMENTS:
-- Maximum 280 characters (Twitter-length for Discord)
-- 1-3 sentences max
-- Capture that pre-kickoff electricity
-- Sound like you're in the stadium or pub getting hyped
-- Make other supporters want to join the energy
+Examples:
+"Sounders and Houston, 5 minutes out. Three points and nothing less."
+"Almost time. {venue}, let's have it."
+"Portland away in 5. Fuck the Timbers. Come on Seattle."
+"About to kick off against Vancouver. Time to handle business."
+"Playoff time. This is what the whole season was for."
 
-Generate a raw, authentic pre-match hype message for this {competition} match:"""
-        
+Write only the message."""
+
         return prompt
     
     def _create_half_time_prompt(self, match_context: Dict[str, Any]) -> str:
         """Create prompt for half-time analysis message."""
-        
+
         home_team = match_context.get('home_team', {}).get('displayName', 'Home')
         away_team = match_context.get('away_team', {}).get('displayName', 'Away')
         home_score = match_context.get('home_score', '0')
         away_score = match_context.get('away_score', '0')
-        opponent = away_team if home_team == "Seattle Sounders FC" else home_team
-        
-        # Analyze the score situation
-        sounders_score = int(home_score) if home_team == "Seattle Sounders FC" else int(away_score)
-        opponent_score = int(away_score) if home_team == "Seattle Sounders FC" else int(home_score)
-        
-        if sounders_score > opponent_score:
-            result_context = "We're ahead at the break!"
-        elif sounders_score < opponent_score:
-            result_context = "We're behind but not out of it!"
-        else:
-            result_context = "All square at halftime!"
-            
-        prompt = f"""You are an ECS member posting a half-time analysis as players head to the tunnel. Time to assess the first 45 minutes.
 
-FIRST HALF RESULT:
-- Score: {home_team} {home_score}-{away_score} {away_team}
-- {result_context}
-- Key events and performance in first half
+        score = f"{home_score}-{away_score}"
 
-TONE & STYLE:
-- Half-time analysis voice - thoughtful but still passionate
-- ECS supporter perspective - always backing the team
-- Realistic assessment but optimistic about second half
-- Reference tactical elements, player performances, momentum
-- Show knowledge of the game while staying authentic
-- Swearing is fine if it fits the moment
+        prompt = f"""Write a short halftime reaction for a Sounders Discord channel. One or two sentences. Under 280 characters. No em dashes.
 
-RESPONSE REQUIREMENTS:
-- Maximum 280 characters
-- 1-2 sentences max  
-- Analyze first half performance
-- Set expectations for second half
-- Keep ECS energy even if result isn't perfect
+Halftime score: {home_team} {score} {away_team}
 
-Generate an authentic half-time analysis for this performance:"""
-        
+Examples at different scores:
+"Halftime. 1-0 up. Controlled the half, need another to kill it off."
+"Halftime, still 0-0. Not much in it. Second half needs more."
+"Down 2-0 at the half. Rough. Need a big response."
+"2-1 up at the break. Should be more but we keep giving them chances."
+"1-1 at halftime. Decent spell toward the end, keep pushing."
+
+Write only the reaction."""
+
         return prompt
         
     def _create_full_time_prompt(self, match_context: Dict[str, Any]) -> str:
         """Create prompt for full-time summary message."""
-        
+
         home_team = match_context.get('home_team', {}).get('displayName', 'Home')
         away_team = match_context.get('away_team', {}).get('displayName', 'Away')
         home_score = match_context.get('home_score', '0')
         away_score = match_context.get('away_score', '0')
-        opponent = away_team if home_team == "Seattle Sounders FC" else home_team
-        
-        # Analyze final result
-        sounders_score = int(home_score) if home_team == "Seattle Sounders FC" else int(away_score)
-        opponent_score = int(away_score) if home_team == "Seattle Sounders FC" else int(home_score)
-        
-        if sounders_score > opponent_score:
-            result_context = "Victory! 3 points in the bag!"
-        elif sounders_score < opponent_score:
-            result_context = "Defeat hurts but we keep fighting!"
-        else:
-            result_context = "A point earned, could be worse!"
-            
-        prompt = f"""You are an ECS member posting immediately after the final whistle. Time to sum up the match and result.
 
-FINAL RESULT:
-- Final Score: {home_team} {home_score}-{away_score} {away_team}  
-- {result_context}
-- 90+ minutes of football complete
+        score = f"{home_score}-{away_score}"
 
-TONE & STYLE:
-- Full-time emotion - joy, disappointment, or mixed feelings
-- ECS supporter voice - passionate about the result
-- Acknowledge performance good or bad
-- Always end with support for the team regardless of result
-- Reference key moments or players if relevant
-- Raw authentic emotion, not polished analysis
+        prompt = f"""Write a short full-time reaction for a Sounders Discord channel. One or two sentences. Under 280 characters. No em dashes.
 
-RESPONSE REQUIREMENTS:
-- Maximum 280 characters
-- 1-2 sentences max
-- Capture the immediate post-match feeling  
-- React to final result authentically
-- Show ongoing support for Sounders
+Final score: {home_team} {score} {away_team}
 
-Generate a raw, authentic full-time reaction to this result:"""
-        
+Examples at different results:
+"Full time. 2-0. Clean sheet and 3 points. Good day."
+"Full time. 1-2. Disappointing. Gave away too many chances."
+"1-1 at the final whistle. A point on the road, take it and move on."
+"3-1. Comfortable in the end. Needed that after last week."
+"0-0. Not great. Struggled to create anything all night."
+"Full time. 2-1. Hung on at the end but 3 points is 3 points."
+
+Write only the reaction."""
+
         return prompt
         
     def _create_thread_context_prompt(self, match_context: Dict[str, Any]) -> str:

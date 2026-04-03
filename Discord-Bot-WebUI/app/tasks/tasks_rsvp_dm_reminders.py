@@ -22,13 +22,14 @@ import uuid
 from datetime import date, timedelta
 
 import requests
-from celery import shared_task
+
+from app.decorators import celery_task
 
 logger = logging.getLogger(__name__)
 
 
-@shared_task(bind=True, max_retries=2, default_retry_delay=300)
-def send_rsvp_dm_reminders(self):
+@celery_task(max_retries=2, default_retry_delay=300)
+def send_rsvp_dm_reminders(self, session):
     """
     Send tiered RSVP reminders to players who haven't RSVP'd.
 
@@ -36,8 +37,6 @@ def send_rsvp_dm_reminders(self):
     enabled channel fires). Discord is excluded from the orchestrator because
     we send interactive button DMs instead of plain text.
     """
-    from app import create_app
-    from app.core import db
     from app.models import Match, EcsFcMatch, Player
     from app.models.communication import RsvpDmReminderLog
     from app.services import rsvp_snooze_service
@@ -46,176 +45,197 @@ def send_rsvp_dm_reminders(self):
     )
     from web_config import Config
 
-    app = create_app()
-    with app.app_context():
-        try:
-            batch_id = str(uuid.uuid4())
-            today = date.today()
-            window_end = today + timedelta(days=4)
-            bot_api_url = Config.BOT_API_URL
+    try:
+        batch_id = str(uuid.uuid4())
+        today = date.today()
+        window_end = today + timedelta(days=4)
+        bot_api_url = Config.BOT_API_URL
 
-            # Clean up expired snoozes
-            rsvp_snooze_service.cleanup_expired()
-            snoozed_ids = rsvp_snooze_service.get_all_snoozed_player_ids()
+        # Clean up expired snoozes
+        rsvp_snooze_service.cleanup_expired()
+        snoozed_ids = rsvp_snooze_service.get_all_snoozed_player_ids()
 
-            # Collect non-responders: player_id → {player, matches}
-            player_data = {}
-            pub_count = _collect_pub_league_non_responders(today, window_end, snoozed_ids, player_data)
-            ecs_count = _collect_ecs_fc_non_responders(today, window_end, snoozed_ids, player_data)
+        # Collect non-responders: player_id -> {player, matches}
+        player_data = {}
+        pub_count = _collect_pub_league_non_responders(session, today, window_end, snoozed_ids, player_data)
+        ecs_count = _collect_ecs_fc_non_responders(session, today, window_end, snoozed_ids, player_data)
 
-            logger.info(
-                f"RSVP reminders: {pub_count} pub + {ecs_count} ECS FC non-responders, "
-                f"{len(player_data)} unique players"
-            )
+        # Dedup: remove matches where a reminder was already sent successfully
+        already_reminded = set(
+            (row.player_id, row.match_id, row.match_type)
+            for row in session.query(
+                RsvpDmReminderLog.player_id,
+                RsvpDmReminderLog.match_id,
+                RsvpDmReminderLog.match_type
+            ).filter(
+                RsvpDmReminderLog.delivery_status == 'sent'
+            ).all()
+        )
+        dedup_skipped = 0
+        for player_id in list(player_data.keys()):
+            original = player_data[player_id]['matches']
+            filtered = [
+                m for m in original
+                if (player_id, m['match_id'], m['match_type']) not in already_reminded
+            ]
+            if not filtered:
+                del player_data[player_id]
+                dedup_skipped += len(original)
+            else:
+                dedup_skipped += len(original) - len(filtered)
+                player_data[player_id]['matches'] = filtered
 
-            if not player_data:
-                return {'success': True, 'total': 0}
+        logger.info(
+            f"RSVP reminders: {pub_count} pub + {ecs_count} ECS FC non-responders, "
+            f"{len(player_data)} unique players (skipped {dedup_skipped} already-reminded)"
+        )
 
-            results = {
-                'batch_id': batch_id,
-                'orchestrator': 0, 'discord_dm': 0, 'failed': 0, 'skipped': 0
-            }
+        if not player_data:
+            return {'success': True, 'total': 0}
 
-            # For each match, determine which users get orchestrator notifications
-            # and which get custom Discord DMs with buttons.
-            #
-            # Strategy: send the orchestrator notification (tiered, discord excluded)
-            # for users with accounts, then send custom Discord DMs separately
-            # to users whose highest tier IS discord.
+        results = {
+            'batch_id': batch_id,
+            'orchestrator': 0, 'discord_dm': 0, 'failed': 0, 'skipped': 0
+        }
 
-            # Step 1: Orchestrator handles push/email/sms tiers (NOT discord)
-            # Group by match for orchestrator calls
-            match_users = {}  # (match_type, match_id) -> {user_ids, match_info}
-            discord_dm_players = []  # players whose tier is discord
+        # For each match, determine which users get orchestrator notifications
+        # and which get custom Discord DMs with buttons.
+        #
+        # Strategy: send the orchestrator notification (tiered, discord excluded)
+        # for users with accounts, then send custom Discord DMs separately
+        # to users whose highest tier IS discord.
 
-            # Check if push+discord shared tier is active (alpha testing mode)
-            shared_tier = getattr(orchestrator, 'push_discord_shared_tier', False)
+        # Step 1: Orchestrator handles push/email/sms tiers (NOT discord)
+        # Group by match for orchestrator calls
+        match_users = {}  # (match_type, match_id) -> {user_ids, match_info}
+        discord_dm_players = []  # players whose tier is discord
 
-            for player_id, data in player_data.items():
-                player = data['player']
-                user = player.user
+        # Check if push+discord shared tier is active (alpha testing mode)
+        shared_tier = getattr(orchestrator, 'push_discord_shared_tier', False)
 
-                if not user:
-                    # No user account - can only do Discord DM
-                    if player.discord_id:
-                        discord_dm_players.append(data)
-                    else:
-                        results['skipped'] += 1
-                    continue
+        for player_id, data in player_data.items():
+            player = data['player']
+            user = player.user
 
-                # Determine this user's tier to decide routing
-                tier = _determine_player_tier(user, player)
-
-                if tier == 'discord':
-                    # We handle Discord ourselves with buttons
+            if not user:
+                # No user account - can only do Discord DM
+                if player.discord_id:
                     discord_dm_players.append(data)
-                    # Shared tier: also send push if available
-                    if shared_tier and _has_push(user):
-                        for m in data['matches']:
-                            key = (m['match_type'], m['match_id'])
-                            if key not in match_users:
-                                match_users[key] = {'user_ids': [], 'match': m}
-                            match_users[key]['user_ids'].append(user.id)
-                elif tier == 'push':
-                    # Orchestrator handles push
-                    for m in data['matches']:
-                        key = (m['match_type'], m['match_id'])
-                        if key not in match_users:
-                            match_users[key] = {'user_ids': [], 'match': m}
-                        match_users[key]['user_ids'].append(user.id)
-                    # Shared tier: also send Discord DM with buttons if available
-                    if shared_tier and player.discord_id and getattr(user, 'discord_notifications', True):
-                        discord_dm_players.append(data)
-                elif tier in ('email', 'sms'):
-                    # Orchestrator handles these tiers
-                    for m in data['matches']:
-                        key = (m['match_type'], m['match_id'])
-                        if key not in match_users:
-                            match_users[key] = {'user_ids': [], 'match': m}
-                        match_users[key]['user_ids'].append(user.id)
                 else:
                     results['skipped'] += 1
+                continue
 
-            # Send orchestrator notifications per match (tiered, discord excluded)
-            for key, info in match_users.items():
-                m = info['match']
-                days_until = _days_until_match(m, today)
-                try:
-                    orchestrator.send(NotificationPayload(
-                        notification_type=NotificationType.RSVP_REMINDER,
-                        title="RSVP Reminder",
-                        message=(
-                            f"Please RSVP for {m['team_name']} vs {m['opponent_name']} "
-                            f"on {m['match_date']} at {m['match_time']}"
-                        ),
-                        user_ids=info['user_ids'],
-                        data={'match_id': m['match_id'], 'match_type': m['match_type']},
-                        priority='high' if days_until <= 1 else 'normal',
-                        action_url='/schedule',
-                        force_discord=False,  # We handle Discord separately (buttons)
-                        # tiered=True is the default - push > email > sms
+            # Determine this user's tier to decide routing
+            tier = _determine_player_tier(session, user, player)
+
+            if tier == 'discord':
+                # We handle Discord ourselves with buttons
+                discord_dm_players.append(data)
+                # Shared tier: also send push if available
+                if shared_tier and _has_push(session, user):
+                    for m in data['matches']:
+                        key = (m['match_type'], m['match_id'])
+                        if key not in match_users:
+                            match_users[key] = {'user_ids': [], 'match': m}
+                        match_users[key]['user_ids'].append(user.id)
+            elif tier == 'push':
+                # Orchestrator handles push
+                for m in data['matches']:
+                    key = (m['match_type'], m['match_id'])
+                    if key not in match_users:
+                        match_users[key] = {'user_ids': [], 'match': m}
+                    match_users[key]['user_ids'].append(user.id)
+                # Shared tier: also send Discord DM with buttons if available
+                if shared_tier and player.discord_id and getattr(user, 'discord_notifications', True):
+                    discord_dm_players.append(data)
+            elif tier in ('email', 'sms'):
+                # Orchestrator handles these tiers
+                for m in data['matches']:
+                    key = (m['match_type'], m['match_id'])
+                    if key not in match_users:
+                        match_users[key] = {'user_ids': [], 'match': m}
+                    match_users[key]['user_ids'].append(user.id)
+            else:
+                results['skipped'] += 1
+
+        # Send orchestrator notifications per match (tiered, discord excluded)
+        for key, info in match_users.items():
+            m = info['match']
+            days_until = _days_until_match(m, today)
+            try:
+                orchestrator.send(NotificationPayload(
+                    notification_type=NotificationType.RSVP_REMINDER,
+                    title="RSVP Reminder",
+                    message=(
+                        f"Please RSVP for {m['team_name']} vs {m['opponent_name']} "
+                        f"on {m['match_date']} at {m['match_time']}"
+                    ),
+                    user_ids=info['user_ids'],
+                    data={'match_id': m['match_id'], 'match_type': m['match_type']},
+                    priority='high' if days_until <= 1 else 'normal',
+                    action_url='/schedule',
+                    force_discord=False,  # We handle Discord separately (buttons)
+                    # tiered=True is the default - push > email > sms
+                ))
+                results['orchestrator'] += len(info['user_ids'])
+            except Exception as e:
+                logger.error(f"Orchestrator notification failed for match {key}: {e}")
+                results['failed'] += len(info['user_ids'])
+
+        # Step 2: Custom Discord DMs with interactive buttons
+        if bot_api_url and discord_dm_players:
+            for data in discord_dm_players:
+                player = data['player']
+                matches = data['matches']
+
+                status, error = _send_reminder_dm(
+                    bot_api_url, player.discord_id, matches
+                )
+
+                for m in matches:
+                    session.add(RsvpDmReminderLog(
+                        player_id=player.id,
+                        match_id=m['match_id'],
+                        match_type=m['match_type'],
+                        discord_id=player.discord_id,
+                        delivery_status=status,
+                        error_message=error,
+                        batch_id=batch_id
                     ))
-                    results['orchestrator'] += len(info['user_ids'])
-                except Exception as e:
-                    logger.error(f"Orchestrator notification failed for match {key}: {e}")
-                    results['failed'] += len(info['user_ids'])
 
-            # Step 2: Custom Discord DMs with interactive buttons
-            if bot_api_url and discord_dm_players:
-                for data in discord_dm_players:
-                    player = data['player']
-                    matches = data['matches']
+                if status == 'sent':
+                    results['discord_dm'] += 1
+                else:
+                    results['failed'] += 1
 
-                    status, error = _send_reminder_dm(
-                        bot_api_url, player.discord_id, matches
-                    )
+                time.sleep(0.5)
 
-                    for m in matches:
-                        db.session.add(RsvpDmReminderLog(
-                            player_id=player.id,
-                            match_id=m['match_id'],
-                            match_type=m['match_type'],
-                            discord_id=player.discord_id,
-                            delivery_status=status,
-                            error_message=error,
-                            batch_id=batch_id
-                        ))
+        elif not bot_api_url and discord_dm_players:
+            logger.warning("BOT_API_URL not configured - skipping Discord DMs")
+            results['failed'] += len(discord_dm_players)
 
-                    if status == 'sent':
-                        results['discord_dm'] += 1
-                    else:
-                        results['failed'] += 1
+        logger.info(
+            f"RSVP reminders complete: orchestrator={results['orchestrator']}, "
+            f"discord_dm={results['discord_dm']}, failed={results['failed']}, "
+            f"skipped={results['skipped']}, batch_id={batch_id}"
+        )
+        results['success'] = True
+        return results
 
-                    time.sleep(0.5)
-
-            elif not bot_api_url and discord_dm_players:
-                logger.warning("BOT_API_URL not configured - skipping Discord DMs")
-                results['failed'] += len(discord_dm_players)
-
-            db.session.commit()
-
-            logger.info(
-                f"RSVP reminders complete: orchestrator={results['orchestrator']}, "
-                f"discord_dm={results['discord_dm']}, failed={results['failed']}, "
-                f"skipped={results['skipped']}, batch_id={batch_id}"
-            )
-            results['success'] = True
-            return results
-
-        except Exception as e:
-            logger.error(f"Error in send_rsvp_dm_reminders: {e}", exc_info=True)
-            raise self.retry(exc=e)
+    except Exception as e:
+        logger.error(f"Error in send_rsvp_dm_reminders: {e}", exc_info=True)
+        raise self.retry(exc=e)
 
 
-def _has_push(user):
+def _has_push(session, user):
     """Check if a user has active push notification tokens."""
     from app.models.notifications import UserFCMToken
-    return UserFCMToken.query.filter_by(
+    return session.query(UserFCMToken).filter_by(
         user_id=user.id, is_active=True
     ).first() is not None
 
 
-def _determine_player_tier(user, player):
+def _determine_player_tier(session, user, player):
     """
     Determine highest-priority notification channel for a player.
 
@@ -231,7 +251,7 @@ def _determine_player_tier(user, player):
     # 1. Push
     if getattr(user, 'push_notifications', True):
         from app.models.notifications import UserFCMToken
-        has_tokens = UserFCMToken.query.filter_by(
+        has_tokens = session.query(UserFCMToken).filter_by(
             user_id=user.id, is_active=True
         ).first() is not None
         if has_tokens:
@@ -259,12 +279,12 @@ def _days_until_match(match_info, today):
     return 3  # Conservative default since exact parsing is fragile
 
 
-def _collect_pub_league_non_responders(today, window_end, snoozed_ids, player_data):
+def _collect_pub_league_non_responders(session, today, window_end, snoozed_ids, player_data):
     """Find pub league players who haven't RSVP'd for upcoming matches."""
     from sqlalchemy.orm import joinedload
     from app.models import Match
 
-    matches = Match.query.filter(
+    matches = session.query(Match).filter(
         Match.date >= today,
         Match.date <= window_end,
         Match.is_special_week == False,
@@ -315,12 +335,12 @@ def _collect_pub_league_non_responders(today, window_end, snoozed_ids, player_da
     return count
 
 
-def _collect_ecs_fc_non_responders(today, window_end, snoozed_ids, player_data):
+def _collect_ecs_fc_non_responders(session, today, window_end, snoozed_ids, player_data):
     """Find ECS FC players who haven't RSVP'd for upcoming matches."""
     from sqlalchemy.orm import joinedload
     from app.models import EcsFcMatch
 
-    matches = EcsFcMatch.query.filter(
+    matches = session.query(EcsFcMatch).filter(
         EcsFcMatch.match_date >= today,
         EcsFcMatch.match_date <= window_end,
         EcsFcMatch.status == 'SCHEDULED'
@@ -402,7 +422,8 @@ def _send_reminder_dm(bot_api_url, discord_id, matches):
         return ('failed', str(e)[:200])
 
 
-@shared_task(bind=True)
-def send_rsvp_dm_reminders_manual(self):
+@celery_task()
+def send_rsvp_dm_reminders_manual(self, session):
     """Manual trigger for RSVP DM reminders (for admin testing)."""
-    return send_rsvp_dm_reminders()
+    result = send_rsvp_dm_reminders.delay()
+    return {'task_id': result.id, 'status': 'dispatched'}

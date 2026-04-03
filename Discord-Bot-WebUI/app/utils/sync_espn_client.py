@@ -149,6 +149,153 @@ class SyncESPNClient:
         
         return events
     
+    def get_team_info(self, team_id: str, competition: str = "usa.1") -> Optional[Dict[str, Any]]:
+        """
+        Get team record and standings info from ESPN.
+
+        Args:
+            team_id: ESPN team ID (e.g. '9726' for Seattle Sounders)
+            competition: Competition identifier
+
+        Returns:
+            Dict with 'wins', 'losses', 'ties', 'standing_summary', 'abbreviation'
+            or None if unavailable.
+        """
+        try:
+            url = f"{self.base_url}/{competition}/teams/{team_id}"
+            response = self.session.get(url, timeout=self.timeout)
+
+            if response.status_code != 200:
+                logger.warning(f"ESPN team API returned {response.status_code} for team {team_id}")
+                return None
+
+            data = response.json()
+            team_data = data.get('team', {})
+
+            # Extract record from team.record.items[0].stats
+            record_info = {}
+            record_items = team_data.get('record', {}).get('items', [])
+            if record_items:
+                stats = record_items[0].get('stats', [])
+                for stat in stats:
+                    record_info[stat.get('name', '')] = stat.get('value', 0)
+
+            return {
+                'wins': int(record_info.get('wins', 0)),
+                'losses': int(record_info.get('losses', 0)),
+                'ties': int(record_info.get('ties', 0)),
+                'standing_summary': team_data.get('standingSummary', ''),
+                'abbreviation': team_data.get('abbreviation', ''),
+                'display_name': team_data.get('displayName', ''),
+            }
+
+        except requests.Timeout:
+            logger.error(f"ESPN team API timed out for team {team_id}")
+            return None
+        except Exception as e:
+            logger.error(f"Error fetching team info for {team_id}: {e}")
+            return None
+
+    def get_event_competitors(self, match_id: str, competition: str = "usa.1") -> Optional[Dict[str, str]]:
+        """
+        Fetch ESPN event data and extract both team IDs from competitors.
+
+        Args:
+            match_id: ESPN match/event ID
+            competition: Competition identifier
+
+        Returns:
+            Dict with 'home_team_id', 'away_team_id', 'home_team_name', 'away_team_name'
+            or None if unavailable.
+        """
+        try:
+            url = f"{self.base_url}/{competition}/scoreboard/{match_id}"
+            response = self.session.get(url, timeout=self.timeout)
+
+            if response.status_code != 200:
+                return None
+
+            data = response.json()
+
+            # Navigate ESPN response structure
+            events = data.get('events', [])
+            if not events:
+                return None
+
+            event = events[0]
+            competitions = event.get('competitions', [])
+            if not competitions:
+                return None
+
+            competitors = competitions[0].get('competitors', [])
+            if len(competitors) < 2:
+                return None
+
+            result = {}
+            for comp in competitors:
+                team = comp.get('team', {})
+                if comp.get('homeAway') == 'home':
+                    result['home_team_id'] = team.get('id', '')
+                    result['home_team_name'] = team.get('displayName', '')
+                else:
+                    result['away_team_id'] = team.get('id', '')
+                    result['away_team_name'] = team.get('displayName', '')
+
+            return result if 'home_team_id' in result and 'away_team_id' in result else None
+
+        except Exception as e:
+            logger.error(f"Error fetching event competitors for {match_id}: {e}")
+            return None
+
+    def get_head_to_head(self, match_id: str, competition: str = "usa.1") -> Optional[str]:
+        """
+        Get last meeting result from ESPN summary endpoint's seasonseries.
+
+        Args:
+            match_id: ESPN match/event ID
+            competition: Competition identifier
+
+        Returns:
+            Formatted string like "SEA 2 - 1 HOU" or None if unavailable.
+        """
+        try:
+            url = f"{self.base_url}/{competition}/summary?event={match_id}"
+            response = self.session.get(url, timeout=self.timeout)
+
+            if response.status_code != 200:
+                return None
+
+            data = response.json()
+            season_series = data.get('seasonseries', [])
+
+            if not season_series:
+                return None
+
+            # seasonseries is a list of previous matchups
+            # Take the most recent one (last in list or first depending on API)
+            for match in reversed(season_series):
+                competitors = match.get('competitors', [])
+                if len(competitors) < 2:
+                    continue
+
+                parts = []
+                for comp in competitors:
+                    abbr = comp.get('team', {}).get('abbreviation', '???')
+                    score = comp.get('score', '?')
+                    parts.append((abbr, score, comp.get('homeAway', '')))
+
+                if len(parts) == 2:
+                    # Format as "HOME_ABBR score - score AWAY_ABBR"
+                    home = next((p for p in parts if p[2] == 'home'), parts[0])
+                    away = next((p for p in parts if p[2] == 'away'), parts[1])
+                    return f"{home[0]} {home[1]} - {away[1]} {away[0]}"
+
+            return None
+
+        except Exception as e:
+            logger.error(f"Error fetching h2h for match {match_id}: {e}")
+            return None
+
     def close(self):
         """Close the session."""
         if self.session:

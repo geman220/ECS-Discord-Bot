@@ -970,24 +970,15 @@ async def _create_match_thread_locked(request, bot, match_id, home_team, away_te
             logger.warning(f"Error checking for existing threads: {e}")
             # Continue even if we can't check for duplicates
 
-        # Generate AI-powered contextual description
-        ai_context = await generate_thread_context({
-            'home_team': {'displayName': home_team},
-            'away_team': {'displayName': away_team},
-            'competition': request.get('competition', 'MLS'),
-            'venue': request.get('venue', 'Stadium')
-        })
-        
-        # Create thread content with AI enhancement
-        if ai_context:
-            content = f"Match thread created! {ai_context} Discuss the game here and make your predictions."
-        else:
-            content = "Match thread created! This is a big one - discuss the game here and make your predictions."
-        
-        # Create comprehensive embed (similar to discord_utils.py template)
+        # Use pre-built ESPN description if provided, otherwise simple fallback
+        espn_description = request.get('description', '')
+
+        content = "Match thread is up. Discuss the game and drop your predictions."
+
+        # Create comprehensive embed
         embed = discord.Embed(
             title=f"Match Thread: {home_team} vs {away_team}",
-            description=ai_context if ai_context else "**Let's go Sounders!**",
+            description=espn_description if espn_description else f"{home_team} vs {away_team}",
             color=0x5B9A49  # Sounders green
         )
         

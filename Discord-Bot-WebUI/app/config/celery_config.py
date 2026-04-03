@@ -467,17 +467,11 @@ class CeleryConfig:
         # =====================================================================
         # UNIFIED NOTIFICATION SYSTEM - Automated Reminders
         # =====================================================================
-        # RSVP reminders: Daily at 9 AM PST for matches in 3-5 days
-        'send-rsvp-reminders': {
-            'task': 'app.tasks.tasks_notification_reminders.send_rsvp_reminders',
-            'schedule': crontab(hour=9, minute=0),
-            'options': {
-                'queue': 'celery',
-                'expires': 3540,
-                'time_limit': 300,
-                'soft_time_limit': 240
-            }
-        },
+        # RSVP reminders: Handled by send_rsvp_dm_reminders (Thursday noon)
+        # which supports interactive Discord buttons + orchestrator tiers.
+        # The old daily send_rsvp_reminders task was removed to prevent
+        # duplicate notifications — players get ONE reminder per match.
+
         # Match reminders: Daily at 6 PM PST for tomorrow's matches
         'send-match-reminders-daily': {
             'task': 'app.tasks.tasks_notification_reminders.send_match_reminders_daily',
