@@ -41,6 +41,11 @@ from flask import Blueprint
 # This will eventually replace app/app_api.py
 mobile_api_v2 = Blueprint('mobile_api_v2', __name__, url_prefix='/api/v1')
 
+# Module-level flag to prevent re-registering middleware/routes on the singleton
+# blueprint when create_app() is called multiple times (e.g. Celery workers).
+# Set BEFORE any @blueprint.before_request calls to close re-entrancy windows.
+_setup_done = False
+
 
 def register_mobile_api_routes():
     """
@@ -88,10 +93,9 @@ def init_mobile_api(app, csrf):
         app: Flask application instance
         csrf: Flask-WTF CSRF protection instance
     """
-    # Guard: Flask sets _got_registered_once=True after the first
-    # app.register_blueprint() call and then forbids @blueprint.before_request.
-    # Only attach middleware/routes while the blueprint is still "fresh".
-    if not getattr(mobile_api_v2, '_got_registered_once', False):
+    global _setup_done
+    if not _setup_done:
+        _setup_done = True  # Set BEFORE setup calls — prevents re-entry
         csrf.exempt(mobile_api_v2)
         from app.mobile_api.middleware import register_api_middleware
         register_api_middleware(mobile_api_v2)

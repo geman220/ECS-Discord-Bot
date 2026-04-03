@@ -86,7 +86,10 @@ class EcsFcScheduleManager:
                 longitude=longitude,
                 is_home_match=is_home_match,
                 notes=notes.strip() if notes else None,
+                status='SCHEDULED',
                 created_by=created_by,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow(),
                 rsvp_deadline=rsvp_deadline
             )
             

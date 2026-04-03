@@ -205,8 +205,9 @@ def get_ecs_fc_matches():
                 "longitude": match.longitude or 0.0,
                 "is_home_match": match.is_home_match,
                 "status": match.status,
-                "home_score": match.home_score or 0,
-                "away_score": match.away_score or 0,
+                "is_completed": match.status == 'COMPLETED',
+                "home_score": match.home_score,
+                "away_score": match.away_score,
                 "notes": match.notes,
                 "rsvp_deadline": match.rsvp_deadline.isoformat() if match.rsvp_deadline else None,
                 "rsvp_summary": match.get_rsvp_summary()
@@ -277,8 +278,9 @@ def get_ecs_fc_match_details(match_id: int):
             "home_shirt_color": match.home_shirt_color,
             "away_shirt_color": match.away_shirt_color,
             "status": match.status,
-            "home_score": match.home_score or 0,
-            "away_score": match.away_score or 0,
+            "is_completed": match.status == 'COMPLETED',
+            "home_score": match.home_score,
+            "away_score": match.away_score,
             "notes": match.notes,
             "rsvp_deadline": match.rsvp_deadline.isoformat() if match.rsvp_deadline else None,
             "rsvp_reminder_sent": match.rsvp_reminder_sent,
@@ -785,9 +787,10 @@ def get_ecs_fc_match_reporting_info(match_id: int):
                 "time": match.match_time.strftime('%H:%M') if match.match_time else None,
                 "location": match.location,
                 "is_home_match": match.is_home_match,
-                "home_score": match.home_score or 0,
-                "away_score": match.away_score or 0,
+                "home_score": match.home_score,
+                "away_score": match.away_score,
                 "status": match.status,
+                "is_completed": match.status == 'COMPLETED',
             },
             "team_players": team_players,
             "events": events_data,
@@ -1047,9 +1050,10 @@ def update_ecs_fc_match_score(match_id: int):
             "message": "Score updated",
             "match": {
                 "id": match.id,
-                "home_score": match.home_score or 0,
-                "away_score": match.away_score or 0,
-                "status": match.status
+                "home_score": match.home_score,
+                "away_score": match.away_score,
+                "status": match.status,
+                "is_completed": match.status == 'COMPLETED'
             }
         }), 200
 

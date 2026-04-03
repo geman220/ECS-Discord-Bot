@@ -53,7 +53,7 @@ def normalize_ecs_fc_match(match: EcsFcMatch, player: Player = None,
     """
     # Build normalized match data matching Pub League Match.to_dict() field names
     # so the Flutter app can parse both types uniformly
-    has_scores = match.home_score is not None and match.away_score is not None
+    is_completed = match.status == 'COMPLETED'
 
     match_data = {
         'id': match.id,
@@ -65,24 +65,25 @@ def normalize_ecs_fc_match(match: EcsFcMatch, player: Player = None,
         'longitude': match.longitude or 0.0,
         'field': match.field_name or match.location,
         'status': match.status,
+        'is_completed': is_completed,
         'notes': match.notes,
         # ECS FC specific fields
         'opponent_name': match.opponent_name,
         'is_home_match': match.is_home_match,
         'home_shirt_color': match.home_shirt_color,
         'away_shirt_color': match.away_shirt_color,
-        # Scores - use both field names for compatibility
-        'home_score': match.home_score or 0,
-        'away_score': match.away_score or 0,
-        'home_team_score': match.home_score or 0,
-        'away_team_score': match.away_score or 0,
+        # Scores - return null when no score entered (not 0)
+        'home_score': match.home_score,
+        'away_score': match.away_score,
+        'home_team_score': match.home_score,
+        'away_team_score': match.away_score,
         # Pub league compat fields (Flutter requires non-null team IDs; use 0 for external opponent)
         'home_team_id': match.team_id if match.is_home_match else 0,
         'away_team_id': match.team_id if not match.is_home_match else 0,
-        'reported': has_scores,
-        'home_team_verified': has_scores,
-        'away_team_verified': has_scores,
-        'fully_verified': has_scores,
+        'reported': is_completed,
+        'home_team_verified': is_completed,
+        'away_team_verified': is_completed,
+        'fully_verified': is_completed,
         'schedule_id': None,
         'ref_id': None,
         'week_type': 'REGULAR',
@@ -624,8 +625,8 @@ def get_match_live_updates(match_id: int):
         return jsonify({
             "match_id": match_id,
             "status": match.status if hasattr(match, 'status') else None,
-            "home_score": match.home_team_score or 0,
-            "away_score": match.away_team_score or 0,
+            "home_score": match.home_team_score,
+            "away_score": match.away_team_score,
             "events": events_list[-10:] if events_list else [],  # Last 10 events
             "last_updated": datetime.utcnow().isoformat()
         }), 200

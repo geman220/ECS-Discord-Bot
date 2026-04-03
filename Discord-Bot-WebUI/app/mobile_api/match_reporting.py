@@ -217,8 +217,8 @@ def get_match_reporting_info(match_id: int):
                     "id": match.away_team.id,
                     "name": match.away_team.name
                 },
-                "home_team_score": match.home_team_score or 0,
-                "away_team_score": match.away_team_score or 0,
+                "home_team_score": match.home_team_score,
+                "away_team_score": match.away_team_score,
                 "home_team_verified": match.home_team_verified,
                 "away_team_verified": match.away_team_verified,
                 "fully_verified": match.fully_verified,
@@ -275,8 +275,8 @@ def get_match_events(match_id: int):
         return jsonify({
             "match_id": match_id,
             "events": events,
-            "home_team_score": match.home_team_score or 0,
-            "away_team_score": match.away_team_score or 0
+            "home_team_score": match.home_team_score,
+            "away_team_score": match.away_team_score
         }), 200
 
 
@@ -804,8 +804,8 @@ def report_match(match_id: int):
                     "id": match.away_team.id,
                     "name": match.away_team.name
                 },
-                "home_team_score": match.home_team_score or 0,
-                "away_team_score": match.away_team_score or 0,
+                "home_team_score": match.home_team_score,
+                "away_team_score": match.away_team_score,
                 "reported": match.reported,
                 "notes": match.notes,
                 "home_team_verified": match.home_team_verified,
@@ -899,8 +899,8 @@ def update_match_score(match_id: int):
                     "id": match.away_team.id,
                     "name": match.away_team.name
                 },
-                "home_team_score": match.home_team_score or 0,
-                "away_team_score": match.away_team_score or 0
+                "home_team_score": match.home_team_score,
+                "away_team_score": match.away_team_score
             }
         }), 200
 
@@ -1167,8 +1167,8 @@ def verify_match(match_id: int):
                     "id": match.away_team.id,
                     "name": match.away_team.name
                 },
-                "home_team_score": match.home_team_score or 0,
-                "away_team_score": match.away_team_score or 0,
+                "home_team_score": match.home_team_score,
+                "away_team_score": match.away_team_score,
                 "home_team_verified": match.home_team_verified,
                 "away_team_verified": match.away_team_verified,
                 "fully_verified": match.fully_verified,

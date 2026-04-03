@@ -163,6 +163,101 @@ function registerDelegationHandlers() {
       const matchId = retryMatchRequests.dataset.matchId;
       if (matchId) loadMatchSubstituteRequests(matchId);
     }
+
+    // Expand/collapse notes on request cards
+    const expandNotes = e.target.closest('[data-action="expand-notes"]');
+    if (expandNotes) {
+      const reqId = expandNotes.dataset.requestId;
+      const shortEl = document.querySelector(`[data-notes-short="${reqId}"]`);
+      const fullEl = document.querySelector(`[data-notes-full="${reqId}"]`);
+      if (shortEl && fullEl) {
+        shortEl.classList.add('hidden');
+        fullEl.classList.remove('hidden');
+      }
+    }
+
+    const collapseNotes = e.target.closest('[data-action="collapse-notes"]');
+    if (collapseNotes) {
+      const reqId = collapseNotes.dataset.requestId;
+      const shortEl = document.querySelector(`[data-notes-short="${reqId}"]`);
+      const fullEl = document.querySelector(`[data-notes-full="${reqId}"]`);
+      if (shortEl && fullEl) {
+        fullEl.classList.add('hidden');
+        shortEl.classList.remove('hidden');
+      }
+    }
+
+    // Delete active request (from Jinja-rendered cards)
+    const deleteActive = e.target.closest('[data-action="delete-active-request"]');
+    if (deleteActive) {
+      const requestId = deleteActive.dataset.requestId;
+      const teamName = deleteActive.dataset.teamName;
+      deleteActiveRequest(requestId, teamName, deleteActive);
+    }
+  });
+}
+
+/**
+ * Delete an active substitute request with confirmation, then remove the card
+ */
+function deleteActiveRequest(requestId, teamName, buttonEl) {
+  if (typeof window.Swal === 'undefined') return;
+
+  window.Swal.fire({
+    title: 'Delete Request?',
+    text: `Are you sure you want to delete the substitute request for ${teamName}? This action cannot be undone.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc3545',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Yes, delete it!',
+    cancelButtonText: 'Cancel'
+  }).then(async (result) => {
+    if (!result.isConfirmed) return;
+
+    buttonEl.disabled = true;
+    buttonEl.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>';
+
+    try {
+      const { deleteRequest } = await import('./api.js');
+      const data = await deleteRequest(requestId);
+
+      if (data.success) {
+        const { showNotification } = await import('./utils.js');
+        showNotification('success', 'Request deleted successfully');
+
+        // Fade out the card
+        const card = buttonEl.closest('.border-l-4');
+        if (card) {
+          card.style.transition = 'opacity 0.3s';
+          card.style.opacity = '0';
+          setTimeout(() => {
+            card.remove();
+            // If no cards left, show empty state
+            const grid = document.querySelector('.grid.grid-cols-1.md\\:grid-cols-2.xl\\:grid-cols-3');
+            if (grid && grid.children.length === 0) {
+              grid.parentElement.innerHTML = `
+                <div class="text-center py-12">
+                  <i class="ti ti-clipboard-list text-gray-300 dark:text-gray-600 text-6xl"></i>
+                  <h4 class="text-lg font-medium text-gray-500 dark:text-gray-400 mt-4">No active substitute requests</h4>
+                  <p class="text-gray-400 dark:text-gray-500 mt-2">All substitute requests have been fulfilled or there are no pending requests.</p>
+                </div>`;
+            }
+          }, 300);
+        }
+      } else {
+        const { showNotification } = await import('./utils.js');
+        showNotification('error', data.error || 'Failed to delete request');
+        buttonEl.disabled = false;
+        buttonEl.innerHTML = '<i class="ti ti-trash"></i>';
+      }
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      const { showNotification } = await import('./utils.js');
+      showNotification('error', 'Failed to delete substitute request');
+      buttonEl.disabled = false;
+      buttonEl.innerHTML = '<i class="ti ti-trash"></i>';
+    }
   });
 }
 

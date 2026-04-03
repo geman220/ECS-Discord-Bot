@@ -85,7 +85,7 @@ class EcsFcMatch(db.Model):
     home_shirt_color = db.Column(db.String(50), nullable=True)
     away_shirt_color = db.Column(db.String(50), nullable=True)
     notes = db.Column(db.Text, nullable=True)
-    status = db.Column(db.String(50), nullable=False)
+    status = db.Column(db.String(50), nullable=False, default='SCHEDULED')
     home_score = db.Column(db.Integer, nullable=True)
     away_score = db.Column(db.Integer, nullable=True)
     created_by = db.Column(db.Integer, nullable=True)
@@ -161,8 +161,8 @@ class EcsFcMatch(db.Model):
             'away_shirt_color': self.away_shirt_color,
             'notes': self.notes,
             'status': self.status,
-            'home_score': self.home_score or 0,
-            'away_score': self.away_score or 0,
+            'home_score': self.home_score,
+            'away_score': self.away_score,
             'created_by': self.created_by,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,

@@ -288,8 +288,9 @@ def get_team_matches(team_id: int):
                     'is_home_match': match.is_home_match,
                     'home_shirt_color': match.home_shirt_color,
                     'away_shirt_color': match.away_shirt_color,
-                    'home_score': match.home_score or 0,
-                    'away_score': match.away_score or 0,
+                    'home_score': match.home_score,
+                    'away_score': match.away_score,
+                    'is_completed': match.status == 'COMPLETED',
                     'home_team': {
                         'id': match.team.id,
                         'name': match.team.name if match.is_home_match else match.opponent_name,

@@ -157,12 +157,24 @@
                     <p><strong>Team:</strong> {{ request.team.name }}</p>
                     <p><strong>Needed:</strong> {{ request.substitutes_needed }} substitute(s)</p>
                     {% if request.notes %}
-                    <p><strong>Notes:</strong> {{ request.notes[:50] }}{% if request.notes|length > 50 %}...{% endif %}</p>
+                    <div>
+                        <strong>Notes:</strong>
+                        {% if request.notes|length > 50 %}
+                        <span data-notes-short="{{ request.id }}">{{ request.notes[:50] }}... <button type="button" data-action="expand-notes" data-request-id="{{ request.id }}" class="text-ecs-green hover:underline text-xs font-medium">(more)</button></span>
+                        <span data-notes-full="{{ request.id }}" class="hidden">{{ request.notes }} <button type="button" data-action="collapse-notes" data-request-id="{{ request.id }}" class="text-ecs-green hover:underline text-xs font-medium">(less)</button></span>
+                        {% else %}
+                        {{ request.notes }}
+                        {% endif %}
+                    </div>
                     {% endif %}
                 </div>
                 <div class="flex justify-between items-center pt-3 border-t border-gray-200 dark:border-gray-700">
                     <span class="text-xs text-gray-500 dark:text-gray-400">{{ request.assignments|length if request.assignments else 0 }}/{{ request.substitutes_needed }} assigned</span>
                     <div class="flex gap-1">
+                        <button class="p-2 text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50"
+                                data-action="delete-active-request" data-request-id="{{ request.id }}" data-team-name="{{ request.team.name }}" title="Delete Request">
+                            <i class="ti ti-trash"></i>
+                        </button>
                         <button class="p-2 text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50"
                                 data-action="show-contact-subs" data-request-id="{{ request.id }}" data-league="{{ request.team.league.name if request.team.league else 'Premier' }}" title="Contact Subs">
                             <i class="ti ti-send"></i>
