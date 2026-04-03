@@ -20,7 +20,7 @@ from typing import Dict, List, Any, Optional, Tuple
 
 from flask import Blueprint, jsonify, request, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import and_, or_, func, desc
 
 from app.core import db
@@ -484,8 +484,12 @@ def get_substitute_requests():
 
             # Query unified SubstituteRequest table (used by both web admin and mobile)
             query = session.query(SubstituteRequest).options(
-                joinedload(SubstituteRequest.match),
-                joinedload(SubstituteRequest.team).joinedload(Team.league)
+                joinedload(SubstituteRequest.match).joinedload(Match.home_team),
+                joinedload(SubstituteRequest.match).joinedload(Match.away_team),
+                joinedload(SubstituteRequest.team).joinedload(Team.league),
+                joinedload(SubstituteRequest.requester).joinedload(User.player),
+                selectinload(SubstituteRequest.responses),
+                selectinload(SubstituteRequest.assignments).joinedload(SubstituteAssignment.player)
             )
 
             # Apply filters based on permissions
@@ -523,20 +527,22 @@ def get_substitute_requests():
                 # Determine league type from team
                 league_name = req.team.league.name if req.team and req.team.league else 'Unknown'
 
-                # Format the legacy request to match mobile API structure
+                # Format the request for mobile API
                 req_data = {
                     'id': req.id,
+                    'league_type': req.league_type or league_name,
                     'match_id': req.match_id,
                     'team_id': req.team_id,
-                    'league_type': league_name,
+                    'requested_by': req.requested_by,
                     'status': req.status,
                     'substitutes_needed': req.substitutes_needed or 1,
                     'positions_needed': req.positions_needed or 'Any',
-                    'gender_preference': None,
+                    'gender_preference': req.gender_preference,
                     'notes': req.notes,
                     'created_at': req.created_at.isoformat() if req.created_at else None,
                     'updated_at': req.updated_at.isoformat() if req.updated_at else None,
-                    'expires_at': None,  # Legacy doesn't have expiration
+                    'response_count': len(req.responses) if req.responses else 0,
+                    'assignment_count': len(req.assignments),
 
                     # Team information
                     'team': {
@@ -549,14 +555,32 @@ def get_substitute_requests():
                     # Match information
                     'match': {
                         'id': req.match.id,
-                        'date': req.match.date.isoformat() if req.match and req.match.date else None,
-                        'time': str(req.match.time) if req.match and req.match.time else None,
+                        'date': req.match.date.isoformat() if req.match and req.match.date else "",
+                        'time': req.match.time.isoformat() if req.match and req.match.time else "",
+                        'location': req.match.location if req.match else "",
                         'home_team_id': req.match.home_team_id if req.match else None,
-                        'away_team_id': req.match.away_team_id if req.match else None
+                        'away_team_id': req.match.away_team_id if req.match else None,
+                        'home_team_name': req.match.home_team.name if req.match and req.match.home_team else None,
+                        'away_team_name': req.match.away_team.name if req.match and req.match.away_team else None,
                     } if req.match else None,
 
-                    # Requester information (if available)
-                    'requester': None,  # Legacy doesn't track requester
+                    # Requester information
+                    'requester': {
+                        'id': req.requester.id,
+                        'username': req.requester.username or "",
+                        'display_name': req.requester.player.name if req.requester.player else (req.requester.username or ""),
+                    } if req.requester else None,
+
+                    # Assignment details
+                    'assignments': [
+                        {
+                            'id': a.id,
+                            'player_name': a.player.name if a.player else "Unknown",
+                            'player_phone': a.player.phone if a.player else None,
+                            'position_assigned': a.position_assigned,
+                            'assigned_at': a.assigned_at.isoformat() if a.assigned_at else None,
+                        } for a in req.assignments
+                    ],
 
                     # Responses (if requested)
                     'responses': [] if include_responses else None

@@ -559,7 +559,7 @@ def notify_availability_update(match_id: int, player_id: int,
     """
     logger.info(f"Processing availability update notifications for match {match_id}, player {player_id}")
     # Import tasks locally to avoid circular imports.
-    from app.tasks import notify_discord_of_rsvp_change_task, notify_frontend_of_rsvp_change_task
+    from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task, notify_frontend_of_rsvp_change_task
     notify_discord_of_rsvp_change_task.delay(match_id)
     notify_frontend_of_rsvp_change_task.delay(match_id, player_id, response)
 

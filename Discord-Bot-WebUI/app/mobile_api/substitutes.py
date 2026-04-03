@@ -247,12 +247,14 @@ def get_my_team_requests():
                 "message": "You are not a coach for any team"
             }), 200
 
-        # Build query
+        # Build query with eager loading for requester, assignments, and match teams
         query = session.query(SubstituteRequest).options(
-            joinedload(SubstituteRequest.match),
+            joinedload(SubstituteRequest.match).joinedload(Match.home_team),
+            joinedload(SubstituteRequest.match).joinedload(Match.away_team),
             joinedload(SubstituteRequest.team),
+            joinedload(SubstituteRequest.requester).joinedload(User.player),
             selectinload(SubstituteRequest.responses),
-            selectinload(SubstituteRequest.assignments)
+            selectinload(SubstituteRequest.assignments).joinedload(SubstituteAssignment.player)
         ).filter(
             SubstituteRequest.team_id.in_(coach_team_ids)
         )
@@ -263,28 +265,50 @@ def get_my_team_requests():
         query = query.order_by(SubstituteRequest.created_at.desc()).limit(limit)
         requests = query.all()
 
-        # Build response
+        # Build response matching Flutter SubstituteRequest model
         requests_data = []
         for req in requests:
             requests_data.append({
                 "id": req.id,
+                "league_type": req.league_type or "",
+                "match_id": req.match_id,
+                "team_id": req.team_id,
+                "requested_by": req.requested_by,
+                "status": req.status,
+                "substitutes_needed": req.substitutes_needed or 1,
+                "positions_needed": req.positions_needed,
+                "notes": req.notes,
+                "created_at": req.created_at.isoformat() if req.created_at else None,
+                "response_count": len(req.responses),
+                "assignment_count": len(req.assignments),
                 "match": {
                     "id": req.match.id,
-                    "date": req.match.date.isoformat() if req.match.date else None,
-                    "time": req.match.time.isoformat() if req.match.time else None,
+                    "date": req.match.date.isoformat() if req.match.date else "",
+                    "time": req.match.time.isoformat() if req.match.time else "",
+                    "location": req.match.location or "",
                     "home_team_id": req.match.home_team_id,
-                    "away_team_id": req.match.away_team_id
+                    "away_team_id": req.match.away_team_id,
+                    "home_team_name": req.match.home_team.name if req.match.home_team else None,
+                    "away_team_name": req.match.away_team.name if req.match.away_team else None,
                 } if req.match else None,
                 "team": {
                     "id": req.team.id,
                     "name": req.team.name
                 } if req.team else None,
-                "positions_needed": req.positions_needed,
-                "substitutes_needed": req.substitutes_needed,
-                "status": req.status,
-                "response_count": len(req.responses),
-                "assignment_count": len(req.assignments),
-                "created_at": req.created_at.isoformat() if req.created_at else None
+                "requester": {
+                    "id": req.requester.id,
+                    "username": req.requester.username,
+                    "display_name": req.requester.player.name if req.requester.player else req.requester.username,
+                } if req.requester else None,
+                "assignments": [
+                    {
+                        "id": a.id,
+                        "player_name": a.player.name if a.player else "Unknown",
+                        "player_phone": a.player.phone if a.player else None,
+                        "position_assigned": a.position_assigned,
+                        "assigned_at": a.assigned_at.isoformat() if a.assigned_at else None,
+                    } for a in req.assignments
+                ],
             })
 
         return jsonify({

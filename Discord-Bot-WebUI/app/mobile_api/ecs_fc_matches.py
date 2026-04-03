@@ -1416,7 +1416,7 @@ def get_ecs_fc_substitute_requests():
         team_id: Filter by team
         match_id: Filter by match (returns request for specific match)
     """
-    from app.models.substitutes import EcsFcSubRequest
+    from app.models.substitutes import EcsFcSubRequest, EcsFcSubAssignment
 
     current_user_id = int(get_jwt_identity())
     status_filter = request.args.get('status')
@@ -1430,7 +1430,8 @@ def get_ecs_fc_substitute_requests():
         query = session.query(EcsFcSubRequest).options(
             joinedload(EcsFcSubRequest.match),
             joinedload(EcsFcSubRequest.team),
-            joinedload(EcsFcSubRequest.requester)
+            joinedload(EcsFcSubRequest.requester).joinedload(User.player),
+            selectinload(EcsFcSubRequest.assignments).joinedload(EcsFcSubAssignment.player)
         )
 
         if status_filter:
@@ -1459,20 +1460,49 @@ def get_ecs_fc_substitute_requests():
         for req in requests:
             requests_data.append({
                 "id": req.id,
-                "match_id": req.match_id,
-                "match": {
-                    "opponent_name": req.match.opponent_name,
-                    "date": req.match.match_date.isoformat() if req.match.match_date else None,
-                    "time": req.match.match_time.strftime('%H:%M') if req.match.match_time else None,
-                    "location": req.match.location,
-                } if req.match else None,
-                "team_id": req.team_id,
-                "team_name": req.team.name if req.team else None,
+                "match_id": req.match_id or 0,
+                "team_id": req.team_id or 0,
+                "requested_by": req.requested_by or 0,
+                "substitutes_needed": req.substitutes_needed or 1,
                 "positions_needed": req.positions_needed,
-                "substitutes_needed": req.substitutes_needed,
                 "notes": req.notes,
-                "status": req.status,
+                "status": req.status.lower() if req.status else "open",
+                "team_name": req.team.name if req.team else None,
                 "created_at": req.created_at.isoformat() if req.created_at else None,
+                "responses": [],
+                "match": {
+                    "id": req.match.id if req.match else 0,
+                    "date": req.match.match_date.isoformat() if req.match and req.match.match_date else "",
+                    "time": req.match.match_time.isoformat() if req.match and req.match.match_time else "",
+                    "location": req.match.location if req.match else None,
+                    "opponent_name": req.match.opponent_name if req.match else None,
+                    "is_home_match": req.match.is_home_match if req.match else True,
+                    "home_team_name": req.team.name if req.team and req.match and req.match.is_home_match else (req.match.opponent_name if req.match else None),
+                    "away_team_name": req.match.opponent_name if req.match and req.match.is_home_match else (req.team.name if req.team else None),
+                    "competition_name": "ECS FC",
+                } if req.match else None,
+                "team": {
+                    "id": req.team.id,
+                    "name": req.team.name
+                } if req.team else None,
+                "requester": {
+                    "id": req.requester.id,
+                    "username": req.requester.username or "",
+                    "display_name": req.requester.player.name if req.requester.player else (req.requester.username or ""),
+                } if req.requester else None,
+                "assignment_count": len(req.assignments),
+                "assignments": [
+                    {
+                        "id": a.id,
+                        "request_id": a.request_id or 0,
+                        "player_id": a.player_id or 0,
+                        "assigned_by": a.assigned_by,
+                        "assigned_at": a.assigned_at.isoformat() if a.assigned_at else None,
+                        "notes": a.notes,
+                        "player_name": a.player.name if a.player else "Unknown",
+                        "player_phone": a.player.phone if a.player else None,
+                    } for a in req.assignments
+                ],
             })
 
         return jsonify({
