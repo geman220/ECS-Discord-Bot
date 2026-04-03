@@ -386,6 +386,30 @@ window.EventDelegation.register('show-sub-assignment', function(element, e) {
         }
     }
 
+    // Reset assign source to "Responded Available" and load responses
+    const respondedRadio = document.getElementById('assignSourceResponded');
+    const respondedSection = document.getElementById('assignRespondedSection');
+    const poolSection = document.getElementById('assignPoolSection');
+    const searchSection = document.getElementById('assignSearchSection');
+    const selectedDiv = document.getElementById('assignSelectedPlayer');
+
+    if (respondedRadio) respondedRadio.checked = true;
+    if (respondedSection) respondedSection.classList.remove('hidden');
+    if (poolSection) poolSection.classList.add('hidden');
+    if (searchSection) searchSection.classList.add('hidden');
+    if (selectedDiv) selectedDiv.classList.add('hidden');
+
+    // Load responded-available players for this request
+    if (requestId && typeof window._loadRespondedPlayers === 'function') {
+        window._loadRespondedPlayers(requestId);
+    } else {
+        // No request_id (e.g. Quick Assign from match row) — default to pool
+        const poolRadio = document.getElementById('assignSourcePool');
+        if (poolRadio) poolRadio.checked = true;
+        if (respondedSection) respondedSection.classList.add('hidden');
+        if (poolSection) poolSection.classList.remove('hidden');
+    }
+
     // Show the modal
     window.ModalManager.show('subAssignmentModal');
 }, { preventDefault: true });

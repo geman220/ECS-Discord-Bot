@@ -13,10 +13,13 @@ from datetime import datetime
 
 from flask import render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
+from sqlalchemy.orm import joinedload, selectinload
 
 from app.admin_panel import admin_panel_bp
 from app.core import db
 from app.models.admin_config import AdminAuditLog
+from app.models.core import Season
+from app.models.matches import Schedule
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 
@@ -29,8 +32,9 @@ logger = logging.getLogger(__name__)
 def substitute_management():
     """Substitute management dashboard."""
     try:
-        from app.models import Match, Team, User
-        from app.models.substitutes import SubstituteRequest, SubstituteAssignment
+        from app.models import Match, Team
+        from app.models.players import Player
+        from app.models.substitutes import SubstituteRequest, SubstituteAssignment, SubstitutePool
 
         # Log the access to substitute management
         AdminAuditLog.log_action(
@@ -47,47 +51,81 @@ def substitute_management():
         show_requested = request.args.get('show_requested', 'all')
         week_filter = request.args.get('week', type=int)
 
-        # Get upcoming matches
-        upcoming_matches_query = Match.query.filter(
-            Match.date >= datetime.utcnow().date()
+        # Get current Pub League season IDs for filtering
+        current_seasons = Season.query.filter_by(is_current=True).all()
+        current_season_ids = [s.id for s in current_seasons]
+
+        # Get upcoming matches filtered to current season
+        upcoming_matches_query = Match.query.join(
+            Schedule, Match.schedule_id == Schedule.id
+        ).filter(
+            Match.date >= datetime.utcnow().date(),
+            Schedule.season_id.in_(current_season_ids)
         ).order_by(Match.date.asc(), Match.time.asc())
 
         if week_filter:
-            # Filter by week if implemented
-            pass
+            upcoming_matches_query = upcoming_matches_query.filter(
+                Schedule.week_number == week_filter
+            )
 
         upcoming_matches = upcoming_matches_query.limit(20).all()
 
-        # Get substitute requests (OPEN = created by mobile/web, PENDING/APPROVED = legacy statuses)
-        from sqlalchemy.orm import joinedload, selectinload
+        # Get substitute requests filtered to current season
         sub_requests_query = SubstituteRequest.query.options(
             joinedload(SubstituteRequest.match).joinedload(Match.home_team),
             joinedload(SubstituteRequest.match).joinedload(Match.away_team),
             joinedload(SubstituteRequest.team),
             selectinload(SubstituteRequest.assignments),
             selectinload(SubstituteRequest.responses)
+        ).join(
+            Match, SubstituteRequest.match_id == Match.id
+        ).join(
+            Schedule, Match.schedule_id == Schedule.id
         ).filter(
-            SubstituteRequest.status.in_(['OPEN', 'PENDING', 'APPROVED'])
+            SubstituteRequest.status.in_(['OPEN', 'PENDING', 'APPROVED']),
+            Schedule.season_id.in_(current_season_ids)
         ).order_by(SubstituteRequest.created_at.desc())
-
-        if show_requested == 'requested':
-            # Filter logic for matches with requests
-            pass
 
         sub_requests = sub_requests_query.limit(50).all()
 
-        # Get available substitutes (users who can sub)
-        available_subs = User.query.filter_by(
-            is_active=True,
-            is_approved=True
-        ).limit(100).all()
+        # Get available substitutes from the SubstitutePool with player names
+        pool_entries = SubstitutePool.query.options(
+            joinedload(SubstitutePool.player)
+        ).filter_by(is_active=True).all()
 
-        # Calculate statistics
+        available_subs = []
+        for entry in pool_entries:
+            if entry.player:
+                available_subs.append({
+                    'id': entry.player.id,
+                    'name': entry.player.name,
+                    'positions': entry.preferred_positions or entry.player.favorite_position or '',
+                    'league_type': entry.league_type
+                })
+        # Sort by name
+        available_subs.sort(key=lambda s: s['name'])
+
+        # Calculate statistics (scoped to current season)
+        total_requests = SubstituteRequest.query.join(
+            Match, SubstituteRequest.match_id == Match.id
+        ).join(
+            Schedule, Match.schedule_id == Schedule.id
+        ).filter(
+            Schedule.season_id.in_(current_season_ids)
+        ).count()
+
+        active_requests = SubstituteRequest.query.join(
+            Match, SubstituteRequest.match_id == Match.id
+        ).join(
+            Schedule, Match.schedule_id == Schedule.id
+        ).filter(
+            SubstituteRequest.status.in_(['OPEN', 'PENDING', 'APPROVED']),
+            Schedule.season_id.in_(current_season_ids)
+        ).count()
+
         stats = {
-            'total_requests': SubstituteRequest.query.count(),
-            'active_requests': SubstituteRequest.query.filter(
-                SubstituteRequest.status.in_(['OPEN', 'PENDING', 'APPROVED'])
-            ).count(),
+            'total_requests': total_requests,
+            'active_requests': active_requests,
             'available_subs': len(available_subs),
             'upcoming_matches': len(upcoming_matches)
         }
@@ -103,10 +141,10 @@ def substitute_management():
         # Get available weeks from Schedule model
         weeks = []
         try:
-            from app.models.matches import Schedule
-            current_season = Season.query.filter_by(is_current=True).first()
-            if current_season:
-                schedules = Schedule.query.filter_by(season_id=current_season.id).order_by(Schedule.week_number).all()
+            if current_season_ids:
+                schedules = Schedule.query.filter(
+                    Schedule.season_id.in_(current_season_ids)
+                ).order_by(Schedule.week_number).all()
                 weeks = sorted(set(s.week_number for s in schedules if s.week_number))
         except Exception:
             weeks = list(range(1, 21))
@@ -124,9 +162,38 @@ def substitute_management():
             show_requested=show_requested
         )
     except Exception as e:
-        logger.error(f"Error loading substitute management: {e}")
+        logger.error(f"Error loading substitute management: {e}", exc_info=True)
         flash('Substitute management unavailable. Verify database connection and substitute models.', 'error')
         return redirect(url_for('admin_panel.match_operations'))
+
+
+@admin_panel_bp.route('/substitute-request/<int:request_id>/available-players')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin'])
+def get_available_players_for_request(request_id):
+    """Return players who responded 'available' for a specific sub request."""
+    from flask import jsonify
+    from app.models.substitutes import SubstituteResponse
+    from app.models.players import Player
+
+    responses = db.session.query(SubstituteResponse).options(
+        joinedload(SubstituteResponse.player)
+    ).filter_by(
+        request_id=request_id,
+        is_available=True
+    ).all()
+
+    players = []
+    for resp in responses:
+        if resp.player:
+            players.append({
+                'id': resp.player.id,
+                'name': resp.player.name,
+                'positions': resp.player.favorite_position or '',
+                'responded_at': resp.responded_at.strftime('%m/%d %I:%M %p') if resp.responded_at else '',
+            })
+
+    return jsonify({'success': True, 'players': players})
 
 
 @admin_panel_bp.route('/assign-substitute', methods=['POST'])

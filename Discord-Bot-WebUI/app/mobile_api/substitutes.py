@@ -134,7 +134,7 @@ def create_substitute_request():
     positions_needed = data.get('positions_needed', '')
     substitutes_needed = data.get('substitutes_needed', 1)
     gender_preference = data.get('gender_preference')
-    notes = data.get('notes', '').strip()
+    notes = (data.get('notes') or '').strip()
 
     if not match_id or not team_id:
         return jsonify({"msg": "match_id and team_id are required"}), 400
@@ -681,7 +681,7 @@ def assign_substitute(request_id: int):
 
     player_id = data.get('player_id')
     position_assigned = data.get('position_assigned', '')
-    notes = data.get('notes', '').strip()
+    notes = (data.get('notes') or '').strip()
     send_notification = data.get('send_notification', True)
 
     if not player_id:

@@ -133,10 +133,17 @@
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {% for request in sub_requests %}
             {% if request.status in ['OPEN', 'PENDING', 'APPROVED'] %}
-            <div class="bg-white dark:bg-gray-800 rounded-lg border-l-4 border-yellow-500 shadow-md p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg border-l-4 {% if request.league_type == 'Premier' %}border-red-500{% elif request.league_type == 'Classic' %}border-green-500{% else %}border-yellow-500{% endif %} shadow-md p-4">
                 <div class="flex justify-between items-start mb-3">
                     <h4 class="font-semibold text-gray-900 dark:text-white">{{ request.match.home_team.name }} vs {{ request.match.away_team.name }}</h4>
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ request.status }}</span>
+                    <div class="flex gap-1.5">
+                        {% if request.league_type == 'Premier' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Premier</span>
+                        {% elif request.league_type == 'Classic' %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Classic</span>
+                        {% endif %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ request.status }}</span>
+                    </div>
                 </div>
                 <div class="text-sm text-gray-500 dark:text-gray-400 mb-2">
                     <p class="flex items-center gap-1">
@@ -198,6 +205,7 @@
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
                         <th scope="col" class="px-6 py-3">Date</th>
+                        <th scope="col" class="px-6 py-3">League</th>
                         <th scope="col" class="px-6 py-3">Match</th>
                         <th scope="col" class="px-6 py-3">Sub Requests</th>
                         <th scope="col" class="px-6 py-3">Actions</th>
@@ -209,6 +217,16 @@
                         <td class="px-6 py-4">
                             <span class="text-gray-900 dark:text-white">{{ match.date.strftime('%m/%d') if match.date else 'TBD' }}</span><br>
                             <span class="text-xs text-gray-500 dark:text-gray-400">{{ match.time.strftime('%I:%M %p') if match.time else '' }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            {% set league_name = match.home_team.league.name if match.home_team and match.home_team.league else '' %}
+                            {% if 'premier' in league_name|lower %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Premier</span>
+                            {% elif 'classic' in league_name|lower %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Classic</span>
+                            {% else %}
+                            <span class="text-xs text-gray-400">-</span>
+                            {% endif %}
                         </td>
                         <td class="px-6 py-4">
                             <span class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name }}</span><br>
@@ -255,14 +273,60 @@
     <input type="hidden" name="request_id" id="assignRequestId">
 
     <div>
-        <label for="assignPlayerId" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Substitutes</label>
-        <select name="player_id" id="assignPlayerId" required
-                class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
-            <option value="">Select a substitute...</option>
-            {% for sub in available_subs %}
-            <option value="{{ sub.id }}">{{ sub.name }}{% if sub.positions %} - {{ sub.positions }}{% endif %}</option>
-            {% endfor %}
-        </select>
+        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Assign From</label>
+        <div class="flex flex-wrap gap-2 mb-3">
+            <label class="flex items-center p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                <input type="radio" name="assign_source" value="responded" checked class="sr-only" id="assignSourceResponded">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><i class="ti ti-check mr-1"></i>Responded Available</span>
+            </label>
+            <label class="flex items-center p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                <input type="radio" name="assign_source" value="pool" class="sr-only" id="assignSourcePool">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><i class="ti ti-users mr-1"></i>Sub Pool</span>
+            </label>
+            <label class="flex items-center p-2.5 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
+                <input type="radio" name="assign_source" value="search" class="sr-only" id="assignSourceSearch">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300"><i class="ti ti-search mr-1"></i>Any Player</span>
+            </label>
+        </div>
+        <input type="hidden" name="player_id" id="assignPlayerId" required>
+
+        <!-- Responded Available (default) -->
+        <div id="assignRespondedSection">
+            <select id="assignRespondedSelect"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="">Loading available subs...</option>
+            </select>
+            <p id="assignRespondedHint" class="mt-1 text-xs text-gray-500 dark:text-gray-400">Players who responded "available" to this request</p>
+        </div>
+
+        <!-- Sub Pool dropdown -->
+        <div id="assignPoolSection" class="hidden">
+            <select id="assignPoolSelect"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="">Select from sub pool...</option>
+                {% for sub in available_subs %}
+                <option value="{{ sub.id }}">{{ sub.name }}{% if sub.positions %} - {{ sub.positions }}{% endif %}{% if sub.league_type %} ({{ sub.league_type }}){% endif %}</option>
+                {% endfor %}
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">All active members of the substitute pool</p>
+        </div>
+
+        <!-- Any Player search -->
+        <div id="assignSearchSection" class="hidden">
+            <div class="relative">
+                <input type="text" id="assignPlayerSearch" placeholder="Type a player name..."
+                       autocomplete="off"
+                       class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <div id="assignSearchResults" class="hidden absolute z-50 w-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg"></div>
+            </div>
+            <div id="assignSelectedPlayer" class="hidden mt-2 flex items-center justify-between p-2.5 bg-ecs-green/10 border border-ecs-green rounded-lg">
+                <span id="assignSelectedPlayerName" class="text-sm font-medium text-gray-900 dark:text-white"></span>
+                <button type="button" id="assignClearPlayer" class="text-gray-400 hover:text-red-500">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Search any player in the system for manual assignment</p>
+        </div>
     </div>
 
     <div>
@@ -491,6 +555,119 @@ window.SUB_MANAGEMENT_CONFIG = {
 
 // All event handlers are in app/static/js/event-delegation/handlers/substitute-pool.js
 // Actions: show-contact-subs, send-sub-request, show-availability, show-sub-assignment, etc.
+
+// --- Assign modal: responded / pool / search toggle ---
+(function() {
+    const respondedRadio = document.getElementById('assignSourceResponded');
+    const poolRadio      = document.getElementById('assignSourcePool');
+    const searchRadio    = document.getElementById('assignSourceSearch');
+    const respondedSection = document.getElementById('assignRespondedSection');
+    const poolSection    = document.getElementById('assignPoolSection');
+    const searchSection  = document.getElementById('assignSearchSection');
+    const respondedSelect = document.getElementById('assignRespondedSelect');
+    const poolSelect     = document.getElementById('assignPoolSelect');
+    const hiddenInput    = document.getElementById('assignPlayerId');
+    const searchInput    = document.getElementById('assignPlayerSearch');
+    const resultsDiv     = document.getElementById('assignSearchResults');
+    const selectedDiv    = document.getElementById('assignSelectedPlayer');
+    const selectedName   = document.getElementById('assignSelectedPlayerName');
+    const clearBtn       = document.getElementById('assignClearPlayer');
+
+    if (!respondedRadio || !poolRadio || !searchRadio) return;
+
+    function hideAll() {
+        respondedSection.classList.add('hidden');
+        poolSection.classList.add('hidden');
+        searchSection.classList.add('hidden');
+        hiddenInput.value = '';
+    }
+
+    // Sync dropdowns -> hidden input
+    if (respondedSelect) respondedSelect.addEventListener('change', function() { hiddenInput.value = this.value; });
+    if (poolSelect) poolSelect.addEventListener('change', function() { hiddenInput.value = this.value; });
+
+    respondedRadio.addEventListener('change', function() { hideAll(); respondedSection.classList.remove('hidden'); hiddenInput.value = respondedSelect ? respondedSelect.value : ''; });
+    poolRadio.addEventListener('change', function() { hideAll(); poolSection.classList.remove('hidden'); hiddenInput.value = poolSelect ? poolSelect.value : ''; });
+    searchRadio.addEventListener('change', function() { hideAll(); searchSection.classList.remove('hidden'); });
+
+    // Load responded-available players when modal opens with a request_id
+    window._loadRespondedPlayers = function(requestId) {
+        if (!respondedSelect || !requestId) return;
+        respondedSelect.innerHTML = '<option value="">Loading...</option>';
+        fetch('/admin-panel/substitute-request/' + requestId + '/available-players')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.players.length > 0) {
+                    respondedSelect.innerHTML = '<option value="">Select an available sub...</option>' +
+                        data.players.map(p =>
+                            '<option value="' + p.id + '">' + p.name +
+                            (p.positions ? ' - ' + p.positions : '') +
+                            (p.responded_at ? ' (responded ' + p.responded_at + ')' : '') +
+                            '</option>'
+                        ).join('');
+                } else {
+                    respondedSelect.innerHTML = '<option value="">No available responses yet</option>';
+                    document.getElementById('assignRespondedHint').textContent = 'No one has responded yet — try Sub Pool or Any Player';
+                }
+            })
+            .catch(() => {
+                respondedSelect.innerHTML = '<option value="">Error loading responses</option>';
+            });
+    };
+
+    // Debounced player search
+    let searchTimer = null;
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            const term = this.value.trim();
+            if (term.length < 2) { resultsDiv.classList.add('hidden'); return; }
+            searchTimer = setTimeout(() => {
+                fetch('/search/players?term=' + encodeURIComponent(term))
+                    .then(r => r.json())
+                    .then(players => {
+                        if (!players.length) {
+                            resultsDiv.innerHTML = '<div class="p-3 text-sm text-gray-500 dark:text-gray-400">No players found</div>';
+                        } else {
+                            resultsDiv.innerHTML = players.slice(0, 15).map(p =>
+                                '<button type="button" class="assign-search-result w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-900 dark:text-white" data-player-id="' + p.id + '">' +
+                                    p.name +
+                                '</button>'
+                            ).join('');
+                            resultsDiv.querySelectorAll('.assign-search-result').forEach(btn => {
+                                btn.addEventListener('click', function() {
+                                    hiddenInput.value = this.dataset.playerId;
+                                    selectedName.textContent = this.textContent.trim();
+                                    selectedDiv.classList.remove('hidden');
+                                    resultsDiv.classList.add('hidden');
+                                    searchInput.value = '';
+                                });
+                            });
+                        }
+                        resultsDiv.classList.remove('hidden');
+                    })
+                    .catch(() => { resultsDiv.classList.add('hidden'); });
+            }, 300);
+        });
+    }
+
+    // Clear selected player
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function() {
+            hiddenInput.value = '';
+            selectedDiv.classList.add('hidden');
+            selectedName.textContent = '';
+            if (searchInput) searchInput.focus();
+        });
+    }
+
+    // Close results on outside click
+    document.addEventListener('click', function(e) {
+        if (resultsDiv && !resultsDiv.contains(e.target) && e.target !== searchInput) {
+            resultsDiv.classList.add('hidden');
+        }
+    });
+})();
 
 // Auto-refresh every 2 minutes
 setTimeout(() => location.reload(), 120000);

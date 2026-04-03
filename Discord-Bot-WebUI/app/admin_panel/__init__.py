@@ -31,24 +31,6 @@ def inject_ecs_fc_teams():
 
 
 @admin_panel_bp.context_processor
-def inject_nav_counts():
-    """Inject pending approval and waitlist counts for navigation badges."""
-    try:
-        from sqlalchemy import func
-        from app.core import db
-        from app.models.core import User, Role
-        pending = db.session.query(func.count(User.id)).filter(
-            User.approval_status == 'pending'
-        ).scalar() or 0
-        waitlist = db.session.query(User).join(User.roles).filter(
-            Role.name == 'pl-waitlist'
-        ).count()
-        return {'nav_pending_approvals': pending, 'nav_waitlist_count': waitlist}
-    except Exception:
-        return {'nav_pending_approvals': 0, 'nav_waitlist_count': 0}
-
-
-@admin_panel_bp.context_processor
 def inject_admin_search_index():
     """Build a searchable index of all admin panel pages for universal search."""
     try:

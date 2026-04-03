@@ -88,16 +88,14 @@ def init_mobile_api(app, csrf):
         app: Flask application instance
         csrf: Flask-WTF CSRF protection instance
     """
-    # Guard blueprint setup on the singleton object (create_app() may be
-    # called multiple times in Celery workers — hooks can't be added after
-    # the blueprint has been registered with any app)
-    if not getattr(mobile_api_v2, '_middleware_registered', False):
+    # Guard: Flask sets _got_registered_once=True after the first
+    # app.register_blueprint() call and then forbids @blueprint.before_request.
+    # Only attach middleware/routes while the blueprint is still "fresh".
+    if not getattr(mobile_api_v2, '_got_registered_once', False):
         csrf.exempt(mobile_api_v2)
         from app.mobile_api.middleware import register_api_middleware
         register_api_middleware(mobile_api_v2)
         register_mobile_api_routes()
-        mobile_api_v2._middleware_registered = True
 
-    # Guard per-app registration
     if 'mobile_api_v2' not in app.blueprints:
         app.register_blueprint(mobile_api_v2)

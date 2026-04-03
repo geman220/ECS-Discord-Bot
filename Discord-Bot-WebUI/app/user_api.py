@@ -19,7 +19,9 @@ from sqlalchemy.orm import joinedload
 from app import csrf
 from app.models import User, Player, Team, player_teams
 from app.models.matches import Match
+from app.models.ecs_fc import EcsFcMatch
 from app.models.calendar import LeagueEvent
+from app.mobile_api.matches import query_ecs_fc_matches
 from app.discord_utils import get_expected_roles
 from app.core.session_manager import managed_session
 from app.sms_helpers import (
@@ -892,55 +894,105 @@ def player_schedule_image(discord_id):
     logger.info(f"[USER_API] player_schedule_image called for discord_id: {discord_id}")
 
     with managed_session() as session_db:
-        player = session_db.query(Player).filter_by(discord_id=str(discord_id)).first()
+        player = (
+            session_db.query(Player)
+            .options(joinedload(Player.teams).joinedload(Team.league))
+            .filter_by(discord_id=str(discord_id))
+            .first()
+        )
         if not player:
             return jsonify({"error": "Player not found"}), 404
 
-        team_ids = [t.id for t in player.teams]
-        team_names = [t.name for t in player.teams]
+        # Classify teams by league type
+        pub_league_team_ids = []
+        ecs_fc_team_ids = []
+        team_names = []
+        team_leagues = {}
+        for team in player.teams:
+            team_names.append(team.name)
+            if team.league and 'ECS FC' in team.league.name:
+                ecs_fc_team_ids.append(team.id)
+                team_leagues[team.name] = 'ECS FC'
+            else:
+                pub_league_team_ids.append(team.id)
+                team_leagues[team.name] = 'Pub League'
 
-        if not team_ids:
+        if not pub_league_team_ids and not ecs_fc_team_ids:
             return jsonify({"error": "Player has no teams"}), 404
 
         today = date.today()
-        matches = (
-            session_db.query(Match)
-            .options(joinedload(Match.home_team), joinedload(Match.away_team))
-            .filter(
-                or_(
-                    Match.home_team_id.in_(team_ids),
-                    Match.away_team_id.in_(team_ids)
-                ),
-                Match.date >= today
-            )
-            .order_by(Match.date, Match.time)
-            .limit(15)
-            .all()
-        )
-
-        if not matches:
-            return jsonify({"error": "No upcoming matches"}), 404
-
         matches_data = []
-        for m in matches:
-            player_team_ids = set(team_ids)
-            is_home = m.home_team_id in player_team_ids
-            matches_data.append({
-                "date": m.date.isoformat() if m.date else None,
-                "time": m.time.isoformat() if m.time else None,
-                "location": m.location,
-                "home_team": m.home_team.name if m.home_team else "TBD",
-                "away_team": m.away_team.name if m.away_team else "TBD",
-                "home_team_id": m.home_team_id,
-                "away_team_id": m.away_team_id,
-                "is_home": is_home,
-                "week_type": m.week_type,
-            })
+
+        # Query Pub League matches
+        if pub_league_team_ids:
+            pub_matches = (
+                session_db.query(Match)
+                .options(joinedload(Match.home_team), joinedload(Match.away_team))
+                .filter(
+                    or_(
+                        Match.home_team_id.in_(pub_league_team_ids),
+                        Match.away_team_id.in_(pub_league_team_ids)
+                    ),
+                    Match.date >= today
+                )
+                .order_by(Match.date, Match.time)
+                .limit(15)
+                .all()
+            )
+            pub_team_set = set(pub_league_team_ids)
+            for m in pub_matches:
+                is_home = m.home_team_id in pub_team_set
+                matches_data.append({
+                    "date": m.date.isoformat() if m.date else None,
+                    "time": m.time.isoformat() if m.time else None,
+                    "location": m.location,
+                    "home_team": m.home_team.name if m.home_team else "TBD",
+                    "away_team": m.away_team.name if m.away_team else "TBD",
+                    "home_team_id": m.home_team_id,
+                    "away_team_id": m.away_team_id,
+                    "is_home": is_home,
+                    "week_type": m.week_type,
+                    "league": "Pub League",
+                })
+
+        # Query ECS FC matches
+        if ecs_fc_team_ids:
+            fc_matches = query_ecs_fc_matches(
+                session_db, ecs_fc_team_ids, upcoming=True, limit=15
+            )
+            for m in fc_matches:
+                team_name = m.team.name if m.team else "TBD"
+                if m.is_home_match:
+                    home_team = team_name
+                    away_team = m.opponent_name or "TBD"
+                else:
+                    home_team = m.opponent_name or "TBD"
+                    away_team = team_name
+                matches_data.append({
+                    "date": m.match_date.isoformat() if m.match_date else None,
+                    "time": m.match_time.isoformat() if m.match_time else None,
+                    "location": m.location,
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "home_team_id": m.team_id if m.is_home_match else None,
+                    "away_team_id": m.team_id if not m.is_home_match else None,
+                    "is_home": m.is_home_match,
+                    "week_type": "BYE" if m.status == "BYE" else "REGULAR",
+                    "league": "ECS FC",
+                })
+
+        # Merge, sort, and cap at 15
+        matches_data.sort(key=lambda x: (x.get("date") or "", x.get("time") or ""))
+        matches_data = matches_data[:15]
+
+        if not matches_data:
+            return jsonify({"error": "No upcoming matches"}), 404
 
         image_bytes = generate_match_schedule_image(
             matches=matches_data,
             player_name=player.name,
             team_names=team_names,
+            team_leagues=team_leagues,
             footer_url="portal.ecsfc.com"
         )
 

@@ -27,6 +27,7 @@ def init_context_processors(app):
     _register_file_versioning_processor(app)
     _register_theme_colors_processor(app)
     _register_ai_assistant_processor(app)
+    _register_nav_counts_processor(app)
 
 
 def _register_utility_processor(app):
@@ -258,6 +259,27 @@ def _register_file_versioning_processor(app):
                 return f"{url_for('static', filename=filename)}?v={random.randint(1, 1000000)}"
 
         return {'asset_version': asset_version}
+
+
+def _register_nav_counts_processor(app):
+    """Register navigation badge counts globally so any template that includes
+    the admin navigation partial has access to pending approval / waitlist counts."""
+
+    @app.context_processor
+    def inject_nav_counts():
+        try:
+            from sqlalchemy import func
+            from app.core import db
+            from app.models.core import User, Role
+            pending = db.session.query(func.count(User.id)).filter(
+                User.approval_status == 'pending'
+            ).scalar() or 0
+            waitlist = db.session.query(User).join(User.roles).filter(
+                Role.name == 'pl-waitlist'
+            ).count()
+            return {'nav_pending_approvals': pending, 'nav_waitlist_count': waitlist}
+        except Exception:
+            return {'nav_pending_approvals': 0, 'nav_waitlist_count': 0}
 
 
 def _hex_to_rgb_channels(hex_color):

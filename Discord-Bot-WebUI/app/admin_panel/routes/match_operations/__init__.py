@@ -33,6 +33,7 @@ def register_match_operations_routes():
         teams,
         ajax,
         substitutes,
+        substitute_contact,
         verification,
         substitute_pools,
     )

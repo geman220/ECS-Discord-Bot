@@ -76,11 +76,11 @@ class ScheduleCommands(commands.Cog):
 
         if interaction.guild and interaction.guild.icon:
             embed.set_footer(
-                text="ECS Pub League • /calendar for league events",
+                text="ECS • /calendar for league events",
                 icon_url=interaction.guild.icon.url
             )
         else:
-            embed.set_footer(text="ECS Pub League • /calendar for league events")
+            embed.set_footer(text="ECS • /calendar for league events")
 
         await interaction.response.send_message(embed=embed, file=file, ephemeral=True)
 

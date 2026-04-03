@@ -650,6 +650,42 @@ MATCH_WEEK_TYPES = {
     'BYE': {'bg': (66, 66, 66), 'text': (180, 180, 180), 'label': 'BYE', 'emoji': '😴'},
 }
 
+# League type badges for multi-league players
+LEAGUE_BADGES = {
+    'PUB LEAGUE': {'bg': (76, 175, 80), 'text': (255, 255, 255), 'label': 'PUB'},
+    'ECS FC': {'bg': (33, 100, 243), 'text': (255, 255, 255), 'label': 'ECS FC'},
+}
+
+
+def _draw_league_badge(draw: ImageDraw.Draw, x: int, y: int, league: str,
+                       font: ImageFont.FreeTypeFont) -> int:
+    """Draw a league type badge and return the width."""
+    type_info = LEAGUE_BADGES.get(league.upper(), LEAGUE_BADGES.get('PUB LEAGUE'))
+    if not type_info:
+        return 0
+    label = type_info['label']
+
+    bbox = draw.textbbox((0, 0), label, font=font)
+    text_width = bbox[2] - bbox[0]
+    text_height = bbox[3] - bbox[1]
+
+    padding_x = 10
+    padding_y = 5
+    badge_width = text_width + padding_x * 2
+    badge_height = text_height + padding_y * 2
+
+    draw.rounded_rectangle(
+        [x, y, x + badge_width, y + badge_height],
+        radius=6,
+        fill=type_info['bg']
+    )
+
+    text_x = x + padding_x
+    text_y = y + padding_y - 1
+    draw.text((text_x, text_y), label, font=font, fill=type_info['text'])
+
+    return badge_width
+
 
 def _draw_match_week_badge(draw: ImageDraw.Draw, x: int, y: int, week_type: str,
                            font: ImageFont.FreeTypeFont) -> int:
@@ -683,6 +719,7 @@ def generate_match_schedule_image(
     matches: List[Dict[str, Any]],
     player_name: str = "",
     team_names: List[str] = None,
+    team_leagues: Optional[Dict[str, str]] = None,
     footer_url: Optional[str] = None
 ) -> bytes:
     """
@@ -690,9 +727,10 @@ def generate_match_schedule_image(
 
     Args:
         matches: List of match dicts with keys: date, time, home_team, away_team,
-                 home_team_id, away_team_id, is_home, location, week_type
+                 home_team_id, away_team_id, is_home, location, week_type, league
         player_name: Player's display name
         team_names: List of the player's team names
+        team_leagues: Optional dict mapping team name -> league label
         footer_url: Optional URL for footer
 
     Returns:
@@ -745,6 +783,7 @@ def generate_match_schedule_image(
                 'is_home': is_home,
                 'week_type': week_type,
                 'is_bye': is_bye,
+                'league': m.get('league', ''),
             })
         except Exception as e:
             logger.warning(f"Error parsing match: {e}")
@@ -753,7 +792,12 @@ def generate_match_schedule_image(
 
     if not parsed:
         parsed = [{'date': datetime.now(), 'time': '', 'opponent': 'No upcoming matches',
-                    'location': '', 'is_home': True, 'week_type': 'REGULAR', 'is_bye': False}]
+                    'location': '', 'is_home': True, 'week_type': 'REGULAR', 'is_bye': False,
+                    'league': ''}]
+
+    # Detect if matches span multiple leagues
+    leagues_present = set(m['league'] for m in parsed if m.get('league'))
+    show_league = len(leagues_present) > 1
 
     # Group by month
     months = {}
@@ -809,7 +853,15 @@ def generate_match_schedule_image(
     if player_name:
         subtitle_parts.append(player_name)
     if team_names:
-        subtitle_parts.append(" · ".join(team_names))
+        if show_league and team_leagues:
+            labeled = []
+            for tn in team_names:
+                league_label = team_leagues.get(tn, '')
+                short = 'Pub' if league_label == 'Pub League' else league_label
+                labeled.append(f"{tn} ({short})" if short else tn)
+            subtitle_parts.append(" · ".join(labeled))
+        else:
+            subtitle_parts.append(" · ".join(team_names))
     subtitle = " — ".join(subtitle_parts) if subtitle_parts else f"{num_matches} matches"
 
     sub_bbox = draw.textbbox((0, 0), subtitle, font=font_subtitle)
@@ -867,7 +919,11 @@ def generate_match_schedule_image(
             draw.text((date_bbox[2] + 8, text_y + 4), day_str, font=font_detail, fill=COLORS['text_secondary'])
 
             # Week type badge
-            _draw_match_week_badge(draw, col_badge, text_y + 2, match['week_type'], font_badge)
+            week_badge_w = _draw_match_week_badge(draw, col_badge, text_y + 2, match['week_type'], font_badge)
+
+            # League badge (only when matches span multiple leagues)
+            if show_league and match.get('league'):
+                _draw_league_badge(draw, col_badge + week_badge_w + 6, text_y + 2, match['league'], font_badge)
 
             # Opponent name
             opp_text = match['opponent']
