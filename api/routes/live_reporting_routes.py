@@ -77,108 +77,81 @@ def _extract_minute_from_content(content: str) -> str:
 
 
 def get_event_embed_config(event_type: str, content: str, match_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Generate embed configuration for different live event types."""
-
-    # Extract minute from content for use in fields
+    """
+    Generate embed configuration based on event_type from the request payload.
+    Uses event_type as the primary signal (not content-sniffing).
+    """
     minute_display = _extract_minute_from_content(content)
+    event_lower = (event_type or '').lower().replace(' ', '_')
 
     # Default configuration
     config = {
         'use_embed': True,
-        'title': '⚽ Live Match Event',
+        'title': 'Match Update',
         'description': content,
         'color': 0x005F4F,  # Sounders green
         'fields': []
     }
 
-    # Parse content to extract event details
-    if '⚽ GOAL!' in content or 'GOAL' in content.upper() and 'scores' in content.lower():
-        config.update({
-            'title': '⚽ GOAL!',
-            'color': 0x00FF00,  # Bright green for goals
-            'fields': [
-                {'name': '🎯 Event', 'value': 'Goal Scored', 'inline': True},
-                {'name': '⏱️ Match Time', 'value': minute_display, 'inline': True}
-            ]
-        })
+    # Match on event_type from the request payload
+    if event_lower in ('goal', 'own_goal', 'penalty'):
+        config['color'] = 0x005F4F  # Sounders green default
+        config['title'] = 'Goal'
+        config['fields'] = [
+            {'name': 'Time', 'value': minute_display, 'inline': True}
+        ]
 
-        # Extract team context for goal color
-        if 'Sounders' in content or 'Seattle' in content or 'SOUNDERS' in content:
-            config['color'] = 0x005F4F  # Sounders green for OUR goals
-            config['title'] = '⚽ SOUNDERS GOAL!'
-        else:
-            config['color'] = 0xFF4444  # Red for opponent goals
-            config['title'] = '⚽ Opponent Goal'
+    elif event_lower in ('yellow_card', 'yellowcard'):
+        config['color'] = 0xFFD700
+        config['title'] = 'Yellow Card'
+        config['fields'] = [
+            {'name': 'Time', 'value': minute_display, 'inline': True}
+        ]
 
-    elif '📋 Yellow-Card' in content or '🟨' in content or 'yellow card' in content.lower():
-        config.update({
-            'title': '🟨 Yellow Card',
-            'color': 0xFFD700,  # Gold for yellow cards
-            'fields': [
-                {'name': '📋 Discipline', 'value': 'Yellow Card', 'inline': True},
-                {'name': '⏱️ Match Time', 'value': minute_display, 'inline': True}
-            ]
-        })
+    elif event_lower in ('red_card', 'redcard'):
+        config['color'] = 0xFF0000
+        config['title'] = 'Red Card'
+        config['fields'] = [
+            {'name': 'Time', 'value': minute_display, 'inline': True}
+        ]
 
-    elif '🟥' in content or 'red card' in content.lower():
-        config.update({
-            'title': '🟥 Red Card',
-            'color': 0xFF0000,  # Red for red cards
-            'fields': [
-                {'name': '📋 Discipline', 'value': 'Red Card', 'inline': True},
-                {'name': '⏱️ Match Time', 'value': minute_display, 'inline': True}
-            ]
-        })
+    elif event_lower in ('substitution', 'sub'):
+        config['color'] = 0x0099FF
+        config['title'] = 'Substitution'
+        config['fields'] = [
+            {'name': 'Time', 'value': minute_display, 'inline': True}
+        ]
 
-    elif '📋 Substitution' in content or '🔄' in content or 'substitution' in content.lower():
-        config.update({
-            'title': '🔄 Substitution',
-            'color': 0x0099FF,  # Blue for substitutions
-            'fields': [
-                {'name': '⚡ Change', 'value': 'Tactical Change', 'inline': True},
-                {'name': '⏱️ Match Time', 'value': minute_display, 'inline': True}
-            ]
-        })
+    elif event_lower in ('score_update',):
+        config['color'] = 0x005F4F
+        config['title'] = 'Score Update'
 
-    elif 'Score Update' in content or '📊' in content:
-        config.update({
-            'title': '📊 Score Update',
-            'color': 0x005F4F,
-            'fields': []
-        })
+    elif event_lower in ('kickoff', 'match_start'):
+        config['color'] = 0x00FF00
+        config['title'] = 'Kickoff'
 
-    elif 'LET\'S GO' in content or ('🔥' in content and 'Time to' in content):
-        config.update({
-            'title': '🔥 PRE-MATCH HYPE',
-            'color': 0x005F4F,  # Sounders green
-            'fields': [
-                {'name': '🏟️ Venue', 'value': (match_data or {}).get('venue', 'Stadium'), 'inline': True},
-                {'name': '💚💙 Support', 'value': 'ECS Ready!', 'inline': True}
-            ]
-        })
+    elif event_lower in ('halftime', 'half_time'):
+        config['color'] = 0xFFA500
+        config['title'] = 'Halftime'
 
-    elif '🧪' in content and 'test' in content.lower():
-        config.update({
-            'title': '🧪 System Test',
-            'color': 0x9932CC,  # Purple for test messages
-            'fields': [
-                {'name': '🔧 Status', 'value': 'Testing Live Reporting', 'inline': True},
-                {'name': '✅ Connection', 'value': 'Operational', 'inline': True}
-            ]
-        })
+    elif event_lower in ('fulltime', 'full_time', 'second_half_start'):
+        config['color'] = 0x005F4F
+        config['title'] = 'Match Update'
 
-    # Add match time from match_data if available and not already set
+    elif event_lower == 'test':
+        config['color'] = 0x9932CC
+        config['title'] = 'System Test'
+
+    # Pull minute from match_data event if available
     if match_data and isinstance(match_data, dict):
         try:
             event_data = match_data.get('event', {})
             if event_data and event_data.get('minute'):
-                # Use event-specific minute if available
                 event_minute = f"{event_data['minute']}'"
-                # Update any existing match time field
                 for field in config['fields']:
-                    if field['name'] == '⏱️ Match Time' and field['value'] == 'Live':
+                    if field['name'] == 'Time' and field['value'] == 'Live':
                         field['value'] = event_minute
-        except:
+        except Exception:
             pass
 
     return config
@@ -394,30 +367,31 @@ async def send_final_update(request: FinalUpdateRequest, bot: commands.Bot = Dep
         if not thread:
             raise HTTPException(status_code=404, detail=f"Thread {request.thread_id} not found")
 
-        # Send final message
-        embed = discord.Embed(
-            title="🏁 Match Completed",
-            description=request.content,
-            color=0xff0000,
-            timestamp=datetime.utcnow()
-        )
-        embed.set_footer(text="Thanks for following the live updates!")
+        message_id = None
 
-        message = await thread.send(embed=embed)
+        # Only send a message if there's actual content (skip for archive-only requests)
+        if request.content and request.content.strip():
+            embed = discord.Embed(
+                description=request.content,
+                color=0x005F4F,
+                timestamp=datetime.utcnow()
+            )
+            message = await thread.send(embed=embed)
+            message_id = message.id
 
         # Optionally close/archive thread
         if request.close_thread and hasattr(thread, 'edit'):
             try:
                 await thread.edit(archived=True)
                 logger.info(f"Archived thread {request.thread_id}")
-            except:
-                logger.warning(f"Could not archive thread {request.thread_id}")
+            except Exception as e:
+                logger.warning(f"Could not archive thread {request.thread_id}: {e}")
 
-        logger.info(f"Sent final update to thread {request.thread_id}")
+        logger.info(f"Final update for thread {request.thread_id} (message={'sent' if message_id else 'skipped'}, archived={request.close_thread})")
 
         return {
             "success": True,
-            "message_id": message.id,
+            "message_id": message_id,
             "thread_id": request.thread_id,
             "archived": request.close_thread
         }

@@ -276,13 +276,9 @@ class ESPNAPIClient:
                     event = events[0]
                     return self._process_event_data(event)
 
-            elif 'gameData' in raw_data:
-                # Summary format
-                return self._process_game_data(raw_data['gameData'])
-
-            elif 'header' in raw_data:
-                # Match page format
-                return self._process_match_page_data(raw_data)
+            elif 'gameData' in raw_data or 'header' in raw_data:
+                # Summary/match page format - extract what we can
+                logger.warning(f"ESPN returned non-scoreboard format for {match_id}, using fallback processing")
 
             # Fallback processing
             return {
@@ -337,16 +333,38 @@ class ESPNAPIClient:
                     'description': detail.get('text', '')
                 })
 
-        # Check for cards
+        # Check for cards and substitutions
         for detail in competitions.get('details', []):
-            if 'Card' in detail.get('type', {}).get('text', ''):
-                card_type = 'YELLOW_CARD' if 'Yellow' in detail['type']['text'] else 'RED_CARD'
+            detail_type_text = detail.get('type', {}).get('text', '')
+
+            if 'Card' in detail_type_text:
+                card_type = 'YELLOW_CARD' if 'Yellow' in detail_type_text else 'RED_CARD'
                 match_events.append({
                     'type': card_type,
                     'minute': detail.get('clock', {}).get('displayValue', ''),
                     'player': detail.get('athletesInvolved', [{}])[0].get('displayName', ''),
                     'team': detail.get('team', {}).get('displayName', ''),
                     'description': detail.get('text', '')
+                })
+
+            elif detail_type_text in ('Substitution', 'Sub'):
+                sub_text = detail.get('text', '')
+                player_on, player_off = self._parse_substitution_text(sub_text)
+                athletes = detail.get('athletesInvolved', [])
+                # Use parsed names, fall back to athletesInvolved data
+                if not player_on and athletes:
+                    player_on = athletes[0].get('displayName', 'Unknown')
+                if not player_off and len(athletes) > 1:
+                    player_off = athletes[1].get('displayName', 'Unknown')
+
+                match_events.append({
+                    'type': 'SUBSTITUTION',
+                    'minute': detail.get('clock', {}).get('displayValue', ''),
+                    'player': player_on or 'Unknown',
+                    'player_on': player_on or 'Unknown',
+                    'player_off': player_off or 'Unknown',
+                    'team': detail.get('team', {}).get('displayName', ''),
+                    'description': sub_text or f"{player_on} replaces {player_off}"
                 })
 
         return {
@@ -399,14 +417,8 @@ class ESPNAPIClient:
             logger.error(f"Failed to cache data: {e}")
 
     def _get_mock_data(self, match_id: str) -> Dict[str, Any]:
-        """
-        Return mock data when API is unavailable.
-        For match 727247, return actual match data since we know it's live.
-        """
-        logger.warning(f"Using mock data for match {match_id}")
-
-        # Return minimal mock data when all API endpoints fail
-        logger.warning(f"All ESPN API endpoints failed for match {match_id}")
+        """Return minimal mock data when API is unavailable."""
+        logger.warning(f"All ESPN API endpoints failed for match {match_id}, using mock data")
         return {
             'match_id': match_id,
             'status': 'UNKNOWN',
@@ -422,21 +434,4 @@ class ESPNAPIClient:
             'cached_at': time.time(),
             'mock_data': True,
             'error': 'ESPN API unavailable'
-        }
-
-        # Generic mock for other matches
-        return {
-            'match_id': match_id,
-            'status': 'IN_PLAY',
-            'minute': '23',
-            'period': 1,
-            'home_team': 'Seattle Sounders FC',
-            'home_score': 1,
-            'away_team': 'Unknown Team',
-            'away_score': 0,
-            'events': [],
-            'venue': 'Unknown Venue',
-            'attendance': 0,
-            'cached_at': time.time(),
-            'mock_data': True
         }

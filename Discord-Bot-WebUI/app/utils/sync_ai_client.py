@@ -14,6 +14,10 @@ from typing import Dict, Any, Optional, List
 from app.services.ai_commentary import get_enhanced_ai_service
 from app.models.ai_prompt_config import AIPromptConfig
 from app.utils.task_session_manager import task_session
+from app.utils.commentary_validator import (
+    validate_and_record, generate_with_validation,
+    CommentaryType, get_tracker
+)
 
 logger = logging.getLogger(__name__)
 
@@ -26,76 +30,60 @@ class SyncAIClient:
         self.timeout = 10  # seconds
     
     def generate_pre_match_hype(self, match_context: Dict[str, Any]) -> Optional[str]:
-        """
-        Generate pre-match hype message synchronously.
-        
-        Args:
-            match_context: Match details for hype generation
-            
-        Returns:
-            Generated hype message or None
-        """
-        try:
-            return self._run_sync(
-                self.service.generate_pre_match_hype(match_context)
-            )
-        except Exception as e:
-            logger.error(f"Error generating pre-match hype: {e}")
-            return None
-    
+        """Generate pre-match hype message with validation."""
+        def _generate():
+            return self._run_sync(self.service.generate_pre_match_hype(match_context))
+
+        result = generate_with_validation(
+            generate_fn=_generate,
+            fallback_fn=lambda: None,
+            commentary_type=CommentaryType.PRE_MATCH,
+            max_attempts=2,
+            strict=True
+        )
+        return result or None
+
     def generate_half_time_message(self, match_context: Dict[str, Any]) -> Optional[str]:
-        """
-        Generate half-time analysis message synchronously.
-        
-        Args:
-            match_context: Match details for half-time analysis
-            
-        Returns:
-            Generated half-time message or None
-        """
-        try:
-            return self._run_sync(
-                self.service.generate_half_time_message(match_context)
-            )
-        except Exception as e:
-            logger.error(f"Error generating half-time message: {e}")
-            return None
-    
+        """Generate half-time message with validation."""
+        def _generate():
+            return self._run_sync(self.service.generate_half_time_message(match_context))
+
+        result = generate_with_validation(
+            generate_fn=_generate,
+            fallback_fn=lambda: None,
+            commentary_type=CommentaryType.HALFTIME,
+            max_attempts=2,
+            strict=True
+        )
+        return result or None
+
     def generate_full_time_message(self, match_context: Dict[str, Any]) -> Optional[str]:
-        """
-        Generate full-time summary message synchronously.
-        
-        Args:
-            match_context: Complete match details for summary
-            
-        Returns:
-            Generated full-time message or None
-        """
-        try:
-            return self._run_sync(
-                self.service.generate_full_time_message(match_context)
-            )
-        except Exception as e:
-            logger.error(f"Error generating full-time message: {e}")
-            return None
-    
+        """Generate full-time message with validation."""
+        def _generate():
+            return self._run_sync(self.service.generate_full_time_message(match_context))
+
+        result = generate_with_validation(
+            generate_fn=_generate,
+            fallback_fn=lambda: None,
+            commentary_type=CommentaryType.FULLTIME,
+            max_attempts=2,
+            strict=True
+        )
+        return result or None
+
     def generate_match_thread_context(self, match_context: Dict[str, Any]) -> Optional[str]:
-        """
-        Generate match thread contextual description synchronously.
-        
-        Args:
-            match_context: Match details for context generation
-            
-        Returns:
-            Generated thread context or None
-        """
-        try:
-            return self._run_sync(
-                self.service.generate_match_thread_context(match_context)
-            )
-        except Exception as e:
-            logger.error(f"Error generating thread context: {e}")
-            return None
+        """Generate match thread context with validation (non-strict for thread descriptions)."""
+        def _generate():
+            return self._run_sync(self.service.generate_match_thread_context(match_context))
+
+        result = generate_with_validation(
+            generate_fn=_generate,
+            fallback_fn=lambda: None,
+            commentary_type=CommentaryType.THREAD_CONTEXT,
+            max_attempts=2,
+            strict=False  # Thread contexts are more formal, allow some AI-isms
+        )
+        return result or None
     
     def generate_commentary(self, event_data: Dict[str, Any], match_context: Dict[str, Any]) -> Optional[str]:
         """
@@ -119,20 +107,26 @@ class SyncAIClient:
     def generate_match_event_commentary(self, event_context: Dict[str, Any], match_history: Optional[List[Dict]] = None) -> Optional[str]:
         """
         Generate dynamic, contextually-aware live event commentary using ChatGPT API.
+        Validates output against tone rules and anti-repetition before returning.
 
         Args:
             event_context: Event details including type, team, player, score, etc.
             match_history: Previous events in this match for context
 
         Returns:
-            Generated commentary or None
+            Validated commentary or fallback
         """
-        try:
-            return self._generate_dynamic_commentary(event_context, match_history)
-        except Exception as e:
-            logger.error(f"Error generating dynamic event commentary: {e}")
-            # Fallback to simple message
-            return self._generate_simple_fallback(event_context)
+        # Extract match_id for anti-repetition tracking
+        match_id = str(event_context.get('match_id', ''))
+
+        return generate_with_validation(
+            generate_fn=lambda: self._generate_dynamic_commentary(event_context, match_history),
+            fallback_fn=lambda: self._generate_simple_fallback(event_context),
+            commentary_type=CommentaryType.MATCH_EVENT,
+            match_id=match_id if match_id else None,
+            max_attempts=2,
+            strict=True
+        )
 
     def _get_prompt_config(self, event_type: str, event_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
         """Get appropriate prompt configuration from database based on event type and context."""
@@ -449,8 +443,9 @@ class SyncAIClient:
             # Call OpenAI API with database-configured parameters
             client = openai.OpenAI(api_key=api_key)
 
+            model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
@@ -537,37 +532,36 @@ class SyncAIClient:
             return "\nMATCH CONTEXT: Live match in progress\n"
 
     def _generate_simple_fallback(self, event_context: Dict[str, Any]) -> Optional[str]:
-        """Simple fallback when AI generation fails."""
+        """Simple fallback when AI generation fails. Matches human supporter tone."""
         try:
             event_type = event_context.get('event_type', 'event')
             player = event_context.get('player', 'Player')
             minute = event_context.get('minute', 0)
             scoring_team = event_context.get('scoring_team', '')
 
-            # Basic team detection for fallback
             is_sounders = 'Seattle' in scoring_team or 'Sounders' in scoring_team
 
             if event_type == 'goal':
                 if is_sounders:
-                    return f"⚽ SOUNDERS GOAL! {player} scores in minute {minute}!"
+                    return f"{player} scores. {minute}'. Yes."
                 else:
-                    return f"😤 {player} scores. Time for the Sounders to respond!"
+                    return f"{player} scores for {scoring_team}. {minute}'. Need to respond."
             elif event_type == 'yellow_card':
-                return f"🟨 Yellow card for {player} in minute {minute}"
+                return f"Yellow card for {player}. {minute}'."
             elif event_type == 'red_card':
-                return f"🟥 Red card! {player} sent off in minute {minute}"
+                return f"Red card. {player} off. {minute}'."
             elif event_type == 'substitution':
                 player_on = event_context.get('player_on', player)
                 player_off = event_context.get('player_off', '')
                 if player_off:
-                    return f"🔄 Substitution in minute {minute}: {player_on} on for {player_off}"
-                return f"🔄 Substitution in minute {minute}: {player}"
+                    return f"{player_on} on for {player_off}. {minute}'."
+                return f"Sub: {player}. {minute}'."
             else:
-                return f"📋 Match event in minute {minute}: {player}"
+                return f"{event_type.replace('_', ' ').title()}. {minute}'."
 
         except Exception as e:
             logger.error(f"Error in fallback commentary: {e}")
-            return "📋 Match event occurred"
+            return None
 
     def _generate_neutral_commentary(self, event_context: Dict[str, Any]) -> Optional[str]:
         """Generate neutral commentary when no Sounders involvement."""
@@ -576,125 +570,100 @@ class SyncAIClient:
         minute = event_context.get('minute', 0)
 
         if event_type == 'goal':
-            return f"⚽ {player} scores in minute {minute}"
+            return f"{player} scores. {minute}'."
         elif event_type == 'yellow_card':
-            return f"🟨 {player} receives yellow card"
+            return f"Yellow for {player}. {minute}'."
         else:
-            return f"📋 {event_type.replace('_', ' ').title()}"
+            return f"{event_type.replace('_', ' ').title()}. {minute}'."
 
     def _generate_goal_commentary(self, context: Dict[str, Any]) -> Optional[str]:
-        """Generate contextual goal commentary."""
+        """Generate goal commentary - terse, human, Sounders-biased."""
         try:
-            home_team = context.get('home_team', {}).get('displayName', 'Home Team')
-            away_team = context.get('away_team', {}).get('displayName', 'Away Team')
             scoring_team = context.get('scoring_team', '')
-            player = context.get('player', 'Unknown Player')
+            player = context.get('player', 'Unknown')
             minute = context.get('minute', 0)
-            home_score = context.get('home_score', 0)
-            away_score = context.get('away_score', 0)
 
-            # Determine if this is good or bad for Sounders (Sounders is ALWAYS our team regardless of home/away)
             is_sounders_goal = 'Seattle' in scoring_team or 'Sounders' in scoring_team
 
             if is_sounders_goal:
-                # HYPED UP commentary for Sounders goals - always celebrate our team!
                 commentaries = [
-                    f"🚀 GOAL! {player} finds the back of the net for the Sounders! What a finish in the {minute}th minute!",
-                    f"⚽ SOUNDERS SCORE! {player} delivers when it matters most! ECS erupts wherever we are!",
-                    f"🎯 Clinical finish from {player}! The Sounders faithful are going wild! RAVE GREEN MAGIC in minute {minute}!",
-                    f"🔥 {player} strikes! Another brilliant goal for our boys! This is why we love this team!",
-                    f"💚 SOUNDERS GOAL! {player} absolutely buries it! The energy is electric wherever Sounders play!",
-                    f"⚡ {player} with the goods! That's what happens when you wear the Rave Green with pride!",
-                    f"🎉 GET IN! {player} scores for the Sounders! This team never stops fighting!",
-                    f"🌟 {player} lights it up! Sounders showing their class in the {minute}th minute!"
+                    f"{player} scores. {minute}'. Get in.",
+                    f"{player} puts it away. {minute}'. Yes.",
+                    f"{player} finishes it. {minute}'.",
+                    f"Goal. {player}. {minute}'. Lovely stuff.",
+                    f"{player} with the goal. {minute}'. That'll do.",
                 ]
             else:
-                # Downplayed, resilient commentary for opponent goals - don't celebrate them
                 commentaries = [
-                    f"😤 {scoring_team} finds the net through {player}. Not worried - we've seen the Sounders bounce back from tougher spots.",
-                    f"⚠️ {player} scores for {scoring_team}. Time for our boys to show what they're made of. Still plenty of match left.",
-                    f"🛡️ {scoring_team} gets one, but this Sounders team has character. We've come back from worse than this.",
-                    f"💪 {player} scores for {scoring_team}, but we've seen this Sounders squad fight back from worse positions.",
-                    f"😮‍💨 {scoring_team} capitalizes, but the Sounders faithful know this team doesn't quit. Let's go boys!",
-                    f"📝 {player} puts one away for {scoring_team}. The Sounders have answered back before, they'll do it again.",
-                    f"🔄 {scoring_team} scores through {player}. Time for the Sounders to dig deep and show their quality."
+                    f"{player} scores for {scoring_team}. {minute}'. Need to respond.",
+                    f"{scoring_team} score through {player}. {minute}'. Sort it out.",
+                    f"{player} puts one in. {minute}'. Sloppy from us.",
+                    f"{scoring_team} goal. {player}. {minute}'. Come on.",
+                    f"{player} scores. {minute}'. Got to be better than that.",
                 ]
 
-            # Select based on minute for variety
             return commentaries[minute % len(commentaries)]
 
         except Exception as e:
             logger.error(f"Error generating goal commentary: {e}")
-            return f"⚽ GOAL! {context.get('player', 'Unknown')} scores in minute {context.get('minute', 0)}!"
+            return f"{context.get('player', 'Goal')} scores. {context.get('minute', '')}'."
 
     def _generate_card_commentary(self, context: Dict[str, Any], card_type: str) -> Optional[str]:
-        """Generate card event commentary."""
+        """Generate card commentary - terse, factual."""
         try:
-            player = context.get('player', 'Unknown Player')
-            team = context.get('team', 'Unknown Team')
+            player = context.get('player', 'Unknown')
+            team = context.get('team', 'Unknown')
             minute = context.get('minute', 0)
 
             is_sounders_card = 'Seattle' in team or 'Sounders' in team
 
             if card_type == 'yellow':
                 if is_sounders_card:
-                    # Defensive commentary for Sounders yellows
                     commentaries = [
-                        f"🟨 {player} picks up a yellow in the {minute}th minute. Just gotta stay smart now.",
-                        f"⚠️ Yellow card for {player}. No worries - our boys know how to manage the game.",
-                        f"🟨 Caution for {player} in minute {minute}. Part of the game, keep the intensity up!",
-                        f"📋 {player} gets booked. The Sounders can handle playing with discipline."
+                        f"Yellow for {player}. {minute}'. Didn't need to do that.",
+                        f"{player} booked. {minute}'. Stay smart.",
+                        f"Yellow card. {player}. {minute}'.",
                     ]
-                    return commentaries[minute % len(commentaries)]
                 else:
-                    # Matter-of-fact for opponent yellows
                     commentaries = [
-                        f"🟨 {player} from {team} picks up a yellow card in the {minute}th minute.",
-                        f"⚠️ Caution shown to {player} from {team}. They need to be careful now.",
-                        f"🟨 {team}'s {player} gets booked in minute {minute}. Good to see the ref keeping control.",
-                        f"📋 Yellow card for {player} from {team}. That's what happens when you get too aggressive."
+                        f"Yellow for {player}. {minute}'. Been getting away with it.",
+                        f"{player} finally gets booked. {minute}'.",
+                        f"Card for {player} from {team}. {minute}'.",
                     ]
-                    return commentaries[minute % len(commentaries)]
+                return commentaries[minute % len(commentaries)]
             else:
-                # Red cards
                 if is_sounders_card:
-                    return f"🟥 Tough break - {player} gets sent off in the {minute}th minute. The boys will need to dig deep now."
+                    return f"Red card. {player} off. {minute}'. Rough."
                 else:
-                    return f"🟥 RED CARD! {player} from {team} is sent off in the {minute}th minute! Huge advantage for the Sounders!"
+                    return f"Red card. {player} off. {minute}'. Couldn't happen to a nicer guy."
 
         except Exception as e:
             logger.error(f"Error generating card commentary: {e}")
-            player = context.get('player', 'Unknown Player')
-            return f"📋 Card for {player} in minute {context.get('minute', 0)}"
+            return f"Card for {context.get('player', 'player')}. {context.get('minute', '')}'."
 
     def _generate_substitution_commentary(self, context: Dict[str, Any]) -> Optional[str]:
-        """Generate substitution commentary."""
+        """Generate sub commentary - brief and factual."""
         try:
-            team = context.get('team', 'Unknown Team')
+            team = context.get('team', 'Unknown')
             minute = context.get('minute', 0)
 
             if 'Seattle' in team or 'Sounders' in team:
-                # Positive commentary for Sounders subs
                 commentaries = [
-                    f"🔄 Tactical change for the Sounders in the {minute}th minute. Fresh legs to make an impact!",
-                    f"⚡ Smart move by the coaching staff! New energy coming on for the Sounders in minute {minute}!",
-                    f"🔥 The Sounders depth showing! Fresh legs ready to make a difference!",
-                    f"💚 Substitution for our boys - always looking to improve and push forward!"
+                    f"Sounders sub. {minute}'. Fresh legs.",
+                    f"Change for Seattle. {minute}'.",
+                    f"Sounders make a switch. {minute}'.",
                 ]
-                return commentaries[minute % len(commentaries)]
             else:
-                # Neutral/downplayed commentary for opponent subs
                 commentaries = [
-                    f"🔄 {team} makes a substitution in minute {minute}. They're trying to change things up.",
-                    f"📝 {team} bringing on fresh legs. The Sounders will be ready for whatever they throw at us.",
-                    f"🔄 Tactical change for {team}. Our boys have been dealing with their threats well so far.",
-                    f"⚖️ {team} switches things up in minute {minute}. Time for the Sounders to adapt and respond."
+                    f"{team} sub. {minute}'.",
+                    f"Change for {team}. {minute}'.",
+                    f"{team} make a switch. {minute}'.",
                 ]
-                return commentaries[minute % len(commentaries)]
+            return commentaries[minute % len(commentaries)]
 
         except Exception as e:
             logger.error(f"Error generating substitution commentary: {e}")
-            team = context.get('team', 'Unknown Team')
+            team = context.get('team', 'Unknown')
             return f"🔄 {team} substitution in minute {context.get('minute', 0)}"
 
     def _generate_general_commentary(self, context: Dict[str, Any]) -> Optional[str]:

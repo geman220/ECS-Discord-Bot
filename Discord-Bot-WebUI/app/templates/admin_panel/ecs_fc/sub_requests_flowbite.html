@@ -216,6 +216,13 @@
                                 <i class="ti ti-eye mr-1"></i>View
                             </a>
                             {% endif %}
+                            {% if req.status in ('OPEN', 'FILLED') %}
+                            <button type="button"
+                                    class="px-3 py-1.5 text-xs font-medium text-yellow-600 bg-yellow-50 rounded-lg hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50"
+                                    onclick="openEditModal({{ req.id }}, {{ req.substitutes_needed or 1 }}, '{{ req.positions_needed|default('', true)|e }}', '{{ req.notes|default('', true)|e }}', '{{ req.status }}')">
+                                <i class="ti ti-pencil mr-1"></i>Edit
+                            </button>
+                            {% endif %}
                             {% if req.status == 'OPEN' %}
                             <form method="POST" action="{{ url_for('admin.ecs_fc_subs.cancel_sub_request', request_id=req.id) }}"
                                   onsubmit="return confirm('Cancel this substitute request?');" class="inline">
@@ -262,7 +269,123 @@
     </div>
 </div>
 
+<!-- Edit Sub Request Modal -->
+<div id="editRequestModal" class="fixed inset-0 z-50 hidden">
+    <div class="fixed inset-0 bg-black/50" onclick="closeEditModal()"></div>
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md relative">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                    <i class="ti ti-pencil text-yellow-500"></i>Edit Sub Request
+                </h3>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-4">
+                <input type="hidden" id="editRequestId">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Substitutes Needed</label>
+                    <input type="number" id="editSubsNeeded" min="1" max="10"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Positions Needed</label>
+                    <input type="text" id="editPositions"
+                           placeholder="e.g. GK, DEF, MID"
+                           class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                </div>
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
+                    <textarea id="editNotes" rows="3"
+                              placeholder="Any additional notes..."
+                              class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"></textarea>
+                </div>
+                <div class="flex items-center gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <input type="checkbox" id="editReNotify"
+                           class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="editReNotify" class="text-sm text-gray-700 dark:text-gray-300">Re-notify sub pool after saving</label>
+                </div>
+                <div id="editStatusInfo" class="hidden p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p class="text-xs text-blue-600 dark:text-blue-400">
+                        <i class="ti ti-info-circle mr-1"></i>
+                        <span id="editStatusText"></span>
+                    </p>
+                </div>
+                <button onclick="submitEditRequest()" id="editSubmitBtn"
+                        class="w-full px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800">
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+function openEditModal(requestId, subsNeeded, positions, notes, status) {
+    document.getElementById('editRequestId').value = requestId;
+    document.getElementById('editSubsNeeded').value = subsNeeded;
+    document.getElementById('editPositions').value = positions;
+    document.getElementById('editNotes').value = notes;
+
+    const statusInfo = document.getElementById('editStatusInfo');
+    const statusText = document.getElementById('editStatusText');
+    if (status === 'FILLED') {
+        statusInfo.classList.remove('hidden');
+        statusText.textContent = 'This request is currently FILLED. Increasing substitutes needed will reopen it.';
+    } else {
+        statusInfo.classList.add('hidden');
+    }
+
+    document.getElementById('editRequestModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+    document.getElementById('editRequestModal').classList.add('hidden');
+}
+
+async function submitEditRequest() {
+    const requestId = document.getElementById('editRequestId').value;
+    const btn = document.getElementById('editSubmitBtn');
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+
+    const updates = {
+        substitutes_needed: parseInt(document.getElementById('editSubsNeeded').value),
+        positions_needed: document.getElementById('editPositions').value,
+        notes: document.getElementById('editNotes').value,
+        re_notify: document.getElementById('editReNotify').checked
+    };
+
+    try {
+        const csrfToken = document.querySelector('meta[name=csrf-token]');
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        };
+        if (csrfToken) headers['X-CSRFToken'] = csrfToken.content;
+
+        const response = await fetch(`/ecs-fc/sub-request/${requestId}/edit`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(updates)
+        });
+        const data = await response.json();
+        if (data.success) {
+            closeEditModal();
+            location.reload();
+        } else {
+            alert(data.message || 'Failed to update request');
+        }
+    } catch (e) {
+        alert('Error saving changes');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
+
 function openAssignModal(requestId) {
     document.getElementById('assignModal').classList.remove('hidden');
     const body = document.getElementById('assignModalBody');

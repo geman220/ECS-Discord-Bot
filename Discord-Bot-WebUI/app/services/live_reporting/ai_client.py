@@ -22,6 +22,9 @@ from .config import LiveReportingConfig, MatchEventContext
 from .circuit_breaker import CircuitBreaker, CircuitBreakerError
 from .metrics import MetricsCollector
 from .espn_client import MatchData
+from app.utils.commentary_validator import (
+    validate_and_record, CommentaryType
+)
 
 logger = logging.getLogger(__name__)
 
@@ -459,15 +462,27 @@ Provide commentary on this event. Current score: {match_data.score}"""
             
             if response and 'choices' in response and response['choices']:
                 commentary = response['choices'][0]['message']['content'].strip()
-                
+
+                # Validate against tone rules before accepting
+                validation = validate_and_record(
+                    commentary,
+                    CommentaryType.MATCH_EVENT,
+                    match_id=match_data.match_id
+                )
+                if not validation.is_valid:
+                    logger.warning(f"AI commentary rejected: {validation.rejection_reason}")
+                    if self.metrics:
+                        self.metrics.ai_fallback_used.labels(reason='validation_rejected').inc()
+                    return self._generate_fallback_commentary(match_data, [single_event])
+
                 # Update match context with the single event
                 self._update_match_context(match_data.match_id, single_event)
-                
+
                 # Record success
                 await self._circuit_breaker.record_success()
-                
-                logger.info(f"Generated AI commentary for match {match_data.match_id}: {commentary}")
-                return commentary
+
+                logger.info(f"Generated AI commentary for match {match_data.match_id}: {validation.text}")
+                return validation.text
             else:
                 logger.warning("No valid response from OpenAI API")
                 if self.metrics:
@@ -492,52 +507,45 @@ Provide commentary on this event. Current score: {match_data.score}"""
         if not new_events:
             return f"Live updates for {match_data.home_team['short_name']} vs {match_data.away_team['short_name']} ({match_data.score})"
         
-        # Simple template-based commentary
+        # Simple template-based commentary - terse, human tone
         event = new_events[0]  # Focus on first new event
         event_type = event.get('type', '').lower()
         clock = event.get('clock', '')
         athlete_name = event.get('athlete_name', 'Player')
-        
+
         templates = {
             'goal': [
-                f"GOAL! {athlete_name} finds the net! {clock}",
-                f"{athlete_name} scores! What a strike! {clock}",
-                f"It's in the back of the net! {athlete_name} with the goal {clock}"
+                f"{athlete_name} scores. {clock}.",
+                f"Goal. {athlete_name}. {clock}.",
+                f"{athlete_name} puts it away. {clock}."
             ],
             'penalty': [
-                f"PENALTY GOAL! {athlete_name} converts from the spot! {clock}",
-                f"{athlete_name} scores from the penalty spot! {clock}",
-                f"PENALTY! {athlete_name} makes no mistake from 12 yards {clock}"
+                f"{athlete_name} converts the pen. {clock}.",
+                f"Penalty scored. {athlete_name}. {clock}.",
             ],
             'penalty - scored': [
-                f"PENALTY GOAL! {athlete_name} converts from the spot! {clock}",
-                f"{athlete_name} scores from the penalty spot! {clock}",
-                f"PENALTY! {athlete_name} makes no mistake from 12 yards {clock}"
+                f"{athlete_name} buries the pen. {clock}.",
+                f"Penalty scored. {athlete_name}. {clock}.",
             ],
             'penalty - missed': [
-                f"PENALTY MISS! {athlete_name} sends it wide! {clock}",
-                f"{athlete_name} misses from the spot! {clock}",
-                f"PENALTY SAVED! Great keeping to deny {athlete_name} {clock}"
+                f"Penalty missed. {athlete_name}. {clock}.",
+                f"{athlete_name} misses from the spot. {clock}.",
             ],
             'penalty - saved': [
-                f"PENALTY SAVED! Keeper denies {athlete_name}! {clock}",
-                f"BRILLIANT SAVE! {athlete_name} denied from the spot {clock}",
-                f"PENALTY MISS! {athlete_name} can't convert {clock}"
+                f"Penalty saved. {athlete_name} denied. {clock}.",
+                f"Keeper saves it. {athlete_name} can't convert. {clock}.",
             ],
             'yellow card': [
-                f"Yellow card for {athlete_name} at {clock}",
-                f"{athlete_name} picks up a booking {clock}",
-                f"Caution shown to {athlete_name} {clock}"
+                f"Yellow for {athlete_name}. {clock}.",
+                f"{athlete_name} booked. {clock}.",
             ],
             'red card': [
-                f"RED CARD! {athlete_name} is off! {clock}",
-                f"{athlete_name} sees red at {clock}",
-                f"Sending off! {athlete_name} gets the red card {clock}"
+                f"Red card. {athlete_name} off. {clock}.",
+                f"{athlete_name} sent off. {clock}.",
             ],
             'substitution': [
-                f"Substitution: {event.get('text', athlete_name + ' comes on')} {clock}",
-                f"Change made: {event.get('text', athlete_name + ' enters the game')} {clock}",
-                f"Fresh legs: {event.get('text', athlete_name + ' is on')} {clock}"
+                f"Sub: {event.get('text', athlete_name)}. {clock}.",
+                f"Change: {event.get('text', athlete_name)}. {clock}.",
             ]
         }
         

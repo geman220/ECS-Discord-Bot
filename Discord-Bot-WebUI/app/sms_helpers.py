@@ -827,27 +827,35 @@ def send_confirmation_sms(user):
     session = g.db_session
     try:
         logger.info(f"Generating and sending SMS confirmation code for user {user.id}")
-        
-        player = session.query(Player).filter_by(user_id=user.id).first()
+
+        # Load the actual User model from the current session to avoid
+        # UserWrapper/cross-session issues where __setattr__ doesn't reach the ORM model
+        from app.models import User as UserModel
+        db_user = session.query(UserModel).get(user.id)
+        if not db_user:
+            logger.error(f"User {user.id} not found in current session")
+            return False, "User not found"
+
+        player = session.query(Player).filter_by(user_id=db_user.id).first()
         if not player:
-            logger.error(f"No player profile found for user {user.id}")
+            logger.error(f"No player profile found for user {db_user.id}")
             return False, "No player profile found for this account."
-            
+
         if not player.phone:
             logger.error(f"No phone number found for player {player.id}")
             return False, "No phone number associated with this account."
-        
+
         # Generate a new confirmation code
         confirmation_code = generate_confirmation_code()
-        logger.info(f"Generated confirmation code for user {user.id}")
-        
-        # Save code to user
-        user.sms_confirmation_code = confirmation_code
-        session.add(user)
-        
+        logger.info(f"Generated confirmation code for user {db_user.id}")
+
+        # Save code to user — must use db_user (real ORM model), not the passed-in wrapper
+        db_user.sms_confirmation_code = confirmation_code
+        session.add(db_user)
+
         try:
             session.commit()
-            logger.info(f"Saved confirmation code to user {user.id}")
+            logger.info(f"Saved confirmation code to user {db_user.id}")
         except Exception as e:
             session.rollback()
             logger.error(f"Failed to save confirmation code: {e}", exc_info=True)
@@ -898,27 +906,32 @@ def verify_sms_confirmation(user, code):
     """
     session = g.db_session
     try:
-        # Refresh the user from the database to ensure we have the latest data
-        session.refresh(user)
-        
-        logger.info(f"Verifying SMS code for user {user.id}")
-        
+        # Load the actual User model from the current session to avoid
+        # UserWrapper/cross-session issues
+        from app.models import User as UserModel
+        db_user = session.query(UserModel).get(user.id)
+        if not db_user:
+            logger.warning(f"User {user.id} not found in session")
+            return False
+
+        logger.info(f"Verifying SMS code for user {db_user.id}")
+
         # If no confirmation code is stored or code doesn't match
-        if not user.sms_confirmation_code:
-            logger.warning(f"No confirmation code found for user {user.id}")
+        if not db_user.sms_confirmation_code:
+            logger.warning(f"No confirmation code found for user {db_user.id}")
             return False
-            
-        if user.sms_confirmation_code != code:
-            logger.warning(f"SMS code mismatch for user {user.id}")
+
+        if db_user.sms_confirmation_code != code:
+            logger.warning(f"SMS code mismatch for user {db_user.id}")
             return False
-        
+
         # Code matches - update user and player records
-        user.sms_notifications = True
-        user.sms_confirmation_code = None
-        session.add(user)
+        db_user.sms_notifications = True
+        db_user.sms_confirmation_code = None
+        session.add(db_user)
 
         # Mark phone as verified on the player record
-        player = session.query(Player).filter_by(user_id=user.id).first()
+        player = session.query(Player).filter_by(user_id=db_user.id).first()
         if player:
             player.is_phone_verified = True
             session.add(player)
@@ -926,12 +939,12 @@ def verify_sms_confirmation(user, code):
         session.commit()
 
         if player and player.phone:
-            logger.info(f"Sending welcome message to {mask_phone(player.phone)} for user {user.id}")
+            logger.info(f"Sending welcome message to {mask_phone(player.phone)} for user {db_user.id}")
             success, _ = send_welcome_message(player.phone)
             if not success:
-                logger.error(f"Failed to send welcome message to user {user.id}")
-        
-        logger.info(f"SMS verification successful for user {user.id}")
+                logger.error(f"Failed to send welcome message to user {db_user.id}")
+
+        logger.info(f"SMS verification successful for user {db_user.id}")
         return True
     except Exception as e:
         logger.error(f"Error verifying SMS confirmation for user {user.id}: {e}", exc_info=True)

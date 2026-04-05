@@ -21,7 +21,8 @@ from app.admin_helpers import (
     get_available_subs, get_match_subs, assign_sub_to_team,
     remove_sub_assignment, get_player_active_sub_assignments,
     cleanup_old_sub_assignments, create_sub_request,
-    update_sub_request_status, get_subs_by_match_league_type
+    update_sub_request_status, get_subs_by_match_league_type,
+    edit_sub_request
 )
 from app.models import (
     Match, Team, Player, Schedule, Season,
@@ -235,6 +236,57 @@ def update_sub_request(request_id):
     else:
         show_error(message)
     
+    return redirect(url_for('admin.manage_sub_requests'))
+
+
+@admin_bp.route('/admin/sub_requests/<int:request_id>/edit', methods=['POST'], endpoint='edit_sub_request')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
+@transactional
+def edit_sub_request_route(request_id):
+    """Edit an existing pub league sub request."""
+    from app.admin_helpers import edit_sub_request
+
+    session = g.db_session
+
+    updates = {}
+    for field in ('substitutes_needed', 'positions_needed', 'notes', 'gender_preference'):
+        value = request.form.get(field)
+        if value is not None:
+            if field == 'substitutes_needed':
+                try:
+                    value = int(value)
+                except (ValueError, TypeError):
+                    show_error('Invalid value for substitutes needed.')
+                    return redirect(url_for('admin.manage_sub_requests'))
+            updates[field] = value
+
+    success, message, details = edit_sub_request(
+        request_id=request_id,
+        user_id=safe_current_user.id,
+        league_system='pub_league',
+        updates=updates,
+        session=session
+    )
+
+    if success:
+        # Handle re-notification if requested by admin
+        re_notify = request.form.get('re_notify') == '1'
+        if re_notify:
+            try:
+                sub_req = session.query(SubstituteRequest).get(request_id)
+                if sub_req and sub_req.status == 'OPEN':
+                    from app.tasks.tasks_substitute_pools import notify_substitute_pool_of_request
+                    notify_substitute_pool_of_request.delay(request_id, sub_req.league_type)
+                    message += " Substitute pool has been re-notified."
+            except Exception as e:
+                logger.error(f"Error triggering re-notification: {e}")
+                message += " Warning: re-notification failed."
+
+        show_success(message)
+    else:
+        show_error(message)
+
     return redirect(url_for('admin.manage_sub_requests'))
 
 

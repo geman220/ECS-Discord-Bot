@@ -879,7 +879,7 @@ def generate_match_schedule_image(
     # Column positions
     col_date = padding
     col_badge = 210
-    col_opponent = 320
+    col_opponent = 390 if show_league else 320
     col_time = 680
     col_location = 830
 
@@ -930,7 +930,7 @@ def generate_match_schedule_image(
             if match['is_bye']:
                 draw.text((col_opponent, text_y), opp_text, font=font_opponent, fill=COLORS['text_secondary'])
             else:
-                max_opp = 30
+                max_opp = 22 if show_league else 30
                 if len(opp_text) > max_opp:
                     opp_text = opp_text[:max_opp - 1] + '…'
                 draw.text((col_opponent, text_y), f"vs {opp_text}", font=font_opponent, fill=COLORS['text_primary'])

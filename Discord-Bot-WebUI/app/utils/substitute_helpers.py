@@ -197,6 +197,84 @@ def can_user_manage_team_subs(user_id: int, team_id: int, permissions: Dict[str,
         return False
 
 
+def can_edit_sub_request(user_id: int, request_obj, league_system: str, session) -> Tuple[bool, List[str]]:
+    """
+    Check if a user can edit a substitute request and return the list of editable fields.
+
+    Args:
+        user_id: User ID
+        request_obj: SubstituteRequest or EcsFcSubRequest instance
+        league_system: 'pub_league' or 'ecs_fc'
+        session: Database session
+
+    Returns:
+        Tuple of (can_edit: bool, editable_fields: list of field names)
+    """
+    try:
+        user = session.query(User).options(joinedload(User.roles), joinedload(User.player)).get(user_id)
+        if not user:
+            return False, []
+
+        # Cannot edit cancelled or expired requests
+        if request_obj.status in ('CANCELLED', 'EXPIRED'):
+            return False, []
+
+        is_admin = any(role.name in ADMIN_ROLES for role in user.roles)
+        is_ecs_fc_coach = any(role.name == 'ECS FC Coach' for role in user.roles)
+        is_pub_league_coach = any(role.name == 'Pub League Coach' for role in user.roles)
+
+        # Coach-level editable fields (request metadata only)
+        coach_fields = ['substitutes_needed', 'positions_needed', 'notes']
+        if league_system == 'pub_league':
+            coach_fields.append('gender_preference')
+
+        # Admin-level adds assignment management and re-notification
+        admin_fields = coach_fields + ['re_notify']
+
+        if league_system == 'ecs_fc':
+            # ECS FC coaches have full control (coach = admin)
+            if is_admin or is_ecs_fc_coach:
+                # Verify coach is on this team (admins skip this check)
+                if is_ecs_fc_coach and not is_admin:
+                    is_requester = request_obj.requested_by == user_id
+                    is_team_coach = False
+                    if user.player:
+                        coach_teams = session.query(Team).join('player_teams').filter(
+                            and_(
+                                Team.player_teams.any(player_id=user.player.id),
+                                Team.player_teams.any(is_coach=True)
+                            )
+                        ).all()
+                        is_team_coach = request_obj.team_id in [t.id for t in coach_teams]
+                    if not is_requester and not is_team_coach:
+                        return False, []
+                return True, admin_fields
+            return False, []
+
+        else:  # pub_league
+            if is_admin:
+                return True, admin_fields
+
+            if is_pub_league_coach:
+                # Coach can only edit their own team's requests
+                if user.player:
+                    coach_teams = session.query(Team).join('player_teams').filter(
+                        and_(
+                            Team.player_teams.any(player_id=user.player.id),
+                            Team.player_teams.any(is_coach=True)
+                        )
+                    ).all()
+                    if request_obj.team_id in [t.id for t in coach_teams]:
+                        return True, coach_fields
+                return False, []
+
+            return False, []
+
+    except Exception as e:
+        logger.exception(f"Error checking edit permission for user {user_id}: {e}")
+        return False, []
+
+
 def validate_substitute_request_data(data: Dict[str, Any]) -> Optional[str]:
     """
     Validate substitute request data.

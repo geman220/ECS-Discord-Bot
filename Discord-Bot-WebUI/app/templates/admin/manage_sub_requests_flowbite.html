@@ -175,9 +175,19 @@
                         </a>
                         {% set home_req = requested_teams_by_match[match.id][match.home_team_id] if match.home_team_id in requested_teams_by_match[match.id] else None %}
                         {% set away_req = requested_teams_by_match[match.id][match.away_team_id] if match.away_team_id in requested_teams_by_match[match.id] else None %}
+                        {% if home_req and home_req.status in ('OPEN', 'FILLED') %}
+                        <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-800 rounded-lg transition-colors" data-modal-toggle="editModal{{ home_req.id }}">
+                            <i class="ti ti-pencil mr-1"></i>Edit Home
+                        </button>
+                        {% endif %}
                         {% if home_req and home_req.status == 'OPEN' %}
                         <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors" data-modal-toggle="fulfillModal{{ home_req.id }}">
                             <i class="ti ti-user-plus mr-1"></i>Home Sub
+                        </button>
+                        {% endif %}
+                        {% if away_req and away_req.status in ('OPEN', 'FILLED') %}
+                        <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-800 rounded-lg transition-colors" data-modal-toggle="editModal{{ away_req.id }}">
+                            <i class="ti ti-pencil mr-1"></i>Edit Away
                         </button>
                         {% endif %}
                         {% if away_req and away_req.status == 'OPEN' %}
@@ -227,6 +237,9 @@
                         <a href="{{ url_for('teams.team_details', team_id=request.team_id) }}" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors">
                             <i class="ti ti-users mr-1"></i>Team
                         </a>
+                        <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 border border-yellow-200 dark:border-yellow-800 rounded-lg transition-colors" data-modal-toggle="editModal{{ request.id }}">
+                            <i class="ti ti-pencil mr-1"></i>Edit
+                        </button>
                         <button type="button" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors" data-modal-toggle="fulfillModal{{ request.id }}">
                             <i class="ti ti-user-plus mr-1"></i>Assign
                         </button>
@@ -279,6 +292,59 @@
                 <p class="text-sm text-blue-600 dark:text-blue-400 italic mt-2">"{{ request.notes }}"</p>
                 {% endif %}
             </div>
+        </div>
+    </div>
+{% endcall %}
+{% endif %}
+{% endfor %}
+
+<!-- Edit Modals -->
+{% for request in sub_requests %}
+{% if request.status in ('OPEN', 'FILLED') %}
+{% call modal_form('editModal' ~ request.id, 'Edit Sub Request', action=url_for('admin.edit_sub_request', request_id=request.id), size='md', submit_text='Save Changes', submit_color='primary', loading_text='Saving...') %}
+    <div class="space-y-4">
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Substitutes Needed</label>
+            <input type="number" name="substitutes_needed" min="1" max="10"
+                   value="{{ request.substitutes_needed }}"
+                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Positions Needed</label>
+            <input type="text" name="positions_needed"
+                   value="{{ request.positions_needed or '' }}"
+                   placeholder="e.g. GK, DEF, MID"
+                   class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+        </div>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Gender Preference</label>
+            <select name="gender_preference"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="" {{ 'selected' if not request.gender_preference }}>No Preference</option>
+                <option value="male" {{ 'selected' if request.gender_preference == 'male' }}>Male</option>
+                <option value="female" {{ 'selected' if request.gender_preference == 'female' }}>Female</option>
+            </select>
+        </div>
+        <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Notes</label>
+            <textarea name="notes" rows="3"
+                      placeholder="Any additional notes..."
+                      class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ request.notes or '' }}</textarea>
+        </div>
+
+        {% if current_user.has_role('Global Admin') or current_user.has_role('Pub League Admin') %}
+        <div class="flex items-center gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <input type="checkbox" name="re_notify" id="re_notify_{{ request.id }}" value="1"
+                   class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:bg-gray-700 dark:border-gray-600">
+            <label for="re_notify_{{ request.id }}" class="text-sm text-gray-700 dark:text-gray-300">Re-notify substitute pool</label>
+        </div>
+        {% endif %}
+
+        <div class="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+                <i class="ti ti-info-circle mr-1"></i>
+                Editing request for <strong>{{ request.team.name }}</strong> &mdash; {{ request.match.home_team.name }} vs {{ request.match.away_team.name }} on {{ request.match.date.strftime('%a, %b %d') }}
+            </p>
         </div>
     </div>
 {% endcall %}

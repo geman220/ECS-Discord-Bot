@@ -27,6 +27,14 @@ def register_api_middleware(blueprint: Blueprint):
     Args:
         blueprint: The Flask blueprint to register middleware with
     """
+    # Defense-in-depth: if the blueprint was already registered with an app,
+    # calling @blueprint.before_request would raise AssertionError in Flask 3.x.
+    if getattr(blueprint, '_got_registered_once', False):
+        logger.warning(
+            "Skipping register_api_middleware — blueprint '%s' already registered",
+            blueprint.name,
+        )
+        return
 
     @blueprint.before_request
     def validate_api_access():

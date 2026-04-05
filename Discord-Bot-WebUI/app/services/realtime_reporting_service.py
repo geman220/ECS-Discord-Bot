@@ -285,6 +285,9 @@ class RealtimeReportingService:
                 self._catchup_sessions.discard(session_id)
             elif new_events:
                 logger.info(f"Session {session_id}: Processing {len(new_events)} new event(s)")
+                # Inject live score from ESPN into session_data so AI context has current score
+                session_data['home_score'] = match_data.get('home_score', 0)
+                session_data['away_score'] = match_data.get('away_score', 0)
                 await self._send_events_to_discord(session_id, session_data, new_events)
 
             # Update status tracking and persist state
@@ -305,7 +308,7 @@ class RealtimeReportingService:
     def _is_match_live(self, match_data: Dict[str, Any]) -> bool:
         """Check if match is currently live."""
         status = self._get_match_status(match_data)
-        return status in ['IN_PLAY', 'HALFTIME', 'SECOND_HALF']
+        return status in ['IN_PLAY', 'HALFTIME']
 
     def _is_match_ended(self, match_data: Dict[str, Any]) -> bool:
         """Check if match has ended (should deactivate session)."""
@@ -348,7 +351,7 @@ class RealtimeReportingService:
         message = None
 
         if event_type == 'kickoff':
-            message = f"⚽ **KICKOFF!** {home_team} vs {away_team} is underway!"
+            message = f"Kickoff. {home_team} vs {away_team}."
 
         elif event_type == 'halftime':
             try:
@@ -365,10 +368,10 @@ class RealtimeReportingService:
             except Exception as e:
                 logger.warning(f"AI halftime message failed: {e}")
             if not message:
-                message = f"⏸️ **HALFTIME** — {home_team} {home_score}-{away_score} {away_team}"
+                message = f"Halftime. {home_team} {home_score}-{away_score} {away_team}."
 
         elif event_type == 'second_half_start':
-            message = f"⚽ **Second half underway!** {home_team} {home_score}-{away_score} {away_team}"
+            message = f"Second half underway. {home_team} {home_score}-{away_score} {away_team}."
 
         elif event_type == 'fulltime':
             try:
@@ -385,7 +388,7 @@ class RealtimeReportingService:
             except Exception as e:
                 logger.warning(f"AI fulltime message failed: {e}")
             if not message:
-                message = f"🏁 **FULL TIME** — {home_team} {home_score}-{away_score} {away_team}"
+                message = f"Full time. {home_team} {home_score}-{away_score} {away_team}."
 
         if message:
             try:
@@ -419,8 +422,8 @@ class RealtimeReportingService:
             processed_events = self.last_events.get(session_id, set())
 
             for event in events:
-                # Create unique event ID
-                event_id = f"{event.get('id', 'unknown')}_{event.get('minute', 0)}"
+                # Create unique event ID (include type to avoid collisions when ESPN omits id)
+                event_id = f"{event.get('id', 'unknown')}_{event.get('type', 'unknown')}_{event.get('minute', 0)}"
 
                 if event_id not in processed_events:
                     new_events.append(event)
@@ -441,8 +444,13 @@ class RealtimeReportingService:
                     last_score = str(last_score)
 
                 if last_score != current_score:
-                    # Score changed, add score update event
-                    if last_score is not None:  # Don't send on first check
+                    # Only emit score_update if no goal event was already detected this cycle
+                    # (goals naturally change the score, so posting both would be a double-post)
+                    has_goal_event = any(
+                        e.get('type', '').upper() in ('GOAL', 'OWN GOAL', 'PENALTY')
+                        for e in new_events
+                    )
+                    if last_score is not None and not has_goal_event:
                         new_events.append({
                             'type': 'score_update',
                             'current_score': current_score,
@@ -539,6 +547,7 @@ class RealtimeReportingService:
             if ai_event_type in ['goal', 'yellow_card', 'red_card', 'substitution']:
                 # Build AI context
                 ai_context = {
+                    'match_id': session_data.get('match_id', ''),
                     'home_team': {'displayName': home_team},
                     'away_team': {'displayName': away_team},
                     'event_type': ai_event_type,
@@ -582,13 +591,12 @@ class RealtimeReportingService:
 
                     return ai_commentary
 
-            # Fallback to enhanced static messages for other events
+            # Fallback to static messages for other events
             if event_type == 'score_update':
                 current_score = event.get('current_score', '0-0')
-                return f"📊 **Score Update:** {home_team} {current_score} {away_team}"
+                return f"{home_team} {current_score} {away_team}"
 
             elif event_type == 'halftime':
-                # Use AI for halftime if possible
                 try:
                     halftime_context = {
                         'home_team': {'displayName': home_team},
@@ -600,12 +608,11 @@ class RealtimeReportingService:
                     halftime_message = self.ai_client.generate_half_time_message(halftime_context)
                     if halftime_message:
                         return halftime_message
-                except:
-                    pass
-                return f"⏸️ **HALFTIME** - {home_team} vs {away_team}"
+                except Exception as e:
+                    logger.warning(f"AI halftime message failed in formatter: {e}")
+                return f"Halftime. {home_team} vs {away_team}."
 
             elif event_type == 'fulltime':
-                # Use AI for fulltime if possible
                 try:
                     fulltime_context = {
                         'home_team': {'displayName': home_team},
@@ -617,24 +624,23 @@ class RealtimeReportingService:
                     fulltime_message = self.ai_client.generate_full_time_message(fulltime_context)
                     if fulltime_message:
                         return fulltime_message
-                except:
-                    pass
-                return f"🏁 **FULL TIME** - {home_team} vs {away_team}"
+                except Exception as e:
+                    logger.warning(f"AI fulltime message failed in formatter: {e}")
+                return f"Full time. {home_team} vs {away_team}."
 
             elif event_type in ['period_start', 'period_end']:
                 description = event.get('description', event_type.replace('_', ' ').title())
-                return f"🕐 **{description}**"
+                return description
 
             # Fallback for unknown events
-            return f"📋 **{event_type.replace('_', ' ').title()}** - {minute}' {player}"
+            return f"{event_type.replace('_', ' ').title()}. {minute}' {player}."
 
         except Exception as e:
             logger.error(f"Error formatting event message with AI: {e}")
-            # Ultimate fallback - still include player and minute
             player = event.get('player', event.get('participant', {}).get('displayName', '')) if isinstance(event, dict) else ''
             minute = event.get('minute', '') if isinstance(event, dict) else ''
             event_type_str = event.get('type', 'Unknown') if isinstance(event, dict) else 'Unknown'
-            parts = [f"📋 {event_type_str}"]
+            parts = [event_type_str]
             if minute:
                 parts.append(f"{minute}'")
             if player:
@@ -726,11 +732,16 @@ class RealtimeReportingService:
                     session.commit()
                     logger.info(f"Deactivated session {session_id}: {reason}")
 
-                    # Send final Discord message (close thread on match end)
+                    # Archive thread on match end (no extra message - fulltime was already posted)
                     is_match_end = 'ended' in reason.lower() or 'FINAL' in reason or 'COMPLETED' in reason
-                    await self._send_session_end_message(
-                        live_session.thread_id, reason, close_thread=is_match_end
-                    )
+                    if is_match_end:
+                        # Just archive the thread silently - fulltime lifecycle message was already sent
+                        await self._archive_thread(live_session.thread_id)
+                    else:
+                        # Non-match-end deactivation (errors, timeout) - post explanation
+                        await self._send_session_end_message(
+                            live_session.thread_id, reason, close_thread=False
+                        )
 
                     # Clean up in-memory tracking
                     self.last_events.pop(session_id, None)
@@ -740,12 +751,24 @@ class RealtimeReportingService:
         except Exception as e:
             logger.error(f"Error deactivating session {session_id}: {e}")
 
-    async def _send_session_end_message(self, thread_id: str, reason: str, close_thread: bool = False):
-        """Send final message when session ends."""
+    async def _archive_thread(self, thread_id: str):
+        """Archive thread without posting a message (used after fulltime was already sent)."""
         try:
             request_data = {
                 'thread_id': thread_id,
-                'content': f"📺 Live reporting ended: {reason}",
+                'content': '',  # No message needed
+                'close_thread': True
+            }
+            send_to_discord_bot('/api/live-reporting/final', request_data)
+        except Exception as e:
+            logger.error(f"Error archiving thread: {e}")
+
+    async def _send_session_end_message(self, thread_id: str, reason: str, close_thread: bool = False):
+        """Send message when session ends for non-match-end reasons (errors, timeouts)."""
+        try:
+            request_data = {
+                'thread_id': thread_id,
+                'content': f"Live reporting stopped: {reason}",
                 'close_thread': close_thread
             }
 

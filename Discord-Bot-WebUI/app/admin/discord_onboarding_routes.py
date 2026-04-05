@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
 from flask import Blueprint, request, jsonify, g, render_template, redirect, url_for
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, or_, text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.models import User, Player, db
@@ -43,21 +43,22 @@ def log_discord_interaction(user_id: int, discord_id: str, interaction_type: str
                            Defaults to False since most callers use @transactional.
     """
     try:
-        from app.models import db
+        from flask import has_request_context
+        session = g.db_session if has_request_context() and hasattr(g, 'db_session') else db.session
 
-        # Use raw SQL to call the helper function we created
-        db.session.execute(
-            "SELECT log_discord_interaction(%s, %s, %s, %s, %s, %s, %s, %s)",
-            (user_id, discord_id, interaction_type, message_content, None,
-             success, error_message, metadata)
+        session.execute(
+            text("SELECT log_discord_interaction(:user_id, :discord_id, :interaction_type, :message_content, :channel_id, :success, :error_message, :metadata)"),
+            {"user_id": user_id, "discord_id": discord_id, "interaction_type": interaction_type,
+             "message_content": message_content, "channel_id": None,
+             "success": success, "error_message": error_message, "metadata": metadata}
         )
         if auto_commit:
-            db.session.commit()
+            session.commit()
         logger.debug(f"Logged Discord interaction: {interaction_type} for user {user_id}")
     except Exception as e:
         logger.error(f"Failed to log Discord interaction: {e}")
         if auto_commit:
-            db.session.rollback()
+            session.rollback()
 
 
 def update_user_league_preference(user_id: int, league: str, method: str = 'bot_interaction',
@@ -70,17 +71,20 @@ def update_user_league_preference(user_id: int, league: str, method: str = 'bot_
                            Defaults to False since most callers use @transactional.
     """
     try:
-        result = db.session.execute(
-            "SELECT update_user_league_preference(%s, %s, %s)",
-            (user_id, league, method)
+        from flask import has_request_context
+        session = g.db_session if has_request_context() and hasattr(g, 'db_session') else db.session
+
+        result = session.execute(
+            text("SELECT update_user_league_preference(:user_id, :league, :method)"),
+            {"user_id": user_id, "league": league, "method": method}
         ).fetchone()
         if auto_commit:
-            db.session.commit()
+            session.commit()
         return result[0] if result else False
     except Exception as e:
         logger.error(f"Failed to update user league preference: {e}")
         if auto_commit:
-            db.session.rollback()
+            session.rollback()
         return False
 
 
@@ -162,7 +166,7 @@ def get_onboarding_status(discord_id: str):
     Used by bot to determine appropriate messaging.
     """
     try:
-        player = Player.query.filter_by(discord_id=discord_id).first()
+        player = g.db_session.query(Player).filter_by(discord_id=discord_id).first()
         if not player or not player.user:
             return jsonify({
                 'exists': False,
@@ -170,7 +174,7 @@ def get_onboarding_status(discord_id: str):
             }), 404
 
         user = player.user
-        
+
         # Calculate time since registration
         time_since_registration = datetime.utcnow() - user.created_at
         
@@ -233,12 +237,12 @@ def receive_league_selection():
             return jsonify({'error': 'Invalid league selection'}), 400
         
         # Find user
-        player = Player.query.filter_by(discord_id=discord_id).first()
+        player = g.db_session.query(Player).filter_by(discord_id=discord_id).first()
         if not player or not player.user:
             return jsonify({'error': 'User not found'}), 404
-        
+
         user = player.user
-        
+
         # Update user's league preference
         success = update_user_league_preference(user.id, league_selection, 'bot_interaction')
         if not success:
@@ -295,12 +299,12 @@ def update_interaction_status():
         if not discord_id or not status:
             return jsonify({'error': 'Missing required fields'}), 400
         
-        player = Player.query.filter_by(discord_id=discord_id).first()
+        player = g.db_session.query(Player).filter_by(discord_id=discord_id).first()
         if not player or not player.user:
             return jsonify({'error': 'User not found'}), 404
-        
+
         user = player.user
-        
+
         # Update interaction status
         user.bot_interaction_status = status
         user.last_bot_contact_at = datetime.utcnow()
@@ -343,21 +347,22 @@ def create_new_player_notification():
         if not discord_id:
             return jsonify({'error': 'Discord ID required'}), 400
         
-        player = Player.query.filter_by(discord_id=discord_id).first()
+        player = g.db_session.query(Player).filter_by(discord_id=discord_id).first()
         if not player or not player.user:
             return jsonify({'error': 'User not found'}), 404
-        
+
         user = player.user
-        
+
         # Insert new player notification record using raw SQL
         try:
-            from sqlalchemy import text
-            db.session.execute(text("""
+            g.db_session.execute(text("""
                 INSERT INTO new_player_notifications
                 (user_id, discord_id, discord_username, discord_display_name,
                  preferred_league, notification_sent, notification_sent_at,
                  discord_message_id, error_message)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                VALUES (:user_id, :discord_id, :discord_username, :discord_display_name,
+                        :preferred_league, :notification_sent, :notification_sent_at,
+                        :discord_message_id, :error_message)
                 ON CONFLICT (user_id) DO UPDATE SET
                     discord_username = EXCLUDED.discord_username,
                     discord_display_name = EXCLUDED.discord_display_name,
@@ -366,12 +371,13 @@ def create_new_player_notification():
                     discord_message_id = EXCLUDED.discord_message_id,
                     error_message = EXCLUDED.error_message,
                     updated_at = NOW()
-            """), (
-                user.id, discord_id, discord_username, discord_display_name,
-                user.preferred_league, notification_sent,
-                datetime.utcnow() if notification_sent else None,
-                discord_message_id, error_message
-            ))
+            """), {
+                "user_id": user.id, "discord_id": discord_id,
+                "discord_username": discord_username, "discord_display_name": discord_display_name,
+                "preferred_league": user.preferred_league, "notification_sent": notification_sent,
+                "notification_sent_at": datetime.utcnow() if notification_sent else None,
+                "discord_message_id": discord_message_id, "error_message": error_message
+            })
         except Exception as db_error:
             logger.error(f"Database error creating notification record: {db_error}")
             return jsonify({'error': 'Database error'}), 500
@@ -409,7 +415,7 @@ def get_pending_contacts():
     """
     try:
         # Get users who need bot contact
-        query = db.session.query(User, Player).join(Player).filter(
+        query = g.db_session.query(User, Player).join(Player).filter(
             and_(
                 User.is_approved == False,
                 User.approval_status == 'pending',
@@ -467,8 +473,7 @@ def admin_onboarding_overview():
     """
     try:
         # Use the view we created in the database
-        from sqlalchemy import text
-        result = db.session.execute(text("SELECT * FROM onboarding_status_overview ORDER BY id DESC LIMIT 50"))
+        result = g.db_session.execute(text("SELECT * FROM onboarding_status_overview ORDER BY id DESC LIMIT 50"))
         
         overview_data = []
         for row in result:

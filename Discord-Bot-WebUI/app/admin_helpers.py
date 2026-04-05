@@ -30,7 +30,7 @@ from sqlalchemy.orm import joinedload
 from flask import current_app, g
 
 from app.models import User, Role, Player, Team, League, Match, Availability, Announcement, Permission, TemporarySubAssignment, Schedule
-from app.models.substitutes import SubstituteRequest
+from app.models.substitutes import SubstituteRequest, EcsFcSubRequest, EcsFcSubAssignment
 from app.discord_utils import get_expected_roles, normalize_name
 from app.core import db
 
@@ -1440,3 +1440,109 @@ def update_sub_request_status(request_id, status, fulfilled_by=None, session=Non
         session.rollback()
         logger.error(f"Error updating sub request: {str(e)}")
         return False, f"Error: {str(e)}"
+
+
+def edit_sub_request(request_id, user_id, league_system, updates, session=None):
+    """
+    Edit an existing substitute request with role-based field restrictions.
+
+    Args:
+        request_id: The ID of the request to edit.
+        user_id: The ID of the user making the edit.
+        league_system: 'pub_league' or 'ecs_fc'.
+        updates: Dict of field names to new values.
+        session: SQLAlchemy session.
+
+    Returns:
+        A tuple of (success: bool, message: str, details: dict or None)
+    """
+    from app.utils.substitute_helpers import can_edit_sub_request
+
+    if session is None:
+        session = g.db_session
+
+    try:
+        # Load the request based on league system
+        if league_system == 'ecs_fc':
+            sub_request = session.query(EcsFcSubRequest).get(request_id)
+        else:
+            sub_request = session.query(SubstituteRequest).get(request_id)
+
+        if not sub_request:
+            return False, "Sub request not found", None
+
+        # Check permissions
+        can_edit, editable_fields = can_edit_sub_request(user_id, sub_request, league_system, session)
+        if not can_edit:
+            return False, "You don't have permission to edit this request", None
+
+        # Filter updates to only allowed fields (excluding re_notify which is a flag, not a model field)
+        model_fields = [f for f in editable_fields if f != 're_notify']
+        disallowed = [k for k in updates if k not in editable_fields and k != 're_notify']
+        if disallowed:
+            return False, f"You cannot edit these fields: {', '.join(disallowed)}", None
+
+        # Apply updates
+        changed_fields = []
+        for field in model_fields:
+            if field in updates:
+                new_value = updates[field]
+                old_value = getattr(sub_request, field, None)
+
+                # Validate substitutes_needed
+                if field == 'substitutes_needed':
+                    try:
+                        new_value = int(new_value)
+                    except (ValueError, TypeError):
+                        return False, "substitutes_needed must be a number", None
+                    if new_value < 1 or new_value > 10:
+                        return False, "substitutes_needed must be between 1 and 10", None
+
+                if new_value != old_value:
+                    setattr(sub_request, field, new_value)
+                    changed_fields.append(field)
+
+        if not changed_fields:
+            return True, "No changes detected", {'status_changed': False, 'request_id': request_id}
+
+        sub_request.updated_at = datetime.utcnow()
+
+        # Status recalculation based on substitutes_needed changes
+        status_changed = False
+        if 'substitutes_needed' in changed_fields:
+            if league_system == 'ecs_fc':
+                current_assignments = session.query(EcsFcSubAssignment).filter_by(
+                    request_id=request_id
+                ).count()
+            else:
+                current_assignments = session.query(TemporarySubAssignment).filter_by(
+                    match_id=sub_request.match_id,
+                    team_id=sub_request.team_id
+                ).count()
+
+            new_needed = sub_request.substitutes_needed
+
+            if sub_request.status == 'FILLED' and new_needed > current_assignments:
+                sub_request.status = 'OPEN'
+                sub_request.filled_at = None
+                status_changed = True
+                logger.info(f"Reopened sub request {request_id}: need {new_needed}, have {current_assignments}")
+            elif sub_request.status == 'OPEN' and current_assignments >= new_needed:
+                sub_request.status = 'FILLED'
+                sub_request.filled_at = datetime.utcnow()
+                status_changed = True
+                logger.info(f"Auto-filled sub request {request_id}: need {new_needed}, have {current_assignments}")
+
+        session.flush()
+        logger.info(f"Edited sub request {request_id}: changed {changed_fields}")
+
+        return True, "Sub request updated successfully", {
+            'status_changed': status_changed,
+            'new_status': sub_request.status,
+            'request_id': request_id,
+            'changed_fields': changed_fields
+        }
+
+    except Exception as e:
+        logger.error(f"Error editing sub request {request_id}: {str(e)}", exc_info=True)
+        return False, f"Error: {str(e)}", None

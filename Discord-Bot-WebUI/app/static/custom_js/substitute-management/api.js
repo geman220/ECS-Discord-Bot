@@ -150,6 +150,28 @@ export async function assignSubstituteToRequest(league, requestId, playerId, pos
   return response.json();
 }
 
+/**
+ * Edit a substitute request
+ * @param {string} league - League type
+ * @param {string|number} requestId - Request ID
+ * @param {Object} updates - Fields to update
+ * @returns {Promise<Object>} Response data
+ */
+export async function editSubstituteRequest(league, requestId, updates) {
+  const url = league === 'ECS FC'
+    ? `/ecs-fc/sub-request/${requestId}/edit`
+    : API.request.edit(league, requestId);
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    },
+    body: JSON.stringify(updates)
+  });
+  return response.json();
+}
+
 export default {
   fetchWithTimeout,
   fetchLeagueStatistics,
@@ -160,5 +182,6 @@ export default {
   resendRequest,
   cancelRequest,
   deleteRequest,
-  assignSubstituteToRequest
+  assignSubstituteToRequest,
+  editSubstituteRequest
 };

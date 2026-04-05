@@ -917,13 +917,16 @@ def get_match_and_team_id_from_message():
                     return jsonify(response), 200
                 else:
                     error_msg = result.get('message', 'Unknown error')
-                    logger.error(f"Task returned error: {error_msg}")
-                    
+                    if 'not found' in error_msg.lower():
+                        logger.debug(f"Message not tracked: {error_msg}")
+                    else:
+                        logger.error(f"Task returned error: {error_msg}")
+
                     response = {
                         'status': 'error',
                         'error': error_msg
                     }
-                    
+
                     if 'not found' in error_msg.lower():
                         return jsonify(response), 404
                     else:
@@ -942,7 +945,10 @@ def get_match_and_team_id_from_message():
                     return jsonify(result), 200
                 elif status == 'error':
                     error_msg = result.get('message', 'Unknown error')
-                    logger.error(f"Task returned error: {error_msg}")
+                    if 'not found' in error_msg.lower():
+                        logger.debug(f"Message not tracked: {error_msg}")
+                    else:
+                        logger.error(f"Task returned error: {error_msg}")
                     if 'not found' in error_msg.lower():
                         return jsonify(result), 404
                     else:

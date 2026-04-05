@@ -22,7 +22,8 @@ export const API = {
     resend: (league, id) => `/admin/substitute-pools/${league}/requests/${id}/resend`,
     cancel: (league, id) => `/admin/substitute-pools/${league}/requests/${id}/cancel`,
     assign: (league, id) => `/admin/substitute-pools/${league}/requests/${id}/assign`,
-    delete: (id) => `/api/substitute-pools/requests/${id}`
+    delete: (id) => `/api/substitute-pools/requests/${id}`,
+    edit: (league, id) => `/admin/substitute-pools/${league}/requests/${id}/edit`
   },
   match: {
     requests: (matchId) => `/admin/substitute-pools/match/${matchId}/requests`

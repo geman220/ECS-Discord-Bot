@@ -17,6 +17,10 @@ from datetime import datetime
 
 from app.models.ai_prompt_config import AIPromptConfig
 from app.core.session_manager import managed_session
+from app.utils.commentary_validator import (
+    validate_and_record, async_generate_with_validation,
+    CommentaryType
+)
 
 logger = logging.getLogger(__name__)
 
@@ -67,9 +71,20 @@ class AICommentaryService:
                     logger.debug(f"🤖 AI Commentary attempt {attempt + 1}/{self.max_retries}")
                     commentary = await self._call_openai_api(prompt)
                     if commentary:
-                        elapsed = (datetime.now() - start_time).total_seconds()
-                        logger.info(f"🤖 AI Commentary SUCCESS: Generated in {elapsed:.2f}s - '{commentary[:80]}{'...' if len(commentary) > 80 else ''}'")
-                        return commentary
+                        # Validate against tone rules before accepting
+                        result = validate_and_record(
+                            commentary,
+                            CommentaryType.MATCH_EVENT,
+                            match_id=None  # No match_id at this layer
+                        )
+                        if result.is_valid:
+                            elapsed = (datetime.now() - start_time).total_seconds()
+                            logger.info(f"🤖 AI Commentary SUCCESS: Generated in {elapsed:.2f}s - '{result.text[:80]}{'...' if len(result.text) > 80 else ''}'")
+                            return result.text
+                        else:
+                            logger.warning(f"🤖 AI Commentary attempt {attempt + 1} rejected: {result.rejection_reason}")
+                            # Don't sleep, try again immediately with a fresh generation
+                            continue
                     else:
                         logger.warning(f"🤖 AI Commentary attempt {attempt + 1} returned empty response")
                 except asyncio.TimeoutError:
@@ -326,7 +341,9 @@ class EnhancedAICommentaryService(AICommentaryService):
                     result = await response.json()
                     commentary = result['choices'][0]['message']['content'].strip()
                     commentary = commentary.strip('"\'')
-                    return commentary
+                    # Light validation - cleaning only (strict validation at caller layer)
+                    from app.utils.commentary_validator import _clean_text
+                    return _clean_text(commentary)
                 else:
                     error_text = await response.text()
                     logger.error(f"🤖 OpenAI API ERROR {response.status}: {error_text}")

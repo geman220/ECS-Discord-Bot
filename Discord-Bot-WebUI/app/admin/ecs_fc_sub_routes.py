@@ -180,6 +180,78 @@ def cancel_sub_request(request_id):
     return jsonify({'success': True, 'message': 'Request cancelled successfully'})
 
 
+@ecs_fc_subs_bp.route('/ecs-fc/sub-request/<int:request_id>/edit', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
+def edit_sub_request(request_id):
+    """Edit an existing ECS FC substitute request."""
+    from app.admin_helpers import edit_sub_request as _edit_sub_request
+
+    data = request.get_json() if request.is_json else {}
+    if not data:
+        # Fall back to form data
+        data = {}
+        for field in ('substitutes_needed', 'positions_needed', 'notes'):
+            value = request.form.get(field)
+            if value is not None:
+                data[field] = value
+        if request.form.get('re_notify'):
+            data['re_notify'] = True
+
+    updates = {}
+    for field in ('substitutes_needed', 'positions_needed', 'notes'):
+        if field in data:
+            value = data[field]
+            if field == 'substitutes_needed':
+                try:
+                    value = int(value)
+                except (ValueError, TypeError):
+                    return jsonify({'success': False, 'message': 'Invalid value for substitutes needed'}), 400
+            updates[field] = value
+
+    success, message, details = _edit_sub_request(
+        request_id=request_id,
+        user_id=current_user.id,
+        league_system='ecs_fc',
+        updates=updates,
+        session=g.db_session
+    )
+
+    if not success:
+        return jsonify({'success': False, 'message': message}), 400
+
+    # Handle re-notification if requested
+    re_notify = data.get('re_notify', False)
+    if re_notify:
+        try:
+            sub_req = g.db_session.query(EcsFcSubRequest).get(request_id)
+            if sub_req and sub_req.status == 'OPEN':
+                # Check if slots exist to determine which notification task to use
+                from sqlalchemy import text
+                slot_count = g.db_session.execute(
+                    text("SELECT COUNT(*) FROM ecs_fc_sub_slots WHERE request_id = :rid"),
+                    {'rid': request_id}
+                ).scalar()
+
+                if slot_count and slot_count > 0:
+                    from app.tasks.tasks_ecs_fc_subs import notify_sub_pool_with_slots
+                    notify_sub_pool_with_slots.delay(request_id)
+                else:
+                    notify_sub_pool_of_request.delay(request_id)
+                message += " Substitute pool has been re-notified."
+        except Exception as e:
+            logger.error(f"Error triggering ECS FC re-notification: {e}")
+            message += " Warning: re-notification failed."
+
+    return jsonify({
+        'success': True,
+        'message': message,
+        'status_changed': details.get('status_changed', False) if details else False,
+        'new_status': details.get('new_status') if details else None
+    })
+
+
 @ecs_fc_subs_bp.route('/ecs-fc/sub-request/<int:request_id>/available-subs')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
