@@ -26,10 +26,12 @@ class UserWrapper:
     Wrapper class for user objects to ensure that common user attributes and methods are always available.
 
     When no user is provided, default values are returned for attributes such as authentication
-    status, active state, and roles.
+    status, active state, and roles. Both reads and writes are delegated to the underlying
+    User model when present, so ORM attribute changes are properly tracked by SQLAlchemy.
     """
     def __init__(self, user=None):
-        self._user = user
+        # Must use object.__setattr__ to avoid triggering our __setattr__ override
+        object.__setattr__(self, '_user', user)
 
     def __getattr__(self, name):
         # If no underlying user is set, return safe default values for common attributes.
@@ -54,6 +56,16 @@ class UserWrapper:
             return None
         # Otherwise, delegate attribute access to the underlying user object.
         return getattr(self._user, name)
+
+    def __setattr__(self, name, value):
+        # Delegate writes to the underlying User model so SQLAlchemy tracks the change.
+        # Without this, writes silently go to the wrapper's __dict__ and are never persisted.
+        if name == '_user':
+            object.__setattr__(self, name, value)
+        elif self._user is not None:
+            setattr(self._user, name, value)
+        else:
+            object.__setattr__(self, name, value)
 
 
 def get_user():

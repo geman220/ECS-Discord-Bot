@@ -12,7 +12,7 @@ from urllib.parse import urlparse, urljoin
 
 from flask import (
     render_template, redirect, url_for, request,
-    current_app, jsonify, session
+    current_app, g, jsonify, session
 )
 from flask_login import login_user, logout_user, login_required
 
@@ -125,7 +125,7 @@ def login():
 
                 # Set theme from user preferences if available
                 try:
-                    player = Player.query.get(user.id)
+                    player = g.db_session.query(Player).get(user.id)
                     if player and hasattr(player, 'preferences') and player.preferences:
                         if 'theme' in player.preferences:
                             session['theme'] = player.preferences['theme']

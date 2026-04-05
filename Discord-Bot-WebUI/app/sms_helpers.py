@@ -1010,8 +1010,11 @@ def handle_opt_out(player):
     session = g.db_session
     logger.info(f'Opt-out request received for player: {player.user_id}')
     player.sms_opt_out_timestamp = datetime.utcnow()
-    if player.user:
-        player.user.sms_notifications = False
+    # Load fresh User model to ensure mutation is tracked by the current session
+    from app.models import User as UserModel
+    db_user = session.query(UserModel).get(player.user_id)
+    if db_user:
+        db_user.sms_notifications = False
     logger.info(f'Player {player.user_id} unsubscribed from SMS notifications')
     
     # Send final confirmation SMS - no rate limiting for this as it's a system message
@@ -1042,8 +1045,11 @@ def handle_re_subscribe(player):
     player.sms_opt_out_timestamp = None
     player.is_phone_verified = True
 
-    if player.user:
-        player.user.sms_notifications = True
+    # Load fresh User model to ensure mutation is tracked by the current session
+    from app.models import User as UserModel
+    db_user = session.query(UserModel).get(player.user_id)
+    if db_user:
+        db_user.sms_notifications = True
     
     # Send re-subscription confirmation - no rate limiting for this system action
     success, _ = send_sms(
