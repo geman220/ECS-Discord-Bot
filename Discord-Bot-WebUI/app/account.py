@@ -452,34 +452,44 @@ def enable_2fa():
     On GET requests, generates a new TOTP secret, creates a QR code for setup, and returns it as a JSON response.
     On POST requests, verifies the provided TOTP code and enables 2FA if valid.
     """
+    # Load real User model — current_user is UserAuthData which lacks ORM methods
+    db_session = g.db_session
+    user = db_session.query(User).get(current_user.id)
+    if not user:
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+
     # GET: Generate TOTP secret and QR code.
     if request.method == 'GET':
-        if not current_user.totp_secret:
-            current_user.generate_totp_secret()
-        totp = pyotp.TOTP(current_user.totp_secret)
-        otp_uri = totp.provisioning_uri(name=current_user.email, issuer_name="ECS Web")
+        if not user.totp_secret:
+            user.generate_totp_secret()
+            db_session.add(user)
+            db_session.commit()
+        totp = pyotp.TOTP(user.totp_secret)
+        otp_uri = totp.provisioning_uri(name=user.email, issuer_name="ECS Web")
         img = qrcode.make(otp_uri)
         buffered = BytesIO()
         img.save(buffered, format="PNG")
         buffered.seek(0)
-        session['temp_totp_secret'] = current_user.totp_secret
+        session['temp_totp_secret'] = user.totp_secret
         return jsonify({
             'qr_code': base64.b64encode(buffered.getvalue()).decode(),
-            'secret': current_user.totp_secret
+            'secret': user.totp_secret
         })
-    
+
     # POST: Verify the TOTP code and enable 2FA.
     elif request.method == 'POST':
         form = Enable2FAForm()
         # Handle both JSON and Form data for flexibility
         token = request.json.get('totp_token') if request.is_json else request.form.get('totp_token')
-        
+
         if not token:
             return jsonify({'success': False, 'message': '2FA code is required'}), 400
-            
-        totp = pyotp.TOTP(current_user.totp_secret)
+
+        totp = pyotp.TOTP(user.totp_secret)
         if totp.verify(token):
-            current_user.is_2fa_enabled = True
+            user.is_2fa_enabled = True
+            db_session.add(user)
+            db_session.commit()
             show_success('2FA enabled successfully.')
             return jsonify({'success': True})
         else:

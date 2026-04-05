@@ -75,10 +75,11 @@ def waitlist_register():
                     show_info('You are already on the waitlist!')
                     return redirect(url_for('main.index'))
 
-                # Add user to waitlist
-                current_user.roles.append(waitlist_role)
-                # Set waitlist joined timestamp
-                current_user.waitlist_joined_at = datetime.utcnow()
+                # Add user to waitlist — load real User model for mutations
+                db_user = db_session.query(User).get(current_user.id)
+                if db_user:
+                    db_user.roles.append(waitlist_role)
+                    db_user.waitlist_joined_at = datetime.utcnow()
                 db_session.flush()
 
                 show_success('You have been added to the waitlist! You will be notified when spots become available.')

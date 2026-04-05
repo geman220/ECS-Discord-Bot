@@ -236,14 +236,17 @@ def create_player_profile(onboarding_form):
                 logger.error(f"Failed to save cropped profile picture: {e}")
                 # Continue without profile picture rather than failing onboarding
 
-        # Save notification preferences to User model (same as handle_profile_update)
-        safe_current_user.email_notifications = onboarding_form.email_notifications.data
-        safe_current_user.sms_notifications = onboarding_form.sms_notifications.data
-        safe_current_user.discord_notifications = onboarding_form.discord_notifications.data
-        safe_current_user.profile_visibility = onboarding_form.profile_visibility.data
-        safe_current_user.email = onboarding_form.email.data
-
-        session.add(safe_current_user)
+        # Save notification preferences to User model — load fresh ORM model
+        # to avoid UserWrapper.__setattr__ silently writing to wrapper instead of DB
+        from app.models import User
+        db_user = session.query(User).get(safe_current_user.id)
+        if db_user:
+            db_user.email_notifications = onboarding_form.email_notifications.data
+            db_user.sms_notifications = onboarding_form.sms_notifications.data
+            db_user.discord_notifications = onboarding_form.discord_notifications.data
+            db_user.profile_visibility = onboarding_form.profile_visibility.data
+            db_user.email = onboarding_form.email.data
+            session.add(db_user)
         logger.info(f"Created player profile for user {safe_current_user.id}")
         return player
 
@@ -302,11 +305,17 @@ def handle_profile_update(player, onboarding_form):
         player.team_swap = onboarding_form.team_swap.data
         player.additional_info = onboarding_form.additional_info.data
 
-        safe_current_user.email_notifications = onboarding_form.email_notifications.data
-        safe_current_user.sms_notifications = onboarding_form.sms_notifications.data
-        safe_current_user.discord_notifications = onboarding_form.discord_notifications.data
-        safe_current_user.profile_visibility = onboarding_form.profile_visibility.data
-        safe_current_user.email = onboarding_form.email.data
+        # Save notification preferences — load fresh ORM model to avoid
+        # UserWrapper.__setattr__ silently writing to wrapper instead of DB
+        from app.models import User
+        db_user = session.query(User).get(safe_current_user.id)
+        if db_user:
+            db_user.email_notifications = onboarding_form.email_notifications.data
+            db_user.sms_notifications = onboarding_form.sms_notifications.data
+            db_user.discord_notifications = onboarding_form.discord_notifications.data
+            db_user.profile_visibility = onboarding_form.profile_visibility.data
+            db_user.email = onboarding_form.email.data
+            session.add(db_user)
 
         # Handle cropped profile picture (from cropper.js)
         cropped_image_data = request.form.get('cropped_image_data')
@@ -329,7 +338,6 @@ def handle_profile_update(player, onboarding_form):
                 # Continue without updating profile picture rather than failing
 
         session.add(player)
-        session.add(safe_current_user)
         logger.info(f"Updated profile for user {safe_current_user.id}")
 
     except Exception as e:
@@ -566,12 +574,16 @@ def index():
             if form_action in ['create_profile', 'update_profile']:
                 if onboarding_form.validate_on_submit():
                     try:
-                        logger.info(f"Current has_completed_onboarding: {safe_current_user.has_completed_onboarding}")
-                        session.refresh(safe_current_user)
+                        # Load fresh User model — UserWrapper.__setattr__ writes to
+                        # wrapper's __dict__, not the ORM model
+                        from app.models import User
+                        db_user = session.query(User).get(safe_current_user.id)
+
+                        logger.info(f"Current has_completed_onboarding: {db_user.has_completed_onboarding if db_user else 'N/A'}")
                         if not player:
                             player = create_player_profile(onboarding_form)
-                            if player:
-                                safe_current_user.has_skipped_profile_creation = False
+                            if player and db_user:
+                                db_user.has_skipped_profile_creation = False
                         else:
                             handle_profile_update(player, onboarding_form)
 
@@ -579,9 +591,9 @@ def index():
                         preferred_league = request.form.get('preferred_league')
                         if preferred_league == 'not_sure':
                             preferred_league = None
-                        if preferred_league:
-                            safe_current_user.preferred_league = preferred_league
-                            safe_current_user.league_selection_method = 'onboarding'
+                        if preferred_league and db_user:
+                            db_user.preferred_league = preferred_league
+                            db_user.league_selection_method = 'onboarding'
 
                         # Check SMS verification status for users who opted in
                         if player:
@@ -589,44 +601,34 @@ def index():
                             sms_verified = request.form.get('sms_verified') == 'true'
                             # Check if the user is already verified in the database
                             player_already_verified = player.is_phone_verified
-                            
+
                             # Get SMS notification and consent settings from form
                             sms_notifications_enabled = request.form.get('sms_notifications') == 'y'
                             sms_consent_given = request.form.get('sms_consent') == 'on'
-                            
+
                             # Check if phone number is provided when SMS is enabled
                             if sms_notifications_enabled and not player.phone and not request.form.get('phone'):
                                 show_warning('Please provide a phone number to enable SMS notifications.')
                                 return redirect(url_for('main.onboarding'))
-                                
+
                             # Check for consent when SMS notifications are enabled
                             if sms_notifications_enabled and not sms_consent_given:
                                 show_warning('Please check the consent box to enable SMS notifications.')
                                 return redirect(url_for('main.onboarding'))
-                            
+
                             # Check if the phone number is verified when SMS is enabled
                             if sms_notifications_enabled and not (sms_verified or player_already_verified):
                                 logger.warning(f"SMS notifications enabled but phone not verified for player {player.id}")
                                 show_warning('Please verify your phone number to complete registration with SMS notifications.')
                                 return redirect(url_for('main.onboarding'))
-                            
-                            # Update onboarding status
-                            safe_current_user.has_completed_onboarding = True
-                            session.add(safe_current_user)
-                            session.flush()
-                            session.execute(
-                                text("UPDATE users SET has_completed_onboarding = true WHERE id = :user_id"),
-                                {"user_id": safe_current_user.id}
-                            )
+
+                            # Update onboarding status via ORM (no raw SQL needed)
+                            if db_user:
+                                db_user.has_completed_onboarding = True
+                                session.add(db_user)
                             try:
                                 session.commit()
-                                session.refresh(safe_current_user)
-                                logger.info(f"Verified has_completed_onboarding after update: {safe_current_user.has_completed_onboarding}")
-                                result = session.execute(
-                                    text("SELECT has_completed_onboarding FROM users WHERE id = :user_id"),
-                                    {"user_id": safe_current_user.id}
-                                ).fetchone()
-                                logger.info(f"Direct query verification: has_completed_onboarding = {result[0]}")
+                                logger.info(f"Onboarding completed for user {safe_current_user.id}")
                                 show_success('Profile updated successfully!')
                                 return redirect(url_for('main.index'))
                             except Exception as e:
@@ -646,22 +648,30 @@ def index():
 
             elif form_action == 'skip_profile':
                 try:
-                    with session.begin():
-                        safe_current_user.has_skipped_profile_creation = True
-                        session.add(safe_current_user)
+                    from app.models import User
+                    skip_user = session.query(User).get(safe_current_user.id)
+                    if skip_user:
+                        skip_user.has_skipped_profile_creation = True
+                        session.add(skip_user)
+                        session.commit()
                     return redirect(url_for('main.index'))
                 except Exception as e:
+                    session.rollback()
                     logger.error(f"Error skipping profile: {str(e)}", exc_info=True)
                     return redirect(url_for('main.index'))
 
             elif form_action == 'reset_skip_profile':
                 try:
-                    with session.begin():
-                        safe_current_user.has_skipped_profile_creation = False
-                        session.add(safe_current_user)
+                    from app.models import User
+                    reset_user = session.query(User).get(safe_current_user.id)
+                    if reset_user:
+                        reset_user.has_skipped_profile_creation = False
+                        session.add(reset_user)
+                        session.commit()
                     show_info('Onboarding has been reset. Please complete the onboarding process.')
                     return redirect(url_for('main.index'))
                 except Exception as e:
+                    session.rollback()
                     logger.error(f"Error resetting profile: {str(e)}", exc_info=True)
                     show_error('An error occurred. Please try again.')
                     return redirect(url_for('main.index'))
@@ -1103,29 +1113,35 @@ def onboarding():
             else:
                 handle_profile_update(player, onboarding_form)
             
+            # Load fresh User model for mutations — UserWrapper.__setattr__
+            # writes to the wrapper's __dict__, not the ORM model
+            from app.models import User
+            db_user = session.query(User).get(safe_current_user.id)
+
             # Process league selection
             preferred_league = request.form.get('preferred_league')
             if preferred_league == 'not_sure':
                 preferred_league = None
-            if preferred_league:
-                safe_current_user.preferred_league = preferred_league
-                safe_current_user.league_selection_method = 'onboarding'
+            if preferred_league and db_user:
+                db_user.preferred_league = preferred_league
+                db_user.league_selection_method = 'onboarding'
                 logger.info(f"User {safe_current_user.id} selected league: {preferred_league}")
             else:
                 logger.warning(f"User {safe_current_user.id} completed onboarding without selecting a league")
-            
+
             # Check SMS verification if needed
             sms_notifications = request.form.get('sms_notifications') == 'y'
             sms_verified = request.form.get('sms_verified') == 'true'
             already_verified = player and player.is_phone_verified
-            
+
             # If SMS is enabled but not verified, show warning
             if sms_notifications and not (sms_verified or already_verified):
                 show_warning('Please verify your phone number to enable SMS notifications.')
             else:
                 # Mark onboarding as complete
-                safe_current_user.has_completed_onboarding = True
-                session.add(safe_current_user)
+                if db_user:
+                    db_user.has_completed_onboarding = True
+                    session.add(db_user)
                 try:
                     session.commit()
                     show_success('Profile created successfully!')
@@ -1172,11 +1188,15 @@ def set_tour_skipped():
     """
     session = g.db_session
     try:
-        safe_current_user.has_completed_tour = False
-        session.add(safe_current_user)
-        session.commit()
+        from app.models import User
+        db_user = session.query(User).get(safe_current_user.id)
+        if db_user:
+            db_user.has_completed_tour = False
+            session.add(db_user)
+            session.commit()
         logger.info(f"User {safe_current_user.id} set tour as skipped.")
     except Exception as e:
+        session.rollback()
         logger.error(f"Error setting tour skipped for user {safe_current_user.id}: {str(e)}")
         return jsonify({'error': 'An error occurred while updating tour status'}), 500
     return '', 204
@@ -1193,11 +1213,15 @@ def set_tour_complete():
     """
     session = g.db_session
     try:
-        safe_current_user.has_completed_tour = True
-        session.add(safe_current_user)
-        session.commit()
+        from app.models import User
+        db_user = session.query(User).get(safe_current_user.id)
+        if db_user:
+            db_user.has_completed_tour = True
+            session.add(db_user)
+            session.commit()
         logger.info(f"User {safe_current_user.id} completed the tour.")
     except Exception as e:
+        session.rollback()
         logger.error(f"Error setting tour complete for user {safe_current_user.id}: {str(e)}")
         return jsonify({'error': 'An error occurred while updating tour status'}), 500
     return '', 204
@@ -1579,18 +1603,21 @@ def verify_sms_code():
         session_code = flask_session.get('sms_confirmation_code')
         logger.info(f"Found code in Flask session: {session_code}")
         
-        # If user has no code but we have one in the session, set it
+        # If user has no code but we have one in the session, set it on the real User model
         if not safe_current_user.sms_confirmation_code and session_code:
             logger.info(f"Setting confirmation code from session for user {safe_current_user.id}")
-            safe_current_user.sms_confirmation_code = session_code
+            from app.models import User
             db_session = g.db_session
-            db_session.add(safe_current_user)
-            try:
-                db_session.commit()
-            except Exception as e:
-                db_session.rollback()
-                logger.exception(f"Error saving SMS confirmation code for user {safe_current_user.id}: {str(e)}")
-                return jsonify({"success": False, "message": "Error saving verification code"})
+            db_user = db_session.query(User).get(safe_current_user.id)
+            if db_user:
+                db_user.sms_confirmation_code = session_code
+                db_session.add(db_user)
+                try:
+                    db_session.commit()
+                except Exception as e:
+                    db_session.rollback()
+                    logger.exception(f"Error saving SMS confirmation code for user {safe_current_user.id}: {str(e)}")
+                    return jsonify({"success": False, "message": "Error saving verification code"})
         
         # Verify the code
         logger.info(f"Verifying SMS code for user {safe_current_user.id}: {code}")
@@ -1671,15 +1698,18 @@ def test_sms_verification():
         verification_status['test_code'] = test_code
         
         if not safe_current_user.sms_confirmation_code:
-            safe_current_user.sms_confirmation_code = test_code
-            g.db_session.add(safe_current_user)
-            try:
-                g.db_session.commit()
-                verification_status['debug_note'] = 'Created new test verification code'
-            except Exception as e:
-                g.db_session.rollback()
-                logger.exception(f"Error saving test verification code for user {safe_current_user.id}: {str(e)}")
-                verification_status['debug_note'] = 'Error creating test verification code'
+            from app.models import User
+            test_user = g.db_session.query(User).get(safe_current_user.id)
+            if test_user:
+                test_user.sms_confirmation_code = test_code
+                g.db_session.add(test_user)
+                try:
+                    g.db_session.commit()
+                    verification_status['debug_note'] = 'Created new test verification code'
+                except Exception as e:
+                    g.db_session.rollback()
+                    logger.exception(f"Error saving test verification code for user {safe_current_user.id}: {str(e)}")
+                    verification_status['debug_note'] = 'Error creating test verification code'
             
         return jsonify(verification_status)
     except Exception as e:
@@ -1710,12 +1740,14 @@ def set_verification_code():
             from app.sms_helpers import generate_confirmation_code
             code = generate_confirmation_code()
             
-        # Set the confirmation code on the user
-        safe_current_user.sms_confirmation_code = code
-        
-        # Save to database
+        # Set the confirmation code on the real User model
+        from app.models import User
         session = g.db_session
-        session.add(safe_current_user)
+        db_user = session.query(User).get(safe_current_user.id)
+        if not db_user:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        db_user.sms_confirmation_code = code
+        session.add(db_user)
         try:
             session.commit()
             logger.info(f"[ADMIN] Manually set verification code {code} for user {safe_current_user.id}")
