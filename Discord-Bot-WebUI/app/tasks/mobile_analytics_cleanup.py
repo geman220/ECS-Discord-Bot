@@ -50,7 +50,18 @@ def cleanup_mobile_analytics():
             logger.info(f"✅ Mobile analytics cleanup completed: {cleanup_data}")
             return cleanup_data
         else:
-            # If for some reason it's not a dict, try to parse it
+            # Handle numeric return (PostgreSQL function returned raw count)
+            if isinstance(cleanup_data, (int, float)):
+                return {
+                    'total_deleted': int(cleanup_data),
+                    'analytics_deleted': 0,
+                    'logs_deleted': 0,
+                    'patterns_deleted': 0,
+                    'execution_time_seconds': 0,
+                    'cleanup_date': datetime.utcnow().isoformat(),
+                    'status': 'success'
+                }
+            # Handle string return (JSONB serialized as string)
             import json
             cleanup_dict = json.loads(cleanup_data) if isinstance(cleanup_data, str) else cleanup_data
             logger.info(f"✅ Mobile analytics cleanup completed: {cleanup_dict}")

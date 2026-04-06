@@ -729,29 +729,26 @@ def report_match(match_id):
             is_global_admin = current_user.has_role('Global Admin')
             is_pub_league_admin = current_user.has_role('Pub League Admin')
             is_admin = is_global_admin or is_pub_league_admin
-            is_pub_league_ref = current_user.has_role('Pub League Ref')
-            
+
             if current_user_player:
-                user_team_ids = [team.id for team in current_user_player.teams]
-            
+                # Only include teams where the user is a coach (not just a player)
+                user_team_ids = [team.id for team, is_coach_flag in current_user_player.get_current_teams(with_coach_status=True) if is_coach_flag]
+
             # Check if user is the assigned referee for this match
             is_assigned_referee = False
             if current_user_player and current_user_player.is_ref and match.ref_id == current_user_player.id:
                 is_assigned_referee = True
-            
+
             # Handle role impersonation for verification permissions
             if is_impersonation_active():
                 user_roles = get_effective_roles()
                 is_admin = any(role in ['Pub League Admin', 'Global Admin'] for role in user_roles)
-                is_global_admin = 'Global Admin' in user_roles
-                is_pub_league_admin = 'Pub League Admin' in user_roles
-                is_pub_league_ref = 'Pub League Ref' in user_roles
-            
+
             # Determine if the user can verify for either team
-            # Admins and refs can verify for any team
-            admin_or_ref = is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref or is_assigned_referee
-            
-            # Regular users (coaches/players) can only verify for their own team
+            # Admins and the assigned match referee can verify for any team
+            admin_or_ref = is_admin or is_assigned_referee
+
+            # Coaches can only verify for teams they coach
             can_verify_home = admin_or_ref or (match.home_team_id in user_team_ids)
             can_verify_away = admin_or_ref or (match.away_team_id in user_team_ids)
             
@@ -876,22 +873,21 @@ def report_match(match_id):
         is_global_admin = current_user.has_role('Global Admin')
         is_pub_league_admin = current_user.has_role('Pub League Admin')
         is_admin = is_global_admin or is_pub_league_admin
-        is_pub_league_ref = current_user.has_role('Pub League Ref')
-        
+
         if current_user_player:
-            user_team_ids = [team.id for team in current_user_player.teams]
-            
+            # Only include teams where the user is a coach (not just a player)
+            user_team_ids = [team.id for team, is_coach_flag in current_user_player.get_current_teams(with_coach_status=True) if is_coach_flag]
+
         # Check if the user wants to verify for a team
         verify_home = data.get('verify_home_team', False)
         verify_away = data.get('verify_away_team', False)
-        
+
         now = datetime.utcnow()
-        
+
         # Handle team verification with proper permission checks
-        # Admins and refs can verify for any team, regular users only for their own team
-        admin_or_ref = is_admin or is_global_admin or is_pub_league_admin or is_pub_league_ref
+        # Admins and the assigned match referee can verify for any team
         is_assigned_referee = current_user_player and current_user_player.is_ref and match.ref_id == current_user_player.id
-        admin_or_ref = admin_or_ref or is_assigned_referee
+        admin_or_ref = is_admin or is_assigned_referee
         
         # Handle home team verification
         can_verify_home = admin_or_ref or (match.home_team_id in user_team_ids)

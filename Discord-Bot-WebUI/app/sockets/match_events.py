@@ -267,11 +267,18 @@ def handle_report_match_event(data):
                 emit('match_event_error', {'message': 'You are not authorized to report for this match'})
                 return
 
+            # Check if the player is a temporary substitute for this match
+            is_sub_event = False
+            if event_type != 'own_goal' and player_id:
+                from app.utils.substitute_helpers import is_player_temp_sub_for_match
+                is_sub_event = is_player_temp_sub_for_match(player_id, match_id, session=session)
+
             # Create the event
             event = PlayerEvent(
                 match_id=match_id,
                 event_type=PlayerEventType(event_type),
-                minute=str(minute) if minute else None
+                minute=str(minute) if minute else None,
+                is_sub_event=is_sub_event
             )
 
             if event_type == 'own_goal':
@@ -284,8 +291,8 @@ def handle_report_match_event(data):
             # Update aggregated stats for league-separated tracking
             if event_type != 'own_goal' and player_id:
                 try:
-                    update_player_stats(session, player_id, event_type.upper(), match, increment=True)
-                    logger.info(f"Updated stats for player {player_id}: +1 {event_type}")
+                    update_player_stats(session, player_id, event_type.upper(), match, increment=True, is_sub_event=is_sub_event)
+                    logger.info(f"Updated stats for player {player_id}: +1 {event_type} (sub_event={is_sub_event})")
                 except Exception as stats_error:
                     logger.error(f"Failed to update player stats: {stats_error}")
 

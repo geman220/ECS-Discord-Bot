@@ -47,6 +47,17 @@ class AvailabilityRequest(BaseModel):
     away_team_name: str
     match_date: str
     match_time: str
+    is_special_week: bool = False
+    week_type: Optional[str] = None
+    special_week_display: Optional[str] = None
+
+
+class WeekReminderRequest(BaseModel):
+    team_channel_ids: List[Union[int, str]]
+    team_names: List[str]
+    match_date: str
+    week_type: str
+    display_name: str
 
 
 class EmbedField(BaseModel):

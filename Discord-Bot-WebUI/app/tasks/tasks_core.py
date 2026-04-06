@@ -74,9 +74,15 @@ def schedule_season_availability(self, session) -> Dict[str, Any]:
         # Process each match; schedule a message if not already present
         for match_data in matches_data:
             if not match_data['has_message']:
-                # Calculate send date and time (9:00 AM on the computed day)
-                send_date = match_data['date'] - timedelta(days=match_data['date'].weekday() + 1)
-                send_time = datetime.combine(send_date, datetime.min.time()) + timedelta(hours=9)
+                # Calculate send date and time (Monday 8:00 AM PST = 16:00 UTC)
+                # For Sunday matches (weekday 6): Sunday - 6 = Monday
+                match_date = match_data['date']
+                if match_date.weekday() == 6:  # Sunday
+                    send_date = match_date - timedelta(days=6)
+                else:
+                    days_since_monday = match_date.weekday()
+                    send_date = match_date - timedelta(days=days_since_monday if days_since_monday > 0 else 7)
+                send_time = datetime.combine(send_date, datetime.min.time()) + timedelta(hours=16)
 
                 scheduled_message = ScheduledMessage(
                     match_id=match_data['id'],

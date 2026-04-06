@@ -13,6 +13,7 @@ from datetime import datetime
 
 from flask import render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user
+from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.admin_panel import admin_panel_bp
@@ -88,6 +89,48 @@ def substitute_management():
 
         sub_requests = sub_requests_query.limit(50).all()
 
+        # Batch-query RSVP counts per requesting team for each sub request
+        rsvp_counts = {}
+        if sub_requests:
+            from app.models.matches import Availability
+            from app.models.players import player_teams
+
+            mt_pairs = set((req.match_id, req.team_id) for req in sub_requests)
+            pair_conditions = [
+                and_(
+                    Availability.match_id == mid,
+                    player_teams.c.team_id == tid
+                )
+                for mid, tid in mt_pairs
+            ]
+
+            counts_rows = (
+                db.session.query(
+                    Availability.match_id,
+                    player_teams.c.team_id,
+                    Availability.response,
+                    func.count(Availability.id)
+                )
+                .join(player_teams, player_teams.c.player_id == Availability.player_id)
+                .filter(or_(*pair_conditions))
+                .group_by(Availability.match_id, player_teams.c.team_id, Availability.response)
+                .all()
+            )
+
+            rsvp_lookup = {}
+            for match_id, team_id, response, count in counts_rows:
+                key = (match_id, team_id)
+                if key not in rsvp_lookup:
+                    rsvp_lookup[key] = {'yes': 0, 'maybe': 0, 'no': 0}
+                if response in ('yes', 'maybe', 'no'):
+                    rsvp_lookup[key][response] = count
+
+            for req in sub_requests:
+                rsvp_counts[req.id] = rsvp_lookup.get(
+                    (req.match_id, req.team_id),
+                    {'yes': 0, 'maybe': 0, 'no': 0}
+                )
+
         # Get available substitutes from the SubstitutePool with player names
         pool_entries = SubstitutePool.query.options(
             joinedload(SubstitutePool.player)
@@ -154,6 +197,7 @@ def substitute_management():
             'admin_panel/substitute_management_flowbite.html',
             stats=stats,
             sub_requests=sub_requests,
+            rsvp_counts=rsvp_counts,
             upcoming_matches=upcoming_matches,
             available_subs=available_subs,
             requested_teams_by_match=requested_teams_by_match,

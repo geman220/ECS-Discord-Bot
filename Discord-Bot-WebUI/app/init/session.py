@@ -55,5 +55,6 @@ def init_session(app, redis_manager):
         # Use Flask's default session implementation for testing
         app.logger.info("Testing mode: Using Flask default sessions instead of Redis")
 
-    # Configure CORS
-    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    # Configure CORS — restrict to known origins (configurable via CORS_ALLOWED_ORIGINS env var)
+    allowed_origins = app.config.get('CORS_ALLOWED_ORIGINS', ['*'])
+    CORS(app, resources={r"/api/*": {"origins": allowed_origins}}, supports_credentials=True)

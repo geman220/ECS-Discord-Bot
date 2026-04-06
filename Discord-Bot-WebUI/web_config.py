@@ -31,6 +31,7 @@ class Config:
     # For local development, restrict to local networks
     MOBILE_APP_ALLOWED_NETWORKS = os.getenv('MOBILE_APP_ALLOWED_NETWORKS', '192.168.1.0/24,192.168.0.0/24')
     WEBUI_BASE_URL = os.getenv('WEBUI_BASE_URL', 'https://ecs-soccer.org')
+    CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'https://portal.ecsfc.com,https://ecs-soccer.org').split(',')
     
     # Security Configuration
     SECURITY_LOG_RETENTION_DAYS = int(os.getenv('SECURITY_LOG_RETENTION_DAYS', 90))  # Keep security logs for 90 days

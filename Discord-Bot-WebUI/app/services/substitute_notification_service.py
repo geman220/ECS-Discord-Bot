@@ -384,8 +384,9 @@ class SubstituteNotificationService:
     def notify_ecs_fc_pool(
         self,
         request_id: int,
-        custom_message: str,
+        custom_message: Optional[str] = None,
         channels: Optional[List[str]] = None,
+        gender_filter: Optional[str] = None,
         position_filters: Optional[List[str]] = None,
         player_ids: Optional[List[int]] = None,
         subs_needed: int = 1
@@ -395,8 +396,9 @@ class SubstituteNotificationService:
 
         Args:
             request_id: EcsFcSubRequest ID
-            custom_message: Custom message from coach
+            custom_message: Custom message from coach (auto-generated if omitted)
             channels: List of channels to use (defaults to all enabled)
+            gender_filter: Optional gender filter ('male' or 'female')
             position_filters: Optional position filter (['GK', 'DEF', 'MID', 'FWD'])
             player_ids: Optional specific player IDs to contact
             subs_needed: How many subs are needed
@@ -436,6 +438,18 @@ class SubstituteNotificationService:
             )
 
             active_subs = query.all()
+
+            # Apply gender filter (matches pronoun-based approach in tasks_ecs_fc_subs)
+            if gender_filter:
+                gender_lower = gender_filter.lower()
+                filtered_subs = []
+                for pool_entry in active_subs:
+                    pronouns = (pool_entry.player.pronouns or '').lower()
+                    if gender_lower == 'male' and pronouns in ('he/him', 'they/them', ''):
+                        filtered_subs.append(pool_entry)
+                    elif gender_lower == 'female' and pronouns in ('she/her', 'they/them', ''):
+                        filtered_subs.append(pool_entry)
+                active_subs = filtered_subs
 
             # Apply position filter
             if position_filters:
@@ -501,7 +515,7 @@ class SubstituteNotificationService:
                         player=player,
                         channels=available_channels,
                         subject=f"Sub Request: ECS FC vs {match_details['opponent']}",
-                        message=self._build_message(custom_message, match_details, rsvp_url),
+                        message=self._build_message(custom_message or "Sub needed!", match_details, rsvp_url),
                         rsvp_url=rsvp_url,
                         rsvp_token=response.rsvp_token,
                         league_type='ecs_fc',

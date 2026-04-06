@@ -144,24 +144,12 @@ class ESPNAPIClient:
         Fetch match data from ESPN API.
         """
         try:
-            # Parse competition and handle MLS special case
-            if competition == 'usa.1':
-                # MLS uses special endpoint structure
-                # Use the working scoreboard endpoint first
-                endpoints = [
-                    f"https://site.api.espn.com/apis/site/v2/sports/soccer/usa.1/scoreboard",
-                    f"https://site.api.espn.com/apis/site/v2/sports/soccer/mls/scoreboard/{match_id}",
-                    f"https://site.api.espn.com/apis/site/v2/sports/soccer/mls/summary?event={match_id}",
-                    f"https://www.espn.com/soccer/match/_/gameId/{match_id}"
-                ]
-            else:
-                # Other leagues use standard format (e.g., 'eng.1' -> 'eng/1')
-                league = competition.replace('.', '/')
-                endpoints = [
-                    f"{self.BASE_URL}/{league}/scoreboard/{match_id}",
-                    f"{self.BASE_URL}/{league}/summary?event={match_id}",
-                    f"https://www.espn.com/soccer/match/_/gameId/{match_id}"
-                ]
+            # The scoreboard endpoint is the only reliable ESPN API for MLS.
+            # It returns all current-day matches including recently finished ones.
+            # The /summary endpoint returns 404 for MLS (usa.1).
+            endpoints = [
+                f"{self.BASE_URL}/sports/soccer/{competition}/scoreboard",
+            ]
 
             for url in endpoints:
                 try:
@@ -170,18 +158,23 @@ class ESPNAPIClient:
                     if response.status_code == 200:
                         raw_data = response.json()
 
-                        # For scoreboard endpoints, find the specific match
-                        if 'events' in raw_data and '/scoreboard' in url and match_id not in url:
+                        # Scoreboard endpoint: search for this match among all events
+                        if '/scoreboard' in url and 'events' in raw_data:
                             for event in raw_data['events']:
-                                if str(event.get('id')) == match_id:
-                                    # Found our match, process it
+                                if str(event.get('id')) == str(match_id):
                                     return self._process_event_data(event)
-                            # Match not found in scoreboard
+                            # Match not in scoreboard — try next endpoint
+                            logger.debug(f"Match {match_id} not found in scoreboard ({len(raw_data['events'])} events)")
                             continue
-                        else:
-                            # Regular endpoint processing
-                            return self._process_espn_data(raw_data, match_id)
-                    elif response.status_code == 404:
+
+                        # Summary endpoint: has a different structure with header/boxscore
+                        if '/summary' in url and 'header' in raw_data:
+                            return self._process_summary_data(raw_data, match_id)
+
+                        # Generic fallback processing
+                        return self._process_espn_data(raw_data, match_id)
+                    elif response.status_code in (400, 404):
+                        logger.debug(f"ESPN returned {response.status_code} for {url}")
                         continue  # Try next endpoint
                     else:
                         logger.warning(f"ESPN API returned {response.status_code} for {url}")
@@ -263,6 +256,126 @@ class ESPNAPIClient:
             pass
         return (None, None)
 
+    def _process_summary_data(self, raw_data: Dict[str, Any], match_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Process ESPN summary endpoint response.
+
+        The summary endpoint (/summary?event=ID) has a different structure:
+        - header.competitions[0] contains status and competitors
+        - boxscore.teams contains scores
+        - keyEvents or plays may contain match events
+        """
+        try:
+            header = raw_data.get('header', {})
+            competitions = header.get('competitions', [{}])
+            if not competitions:
+                return None
+
+            competition_data = competitions[0]
+            competitors = competition_data.get('competitors', [])
+
+            if len(competitors) < 2:
+                return None
+
+            home_comp = competitors[0]
+            away_comp = competitors[1]
+
+            # Status from header
+            status_detail = competition_data.get('status', {})
+            status_type = status_detail.get('type', {})
+
+            # Reuse the same status mapping
+            status_map = {
+                'STATUS_SCHEDULED': 'SCHEDULED',
+                'STATUS_PRE_EVENT': 'PRE_MATCH',
+                'STATUS_IN_PROGRESS': 'IN_PLAY',
+                'STATUS_FIRST_HALF': 'IN_PLAY',
+                'STATUS_SECOND_HALF': 'IN_PLAY',
+                'STATUS_HALFTIME': 'HALFTIME',
+                'STATUS_FINAL': 'FINAL',
+                'STATUS_FULL_TIME': 'FINAL',
+                'STATUS_FINAL_AET': 'FINAL',
+                'STATUS_FINAL_PEN': 'FINAL',
+                'STATUS_END_OF_REGULATION': 'IN_PLAY',
+                'STATUS_EXTRA_TIME': 'IN_PLAY',
+                'STATUS_PENALTIES': 'IN_PLAY',
+                'STATUS_POSTPONED': 'POSTPONED',
+                'STATUS_CANCELED': 'CANCELLED',
+                'STATUS_SUSPENDED': 'POSTPONED',
+                'STATUS_ABANDONED': 'CANCELLED',
+                'STATUS_DELAYED': 'SCHEDULED',
+            }
+
+            espn_status_name = status_type.get('name', '')
+            status = status_map.get(espn_status_name, '')
+            if not status:
+                espn_state = status_type.get('state', '').lower()
+                if espn_state == 'post':
+                    status = 'FINAL'
+                elif espn_state == 'in':
+                    status = 'IN_PLAY'
+                elif espn_state == 'pre':
+                    status = 'SCHEDULED'
+                else:
+                    status = 'UNKNOWN'
+
+            # Extract events from keyEvents or roster/details
+            match_events = []
+            for ke in raw_data.get('keyEvents', []):
+                ke_type_text = ke.get('type', {}).get('text', '')
+                athletes = ke.get('athletesInvolved', [])
+                clock_val = ke.get('clock', {}).get('displayValue', '')
+                team_name = ke.get('team', {}).get('displayName', '')
+                player_name = athletes[0].get('displayName', '') if athletes else ''
+
+                if ke_type_text in ('Goal', 'Own Goal', 'Penalty'):
+                    match_events.append({
+                        'type': 'GOAL', 'minute': clock_val,
+                        'player': player_name, 'team': team_name,
+                        'description': ke.get('text', '')
+                    })
+                elif 'Card' in ke_type_text:
+                    card_type = 'YELLOW_CARD' if 'Yellow' in ke_type_text else 'RED_CARD'
+                    match_events.append({
+                        'type': card_type, 'minute': clock_val,
+                        'player': player_name, 'team': team_name,
+                        'description': ke.get('text', '')
+                    })
+                elif ke_type_text in ('Substitution', 'Sub'):
+                    sub_text = ke.get('text', '')
+                    player_on, player_off = self._parse_substitution_text(sub_text)
+                    if not player_on and athletes:
+                        player_on = athletes[0].get('displayName', 'Unknown')
+                    if not player_off and len(athletes) > 1:
+                        player_off = athletes[1].get('displayName', 'Unknown')
+                    match_events.append({
+                        'type': 'SUBSTITUTION', 'minute': clock_val,
+                        'player': player_on or 'Unknown',
+                        'player_on': player_on or 'Unknown',
+                        'player_off': player_off or 'Unknown',
+                        'team': team_name,
+                        'description': sub_text
+                    })
+
+            return {
+                'match_id': match_id,
+                'status': status,
+                'completed': status_type.get('completed', False),
+                'minute': status_detail.get('displayClock', '0'),
+                'period': status_detail.get('period', 0),
+                'home_team': home_comp.get('team', {}).get('displayName', 'Unknown'),
+                'home_score': int(home_comp.get('score', '0')),
+                'away_team': away_comp.get('team', {}).get('displayName', 'Unknown'),
+                'away_score': int(away_comp.get('score', '0')),
+                'events': match_events,
+                'venue': header.get('venue', {}).get('fullName', ''),
+                'cached_at': time.time()
+            }
+
+        except Exception as e:
+            logger.error(f"Error processing ESPN summary data for {match_id}: {e}")
+            return None
+
     def _process_espn_data(self, raw_data: Dict[str, Any], match_id: str) -> Dict[str, Any]:
         """
         Process raw ESPN API response into standardized format.
@@ -276,9 +389,8 @@ class ESPNAPIClient:
                     event = events[0]
                     return self._process_event_data(event)
 
-            elif 'gameData' in raw_data or 'header' in raw_data:
-                # Summary/match page format - extract what we can
-                logger.warning(f"ESPN returned non-scoreboard format for {match_id}, using fallback processing")
+            elif 'header' in raw_data:
+                return self._process_summary_data(raw_data, match_id)
 
             # Fallback processing
             return {
@@ -310,72 +422,165 @@ class ESPNAPIClient:
         # Map ESPN status to our status
         status_map = {
             'STATUS_SCHEDULED': 'SCHEDULED',
+            'STATUS_PRE_EVENT': 'PRE_MATCH',
             'STATUS_IN_PROGRESS': 'IN_PLAY',
+            'STATUS_FIRST_HALF': 'IN_PLAY',
+            'STATUS_SECOND_HALF': 'IN_PLAY',
             'STATUS_HALFTIME': 'HALFTIME',
             'STATUS_FINAL': 'FINAL',
+            'STATUS_FULL_TIME': 'FINAL',
+            'STATUS_FINAL_AET': 'FINAL',
+            'STATUS_FINAL_PEN': 'FINAL',
+            'STATUS_END_OF_REGULATION': 'IN_PLAY',
+            'STATUS_EXTRA_TIME': 'IN_PLAY',
+            'STATUS_PENALTIES': 'IN_PLAY',
             'STATUS_POSTPONED': 'POSTPONED',
-            'STATUS_CANCELED': 'CANCELLED'
+            'STATUS_CANCELED': 'CANCELLED',
+            'STATUS_SUSPENDED': 'POSTPONED',
+            'STATUS_ABANDONED': 'CANCELLED',
+            'STATUS_DELAYED': 'SCHEDULED',
         }
 
-        status = status_map.get(status_type.get('name', ''), 'UNKNOWN')
+        espn_status_name = status_type.get('name', '')
+        status = status_map.get(espn_status_name, '')
 
-        # Extract events (goals, cards, etc.)
+        # Fallback: use the ESPN 'state' field if the name didn't match our map
+        if not status:
+            espn_state = status_type.get('state', '').lower()
+            if espn_state == 'post':
+                status = 'FINAL'
+            elif espn_state == 'in':
+                status = 'IN_PLAY'
+            elif espn_state == 'pre':
+                status = 'SCHEDULED'
+            else:
+                status = 'UNKNOWN'
+                logger.warning(f"Unmapped ESPN status: name={espn_status_name}, state={espn_state}")
+
+        # Build team_id → team_name lookup from competitors.
+        # ESPN details only have team.id, NOT team.displayName.
+        team_lookup = {}
+        for comp in competitors:
+            tid = comp.get('team', {}).get('id', comp.get('id', ''))
+            tname = comp.get('team', {}).get('displayName', 'Unknown')
+            tlogo = comp.get('team', {}).get('logo', '')
+            if tid:
+                team_lookup[str(tid)] = {'name': tname, 'logo': tlogo}
+
+        home_display = home_team.get('team', {}).get('displayName', 'Unknown')
+        away_display = away_team.get('team', {}).get('displayName', 'Unknown')
+
+        # Extract events (goals, cards, subs) in a single pass
         match_events = []
-
-        # Check for scoring plays
-        for detail in competitions.get('details', []):
-            if detail.get('type', {}).get('text') in ['Goal', 'Own Goal', 'Penalty']:
-                match_events.append({
-                    'type': 'GOAL',
-                    'minute': detail.get('clock', {}).get('displayValue', ''),
-                    'player': detail.get('athletesInvolved', [{}])[0].get('displayName', ''),
-                    'team': detail.get('team', {}).get('displayName', ''),
-                    'description': detail.get('text', '')
-                })
-
-        # Check for cards and substitutions
         for detail in competitions.get('details', []):
             detail_type_text = detail.get('type', {}).get('text', '')
+            clock_val = detail.get('clock', {}).get('displayValue', '')
+            athletes = detail.get('athletesInvolved', [])
+            player_name = athletes[0].get('displayName', '') if athletes else ''
+            player_headshot = ''
+            if athletes:
+                hs = athletes[0].get('headshot', '')
+                player_headshot = hs if isinstance(hs, str) else hs.get('href', '') if isinstance(hs, dict) else ''
+            player_jersey = athletes[0].get('jersey', '') if athletes else ''
 
-            if 'Card' in detail_type_text:
-                card_type = 'YELLOW_CARD' if 'Yellow' in detail_type_text else 'RED_CARD'
+            # Resolve team name from ID
+            detail_team_id = str(detail.get('team', {}).get('id', ''))
+            team_info = team_lookup.get(detail_team_id, {})
+            team_name = team_info.get('name', '')
+            team_logo = team_info.get('logo', '')
+
+            # Use ESPN's boolean flags for reliable event type detection
+            is_scoring = detail.get('scoringPlay', False)
+            is_yellow = detail.get('yellowCard', False)
+            is_red = detail.get('redCard', False)
+            is_own_goal = detail.get('ownGoal', False)
+            is_penalty = detail.get('penaltyKick', False)
+
+            if is_scoring or 'Goal' in detail_type_text:
+                # Goal variants: "Goal", "Goal - Header", "Goal - Free-kick",
+                # "Goal - Volley", "Own Goal", "Penalty - Scored", etc.
+                goal_type = 'OWN_GOAL' if is_own_goal else 'PENALTY_GOAL' if is_penalty else 'GOAL'
                 match_events.append({
-                    'type': card_type,
-                    'minute': detail.get('clock', {}).get('displayValue', ''),
-                    'player': detail.get('athletesInvolved', [{}])[0].get('displayName', ''),
-                    'team': detail.get('team', {}).get('displayName', ''),
-                    'description': detail.get('text', '')
+                    'type': goal_type,
+                    'minute': clock_val,
+                    'player': player_name,
+                    'player_headshot': player_headshot,
+                    'player_jersey': player_jersey,
+                    'team': team_name,
+                    'team_logo': team_logo,
+                    'detail_text': detail_type_text,
+                    'description': f"{detail_type_text}. {player_name} ({team_name}). {clock_val}."
                 })
 
-            elif detail_type_text in ('Substitution', 'Sub'):
+            elif is_yellow or is_red or 'Card' in detail_type_text:
+                card_type = 'RED_CARD' if is_red else 'YELLOW_CARD'
+                match_events.append({
+                    'type': card_type,
+                    'minute': clock_val,
+                    'player': player_name,
+                    'player_headshot': player_headshot,
+                    'player_jersey': player_jersey,
+                    'team': team_name,
+                    'team_logo': team_logo,
+                    'detail_text': detail_type_text,
+                    'description': f"{detail_type_text}. {player_name} ({team_name}). {clock_val}."
+                })
+
+            elif detail_type_text in ('Substitution', 'Sub') or 'substitution' in detail_type_text.lower():
                 sub_text = detail.get('text', '')
                 player_on, player_off = self._parse_substitution_text(sub_text)
-                athletes = detail.get('athletesInvolved', [])
-                # Use parsed names, fall back to athletesInvolved data
                 if not player_on and athletes:
                     player_on = athletes[0].get('displayName', 'Unknown')
                 if not player_off and len(athletes) > 1:
                     player_off = athletes[1].get('displayName', 'Unknown')
 
+                # Headshot for the player coming on
+                on_headshot = ''
+                if athletes:
+                    hs = athletes[0].get('headshot', '')
+                    on_headshot = hs if isinstance(hs, str) else hs.get('href', '') if isinstance(hs, dict) else ''
+
                 match_events.append({
                     'type': 'SUBSTITUTION',
-                    'minute': detail.get('clock', {}).get('displayValue', ''),
+                    'minute': clock_val,
                     'player': player_on or 'Unknown',
                     'player_on': player_on or 'Unknown',
                     'player_off': player_off or 'Unknown',
-                    'team': detail.get('team', {}).get('displayName', ''),
-                    'description': sub_text or f"{player_on} replaces {player_off}"
+                    'player_headshot': on_headshot,
+                    'team': team_name,
+                    'team_logo': team_logo,
+                    'detail_text': detail_type_text,
+                    'description': sub_text or f"{player_on} replaces {player_off}. {clock_val}."
                 })
+
+        # Extract match statistics from both competitors
+        def _parse_stats(competitor: Dict) -> Dict[str, str]:
+            stats = {}
+            for stat in competitor.get('statistics', []):
+                stats[stat.get('name', '')] = stat.get('displayValue', '0')
+            return stats
+
+        home_stats = _parse_stats(home_team)
+        away_stats = _parse_stats(away_team)
 
         return {
             'match_id': event.get('id'),
             'status': status,
+            'completed': status_type.get('completed', False),
             'minute': status_detail.get('displayClock', '0'),
             'period': status_detail.get('period', 0),
-            'home_team': home_team.get('team', {}).get('displayName', 'Unknown'),
+            'home_team': home_display,
             'home_score': int(home_team.get('score', 0)),
-            'away_team': away_team.get('team', {}).get('displayName', 'Unknown'),
+            'home_logo': home_team.get('team', {}).get('logo', ''),
+            'home_form': home_team.get('form', ''),
+            'away_team': away_display,
             'away_score': int(away_team.get('score', 0)),
+            'away_logo': away_team.get('team', {}).get('logo', ''),
+            'away_form': away_team.get('form', ''),
+            'stats': {
+                'home': home_stats,
+                'away': away_stats,
+            },
             'events': match_events,
             'venue': event.get('venue', {}).get('fullName', ''),
             'attendance': event.get('attendance', 0),
@@ -435,3 +640,79 @@ class ESPNAPIClient:
             'mock_data': True,
             'error': 'ESPN API unavailable'
         }
+
+    def get_match_lineups(self, match_id: str, competition: str = 'usa.1') -> Optional[Dict[str, Any]]:
+        """
+        Fetch match lineups from ESPN summary endpoint.
+
+        The summary API (site.web.api.espn.com) includes rosters with
+        starter flag, position, jersey, and formation placement.
+
+        Returns dict with 'home' and 'away' keys, each containing:
+        - team: team name
+        - logo: team logo URL
+        - starters: list of {name, jersey, position, formation_place}
+        - subs: list of {name, jersey, position}
+
+        Returns None if lineups aren't available yet.
+        """
+        try:
+            url = f"https://site.web.api.espn.com/apis/site/v2/sports/soccer/{competition}/summary?event={match_id}"
+            response = self.session.get(url, timeout=self.TIMEOUT)
+
+            if response.status_code != 200:
+                logger.info(f"ESPN summary returned {response.status_code} for lineups (match {match_id})")
+                return None
+
+            data = response.json()
+            rosters = data.get('rosters', [])
+            if not rosters:
+                logger.info(f"No roster data in ESPN summary for match {match_id}")
+                return None
+
+            result = {}
+            for roster_entry in rosters:
+                side = roster_entry.get('homeAway', 'home')
+                team_data = roster_entry.get('team', {})
+                players = roster_entry.get('roster', [])
+
+                if not players:
+                    continue
+
+                starters = []
+                subs = []
+                for player in players:
+                    player_info = {
+                        'name': player.get('athlete', {}).get('displayName', 'Unknown'),
+                        'jersey': player.get('jersey', ''),
+                        'position': player.get('position', {}).get('abbreviation', ''),
+                        'position_name': player.get('position', {}).get('name', ''),
+                    }
+
+                    if player.get('starter', False):
+                        player_info['formation_place'] = player.get('formationPlace', '')
+                        starters.append(player_info)
+                    else:
+                        subs.append(player_info)
+
+                # Sort starters by formation place (GK first, then defense → attack)
+                starters.sort(key=lambda p: int(p.get('formation_place', '99') or '99'))
+
+                logos = team_data.get('logos', [])
+                logo_url = logos[0].get('href', '') if logos else ''
+
+                result[side] = {
+                    'team': team_data.get('displayName', 'Unknown'),
+                    'logo': logo_url,
+                    'starters': starters,
+                    'subs': subs,
+                }
+
+            if not result:
+                return None
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error fetching lineups for match {match_id}: {e}")
+            return None

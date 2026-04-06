@@ -14,6 +14,7 @@ from enum import Enum
 class TaskType(str, Enum):
     """Types of scheduled tasks for match operations."""
     THREAD_CREATION = 'thread_creation'
+    LINEUP_POST = 'lineup_post'
     LIVE_REPORTING_START = 'live_reporting_start'
 
 

@@ -41,15 +41,8 @@ from flask import Blueprint
 # This will eventually replace app/app_api.py
 mobile_api_v2 = Blueprint('mobile_api_v2', __name__, url_prefix='/api/v1')
 
-# Register middleware at module level — runs exactly once per process (Python
-# import semantics) and always BEFORE any app.register_blueprint() call.
-# This avoids the AssertionError that Flask raises when @blueprint.before_request
-# is called after the blueprint has already been registered with an app.
-# Safe import: middleware.py only depends on flask, flask_jwt_extended, etc.
-from app.mobile_api.middleware import register_api_middleware
-register_api_middleware(mobile_api_v2)
-
 _routes_registered = False
+_middleware_registered = False
 
 
 def register_mobile_api_routes():
@@ -98,10 +91,14 @@ def init_mobile_api(app, csrf):
         app: Flask application instance
         csrf: Flask-WTF CSRF protection instance
     """
-    global _routes_registered
+    global _routes_registered, _middleware_registered
     if not _routes_registered:
         _routes_registered = True
         csrf.exempt(mobile_api_v2)
+        if not _middleware_registered:
+            _middleware_registered = True
+            from app.mobile_api.middleware import register_api_middleware
+            register_api_middleware(mobile_api_v2)
         register_mobile_api_routes()
 
     if 'mobile_api_v2' not in app.blueprints:

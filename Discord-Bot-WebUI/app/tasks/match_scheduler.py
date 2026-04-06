@@ -63,6 +63,8 @@ def schedule_upcoming_matches(self, session):
                             logger.info(f"Dispatch: thread already created for match {due_task.match_id}, marking completed")
                             continue
                         celery_result = create_mls_match_thread_task.apply_async(args=[due_task.match_id])
+                    elif due_task.task_type == TaskType.LINEUP_POST:
+                        celery_result = post_match_lineups_task.apply_async(args=[due_task.match_id])
                     elif due_task.task_type == TaskType.LIVE_REPORTING_START:
                         celery_result = start_mls_live_reporting_task.apply_async(args=[due_task.match_id])
                     else:
@@ -563,6 +565,121 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
 
     except Exception as e:
         logger.error(f"Error creating MLS thread for match {match_id}: {e}")
+        return {"success": False, "error": str(e)}
+
+
+@celery_task(
+    name='app.tasks.match_scheduler.post_match_lineups_task',
+    queue='discord',
+    max_retries=2,
+    soft_time_limit=30,
+    time_limit=45
+)
+def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
+    """
+    Post match lineups to the Discord thread at T-10 minutes.
+
+    Fetches lineup data from ESPN summary API and posts a formatted
+    embed showing starters and subs for both teams.
+    """
+    try:
+        from app.models.external import MLSMatch
+        from app.utils.espn_api_client import ESPNAPIClient
+        from app.utils.discord_request_handler import send_to_discord_bot
+
+        with task_session() as db_session:
+            match = db_session.query(MLSMatch).filter_by(id=match_id).first()
+            if not match:
+                return {"success": False, "error": f"Match {match_id} not found"}
+
+            thread_id = match.discord_thread_id
+            if not thread_id:
+                logger.warning(f"No Discord thread for match {match_id}, skipping lineup post")
+                return {"success": False, "error": "No Discord thread"}
+
+            espn_id = match.espn_match_id or match.match_id
+            competition_map = {
+                'MLS': 'usa.1',
+                'US Open Cup': 'usa.open',
+                'Leagues Cup': 'usa.leagues_cup',
+                'CONCACAF Champions League': 'concacaf.champions',
+            }
+            league_code = competition_map.get(match.competition or 'MLS', 'usa.1')
+
+            espn_client = ESPNAPIClient()
+            lineups = espn_client.get_match_lineups(str(espn_id), league_code)
+
+            if not lineups:
+                logger.info(f"No lineup data available yet for match {match_id}")
+                # Mark as completed — lineups just weren't available
+                task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.LINEUP_POST)
+                if task:
+                    task.mark_completed()
+                    db_session.commit()
+                return {"success": True, "message": "No lineup data available from ESPN"}
+
+            # Build lineup embeds for each team
+            for side in ('home', 'away'):
+                team_data = lineups.get(side)
+                if not team_data:
+                    continue
+
+                starters = team_data.get('starters', [])
+                subs = team_data.get('subs', [])
+                team_name = team_data.get('team', 'Unknown')
+                team_logo = team_data.get('logo', '')
+
+                # Format starters grouped by position
+                starter_lines = []
+                for p in starters:
+                    jersey = f"#{p['jersey']} " if p.get('jersey') else ''
+                    pos = f"({p['position']})" if p.get('position') else ''
+                    starter_lines.append(f"{jersey}{p['name']} {pos}".strip())
+
+                # Format subs (just names)
+                sub_names = [p['name'] for p in subs[:7]]  # Show up to 7 subs
+
+                description = '\n'.join(starter_lines)
+                if sub_names:
+                    description += f"\n\n**Bench:** {', '.join(sub_names)}"
+
+                embed = {
+                    'title': f'{team_name} Lineup',
+                    'description': description,
+                    'color': 0x005F4F if side == 'home' else 0x666666,
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'footer': {'text': 'Starting XI'},
+                    'fields': [],
+                }
+
+                if team_logo:
+                    embed['thumbnail'] = {'url': team_logo}
+
+                request_data = {
+                    'thread_id': thread_id,
+                    'event_type': 'lineup',
+                    'content': f"{team_name} starting XI",
+                    'embed': embed,
+                    'match_data': {'match_id': str(match_id)}
+                }
+
+                response = send_to_discord_bot('/api/live-reporting/event', request_data)
+                if response and response.get('success'):
+                    logger.info(f"Posted {side} lineup for match {match_id}")
+                else:
+                    error_msg = response.get('error', 'Unknown') if response else 'No response'
+                    logger.error(f"Failed to post {side} lineup: {error_msg}")
+
+            # Mark task completed
+            task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.LINEUP_POST)
+            if task:
+                task.mark_completed()
+                db_session.commit()
+
+            return {"success": True, "message": "Lineups posted"}
+
+    except Exception as e:
+        logger.error(f"Error posting lineups for match {match_id}: {e}")
         return {"success": False, "error": str(e)}
 
 

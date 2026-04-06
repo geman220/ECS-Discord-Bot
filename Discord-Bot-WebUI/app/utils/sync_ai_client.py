@@ -329,6 +329,9 @@ class SyncAIClient:
                 # Format score string
                 score_string = f"{sounders_team if sounders_is_home or sounders_is_away else 'Seattle Sounders'} {sounders_score if sounders_is_home or sounders_is_away else home_score} - {opponent_score if sounders_is_home or sounders_is_away else away_score} {opponent_team if sounders_is_home or sounders_is_away else 'opponent'}"
 
+                # Build event description for templates
+                event_desc = event_context.get('description', f"{event_type.replace('_', ' ').title()} by {player} in minute {minute}")
+
                 # Build template variables dictionary
                 template_vars = {
                     # Standard variables
@@ -344,6 +347,7 @@ class SyncAIClient:
                     # Additional common variables that might be in templates
                     'team': event_context.get('team', opponent_team if sounders_is_home or sounders_is_away else "opponent"),
                     'description': event_context.get('description', f"{event_type} event in minute {minute}"),
+                    'event_description': event_desc,
                     # Score variables from event context
                     'home_score': event_context.get('home_score', home_score),
                     'away_score': event_context.get('away_score', away_score),
@@ -417,7 +421,10 @@ class SyncAIClient:
                         'competition': event_context.get('competition', 'MLS')
                     })
 
-                user_prompt = prompt_config.get('user_prompt_template').format(**template_vars)
+                # Use format_map with a defaultdict to avoid KeyError on unknown template vars
+                from collections import defaultdict
+                safe_vars = defaultdict(lambda: '', template_vars)
+                user_prompt = prompt_config.get('user_prompt_template').format_map(safe_vars)
             else:
                 # Fallback to simple prompt construction
                 if event_type == 'goal':
@@ -649,7 +656,7 @@ class SyncAIClient:
 
             if 'Seattle' in team or 'Sounders' in team:
                 commentaries = [
-                    f"Sounders sub. {minute}'. Fresh legs.",
+                    f"Sounders sub. {minute}'.",
                     f"Change for Seattle. {minute}'.",
                     f"Sounders make a switch. {minute}'.",
                 ]
@@ -664,17 +671,17 @@ class SyncAIClient:
         except Exception as e:
             logger.error(f"Error generating substitution commentary: {e}")
             team = context.get('team', 'Unknown')
-            return f"🔄 {team} substitution in minute {context.get('minute', 0)}"
+            return f"{team} sub. {context.get('minute', 0)}'."
 
     def _generate_general_commentary(self, context: Dict[str, Any]) -> Optional[str]:
         """Generate general event commentary."""
         try:
             minute = context.get('minute', 0)
             event_type = context.get('event_type', 'event')
-            return f"📋 {event_type.replace('_', ' ').title()} in minute {minute}"
+            return f"{event_type.replace('_', ' ').title()}. {minute}'."
         except Exception as e:
             logger.error(f"Error generating general commentary: {e}")
-            return "📋 Match event occurred"
+            return None
     
     def _run_sync(self, coroutine) -> Any:
         """

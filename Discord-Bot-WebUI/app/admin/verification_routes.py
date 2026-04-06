@@ -263,11 +263,12 @@ def match_verification_dashboard():
         except Exception as league_error:
             logger.error(f"Error getting leagues: {str(league_error)}")
         
-        # Simplified verifiable teams logic
+        # Build verifiable teams - coaches can only verify for teams they coach
         verifiable_teams = {}
-        if hasattr(safe_current_user, 'player') and safe_current_user.player:
-            for team in safe_current_user.player.teams:
-                verifiable_teams[team.id] = team.name
+        if is_coach and hasattr(safe_current_user, 'player') and safe_current_user.player:
+            for team, is_coach_flag in safe_current_user.player.get_current_teams(with_coach_status=True):
+                if is_coach_flag:
+                    verifiable_teams[team.id] = team.name
         
         logger.info("Rendering match verification template")
         return render_template(

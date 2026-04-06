@@ -113,7 +113,7 @@ class MatchLineup(db.Model):
     # Valid position codes
     VALID_POSITIONS = {
         'gk', 'lb', 'cb', 'rb', 'lwb', 'rwb',
-        'cdm', 'cm', 'cam', 'lw', 'rw', 'st', 'bench'
+        'cdm', 'cm', 'cam', 'lm', 'rm', 'lw', 'rw', 'cf', 'st', 'bench'
     }
 
     def to_dict(self, include_meta=True):

@@ -203,7 +203,7 @@ def process_events(session, match, data, event_type, add_key, remove_key):
             event = session.query(PlayerEvent).get(stat_id)
             if event:
                 # Update player stats BEFORE deleting the event; pass match to update_player_stats
-                update_player_stats(session, event.player_id, event_type.value, match, increment=False)
+                update_player_stats(session, event.player_id, event_type.value, match, increment=False, is_sub_event=event.is_sub_event)
                 session.delete(event)
                 logger.info(f"Removed {event_type.name}: Stat ID {stat_id} for player_id={event.player_id}")
             else:
@@ -215,6 +215,7 @@ def process_events(session, match, data, event_type, add_key, remove_key):
         minute = event_data.get('minute')
         stat_id = event_data.get('stat_id')
 
+        # Check if player is on one of the match teams (roster or temp sub)
         player = session.query(Player).filter(
             Player.id == player_id,
             or_(
@@ -223,18 +224,31 @@ def process_events(session, match, data, event_type, add_key, remove_key):
             )
         ).first()
 
+        # Also accept temp subs assigned to this match
+        from app.utils.substitute_helpers import is_player_temp_sub_for_match
+        is_sub = False
+        if not player:
+            is_sub = is_player_temp_sub_for_match(player_id, match.id, session=session)
+            if is_sub:
+                player = session.query(Player).get(player_id)
+
         if not player:
             logger.error(f"Player ID {player_id} not part of this match.")
             raise ValueError(f"Player ID {player_id} not part of this match.")
+
+        if not is_sub:
+            is_sub = is_player_temp_sub_for_match(player_id, match.id, session=session)
 
         if stat_id:
             event = session.query(PlayerEvent).get(stat_id)
             if event:
                 if event.player_id != player_id:
                     # If player changed, update stats for both old and new player
-                    update_player_stats(session, event.player_id, event_type.value, match, increment=False)
-                    update_player_stats(session, player_id, event_type.value, match, increment=True)
+                    old_is_sub = event.is_sub_event
+                    update_player_stats(session, event.player_id, event_type.value, match, increment=False, is_sub_event=old_is_sub)
+                    update_player_stats(session, player_id, event_type.value, match, increment=True, is_sub_event=is_sub)
                     event.player_id = player_id
+                    event.is_sub_event = is_sub
                 event.minute = minute
                 logger.info(f"Updated {event_type.name}: Stat ID {stat_id}")
             else:
@@ -245,11 +259,12 @@ def process_events(session, match, data, event_type, add_key, remove_key):
                 player_id=player_id,
                 match_id=match.id,
                 minute=minute,
-                event_type=event_type
+                event_type=event_type,
+                is_sub_event=is_sub
             )
             session.add(new_event)
-            logger.info(f"Calling update_player_stats for player_id={player_id}, event_type={event_type.value}")
-            update_player_stats(session, player_id, event_type.value, match)
+            logger.info(f"Calling update_player_stats for player_id={player_id}, event_type={event_type.value}, is_sub={is_sub}")
+            update_player_stats(session, player_id, event_type.value, match, is_sub_event=is_sub)
             logger.info("Finished updating player stats")
             logger.info(f"Added {event_type.name}: Player ID {player_id}")
 
@@ -258,7 +273,7 @@ def process_events(session, match, data, event_type, add_key, remove_key):
     logger.info(f"Events processed and committed for Match ID {match.id}")
 
 
-def update_player_stats(session, player_id, event_type, match, increment=True):
+def update_player_stats(session, player_id, event_type, match, increment=True, is_sub_event=False):
     """
     Update the player's season and career statistics based on an event.
 
@@ -266,8 +281,9 @@ def update_player_stats(session, player_id, event_type, match, increment=True):
     - A player on both Premier and Classic has separate stat records per league
     - Golden Boot is calculated per-league, not combined across leagues
     - Career stats continue to aggregate across all leagues
+    - Sub events only update career stats (subs are excluded from season awards)
     """
-    logger.info(f"Updating stats for player_id={player_id}, event_type={event_type}, increment={increment}")
+    logger.info(f"Updating stats for player_id={player_id}, event_type={event_type}, increment={increment}, is_sub_event={is_sub_event}")
 
     # Get league and season from the match's team
     league = match.home_team.league
@@ -284,22 +300,26 @@ def update_player_stats(session, player_id, event_type, match, increment=True):
     league_id = league.id
     adjustment = 1 if increment else -1
 
-    # Retrieve the league-specific season stats record
-    season_stats = session.query(PlayerSeasonStats).filter_by(
-        player_id=player_id, season_id=season_id, league_id=league_id
-    ).first()
-    if not season_stats:
-        logger.info(f"Creating new season stats record for player_id={player_id}, season_id={season_id}, league_id={league_id}")
-        season_stats = PlayerSeasonStats(
-            player_id=player_id,
-            season_id=season_id,
-            league_id=league_id,
-            goals=0,
-            assists=0,
-            yellow_cards=0,
-            red_cards=0
-        )
-        session.add(season_stats)
+    # Sub events skip season stats — subs should not be eligible for golden/silver boot
+    if not is_sub_event:
+        season_stats = session.query(PlayerSeasonStats).filter_by(
+            player_id=player_id, season_id=season_id, league_id=league_id
+        ).first()
+        if not season_stats:
+            logger.info(f"Creating new season stats record for player_id={player_id}, season_id={season_id}, league_id={league_id}")
+            season_stats = PlayerSeasonStats(
+                player_id=player_id,
+                season_id=season_id,
+                league_id=league_id,
+                goals=0,
+                assists=0,
+                yellow_cards=0,
+                red_cards=0
+            )
+            session.add(season_stats)
+    else:
+        season_stats = None
+        logger.info(f"Skipping season stats for sub event: player_id={player_id}")
 
     # Retrieve the career stats record.
     career_stats = session.query(PlayerCareerStats).filter_by(player_id=player_id).first()
@@ -315,10 +335,11 @@ def update_player_stats(session, player_id, event_type, match, increment=True):
         session.add(career_stats)
 
     def update_stat(stat_name):
-        current_season_value = getattr(season_stats, stat_name) or 0
-        new_season_value = max(current_season_value + adjustment, 0)
-        setattr(season_stats, stat_name, new_season_value)
-        logger.info(f"Updated season {stat_name} for player_id={player_id}: {current_season_value} → {new_season_value}")
+        if season_stats is not None:
+            current_season_value = getattr(season_stats, stat_name) or 0
+            new_season_value = max(current_season_value + adjustment, 0)
+            setattr(season_stats, stat_name, new_season_value)
+            logger.info(f"Updated season {stat_name} for player_id={player_id}: {current_season_value} → {new_season_value}")
 
         current_career_value = getattr(career_stats, stat_name) or 0
         new_career_value = max(current_career_value + adjustment, 0)

@@ -15,6 +15,7 @@ Designed to work with the MatchSchedulerService for complete automation.
 
 import asyncio
 import logging
+from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, List, Optional, Set
 from datetime import datetime, timedelta
 import json
@@ -40,16 +41,23 @@ class RealtimeReportingService:
     4. Session state management and cleanup
     """
 
+    # Maximum time a session can stay active before forced deactivation (4 hours)
+    SESSION_MAX_DURATION_SECONDS = 4 * 3600
+    # Number of consecutive UNKNOWN status polls before forcing deactivation
+    UNKNOWN_STATUS_THRESHOLD = 20  # ~200 seconds at 10s polling
+
     def __init__(self):
         self.redis_service = get_redis_service()
         self.espn_client = ESPNAPIClient()
         self.ai_client = get_sync_ai_client()  # Enhanced AI for commentary
+        self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix='espn-poll')
         self.is_running = False
         self.active_sessions: Dict[int, Dict[str, Any]] = {}
         self.last_events: Dict[int, Set[str]] = {}  # Track processed events by session
         self.match_history: Dict[int, List[Dict[str, Any]]] = {}  # Track match history per session
         self._catchup_sessions: Set[int] = set()  # Sessions needing silent catch-up on first poll
         self._last_statuses: Dict[int, str] = {}  # Track previous status per session for transition detection
+        self._unknown_status_counts: Dict[int, int] = {}  # Consecutive UNKNOWN status polls per session
 
     async def start_service(self):
         """Start the real-time reporting service."""
@@ -240,7 +248,11 @@ class RealtimeReportingService:
             league_code = competition_map.get(competition, competition)
 
             logger.info(f"Polling ESPN for session {session_id} (match={espn_match_id}, league={league_code})")
-            match_data = self.espn_client.get_match_data(espn_match_id, league_code)
+            # Run sync ESPN client in executor to avoid blocking the async event loop
+            loop = asyncio.get_running_loop()
+            match_data = await loop.run_in_executor(
+                self._executor, self.espn_client.get_match_data, espn_match_id, league_code
+            )
             if not match_data:
                 await self._handle_session_error(session_id, "Failed to fetch match data")
                 return
@@ -253,6 +265,17 @@ class RealtimeReportingService:
             previous_status = self._last_statuses.get(session_id)
             is_catchup = session_id in self._catchup_sessions
 
+            # Check absolute session timeout — no match lasts forever
+            started_at = session_data.get('started_at')
+            if started_at:
+                age = (datetime.utcnow() - started_at).total_seconds()
+                if age > self.SESSION_MAX_DURATION_SECONDS:
+                    logger.warning(f"Session {session_id}: Exceeded max duration ({age:.0f}s), force-deactivating")
+                    await self._deactivate_session(session_id, session_data, f"Session timeout after {age:.0f}s")
+                    self._unknown_status_counts.pop(session_id, None)
+                    self._catchup_sessions.discard(session_id)
+                    return
+
             # Check match state
             if self._is_match_ended(match_data):
                 if not is_catchup:
@@ -260,14 +283,42 @@ class RealtimeReportingService:
                     await self._send_lifecycle_event(session_id, session_data, 'fulltime', match_data)
                 logger.info(f"Session {session_id}: Match ended (status={status}), deactivating")
                 await self._deactivate_session(session_id, session_data, f"Match ended (status: {status})")
+                self._unknown_status_counts.pop(session_id, None)
                 self._catchup_sessions.discard(session_id)
                 return
 
             if not self._is_match_live(match_data):
+                # Track consecutive UNKNOWN polls — if the match was previously live
+                # and we keep getting UNKNOWN, ESPN likely dropped it (match ended)
+                if status == 'UNKNOWN' and previous_status in ('IN_PLAY', 'HALFTIME'):
+                    count = self._unknown_status_counts.get(session_id, 0) + 1
+                    self._unknown_status_counts[session_id] = count
+                    logger.warning(
+                        f"Session {session_id}: UNKNOWN status after {previous_status} "
+                        f"({count}/{self.UNKNOWN_STATUS_THRESHOLD})"
+                    )
+                    if count >= self.UNKNOWN_STATUS_THRESHOLD:
+                        logger.warning(f"Session {session_id}: Too many UNKNOWN polls, assuming match ended")
+                        if not is_catchup:
+                            await self._send_lifecycle_event(session_id, session_data, 'fulltime', match_data)
+                        await self._deactivate_session(
+                            session_id, session_data,
+                            f"Match presumed ended (UNKNOWN status x{count} after {previous_status})"
+                        )
+                        self._unknown_status_counts.pop(session_id, None)
+                        self._catchup_sessions.discard(session_id)
+                        return
+                else:
+                    # Reset counter if we get a known non-live status (SCHEDULED, etc.)
+                    self._unknown_status_counts.pop(session_id, None)
+
                 # Match not started yet or unknown status — wait, don't deactivate
                 logger.info(f"Session {session_id}: Match not live yet (status={status}), waiting...")
                 self._last_statuses[session_id] = status
                 return
+
+            # Status is live — reset unknown counter
+            self._unknown_status_counts.pop(session_id, None)
 
             # Detect and send lifecycle messages on status transitions
             if previous_status and previous_status != status and not is_catchup:
@@ -313,7 +364,12 @@ class RealtimeReportingService:
     def _is_match_ended(self, match_data: Dict[str, Any]) -> bool:
         """Check if match has ended (should deactivate session)."""
         status = self._get_match_status(match_data)
-        return status in ['FINAL', 'COMPLETED', 'POSTPONED', 'CANCELLED']
+        if status in ['FINAL', 'COMPLETED', 'POSTPONED', 'CANCELLED']:
+            return True
+        # Secondary check: ESPN 'completed' flag from status.type
+        if match_data.get('completed'):
+            return True
+        return False
 
     def _get_transition_type(self, previous_status: str, current_status: str) -> Optional[str]:
         """Determine the lifecycle event type for a status transition."""
@@ -329,6 +385,63 @@ class RealtimeReportingService:
         elif curr in ('FINAL', 'COMPLETED'):
             return 'fulltime'
         return None
+
+    def _build_stats_fields(self, match_data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Build embed fields from ESPN match statistics."""
+        fields = []
+        stats = match_data.get('stats', {})
+        home_stats = stats.get('home', {})
+        away_stats = stats.get('away', {})
+
+        if not home_stats and not away_stats:
+            return fields
+
+        # Possession
+        home_poss = home_stats.get('possessionPct', '')
+        away_poss = away_stats.get('possessionPct', '')
+        if home_poss or away_poss:
+            fields.append({
+                'name': 'Possession',
+                'value': f"{home_poss}% - {away_poss}%",
+                'inline': True
+            })
+
+        # Shots (total + on target)
+        home_shots = home_stats.get('totalShots', '')
+        away_shots = away_stats.get('totalShots', '')
+        home_sot = home_stats.get('shotsOnTarget', '')
+        away_sot = away_stats.get('shotsOnTarget', '')
+        if home_shots or away_shots:
+            shot_text = f"{home_shots} - {away_shots}"
+            if home_sot or away_sot:
+                shot_text += f" ({home_sot} - {away_sot} on target)"
+            fields.append({
+                'name': 'Shots',
+                'value': shot_text,
+                'inline': True
+            })
+
+        # Corners
+        home_corners = home_stats.get('wonCorners', '')
+        away_corners = away_stats.get('wonCorners', '')
+        if home_corners or away_corners:
+            fields.append({
+                'name': 'Corners',
+                'value': f"{home_corners} - {away_corners}",
+                'inline': True
+            })
+
+        # Fouls
+        home_fouls = home_stats.get('foulsCommitted', '')
+        away_fouls = away_stats.get('foulsCommitted', '')
+        if home_fouls or away_fouls:
+            fields.append({
+                'name': 'Fouls',
+                'value': f"{home_fouls} - {away_fouls}",
+                'inline': True
+            })
+
+        return fields
 
     async def _send_lifecycle_event(self, session_id: int, session_data: Dict[str, Any],
                                      event_type: Optional[str], match_data: Dict[str, Any]):
@@ -351,7 +464,11 @@ class RealtimeReportingService:
         message = None
 
         if event_type == 'kickoff':
-            message = f"Kickoff. {home_team} vs {away_team}."
+            venue = match_data.get('venue', '')
+            if venue:
+                message = f"Kickoff. {home_team} vs {away_team} at {venue}."
+            else:
+                message = f"Kickoff. {home_team} vs {away_team}."
 
         elif event_type == 'halftime':
             try:
@@ -392,10 +509,43 @@ class RealtimeReportingService:
 
         if message:
             try:
+                # Build a rich embed for lifecycle events
+                lifecycle_colors = {
+                    'kickoff': 0x00FF00,
+                    'halftime': 0xFFA500,
+                    'second_half_start': 0x00FF00,
+                    'fulltime': 0x005F4F,
+                }
+                embed = {
+                    'title': event_type.replace('_', ' ').title(),
+                    'description': message,
+                    'color': lifecycle_colors.get(event_type, 0x005F4F),
+                    'timestamp': datetime.utcnow().isoformat(),
+                    'footer': {
+                        'text': f'{home_team} {home_score}-{away_score} {away_team}',
+                    },
+                    'fields': [],
+                }
+
+                # Add match stats for halftime and fulltime
+                if event_type in ('halftime', 'fulltime'):
+                    stats_fields = self._build_stats_fields(match_data)
+                    embed['fields'].extend(stats_fields)
+
+                    # Add attendance for fulltime
+                    attendance = match_data.get('attendance', 0)
+                    if attendance and event_type == 'fulltime':
+                        embed['fields'].append({
+                            'name': 'Attendance',
+                            'value': f"{attendance:,}",
+                            'inline': True
+                        })
+
                 request_data = {
                     'thread_id': thread_id,
                     'event_type': event_type,
                     'content': message,
+                    'embed': embed,
                     'match_data': {
                         'session_id': session_id,
                         'match_id': session_data.get('match_id')
@@ -422,8 +572,17 @@ class RealtimeReportingService:
             processed_events = self.last_events.get(session_id, set())
 
             for event in events:
-                # Create unique event ID (include type to avoid collisions when ESPN omits id)
-                event_id = f"{event.get('id', 'unknown')}_{event.get('type', 'unknown')}_{event.get('minute', 0)}"
+                # Build a robust dedup key from all available fields.
+                # ESPN events via _process_event_data() lack an 'id' field, so we
+                # combine type + minute + player + team to avoid collisions.
+                parts = [
+                    event.get('id', ''),
+                    event.get('type', 'unknown'),
+                    str(event.get('minute', '0')),
+                    event.get('player', event.get('athlete_name', '')),
+                    event.get('team', event.get('team_id', '')),
+                ]
+                event_id = '_'.join(p for p in parts if p)
 
                 if event_id not in processed_events:
                     new_events.append(event)
@@ -468,8 +627,90 @@ class RealtimeReportingService:
         """Extract current score from processed ESPN match data."""
         return f"{match_data.get('home_score', 0)}-{match_data.get('away_score', 0)}"
 
+    # Embed color mapping by event type
+    EVENT_COLORS = {
+        'goal': 0x005F4F,        # Sounders green
+        'own_goal': 0x005F4F,
+        'penalty_goal': 0x005F4F,
+        'yellow_card': 0xFFD700,  # Gold
+        'red_card': 0xFF0000,     # Red
+        'substitution': 0x0099FF, # Blue
+        'score_update': 0x005F4F,
+    }
+
+    def _build_event_embed(self, event: Dict[str, Any], session_data: Dict[str, Any],
+                           commentary: str) -> Optional[Dict[str, Any]]:
+        """Build a rich Discord embed dict for a match event."""
+        event_type = event.get('type', '').lower()
+        minute = event.get('minute', '')
+        player = event.get('player', '')
+        team = event.get('team', '')
+        player_headshot = event.get('player_headshot', '')
+        team_logo = event.get('team_logo', '')
+        home_team = session_data.get('home_team', 'Home')
+        away_team = session_data.get('away_team', 'Away')
+        home_score = session_data.get('home_score', 0)
+        away_score = session_data.get('away_score', 0)
+
+        # Title by event type
+        title_map = {
+            'goal': 'Goal',
+            'own_goal': 'Own Goal',
+            'penalty_goal': 'Penalty Goal',
+            'yellow_card': 'Yellow Card',
+            'red_card': 'Red Card',
+            'substitution': 'Substitution',
+            'score_update': 'Score Update',
+        }
+        title = title_map.get(event_type, 'Match Update')
+
+        color = self.EVENT_COLORS.get(event_type, 0x005F4F)
+
+        embed = {
+            'title': title,
+            'description': commentary,
+            'color': color,
+            'timestamp': datetime.utcnow().isoformat(),
+            'footer': {
+                'text': f'{home_team} {home_score}-{away_score} {away_team}',
+            },
+            'fields': [],
+        }
+
+        # Add time field
+        if minute:
+            embed['fields'].append({'name': 'Time', 'value': str(minute), 'inline': True})
+
+        # Add player field for non-sub events
+        if player and event_type != 'substitution':
+            jersey = event.get('player_jersey', '')
+            player_display = f"{player} #{jersey}" if jersey else player
+            embed['fields'].append({'name': 'Player', 'value': player_display, 'inline': True})
+
+        # Substitution: show both players
+        if event_type == 'substitution':
+            player_on = event.get('player_on', '')
+            player_off = event.get('player_off', '')
+            if player_on:
+                embed['fields'].append({'name': 'On', 'value': player_on, 'inline': True})
+            if player_off:
+                embed['fields'].append({'name': 'Off', 'value': player_off, 'inline': True})
+
+        # Player headshot as thumbnail
+        if player_headshot:
+            embed['thumbnail'] = {'url': player_headshot}
+
+        # Team logo as author icon
+        if team:
+            author = {'name': team}
+            if team_logo:
+                author['icon_url'] = team_logo
+            embed['author'] = author
+
+        return embed
+
     async def _send_events_to_discord(self, session_id: int, session_data: Dict[str, Any], events: List[Dict[str, Any]]):
-        """Send new events to Discord via bot API."""
+        """Send new events to Discord via bot API with rich embeds."""
         thread_id = session_data.get('thread_id')
         if not thread_id:
             logger.warning(f"No thread ID for session {session_id}")
@@ -477,12 +718,15 @@ class RealtimeReportingService:
 
         for event in events:
             try:
-                # Format event message
+                # Generate AI commentary text
                 message_content = self._format_event_message(event, session_data)
                 if not message_content:
                     continue
 
-                # Send to Discord bot API - sanitize event data for JSON serialization
+                # Build rich embed for the bot API
+                embed = self._build_event_embed(event, session_data, message_content)
+
+                # Sanitize event data for JSON serialization
                 clean_event = {
                     'type': str(event.get('type', 'unknown')),
                     'player': str(event.get('player', 'Unknown')),
@@ -501,6 +745,10 @@ class RealtimeReportingService:
                         'event': clean_event
                     }
                 }
+
+                # Include embed if we built one
+                if embed:
+                    request_data['embed'] = embed
 
                 response = send_to_discord_bot('/api/live-reporting/event', request_data)
 
@@ -543,9 +791,18 @@ class RealtimeReportingService:
             # Convert event type to lowercase for AI matching
             ai_event_type = event_type.lower()
 
-            # Use AI for goals, cards, and substitutions
-            if ai_event_type in ['goal', 'yellow_card', 'red_card', 'substitution']:
-                # Build AI context
+            # Also match goal variants from ESPN
+            if ai_event_type in ['goal', 'own_goal', 'penalty_goal', 'yellow_card', 'red_card', 'substitution']:
+                # Normalize goal variants for AI
+                if ai_event_type in ('own_goal', 'penalty_goal'):
+                    ai_event_type = 'goal'
+
+                # Use the actual ESPN description when available, fall back to structured text
+                espn_description = event.get('description', '')
+                if not espn_description:
+                    espn_description = f"{event.get('detail_text', ai_event_type.replace('_', ' ').title())}. {player} ({team}). {minute}."
+
+                # Build AI context with real event data
                 ai_context = {
                     'match_id': session_data.get('match_id', ''),
                     'home_team': {'displayName': home_team},
@@ -555,7 +812,7 @@ class RealtimeReportingService:
                     'minute': minute,
                     'home_score': session_data.get('home_score', 0),
                     'away_score': session_data.get('away_score', 0),
-                    'description': f"{ai_event_type.replace('_', ' ').title()} by {player} ({team}) in minute {minute}"
+                    'description': espn_description
                 }
 
                 # Set scoring team for goals
@@ -747,6 +1004,7 @@ class RealtimeReportingService:
                     self.last_events.pop(session_id, None)
                     self._last_statuses.pop(session_id, None)
                     self.match_history.pop(session_id, None)
+                    self._unknown_status_counts.pop(session_id, None)
 
         except Exception as e:
             logger.error(f"Error deactivating session {session_id}: {e}")

@@ -178,3 +178,9 @@ def deep_link_info():
     }
 
     return jsonify(deep_links)
+
+
+@app_links_bp.route('/robots.txt')
+def robots_txt():
+    """Serve robots.txt from root URL to guide web crawlers."""
+    return current_app.send_static_file('robots.txt')

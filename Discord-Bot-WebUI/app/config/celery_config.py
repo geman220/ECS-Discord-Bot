@@ -251,16 +251,9 @@ class CeleryConfig:
             }
         },
         # Core Tasks
-        'schedule-season-availability': {
-            'task': 'app.tasks.tasks_core.schedule_season_availability',
-            'schedule': crontab(hour=0, minute=0),
-            'options': {
-                'queue': 'celery',
-                'expires': 3540,
-                'time_limit': 600,
-                'soft_time_limit': 540
-            }
-        },
+        # NOTE: schedule-season-availability disabled — redundant with schedule-weekly-match-availability
+        # which handles correct timing (Monday 8am PST) and special week detection (BYE/FUN/TST).
+        # The season task was creating ScheduledMessages at 2am PST Sunday, overriding the weekly task.
         'process-scheduled-messages': {
             'task': 'app.tasks.tasks_rsvp.process_scheduled_messages',
             'schedule': crontab(minute='*/5'),

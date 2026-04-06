@@ -461,13 +461,48 @@ class SyncDiscordClient:
                 'error': str(e)
             }
     
+    def send_week_reminder(self, reminder_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Send a BYE/special week reminder (no RSVP reactions) via the bot API."""
+        discord_bot_url = "http://discord-bot:5001/api/post_week_reminder"
+
+        try:
+            logger.info(f"Sending {reminder_data.get('week_type')} reminder (synchronous)")
+
+            response = self.session.post(
+                discord_bot_url,
+                json=reminder_data,
+                timeout=self.timeout
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                logger.info("Week reminder sent successfully")
+                return {
+                    'success': True,
+                    'message': 'Week reminder sent successfully',
+                    'sent_count': result.get('sent_count', 0)
+                }
+            else:
+                error_msg = f"Failed to send week reminder: {response.status_code} - {response.text}"
+                logger.error(error_msg)
+                return {'success': False, 'message': error_msg}
+
+        except requests.Timeout:
+            error_msg = f"Week reminder API call timed out after {self.timeout} seconds"
+            logger.error(error_msg)
+            return {'success': False, 'message': error_msg}
+        except Exception as e:
+            error_msg = f"Error sending week reminder: {str(e)}"
+            logger.error(error_msg)
+            return {'success': False, 'message': error_msg}
+
     def update_rsvp_response(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Update RSVP response using synchronous HTTP call.
-        
+
         Args:
             data: Dictionary containing RSVP update data.
-            
+
         Returns:
             Dictionary with success status and response data.
         """

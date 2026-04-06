@@ -156,6 +156,17 @@
                 <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">
                     <p><strong>Team:</strong> {{ request.team.name }}</p>
                     <p><strong>Needed:</strong> {{ request.substitutes_needed }} substitute(s)</p>
+                    {% set counts = rsvp_counts.get(request.id, {'yes': 0, 'maybe': 0, 'no': 0}) %}
+                    <p class="mt-1 flex items-center gap-1 flex-wrap">
+                        <strong>RSVPs:</strong>
+                        {% if counts.yes or counts.maybe or counts.no %}
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ counts.yes }} Yes</span>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ counts.maybe }} Maybe</span>
+                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ counts.no }} No</span>
+                        {% else %}
+                        <span class="text-gray-400 text-xs">No responses yet</span>
+                        {% endif %}
+                    </p>
                     {% if request.notes %}
                     <div>
                         <strong>Notes:</strong>

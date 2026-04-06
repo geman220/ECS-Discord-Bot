@@ -22,15 +22,16 @@ from app.core import celery as celery_app
 from app.core.helpers import get_match
 from app.core.session_manager import managed_session
 from app.tasks.tasks_live_reporting import force_create_mls_thread_task
-from app.tasks.match_scheduler import create_mls_match_thread_task, start_mls_live_reporting_task
+from app.tasks.match_scheduler import create_mls_match_thread_task, start_mls_live_reporting_task, post_match_lineups_task
 
 logger = logging.getLogger(__name__)
 
 
 class MatchScheduler:
     """Handles scheduling of match threads and live reporting tasks."""
-    
+
     THREAD_CREATE_HOURS_BEFORE = 48
+    LINEUP_POST_MINUTES_BEFORE = 10
     LIVE_REPORTING_MINUTES_BEFORE = 5
     REDIS_KEY_PREFIX = "match_scheduler:"
 
@@ -95,19 +96,26 @@ class MatchScheduler:
 
             # Calculate scheduling times
             thread_time = match.date_time - timedelta(hours=self.THREAD_CREATE_HOURS_BEFORE)
+            lineup_time = match.date_time - timedelta(minutes=self.LINEUP_POST_MINUTES_BEFORE)
             reporting_time = match.date_time - timedelta(minutes=self.LIVE_REPORTING_MINUTES_BEFORE)
-            
+
             logger.info(f"Scheduling for match {match_id}:")
             logger.info(f"Match time: {match.date_time}")
             logger.info(f"Thread creation time: {thread_time}")
+            logger.info(f"Lineup post time: {lineup_time}")
             logger.info(f"Live reporting time: {reporting_time}")
-        
+
             tasks_scheduled = []
-        
+
             # Schedule thread creation with force option
             thread_task_info = self._schedule_thread_task(match_id, thread_time, force=force)
             if thread_task_info.get('scheduled'):
                 tasks_scheduled.append('thread_creation')
+
+            # Schedule lineup posting at T-10min
+            lineup_task_info = self._schedule_lineup_task(match_id, lineup_time, force=force)
+            if lineup_task_info.get('scheduled'):
+                tasks_scheduled.append('lineup_post')
 
             # Schedule live reporting with force option
             reporting_task_info = self._schedule_reporting_task(match_id, reporting_time, force=force)
@@ -250,6 +258,57 @@ class MatchScheduler:
             }
         except Exception as e:
             logger.error(f"Failed to schedule thread task: {str(e)}")
+            return {'scheduled': False, 'error': str(e)}
+
+    def _schedule_lineup_task(self, match_id: int, lineup_time: datetime, force: bool = False) -> Dict[str, Any]:
+        """Schedule the lineup posting task for a match at T-10min."""
+        try:
+            from app.models import ScheduledTask, TaskType, TaskState
+
+            session = g.db_session
+            now = datetime.utcnow()
+            if lineup_time.tzinfo:
+                import pytz
+                now = datetime.now(pytz.UTC)
+
+            is_past_due = lineup_time <= now
+
+            # Check for existing task
+            existing = ScheduledTask.find_existing_task(session, match_id, TaskType.LINEUP_POST)
+            if existing and not force:
+                return {'scheduled': False, 'existing_task': existing.celery_task_id}
+
+            if existing and force:
+                existing.state = TaskState.EXPIRED
+
+            if is_past_due:
+                celery_result = post_match_lineups_task.apply_async(args=[match_id])
+                celery_id = celery_result.id
+                task_state = TaskState.RUNNING
+                logger.info(f"Dispatched immediate lineup task for match {match_id}")
+            else:
+                celery_id = None
+                task_state = TaskState.SCHEDULED
+                logger.info(f"Scheduled lineup task for match {match_id} at {lineup_time}")
+
+            db_task = ScheduledTask(
+                task_type=TaskType.LINEUP_POST,
+                match_id=match_id,
+                celery_task_id=celery_id,
+                scheduled_time=lineup_time,
+                state=task_state,
+                execution_time=datetime.utcnow() if is_past_due else None
+            )
+            session.add(db_task)
+
+            return {
+                'scheduled': True,
+                'task_id': celery_id,
+                'eta': lineup_time.isoformat(),
+                'immediate': is_past_due
+            }
+        except Exception as e:
+            logger.error(f"Failed to schedule lineup task: {e}")
             return {'scheduled': False, 'error': str(e)}
 
     def _schedule_reporting_task(self, match_id: int, reporting_time: datetime, force: bool = False) -> Dict[str, Any]:

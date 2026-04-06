@@ -146,8 +146,14 @@ def create_team_embed(match_request: AvailabilityRequest, rsvp_data, team_type='
     opponent_name = match_request.away_team_name if team_type == 'home' else match_request.home_team_name
     match_date = match_request.match_date
     match_time = match_request.match_time
-    
-    embed = discord.Embed(title=f"{team_name} vs {opponent_name}",
+
+    # Use special week display name instead of "Team vs Team" for FUN/TST weeks
+    if match_request.is_special_week and match_request.special_week_display:
+        title = f"{team_name} \u2014 {match_request.special_week_display}"
+    else:
+        title = f"{team_name} vs {opponent_name}"
+
+    embed = discord.Embed(title=title,
                           description=f"Date: {match_date}\nTime: {match_time}",
                           color=0x00ff00)
     

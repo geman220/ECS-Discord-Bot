@@ -352,6 +352,9 @@ class PlayerEvent(db.Model):
     # Reporter tracking for deduplication and attribution
     reported_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
 
+    # Substitute tracking — events by temp subs don't count toward season awards
+    is_sub_event = db.Column(db.Boolean, default=False, nullable=False, server_default='false')
+
     player = db.relationship('Player', back_populates='events', passive_deletes=True)
     match = db.relationship('Match', back_populates='events')
     team = db.relationship('Team', backref='own_goal_events')
@@ -369,6 +372,7 @@ class PlayerEvent(db.Model):
             'client_timestamp': self.client_timestamp.isoformat() if self.client_timestamp else None,
             'reported_by': self.reported_by,
             'reported_by_name': self.reporter.username if self.reporter else None,
+            'is_sub_event': self.is_sub_event,
         }
         if include_player:
             data['player'] = self.player.to_dict(public=True)

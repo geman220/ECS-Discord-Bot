@@ -9,7 +9,7 @@ import logging
 import ipaddress
 from collections import defaultdict, deque
 from flask import request, abort, g, current_app
-from werkzeug.exceptions import TooManyRequests
+from werkzeug.exceptions import TooManyRequests, HTTPException
 from functools import wraps
 
 logger = logging.getLogger(__name__)
@@ -81,8 +81,10 @@ class SecurityMiddleware:
         """
         return [
             # (label, compiled regex, threat weight)
-            ('php_file_access', re.compile(r'\.php[^a-zA-Z0-9]', re.IGNORECASE), 1),
+            ('php_file_access', re.compile(r'\.php($|[^a-zA-Z0-9])', re.IGNORECASE), 1),
             ('cms_exploitation', re.compile(r'/(wp-|plus/|utility/|vendor/phpunit)', re.IGNORECASE), 1),
+            ('dotfile_probe', re.compile(r'/\.(env|git|htaccess|aws|ssh|svn|hg|DS_Store|config|dockerenv|npmrc|bash|docker)', re.IGNORECASE), 2),
+            ('cms_php_shell', re.compile(r'/(wp-admin|wp-includes|wp-content)/.*\.php', re.IGNORECASE), 3),
             ('path_traversal', re.compile(r'\.\./|\.\.\\', re.IGNORECASE), 2),
             ('sql_injection', re.compile(r'\b(union\s+select|drop\s+table|information_schema)\b', re.IGNORECASE), 3),
             ('xss_attempt', re.compile(r'<script|javascript:|onload=|onerror=', re.IGNORECASE), 3),
@@ -133,6 +135,23 @@ class SecurityMiddleware:
             # Get client IP (handle proxy headers from Traefik)
             client_ip = self._get_client_ip()
 
+            # Fast-path: silently drop requests from already-banned IPs.
+            # No pattern detection, no logging, no rate counting — just gone.
+            # This eliminates log noise from persistent scanners.
+            if not is_private_ip(client_ip):
+                ban_expiry = self.rate_limiter.blacklist.get(client_ip)
+                if ban_expiry is not None:
+                    if time.time() < ban_expiry:
+                        abort(403)
+                    else:
+                        del self.rate_limiter.blacklist[client_ip]
+
+            # Detect attack patterns BEFORE rate limiting so scanners
+            # accumulate threat score even when rate-limited
+            matched = self._detect_attack_patterns()
+            if matched:
+                self._handle_security_violation(client_ip, matched)
+
             # Skip rate limiting entirely for private/Docker IPs (reverse proxy, internal services)
             if not is_private_ip(client_ip):
                 # Check if user is authenticated for higher limits
@@ -148,16 +167,12 @@ class SecurityMiddleware:
                 if not self.rate_limiter.allow_request(client_ip, limit=limit, window=window):
                     logger.warning(f"Rate limit exceeded from {client_ip} for {request.path}")
                     abort(429)
-            
-            # Detect attack patterns
-            matched = self._detect_attack_patterns()
-            if matched:
-                self._handle_security_violation(client_ip, matched)
                 
+        except HTTPException:
+            raise  # Don't swallow abort(429) / abort(404) from rate limit / security blocks
         except Exception as e:
             logger.error(f"Security check error: {e}")
             # Don't block legitimate requests due to security check errors
-            pass
     
     def _get_client_ip(self):
         """Get the real client IP address (handle proxy headers)."""
@@ -201,7 +216,7 @@ class SecurityMiddleware:
                 elif request.form:
                     for value in request.form.values():
                         _check(str(value))
-            except:
+            except Exception:
                 pass  # Don't block if we can't parse request data
 
         return matched
@@ -398,7 +413,7 @@ class RequestRateLimiter:
             from app.models import IPBan
             if IPBan.is_ip_banned(ip):
                 return False
-        except:
+        except Exception:
             pass  # Don't fail if database is unavailable
         
         # Check if IP is blacklisted in memory

@@ -775,10 +775,22 @@ export function updatePlayerDropdown(selectedTeamId) {
         players = window.$('#awayTeamPlayers').data('players') || [];
     }
 
-    // Add players to dropdown
-    players.forEach(player => {
+    // Split into roster players and subs
+    const roster = players.filter(p => !p.is_sub);
+    const subs = players.filter(p => p.is_sub);
+
+    // Add roster players
+    roster.forEach(player => {
         $playerSelect.append(`<option value="${player.id}">${player.name}</option>`);
     });
+
+    // Add subs with separator
+    if (subs.length > 0) {
+        $playerSelect.append('<option disabled>── SUBS ──</option>');
+        subs.forEach(player => {
+            $playerSelect.append(`<option value="${player.id}">${player.name} (Sub)</option>`);
+        });
+    }
 }
 
 /**

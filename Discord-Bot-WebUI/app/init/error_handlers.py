@@ -133,6 +133,17 @@ def install_error_handlers(app):
             flask_session['next'] = next_url
         return redirect(url_for('auth.login'))
 
+    @app.errorhandler(403)
+    def forbidden(error):
+        """Handle 403 forbidden — used for banned IPs. Minimal response, no logging."""
+        if _is_api_request():
+            return jsonify({
+                'success': False,
+                'error': 'Forbidden',
+                'status_code': 403
+            }), 403
+        return '', 403
+
     @app.errorhandler(404)
     def not_found(error):
         """Handle 404 not found errors."""
@@ -147,6 +158,26 @@ def install_error_handlers(app):
             }), 404
 
         return render_template("404_flowbite.html"), 404
+
+    @app.errorhandler(429)
+    def handle_too_many_requests(error):
+        """Handle 429 rate limit errors with Retry-After header."""
+        retry_after = 60
+        if _is_api_request():
+            response = jsonify({
+                'success': False,
+                'error': 'Too Many Requests',
+                'message': 'Rate limit exceeded. Please wait before retrying.',
+                'status_code': 429
+            })
+        else:
+            try:
+                response = app.make_response(render_template("500_flowbite.html"))
+            except Exception:
+                response = app.make_response(('Too Many Requests', 429))
+        response.status_code = 429
+        response.headers['Retry-After'] = str(retry_after)
+        return response
 
     @app.errorhandler(BuildError)
     def handle_url_build_error(error):

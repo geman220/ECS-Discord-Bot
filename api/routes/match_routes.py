@@ -30,7 +30,7 @@ def _get_match_thread_lock(match_id: str) -> asyncio.Lock:
 from discord.ext import commands
 from datetime import datetime
 
-from api.models.schemas import AvailabilityRequest, ThreadRequest, MessageContent, DiscordEmbedUpdateRequest
+from api.models.schemas import AvailabilityRequest, WeekReminderRequest, ThreadRequest, MessageContent, DiscordEmbedUpdateRequest
 from api.utils.discord_utils import get_bot, get_team_id_for_message, poll_task_result
 from api.utils.api_client import get_session, retry_api_call
 from api.utils.rsvp_utils import fetch_team_rsvp_data, update_embed_for_message, fetch_match_data
@@ -101,17 +101,28 @@ async def post_availability(request: AvailabilityRequest, bot: commands.Bot = De
         home_embed = create_team_embed(request, home_rsvp_data, team_type='home')
         away_embed = create_team_embed(request, away_rsvp_data, team_type='away')
 
-        home_message = await home_channel.send(
-            f"\u26BD **{request.home_team_name}** - Are you available for the match on {formatted_date} at {formatted_time}? "
-            "React with 👍 for Yes, 👎 for No, or 🤷 for Maybe.",
-            embed=home_embed
-        )
-        
-        away_message = await away_channel.send(
-            f"\u26BD **{request.away_team_name}** - Are you available for the match on {formatted_date} at {formatted_time}? "
-            "React with 👍 for Yes, 👎 for No, or 🤷 for Maybe.",
-            embed=away_embed
-        )
+        # Use special week display in message text for FUN/TST weeks
+        if request.is_special_week and request.special_week_display:
+            home_msg_text = (
+                f"\u26BD **{request.home_team_name}** - {request.special_week_display} on {formatted_date} at {formatted_time}! "
+                "Are you available? React with 👍 for Yes, 👎 for No, or 🤷 for Maybe."
+            )
+            away_msg_text = (
+                f"\u26BD **{request.away_team_name}** - {request.special_week_display} on {formatted_date} at {formatted_time}! "
+                "Are you available? React with 👍 for Yes, 👎 for No, or 🤷 for Maybe."
+            )
+        else:
+            home_msg_text = (
+                f"\u26BD **{request.home_team_name}** - Are you available for the match on {formatted_date} at {formatted_time}? "
+                "React with 👍 for Yes, 👎 for No, or 🤷 for Maybe."
+            )
+            away_msg_text = (
+                f"\u26BD **{request.away_team_name}** - Are you available for the match on {formatted_date} at {formatted_time}? "
+                "React with 👍 for Yes, 👎 for No, or 🤷 for Maybe."
+            )
+
+        home_message = await home_channel.send(home_msg_text, embed=home_embed)
+        away_message = await away_channel.send(away_msg_text, embed=away_embed)
         
         for message in [home_message, away_message]:
             logger.debug(f"Adding reactions to message {message.id}")
@@ -149,6 +160,41 @@ async def post_availability(request: AvailabilityRequest, bot: commands.Bot = De
         return {"home_message_id": home_message.id, "away_message_id": away_message.id}
     except Exception as e:
         logger.exception(f"Error in posting availability for match {request.match_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+
+@router.post("/api/post_week_reminder")
+async def post_week_reminder(request: WeekReminderRequest, bot: commands.Bot = Depends(get_bot)):
+    """Post a BYE/special week reminder embed to team channels (no RSVP reactions)."""
+    logger.info(f"Posting {request.week_type} reminder to {len(request.team_channel_ids)} channels")
+    try:
+        match_datetime = datetime.strptime(request.match_date, "%Y-%m-%d")
+        formatted_date = match_datetime.strftime('%-m/%-d/%y')
+
+        sent_count = 0
+        for channel_id, team_name in zip(request.team_channel_ids, request.team_names):
+            channel = bot.get_channel(int(channel_id))
+            if not channel:
+                logger.warning(f"Channel {channel_id} not found for {request.week_type} reminder")
+                continue
+
+            embed = discord.Embed(
+                title=f"{team_name} \u2014 {request.display_name}",
+                description=f"No match this week.\n\n**Date:** {formatted_date}",
+                color=0x95a5a6  # Gray
+            )
+            embed.set_footer(text="Enjoy your week off!")
+
+            await channel.send(
+                f"\u26BD **{team_name}** - {request.display_name} on {formatted_date}. No match scheduled this week.",
+                embed=embed
+            )
+            sent_count += 1
+
+        logger.info(f"Sent {request.week_type} reminder to {sent_count} channels")
+        return {"success": True, "sent_count": sent_count}
+    except Exception as e:
+        logger.exception(f"Error posting {request.week_type} reminder: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 

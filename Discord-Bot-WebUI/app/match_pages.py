@@ -764,20 +764,10 @@ def live_report_match(match_id):
         elif match.away_team_id in user_team_ids:
             reporting_team_id = match.away_team_id
     
-    # Get player lists for both teams
-    home_players = []
-    for player in match.home_team.players:
-        home_players.append({
-            'id': player.id,
-            'name': player.name
-        })
-    
-    away_players = []
-    for player in match.away_team.players:
-        away_players.append({
-            'id': player.id,
-            'name': player.name
-        })
+    # Get player lists for both teams (includes assigned temp subs)
+    from app.utils.substitute_helpers import get_match_eligible_players
+    home_players = get_match_eligible_players(match_id, match.home_team_id, session=session)
+    away_players = get_match_eligible_players(match_id, match.away_team_id, session=session)
     
     logger.info(f"User {safe_current_user.id} reporting match {match_id} for team {reporting_team_id}")
 

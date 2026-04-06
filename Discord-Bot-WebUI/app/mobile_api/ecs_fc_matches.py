@@ -1614,19 +1614,40 @@ def create_ecs_fc_substitute_request():
         request_id = sub_request.id
         logger.info(f"ECS FC sub request created: {request_id} for match {match_id}")
 
-        # Auto-trigger notifications to the sub pool
+        # Send notifications with filtering support
         contact_summary = {'sms_sent': 0, 'email_sent': 0, 'discord_sent': 0, 'push_sent': 0, 'failed': 0}
         players_contacted = 0
         try:
-            from app.tasks.tasks_ecs_fc_subs import notify_sub_pool_of_request
-            notify_sub_pool_of_request.delay(request_id)
-            logger.info(f"Queued sub pool notifications for request {request_id}")
+            recipient_type = data.get('recipient_type', 'all')
+            gender_filter = data.get('gender_filter')
+            position_filters = data.get('position_filters')
+            player_ids = data.get('player_ids')
+            channels = data.get('channels')
+            custom_message = data.get('message') or data.get('notes')
 
-            # Estimate pool size for immediate response
-            pool_count = session.query(EcsFcSubPool).filter_by(is_active=True).count()
-            players_contacted = pool_count
+            # Map recipient_type to effective filters
+            effective_player_ids = player_ids if recipient_type == 'specific' and player_ids else None
+            effective_gender_filter = gender_filter if recipient_type == 'gender' and gender_filter else None
+            effective_position_filters = position_filters if recipient_type == 'position' and position_filters else None
+
+            from app.services.substitute_notification_service import SubstituteNotificationService
+            notification_service = SubstituteNotificationService()
+
+            result = notification_service.notify_ecs_fc_pool(
+                request_id=request_id,
+                custom_message=custom_message,
+                channels=channels,
+                gender_filter=effective_gender_filter,
+                position_filters=effective_position_filters,
+                player_ids=effective_player_ids,
+                subs_needed=subs_needed
+            )
+
+            players_contacted = result.get('notifications_sent', 0)
+            contact_summary['failed'] = len(result.get('errors', []))
+            logger.info(f"Sub pool notifications sent for request {request_id}: {players_contacted} contacted")
         except Exception as e:
-            logger.error(f"Failed to queue sub pool notifications for request {request_id}: {e}")
+            logger.error(f"Failed to send sub pool notifications for request {request_id}: {e}")
 
         return jsonify({
             "success": True,

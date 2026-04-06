@@ -90,7 +90,7 @@ def schedule_season():
         # Process each match; schedule a message if not already present
         for match_data in matches_data:
             if not match_data['has_message']:
-                # Calculate send date and time (Monday 2:00 AM PST = 10:00 AM UTC)
+                # Calculate send date and time (Monday 8:00 AM PST = 16:00 UTC)
                 # For Sunday matches, we want to send on the Monday before (6 days earlier)
                 match_date = match_data['date']
                 
@@ -106,8 +106,8 @@ def schedule_season():
                     else:
                         monday_before = match_date - timedelta(days=days_since_monday)
                 
-                # Set to 2:00 AM PST (10:00 AM UTC)
-                send_time = datetime.combine(monday_before, datetime.min.time()) + timedelta(hours=10)
+                # Set to 8:00 AM PST (16:00 UTC)
+                send_time = datetime.combine(monday_before, datetime.min.time()) + timedelta(hours=16)
 
                 scheduled_message = ScheduledMessage(
                     match_id=match_data['id'],

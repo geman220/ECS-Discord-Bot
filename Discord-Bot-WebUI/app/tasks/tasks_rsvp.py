@@ -275,6 +275,13 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
                 'home_team_name': metadata.get('home_team_name', 'Home Team'),
                 'away_team_name': metadata.get('away_team_name', 'Away Team')
             })
+
+        # Pass special week info for FUN/TST weeks so embeds show correct display
+        metadata = message.message_metadata or {}
+        if message.message_type == 'special_week_rsvp' and metadata:
+            message_data['is_special_week'] = True
+            message_data['week_type'] = metadata.get('week_type')
+            message_data['special_week_display'] = metadata.get('display_name')
         
         # Use synchronous Discord client to send availability message
         from app.utils.sync_discord_client import get_sync_discord_client
@@ -299,6 +306,75 @@ def send_availability_message(self, session, scheduled_message_id: int) -> Dict[
         raise self.retry(exc=e, countdown=60)
     except Exception as e:
         logger.error(f"Error sending availability message: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=30)
+
+
+@celery_task(name='app.tasks.tasks_rsvp.send_bye_reminder', max_retries=3, retry_backoff=True, queue='discord')
+def send_bye_reminder(self, session, scheduled_message_id: int) -> Dict[str, Any]:
+    """Send a BYE week reminder to team channels (no RSVP reactions)."""
+    try:
+        message = session.query(ScheduledMessage).get(scheduled_message_id)
+        if not message:
+            return {'success': False, 'message': f"ScheduledMessage {scheduled_message_id} not found"}
+
+        if not message.match:
+            message.status = 'FAILED'
+            message.send_error = 'No match associated'
+            session.add(message)
+            return {'success': False, 'message': 'No match associated'}
+
+        metadata = message.message_metadata or {}
+        display_name = metadata.get('display_name', 'BYE Week')
+        week_type = metadata.get('week_type', 'BYE')
+
+        # For self-matches, home_team == away_team; collect unique team channels
+        team_channel_ids = []
+        team_names = []
+        seen_channels = set()
+
+        for team in [message.match.home_team, message.match.away_team]:
+            if team and team.discord_channel_id and team.discord_channel_id not in seen_channels:
+                team_channel_ids.append(team.discord_channel_id)
+                team_names.append(team.name)
+                seen_channels.add(team.discord_channel_id)
+
+        if not team_channel_ids:
+            error_msg = "No team channels found for BYE reminder"
+            logger.error(error_msg)
+            message.status = 'FAILED'
+            message.send_error = error_msg
+            session.add(message)
+            return {'success': False, 'message': error_msg}
+
+        reminder_data = {
+            'team_channel_ids': team_channel_ids,
+            'team_names': team_names,
+            'match_date': message.match.date.strftime('%Y-%m-%d') if message.match.date else '',
+            'week_type': week_type,
+            'display_name': display_name
+        }
+
+        from app.utils.sync_discord_client import get_sync_discord_client
+        discord_client = get_sync_discord_client()
+        result = discord_client.send_week_reminder(reminder_data)
+
+        message.last_send_attempt = datetime.utcnow()
+        if result['success']:
+            message.status = 'SENT'
+            message.sent_at = datetime.utcnow()
+            message.send_error = None
+        else:
+            message.status = 'FAILED'
+            error_msg = result.get('message', '')
+            message.send_error = error_msg[:255]
+        session.add(message)
+        return result
+
+    except SQLAlchemyError as e:
+        logger.error(f"Database error sending BYE reminder: {str(e)}", exc_info=True)
+        raise self.retry(exc=e, countdown=60)
+    except Exception as e:
+        logger.error(f"Error sending BYE reminder: {str(e)}", exc_info=True)
         raise self.retry(exc=e, countdown=30)
 
 
@@ -374,8 +450,24 @@ def process_scheduled_messages(self, session) -> Dict[str, Any]:
                             f"Queued ECS FC message {message_data['id']} (batch {batch_num + 1}, position {j + 1}) "
                             f"with {total_delay}s delay"
                         )
+                    elif msg and msg.message_type == 'bye_reminder':
+                        # Handle BYE week reminder (no RSVP, just informational)
+                        individual_delay = j * 5
+                        batch_delay = batch_num * stagger_seconds
+                        total_delay = batch_delay + individual_delay
+
+                        send_bye_reminder.apply_async(
+                            kwargs={'scheduled_message_id': message_data['id']},
+                            countdown=total_delay,
+                            expires=3600
+                        )
+
+                        logger.info(
+                            f"Queued BYE reminder {message_data['id']} (batch {batch_num + 1}, position {j + 1}) "
+                            f"with {total_delay}s delay"
+                        )
                     else:
-                        # Handle regular pub league message
+                        # Handle regular pub league message (standard or special_week_rsvp)
                         if not message_data['match_id']:
                             logger.warning(f"Skipping message {message_data['id']} - no match associated")
                             continue
@@ -385,7 +477,7 @@ def process_scheduled_messages(self, session) -> Dict[str, Any]:
                         # Add larger delay (30 seconds) between batches
                         batch_delay = batch_num * stagger_seconds
                         total_delay = batch_delay + individual_delay
-                        
+
                         # Queue each message for sending with appropriate delay
                         send_availability_message.apply_async(
                             kwargs={'scheduled_message_id': message_data['id']},
@@ -849,11 +941,11 @@ def cleanup_stale_rsvps(self, session, days_old: int = 30) -> Dict[str, Any]:
 def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
     """
     Schedule availability messages for matches occurring in the next week on Sundays.
-    
+
     This task runs every Monday to:
       - Find all Sunday matches for the upcoming week
       - Schedule RSVP messages for each match without existing scheduled messages
-      - Set send time to 2 AM PST (10 AM UTC) on Monday (5 days before match) for maximum visibility
+      - Set send time to 8 AM PST (16:00 UTC) on Monday (6 days before match)
       - Create ScheduledMessage records in the database
       - Schedules messages with varying countdown times to prevent rate limiting
       
@@ -892,30 +984,35 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
             # Check if this is a special week (home_team_id == away_team_id)
             if match.home_team_id == match.away_team_id:
                 # Special week - only create one entry per week type
-                week_type = getattr(match, 'week_type', 'SPECIAL')
+                week_type = getattr(match, 'week_type', None) or 'BYE'
                 week_key = f"{match.date}_{week_type}"
-                
+
                 if week_key not in special_week_matches:
-                    # Determine display name for special week
-                    if week_type.upper() == 'FUN':
+                    week_upper = week_type.upper()
+                    # Determine display name and message type for special week
+                    if week_upper == 'FUN':
                         display_name = 'Fun Week!'
-                    elif week_type.upper() == 'TST':
+                        msg_type = 'special_week_rsvp'
+                    elif week_upper == 'TST':
                         display_name = 'Soccer Tournament!'
-                    elif week_type.upper() == 'BYE':
-                        # Skip BYE weeks - no RSVP needed
-                        continue
-                    elif week_type.upper() == 'BONUS':
+                        msg_type = 'special_week_rsvp'
+                    elif week_upper == 'BONUS':
                         display_name = 'Bonus Week!'
+                        msg_type = 'special_week_rsvp'
                     else:
-                        display_name = 'Special Week!'
-                    
+                        # BYE, REGULAR, SPECIAL, or unset — treat as BYE
+                        display_name = 'BYE Week'
+                        msg_type = 'bye_reminder'
+
                     special_week_matches[week_key] = {
                         'id': match.id,
                         'date': match.date,
-                        'home_team': display_name,
-                        'away_team': display_name,
+                        'home_team': match.home_team.name if hasattr(match, 'home_team') else "Unknown",
+                        'away_team': match.away_team.name if hasattr(match, 'away_team') else "Unknown",
                         'is_special_week': True,
                         'week_type': week_type,
+                        'display_name': display_name,
+                        'message_type': msg_type,
                         'has_message': any(msg for msg in match.scheduled_messages)
                     }
                     matches_data.append(special_week_matches[week_key])
@@ -927,6 +1024,7 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
                     'home_team': match.home_team.name if hasattr(match, 'home_team') else "Unknown",
                     'away_team': match.away_team.name if hasattr(match, 'away_team') else "Unknown",
                     'is_special_week': False,
+                    'message_type': 'standard',
                     'has_message': any(msg for msg in match.scheduled_messages)
                 })
         
@@ -940,40 +1038,58 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
         
         for i, match_data in enumerate(matches_data):
             if not match_data['has_message']:
-                # Calculate send time: 5 days before match at 2:00 AM PST (10:00 AM UTC)
+                # Calculate send time: Monday 8:00 AM PST (16:00 UTC), 6 days before Sunday match
                 match_date = match_data['date']
 
-                # For Sunday matches, RSVP goes out 5 days before (Monday at 2am PST)
-                # Example: Sunday 4/5 match → RSVP on Monday 3/31 at 2am PST
-                rsvp_send_date = match_date - timedelta(days=5)
-                
-                # Only schedule if the RSVP date is in the future
-                if rsvp_send_date <= today:
+                # For Sunday matches, RSVP goes out 6 days before (Monday at 8am PST)
+                # Example: Sunday 4/12 match → RSVP on Monday 4/6 at 8am PST
+                rsvp_send_date = match_date - timedelta(days=6)
+
+                # Only schedule if the RSVP date is in the future (use < to allow same-day)
+                if rsvp_send_date < today:
                     logger.info(f"Skipping match {match_data['id']} on {match_date} - RSVP date {rsvp_send_date} is in the past")
                     continue
-                
+
                 # Calculate staggered send time for rate limiting
                 batch_number = i // batch_size
                 batch_minutes_offset = batch_number * stagger_minutes
-                
-                # Set to 2:00 AM PST (10:00 AM UTC)
-                base_send_time = datetime.combine(rsvp_send_date, datetime.min.time()) + timedelta(hours=10)
-                
+
+                # Set to 8:00 AM PST (16:00 UTC)
+                base_send_time = datetime.combine(rsvp_send_date, datetime.min.time()) + timedelta(hours=16)
+
                 # Add the batch offset for staggered sending
                 send_time = base_send_time + timedelta(minutes=batch_minutes_offset)
-                
+
+                # Determine message type and metadata for special weeks
+                msg_type = match_data.get('message_type', 'standard')
+                metadata = None
+                if match_data.get('is_special_week', False):
+                    metadata = {
+                        'week_type': match_data.get('week_type', 'SPECIAL'),
+                        'display_name': match_data.get('display_name', 'Special Week'),
+                        'team_name': match_data['home_team']
+                    }
+
                 scheduled_message = ScheduledMessage(
                     match_id=match_data['id'],
                     scheduled_send_time=send_time,
-                    status='PENDING'
+                    status='PENDING',
+                    message_type=msg_type,
+                    message_metadata=metadata
                 )
                 session.add(scheduled_message)
                 scheduled_count += 1
-                
+
                 # Create appropriate log message based on match type
-                if match_data.get('is_special_week', False):
+                if msg_type == 'bye_reminder':
                     logger.info(
-                        f"Scheduled RSVP for special event {match_data['id']} "
+                        f"Scheduled BYE reminder for match {match_data['id']} "
+                        f"({match_data['home_team']}) "
+                        f"at {send_time} (batch {batch_number+1})"
+                    )
+                elif match_data.get('is_special_week', False):
+                    logger.info(
+                        f"Scheduled RSVP for {match_data.get('display_name', 'special event')} {match_data['id']} "
                         f"({match_data['home_team']}) "
                         f"at {send_time} (batch {batch_number+1})"
                     )

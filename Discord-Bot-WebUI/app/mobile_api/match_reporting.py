@@ -166,6 +166,7 @@ def get_match_reporting_info(match_id: int):
 
         # Get home team roster with availability
         home_players = []
+        home_seen_ids = set()
         for p in match.home_team.players:
             if p.is_current_player:
                 home_players.append({
@@ -173,12 +174,15 @@ def get_match_reporting_info(match_id: int):
                     "name": p.name,
                     "jersey_number": p.jersey_number,
                     "position": p.favorite_position,
-                    "availability": availability_by_player.get(p.id, 'no_response')
+                    "availability": availability_by_player.get(p.id, 'no_response'),
+                    "is_sub": False
                 })
+                home_seen_ids.add(p.id)
         home_players.sort(key=lambda x: rsvp_sort_order.get(x['availability'], 2))
 
         # Get away team roster with availability
         away_players = []
+        away_seen_ids = set()
         for p in match.away_team.players:
             if p.is_current_player:
                 away_players.append({
@@ -186,9 +190,40 @@ def get_match_reporting_info(match_id: int):
                     "name": p.name,
                     "jersey_number": p.jersey_number,
                     "position": p.favorite_position,
-                    "availability": availability_by_player.get(p.id, 'no_response')
+                    "availability": availability_by_player.get(p.id, 'no_response'),
+                    "is_sub": False
                 })
+                away_seen_ids.add(p.id)
         away_players.sort(key=lambda x: rsvp_sort_order.get(x['availability'], 2))
+
+        # Add assigned temp subs to each team's roster
+        from app.models.matches import TemporarySubAssignment
+        temp_subs = session.query(TemporarySubAssignment).options(
+            joinedload(TemporarySubAssignment.player)
+        ).filter_by(
+            match_id=match_id,
+            is_active=True
+        ).all()
+
+        for ts in temp_subs:
+            if ts.team_id == match.home_team_id and ts.player_id not in home_seen_ids:
+                home_players.append({
+                    "id": ts.player.id,
+                    "name": ts.player.name,
+                    "jersey_number": ts.player.jersey_number,
+                    "position": ts.player.favorite_position,
+                    "availability": "yes",
+                    "is_sub": True
+                })
+            elif ts.team_id == match.away_team_id and ts.player_id not in away_seen_ids:
+                away_players.append({
+                    "id": ts.player.id,
+                    "name": ts.player.name,
+                    "jersey_number": ts.player.jersey_number,
+                    "position": ts.player.favorite_position,
+                    "availability": "yes",
+                    "is_sub": True
+                })
 
         # Get existing events
         events = []

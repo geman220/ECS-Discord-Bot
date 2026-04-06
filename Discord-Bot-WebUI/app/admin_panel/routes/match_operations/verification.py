@@ -137,11 +137,12 @@ def match_verification():
             safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin')
         )
 
-        # Get verifiable teams for the user
+        # Build verifiable teams - coaches can only verify for teams they coach
         verifiable_teams = {}
-        if hasattr(safe_current_user, 'player') and safe_current_user.player:
-            for team in safe_current_user.player.teams:
-                verifiable_teams[team.id] = team.name
+        if is_coach and hasattr(safe_current_user, 'player') and safe_current_user.player:
+            for team, is_coach_flag in safe_current_user.player.get_current_teams(with_coach_status=True):
+                if is_coach_flag:
+                    verifiable_teams[team.id] = team.name
 
             # If coach, filter to only their teams
             if is_coach:
@@ -296,16 +297,39 @@ def verify_match_legacy():
 
 @admin_panel_bp.route('/match-operations/verify-match/<int:match_id>', methods=['POST'])
 @login_required
-@role_required(['Global Admin', 'Pub League Admin'])
+@role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 @transactional
 def verify_match(match_id):
     """Verify a match result by match ID."""
     from app.models import Match
+    from app.models.players import player_teams
 
     team = request.form.get('team', 'both')
     action = request.form.get('action', 'verify')
 
     match = Match.query.get_or_404(match_id)
+
+    # Check coach-level permissions — coaches can only verify for teams they coach
+    is_admin = safe_current_user.has_role('Pub League Admin') or safe_current_user.has_role('Global Admin')
+    if not is_admin:
+        coach_team_ids = []
+        if hasattr(safe_current_user, 'player') and safe_current_user.player:
+            for t, is_coach_flag in safe_current_user.player.get_current_teams(with_coach_status=True):
+                if is_coach_flag:
+                    coach_team_ids.append(t.id)
+
+        can_verify_home = match.home_team_id in coach_team_ids
+        can_verify_away = match.away_team_id in coach_team_ids
+
+        if team == 'home' and not can_verify_home:
+            flash('You do not have permission to verify for the home team.', 'danger')
+            return redirect(url_for('admin_panel.match_verification'))
+        if team == 'away' and not can_verify_away:
+            flash('You do not have permission to verify for the away team.', 'danger')
+            return redirect(url_for('admin_panel.match_verification'))
+        if team == 'both' and not (can_verify_home and can_verify_away):
+            flash('You do not have permission to verify for both teams.', 'danger')
+            return redirect(url_for('admin_panel.match_verification'))
 
     if action == 'verify':
         if team == 'home' or team == 'both':
