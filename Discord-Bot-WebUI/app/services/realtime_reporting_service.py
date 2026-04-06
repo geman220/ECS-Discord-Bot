@@ -244,6 +244,10 @@ class RealtimeReportingService:
                 'US Open Cup': 'usa.open',
                 'Leagues Cup': 'usa.leagues_cup',
                 'CONCACAF Champions League': 'concacaf.champions',
+                'CONCACAF Champions Cup': 'concacaf.champions',
+                'Concacaf Champions League': 'concacaf.champions',
+                'Concacaf Champions Cup': 'concacaf.champions',
+                'Concacaf': 'concacaf.champions',
             }
             league_code = competition_map.get(competition, competition)
 
@@ -443,6 +447,37 @@ class RealtimeReportingService:
 
         return fields
 
+    def _format_stats_for_ai(self, match_data: Dict[str, Any]) -> str:
+        """Format match stats into a concise string for AI prompts."""
+        stats = match_data.get('stats', {})
+        home_stats = stats.get('home', {})
+        away_stats = stats.get('away', {})
+        if not home_stats and not away_stats:
+            return ''
+
+        parts = []
+        home_poss = home_stats.get('possessionPct', '')
+        away_poss = away_stats.get('possessionPct', '')
+        if home_poss and away_poss:
+            parts.append(f"Possession: {home_poss}%-{away_poss}%")
+
+        home_shots = home_stats.get('totalShots', '')
+        away_shots = away_stats.get('totalShots', '')
+        if home_shots and away_shots:
+            home_sot = home_stats.get('shotsOnTarget', '')
+            away_sot = away_stats.get('shotsOnTarget', '')
+            if home_sot and away_sot:
+                parts.append(f"Shots: {home_shots}-{away_shots} ({home_sot}-{away_sot} on target)")
+            else:
+                parts.append(f"Shots: {home_shots}-{away_shots}")
+
+        home_corners = home_stats.get('wonCorners', '')
+        away_corners = away_stats.get('wonCorners', '')
+        if home_corners and away_corners:
+            parts.append(f"Corners: {home_corners}-{away_corners}")
+
+        return ". ".join(parts)
+
     async def _send_lifecycle_event(self, session_id: int, session_data: Dict[str, Any],
                                      event_type: Optional[str], match_data: Dict[str, Any]):
         """Send a match lifecycle message (kickoff, halftime, second half, fulltime)."""
@@ -472,12 +507,16 @@ class RealtimeReportingService:
 
         elif event_type == 'halftime':
             try:
+                stats_str = self._format_stats_for_ai(match_data)
                 context = {
                     'home_team': {'displayName': home_team},
                     'away_team': {'displayName': away_team},
                     'home_score': str(home_score),
                     'away_score': str(away_score),
-                    'competition': session_data.get('competition', 'MLS')
+                    'competition': session_data.get('competition', 'MLS'),
+                    'match_context': f"{home_team} {home_score}-{away_score} {away_team}",
+                    'score': f"{home_score}-{away_score}",
+                    'stats': stats_str,
                 }
                 ai_msg = self.ai_client.generate_half_time_message(context)
                 if ai_msg:
@@ -492,12 +531,16 @@ class RealtimeReportingService:
 
         elif event_type == 'fulltime':
             try:
+                stats_str = self._format_stats_for_ai(match_data)
                 context = {
                     'home_team': {'displayName': home_team},
                     'away_team': {'displayName': away_team},
                     'home_score': str(home_score),
                     'away_score': str(away_score),
-                    'competition': session_data.get('competition', 'MLS')
+                    'competition': session_data.get('competition', 'MLS'),
+                    'match_context': f"{home_team} {home_score}-{away_score} {away_team}",
+                    'score': f"{home_score}-{away_score}",
+                    'stats': stats_str,
                 }
                 ai_msg = self.ai_client.generate_full_time_message(context)
                 if ai_msg:

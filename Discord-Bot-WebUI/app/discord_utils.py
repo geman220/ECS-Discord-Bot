@@ -1591,7 +1591,7 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
                     return thread['id']
                     
         # No duplicate found, proceed with thread creation
-        # Generate AI description using configured prompts
+        # Fetch ESPN data and generate AI description
         try:
             match_context = {
                 'home_team': home_team_name,
@@ -1603,11 +1603,62 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
                 'opponent': match.opponent
             }
 
+            # Fetch real ESPN data (records, standings, h2h) for the AI to rewrite
+            try:
+                from app.utils.sync_espn_client import get_sync_espn_client
+                espn = get_sync_espn_client()
+                espn_match_id = match.match_id
+                comp_raw = match.competition or 'usa.1'
+                # Map display names to ESPN codes; pass through if already an ESPN code
+                _competition_map = {
+                    'MLS': 'usa.1',
+                    'US Open Cup': 'usa.open',
+                    'Leagues Cup': 'usa.leagues_cup',
+                    'CONCACAF Champions League': 'concacaf.champions',
+                    'CONCACAF Champions Cup': 'concacaf.champions',
+                    'Concacaf Champions League': 'concacaf.champions',
+                    'Concacaf Champions Cup': 'concacaf.champions',
+                    'Concacaf': 'concacaf.champions',
+                }
+                comp_code = _competition_map.get(comp_raw, comp_raw if '.' in comp_raw else 'usa.1')
+
+                competitors = espn.get_event_competitors(espn_match_id, comp_code)
+                if competitors:
+                    home_info = espn.get_team_info(competitors['home_team_id'], comp_code)
+                    away_info = espn.get_team_info(competitors['away_team_id'], comp_code)
+                    h2h = espn.get_head_to_head(espn_match_id, comp_code)
+
+                    # Build ESPN info string for AI to transform
+                    parts = []
+                    if home_info:
+                        record = f"{home_info['wins']}W-{home_info['ties']}D-{home_info['losses']}L"
+                        standing = home_info.get('standing_summary', '')
+                        standing_short = standing.replace(' in ', ' ').replace(' Conference', '') if standing else ''
+                        parts.append(f"{home_team_name} ({record}{', ' + standing_short if standing_short else ''})")
+                    if away_info:
+                        record = f"{away_info['wins']}W-{away_info['ties']}D-{away_info['losses']}L"
+                        standing = away_info.get('standing_summary', '')
+                        standing_short = standing.replace(' in ', ' ').replace(' Conference', '') if standing else ''
+                        parts.append(f"{away_team_name} ({record}{', ' + standing_short if standing_short else ''})")
+                    if h2h:
+                        parts.append(f"Last meeting: {h2h}")
+
+                    if parts:
+                        match_context['espn_info'] = ". ".join(parts)
+                        logger.info(f"Fetched ESPN data for thread context: {match_context['espn_info'][:100]}...")
+            except Exception as e:
+                logger.warning(f"Could not fetch ESPN data for thread context: {e}")
+
             ai_client = get_sync_ai_client()
             ai_description = ai_client.generate_match_thread_context(match_context)
 
-            # Use AI description if generated, otherwise use basic fallback
-            description = ai_description if ai_description else f"**{home_team_name} vs {away_team_name}**"
+            # Use AI description if generated, otherwise show competition + venue
+            if ai_description:
+                description = ai_description
+            else:
+                comp = match.competition if match.competition else "MLS"
+                venue_name = match.venue if match.venue else ""
+                description = f"{comp} - {venue_name}" if venue_name else comp
 
             logger.info(f"Generated AI description for match thread: {description[:100]}...")
         except Exception as e:

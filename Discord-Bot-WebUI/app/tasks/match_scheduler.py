@@ -397,8 +397,18 @@ def _build_espn_description(espn_match_id: str, home_team: str, away_team: str, 
     try:
         espn = get_sync_espn_client()
 
-        # Map competition string to ESPN competition code
-        comp_code = competition if '.' in competition else 'usa.1'
+        # Map display names to ESPN competition codes
+        _competition_map = {
+            'MLS': 'usa.1',
+            'US Open Cup': 'usa.open',
+            'Leagues Cup': 'usa.leagues_cup',
+            'CONCACAF Champions League': 'concacaf.champions',
+            'CONCACAF Champions Cup': 'concacaf.champions',
+            'Concacaf Champions League': 'concacaf.champions',
+            'Concacaf Champions Cup': 'concacaf.champions',
+            'Concacaf': 'concacaf.champions',
+        }
+        comp_code = _competition_map.get(competition, competition if '.' in competition else 'usa.1')
 
         # Get both team IDs from the ESPN event data
         competitors = espn.get_event_competitors(espn_match_id, comp_code)
@@ -603,6 +613,10 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
                 'US Open Cup': 'usa.open',
                 'Leagues Cup': 'usa.leagues_cup',
                 'CONCACAF Champions League': 'concacaf.champions',
+                'CONCACAF Champions Cup': 'concacaf.champions',
+                'Concacaf Champions League': 'concacaf.champions',
+                'Concacaf Champions Cup': 'concacaf.champions',
+                'Concacaf': 'concacaf.champions',
             }
             league_code = competition_map.get(match.competition or 'MLS', 'usa.1')
 

@@ -174,8 +174,8 @@ Write only the reaction, nothing else."""
                     "content": prompt
                 }
             ],
-            "max_tokens": 80,
-            "temperature": 0.9,  # High creativity for varied responses
+            "max_tokens": 60,
+            "temperature": 0.4,
             "top_p": 0.95,
             "frequency_penalty": 0.3,  # Reduce repetition
             "presence_penalty": 0.3
@@ -595,24 +595,27 @@ Write only the message."""
         away_team = match_context.get('away_team', {}).get('displayName', 'Away')
         home_score = match_context.get('home_score', '0')
         away_score = match_context.get('away_score', '0')
+        stats = match_context.get('stats', '')
 
         score = f"{home_score}-{away_score}"
 
-        prompt = f"""Write a short halftime reaction for a Sounders Discord channel. One or two sentences. Under 280 characters. No em dashes.
+        stats_line = f"\nMatch stats: {stats}" if stats else ""
 
-Halftime score: {home_team} {score} {away_team}
+        prompt = f"""Rewrite this halftime data as a short reaction for a Sounders Discord channel. Reference the stats if provided. One or two sentences. Under 280 characters. No em dashes.
 
-Examples at different scores:
-"Halftime. 1-0 up. Controlled the half, need another to kill it off."
-"Halftime, still 0-0. Not much in it. Second half needs more."
-"Down 2-0 at the half. Rough. Need a big response."
-"2-1 up at the break. Should be more but we keep giving them chances."
+Halftime score: {home_team} {score} {away_team}{stats_line}
+
+Examples:
+"Halftime. 1-0 up. 62% possession and 7 shots to their 2. Controlled."
+"Halftime, still 0-0. Not much in it. 3 shots each. Second half needs more."
+"Down 2-0 at the half. They've had 65% of the ball. Need a big response."
+"2-1 up at the break. 8 shots but only 3 on target. Should be more."
 "1-1 at halftime. Decent spell toward the end, keep pushing."
 
 Write only the reaction."""
 
         return prompt
-        
+
     def _create_full_time_prompt(self, match_context: Dict[str, Any]) -> str:
         """Create prompt for full-time summary message."""
 
@@ -620,20 +623,23 @@ Write only the reaction."""
         away_team = match_context.get('away_team', {}).get('displayName', 'Away')
         home_score = match_context.get('home_score', '0')
         away_score = match_context.get('away_score', '0')
+        stats = match_context.get('stats', '')
 
         score = f"{home_score}-{away_score}"
 
-        prompt = f"""Write a short full-time reaction for a Sounders Discord channel. One or two sentences. Under 280 characters. No em dashes.
+        stats_line = f"\nMatch stats: {stats}" if stats else ""
 
-Final score: {home_team} {score} {away_team}
+        prompt = f"""Rewrite this full-time data as a short reaction for a Sounders Discord channel. Reference the stats if provided. One or two sentences. Under 280 characters. No em dashes.
 
-Examples at different results:
-"Full time. 2-0. Clean sheet and 3 points. Good day."
-"Full time. 1-2. Disappointing. Gave away too many chances."
-"1-1 at the final whistle. A point on the road, take it and move on."
-"3-1. Comfortable in the end. Needed that after last week."
-"0-0. Not great. Struggled to create anything all night."
-"Full time. 2-1. Hung on at the end but 3 points is 3 points."
+Final score: {home_team} {score} {away_team}{stats_line}
+
+Examples:
+"Full time. 2-0. 58% possession, 12 shots. Clean sheet and 3 points."
+"Full time. 1-2. They had 15 shots to our 6. Deserved it honestly."
+"1-1 at the final whistle. 52% possession but couldn't find a winner."
+"3-1. 9 shots on target. Comfortable in the end."
+"0-0. 4 shots on target between both teams. Grim."
+"Full time. 2-1. Outshot them 14-5. 3 points is 3 points."
 
 Write only the reaction."""
 
@@ -648,73 +654,56 @@ Write only the reaction."""
         away_team = away_team_raw.get('displayName', 'Away') if isinstance(away_team_raw, dict) else away_team_raw
         competition = match_context.get('competition', 'MLS')
         venue = match_context.get('venue', 'Unknown Venue')
-        match_date = match_context.get('match_date', '')
-        opponent = away_team if home_team == "Seattle Sounders FC" else home_team
+        is_home = match_context.get('is_home_game', home_team == "Seattle Sounders FC")
+        opponent = match_context.get('opponent', away_team if home_team == "Seattle Sounders FC" else home_team)
+        espn_info = match_context.get('espn_info', '')
 
-        # Determine match importance and storylines
-        is_playoff = 'playoff' in competition.lower() or 'cup' in competition.lower()
-        is_final = 'final' in competition.lower()
         is_portland = "portland" in opponent.lower() or "timber" in opponent.lower()
         is_vancouver = "vancouver" in opponent.lower() or "whitecap" in opponent.lower()
-        is_home = home_team == "Seattle Sounders FC"
 
-        # Determine season stage from date
-        season_stage = "regular season"
-        try:
-            month = datetime.now().month
-            if month in (2, 3, 4):
-                season_stage = "early in the MLS season"
-            elif month in (5, 6, 7):
-                season_stage = "mid-season"
-            elif month in (8, 9):
-                season_stage = "the stretch run of the season"
-            elif month in (10, 11, 12):
-                season_stage = "late in the season"
-        except Exception:
-            pass
-
-        prompt = f"""You are creating a contextual description for a new match thread. This should give fans context about why this match matters and what to watch for.
-
-MATCH DETAILS:
-- Teams: {home_team} vs {away_team}
-- Competition: {competition}
-- Venue: {venue}
-- Match Date: {match_date}
-- Season Stage: This match is {season_stage}
-- Location: {f'Home at {venue}' if is_home else f'Away at {venue}'}"""
-
-        if is_final:
-            prompt += f"\n- FINAL MATCH - Trophy on the line!"
-        elif is_playoff:
-            prompt += f"\n- Playoff match - season defining moment!"
-
+        rivalry = ""
         if is_portland:
-            prompt += f"\n- PORTLAND RIVALRY - Cascadia Cup implications!"
+            rivalry = "Rivalry match vs Portland."
         elif is_vancouver:
-            prompt += f"\n- Cascadia Derby against Vancouver!"
+            rivalry = "Cascadia match vs Vancouver."
 
-        prompt += f"""
+        # Detect cup/knockout competitions
+        is_cup = any(kw in competition.lower() for kw in ['cup', 'champions', 'concacaf', 'open', 'playoff'])
 
-CRITICAL RULES:
-- Do NOT mention playoffs, playoff positioning, or postseason UNLESS the competition name explicitly says "playoff" or "cup"
-- Use the season stage provided above to frame the match correctly
-- Do NOT invent standings, records, or statistics
+        if espn_info:
+            prompt = f"""Rewrite this ESPN match info as a short one-liner for a Sounders supporters Discord thread. Under 200 characters. No em dashes. Use the real stats. No welcomes, no predictions, no hype.
 
-TONE & STYLE:
-- Informative but exciting - set the stage for discussion
-- ECS supporter perspective but welcoming to all fans
-- Build anticipation and encourage predictions
-- Professional but passionate - this is for match thread creation
-- NO swearing in this context (thread welcome message)
+ESPN info: "{espn_info}"
+Competition: {competition}
+{"Home match." if is_home else "Away match."} {rivalry}
 
-RESPONSE REQUIREMENTS:
-- Maximum 200 characters (embed description)
-- 1-2 sentences max
-- Contextual information about match importance
-- Encourage fan discussion and predictions
-- Welcome tone for all supporters joining the thread
+Examples of ESPN info -> one-liner:
+"Seattle Sounders FC (12W-5D-3L, 4th Western). Portland Timbers (10W-7D-5L, 2nd Western). Last meeting: SEA 2 - 1 POR" -> "Portland at home. Beat them 2-1 last time. Sitting 4th, need to close the gap."
+"Seattle Sounders FC (8W-3D-2L, 3rd Western). Houston Dynamo FC (5W-6D-4L, 9th Western)" -> "Houston at home. They're 9th for a reason. Three points."
+"Inter Miami CF (14W-2D-1L, 1st Eastern). Seattle Sounders FC (9W-4D-5L, 5th Western). Last meeting: MIA 3 - 0 SEA" -> "Miami away. They hammered us 3-0 last time. Top of the East for a reason."
+"Seattle Sounders FC (10W-4D-3L, 3rd Western). Vancouver Whitecaps FC (7W-5D-6L, 7th Western)" -> "Vancouver at home. Cascadia. Love winning up there."
+"Seattle Sounders FC (11W-3D-4L). Los Angeles Galaxy (12W-2D-5L). Last meeting: SEA 1 - 1 LAG" -> "LA Galaxy at home. LFG."
+"Club America. Seattle Sounders FC" -> "CONCACAF quarterfinal leg 1. Club America at home. Huge night."
 
-Generate a welcoming but informative match thread description:"""
+Write only the one-liner."""
+        else:
+            prompt = f"""Write a one-line match thread description for a Sounders supporters Discord. Under 200 characters. No em dashes. State what the match is and one reason it matters. No welcomes, no predictions, no hype.
+
+Match: {home_team} vs {away_team} at {venue}
+Competition: {competition}
+{"Home match." if is_home else "Away match."}
+{rivalry}
+
+Examples:
+"Portland at home tonight. Three points would put some distance in the table."
+"Seattle at San Jose. Road trips are never easy."
+"Cascadia Cup on the line in Vancouver. Love winning up there."
+"Midweek match against Houston. Need the points either way."
+"LA Galaxy at home. LFG."
+"CONCACAF Champions Cup quarterfinal. Leg 1 at home. Big one."
+"US Open Cup round of 16. Take care of business."
+
+Write only the description."""
 
         return prompt
 

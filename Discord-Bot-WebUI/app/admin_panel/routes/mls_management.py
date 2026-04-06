@@ -37,9 +37,12 @@ COMPETITION_MAPPINGS = {
     "MLS": "usa.1",
     "US Open Cup": "usa.open",
     "FIFA Club World Cup": "fifa.cwc",
-    "Concacaf": "concacaf.league",
+    "Concacaf": "concacaf.champions",
     "Concacaf Champions League": "concacaf.champions",
-    "Leagues Cup": "concacaf.leagues.cup",
+    "Concacaf Champions Cup": "concacaf.champions",
+    "CONCACAF Champions League": "concacaf.champions",
+    "CONCACAF Champions Cup": "concacaf.champions",
+    "Leagues Cup": "usa.leagues_cup",
 }
 
 

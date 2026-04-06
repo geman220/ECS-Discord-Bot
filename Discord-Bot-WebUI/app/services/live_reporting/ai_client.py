@@ -452,8 +452,8 @@ Provide commentary on this event. Current score: {match_data.score}"""
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                "max_tokens": prompt_config.get('max_tokens', 100),
-                "temperature": prompt_config.get('temperature', 0.8),
+                "max_tokens": prompt_config.get('max_tokens', 60),
+                "temperature": prompt_config.get('temperature', 0.4),
                 "presence_penalty": 0.1,
                 "frequency_penalty": 0.1
             }

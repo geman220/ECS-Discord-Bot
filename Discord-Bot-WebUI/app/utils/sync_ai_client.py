@@ -72,7 +72,7 @@ class SyncAIClient:
         return result or None
 
     def generate_match_thread_context(self, match_context: Dict[str, Any]) -> Optional[str]:
-        """Generate match thread context with validation (non-strict for thread descriptions)."""
+        """Generate match thread context with strict validation for thread descriptions."""
         def _generate():
             return self._run_sync(self.service.generate_match_thread_context(match_context))
 
@@ -81,7 +81,7 @@ class SyncAIClient:
             fallback_fn=lambda: None,
             commentary_type=CommentaryType.THREAD_CONTEXT,
             max_attempts=2,
-            strict=False  # Thread contexts are more formal, allow some AI-isms
+            strict=True  # Enforce AI-ism detection for thread descriptions
         )
         return result or None
     
@@ -457,8 +457,8 @@ class SyncAIClient:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                max_tokens=prompt_config.get('max_tokens') or 50,
-                temperature=prompt_config.get('temperature') or 0.8
+                max_tokens=prompt_config.get('max_tokens') or 60,
+                temperature=prompt_config.get('temperature') or 0.4
             )
 
             commentary = response.choices[0].message.content.strip()
