@@ -83,6 +83,79 @@ def check_coach_permission(user_id, team_id, session_db):
     return is_coach_for_team(user_id, team_id, session_db)
 
 
+def resolve_match_context(session_db, match_id, team_id):
+    """
+    Resolve whether match_id refers to a PL or ECS FC match.
+
+    Checks PL first. If PL match exists but team_id doesn't belong to it,
+    falls through to ECS FC. This handles ID collisions safely since PL and
+    ECS FC teams are on different leagues.
+
+    Returns:
+        dict with keys: is_ecs_fc, match, team, team_id, lineup_match_id,
+        opponent_name, match_response — or None if not found in either table.
+    """
+    # Try PL first
+    match = session_db.query(Match).filter_by(id=match_id).first()
+    if match and team_id in [match.home_team_id, match.away_team_id]:
+        team = session_db.query(Team).options(
+            joinedload(Team.players)
+        ).filter_by(id=team_id).first()
+        if not team:
+            return None
+        opponent_id = match.away_team_id if team_id == match.home_team_id else match.home_team_id
+        opponent = session_db.query(Team).filter_by(id=opponent_id).first()
+        return {
+            'is_ecs_fc': False,
+            'match': match,
+            'team': team,
+            'team_id': team_id,
+            'lineup_match_id': match_id,
+            'opponent_name': opponent.name if opponent else 'Unknown',
+            'match_response': {
+                'id': match.id,
+                'date': match.date.isoformat() if match.date else None,
+                'time': match.time.isoformat() if match.time else None,
+                'opponent': opponent.name if opponent else 'Unknown',
+                'location': match.location,
+            },
+        }
+
+    # Try ECS FC
+    ecs_match = session_db.query(EcsFcMatch).filter_by(id=match_id).first()
+    if ecs_match:
+        ecs_team_id = ecs_match.team_id
+        team = session_db.query(Team).options(
+            joinedload(Team.players)
+        ).filter_by(id=ecs_team_id).first()
+        if not team:
+            return None
+        return {
+            'is_ecs_fc': True,
+            'match': ecs_match,
+            'team': team,
+            'team_id': ecs_team_id,
+            'lineup_match_id': -match_id,  # negative convention for ECS FC
+            'opponent_name': ecs_match.opponent_name,
+            'match_response': {
+                'id': match_id,
+                'date': ecs_match.match_date.isoformat() if ecs_match.match_date else None,
+                'time': ecs_match.match_time.strftime('%H:%M:%S') if ecs_match.match_time else None,
+                'opponent': ecs_match.opponent_name,
+                'location': ecs_match.location,
+            },
+        }
+
+    return None
+
+
+def build_roster_for_context(ctx, session_db):
+    """Build roster response using the correct RSVP source based on match type."""
+    if ctx['is_ecs_fc']:
+        return build_ecs_fc_roster_response(ctx['team'].players, ctx['match'], session_db)
+    return build_roster_response(ctx['team'].players, match=ctx['match'], session_db=session_db)
+
+
 def build_roster_response(players, match=None, session_db=None):
     """
     Build roster response with optional RSVP status.
@@ -294,39 +367,20 @@ def update_team_draft_position(team_id):
 def get_match_lineup(match_id, team_id):
     """
     Get team's lineup for a specific match with RSVP status.
-
-    Returns:
-        - Lineup positions from match_lineups table
-        - Roster with RSVP status (green/yellow/red/gray)
-        - Match info
-        - Active coaches currently editing
+    Handles both PL and ECS FC matches transparently.
     """
     current_user_id = int(get_jwt_identity())
 
     with managed_session() as session_db:
-        match = session_db.query(Match).filter_by(id=match_id).first()
-        if not match:
+        ctx = resolve_match_context(session_db, match_id, team_id)
+        if not ctx:
             return jsonify({'msg': 'Match not found'}), 404
 
-        team = session_db.query(Team).filter_by(id=team_id).first()
-        if not team:
-            return jsonify({'msg': 'Team not found'}), 404
-
-        # Verify team is in this match
-        if team_id not in [match.home_team_id, match.away_team_id]:
-            return jsonify({'msg': 'Team is not part of this match'}), 400
-
-        # Get or create lineup
         lineup = session_db.query(MatchLineup).filter_by(
-            match_id=match_id,
-            team_id=team_id
+            match_id=ctx['lineup_match_id'],
+            team_id=ctx['team_id']
         ).first()
 
-        # Get opponent team
-        opponent_id = match.away_team_id if team_id == match.home_team_id else match.home_team_id
-        opponent = session_db.query(Team).filter_by(id=opponent_id).first()
-
-        # Build response
         pitch_data = {
             'id': lineup.id if lineup else None,
             'positions': lineup.positions if lineup else [],
@@ -334,25 +388,30 @@ def get_match_lineup(match_id, team_id):
             'version': lineup.version if lineup else 1
         }
 
-        roster = build_roster_response(team.players, match=match, session_db=session_db)
+        roster = build_roster_for_context(ctx, session_db)
 
-        return jsonify({
+        response = {
             'mode': 'match',
             'pitch': pitch_data,
             'roster': roster,
             'team': {
-                'id': team.id,
-                'name': team.name
+                'id': ctx['team'].id,
+                'name': ctx['team'].name
             },
-            'match': {
-                'id': match.id,
-                'date': match.date.isoformat() if match.date else None,
-                'time': match.time.isoformat() if match.time else None,
-                'opponent': opponent.name if opponent else 'Unknown',
-                'location': match.location
-            },
-            'active_coaches': []  # Populated via Socket.IO
-        }), 200
+            'match': ctx['match_response'],
+            'active_coaches': []
+        }
+
+        if ctx['is_ecs_fc']:
+            response['match_type'] = 'ecs_fc'
+            try:
+                from app.sockets.match_lineup import get_active_coaches_for_room, _get_room_key
+                room_key = _get_room_key(match_id, ctx['team_id'], is_ecs_fc=True)
+                response['active_coaches'] = get_active_coaches_for_room(room_key)
+            except (ImportError, Exception):
+                pass
+
+        return jsonify(response), 200
 
 
 @mobile_api_v2.route('/matches/<int:match_id>/teams/<int:team_id>/lineup', methods=['PUT'])
@@ -360,38 +419,29 @@ def get_match_lineup(match_id, team_id):
 def update_match_lineup(match_id, team_id):
     """
     Update entire lineup for a match (with optimistic locking).
-
-    Expected JSON:
-        positions: List of {player_id, position, order}
-        notes: Optional notes
-        version: Current version for optimistic locking
+    Handles both PL and ECS FC matches transparently.
     """
     current_user_id = int(get_jwt_identity())
 
     with managed_session() as session_db:
-        if not check_coach_permission(current_user_id, team_id, session_db):
-            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
-
-        match = session_db.query(Match).filter_by(id=match_id).first()
-        if not match:
+        ctx = resolve_match_context(session_db, match_id, team_id)
+        if not ctx:
             return jsonify({'msg': 'Match not found'}), 404
 
-        if team_id not in [match.home_team_id, match.away_team_id]:
-            return jsonify({'msg': 'Team is not part of this match'}), 400
+        if not check_coach_permission(current_user_id, ctx['team_id'], session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
         data = request.json or {}
         positions = data.get('positions', [])
         notes = data.get('notes')
         client_version = data.get('version', 0)
 
-        # Get or create lineup
         lineup = session_db.query(MatchLineup).filter_by(
-            match_id=match_id,
-            team_id=team_id
+            match_id=ctx['lineup_match_id'],
+            team_id=ctx['team_id']
         ).first()
 
         if lineup:
-            # Check version for optimistic locking
             if client_version and lineup.version != client_version:
                 return jsonify({
                     'msg': 'Lineup was modified by another coach. Please refresh and try again.',
@@ -405,8 +455,8 @@ def update_match_lineup(match_id, team_id):
             lineup.increment_version()
         else:
             lineup = MatchLineup(
-                match_id=match_id,
-                team_id=team_id,
+                match_id=ctx['lineup_match_id'],
+                team_id=ctx['team_id'],
                 positions=positions,
                 notes=notes,
                 created_by=current_user_id
@@ -416,12 +466,11 @@ def update_match_lineup(match_id, team_id):
         session_db.commit()
         session_db.refresh(lineup)
 
-        # Emit Socket.IO event for real-time sync
         try:
             from app.sockets.match_lineup import emit_lineup_updated
-            emit_lineup_updated(match_id, team_id, positions, current_user_id)
+            emit_lineup_updated(ctx['lineup_match_id'], ctx['team_id'], positions, current_user_id)
         except ImportError:
-            pass  # Socket handlers not yet implemented
+            pass
 
         return jsonify({
             'msg': 'Lineup updated',
@@ -438,23 +487,18 @@ def update_match_lineup_position(match_id, team_id):
     """
     Update single player position in lineup (for drag-and-drop).
 
-    Expected JSON:
-        player_id: Player ID
-        position: New position code
-        order: Priority order within position (optional)
+    Update single player position in lineup (for drag-and-drop).
+    Handles both PL and ECS FC matches transparently.
     """
     current_user_id = int(get_jwt_identity())
 
     with managed_session() as session_db:
-        if not check_coach_permission(current_user_id, team_id, session_db):
-            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
-
-        match = session_db.query(Match).filter_by(id=match_id).first()
-        if not match:
+        ctx = resolve_match_context(session_db, match_id, team_id)
+        if not ctx:
             return jsonify({'msg': 'Match not found'}), 404
 
-        if team_id not in [match.home_team_id, match.away_team_id]:
-            return jsonify({'msg': 'Team is not part of this match'}), 400
+        if not check_coach_permission(current_user_id, ctx['team_id'], session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
         data = request.json or {}
         player_id = data.get('player_id')
@@ -464,33 +508,30 @@ def update_match_lineup_position(match_id, team_id):
         if not player_id or not position:
             return jsonify({'msg': 'Missing player_id or position'}), 400
 
-        # Get or create lineup
         lineup = session_db.query(MatchLineup).filter_by(
-            match_id=match_id,
-            team_id=team_id
+            match_id=ctx['lineup_match_id'],
+            team_id=ctx['team_id']
         ).first()
 
         if not lineup:
             lineup = MatchLineup(
-                match_id=match_id,
-                team_id=team_id,
+                match_id=ctx['lineup_match_id'],
+                team_id=ctx['team_id'],
                 positions=[],
                 created_by=current_user_id
             )
             session_db.add(lineup)
             session_db.flush()
 
-        # Use model method to add/move player
         lineup.add_player(player_id, position, order)
         lineup.last_updated_by = current_user_id
         lineup.increment_version()
 
         session_db.commit()
 
-        # Emit Socket.IO event
         try:
             from app.sockets.match_lineup import emit_position_updated
-            emit_position_updated(match_id, team_id, player_id, position, order, current_user_id)
+            emit_position_updated(ctx['lineup_match_id'], ctx['team_id'], player_id, position, order, current_user_id)
         except ImportError:
             pass
 
@@ -508,16 +549,21 @@ def update_match_lineup_position(match_id, team_id):
 def remove_from_match_lineup(match_id, team_id, player_id):
     """
     Remove player from lineup (back to available pool).
+    Handles both PL and ECS FC matches transparently.
     """
     current_user_id = int(get_jwt_identity())
 
     with managed_session() as session_db:
-        if not check_coach_permission(current_user_id, team_id, session_db):
+        ctx = resolve_match_context(session_db, match_id, team_id)
+        if not ctx:
+            return jsonify({'msg': 'Match not found'}), 404
+
+        if not check_coach_permission(current_user_id, ctx['team_id'], session_db):
             return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
 
         lineup = session_db.query(MatchLineup).filter_by(
-            match_id=match_id,
-            team_id=team_id
+            match_id=ctx['lineup_match_id'],
+            team_id=ctx['team_id']
         ).first()
 
         if not lineup:
@@ -532,10 +578,9 @@ def remove_from_match_lineup(match_id, team_id, player_id):
 
         session_db.commit()
 
-        # Emit Socket.IO event
         try:
             from app.sockets.match_lineup import emit_player_removed
-            emit_player_removed(match_id, team_id, player_id, current_user_id)
+            emit_player_removed(ctx['lineup_match_id'], ctx['team_id'], player_id, current_user_id)
         except ImportError:
             pass
 
@@ -555,24 +600,65 @@ def remove_from_match_lineup(match_id, team_id, player_id):
 def get_team_roster_with_rsvp(match_id, team_id):
     """
     Get team roster with RSVP status for a specific match.
-
-    Useful for populating the available players list.
+    Handles both PL and ECS FC matches transparently.
     """
     with managed_session() as session_db:
-        match = session_db.query(Match).filter_by(id=match_id).first()
-        if not match:
+        ctx = resolve_match_context(session_db, match_id, team_id)
+        if not ctx:
             return jsonify({'msg': 'Match not found'}), 404
 
-        team = session_db.query(Team).filter_by(id=team_id).first()
-        if not team:
-            return jsonify({'msg': 'Team not found'}), 404
-
-        roster = build_roster_response(team.players, match=match, session_db=session_db)
+        roster = build_roster_for_context(ctx, session_db)
 
         return jsonify({
             'roster': roster,
-            'team_id': team_id,
+            'team_id': ctx['team_id'],
             'match_id': match_id
+        }), 200
+
+
+@mobile_api_v2.route('/matches/<int:match_id>/teams/<int:team_id>/lineup/notes', methods=['PUT'])
+@jwt_required()
+def update_match_lineup_notes(match_id, team_id):
+    """
+    Update only the notes for a match lineup (no position changes).
+    Handles both PL and ECS FC matches transparently.
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session_db:
+        ctx = resolve_match_context(session_db, match_id, team_id)
+        if not ctx:
+            return jsonify({'msg': 'Match not found'}), 404
+
+        if not check_coach_permission(current_user_id, ctx['team_id'], session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
+
+        data = request.json or {}
+        notes = data.get('notes', '')
+
+        lineup = session_db.query(MatchLineup).filter_by(
+            match_id=ctx['lineup_match_id'],
+            team_id=ctx['team_id']
+        ).first()
+
+        if not lineup:
+            lineup = MatchLineup(
+                match_id=ctx['lineup_match_id'],
+                team_id=ctx['team_id'],
+                positions=[],
+                notes=notes,
+                created_by=current_user_id
+            )
+            session_db.add(lineup)
+        else:
+            lineup.notes = notes
+            lineup.last_updated_by = current_user_id
+
+        session_db.commit()
+
+        return jsonify({
+            'msg': 'Notes updated',
+            'notes': notes
         }), 200
 
 

@@ -499,7 +499,19 @@ def get_single_match_details(match_id: int):
         ).get(match_id)
 
         if not match:
-            return jsonify({"msg": "Match not found"}), 404
+            # Fall through to ECS FC
+            ecs_match = session_db.query(EcsFcMatch).options(
+                joinedload(EcsFcMatch.team)
+            ).get(match_id)
+            if not ecs_match:
+                return jsonify({"msg": "Match not found"}), 404
+
+            player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+            include_availability = request.args.get('include_availability', 'false').lower() == 'true'
+            match_data = normalize_ecs_fc_match(
+                ecs_match, player=player, include_availability=include_availability
+            )
+            return jsonify(match_data), 200
 
         include_events = request.args.get('include_events', 'false').lower() == 'true'
         include_teams = request.args.get('include_teams', 'true').lower() == 'true'
@@ -521,7 +533,6 @@ def get_single_match_details(match_id: int):
             match_data['my_availability'] = get_player_availability(
                 match, player, session=session_db
             )
-            # Get both teams' availability
             if match.home_team:
                 match_data['home_team_availability'] = get_team_players_availability(
                     match, match.home_team.players, session=session_db
@@ -572,7 +583,60 @@ def get_match_availability(match_id: int):
         ).get(match_id)
 
         if not match:
-            return jsonify({"msg": "Match not found"}), 404
+            # Fall through to ECS FC
+            ecs_match = session_db.query(EcsFcMatch).options(
+                joinedload(EcsFcMatch.team),
+                joinedload(EcsFcMatch.availabilities)
+            ).get(match_id)
+            if not ecs_match:
+                return jsonify({"msg": "Match not found"}), 404
+
+            player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+            team = ecs_match.team
+
+            # Build availability from EcsFcAvailability
+            avail_list = []
+            if team:
+                rsvp_map = {a.player_id: a for a in ecs_match.availabilities}
+                for p in team.players:
+                    avail = rsvp_map.get(p.id)
+                    avail_list.append({
+                        'player_id': p.id,
+                        'name': p.name,
+                        'response': avail.response if avail else None,
+                        'responded_at': avail.responded_at.isoformat() if avail and avail.responded_at else None,
+                    })
+
+            # ECS FC team as home or away based on is_home_match
+            ecs_team_data = {
+                'id': team.id if team else 0,
+                'name': team.name if team else 'Unknown',
+                'availability': avail_list,
+            }
+            opponent_data = {
+                'id': 0,
+                'name': ecs_match.opponent_name,
+                'availability': [],
+            }
+
+            response_data = {
+                'match_id': match_id,
+                'match_type': 'ecs_fc',
+                'home_team': ecs_team_data if ecs_match.is_home_match else opponent_data,
+                'away_team': opponent_data if ecs_match.is_home_match else ecs_team_data,
+            }
+
+            if player:
+                user_avail = next(
+                    (a for a in ecs_match.availabilities if a.player_id == player.id),
+                    None
+                )
+                response_data['my_availability'] = {
+                    'response': user_avail.response if user_avail else None,
+                    'responded_at': user_avail.responded_at.isoformat() if user_avail and user_avail.responded_at else None,
+                } if user_avail else None
+
+            return jsonify(response_data), 200
 
         player = session_db.query(Player).filter_by(user_id=current_user_id).first()
 

@@ -46,9 +46,9 @@ class MatchLineup(db.Model):
     __tablename__ = 'match_lineups'
 
     id = db.Column(db.Integer, primary_key=True)
+    # No FK constraint — ECS FC lineups use negative match_id convention
     match_id = db.Column(
         db.Integer,
-        db.ForeignKey('matches.id', ondelete='CASCADE'),
         nullable=False,
         index=True
     )
@@ -82,12 +82,6 @@ class MatchLineup(db.Model):
     version = db.Column(db.Integer, default=1, nullable=False)
 
     # Relationships
-    # passive_deletes=True tells SQLAlchemy to trust DB's ON DELETE CASCADE
-    match = db.relationship(
-        'Match',
-        backref=db.backref('lineups', lazy='dynamic', cascade='all, delete-orphan', passive_deletes=True),
-        passive_deletes=True
-    )
     team = db.relationship(
         'Team',
         backref=db.backref('match_lineups', lazy='dynamic', passive_deletes=True),
