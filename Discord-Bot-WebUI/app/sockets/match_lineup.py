@@ -258,6 +258,34 @@ def emit_player_removed(match_id, team_id, player_id, updated_by_user_id, is_ecs
     logger.debug(f"Emitted lineup_player_removed to room {room_key}: {player_name}")
 
 
+def emit_notes_updated(match_id, team_id, notes, updated_by_user_id, is_ecs_fc=False):
+    """Emit notes update to all clients in the lineup room."""
+    actual_match_id = abs(match_id) if match_id < 0 else match_id
+    is_ecs_fc = is_ecs_fc or match_id < 0
+    room_key = _get_room_key(actual_match_id, team_id, is_ecs_fc)
+
+    try:
+        with managed_session() as session:
+            user = session.query(User).filter_by(id=updated_by_user_id).first()
+            updated_by_name = user.username if user else 'Unknown'
+    except Exception:
+        updated_by_name = 'Unknown'
+
+    event_data = {
+        'match_id': match_id,
+        'team_id': team_id,
+        'notes': notes,
+        'updated_by': updated_by_user_id,
+        'updated_by_name': updated_by_name,
+        'timestamp': datetime.utcnow().isoformat()
+    }
+
+    socketio.emit('lineup_notes_updated', event_data, room=room_key, namespace='/')
+    socketio.emit('lineup_notes_updated', event_data, room=room_key, namespace='/live')
+
+    logger.debug(f"Emitted lineup_notes_updated to room {room_key}")
+
+
 def emit_rsvp_to_lineup_room(match_id, team_id, player_id, new_status, color, is_ecs_fc=False):
     """
     Emit RSVP change to lineup room (called from rsvp.py when RSVP changes).
@@ -432,13 +460,15 @@ def handle_join_lineup_room(data):
                 'message': 'Successfully joined lineup room'
             })
 
-            # Notify others in room
-            emit('coach_joined', {
-                'user_id': user_id,
+            # Notify others in room (both namespaces so mobile /live clients receive it)
+            coach_event_data = {
+                'coach_id': user_id,
                 'coach_name': display_name,
                 'is_coach': is_coach,
                 'timestamp': datetime.utcnow().isoformat()
-            }, room=room_key, include_self=False)
+            }
+            socketio.emit('lineup_coach_joined', coach_event_data, room=room_key, namespace='/', skip_sid=sid)
+            socketio.emit('lineup_coach_joined', coach_event_data, room=room_key, namespace='/live', skip_sid=sid)
 
             logger.info(f"User {display_name} joined lineup room {room_key}")
 
@@ -485,12 +515,14 @@ def handle_leave_lineup_room(data):
             coach_name = lineup_room_coaches[room_key][user_id].get('name', 'Unknown')
             _remove_coach_from_room(room_key, user_id, sid)
 
-            # Notify others in room
-            emit('coach_left', {
-                'user_id': user_id,
+            # Notify others in room (both namespaces so mobile /live clients receive it)
+            coach_event_data = {
+                'coach_id': user_id,
                 'coach_name': coach_name,
                 'timestamp': datetime.utcnow().isoformat()
-            }, room=room_key)
+            }
+            socketio.emit('lineup_coach_left', coach_event_data, room=room_key, namespace='/', skip_sid=sid)
+            socketio.emit('lineup_coach_left', coach_event_data, room=room_key, namespace='/live', skip_sid=sid)
 
         emit('left_lineup_room', {'match_id': match_id, 'team_id': team_id})
         logger.info(f"User left lineup room {room_key}")
@@ -769,23 +801,8 @@ def handle_save_lineup_notes(data):
                 'notes': notes
             })
 
-            # Broadcast notes update to room
-            room_key = _get_room_key(match_id, team_id, is_ecs_fc)
-            socketio.emit('lineup_notes_updated', {
-                'match_id': match_id,
-                'team_id': team_id,
-                'notes': notes,
-                'updated_by': user_id,
-                'timestamp': datetime.utcnow().isoformat()
-            }, room=room_key, namespace='/')
-            # Also emit to /live namespace for mobile clients
-            socketio.emit('lineup_notes_updated', {
-                'match_id': match_id,
-                'team_id': team_id,
-                'notes': notes,
-                'updated_by': user_id,
-                'timestamp': datetime.utcnow().isoformat()
-            }, room=room_key, namespace='/live')
+            # Broadcast notes update to room (both / and /live namespaces)
+            emit_notes_updated(db_match_id, team_id, notes, user_id, is_ecs_fc)
 
             logger.info(f"Lineup notes saved for match {match_id} team {team_id}")
 

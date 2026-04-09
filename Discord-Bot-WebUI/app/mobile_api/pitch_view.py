@@ -184,6 +184,7 @@ def build_roster_response(players, match=None, session_db=None):
             'profile_picture_url': getattr(player, 'profile_picture_url', None) or '/static/img/default_player.png',
             'favorite_position': player.favorite_position,
             'other_positions': player.other_positions,
+            'jersey_number': player.jersey_number,
             'rsvp_status': None,
             'rsvp_color': None,
             'stats': {
@@ -402,14 +403,15 @@ def get_match_lineup(match_id, team_id):
             'active_coaches': []
         }
 
+        try:
+            from app.sockets.match_lineup import get_active_coaches_for_room, _get_room_key
+            room_key = _get_room_key(match_id, ctx['team_id'], is_ecs_fc=ctx['is_ecs_fc'])
+            response['active_coaches'] = get_active_coaches_for_room(room_key)
+        except (ImportError, Exception):
+            pass
+
         if ctx['is_ecs_fc']:
             response['match_type'] = 'ecs_fc'
-            try:
-                from app.sockets.match_lineup import get_active_coaches_for_room, _get_room_key
-                room_key = _get_room_key(match_id, ctx['team_id'], is_ecs_fc=True)
-                response['active_coaches'] = get_active_coaches_for_room(room_key)
-            except (ImportError, Exception):
-                pass
 
         return jsonify(response), 200
 
@@ -653,12 +655,21 @@ def update_match_lineup_notes(match_id, team_id):
         else:
             lineup.notes = notes
             lineup.last_updated_by = current_user_id
+            lineup.increment_version()
 
         session_db.commit()
+        session_db.refresh(lineup)
+
+        try:
+            from app.sockets.match_lineup import emit_notes_updated
+            emit_notes_updated(ctx['lineup_match_id'], ctx['team_id'], notes, current_user_id)
+        except ImportError:
+            pass
 
         return jsonify({
             'msg': 'Notes updated',
-            'notes': notes
+            'notes': notes,
+            'version': lineup.version
         }), 200
 
 
@@ -706,6 +717,7 @@ def build_ecs_fc_roster_response(players, ecs_match, session_db):
             'profile_picture_url': player.profile_picture_url or '/static/img/default_player.png',
             'favorite_position': player.favorite_position,
             'other_positions': player.other_positions,
+            'jersey_number': player.jersey_number,
             'rsvp_status': rsvp_status,
             'rsvp_color': rsvp_color,
             'stats': {
@@ -766,7 +778,7 @@ def get_ecs_fc_match_lineup(match_id, team_id=None):
         active_coaches = []
         try:
             from app.sockets.match_lineup import get_active_coaches_for_room, _get_room_key
-            room_key = _get_room_key(-match_id, team_id)
+            room_key = _get_room_key(match_id, team_id, is_ecs_fc=True)
             active_coaches = get_active_coaches_for_room(room_key)
         except ImportError:
             pass
@@ -980,5 +992,64 @@ def remove_from_ecs_fc_lineup(match_id, player_id, team_id=None):
         return jsonify({
             'msg': 'Player removed from lineup',
             'player_id': player_id,
+            'version': lineup.version
+        }), 200
+
+
+@mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/lineup/notes', methods=['PUT'])
+@mobile_api_v2.route('/ecs-fc-matches/<int:match_id>/teams/<int:team_id>/lineup/notes', methods=['PUT'])
+@jwt_required()
+def update_ecs_fc_match_lineup_notes(match_id, team_id=None):
+    """
+    Update only the notes for an ECS FC match lineup (no position changes).
+    The team_id parameter is optional - if not provided, uses the match's team.
+    """
+    current_user_id = int(get_jwt_identity())
+
+    with managed_session() as session_db:
+        ecs_match = session_db.query(EcsFcMatch).filter_by(id=match_id).first()
+        if not ecs_match:
+            return jsonify({'msg': 'ECS FC match not found'}), 404
+
+        # For ECS FC, always use the match's team_id (ignore any passed team_id)
+        team_id = ecs_match.team_id
+
+        if not check_coach_permission(current_user_id, team_id, session_db):
+            return jsonify({'msg': 'You are not authorized to edit this team\'s lineup'}), 403
+
+        data = request.json or {}
+        notes = data.get('notes', '')
+
+        lineup = session_db.query(MatchLineup).filter_by(
+            match_id=-match_id,
+            team_id=team_id
+        ).first()
+
+        if not lineup:
+            lineup = MatchLineup(
+                match_id=-match_id,
+                team_id=team_id,
+                positions=[],
+                notes=notes,
+                created_by=current_user_id
+            )
+            session_db.add(lineup)
+        else:
+            lineup.notes = notes
+            lineup.last_updated_by = current_user_id
+            lineup.increment_version()
+
+        session_db.commit()
+        session_db.refresh(lineup)
+
+        try:
+            from app.sockets.match_lineup import emit_notes_updated
+            emit_notes_updated(-match_id, team_id, notes, current_user_id)
+        except ImportError:
+            pass
+
+        return jsonify({
+            'msg': 'Notes updated',
+            'notes': notes,
             'version': lineup.version
         }), 200

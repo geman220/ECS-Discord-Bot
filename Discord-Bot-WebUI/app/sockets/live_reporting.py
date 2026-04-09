@@ -362,6 +362,24 @@ def handle_live_disconnect(reason=None):
     if reason:
         logger.debug(f"Live namespace disconnect reason: {reason}")
     try:
+        # Clean up any lineup room tracking for this socket and notify other coaches.
+        # Do this BEFORE presence cleanup so we emit while the sid is still meaningful.
+        try:
+            from app.sockets.match_lineup import cleanup_lineup_rooms_for_sid
+            lineup_cleanups = cleanup_lineup_rooms_for_sid(request.sid)
+            for room_key, cleaned_user_id, coach_name in lineup_cleanups:
+                event_data = {
+                    'coach_id': cleaned_user_id,
+                    'coach_name': coach_name,
+                    'timestamp': datetime.utcnow().isoformat()
+                }
+                socketio.emit('lineup_coach_left', event_data, room=room_key, namespace='/')
+                socketio.emit('lineup_coach_left', event_data, room=room_key, namespace='/live')
+            if lineup_cleanups:
+                logger.info(f"🧹 Cleaned up {len(lineup_cleanups)} lineup room entries for disconnected /live socket {request.sid}")
+        except Exception as lineup_err:
+            logger.error(f"Error cleaning up lineup rooms on /live disconnect: {lineup_err}")
+
         # Clean up user presence in Redis (for real-time messaging)
         # This uses the sid to look up user_id internally
         PresenceManager.user_disconnected(request.sid)

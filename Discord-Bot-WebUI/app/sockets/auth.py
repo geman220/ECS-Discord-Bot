@@ -317,6 +317,23 @@ def handle_disconnect(reason=None):
     except Exception as e:
         logger.error(f"Error cleaning up room users on disconnect: {e}")
 
+    # Clean up any lineup room tracking for this socket and notify other coaches
+    try:
+        from app.sockets.match_lineup import cleanup_lineup_rooms_for_sid
+        lineup_cleanups = cleanup_lineup_rooms_for_sid(sid)
+        for room_key, cleaned_user_id, coach_name in lineup_cleanups:
+            event_data = {
+                'coach_id': cleaned_user_id,
+                'coach_name': coach_name,
+                'timestamp': datetime.utcnow().isoformat()
+            }
+            socketio.emit('lineup_coach_left', event_data, room=room_key, namespace='/')
+            socketio.emit('lineup_coach_left', event_data, room=room_key, namespace='/live')
+        if lineup_cleanups:
+            logger.info(f"🧹 Cleaned up {len(lineup_cleanups)} lineup room entries for disconnected socket {sid}")
+    except Exception as e:
+        logger.error(f"Error cleaning up lineup rooms on disconnect: {e}")
+
     # Broadcast coach_left to every match room the disconnecting coach was in.
     # Without this, abrupt disconnects (browser close, network drop) leave the
     # coach visible in other coaches' "Connected Coaches" indicators forever.
