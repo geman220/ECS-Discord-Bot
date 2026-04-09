@@ -109,26 +109,6 @@ def get_coach_team_id(session, player_id: int, match: Match) -> int:
     return coach_check.team_id if coach_check else None
 
 
-def _reset_match_verification(match: Match) -> bool:
-    """
-    Clear both teams' verification state.
-
-    Called after any mutation to a reported match (score change, event add/edit/delete)
-    so that the two-coach handshake must restart and both coaches re-confirm the data.
-
-    Returns True if anything was reset, False if there was nothing to reset.
-    """
-    if not (match.home_team_verified or match.away_team_verified):
-        return False
-    match.home_team_verified = False
-    match.home_team_verified_by = None
-    match.home_team_verified_at = None
-    match.away_team_verified = False
-    match.away_team_verified_by = None
-    match.away_team_verified_at = None
-    return True
-
-
 def _notify_opposing_coaches_to_verify(session, match: Match, just_verified: str) -> None:
     """
     Push-notify the OTHER team's coaches that they should verify the match.
@@ -560,7 +540,7 @@ def add_match_event(match_id: int):
                 # Continue - event is still valid even if stats update fails
 
         # Adding an event mutates the match — restart the two-coach handshake.
-        if _reset_match_verification(match):
+        if match.reset_verification():
             logger.info(f"Match {match_id} verification reset due to new event")
 
         session.commit()
@@ -675,7 +655,7 @@ def update_match_event(match_id: int, event_id: int):
                     logger.error(f"Failed to update player stats on event update: {e}")
 
         # Editing an event mutates the match — restart the two-coach handshake.
-        if _reset_match_verification(match):
+        if match.reset_verification():
             logger.info(f"Match {match_id} verification reset due to event update")
 
         session.commit()
@@ -754,7 +734,7 @@ def delete_match_event(match_id: int, event_id: int):
         session.delete(event)
 
         # Deleting an event mutates the match — restart the two-coach handshake.
-        if _reset_match_verification(match):
+        if match.reset_verification():
             logger.info(f"Match {match_id} verification reset due to event deletion")
 
         session.commit()
@@ -850,7 +830,7 @@ def report_match(match_id: int):
         score_changed = (old_home_score != home_score) or (old_away_score != away_score)
         notes_changed = bool(notes) and notes != old_notes
         if score_changed or notes_changed or events_data:
-            if _reset_match_verification(match):
+            if match.reset_verification():
                 logger.info(f"Match {match_id} verification reset due to report resubmission")
 
         # Handle verification if requested
@@ -1045,7 +1025,7 @@ def update_match_score(match_id: int):
         # Only restart the two-coach handshake if scores actually moved.
         # A no-op resubmission shouldn't punish coaches who already verified.
         if score_changed:
-            if _reset_match_verification(match):
+            if match.reset_verification():
                 logger.info(f"Match {match_id} verification reset due to score change")
 
         session.commit()
@@ -1212,7 +1192,7 @@ def resolve_event_conflict(match_id: int):
                     logger.error(f"Failed to update player stats in resolve_conflict: {e}")
 
             # Force-creating an event mutates the match — restart the two-coach handshake.
-            if _reset_match_verification(match):
+            if match.reset_verification():
                 logger.info(f"Match {match_id} verification reset due to force-created event")
 
             session.commit()

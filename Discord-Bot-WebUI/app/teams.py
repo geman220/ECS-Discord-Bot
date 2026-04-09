@@ -842,6 +842,7 @@ def report_match(match_id):
 
         old_home_score = match.home_team_score
         old_away_score = match.away_team_score
+        old_notes = match.notes
 
         try:
             match.home_team_score = int(data.get('home_team_score', old_home_score or 0))
@@ -851,12 +852,28 @@ def report_match(match_id):
 
         match.notes = data.get('notes', match.notes)
 
+        # If anything in the report payload actually mutates the match, restart
+        # the two-coach handshake. We do this BEFORE the verify_* block below
+        # so a submitter who verifies in the same request still ends up verified.
+        score_changed = (match.home_team_score != old_home_score) or (match.away_team_score != old_away_score)
+        notes_changed = match.notes != old_notes
+        events_changed = any(data.get(key) for key in (
+            'goals_to_add', 'goals_to_remove',
+            'assists_to_add', 'assists_to_remove',
+            'yellow_cards_to_add', 'yellow_cards_to_remove',
+            'red_cards_to_add', 'red_cards_to_remove',
+            'own_goals_to_add', 'own_goals_to_remove',
+        ))
+        if score_changed or notes_changed or events_changed:
+            if match.reset_verification():
+                logger.info(f"Match {match_id} verification reset due to web report resubmission")
+
         # Process player events for the match
         process_events(session, match, data, PlayerEventType.GOAL, 'goals_to_add', 'goals_to_remove')
         process_events(session, match, data, PlayerEventType.ASSIST, 'assists_to_add', 'assists_to_remove')
         process_events(session, match, data, PlayerEventType.YELLOW_CARD, 'yellow_cards_to_add', 'yellow_cards_to_remove')
         process_events(session, match, data, PlayerEventType.RED_CARD, 'red_cards_to_add', 'red_cards_to_remove')
-        
+
         # Process own goals for the match
         process_own_goals(session, match, data, 'own_goals_to_add', 'own_goals_to_remove')
 

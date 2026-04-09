@@ -1334,11 +1334,16 @@ def on_submit_report(data):
             if match:
                 match.home_team_score = live_match.home_score
                 match.away_team_score = live_match.away_score
-                
+
                 # Add any notes from report_data
                 if 'notes' in report_data:
                     match.notes = report_data.get('notes')
-                    
+
+                # Submitting the live report mutates the match — restart the
+                # two-coach handshake so any prior verification is invalidated.
+                if match.reset_verification():
+                    logger.info(f"Match {match_id} verification reset due to live report submission")
+
             session.commit()
             
             # Now that match is reported, we can create PlayerEvent records

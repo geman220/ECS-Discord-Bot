@@ -312,6 +312,10 @@ def handle_report_match_event(data):
                 except Exception as stats_error:
                     logger.error(f"Failed to update player stats: {stats_error}")
 
+            # Adding an event mutates the match — restart the two-coach handshake.
+            if match.reset_verification():
+                logger.info(f"Match {match_id} verification reset due to socket report_match_event")
+
             session.commit()
 
             # Broadcast event to all coaches in the room
@@ -390,6 +394,11 @@ def handle_delete_match_event(data):
 
             # Delete the event
             session.delete(event)
+
+            # Deleting an event mutates the match — restart the two-coach handshake.
+            if match and match.reset_verification():
+                logger.info(f"Match {match_id} verification reset due to socket delete_match_event")
+
             session.commit()
 
             # Broadcast deletion to all coaches in the room
@@ -590,6 +599,12 @@ def handle_end_match(data):
             # Update match scores
             match.home_team_score = int(home_score)
             match.away_team_score = int(away_score)
+
+            # Ending a match mutates the score — restart the two-coach handshake
+            # so any prior verification is invalidated.
+            if match.reset_verification():
+                logger.info(f"Match {match_id} verification reset due to socket end_match")
+
             session.commit()
 
             room = f'match_{match_id}'

@@ -152,7 +152,28 @@ class Match(db.Model):
     def fully_verified(self):
         """Determine if the match has been verified by both teams."""
         return self.home_team_verified and self.away_team_verified
-        
+
+    def reset_verification(self) -> bool:
+        """
+        Clear both teams' verification state.
+
+        Called after any mutation to a reported match (score change, event
+        add/edit/delete, live report submission) so the two-coach handshake
+        must restart and both coaches re-confirm the data.
+
+        Returns True if anything was actually cleared, False if neither side
+        was verified to begin with (so callers can decide whether to log).
+        """
+        if not (self.home_team_verified or self.away_team_verified):
+            return False
+        self.home_team_verified = False
+        self.home_team_verified_by = None
+        self.home_team_verified_at = None
+        self.away_team_verified = False
+        self.away_team_verified_by = None
+        self.away_team_verified_at = None
+        return True
+
     def get_verification_status(self):
         """Get a detailed verification status for the match."""
         return {
