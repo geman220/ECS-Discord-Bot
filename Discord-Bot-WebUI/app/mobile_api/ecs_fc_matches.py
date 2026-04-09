@@ -15,6 +15,7 @@ from datetime import datetime, date
 
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.mobile_api import mobile_api_v2
@@ -134,7 +135,11 @@ def get_ecs_fc_matches():
     Get ECS FC matches for the current user's teams.
 
     Query Parameters:
-        upcoming: If 'true', return only upcoming matches (default: true)
+        upcoming: If 'true' (default), return only matches from today onward.
+                  Ignored when `completed=true` is set.
+        completed: If 'true', return only past matches (match_date < today,
+                   or match_date == today with both scores reported).
+                   Takes precedence over `upcoming`. Default: false.
         team_id: Filter by specific team ID
         limit: Maximum number of matches (default: 20, max: 100)
         include_availability: If 'true', include user's availability
@@ -144,6 +149,7 @@ def get_ecs_fc_matches():
     """
     current_user_id = int(get_jwt_identity())
 
+    completed = request.args.get('completed', 'false').lower() == 'true'
     upcoming = request.args.get('upcoming', 'true').lower() == 'true'
     team_id = request.args.get('team_id', type=int)
     limit = min(request.args.get('limit', 20, type=int), 100)
@@ -172,15 +178,40 @@ def get_ecs_fc_matches():
         elif user_team_ids:
             query = query.filter(EcsFcMatch.team_id.in_(user_team_ids))
 
-        # Filter by date
-        if upcoming:
-            query = query.filter(EcsFcMatch.match_date >= date.today())
-            query = query.order_by(EcsFcMatch.match_date.asc(), EcsFcMatch.match_time.asc())
-        else:
-            query = query.order_by(EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc())
-
-        # Exclude cancelled matches
+        # Exclude cancelled matches in all branches
         query = query.filter(EcsFcMatch.status != 'CANCELLED')
+
+        today = date.today()
+
+        # `completed` takes precedence over `upcoming` so mobile clients can
+        # request history with just `?completed=true` (without also needing
+        # to pass upcoming=false). Date-based semantics match
+        # query_ecs_fc_matches in app/mobile_api/matches.py for cross-endpoint
+        # consistency — past matches whose coach never filed a report still
+        # appear in history.
+        if completed:
+            query = query.filter(
+                or_(
+                    EcsFcMatch.match_date < today,
+                    and_(
+                        EcsFcMatch.match_date == today,
+                        EcsFcMatch.home_score.isnot(None),
+                        EcsFcMatch.away_score.isnot(None),
+                    ),
+                )
+            )
+            query = query.order_by(
+                EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc()
+            )
+        elif upcoming:
+            query = query.filter(EcsFcMatch.match_date >= today)
+            query = query.order_by(
+                EcsFcMatch.match_date.asc(), EcsFcMatch.match_time.asc()
+            )
+        else:
+            query = query.order_by(
+                EcsFcMatch.match_date.desc(), EcsFcMatch.match_time.desc()
+            )
 
         matches = query.limit(limit).all()
 

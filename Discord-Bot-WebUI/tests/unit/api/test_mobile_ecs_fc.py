@@ -409,6 +409,200 @@ class TestEcsFcMatchListingBehaviors:
             for match in data['matches']:
                 assert match['status'] != 'CANCELLED'
 
+    def test_completed_filter_returns_past_matches_only(
+        self, client, app, db, ecs_fc_user, ecs_fc_player, ecs_fc_match,
+        ecs_fc_past_match, jwt_headers
+    ):
+        """
+        GIVEN matches in the past and future
+        WHEN requesting with completed=true
+        THEN only past matches (or today with scores) should be returned
+        """
+        with app.app_context():
+            response = client.get(
+                '/api/v1/ecs-fc-matches?completed=true',
+                headers=jwt_headers
+            )
+
+            assert response.status_code == 200
+            data = response.get_json()
+            assert data['count'] >= 1
+            for match in data['matches']:
+                if not match['date']:
+                    continue
+                match_date = date.fromisoformat(match['date'])
+                if match_date > date.today():
+                    pytest.fail(
+                        f"Future match {match['id']} returned with completed=true"
+                    )
+                if match_date == date.today():
+                    # Today counts only when both scores reported
+                    assert match['home_score'] is not None
+                    assert match['away_score'] is not None
+
+    def test_completed_filter_excludes_future_matches(
+        self, client, app, db, ecs_fc_user, ecs_fc_player, ecs_fc_match,
+        ecs_fc_past_match, jwt_headers
+    ):
+        """
+        GIVEN both a future SCHEDULED match and a past COMPLETED match
+        WHEN requesting with completed=true
+        THEN the future match is excluded and the past match is included
+        """
+        future_match_id = ecs_fc_match.id
+        past_match_id = ecs_fc_past_match.id
+
+        with app.app_context():
+            response = client.get(
+                '/api/v1/ecs-fc-matches?completed=true',
+                headers=jwt_headers
+            )
+
+            assert response.status_code == 200
+            data = response.get_json()
+            returned_ids = {m['id'] for m in data['matches']}
+            assert future_match_id not in returned_ids
+            assert past_match_id in returned_ids
+
+    def test_completed_filter_sorts_desc_by_date(
+        self, client, app, db, ecs_fc_user, ecs_fc_player, ecs_fc_team, jwt_headers
+    ):
+        """
+        GIVEN multiple past matches on different dates
+        WHEN requesting with completed=true
+        THEN results should be ordered descending by date (newest first)
+        """
+        from app.models.ecs_fc import EcsFcMatch
+
+        for days_ago in (1, 7, 14):
+            past_match = EcsFcMatch(
+                team_id=ecs_fc_team.id,
+                opponent_name=f'Old Team {days_ago}',
+                match_date=date.today() - timedelta(days=days_ago),
+                match_time=time(15, 0),
+                location='Stadium',
+                is_home_match=True,
+                status='COMPLETED',
+                home_score=1,
+                away_score=0,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            db.session.add(past_match)
+        db.session.commit()
+
+        with app.app_context():
+            response = client.get(
+                '/api/v1/ecs-fc-matches?completed=true',
+                headers=jwt_headers
+            )
+
+            assert response.status_code == 200
+            data = response.get_json()
+            match_dates = [
+                date.fromisoformat(m['date'])
+                for m in data['matches']
+                if m['date']
+            ]
+            assert match_dates == sorted(match_dates, reverse=True)
+
+    def test_completed_filter_excludes_cancelled_past_matches(
+        self, client, app, db, ecs_fc_user, ecs_fc_player, ecs_fc_team, jwt_headers
+    ):
+        """
+        GIVEN a past match with status CANCELLED
+        WHEN requesting with completed=true
+        THEN the cancelled match should NOT appear (cancelled filter is global)
+        """
+        from app.models.ecs_fc import EcsFcMatch
+
+        cancelled_past = EcsFcMatch(
+            team_id=ecs_fc_team.id,
+            opponent_name='Cancelled Past Team',
+            match_date=date.today() - timedelta(days=5),
+            match_time=time(19, 0),
+            location='Stadium',
+            is_home_match=True,
+            status='CANCELLED',
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        db.session.add(cancelled_past)
+        db.session.commit()
+        cancelled_id = cancelled_past.id
+
+        with app.app_context():
+            response = client.get(
+                '/api/v1/ecs-fc-matches?completed=true',
+                headers=jwt_headers
+            )
+
+            assert response.status_code == 200
+            data = response.get_json()
+            returned_ids = {m['id'] for m in data['matches']}
+            assert cancelled_id not in returned_ids
+
+    def test_completed_filter_includes_unreported_past_matches(
+        self, client, app, db, ecs_fc_user, ecs_fc_player, ecs_fc_team, jwt_headers
+    ):
+        """
+        GIVEN a past match still in SCHEDULED status (coach never filed a report)
+        WHEN requesting with completed=true
+        THEN the unreported past match should appear (date-based contract)
+        """
+        from app.models.ecs_fc import EcsFcMatch
+
+        unreported_past = EcsFcMatch(
+            team_id=ecs_fc_team.id,
+            opponent_name='Unreported Opponent',
+            match_date=date.today() - timedelta(days=14),
+            match_time=time(19, 0),
+            location='Stadium',
+            is_home_match=True,
+            status='SCHEDULED',
+            created_at=datetime.utcnow(),
+            updated_at=datetime.utcnow()
+        )
+        db.session.add(unreported_past)
+        db.session.commit()
+        unreported_id = unreported_past.id
+
+        with app.app_context():
+            response = client.get(
+                '/api/v1/ecs-fc-matches?completed=true',
+                headers=jwt_headers
+            )
+
+            assert response.status_code == 200
+            data = response.get_json()
+            returned_ids = {m['id'] for m in data['matches']}
+            assert unreported_id in returned_ids
+
+    def test_completed_precedence_over_default_upcoming(
+        self, client, app, db, ecs_fc_user, ecs_fc_player, ecs_fc_match,
+        ecs_fc_past_match, jwt_headers
+    ):
+        """
+        GIVEN the endpoint's default upcoming=true behavior
+        WHEN requesting with just ?completed=true (no explicit upcoming=false)
+        THEN past matches are returned (completed overrides the upcoming default)
+        """
+        future_id = ecs_fc_match.id
+        past_id = ecs_fc_past_match.id
+
+        with app.app_context():
+            # Deliberately omit upcoming — relying on completed precedence
+            response = client.get(
+                '/api/v1/ecs-fc-matches?completed=true',
+                headers=jwt_headers
+            )
+
+            assert response.status_code == 200
+            data = response.get_json()
+            returned_ids = {m['id'] for m in data['matches']}
+            assert past_id in returned_ids
+            assert future_id not in returned_ids
+
 
 # =============================================================================
 # ECS FC MATCH DETAIL BEHAVIOR TESTS
