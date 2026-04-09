@@ -3,9 +3,9 @@
 """
 Matches API Endpoints
 
-Handles match-related operations including:
-- Match listing (both Pub League and ECS FC matches)
-- Match details
+Handles Pub League match-related operations including:
+- Match listing (Pub League only — ECS FC matches are served by /api/v1/ecs-fc-matches)
+- Match details (with single-id fallthrough to EcsFcMatch for backward compatibility)
 - Match events
 - Match availability
 - Match live updates
@@ -132,37 +132,6 @@ def normalize_ecs_fc_match(match: EcsFcMatch, player: Player = None,
     return match_data
 
 
-def get_ecs_fc_team_ids(session, player: Player) -> list:
-    """Get list of ECS FC team IDs for a player."""
-    if not player or not player.teams:
-        return []
-
-    ecs_fc_ids = []
-    for team in player.teams:
-        if team.league and 'ECS FC' in team.league.name:
-            ecs_fc_ids.append(team.id)
-    return ecs_fc_ids
-
-
-def check_is_ecs_fc_team(session, team_id: int) -> bool:
-    """
-    Check if a team is an ECS FC team using the provided session.
-
-    This function works within managed_session context unlike is_ecs_fc_team().
-    """
-    if not team_id:
-        return False
-
-    team = session.query(Team).options(
-        joinedload(Team.league)
-    ).get(team_id)
-
-    if not team or not team.league:
-        return False
-
-    return 'ECS FC' in team.league.name
-
-
 def query_ecs_fc_matches(session, team_ids: list, upcoming: bool = False,
                          completed: bool = False, limit: int = 50) -> list:
     """
@@ -276,85 +245,36 @@ def get_all_matches():
         include_events = request.args.get('include_events', 'false').lower() == 'true'
         include_availability = request.args.get('include_availability', 'false').lower() == 'true'
 
-        # Initialize combined results
-        all_matches_data = []
+        # Query Pub League matches only.
+        # ECS FC fixtures are served by /api/v1/ecs-fc-matches; this endpoint
+        # used to UNION both tables, which caused multi-league players to see
+        # every ECS FC fixture twice (once here, once via /ecs-fc-matches).
+        query = build_matches_query(
+            team_id=team_id,
+            player=player,
+            upcoming=upcoming,
+            completed=completed,
+            all_teams=all_teams,
+            limit=limit,
+            session=session_db
+        )
 
-        # Check if team_id is an ECS FC team (use session-aware function)
-        ecs_fc_team_ids = []
-        pub_league_team_ids = []
-        team_is_ecs_fc = False
+        pub_matches = query.all()
+        logger.info(f"Found {len(pub_matches)} Pub League matches")
 
-        if team_id and not all_teams:
-            # Single team mode: only classify the requested team
-            team_is_ecs_fc = check_is_ecs_fc_team(session_db, team_id)
-            if team_is_ecs_fc:
-                ecs_fc_team_ids = [team_id]
-                logger.info(f"Team {team_id} is ECS FC team")
-            else:
-                pub_league_team_ids = [team_id]
-                logger.info(f"Team {team_id} is Pub League team")
-        elif player and player.teams:
-            # all_teams mode or no team_id: classify ALL player teams
-            for team in player.teams:
-                if team.league and 'ECS FC' in team.league.name:
-                    ecs_fc_team_ids.append(team.id)
-                else:
-                    pub_league_team_ids.append(team.id)
+        all_matches_data = process_matches_data(
+            matches=pub_matches,
+            player=player,
+            include_events=include_events,
+            include_availability=include_availability,
+            session=session_db
+        )
 
-        # Query Pub League matches (only if we have pub league teams or no specific filter)
-        if pub_league_team_ids or (not team_id and not ecs_fc_team_ids):
-            query = build_matches_query(
-                team_id=team_id if team_id and not team_is_ecs_fc else None,
-                player=player,
-                upcoming=upcoming,
-                completed=completed,
-                all_teams=all_teams,
-                limit=limit,
-                session=session_db
-            )
+        # Tag pub league matches so clients can branch on match_type uniformly
+        for m in all_matches_data:
+            m['match_type'] = 'pub_league'
 
-            pub_matches = query.all()
-            logger.info(f"Found {len(pub_matches)} Pub League matches")
-
-            pub_matches_data = process_matches_data(
-                matches=pub_matches,
-                player=player,
-                include_events=include_events,
-                include_availability=include_availability,
-                session=session_db
-            )
-
-            # Tag pub league matches
-            for m in pub_matches_data:
-                m['match_type'] = 'pub_league'
-
-            all_matches_data.extend(pub_matches_data)
-
-        # Query ECS FC matches
-        if ecs_fc_team_ids or (player and not team_id):
-            # Get ECS FC team IDs if not already determined
-            if not ecs_fc_team_ids and player:
-                ecs_fc_team_ids = get_ecs_fc_team_ids(session_db, player)
-
-            if ecs_fc_team_ids:
-                ecs_fc_matches = query_ecs_fc_matches(
-                    session=session_db,
-                    team_ids=ecs_fc_team_ids,
-                    upcoming=upcoming,
-                    completed=completed,
-                    limit=limit
-                )
-                logger.info(f"Found {len(ecs_fc_matches)} ECS FC matches")
-
-                for match in ecs_fc_matches:
-                    match_data = normalize_ecs_fc_match(
-                        match=match,
-                        player=player,
-                        include_availability=include_availability
-                    )
-                    all_matches_data.append(match_data)
-
-        # Sort combined results by date
+        # Sort results by date
         def get_sort_key(m):
             date_str = m.get('date')
             time_str = m.get('time', '00:00')
@@ -373,7 +293,7 @@ def get_all_matches():
         # Apply limit to combined results
         all_matches_data = all_matches_data[:limit]
 
-        logger.info(f"Returning {len(all_matches_data)} total matches (Pub League + ECS FC)")
+        logger.info(f"Returning {len(all_matches_data)} Pub League matches")
 
         cache_duration = CACHE_DURATIONS['match_list'] if not include_availability else 3600
         return make_etag_response(all_matches_data, 'match_list', cache_duration)

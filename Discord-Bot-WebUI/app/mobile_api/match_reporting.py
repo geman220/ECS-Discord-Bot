@@ -109,6 +109,100 @@ def get_coach_team_id(session, player_id: int, match: Match) -> int:
     return coach_check.team_id if coach_check else None
 
 
+def _reset_match_verification(match: Match) -> bool:
+    """
+    Clear both teams' verification state.
+
+    Called after any mutation to a reported match (score change, event add/edit/delete)
+    so that the two-coach handshake must restart and both coaches re-confirm the data.
+
+    Returns True if anything was reset, False if there was nothing to reset.
+    """
+    if not (match.home_team_verified or match.away_team_verified):
+        return False
+    match.home_team_verified = False
+    match.home_team_verified_by = None
+    match.home_team_verified_at = None
+    match.away_team_verified = False
+    match.away_team_verified_by = None
+    match.away_team_verified_at = None
+    return True
+
+
+def _notify_opposing_coaches_to_verify(session, match: Match, just_verified: str) -> None:
+    """
+    Push-notify the OTHER team's coaches that they should verify the match.
+
+    Called from the verify endpoint after one team verifies. No-op if the match
+    is already fully verified.
+
+    Args:
+        session: SQLAlchemy session
+        match: Match instance with home_team and away_team eager-loaded
+        just_verified: 'home' or 'away' - which side was just verified
+    """
+    if match.fully_verified:
+        return
+
+    if just_verified == 'home':
+        target_team_id = match.away_team_id
+        target_team_name = match.away_team.name
+        verified_team_name = match.home_team.name
+    else:
+        target_team_id = match.home_team_id
+        target_team_name = match.home_team.name
+        verified_team_name = match.away_team.name
+
+    coach_user_ids = [
+        row[0] for row in (
+            session.query(Player.user_id)
+            .join(player_teams, player_teams.c.player_id == Player.id)
+            .filter(
+                player_teams.c.team_id == target_team_id,
+                player_teams.c.is_coach.is_(True),
+                Player.user_id.isnot(None),
+            )
+            .distinct()
+            .all()
+        )
+    ]
+    if not coach_user_ids:
+        return
+
+    try:
+        from app.services.notification_orchestrator import (
+            orchestrator,
+            NotificationPayload,
+            NotificationType,
+        )
+        date_str = match.date.strftime('%b %-d') if match.date else 'recent'
+        score_str = f"{match.home_team_score}-{match.away_team_score}"
+        orchestrator.send(NotificationPayload(
+            notification_type=NotificationType.MATCH_VERIFICATION_NEEDED,
+            title="Match needs your verification",
+            message=(
+                f"{verified_team_name} confirmed the {date_str} result "
+                f"({score_str}) against {target_team_name}. "
+                f"Take a look and confirm if it matches your records."
+            ),
+            user_ids=coach_user_ids,
+            data={
+                'type': 'verify_match',
+                'match_id': str(match.id),
+            },
+            priority='high',
+            # Push-only delivery: in-app bell entry still fires (default), but
+            # email/SMS/Discord are suppressed so coaches aren't multi-channel spammed.
+            force_push=True,
+            force_email=False,
+            force_sms=False,
+            force_discord=False,
+        ))
+    except Exception as exc:
+        # Notification failures should never break the verify request itself.
+        logger.exception(f"Failed to push verification notification for match {match.id}: {exc}")
+
+
 @mobile_api_v2.route('/matches/<int:match_id>/reporting', methods=['GET'])
 @jwt_required()
 def get_match_reporting_info(match_id: int):
@@ -148,13 +242,15 @@ def get_match_reporting_info(match_id: int):
         can_report = can_report_match(session, user, player, match)
         coach_team_id = get_coach_team_id(session, player.id, match) if player and is_coach_for_match(session, player.id, match) else None
 
-        # Determine verification permissions
+        # Determine verification permissions.
+        # Once a team is verified, no one (coach or admin) needs to verify it again
+        # via the mobile flow — admins can always undo via the web "reject" path.
         is_admin = user.has_role('Global Admin') or user.has_role('Pub League Admin')
         is_ref = user.has_role('Pub League Ref') or (player and player.is_ref and match.ref_id == player.id)
         admin_or_ref = is_admin or is_ref
         user_team_ids = [t.id for t in player.teams] if player else []
-        can_verify_home = admin_or_ref or (match.home_team_id in user_team_ids)
-        can_verify_away = admin_or_ref or (match.away_team_id in user_team_ids)
+        can_verify_home = (admin_or_ref or (match.home_team_id in user_team_ids)) and not match.home_team_verified
+        can_verify_away = (admin_or_ref or (match.away_team_id in user_team_ids)) and not match.away_team_verified
 
         # Build availability lookup by player_id
         availability_by_player = {}
@@ -463,6 +559,10 @@ def add_match_event(match_id: int):
                 logger.error(f"Failed to update player stats: {e}")
                 # Continue - event is still valid even if stats update fails
 
+        # Adding an event mutates the match — restart the two-coach handshake.
+        if _reset_match_verification(match):
+            logger.info(f"Match {match_id} verification reset due to new event")
+
         session.commit()
 
         # Get player name for response
@@ -574,6 +674,10 @@ def update_match_event(match_id: int, event_id: int):
                 except Exception as e:
                     logger.error(f"Failed to update player stats on event update: {e}")
 
+        # Editing an event mutates the match — restart the two-coach handshake.
+        if _reset_match_verification(match):
+            logger.info(f"Match {match_id} verification reset due to event update")
+
         session.commit()
 
         # Get player name for response
@@ -648,6 +752,11 @@ def delete_match_event(match_id: int, event_id: int):
                 logger.error(f"Failed to update player stats on event delete: {e}")
 
         session.delete(event)
+
+        # Deleting an event mutates the match — restart the two-coach handshake.
+        if _reset_match_verification(match):
+            logger.info(f"Match {match_id} verification reset due to event deletion")
+
         session.commit()
 
         return jsonify({
@@ -719,6 +828,11 @@ def report_match(match_id: int):
         if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to report this match"}), 403
 
+        # Capture pre-mutation state so we can detect actual data changes below.
+        old_home_score = match.home_team_score
+        old_away_score = match.away_team_score
+        old_notes = match.notes
+
         # Update scores
         match.home_team_score = home_score
         match.away_team_score = away_score
@@ -727,6 +841,17 @@ def report_match(match_id: int):
         notes = data.get('notes')
         if notes:
             match.notes = notes
+
+        # If the report resubmission actually changes the data (scores, notes, or
+        # any incoming events), restart the two-coach handshake. We do this BEFORE
+        # re-applying any verify_* flags below, so a submitter who verifies in the
+        # same request still ends up verified.
+        events_data = data.get('events', [])
+        score_changed = (old_home_score != home_score) or (old_away_score != away_score)
+        notes_changed = bool(notes) and notes != old_notes
+        if score_changed or notes_changed or events_data:
+            if _reset_match_verification(match):
+                logger.info(f"Match {match_id} verification reset due to report resubmission")
 
         # Handle verification if requested
         verify_home = data.get('verify_home_team', False)
@@ -752,7 +877,6 @@ def report_match(match_id: int):
                 logger.info(f"Away team verified for match {match_id} by user {current_user_id}")
 
         # Add events if provided (with idempotency support)
-        events_data = data.get('events', [])
         events_result = []
 
         for event_data in events_data:
@@ -911,9 +1035,19 @@ def update_match_score(match_id: int):
         if not can_report_match(session, user, player, match):
             return jsonify({"msg": "You are not authorized to update scores for this match"}), 403
 
+        # Detect actual score change before mutating
+        score_changed = (match.home_team_score != home_score) or (match.away_team_score != away_score)
+
         # Update scores
         match.home_team_score = home_score
         match.away_team_score = away_score
+
+        # Only restart the two-coach handshake if scores actually moved.
+        # A no-op resubmission shouldn't punish coaches who already verified.
+        if score_changed:
+            if _reset_match_verification(match):
+                logger.info(f"Match {match_id} verification reset due to score change")
+
         session.commit()
 
         # Update standings after score change
@@ -1077,6 +1211,10 @@ def resolve_event_conflict(match_id: int):
                 except Exception as e:
                     logger.error(f"Failed to update player stats in resolve_conflict: {e}")
 
+            # Force-creating an event mutates the match — restart the two-coach handshake.
+            if _reset_match_verification(match):
+                logger.info(f"Match {match_id} verification reset due to force-created event")
+
             session.commit()
 
             # Get player name for response
@@ -1158,6 +1296,7 @@ def verify_match(match_id: int):
 
         now = datetime.utcnow()
         verified_teams = []
+        newly_verified = set()  # Tracks fresh verifications for post-commit notifications
 
         # Verify home team
         if team in ('home', 'both'):
@@ -1171,6 +1310,7 @@ def verify_match(match_id: int):
                 match.home_team_verified_by = current_user_id
                 match.home_team_verified_at = now
                 verified_teams.append('home')
+                newly_verified.add('home')
                 logger.info(f"Home team verified for match {match_id} by user {current_user_id}")
 
         # Verify away team
@@ -1185,9 +1325,19 @@ def verify_match(match_id: int):
                 match.away_team_verified_by = current_user_id
                 match.away_team_verified_at = now
                 verified_teams.append('away')
+                newly_verified.add('away')
                 logger.info(f"Away team verified for match {match_id} by user {current_user_id}")
 
         session.commit()
+
+        # Push the OTHER team's coaches if exactly one side was just verified.
+        # If both were verified in this call (e.g. team='both' from an admin), the
+        # match is now fully verified and there's no one left to notify.
+        if not match.fully_verified:
+            if 'home' in newly_verified and 'away' not in newly_verified:
+                _notify_opposing_coaches_to_verify(session, match, 'home')
+            elif 'away' in newly_verified and 'home' not in newly_verified:
+                _notify_opposing_coaches_to_verify(session, match, 'away')
 
         return jsonify({
             "success": True,

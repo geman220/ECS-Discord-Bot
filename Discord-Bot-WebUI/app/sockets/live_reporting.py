@@ -404,18 +404,42 @@ def handle_live_disconnect(reason=None):
                 with socket_session(db.engine) as session:
                     # Get user from database for username
                     user = session.query(User).get(user_id)
+                    username = user.username if user else f"User_{user_id}"
                     if user:
                         logger.info(f"Live reporting client disconnected: {user.username}")
-                        # Update the last active time for all matches this user is reporting
-                        active_reports = session.query(ActiveMatchReporter).filter_by(
-                            user_id=user_id
-                        ).all()
-                        
-                        for report in active_reports:
-                            report.last_active = datetime.utcnow()
-                            logger.debug(f"Updated last_active for user {user_id} in match {report.match_id}")
                     else:
                         logger.warning(f"User ID {user_id} not found in database during disconnect")
+
+                    # Find all matches this user was reporting and remove the
+                    # rows so future joins start clean. Capture (match_id, team_id)
+                    # before deletion so we can broadcast leave events afterwards.
+                    active_reports = session.query(ActiveMatchReporter).filter_by(
+                        user_id=user_id
+                    ).all()
+
+                    matches_left = [(r.match_id, r.team_id) for r in active_reports]
+                    for report in active_reports:
+                        session.delete(report)
+                    session.commit()
+
+                    # The disconnecting socket is no longer in any room, so use
+                    # socketio.emit with explicit namespace + room to notify the
+                    # surviving members of each match the coach was reporting.
+                    for match_id, team_id in matches_left:
+                        socketio.emit('reporter_left', {
+                            'match_id': match_id,
+                            'user_id': user_id,
+                            'username': username,
+                            'team_id': team_id
+                        }, room=f"match_{match_id}", namespace='/live')
+
+                        refreshed = get_active_reporters(session, match_id)
+                        socketio.emit('active_reporters', {
+                            'match_id': match_id,
+                            'reporters': refreshed
+                        }, room=f"match_{match_id}", namespace='/live')
+
+                        logger.info(f"Broadcast reporter_left for user {user_id} in match {match_id} on disconnect")
             except Exception as db_error:
                 logger.error(f"Database error in disconnect handler: {db_error}")
         else:
@@ -556,18 +580,31 @@ def on_join_match(data):
             # Fetch player shifts for this team
             player_shifts = get_player_shifts(session, match_id, team_id)
             
-            # Notify others about the new reporter
+            # Look up profile picture for this reporter
+            joining_player = session.query(Player).filter(Player.user_id == user_id).first()
+            joining_profile_picture_url = joining_player.profile_picture_url if joining_player else None
+
+            # Notify everyone in the room about the new reporter (room-scoped, includes match_id)
             emit('reporter_joined', {
+                'match_id': match_id,
                 'user_id': user_id,
                 'username': user.username,
                 'team_id': team_id,
-                'team_name': team.name
+                'team_name': team.name,
+                'profile_picture_url': joining_profile_picture_url
             }, room=f"match_{match_id}")
-            
+
             # Send current state to the joining user
             emit('match_state', match_state)
-            emit('active_reporters', active_reporters)
             emit('player_shifts', player_shifts)
+
+            # Broadcast refreshed reporter list to everyone in the room
+            # (joining coach included via default include_self=True). Wrapped
+            # shape includes match_id so the client can filter without inferring.
+            emit('active_reporters', {
+                'match_id': match_id,
+                'reporters': active_reporters
+            }, room=f"match_{match_id}")
             
             logger.info(f"User {user_id} joined match {match_id} reporting for team {team_id}")
             
@@ -604,26 +641,34 @@ def on_leave_match(data):
         
         # Leave the Socket.IO room
         leave_room(f"match_{match_id}")
-        
-        # Update active reporter status
+
+        # Remove the active reporter row so subsequent get_active_reporters()
+        # calls don't return ghosts during the 5-minute last_active window.
         active_reporter = session.query(ActiveMatchReporter).filter_by(
             match_id=match_id, user_id=user_id
         ).first()
-        
+
         if active_reporter:
-            active_reporter.last_active = datetime.utcnow()
             team_id = active_reporter.team_id
-            
-            # Notify others that reporter has left
+            session.delete(active_reporter)
+            session.commit()
+
+            # Notify others in the room that the reporter has left
             emit('reporter_left', {
+                'match_id': match_id,
                 'user_id': user_id,
                 'username': user.username,
                 'team_id': team_id
             }, room=f"match_{match_id}")
-            
+
+            # Re-broadcast the refreshed reporter list to the room
+            refreshed = get_active_reporters(session, match_id)
+            emit('active_reporters', {
+                'match_id': match_id,
+                'reporters': refreshed
+            }, room=f"match_{match_id}")
+
             logger.info(f"User {user_id} left match {match_id}")
-        
-        session.commit()
 
 
 @socketio.on('update_score', namespace='/live')
@@ -1420,40 +1465,43 @@ def get_match_state(session, match_id):
 def get_active_reporters(session, match_id):
     """
     Get a list of active reporters for a match.
-    
+
     Returns reporters who have been active in the last 5 minutes.
-    
+
     Args:
         session: Database session
         match_id: ID of the match
-        
+
     Returns:
         List of dictionaries with reporter details
     """
     active_time_limit = datetime.utcnow() - timedelta(minutes=5)
-    
+
     reporters_query = session.query(
-        ActiveMatchReporter, User, Team
+        ActiveMatchReporter, User, Team, Player
     ).join(
         User, ActiveMatchReporter.user_id == User.id
     ).join(
         Team, ActiveMatchReporter.team_id == Team.id
+    ).outerjoin(
+        Player, Player.user_id == User.id
     ).filter(
         ActiveMatchReporter.match_id == match_id,
         ActiveMatchReporter.last_active > active_time_limit
     )
-    
+
     reporters = []
-    for reporter, user, team in reporters_query:
+    for reporter, user, team, player in reporters_query:
         reporters.append({
             "user_id": user.id,
             "username": user.username,
             "team_id": team.id,
             "team_name": team.name,
+            "profile_picture_url": player.profile_picture_url if player else None,
             "joined_at": reporter.joined_at.isoformat(),
             "last_active": reporter.last_active.isoformat()
         })
-        
+
     return reporters
 
 

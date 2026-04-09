@@ -273,6 +273,35 @@ def handle_disconnect(reason=None):
     reason_str = f" (reason: {reason})" if reason else ""
     logger.info(f"🔌 Client disconnected from Socket.IO (sid: {sid}){reason_str}")
 
+    # Resolve user_id from the presence sid mapping BEFORE
+    # PresenceManager.user_disconnected deletes that mapping. We need it to
+    # broadcast coach_left to every match room the coach was reporting.
+    user_id = None
+    try:
+        from app.utils.redis_manager import get_redis_connection
+        redis_conn = get_redis_connection()
+        user_id_str = redis_conn.get(f"{PresenceManager.SID_KEY_PREFIX}{sid}")
+        if user_id_str:
+            try:
+                user_id = int(user_id_str)
+            except (ValueError, TypeError):
+                user_id = None
+    except Exception as e:
+        logger.debug(f"Could not resolve user_id from sid on disconnect: {e}")
+
+    # Capture the rooms the sid was in BEFORE Socket.IO removes them.
+    # Filter to match-reporting rooms (match_<id>) and skip the personal sid room.
+    match_rooms = []
+    try:
+        rooms_for_sid = socketio.server.manager.get_rooms(sid, '/') or []
+        for room_name in rooms_for_sid:
+            if not room_name or room_name == sid:
+                continue
+            if room_name.startswith('match_'):
+                match_rooms.append(room_name)
+    except Exception as e:
+        logger.debug(f"Could not enumerate rooms on disconnect for sid {sid}: {e}")
+
     # Update user presence (mark as disconnected)
     try:
         PresenceManager.user_disconnected(sid)
@@ -287,3 +316,28 @@ def handle_disconnect(reason=None):
             logger.info(f"🧹 Cleaned up {len(cleaned_entries)} room entries for disconnected socket {sid}")
     except Exception as e:
         logger.error(f"Error cleaning up room users on disconnect: {e}")
+
+    # Broadcast coach_left to every match room the disconnecting coach was in.
+    # Without this, abrupt disconnects (browser close, network drop) leave the
+    # coach visible in other coaches' "Connected Coaches" indicators forever.
+    if user_id and match_rooms:
+        try:
+            from app.models import User
+            with managed_session() as db_session:
+                user = db_session.query(User).get(user_id)
+                username = user.username if user else f"User_{user_id}"
+                for room_name in match_rooms:
+                    try:
+                        match_id = int(room_name.split('_', 1)[1])
+                    except (IndexError, ValueError):
+                        continue
+                    socketio.emit('coach_left', {
+                        'match_id': match_id,
+                        'coach': {
+                            'user_id': user_id,
+                            'username': username,
+                        }
+                    }, room=room_name, namespace='/')
+                    logger.info(f"Broadcast coach_left for user {user_id} in match {match_id} on disconnect")
+        except Exception as e:
+            logger.error(f"Error broadcasting coach_left on disconnect: {e}")

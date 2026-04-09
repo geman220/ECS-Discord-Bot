@@ -36,6 +36,7 @@ class NotificationType(Enum):
     MATCH_RESULT = 'match_result'
     MATCH_CANCELLED = 'match_cancelled'
     MATCH_RESCHEDULED = 'match_rescheduled'
+    MATCH_VERIFICATION_NEEDED = 'match_verification_needed'
 
     # RSVP-related
     RSVP_REMINDER = 'rsvp_reminder'
@@ -106,6 +107,7 @@ NOTIFICATION_ICONS = {
     NotificationType.MATCH_RESULT: 'ti ti-trophy',
     NotificationType.MATCH_CANCELLED: 'ti ti-calendar-off',
     NotificationType.MATCH_RESCHEDULED: 'ti ti-calendar-stats',
+    NotificationType.MATCH_VERIFICATION_NEEDED: 'ti ti-clipboard-check',
     NotificationType.RSVP_REMINDER: 'ti ti-clipboard-check',
     NotificationType.RSVP_CONFIRMED: 'ti ti-check',
     NotificationType.TEAM_UPDATE: 'ti ti-users',
@@ -511,7 +513,8 @@ class NotificationOrchestrator:
         notification_type = payload.notification_type
 
         if notification_type in (NotificationType.MATCH_REMINDER, NotificationType.MATCH_RESULT,
-                                  NotificationType.MATCH_CANCELLED, NotificationType.MATCH_RESCHEDULED):
+                                  NotificationType.MATCH_CANCELLED, NotificationType.MATCH_RESCHEDULED,
+                                  NotificationType.MATCH_VERIFICATION_NEEDED):
             return preferences.get('match_reminders', True)
 
         if notification_type in (NotificationType.RSVP_REMINDER, NotificationType.RSVP_CONFIRMED):
@@ -553,7 +556,8 @@ class NotificationOrchestrator:
         notification_type = payload.notification_type
 
         if notification_type in (NotificationType.MATCH_REMINDER, NotificationType.MATCH_RESULT,
-                                  NotificationType.MATCH_CANCELLED, NotificationType.MATCH_RESCHEDULED):
+                                  NotificationType.MATCH_CANCELLED, NotificationType.MATCH_RESCHEDULED,
+                                  NotificationType.MATCH_VERIFICATION_NEEDED):
             return preferences.get('match_reminders', True)
 
         if notification_type in (NotificationType.RSVP_REMINDER, NotificationType.RSVP_CONFIRMED):
@@ -615,7 +619,8 @@ class NotificationOrchestrator:
         notification_type = payload.notification_type
 
         if notification_type in (NotificationType.MATCH_REMINDER, NotificationType.MATCH_RESULT,
-                                  NotificationType.MATCH_CANCELLED, NotificationType.MATCH_RESCHEDULED):
+                                  NotificationType.MATCH_CANCELLED, NotificationType.MATCH_RESCHEDULED,
+                                  NotificationType.MATCH_VERIFICATION_NEEDED):
             return preferences.get('match_reminders', True)
 
         if notification_type in (NotificationType.RSVP_REMINDER, NotificationType.RSVP_CONFIRMED):
@@ -657,7 +662,8 @@ class NotificationOrchestrator:
         notification_type = payload.notification_type
 
         if notification_type in (NotificationType.MATCH_REMINDER, NotificationType.MATCH_RESULT,
-                                  NotificationType.MATCH_CANCELLED, NotificationType.MATCH_RESCHEDULED):
+                                  NotificationType.MATCH_CANCELLED, NotificationType.MATCH_RESCHEDULED,
+                                  NotificationType.MATCH_VERIFICATION_NEEDED):
             return preferences.get('match_reminders', True)
 
         if notification_type in (NotificationType.RSVP_REMINDER, NotificationType.RSVP_CONFIRMED):

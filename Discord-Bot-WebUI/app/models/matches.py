@@ -114,6 +114,18 @@ class Match(db.Model):
             'home_team_verified': self.home_team_verified,
             'away_team_verified': self.away_team_verified,
             'fully_verified': self.fully_verified,
+            'home_verifier': (
+                self.home_verifier.player.name
+                if self.home_verifier and getattr(self.home_verifier, 'player', None)
+                else (self.home_verifier.username if self.home_verifier else None)
+            ),
+            'away_verifier': (
+                self.away_verifier.player.name
+                if self.away_verifier and getattr(self.away_verifier, 'player', None)
+                else (self.away_verifier.username if self.away_verifier else None)
+            ),
+            'home_team_verified_at': self.home_team_verified_at.isoformat() if self.home_team_verified_at else None,
+            'away_team_verified_at': self.away_team_verified_at.isoformat() if self.away_team_verified_at else None,
             'week_type': self.week_type,
             'is_special_week': self.is_special_week,
             'is_playoff_game': self.is_playoff_game,

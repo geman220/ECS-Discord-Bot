@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 
 from flask_login import login_required
-from flask_socketio import emit, join_room
+from flask_socketio import emit, join_room, leave_room
 from sqlalchemy import and_
 
 from app.core import socketio
@@ -148,13 +148,19 @@ def handle_join_match_room(data):
             # Get current connected coaches in room
             connected_coaches = get_match_room_coaches(match_id, session)
 
+            team_name = (
+                match.home_team.name if user_teams[0].team_id == match.home_team_id
+                else match.away_team.name
+            )
+
             # Add current user to the list
             if current_user.id not in [coach['user_id'] for coach in connected_coaches]:
                 connected_coaches.append({
                     'user_id': current_user.id,
                     'username': current_user.username,
                     'player_name': player.name,
-                    'team_name': user_teams[0].team_id == match.home_team_id and match.home_team.name or match.away_team.name
+                    'team_name': team_name,
+                    'profile_picture_url': player.profile_picture_url,
                 })
 
             emit('joined_match_room', {
@@ -165,13 +171,15 @@ def handle_join_match_room(data):
                 'your_team_id': user_teams[0].team_id
             })
 
-            # Broadcast to room that a new coach joined
+            # Broadcast to room that a new coach joined (room-scoped, includes match_id)
             emit('coach_joined', {
+                'match_id': match_id,
                 'coach': {
                     'user_id': current_user.id,
                     'username': current_user.username,
                     'player_name': player.name,
-                    'team_name': user_teams[0].team_id == match.home_team_id and match.home_team.name or match.away_team.name
+                    'team_name': team_name,
+                    'profile_picture_url': player.profile_picture_url,
                 }
             }, room=room)
 
@@ -196,10 +204,18 @@ def handle_leave_match_room(data):
 
         room = f'match_{match_id}'
 
-        # Broadcast to room that coach left
+        # Actually leave the Socket.IO room — without this the coach stays in
+        # the room and continues receiving every event for the match, which is
+        # the cross-match leak vector on /.
+        leave_room(room)
+
+        # Broadcast to room that coach left (room-scoped, includes match_id)
         emit('coach_left', {
-            'user_id': current_user.id,
-            'username': current_user.username
+            'match_id': match_id,
+            'coach': {
+                'user_id': current_user.id,
+                'username': current_user.username,
+            }
         }, room=room)
 
         emit('left_match_room', {'match_id': match_id})
@@ -653,7 +669,8 @@ def get_match_room_coaches(match_id, session):
                                         'user_id': user.id,
                                         'username': user.username,
                                         'player_name': player.name,
-                                        'team_name': None  # Could be enhanced to include team info
+                                        'team_name': None,  # Could be enhanced to include team info
+                                        'profile_picture_url': player.profile_picture_url,
                                     })
                     except Exception as e:
                         logger.warning(f"Error getting user info for socket {sid}: {str(e)}")
