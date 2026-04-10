@@ -61,6 +61,8 @@ def get_players():
         team_id = request.args.get('team_id', type=int)
         league_id = request.args.get('league_id', type=int)
         current_only = request.args.get('current_only', 'true').lower() == 'true'
+        coaches_only = request.args.get('coaches_only', 'false').lower() == 'true'
+        include_teams = request.args.get('include_teams', 'false').lower() == 'true'
 
         # Build a subquery to get distinct player IDs matching filters
         # Select both id and name so we can ORDER BY name with DISTINCT
@@ -92,6 +94,10 @@ def get_players():
         if current_only:
             id_query = id_query.filter(Player.is_current_player == True)
 
+        # Filter coaches only
+        if coaches_only:
+            id_query = id_query.filter(Player.is_coach == True)
+
         # Get distinct player IDs (name included for ORDER BY compatibility)
         id_query = id_query.distinct()
 
@@ -103,7 +109,14 @@ def get_players():
 
         # Fetch full player objects, preserving the order
         if player_ids:
-            players = session_db.query(Player).filter(Player.id.in_(player_ids)).order_by(Player.name).all()
+            query = session_db.query(Player).filter(Player.id.in_(player_ids))
+            if include_teams:
+                from app.models import League
+                query = query.options(
+                    joinedload(Player.primary_team).joinedload(Team.league),
+                    selectinload(Player.teams).joinedload(Team.league),
+                )
+            players = query.order_by(Player.name).all()
         else:
             players = []
 
@@ -116,12 +129,31 @@ def get_players():
                 "jersey_number": player.jersey_number,
                 "favorite_position": player.favorite_position,
                 "is_current_player": player.is_current_player,
+                "is_coach": player.is_coach,
                 "profile_picture_url": (
                     player.profile_picture_url if player.profile_picture_url and player.profile_picture_url.startswith('http')
                     else f"{base_url}{player.profile_picture_url}" if player.profile_picture_url
                     else f"{base_url}/static/img/default_player.png"
                 )
             }
+            if include_teams:
+                player_data["team_name"] = player.primary_team.name if player.primary_team else None
+                player_data["league_name"] = (
+                    player.primary_team.league.name
+                    if player.primary_team and player.primary_team.league
+                    else None
+                )
+                player_data["all_teams"] = []
+                for team in player.teams:
+                    team_assoc = session_db.query(player_teams).filter_by(
+                        player_id=player.id, team_id=team.id
+                    ).first()
+                    player_data["all_teams"].append({
+                        "id": team.id,
+                        "name": team.name,
+                        "league": team.league.name if team.league else None,
+                        "is_coach": getattr(team_assoc, 'is_coach', False) if team_assoc else False,
+                    })
             players_data.append(player_data)
 
         return jsonify({
