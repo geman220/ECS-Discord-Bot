@@ -13,10 +13,12 @@ from sqlalchemy import func, and_, or_
 from sqlalchemy.orm import Session
 
 from app.core.session_manager import managed_session
+from flask import request
 from app.models.ispy import (
-    ISpyShot, ISpyShotTarget, ISpyCooldown, ISpyCategory, 
+    ISpyShot, ISpyShotTarget, ISpyCooldown, ISpyCategory,
     ISpySeason, ISpyUserJail, ISpyUserStats
 )
+from app.models import Player
 
 logger = logging.getLogger(__name__)
 
@@ -321,12 +323,31 @@ def get_leaderboard(season_id: int, limit: int = 10) -> List[Dict]:
             ISpyUserStats.total_points.desc(),
             ISpyUserStats.last_shot_at.asc()  # Earlier last shot wins tiebreaker
         ).limit(limit).all()
-        
+
+        # Batch-fetch player profiles for all discord_ids
+        discord_ids = [stat.discord_id for stat in stats]
+        player_map = {}
+        if discord_ids:
+            players = session.query(Player).filter(
+                Player.discord_id.in_(discord_ids)
+            ).all()
+            player_map = {p.discord_id: p for p in players}
+
+        base_url = request.host_url.rstrip('/')
+        default_image = f"{base_url}/static/img/default_player.png"
+
         leaderboard = []
         for i, stat in enumerate(stats, 1):
-            leaderboard.append({
+            player = player_map.get(stat.discord_id)
+            entry = {
                 'rank': i,
                 'discord_id': stat.discord_id,
+                'name': player.name if player else None,
+                'profile_picture_url': (
+                    f"{base_url}{player.profile_picture_url}"
+                    if player and player.profile_picture_url
+                    else default_image
+                ),
                 'total_points': stat.total_points,
                 'total_shots': stat.total_shots,
                 'approved_shots': stat.approved_shots,
@@ -334,8 +355,9 @@ def get_leaderboard(season_id: int, limit: int = 10) -> List[Dict]:
                 'max_streak': stat.max_streak,
                 'unique_targets': stat.unique_targets_count,
                 'last_shot_at': stat.last_shot_at
-            })
-        
+            }
+            leaderboard.append(entry)
+
         return leaderboard
 
 
@@ -390,17 +412,36 @@ def get_category_leaderboard(season_id: int, category_key: str, limit: int = 10)
             func.max(ISpyShot.submitted_at).asc()
         ).limit(limit).all()
         
+        # Batch-fetch player profiles for all discord_ids
+        discord_ids = [r.author_discord_id for r in results]
+        player_map = {}
+        if discord_ids:
+            players = session.query(Player).filter(
+                Player.discord_id.in_(discord_ids)
+            ).all()
+            player_map = {p.discord_id: p for p in players}
+
+        base_url = request.host_url.rstrip('/')
+        default_image = f"{base_url}/static/img/default_player.png"
+
         leaderboard = []
         for i, result in enumerate(results, 1):
+            player = player_map.get(result.author_discord_id)
             leaderboard.append({
                 'rank': i,
                 'discord_id': result.author_discord_id,
+                'name': player.name if player else None,
+                'profile_picture_url': (
+                    f"{base_url}{player.profile_picture_url}"
+                    if player and player.profile_picture_url
+                    else default_image
+                ),
                 'category_points': result.category_points,
                 'category_shots': result.category_shots,
                 'last_shot_at': result.last_shot,
                 'category_name': category.display_name
             })
-        
+
         return leaderboard
 
 
