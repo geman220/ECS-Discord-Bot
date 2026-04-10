@@ -14,6 +14,7 @@ All methods accept player_id (not user_id) for easier mobile app integration.
 import logging
 from typing import Optional, Dict, Any, List
 
+from flask import request
 from sqlalchemy.orm import Session, joinedload
 
 from app.services.base_service import BaseService, ServiceResult
@@ -94,9 +95,17 @@ class MobileAdminService(BaseService):
             for role in assignable_roles
         ]
 
+        base_url = request.host_url.rstrip('/')
+        profile_picture_url = (
+            f"{base_url}{player.profile_picture_url}"
+            if player.profile_picture_url
+            else f"{base_url}/static/img/default_player.png"
+        )
+
         return ServiceResult.ok({
             "player_id": player.id,
             "player_name": player.name,
+            "profile_picture_url": profile_picture_url,
             "user_id": user.id,
             "username": user.username,
             "current_roles": current_roles,
