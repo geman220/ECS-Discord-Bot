@@ -13,6 +13,7 @@ from flask import request, redirect, url_for, render_template, session as flask_
 from werkzeug.routing import BuildError
 from werkzeug.routing.exceptions import WebsocketMismatch
 from werkzeug.exceptions import HTTPException
+from flask_limiter.errors import RateLimitExceeded
 
 from app.alert_helpers import show_error
 
@@ -54,6 +55,29 @@ def _is_api_request():
 def _get_safe_error_message(status_code, default='An error occurred'):
     """Get a safe error message that doesn't expose internal details."""
     return SAFE_ERROR_MESSAGES.get(status_code, default)
+
+
+def _compute_retry_after(error) -> int:
+    """Extract Retry-After seconds from a Flask-Limiter exception, fallback to 60.
+
+    ``RateLimitExceeded.limit`` wraps a ``limits.RateLimitItem`` whose
+    ``get_expiry()`` returns the window length in seconds — the worst-case
+    wait under the fixed-window strategy. Matches what Flask-Limiter itself
+    emits in its ``Retry-After`` header.
+    """
+    try:
+        if isinstance(error, RateLimitExceeded) and getattr(error, 'limit', None):
+            item = error.limit.limit  # limits.RateLimitItem
+            seconds = int(item.get_expiry())
+            if seconds > 0:
+                return seconds
+    except Exception:
+        pass
+    # Werkzeug TooManyRequests may populate .retry_after on some versions.
+    retry = getattr(error, 'retry_after', None)
+    if isinstance(retry, (int, float)) and retry > 0:
+        return int(retry)
+    return 60
 
 
 def install_error_handlers(app):
@@ -161,22 +185,36 @@ def install_error_handlers(app):
 
     @app.errorhandler(429)
     def handle_too_many_requests(error):
-        """Handle 429 rate limit errors with Retry-After header."""
-        retry_after = 60
+        """Handle 429 with Retry-After derived from the tripped Flask-Limiter rule."""
+        retry_after = _compute_retry_after(error)
+
         if _is_api_request():
             response = jsonify({
                 'success': False,
                 'error': 'Too Many Requests',
                 'message': 'Rate limit exceeded. Please wait before retrying.',
-                'status_code': 429
+                'retry_after_seconds': retry_after,
+                'status_code': 429,
             })
         else:
             try:
                 response = app.make_response(render_template("500_flowbite.html"))
             except Exception:
                 response = app.make_response(('Too Many Requests', 429))
+
         response.status_code = 429
         response.headers['Retry-After'] = str(retry_after)
+
+        # Preserve Flask-Limiter's X-RateLimit-* headers from the exception.
+        if isinstance(error, RateLimitExceeded):
+            try:
+                for k, v in (error.get_headers() or []):
+                    if k.lower() == 'retry-after':
+                        continue  # don't clobber our own computed value
+                    response.headers.setdefault(k, v)
+            except Exception:
+                pass
+
         return response
 
     @app.errorhandler(BuildError)

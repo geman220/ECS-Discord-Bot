@@ -12,6 +12,7 @@ import logging
 from flask import jsonify, request, current_app
 
 from app.mobile_api import mobile_api_v2
+from app.core.limiter import limiter, get_client_ip
 from app.models.admin_config import AdminConfig, AdminAuditLog
 from app.core.session_manager import managed_session
 
@@ -29,6 +30,7 @@ APP_CONFIG_DEFAULTS = {
 
 
 @mobile_api_v2.route('/app_config', methods=['GET'])
+@limiter.limit("60 per minute", key_func=lambda: f"app_config:{get_client_ip()}")
 def get_app_config():
     """
     Get mobile app configuration including build version requirements.

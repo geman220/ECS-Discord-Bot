@@ -18,6 +18,7 @@ from flask_login import login_user
 from flask_wtf.csrf import generate_csrf
 
 from app.auth import auth
+from app.core.limiter import limiter, get_client_ip
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.models import User, Role, Player
 from app.utils.db_utils import transactional
@@ -47,6 +48,7 @@ def is_safe_url(target):
 
 
 @auth.route('/discord_login')
+@limiter.limit("20 per minute", key_func=lambda: f"web_oauth:{get_client_ip()}")
 def discord_login():
     """
     Redirect the user to Discord's OAuth2 login page.

@@ -17,6 +17,7 @@ from flask import (
 from flask_login import login_user, logout_user, login_required
 
 from app.auth import auth
+from app.core.limiter import limiter, get_client_ip
 from app.alert_helpers import show_error, show_info
 from app.models import User, Player
 from app.forms import LoginForm
@@ -39,6 +40,11 @@ def is_safe_url(target):
 
 
 @auth.route('/login', methods=['GET', 'POST'])
+@limiter.limit(
+    "10 per minute",
+    key_func=lambda: f"web_login:{get_client_ip()}",
+    methods=['POST'],
+)
 @transactional
 def login():
     """

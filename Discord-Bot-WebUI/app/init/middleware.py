@@ -99,84 +99,56 @@ def apply_middleware(app):
 
 
 def _init_rate_limiting(app):
-    """Initialize rate limiting with Redis backend."""
+    """Bind the module-level limiter to the Flask app and register request filters.
+
+    The limiter itself lives in ``app/core/limiter.py`` as a module-level singleton
+    so blueprint modules can apply ``@limiter.limit(...)`` decorators at import
+    time. This function seeds Flask-Limiter config from ``REDIS_URL``, calls
+    ``limiter.init_app(app)``, and registers the ``request_filter`` hooks that
+    exempt internal traffic, allowlisted dev IPs, and polling endpoints.
+    """
     try:
-        from flask_limiter import Limiter
+        from app.core.limiter import limiter, is_internal_request, is_allowlisted_ip
 
-        def get_client_ip():
-            """
-            Get real client IP, with security considerations.
-
-            IMPORTANT: This relies on the reverse proxy (Traefik/nginx) being
-            configured to set X-Forwarded-For correctly and strip any client-provided
-            X-Forwarded-For headers. ProxyFix is applied in apply_middleware().
-            """
-            if request.headers.get('X-Forwarded-For'):
-                # First IP in chain is the original client (set by trusted proxy)
-                client_ip = request.headers.get('X-Forwarded-For').split(',')[0].strip()
-            elif request.headers.get('X-Real-IP'):
-                client_ip = request.headers.get('X-Real-IP')
-            elif request.headers.get('CF-Connecting-IP'):
-                client_ip = request.headers.get('CF-Connecting-IP')
-            else:
-                client_ip = request.remote_addr or 'unknown'
-            return client_ip
-
-        def is_internal_request():
-            """
-            Check if request is internal (container-to-container, not through proxy).
-
-            Logic:
-            - External requests come through reverse proxy (Traefik) which sets
-              X-Forwarded-For header with the real client IP
-            - Internal container-to-container calls don't go through proxy,
-              so they won't have X-Forwarded-For set by the proxy
-
-            Security model:
-            - If X-Forwarded-For exists → came through proxy → external → rate limit
-            - If no X-Forwarded-For AND remote_addr is Docker network → internal → exempt
-            - Localhost always exempt (health checks, CLI tools)
-            """
-            peer_ip = request.remote_addr or ''
-
-            # Localhost is always internal (health checks, CLI)
-            if peer_ip in ('127.0.0.1', '::1'):
-                return True
-
-            # If request has X-Forwarded-For, it came through the reverse proxy
-            # This means it's external traffic (user → Traefik → app)
-            if request.headers.get('X-Forwarded-For'):
-                return False
-
-            # No X-Forwarded-For + private network IP = internal/local call
-            # (e.g., Celery worker, local dev machine, another microservice)
-            # RFC 1918 private ranges: 10.x, 172.16-31.x, 192.168.x
-            if (peer_ip.startswith('172.') or
-                peer_ip.startswith('10.') or
-                peer_ip.startswith('192.168.')):
-                return True
-
-            return False
-
+        # Seed Flask-Limiter config from REDIS_URL before init_app picks it up.
         redis_url = app.config.get('REDIS_URL', 'redis://redis:6379/0')
+        app.config.setdefault('RATELIMIT_STORAGE_URL', redis_url)
+        app.config.setdefault('RATELIMIT_HEADERS_ENABLED', True)
+        app.config.setdefault('RATELIMIT_STRATEGY', 'fixed-window')
 
-        limiter = Limiter(
-            app=app,
-            key_func=get_client_ip,
-            storage_uri=redis_url,
-            default_limits=["5000 per day", "2000 per hour", "200 per minute"],
-            headers_enabled=True,
-            strategy="fixed-window"
+        # Parse comma-separated allowlist into a frozenset once at startup.
+        raw = (app.config.get('RATE_LIMIT_ALLOWLIST') or '').strip()
+        app.config['RATE_LIMIT_ALLOWLIST'] = (
+            frozenset(ip.strip() for ip in raw.split(',') if ip.strip())
+            if raw else frozenset()
         )
 
-        # Exempt truly internal traffic (Docker containers, localhost)
-        # External traffic through reverse proxy will still be rate limited
+        # Bind the singleton to the app (reads RATELIMIT_* from app.config and
+        # activates per-route decorators that were registered at import time).
+        limiter.init_app(app)
+
+        # Back-compat: expose on app.limiter for any code that references it.
+        app.limiter = limiter
+
+        # Escape hatch: disable entirely in non-prod when explicitly requested.
+        if app.config.get('RATE_LIMIT_DEV_DISABLE') and not app.config.get('IS_PRODUCTION', False):
+            limiter.enabled = False
+            logger.info("Rate limiting DISABLED (RATE_LIMIT_DEV_DISABLE=true, non-prod)")
+            return
+
+        # Exempt truly internal traffic (Docker containers, localhost).
+        # External traffic through the reverse proxy is still rate limited.
         @limiter.request_filter
         def skip_internal_traffic():
             return is_internal_request()
 
-        # Exempt background polling endpoints from rate limiting
-        # These are legitimate automated requests that run on every page, not abuse
+        # Exempt allowlisted IPs (dev machines, staging, monitoring).
+        @limiter.request_filter
+        def skip_allowlisted_ips():
+            return is_allowlisted_ip()
+
+        # Exempt background polling endpoints from rate limiting.
+        # These are legitimate automated requests that run on every page, not abuse.
         @limiter.request_filter
         def skip_polling_endpoints():
             exempt_paths = [
@@ -208,8 +180,10 @@ def _init_rate_limiting(app):
             ]
             return any(request.path.startswith(path) for path in exempt_paths)
 
-        app.limiter = limiter
-        logger.info("Rate limiting initialized with Redis backend")
+        logger.info(
+            "Rate limiting initialized (Redis backend, allowlist=%d entries)",
+            len(app.config['RATE_LIMIT_ALLOWLIST'])
+        )
 
     except Exception as e:
         logger.warning(f"Rate limiting initialization failed: {e}")

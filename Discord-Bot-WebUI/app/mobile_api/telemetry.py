@@ -16,13 +16,20 @@ from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app.mobile_api import mobile_api_v2
+from app.core.limiter import limiter, jwt_or_ip_key
 from app.core.session_manager import managed_session
 from app.models.mobile_telemetry import MobileSession, MobileScreenView, MobileFeatureUsage
 
 logger = logging.getLogger(__name__)
 
 
+def _telemetry_key():
+    """Category-prefixed key so telemetry has its own Redis bucket per user."""
+    return f"telemetry:{jwt_or_ip_key()}"
+
+
 @mobile_api_v2.route('/telemetry/session', methods=['POST'])
+@limiter.limit("120 per minute", key_func=_telemetry_key)
 @jwt_required()
 def telemetry_session():
     """Report a session start or end event.
@@ -93,6 +100,7 @@ def telemetry_session():
 
 
 @mobile_api_v2.route('/telemetry/screens', methods=['POST'])
+@limiter.limit("120 per minute", key_func=_telemetry_key)
 @jwt_required()
 def telemetry_screens():
     """Report batch screen view events.
@@ -163,6 +171,7 @@ def telemetry_screens():
 
 
 @mobile_api_v2.route('/telemetry/feature-usage', methods=['POST'])
+@limiter.limit("120 per minute", key_func=_telemetry_key)
 @jwt_required()
 def telemetry_feature_usage():
     """Report batch feature usage events.

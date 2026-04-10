@@ -151,7 +151,14 @@ class Config:
     # Rate limiting configuration
     RATELIMIT_STORAGE_URL = REDIS_URL
     RATELIMIT_HEADERS_ENABLED = True
-    
+
+    # Bypass allowlist (comma-separated IPs for dev machines, staging, monitoring).
+    RATE_LIMIT_ALLOWLIST = os.getenv('RATE_LIMIT_ALLOWLIST', '')
+
+    # Optional escape hatch: disable the limiter entirely in non-prod environments.
+    RATE_LIMIT_DEV_DISABLE = os.getenv('RATE_LIMIT_DEV_DISABLE', '').lower() in ('true', '1', 'yes')
+
+
     # Content Security Policy (secure)
     CSP = {
         'default-src': "'self'",

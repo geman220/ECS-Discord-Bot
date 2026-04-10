@@ -31,6 +31,11 @@ celery = Celery('app')
 # Make signals accessible from celery object
 celery.signals = signals
 
+# Module-level Flask-Limiter singleton. Bound later via limiter.init_app(app)
+# in app/init/middleware.py::_init_rate_limiting. Imported here so blueprint
+# modules can apply @limiter.limit(...) decorators at import time.
+from app.core.limiter import limiter  # noqa: E402
+
 
 def configure_celery(app):
     """

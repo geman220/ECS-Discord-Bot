@@ -18,6 +18,7 @@ from flask_jwt_extended import jwt_required, create_access_token, create_refresh
 from sqlalchemy.orm import joinedload
 
 from app.mobile_api import mobile_api_v2
+from app.core.limiter import limiter, get_client_ip
 from app.core.session_manager import managed_session
 from app.models import User, Player, Season, player_teams, QuickProfile, QuickProfileStatus
 from app.app_api_helpers import (
@@ -90,6 +91,7 @@ def _process_claim_code(session_db, user, discord_id, claim_code):
 
 
 @mobile_api_v2.route('/get_discord_auth_url', methods=['GET'])
+@limiter.limit("20 per minute", key_func=lambda: f"mobile_oauth:{get_client_ip()}")
 def get_discord_auth_url():
     """
     Generate and return a Discord OAuth2 authorization URL for mobile app.
