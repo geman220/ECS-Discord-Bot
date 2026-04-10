@@ -29,6 +29,7 @@ from app.etag_utils import make_etag_response, CACHE_DURATIONS
 from app.app_api_helpers import (
     build_match_response,
     get_team_players_availability,
+    compute_rsvp_summary,
     get_match_events,
     get_player_availability,
     get_team_upcoming_matches,
@@ -62,6 +63,8 @@ def get_teams():
         if current_ecs_season:
             conditions.append(League.season_id == current_ecs_season.id)
 
+        search = request.args.get('search', '').strip()
+
         # Query teams with eager loading to prevent N+1 queries
         teams_query = session_db.query(Team).join(
             League, Team.league_id == League.id
@@ -72,12 +75,15 @@ def get_teams():
         elif len(conditions) == 2:
             teams_query = teams_query.filter(or_(*conditions))
 
+        if search:
+            teams_query = teams_query.filter(Team.name.ilike(f'%{search}%'))
+
         teams = teams_query.order_by(Team.name).all()
 
         # Check cache first
         from app.performance_cache import cache_match_results, set_match_results_cache
 
-        cache_key_data = f"{request.args.get('league_id', 'all')}:{request.args.get('season_id', 'current')}"
+        cache_key_data = f"{request.args.get('league_id', 'all')}:{request.args.get('season_id', 'current')}:{search}"
         cache_hash = hashlib.md5(cache_key_data.encode()).hexdigest()
 
         cached_teams = cache_match_results(league_id=f"teams_{cache_hash}")
@@ -367,6 +373,9 @@ def get_team_matches(team_id: int):
                     )
                     match_data['team_availability'] = get_team_players_availability(
                         match, team.players, session=session_db
+                    )
+                    match_data['rsvp_summary'] = compute_rsvp_summary(
+                        match_data['team_availability']
                     )
 
                 matches_data.append(match_data)

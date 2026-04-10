@@ -31,6 +31,7 @@ from app.app_api_helpers import (
     get_match_events,
     get_player_availability,
     get_team_players_availability,
+    compute_rsvp_summary,
     build_matches_query,
     process_matches_data,
 )
@@ -460,6 +461,33 @@ def get_single_match_details(match_id: int):
             if match.away_team:
                 match_data['away_team_availability'] = get_team_players_availability(
                     match, match.away_team.players, session=session_db
+                )
+
+        include_all_availability = request.args.get('include_all_availability', 'false').lower() == 'true'
+        if include_all_availability:
+            if match.home_team:
+                if 'home_team_availability' in match_data:
+                    match_data['home_team_availability_summary'] = compute_rsvp_summary(
+                        match_data['home_team_availability']
+                    )
+                else:
+                    home_avail = get_team_players_availability(
+                        match, match.home_team.players, session=session_db
+                    )
+                    match_data['home_team_availability_summary'] = compute_rsvp_summary(home_avail)
+            if match.away_team:
+                if 'away_team_availability' in match_data:
+                    match_data['away_team_availability_summary'] = compute_rsvp_summary(
+                        match_data['away_team_availability']
+                    )
+                else:
+                    away_avail = get_team_players_availability(
+                        match, match.away_team.players, session=session_db
+                    )
+                    match_data['away_team_availability_summary'] = compute_rsvp_summary(away_avail)
+            if player and 'my_availability' not in match_data:
+                match_data['my_availability'] = get_player_availability(
+                    match, player, session=session_db
                 )
 
         return jsonify(match_data), 200

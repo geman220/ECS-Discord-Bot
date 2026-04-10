@@ -26,6 +26,8 @@ from app.models.stats import PlayerSeasonStats, PlayerCareerStats
 from app.app_api_helpers import (
     build_player_response,
     get_player_stats,
+    build_player_season_stats_data,
+    build_player_team_history_data,
 )
 
 logger = logging.getLogger(__name__)
@@ -295,56 +297,14 @@ def get_player_all_stats(player_id: int):
         if not player:
             return jsonify({"msg": "Player not found"}), 404
 
-        # Get all season stats for this player
-        stats_query = session.query(PlayerSeasonStats).filter(
-            PlayerSeasonStats.player_id == player_id
-        ).options(
-            joinedload(PlayerSeasonStats.season)
+        result = build_player_season_stats_data(
+            player_id, season_id_filter=season_id_filter, session=session
         )
-
-        if season_id_filter:
-            stats_query = stats_query.filter(PlayerSeasonStats.season_id == season_id_filter)
-
-        season_stats = stats_query.all()
-
-        # Get career stats
-        career_stats = session.query(PlayerCareerStats).filter(
-            PlayerCareerStats.player_id == player_id
-        ).first()
-
-        # Build response
-        season_stats_data = []
-        for stat in season_stats:
-            season_stats_data.append({
-                "id": stat.id,
-                "season_id": stat.season_id,
-                "season_name": stat.season.name if stat.season else None,
-                "is_current_season": stat.season.is_current if stat.season else False,
-                "goals": stat.goals,
-                "assists": stat.assists,
-                "yellow_cards": stat.yellow_cards,
-                "red_cards": stat.red_cards
-            })
-
-        # Sort by season (current first, then by name descending)
-        season_stats_data.sort(key=lambda x: (not x['is_current_season'], x['season_name'] or ''), reverse=False)
-
-        career_stats_data = None
-        if career_stats:
-            career_stats_data = {
-                "id": career_stats.id,
-                "goals": career_stats.goals,
-                "assists": career_stats.assists,
-                "yellow_cards": career_stats.yellow_cards,
-                "red_cards": career_stats.red_cards
-            }
 
         return jsonify({
             "player_id": player_id,
             "player_name": player.name,
-            "season_stats": season_stats_data,
-            "career_stats": career_stats_data,
-            "total_seasons": len(season_stats_data)
+            **result
         }), 200
 
 
@@ -371,114 +331,12 @@ def get_player_team_history(player_id: int):
         if not player:
             return jsonify({"msg": "Player not found"}), 404
 
-        base_url = request.host_url.rstrip('/')
-
-        # Get season-based team assignments
-        season_assignments = session.query(PlayerTeamSeason).filter(
-            PlayerTeamSeason.player_id == player_id
-        ).options(
-            joinedload(PlayerTeamSeason.team).joinedload(Team.league),
-            joinedload(PlayerTeamSeason.season)
-        ).all()
-
-        # Build season history
-        seasons_data = []
-        for assignment in season_assignments:
-            team = assignment.team
-            season = assignment.season
-
-            team_data = {
-                "season_id": season.id if season else None,
-                "season_name": season.name if season else None,
-                "is_current_season": season.is_current if season else False,
-                "team": {
-                    "id": team.id if team else None,
-                    "name": team.name if team else None,
-                    "league_id": team.league_id if team else None,
-                    "league_name": team.league.name if team and team.league else None,
-                    "logo_url": (
-                        team.kit_url if team and team.kit_url and team.kit_url.startswith('http')
-                        else f"{base_url}{team.kit_url}" if team and team.kit_url else None
-                    )
-                }
-            }
-
-            # Optionally include roster
-            if include_roster and team:
-                # Get players who were on this team in this season
-                team_roster = session.query(PlayerTeamSeason).filter(
-                    PlayerTeamSeason.team_id == team.id,
-                    PlayerTeamSeason.season_id == season.id if season else None
-                ).options(
-                    joinedload(PlayerTeamSeason.player)
-                ).all()
-
-                roster_data = []
-                for roster_entry in team_roster:
-                    p = roster_entry.player
-                    if p:
-                        roster_data.append({
-                            "id": p.id,
-                            "name": p.name,
-                            "jersey_number": p.jersey_number
-                        })
-
-                team_data["roster"] = roster_data
-                team_data["roster_count"] = len(roster_data)
-
-            seasons_data.append(team_data)
-
-        # Sort by season (current first, then by name descending for chronological order)
-        seasons_data.sort(key=lambda x: (not x['is_current_season'], x['season_name'] or ''), reverse=False)
-
-        # Get historical tracking records (join/leave dates)
-        history_records = session.query(PlayerTeamHistory).filter(
-            PlayerTeamHistory.player_id == player_id
-        ).options(
-            joinedload(PlayerTeamHistory.team)
-        ).order_by(PlayerTeamHistory.joined_date.desc()).all()
-
-        history_data = []
-        for record in history_records:
-            history_data.append({
-                "id": record.id,
-                "team_id": record.team_id,
-                "team_name": record.team.name if record.team else None,
-                "joined_date": record.joined_date.isoformat() if record.joined_date else None,
-                "left_date": record.left_date.isoformat() if record.left_date else None,
-                "is_coach": record.is_coach,
-                "is_current": record.left_date is None
-            })
-
-        # Get current teams
-        current_teams = []
-        from app.models.players import player_teams
-        current_team_records = session.execute(
-            player_teams.select().where(player_teams.c.player_id == player_id)
-        ).fetchall()
-
-        for record in current_team_records:
-            team = session.query(Team).options(
-                joinedload(Team.league)
-            ).get(record.team_id)
-            if team:
-                current_teams.append({
-                    "id": team.id,
-                    "name": team.name,
-                    "league_id": team.league_id,
-                    "league_name": team.league.name if team.league else None,
-                    "is_coach": record.is_coach,
-                    "position": record.position
-                })
+        result = build_player_team_history_data(
+            player_id, include_roster=include_roster, session=session
+        )
 
         return jsonify({
             "player_id": player_id,
             "player_name": player.name,
-            "current_teams": current_teams,
-            "season_history": seasons_data,
-            "detailed_history": history_data,
-            "total_teams_played": len(set(
-                [s['team']['id'] for s in seasons_data if s['team']['id']] +
-                [h['team_id'] for h in history_data if h['team_id']]
-            ))
+            **result
         }), 200

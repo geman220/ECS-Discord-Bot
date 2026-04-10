@@ -29,6 +29,8 @@ from app.app_api_helpers import (
     build_player_response,
     get_player_response_data,
     get_player_stats,
+    build_player_season_stats_data,
+    build_player_team_history_data,
 )
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
 from app.utils.session_utils import create_user_session
@@ -533,6 +535,18 @@ def get_user_profile():
                 current_season = session_db.query(Season).filter_by(is_current=True).first()
                 logger.debug(f"[MOBILE_API] Current season: {current_season.name if current_season else 'None'}")
                 response_data.update(get_player_stats(player, current_season, session=session_db))
+
+            include_season_history = request.args.get('include_season_history', 'false').lower() == 'true'
+            if include_season_history:
+                response_data['season_history'] = build_player_season_stats_data(
+                    player.id, session=session_db
+                )
+
+            include_team_history = request.args.get('include_team_history', 'false').lower() == 'true'
+            if include_team_history:
+                response_data['team_history'] = build_player_team_history_data(
+                    player.id, session=session_db
+                )
 
         logger.info(f"[MOBILE_API] get_user_profile successful for user {user.username} - returning {len(response_data)} fields")
 

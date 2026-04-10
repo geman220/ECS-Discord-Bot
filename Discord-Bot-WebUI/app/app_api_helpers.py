@@ -30,9 +30,10 @@ from sqlalchemy.orm.query import Query
 # Local application imports
 from flask import current_app, request, g
 from app.models import (
-    User, Player, Match, Season, PlayerSeasonStats, PlayerCareerStats, Availability,
+    User, Player, Match, Season, Team, PlayerSeasonStats, PlayerCareerStats, Availability,
     PlayerEvent, PlayerEventType
 )
+from app.models.players import PlayerTeamSeason, PlayerTeamHistory, player_teams
 
 logger = logging.getLogger(__name__)
 
@@ -212,6 +213,201 @@ def get_player_stats(player: Player, season: Season, session=None) -> Dict[str, 
     }
 
 
+def build_player_season_stats_data(player_id: int, season_id_filter: Optional[int] = None,
+                                   session=None) -> Dict[str, Any]:
+    """
+    Build season stats and career stats data for a player across all seasons.
+
+    Args:
+        player_id: The player's ID.
+        season_id_filter: Optional season ID to filter to a specific season.
+        session: The database session (defaults to g.db_session).
+
+    Returns:
+        Dict with season_stats array, career_stats dict, and total_seasons count.
+    """
+    if session is None:
+        session = g.db_session
+
+    from sqlalchemy.orm import joinedload as jl
+
+    stats_query = session.query(PlayerSeasonStats).filter(
+        PlayerSeasonStats.player_id == player_id
+    ).options(
+        jl(PlayerSeasonStats.season)
+    )
+
+    if season_id_filter:
+        stats_query = stats_query.filter(PlayerSeasonStats.season_id == season_id_filter)
+
+    season_stats = stats_query.all()
+
+    career_stats = session.query(PlayerCareerStats).filter(
+        PlayerCareerStats.player_id == player_id
+    ).first()
+
+    season_stats_data = []
+    for stat in season_stats:
+        season_stats_data.append({
+            "id": stat.id,
+            "season_id": stat.season_id,
+            "season_name": stat.season.name if stat.season else None,
+            "is_current_season": stat.season.is_current if stat.season else False,
+            "goals": stat.goals,
+            "assists": stat.assists,
+            "yellow_cards": stat.yellow_cards,
+            "red_cards": stat.red_cards
+        })
+
+    season_stats_data.sort(
+        key=lambda x: (not x['is_current_season'], x['season_name'] or ''),
+        reverse=False
+    )
+
+    career_stats_data = None
+    if career_stats:
+        career_stats_data = {
+            "id": career_stats.id,
+            "goals": career_stats.goals,
+            "assists": career_stats.assists,
+            "yellow_cards": career_stats.yellow_cards,
+            "red_cards": career_stats.red_cards
+        }
+
+    return {
+        "season_stats": season_stats_data,
+        "career_stats": career_stats_data,
+        "total_seasons": len(season_stats_data)
+    }
+
+
+def build_player_team_history_data(player_id: int, include_roster: bool = False,
+                                   session=None) -> Dict[str, Any]:
+    """
+    Build complete team history data for a player across all seasons.
+
+    Args:
+        player_id: The player's ID.
+        include_roster: Whether to include roster info for each team assignment.
+        session: The database session (defaults to g.db_session).
+
+    Returns:
+        Dict with current_teams, season_history, detailed_history, and total_teams_played.
+    """
+    if session is None:
+        session = g.db_session
+
+    from sqlalchemy.orm import joinedload as jl
+
+    base_url = request.host_url.rstrip('/')
+
+    # Get season-based team assignments
+    season_assignments = session.query(PlayerTeamSeason).filter(
+        PlayerTeamSeason.player_id == player_id
+    ).options(
+        jl(PlayerTeamSeason.team).joinedload(Team.league),
+        jl(PlayerTeamSeason.season)
+    ).all()
+
+    seasons_data = []
+    for assignment in season_assignments:
+        team = assignment.team
+        season = assignment.season
+
+        team_data = {
+            "season_id": season.id if season else None,
+            "season_name": season.name if season else None,
+            "is_current_season": season.is_current if season else False,
+            "team": {
+                "id": team.id if team else None,
+                "name": team.name if team else None,
+                "league_id": team.league_id if team else None,
+                "league_name": team.league.name if team and team.league else None,
+                "logo_url": (
+                    team.kit_url if team and team.kit_url and team.kit_url.startswith('http')
+                    else f"{base_url}{team.kit_url}" if team and team.kit_url else None
+                )
+            }
+        }
+
+        if include_roster and team:
+            team_roster = session.query(PlayerTeamSeason).filter(
+                PlayerTeamSeason.team_id == team.id,
+                PlayerTeamSeason.season_id == season.id if season else None
+            ).options(
+                jl(PlayerTeamSeason.player)
+            ).all()
+
+            roster_data = []
+            for roster_entry in team_roster:
+                p = roster_entry.player
+                if p:
+                    roster_data.append({
+                        "id": p.id,
+                        "name": p.name,
+                        "jersey_number": p.jersey_number
+                    })
+
+            team_data["roster"] = roster_data
+            team_data["roster_count"] = len(roster_data)
+
+        seasons_data.append(team_data)
+
+    seasons_data.sort(
+        key=lambda x: (not x['is_current_season'], x['season_name'] or ''),
+        reverse=False
+    )
+
+    # Get historical tracking records (join/leave dates)
+    history_records = session.query(PlayerTeamHistory).filter(
+        PlayerTeamHistory.player_id == player_id
+    ).options(
+        jl(PlayerTeamHistory.team)
+    ).order_by(PlayerTeamHistory.joined_date.desc()).all()
+
+    history_data = []
+    for record in history_records:
+        history_data.append({
+            "id": record.id,
+            "team_id": record.team_id,
+            "team_name": record.team.name if record.team else None,
+            "joined_date": record.joined_date.isoformat() if record.joined_date else None,
+            "left_date": record.left_date.isoformat() if record.left_date else None,
+            "is_coach": record.is_coach,
+            "is_current": record.left_date is None
+        })
+
+    # Get current teams
+    current_teams = []
+    current_team_records = session.execute(
+        player_teams.select().where(player_teams.c.player_id == player_id)
+    ).fetchall()
+
+    for record in current_team_records:
+        team = session.query(Team).options(
+            jl(Team.league)
+        ).get(record.team_id)
+        if team:
+            current_teams.append({
+                "id": team.id,
+                "name": team.name,
+                "league_id": team.league_id,
+                "league_name": team.league.name if team.league else None,
+                "is_coach": record.is_coach,
+                "position": record.position
+            })
+
+    return {
+        "current_teams": current_teams,
+        "season_history": seasons_data,
+        "detailed_history": history_data,
+        "total_teams_played": len(set(
+            [s['team']['id'] for s in seasons_data if s['team']['id']] +
+            [h['team_id'] for h in history_data if h['team_id']]
+        ))
+    }
+
+
 def update_match_details(match: Match, data: Dict, session=None) -> None:
     """
     Update match details such as scores and notes.
@@ -359,6 +555,32 @@ def get_team_players_availability(match: Match, players: List[Player], session=N
         'name': player.name,
         'availability': availabilities.get(player.id, 'Not responded')
     } for player in players]
+
+
+def compute_rsvp_summary(availability_list: List[Dict]) -> Dict[str, int]:
+    """
+    Compute RSVP summary counts from a per-player availability list.
+
+    Takes the output of get_team_players_availability() and returns aggregate counts.
+
+    Args:
+        availability_list: List of dicts with 'availability' key
+            (values: 'yes', 'no', 'maybe', 'Not responded', or 'no_response')
+
+    Returns:
+        Dict with keys: yes, no, maybe, no_response, total
+    """
+    summary = {'yes': 0, 'no': 0, 'maybe': 0, 'no_response': 0}
+    for item in availability_list:
+        response = item.get('availability', 'Not responded')
+        if response in ('Not responded', 'no_response'):
+            summary['no_response'] += 1
+        elif response in summary:
+            summary[response] += 1
+        else:
+            summary['no_response'] += 1
+    summary['total'] = sum(summary.values())
+    return summary
 
 
 def get_match_events(match: Match) -> Dict:
