@@ -64,18 +64,12 @@ def get_scheduler():
     return current_app.match_scheduler
 
 
-COMPETITION_MAPPINGS = {
-    "MLS": "usa.1",
-    "US Open Cup": "usa.open",
-    "FIFA Club World Cup": "fifa.cwc",
-    "Concacaf": "concacaf.champions",
-    "Concacaf Champions League": "concacaf.champions",
-    "Concacaf Champions Cup": "concacaf.champions",
-    "CONCACAF Champions League": "concacaf.champions",
-    "CONCACAF Champions Cup": "concacaf.champions",
-    "Leagues Cup": "usa.leagues_cup",
-}
-INVERSE_COMPETITION_MAPPINGS = {v: k for k, v in COMPETITION_MAPPINGS.items()}
+# Competition mappings are defined in one place for the whole codebase.
+# See app/utils/competition_mappings.py for the source of truth.
+from app.utils.competition_mappings import (
+    COMPETITION_MAPPINGS,
+    INVERSE_COMPETITION_MAPPINGS,
+)
 
 
 # ------------------------

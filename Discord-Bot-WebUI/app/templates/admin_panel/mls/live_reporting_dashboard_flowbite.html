@@ -309,6 +309,47 @@
 </div>
 {% endif %}
 
+<!-- Recent Live Reporting Activity (Redis ring buffer — last ~1000 events) -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <i class="ti ti-clipboard-list text-gray-500 dark:text-gray-400"></i>
+            <h5 class="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity</h5>
+            <span class="text-xs text-gray-500 dark:text-gray-400">(live; last 24h)</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <select id="lre-filter-stage" class="text-sm rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                <option value="">All stages</option>
+                <option value="post">Discord post</option>
+                <option value="ai">AI / fallback</option>
+                <option value="espn_event">ESPN event</option>
+                <option value="session">Session lifecycle</option>
+                <option value="error">Errors only</option>
+            </select>
+            <button type="button" id="lre-pause" class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
+                <i class="ti ti-player-pause mr-1"></i><span>Pause</span>
+            </button>
+        </div>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th scope="col" class="px-4 py-2">Time</th>
+                    <th scope="col" class="px-4 py-2">Stage</th>
+                    <th scope="col" class="px-4 py-2">Outcome</th>
+                    <th scope="col" class="px-4 py-2">Session</th>
+                    <th scope="col" class="px-4 py-2">Match</th>
+                    <th scope="col" class="px-4 py-2">Message</th>
+                </tr>
+            </thead>
+            <tbody id="lre-tbody">
+                <tr><td colspan="6" class="px-4 py-4 text-center text-gray-400">Loading…</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
 <!-- Service Controls -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
     <!-- Quick Actions -->
@@ -679,5 +720,84 @@ document.getElementById('health-check-btn')?.addEventListener('click', function(
             btn.innerHTML = '<i class="ti ti-heartbeat mr-2"></i>Health Check';
         });
 });
+
+// Recent Live Reporting Activity (Redis-backed ring buffer)
+(function() {
+    const tbody = document.getElementById('lre-tbody');
+    if (!tbody) return;
+    const filter = document.getElementById('lre-filter-stage');
+    const pauseBtn = document.getElementById('lre-pause');
+    let paused = false;
+
+    const escape = (s) => {
+        const div = document.createElement('div');
+        div.textContent = s == null ? '' : String(s);
+        return div.innerHTML;
+    };
+
+    const outcomePill = (outcome) => {
+        const map = {
+            ok:       'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+            fallback: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+            rejected: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+            error:    'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+            info:     'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+        };
+        const cls = map[outcome] || map.info;
+        return `<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${cls}">${escape(outcome)}</span>`;
+    };
+
+    const render = (events) => {
+        if (!events || events.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-4 py-4 text-center text-gray-400">No events yet.</td></tr>';
+            return;
+        }
+        const rows = events.map(e => {
+            const ts = e.ts ? new Date(e.ts).toLocaleTimeString() : '';
+            const ctx = e.context || {};
+            const ctxBits = [];
+            if (ctx.event_type) ctxBits.push(ctx.event_type);
+            if (ctx.player) ctxBits.push(ctx.player);
+            if (ctx.minute) ctxBits.push(ctx.minute + "'");
+            const ctxStr = ctxBits.length ? ` <span class="text-gray-400">[${escape(ctxBits.join(' · '))}]</span>` : '';
+            return `<tr class="border-b border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 whitespace-nowrap text-gray-600 dark:text-gray-300">${escape(ts)}</td>
+                <td class="px-4 py-2 whitespace-nowrap font-mono text-xs">${escape(e.stage)}</td>
+                <td class="px-4 py-2 whitespace-nowrap">${outcomePill(e.outcome)}</td>
+                <td class="px-4 py-2 whitespace-nowrap">${escape(e.session_id ?? '—')}</td>
+                <td class="px-4 py-2 whitespace-nowrap">${escape(e.match_id ?? '—')}</td>
+                <td class="px-4 py-2 text-gray-700 dark:text-gray-300">${escape(e.message)}${ctxStr}</td>
+            </tr>`;
+        }).join('');
+        tbody.innerHTML = rows;
+    };
+
+    const load = () => {
+        if (paused) return;
+        const params = new URLSearchParams();
+        params.set('limit', '100');
+        const stage = filter && filter.value;
+        if (stage) params.set('stage', stage);
+        fetch('{{ url_for("admin_panel.mls_api_live_reporting_events") }}?' + params.toString(), {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        })
+            .then(r => r.ok ? r.json() : { events: [] })
+            .then(data => render(data.events || []))
+            .catch(() => { /* silent */ });
+    };
+
+    if (filter) filter.addEventListener('change', load);
+    if (pauseBtn) pauseBtn.addEventListener('click', () => {
+        paused = !paused;
+        pauseBtn.innerHTML = paused
+            ? '<i class="ti ti-player-play mr-1"></i><span>Resume</span>'
+            : '<i class="ti ti-player-pause mr-1"></i><span>Pause</span>';
+        if (!paused) load();
+    });
+
+    load();
+    setInterval(load, 5000);
+})();
 </script>
 {% endblock %}

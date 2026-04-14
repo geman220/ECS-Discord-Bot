@@ -81,6 +81,15 @@ LOGGING_CONFIG = {
             'maxBytes': 26214400,   # 25MB
             'backupCount': 3,
             'encoding': 'utf-8'
+        },
+        'live_reporting_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': 'logs/live_reporting.log',
+            'formatter': 'detailed',
+            'level': 'INFO',
+            'maxBytes': 26214400,   # 25MB
+            'backupCount': 3,       # ~100MB max on disk
+            'encoding': 'utf-8'
         }
     },
 
@@ -169,6 +178,29 @@ LOGGING_CONFIG = {
         'app.redis_manager': {
             'handlers': ['console'],
             'level': 'ERROR',       # Only serious Redis errors
+            'propagate': False
+        },
+        # Live-reporting pipeline — everything at INFO or higher goes to the
+        # rotating file + errors file + console, so operators can debug
+        # "why didn't my match events post?" from logs or the admin UI widget.
+        'app.services.realtime_reporting_service': {
+            'handlers': ['console', 'live_reporting_file', 'errors_file'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'app.services.live_reporting_event_log': {
+            'handlers': ['live_reporting_file'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'app.utils.espn_api_client': {
+            'handlers': ['live_reporting_file', 'errors_file'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'app.utils.sync_espn_client': {
+            'handlers': ['live_reporting_file', 'errors_file'],
+            'level': 'INFO',
             'propagate': False
         }
     },

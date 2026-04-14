@@ -395,20 +395,9 @@ def _build_espn_description(espn_match_id: str, home_team: str, away_team: str, 
     fallback = f"{home_team} vs {away_team}"
 
     try:
+        from app.utils.competition_mappings import resolve_league_code
         espn = get_sync_espn_client()
-
-        # Map display names to ESPN competition codes
-        _competition_map = {
-            'MLS': 'usa.1',
-            'US Open Cup': 'usa.open',
-            'Leagues Cup': 'usa.leagues_cup',
-            'CONCACAF Champions League': 'concacaf.champions',
-            'CONCACAF Champions Cup': 'concacaf.champions',
-            'Concacaf Champions League': 'concacaf.champions',
-            'Concacaf Champions Cup': 'concacaf.champions',
-            'Concacaf': 'concacaf.champions',
-        }
-        comp_code = _competition_map.get(competition, competition if '.' in competition else 'usa.1')
+        comp_code = resolve_league_code(competition)
 
         # Get both team IDs from the ESPN event data
         competitors = espn.get_event_competitors(espn_match_id, comp_code)
@@ -538,9 +527,44 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
             }
 
             # Fetch factual ESPN data for thread description
-            match_data['description'] = _build_espn_description(
+            espn_description = _build_espn_description(
                 match.match_id, home_team, away_team, match.competition or 'usa.1'
             )
+
+            # Try to add minimal natural structuring via AI. The prompt is tight
+            # ("short connectives only, no embellishment"), and the result goes
+            # through the commentary_validator anti-AI-tone gate. If the AI
+            # returns nothing or validation rejects the output, we fall back
+            # to the raw ESPN description — never a generic boilerplate line.
+            thread_description = espn_description
+            try:
+                from app.utils.sync_ai_client import get_sync_ai_client
+                ai_context = {
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'competition': match.competition or 'MLS',
+                    'venue': match.venue or '',
+                    'espn_info': espn_description,
+                }
+                ai_client = get_sync_ai_client()
+                ai_rewrite = ai_client.generate_match_thread_context(ai_context)
+                if ai_rewrite and ai_rewrite.strip():
+                    thread_description = ai_rewrite.strip()
+                    logger.info(
+                        f"Match {match_id}: AI-structured thread description accepted"
+                    )
+                else:
+                    logger.info(
+                        f"Match {match_id}: AI thread structuring empty/rejected, "
+                        f"using raw ESPN description"
+                    )
+            except Exception as ai_err:
+                logger.warning(
+                    f"Match {match_id}: AI thread structuring failed "
+                    f"({ai_err}); using raw ESPN description"
+                )
+
+            match_data['description'] = thread_description
 
             # Use sync Discord client (works reliably)
             discord_client = get_sync_discord_client()

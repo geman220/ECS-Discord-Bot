@@ -1606,21 +1606,10 @@ async def create_match_thread(session: Session, match: MLSMatch) -> Optional[str
             # Fetch real ESPN data (records, standings, h2h) for the AI to rewrite
             try:
                 from app.utils.sync_espn_client import get_sync_espn_client
+                from app.utils.competition_mappings import resolve_league_code
                 espn = get_sync_espn_client()
                 espn_match_id = match.match_id
-                comp_raw = match.competition or 'usa.1'
-                # Map display names to ESPN codes; pass through if already an ESPN code
-                _competition_map = {
-                    'MLS': 'usa.1',
-                    'US Open Cup': 'usa.open',
-                    'Leagues Cup': 'usa.leagues_cup',
-                    'CONCACAF Champions League': 'concacaf.champions',
-                    'CONCACAF Champions Cup': 'concacaf.champions',
-                    'Concacaf Champions League': 'concacaf.champions',
-                    'Concacaf Champions Cup': 'concacaf.champions',
-                    'Concacaf': 'concacaf.champions',
-                }
-                comp_code = _competition_map.get(comp_raw, comp_raw if '.' in comp_raw else 'usa.1')
+                comp_code = resolve_league_code(match.competition)
 
                 competitors = espn.get_event_competitors(espn_match_id, comp_code)
                 if competitors:

@@ -1019,7 +1019,14 @@ async def _create_match_thread_locked(request, bot, match_id, home_team, away_te
         # Use pre-built ESPN description if provided, otherwise simple fallback
         espn_description = request.get('description', '')
 
-        content = "Match thread is up. Discuss the game and drop your predictions."
+        # Use the ESPN-derived description as the thread content when available
+        # so the top-of-thread message has real match context (records, standings,
+        # last meeting) instead of generic boilerplate. Falls back to the old
+        # static line if ESPN data is unavailable.
+        if espn_description:
+            content = f"{espn_description}\n\nDrop your predictions below."
+        else:
+            content = "Match thread is up. Discuss the game and drop your predictions."
 
         # Create comprehensive embed
         embed = discord.Embed(

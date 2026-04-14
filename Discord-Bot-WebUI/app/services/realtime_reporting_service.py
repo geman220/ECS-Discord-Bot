@@ -21,7 +21,9 @@ from datetime import datetime, timedelta
 import json
 
 from app.models import LiveReportingSession, MLSMatch
+from app.services.live_reporting_event_log import record_event as log_event
 from app.services.redis_connection_service import get_redis_service
+from app.utils.competition_mappings import resolve_league_code
 from app.utils.espn_api_client import ESPNAPIClient
 from app.utils.discord_request_handler import send_to_discord_bot
 from app.utils.task_session_manager import task_session
@@ -237,19 +239,11 @@ class RealtimeReportingService:
                 logger.warning(f"No ESPN match ID for session {session_id}, skipping")
                 return
 
-            # Map competition name to ESPN league code
-            competition = session_data.get('competition', 'usa.1')
-            competition_map = {
-                'MLS': 'usa.1',
-                'US Open Cup': 'usa.open',
-                'Leagues Cup': 'usa.leagues_cup',
-                'CONCACAF Champions League': 'concacaf.champions',
-                'CONCACAF Champions Cup': 'concacaf.champions',
-                'Concacaf Champions League': 'concacaf.champions',
-                'Concacaf Champions Cup': 'concacaf.champions',
-                'Concacaf': 'concacaf.champions',
-            }
-            league_code = competition_map.get(competition, competition)
+            # Resolve the ESPN league code from the session's competition
+            # (accepts display names like "Concacaf Champions Cup" and ESPN
+            # codes like "concacaf.champions" transparently).
+            competition = session_data.get('competition')
+            league_code = resolve_league_code(competition)
 
             logger.info(f"Polling ESPN for session {session_id} (match={espn_match_id}, league={league_code})")
             # Run sync ESPN client in executor to avoid blocking the async event loop
@@ -258,6 +252,32 @@ class RealtimeReportingService:
                 self._executor, self.espn_client.get_match_data, espn_match_id, league_code
             )
             if not match_data:
+                # If ESPN returned nothing after the match was previously live,
+                # it has likely dropped off the live scoreboard because it
+                # ended. Feed this into the UNKNOWN-after-live counter so
+                # _is_match_ended can short-circuit instead of waiting for the
+                # 4h absolute timeout.
+                previous_status = self._last_statuses.get(session_id)
+                if previous_status in ('IN_PLAY', 'HALFTIME'):
+                    count = self._unknown_status_counts.get(session_id, 0) + 1
+                    self._unknown_status_counts[session_id] = count
+                    logger.warning(
+                        f"Session {session_id}: ESPN returned no data after {previous_status} "
+                        f"({count}/{self.UNKNOWN_STATUS_THRESHOLD})"
+                    )
+                    if count >= self.UNKNOWN_STATUS_THRESHOLD:
+                        logger.warning(f"Session {session_id}: ESPN data gone, treating as match end")
+                        if session_id not in self._catchup_sessions:
+                            await self._send_lifecycle_event(
+                                session_id, session_data, 'fulltime', {'status': previous_status}
+                            )
+                        await self._deactivate_session(
+                            session_id, session_data,
+                            f"Match presumed ended (no ESPN data x{count} after {previous_status})"
+                        )
+                        self._unknown_status_counts.pop(session_id, None)
+                        self._catchup_sessions.discard(session_id)
+                        return
                 await self._handle_session_error(session_id, "Failed to fetch match data")
                 return
 
@@ -755,15 +775,40 @@ class RealtimeReportingService:
     async def _send_events_to_discord(self, session_id: int, session_data: Dict[str, Any], events: List[Dict[str, Any]]):
         """Send new events to Discord via bot API with rich embeds."""
         thread_id = session_data.get('thread_id')
+        match_id_str = str(session_data.get('match_id', ''))
         if not thread_id:
-            logger.warning(f"No thread ID for session {session_id}")
+            logger.warning(f"Session {session_id}: No thread ID — cannot post {len(events)} events")
+            log_event(
+                stage="post", outcome="error", session_id=session_id,
+                match_id=match_id_str,
+                message=f"No thread_id; dropped {len(events)} events",
+            )
             return
 
+        logger.info(f"Session {session_id}: Posting {len(events)} event(s) to thread {thread_id}")
+        posted = 0
+        skipped = 0
+        failed = 0
+
         for event in events:
+            event_type = event.get('type', 'unknown')
+            event_player = event.get('player', 'Unknown')
+            event_minute = event.get('minute', '?')
             try:
-                # Generate AI commentary text
+                # Generate AI-or-ESPN-fallback commentary text
                 message_content = self._format_event_message(event, session_data)
                 if not message_content:
+                    skipped += 1
+                    logger.warning(
+                        f"Session {session_id}: Skipping {event_type} event "
+                        f"({event_player}, {event_minute}') — no message content produced"
+                    )
+                    log_event(
+                        stage="post", outcome="error", session_id=session_id,
+                        match_id=match_id_str,
+                        message=f"Skipped {event_type} — no message content",
+                        context={"event_type": event_type, "player": event_player, "minute": event_minute},
+                    )
                     continue
 
                 # Build rich embed for the bot API
@@ -771,16 +816,16 @@ class RealtimeReportingService:
 
                 # Sanitize event data for JSON serialization
                 clean_event = {
-                    'type': str(event.get('type', 'unknown')),
-                    'player': str(event.get('player', 'Unknown')),
-                    'minute': str(event.get('minute', '0')),
+                    'type': str(event_type),
+                    'player': str(event_player),
+                    'minute': str(event_minute),
                     'team': str(event.get('team', 'Unknown')),
                     'description': str(event.get('description', ''))
                 }
 
                 request_data = {
                     'thread_id': thread_id,
-                    'event_type': event.get('type', 'unknown'),
+                    'event_type': event_type,
                     'content': message_content,
                     'match_data': {
                         'session_id': session_id,
@@ -796,13 +841,59 @@ class RealtimeReportingService:
                 response = send_to_discord_bot('/api/live-reporting/event', request_data)
 
                 if response and response.get('success'):
-                    logger.debug(f"Sent {event.get('type')} event to Discord for session {session_id}")
+                    posted += 1
+                    logger.info(
+                        f"Session {session_id}: Posted {event_type} event "
+                        f"({event_player}, {event_minute}') to Discord"
+                    )
+                    log_event(
+                        stage="post", outcome="ok", session_id=session_id,
+                        match_id=match_id_str,
+                        message=f"Posted {event_type}: {event_player} {event_minute}'",
+                        context={
+                            "event_type": event_type, "player": event_player,
+                            "minute": event_minute, "team": event.get('team'),
+                            "content": message_content[:200],
+                        },
+                    )
                 else:
+                    failed += 1
                     error_msg = response.get('error', 'Unknown error') if response else 'No response'
-                    logger.error(f"Failed to send event to Discord: {error_msg}")
+                    logger.error(
+                        f"Session {session_id}: Bot rejected {event_type} event "
+                        f"({event_player}, {event_minute}'): {error_msg}"
+                    )
+                    log_event(
+                        stage="post", outcome="error", session_id=session_id,
+                        match_id=match_id_str,
+                        message=f"Bot rejected {event_type} ({event_player}, {event_minute}'): {error_msg}",
+                        context={"event_type": event_type, "error": error_msg},
+                    )
 
             except Exception as e:
-                logger.error(f"Error sending event to Discord: {e}")
+                failed += 1
+                logger.error(
+                    f"Session {session_id}: Exception posting {event_type} event "
+                    f"({event_player}, {event_minute}'): {e}",
+                    exc_info=True,
+                )
+                log_event(
+                    stage="post", outcome="error", session_id=session_id,
+                    match_id=match_id_str,
+                    message=f"Exception posting {event_type}: {e}",
+                    context={"event_type": event_type, "player": event_player},
+                )
+
+        logger.info(
+            f"Session {session_id}: Event batch complete — "
+            f"posted={posted}, skipped={skipped}, failed={failed}"
+        )
+        log_event(
+            stage="post", outcome="info", session_id=session_id,
+            match_id=match_id_str,
+            message=f"Batch: posted={posted}, skipped={skipped}, failed={failed}",
+            context={"posted": posted, "skipped": skipped, "failed": failed},
+        )
 
     def _format_event_message(self, event: Dict[str, Any], session_data: Dict[str, Any]) -> Optional[str]:
         """Format an event into a Discord message using enhanced AI commentary."""
@@ -889,7 +980,42 @@ class RealtimeReportingService:
                         'team': 'home' if team == home_team else 'away'
                     })
 
+                    logger.info(
+                        f"Session {session_id}: AI commentary posted for {ai_event_type} "
+                        f"({player}, {minute}')"
+                    )
+                    log_event(
+                        stage="ai", outcome="ok", session_id=session_id,
+                        match_id=str(session_data.get('match_id', '')),
+                        message=f"AI ok: {ai_commentary[:160]}",
+                        context={
+                            "event_type": ai_event_type, "player": player,
+                            "minute": minute, "team": team,
+                        },
+                    )
                     return ai_commentary
+
+                # AI returned nothing (rejected by validator or upstream failure).
+                # Fall back to the ESPN description so the event still posts with
+                # real factual content — matches the "ESPN-dominant, minimal AI"
+                # philosophy and keeps anti-AI tone safe.
+                logger.warning(
+                    f"Session {session_id}: AI commentary empty/rejected for {ai_event_type} "
+                    f"({player}, {minute}') — posting ESPN fallback"
+                )
+                fallback_text = espn_description or (
+                    f"{ai_event_type.replace('_', ' ').title()}. {player} ({team}). {minute}."
+                )
+                log_event(
+                    stage="ai", outcome="fallback", session_id=session_id,
+                    match_id=str(session_data.get('match_id', '')),
+                    message=f"AI rejected/empty — ESPN fallback: {fallback_text[:160]}",
+                    context={
+                        "event_type": ai_event_type, "player": player,
+                        "minute": minute, "team": team,
+                    },
+                )
+                return fallback_text
 
             # Fallback to static messages for other events
             if event_type == 'score_update':
@@ -1032,16 +1158,11 @@ class RealtimeReportingService:
                     session.commit()
                     logger.info(f"Deactivated session {session_id}: {reason}")
 
-                    # Archive thread on match end (no extra message - fulltime was already posted)
-                    is_match_end = 'ended' in reason.lower() or 'FINAL' in reason or 'COMPLETED' in reason
-                    if is_match_end:
-                        # Just archive the thread silently - fulltime lifecycle message was already sent
-                        await self._archive_thread(live_session.thread_id)
-                    else:
-                        # Non-match-end deactivation (errors, timeout) - post explanation
-                        await self._send_session_end_message(
-                            live_session.thread_id, reason, close_thread=False
-                        )
+                    # Always archive the thread silently — users don't need a
+                    # Discord embed announcing timeouts or errors. The reason
+                    # is preserved in server logs (see logger.info above) and
+                    # in the LiveReportingSession DB record for diagnostics.
+                    await self._archive_thread(live_session.thread_id)
 
                     # Clean up in-memory tracking
                     self.last_events.pop(session_id, None)

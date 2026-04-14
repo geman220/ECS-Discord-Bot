@@ -32,18 +32,9 @@ from app.utils.task_monitor import get_task_info
 logger = logging.getLogger(__name__)
 
 
-# Competition code mappings
-COMPETITION_MAPPINGS = {
-    "MLS": "usa.1",
-    "US Open Cup": "usa.open",
-    "FIFA Club World Cup": "fifa.cwc",
-    "Concacaf": "concacaf.champions",
-    "Concacaf Champions League": "concacaf.champions",
-    "Concacaf Champions Cup": "concacaf.champions",
-    "CONCACAF Champions League": "concacaf.champions",
-    "CONCACAF Champions Cup": "concacaf.champions",
-    "Leagues Cup": "usa.leagues_cup",
-}
+# Competition mappings are defined in one place for the whole codebase.
+# See app/utils/competition_mappings.py for the source of truth.
+from app.utils.competition_mappings import COMPETITION_MAPPINGS
 
 
 # -----------------------------------------------------------
@@ -2329,6 +2320,52 @@ def mls_api_coordination():
         return jsonify(status)
     except Exception as e:
         return jsonify({'error': 'Internal Server Error'}), 500
+
+
+@admin_panel_bp.route('/mls/api/live-reporting/events')
+@login_required
+@role_required(['Global Admin', 'Discord Admin'])
+def mls_api_live_reporting_events():
+    """
+    Recent live-reporting events from the Redis ring buffer.
+
+    Query params:
+        limit   — max entries (1..500, default 100)
+        stage   — filter to one stage (post/ai/espn_event/session/error)
+        session — filter to a specific session id (defaults to global list)
+    """
+    try:
+        from app.services.live_reporting_event_log import get_recent_events
+
+        try:
+            limit = max(1, min(int(request.args.get('limit', 100)), 500))
+        except (TypeError, ValueError):
+            limit = 100
+        stage = request.args.get('stage') or None
+        session_id_arg = request.args.get('session')
+        try:
+            session_id = int(session_id_arg) if session_id_arg else None
+        except (TypeError, ValueError):
+            session_id = None
+
+        # Pull more than requested so stage-filtering still returns ~limit rows
+        fetch_limit = limit * 3 if stage else limit
+        events = get_recent_events(limit=fetch_limit, session_id=session_id)
+
+        if stage == 'error':
+            events = [e for e in events if e.get('outcome') == 'error']
+        elif stage:
+            events = [e for e in events if e.get('stage') == stage]
+
+        return jsonify({
+            'events': events[:limit],
+            'count': len(events[:limit]),
+            'filtered_stage': stage,
+            'session_id': session_id,
+        })
+    except Exception as e:
+        logger.error(f"Error loading live reporting events: {e}")
+        return jsonify({'events': [], 'error': 'Internal Server Error'}), 500
 
 
 @admin_panel_bp.route('/mls/retry-task', methods=['POST'])
