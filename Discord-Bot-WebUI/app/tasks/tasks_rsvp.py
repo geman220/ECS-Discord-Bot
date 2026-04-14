@@ -1007,12 +1007,17 @@ def schedule_weekly_match_availability(self, session) -> Dict[str, Any]:
         
         logger.info(f"Looking for Sunday matches between {today} and {two_weeks_ahead}")
         
-        # Find all Sunday matches in the next 2 weeks that don't have scheduled messages
+        # Find all Sunday matches in the next 2 weeks that don't have scheduled messages.
+        # PRACTICE rows live in the matches table so the admin view and team pages can render
+        # a "PRACTICE — all teams practice together" cell, but they use real home/away team IDs
+        # (not self-play), so the home_id == away_id special-case below doesn't catch them.
+        # Filter them out here — Sunday RSVPs should never go out for a practice slot.
         sunday_matches = session.query(Match).options(
             joinedload(Match.scheduled_messages)
         ).filter(
             Match.date.between(today, two_weeks_ahead),
-            Match.date >= today  # Only future matches
+            Match.date >= today,  # Only future matches
+            Match.week_type != 'PRACTICE'
         ).all()
         
         # Filter to only Sunday matches (weekday 6)

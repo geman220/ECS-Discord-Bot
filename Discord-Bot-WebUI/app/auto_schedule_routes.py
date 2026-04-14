@@ -1273,9 +1273,51 @@ def toggle_classic_practice():
 
             new_state = 'REGULAR'
         else:
-            # ── Add practice: mark first-window matches as PRACTICE ──
+            # ── Add practice: collapse first-window matches to self-match placeholders ──
+            # Mirror the convention the generator uses at auto_schedule_generator.py:800-813:
+            # practice rows carry home_team_id == away_team_id. Downstream consumers key off
+            # that equality — the bot RSVP scheduler's special-week branch, the team-page
+            # renderer, is_special_week flag. Just flipping week_type leaves two real team
+            # IDs on the row, and then the bot posts it as a live fixture between those
+            # teams (seen on Season 20 Week 4, 2026-04-19).
+            from app.models import ScheduledMessage, Availability
+
             for match in first_window_matches:
+                old_home = match.home_team_id
+                old_away = match.away_team_id
+
                 match.week_type = 'PRACTICE'
+                match.is_special_week = True
+                match.away_team_id = old_home  # collapse to self-match placeholder
+
+                # Collapse the home team's Schedule row to a self-reference.
+                home_sched = session.query(Schedule).get(match.schedule_id)
+                if home_sched:
+                    home_sched.opponent = old_home
+
+                # Drop the away-team-perspective Schedule row — practice is one-sided.
+                if old_home != old_away:
+                    paired = session.query(Schedule).filter_by(
+                        team_id=old_away,
+                        opponent=old_home,
+                        week=week_str,
+                    ).filter(
+                        Schedule.date == match.date,
+                        Schedule.time == match.time,
+                    ).first()
+                    if paired:
+                        session.delete(paired)
+
+                # Cancel any pending bot RSVP for this slot and discard availability
+                # collected against the now-stale pairing.
+                session.query(ScheduledMessage).filter(
+                    ScheduledMessage.match_id == match.id,
+                    ScheduledMessage.status == 'PENDING',
+                ).delete(synchronize_session=False)
+                session.query(Availability).filter(
+                    Availability.match_id == match.id,
+                ).delete(synchronize_session=False)
+
             new_state = 'PRACTICE'
 
         session.commit()

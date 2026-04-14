@@ -645,9 +645,10 @@ def get_player_availability(match: Match, player: Player, session=None) -> Optio
     return availability.to_dict() if availability else None
 
 
-def build_matches_query(team_id: Optional[int], player: Optional[Player], 
-                        upcoming: bool = False, completed: bool = False, 
-                        all_teams: bool = False, limit: Optional[int] = None, session=None) -> Query:
+def build_matches_query(team_id: Optional[int], player: Optional[Player],
+                        upcoming: bool = False, completed: bool = False,
+                        all_teams: bool = False, limit: Optional[int] = None,
+                        include_practice: bool = False, session=None) -> Query:
     """
     Build a SQLAlchemy query for matches based on filters.
 
@@ -658,6 +659,10 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
         completed (bool): If True, only include matches that have already been played.
         all_teams (bool): If True, include matches for all player's teams, not just primary.
         limit (Optional[int]): Maximum number of matches to return (for performance).
+        include_practice (bool): If False (default), PRACTICE rows are excluded. PRACTICE
+            entries are stored with real home/away team IDs so the admin/team-page UIs can
+            render them as "all teams practice together," but mobile API callers otherwise
+            render them as a regular match between the two stored teams, which is wrong.
         session: The database session (defaults to g.db_session).
 
     Returns:
@@ -672,6 +677,9 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
         joinedload(Match.home_team),
         joinedload(Match.away_team)
     )
+
+    if not include_practice:
+        query = query.filter(Match.week_type != 'PRACTICE')
     
     if team_id and not all_teams:
         # Filter by specific team ID provided (only when all_teams is False)
