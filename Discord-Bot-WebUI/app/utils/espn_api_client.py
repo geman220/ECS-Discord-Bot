@@ -68,11 +68,24 @@ class ESPNAPIClient:
         self._failure_counts = {}  # Track failures for circuit breaker
         self._circuit_open_until = {}  # Track when circuit can close
 
-    def get_match_data(self, match_id: str, competition: str = 'eng.1') -> Optional[Dict[str, Any]]:
+    def get_match_data(
+        self,
+        match_id: str,
+        competition: str = 'eng.1',
+        match_date: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         """
         Get real-time match data from ESPN API.
 
         Optimized for live matches with smart caching and rate limiting.
+
+        Args:
+            match_id: ESPN event id.
+            competition: ESPN league code (e.g. ``usa.1`` / ``concacaf.champions``).
+            match_date: Optional ``YYYYMMDD`` date hint. ESPN's default
+                scoreboard only returns today's matches; passing the match's
+                scheduled date scopes the query so the event is always
+                included even near UTC day boundaries.
         """
         try:
             # Check cache first
@@ -112,7 +125,7 @@ class ESPNAPIClient:
                 time.sleep(wait_time)
 
             # Make API request
-            data = self._fetch_from_api(match_id, competition)
+            data = self._fetch_from_api(match_id, competition, match_date)
 
             if data:
                 # Cache with appropriate TTL
@@ -139,7 +152,12 @@ class ESPNAPIClient:
             logger.error(f"Error getting match data for {match_id}: {e}")
             return self._get_mock_data(match_id)
 
-    def _fetch_from_api(self, match_id: str, competition: str) -> Optional[Dict[str, Any]]:
+    def _fetch_from_api(
+        self,
+        match_id: str,
+        competition: str,
+        match_date: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
         """
         Fetch match data from ESPN API.
         """
@@ -147,9 +165,14 @@ class ESPNAPIClient:
             # The scoreboard endpoint is the only reliable ESPN API for MLS.
             # It returns all current-day matches including recently finished ones.
             # The /summary endpoint returns 404 for MLS (usa.1).
-            endpoints = [
-                f"{self.BASE_URL}/sports/soccer/{competition}/scoreboard",
-            ]
+            base = f"{self.BASE_URL}/sports/soccer/{competition}/scoreboard"
+            # If we have a match date, try that first (handles UTC-midnight
+            # rollovers during live games), then fall back to the default
+            # scoreboard window.
+            endpoints = []
+            if match_date:
+                endpoints.append(f"{base}?dates={match_date}")
+            endpoints.append(base)
 
             for url in endpoints:
                 try:

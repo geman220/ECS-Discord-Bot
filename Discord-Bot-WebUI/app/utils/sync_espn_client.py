@@ -196,33 +196,65 @@ class SyncESPNClient:
             logger.error(f"Error fetching team info for {team_id}: {e}")
             return None
 
-    def get_event_competitors(self, match_id: str, competition: str = "usa.1") -> Optional[Dict[str, str]]:
+    def get_event_competitors(
+        self,
+        match_id: str,
+        competition: str = "usa.1",
+        match_date: Optional[str] = None,
+    ) -> Optional[Dict[str, str]]:
         """
         Fetch ESPN event data and extract both team IDs from competitors.
 
+        Uses the scoreboard endpoint, optionally narrowed to a specific date,
+        then scans the returned events for the requested match_id. ESPN's
+        scoreboard only returns current-day matches when no `dates` param is
+        supplied, so callers should pass `match_date` for future fixtures
+        (e.g. when creating a match thread 48h before kickoff).
+
         Args:
             match_id: ESPN match/event ID
-            competition: Competition identifier
+            competition: ESPN league code (e.g. "usa.1", "concacaf.champions")
+            match_date: Optional date in "YYYYMMDD" format. If provided, queries
+                ESPN's scoreboard for that date; otherwise falls back to today.
 
         Returns:
-            Dict with 'home_team_id', 'away_team_id', 'home_team_name', 'away_team_name'
-            or None if unavailable.
+            Dict with 'home_team_id', 'away_team_id', 'home_team_name',
+            'away_team_name' or None if unavailable.
         """
         try:
-            url = f"{self.base_url}/{competition}/scoreboard/{match_id}"
-            response = self.session.get(url, timeout=self.timeout)
+            url = f"{self.base_url}/{competition}/scoreboard"
+            params = {}
+            if match_date:
+                params['dates'] = match_date
+            response = self.session.get(url, params=params, timeout=self.timeout)
 
             if response.status_code != 200:
+                logger.warning(
+                    f"ESPN scoreboard returned {response.status_code} for "
+                    f"{competition} (match={match_id}, date={match_date})"
+                )
                 return None
 
             data = response.json()
-
-            # Navigate ESPN response structure
-            events = data.get('events', [])
+            events = data.get('events', []) or []
             if not events:
+                logger.info(
+                    f"ESPN scoreboard returned no events for {competition} "
+                    f"(match={match_id}, date={match_date})"
+                )
                 return None
 
-            event = events[0]
+            # Find the specific event we want (scoreboard returns all matches
+            # for the date/day — not just ours).
+            event = next((e for e in events if str(e.get('id')) == str(match_id)), None)
+            if not event:
+                event_ids = [str(e.get('id')) for e in events]
+                logger.info(
+                    f"ESPN scoreboard for {competition} (date={match_date}) "
+                    f"did not contain match {match_id}. Available events: {event_ids}"
+                )
+                return None
+
             competitions = event.get('competitions', [])
             if not competitions:
                 return None

@@ -9,7 +9,9 @@ Handles automated scheduling of match threads and live reporting sessions.
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+
+from app.services.live_reporting_event_log import record_event as _log_event
 from app.decorators import celery_task
 from app.services.match_scheduler_service import MatchSchedulerService
 from app.utils.task_session_manager import task_session
@@ -383,12 +385,25 @@ def health_check_enterprise_system(self):
         }
 
 
-def _build_espn_description(espn_match_id: str, home_team: str, away_team: str, competition: str) -> str:
+def _build_espn_description(
+    espn_match_id: str,
+    home_team: str,
+    away_team: str,
+    competition: str,
+    match_date: Optional[str] = None,
+) -> str:
     """
     Build a factual match thread description from ESPN data.
 
     Fetches team records, standings positions, and h2h from ESPN.
     Returns a formatted string or a simple fallback if ESPN data is unavailable.
+
+    Args:
+        espn_match_id: ESPN event id
+        home_team / away_team: display names used in the fallback
+        competition: display name or ESPN league code
+        match_date: optional YYYYMMDD string. Required for future fixtures
+            since ESPN's default scoreboard only returns today's matches.
     """
     from app.utils.sync_espn_client import get_sync_espn_client
 
@@ -399,10 +414,22 @@ def _build_espn_description(espn_match_id: str, home_team: str, away_team: str, 
         espn = get_sync_espn_client()
         comp_code = resolve_league_code(competition)
 
-        # Get both team IDs from the ESPN event data
-        competitors = espn.get_event_competitors(espn_match_id, comp_code)
+        # Get both team IDs from the ESPN event data (scoped to the match date
+        # so the scoreboard actually contains a future/past fixture).
+        competitors = espn.get_event_competitors(
+            espn_match_id, comp_code, match_date=match_date
+        )
         if not competitors:
-            logger.warning(f"Could not fetch competitors for match {espn_match_id}")
+            logger.warning(
+                f"Could not fetch competitors for match {espn_match_id} "
+                f"(league={comp_code}, date={match_date})"
+            )
+            _log_event(
+                stage="espn_event", outcome="fallback",
+                match_id=str(espn_match_id),
+                message=f"Thread ESPN lookup: no competitors for {comp_code} date={match_date}; using bare fallback",
+                context={"league": comp_code, "date": match_date},
+            )
             return fallback
 
         # Fetch team info for both sides
@@ -447,10 +474,21 @@ def _build_espn_description(espn_match_id: str, home_team: str, away_team: str, 
 
         description = "\n".join(lines)
         logger.info(f"Built ESPN description for match {espn_match_id}: {description[:80]}...")
+        _log_event(
+            stage="espn_event", outcome="ok",
+            match_id=str(espn_match_id),
+            message=f"Thread ESPN description: {description[:160]}",
+            context={"league": comp_code, "date": match_date},
+        )
         return description
 
     except Exception as e:
         logger.warning(f"Error building ESPN description for match {espn_match_id}: {e}")
+        _log_event(
+            stage="espn_event", outcome="error",
+            match_id=str(espn_match_id),
+            message=f"Thread ESPN description error: {e}",
+        )
         return fallback
 
 
@@ -526,9 +564,15 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
                 'is_home_game': match.is_home_game
             }
 
-            # Fetch factual ESPN data for thread description
+            # Fetch factual ESPN data for thread description. Pass match_date
+            # in ESPN's YYYYMMDD format so the scoreboard query actually
+            # includes this future fixture (ESPN's default scoreboard only
+            # returns same-day matches).
+            match_date_str = utc_time.strftime('%Y%m%d')
             espn_description = _build_espn_description(
-                match.match_id, home_team, away_team, match.competition or 'usa.1'
+                match.match_id, home_team, away_team,
+                match.competition or 'usa.1',
+                match_date=match_date_str,
             )
 
             # Try to add minimal natural structuring via AI. The prompt is tight
@@ -553,15 +597,32 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
                     logger.info(
                         f"Match {match_id}: AI-structured thread description accepted"
                     )
+                    _log_event(
+                        stage="ai", outcome="ok",
+                        match_id=str(match.match_id),
+                        message=f"Thread AI ok: {thread_description[:160]}",
+                        context={"home": home_team, "away": away_team},
+                    )
                 else:
                     logger.info(
                         f"Match {match_id}: AI thread structuring empty/rejected, "
                         f"using raw ESPN description"
                     )
+                    _log_event(
+                        stage="ai", outcome="fallback",
+                        match_id=str(match.match_id),
+                        message="Thread AI rejected/empty — using raw ESPN description",
+                        context={"home": home_team, "away": away_team},
+                    )
             except Exception as ai_err:
                 logger.warning(
                     f"Match {match_id}: AI thread structuring failed "
                     f"({ai_err}); using raw ESPN description"
+                )
+                _log_event(
+                    stage="ai", outcome="error",
+                    match_id=str(match.match_id),
+                    message=f"Thread AI error: {ai_err}",
                 )
 
             match_data['description'] = thread_description
@@ -575,6 +636,15 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
                 match.thread_created = True
                 match.discord_thread_id = thread_id
                 match.thread_creation_time = datetime.utcnow()
+                _log_event(
+                    stage="post", outcome="ok",
+                    match_id=str(match.match_id),
+                    message=f"Match thread created: {home_team} vs {away_team} (thread {thread_id})",
+                    context={
+                        "thread_id": str(thread_id),
+                        "home": home_team, "away": away_team,
+                    },
+                )
 
                 # Mark ScheduledTask as completed
                 sched_task = ScheduledTask.find_existing_task(session, match_id, TaskType.THREAD_CREATION)
@@ -592,6 +662,11 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
                 }
             else:
                 logger.error(f"Failed to create MLS thread for match {match.match_id}: No thread ID returned")
+                _log_event(
+                    stage="post", outcome="error",
+                    match_id=str(match.match_id),
+                    message="Match thread creation: bot returned no thread id",
+                )
                 return {"success": False, "error": "No thread ID returned"}
         finally:
             # Release lock
@@ -599,6 +674,11 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
 
     except Exception as e:
         logger.error(f"Error creating MLS thread for match {match_id}: {e}")
+        _log_event(
+            stage="post", outcome="error",
+            match_id=str(match_id),
+            message=f"Match thread creation exception: {e}",
+        )
         return {"success": False, "error": str(e)}
 
 

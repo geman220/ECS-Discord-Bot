@@ -171,6 +171,19 @@ class RealtimeReportingService:
 
                     current_sessions[live_session.id] = session_data
 
+                    # Log new sessions to the admin UI ring buffer
+                    if live_session.id not in self.active_sessions:
+                        log_event(
+                            stage="session", outcome="info",
+                            session_id=live_session.id,
+                            match_id=str(live_session.match_id),
+                            message=f"Session active: {session_data.get('home_team', '?')} vs {session_data.get('away_team', '?')}",
+                            context={
+                                "competition": session_data.get('competition'),
+                                "thread_id": session_data.get('thread_id'),
+                            },
+                        )
+
                     # Initialize event tracking - load persisted keys from DB to survive restarts
                     if live_session.id not in self.last_events:
                         persisted_keys = live_session.parsed_event_keys
@@ -245,11 +258,27 @@ class RealtimeReportingService:
             competition = session_data.get('competition')
             league_code = resolve_league_code(competition)
 
-            logger.info(f"Polling ESPN for session {session_id} (match={espn_match_id}, league={league_code})")
+            # Build an optional YYYYMMDD date hint from the match's scheduled
+            # date so the ESPN scoreboard query always contains our fixture,
+            # even near UTC day boundaries.
+            match_date_hint = None
+            match_dt_val = session_data.get('match_date')
+            if match_dt_val:
+                try:
+                    match_date_hint = match_dt_val.strftime('%Y%m%d') if hasattr(match_dt_val, 'strftime') else None
+                except Exception:
+                    match_date_hint = None
+
+            logger.info(
+                f"Polling ESPN for session {session_id} "
+                f"(match={espn_match_id}, league={league_code}, date={match_date_hint})"
+            )
             # Run sync ESPN client in executor to avoid blocking the async event loop
             loop = asyncio.get_running_loop()
             match_data = await loop.run_in_executor(
-                self._executor, self.espn_client.get_match_data, espn_match_id, league_code
+                self._executor,
+                self.espn_client.get_match_data,
+                espn_match_id, league_code, match_date_hint,
             )
             if not match_data:
                 # If ESPN returned nothing after the match was previously live,
@@ -1157,6 +1186,18 @@ class RealtimeReportingService:
 
                     session.commit()
                     logger.info(f"Deactivated session {session_id}: {reason}")
+                    is_match_end = (
+                        'ended' in reason.lower()
+                        or 'FINAL' in reason
+                        or 'COMPLETED' in reason
+                    )
+                    log_event(
+                        stage="session",
+                        outcome="ok" if is_match_end else "info",
+                        session_id=session_id,
+                        match_id=str(live_session.match_id),
+                        message=f"Session deactivated: {reason}",
+                    )
 
                     # Always archive the thread silently — users don't need a
                     # Discord embed announcing timeouts or errors. The reason

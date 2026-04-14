@@ -124,8 +124,15 @@ class EnterpriseRSVPSystem:
             asyncio.create_task(self.stop())
         
         if sys.platform != 'win32':
-            signal.signal(signal.SIGTERM, signal_handler)
-            signal.signal(signal.SIGINT, signal_handler)
+            import threading
+            if threading.current_thread() is not threading.main_thread():
+                logger.debug("Skipping signal handler setup: not running in main thread")
+                return
+            try:
+                signal.signal(signal.SIGTERM, signal_handler)
+                signal.signal(signal.SIGINT, signal_handler)
+            except ValueError as e:
+                logger.debug(f"Skipping signal handler setup: {e}")
     
     async def health_check(self) -> dict:
         """Get comprehensive health status of the RSVP system."""
