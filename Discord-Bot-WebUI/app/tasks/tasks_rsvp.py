@@ -823,10 +823,54 @@ def notify_discord_of_rsvp_change_task(self, session, match_id: int) -> Dict[str
                 'match_id': match_id
             }
 
-        # Proceed with notification since we've passed the idempotency checks
-        from app.utils.sync_discord_client import get_sync_discord_client
-        discord_client = get_sync_discord_client()
-        result = discord_client.notify_rsvp_changes(match_id)
+        # Proceed with notification since we've passed the idempotency checks.
+        # The bot no longer exposes /api/notify_rsvp_changes; instead it exposes
+        # /api/update_embed which updates a single message. Iterate the match's
+        # stored team messages and update each embed.
+        import os
+        import requests as _requests
+
+        updates_to_make = []
+        if match.home_team_message_id and match.home_team_channel_id:
+            updates_to_make.append({
+                'message_id': match.home_team_message_id,
+                'channel_id': match.home_team_channel_id,
+                'team_type': 'home',
+            })
+        if match.away_team_message_id and match.away_team_channel_id:
+            updates_to_make.append({
+                'message_id': match.away_team_message_id,
+                'channel_id': match.away_team_channel_id,
+                'team_type': 'away',
+            })
+
+        if not updates_to_make:
+            result = {'success': True, 'message': 'No Discord messages to update', 'skipped': True}
+        else:
+            bot_base_url = os.getenv('BOT_API_URL', os.getenv('DISCORD_BOT_BASE_URL', 'http://discord-bot:5001'))
+            update_url = f"{bot_base_url}/api/update_embed"
+            success_count = 0
+            errors = []
+            for info in updates_to_make:
+                try:
+                    payload = {
+                        'match_id': match_id,
+                        'channel_id': int(info['channel_id']),
+                        'message_id': int(info['message_id']),
+                        'trigger_source': 'notify_discord_of_rsvp_change_task',
+                    }
+                    resp = _requests.post(update_url, json=payload, timeout=10)
+                    if resp.status_code == 200 and resp.json().get('success'):
+                        success_count += 1
+                    else:
+                        errors.append(f"{info['team_type']}: HTTP {resp.status_code}")
+                except Exception as _e:
+                    errors.append(f"{info['team_type']}: {_e}")
+            result = {
+                'success': success_count > 0,
+                'message': f'Updated {success_count}/{len(updates_to_make)} embeds'
+                           + (f'; errors: {errors}' if errors else ''),
+            }
         
         # Update match with notification result
         match = session.query(Match).get(match_id)
