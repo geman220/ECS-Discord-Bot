@@ -185,9 +185,14 @@ def ispy_leaderboard():
 
 
 @mobile_api_v2.route('/ispy/me', methods=['GET'])
+@mobile_api_v2.route('/ispy/history', methods=['GET'])
 @jwt_or_discord_auth_required
 def ispy_personal_stats():
-    """Get personal I-Spy statistics for current user."""
+    """Get personal I-Spy statistics for current user.
+
+    /ispy/history is kept as an alias so older mobile app builds
+    (which call /ispy/history) continue to work without a store release.
+    """
     try:
         discord_id = get_current_discord_id()
 

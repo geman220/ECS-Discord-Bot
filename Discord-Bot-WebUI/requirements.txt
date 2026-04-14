@@ -83,6 +83,7 @@ pipreqs>=0.5.0
 platformdirs>=4.2.2
 prompt_toolkit>=3.0.47
 psycopg2-binary>=2.9.10
+psycogreen>=1.0.2
 asyncpg>=0.28.0
 psutil>=6.1.0
 prometheus-client>=0.21.0

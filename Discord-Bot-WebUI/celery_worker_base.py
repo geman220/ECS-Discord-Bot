@@ -12,6 +12,11 @@ for use by worker scripts.
 from gevent import monkey
 monkey.patch_all(thread=False)  # Apply monkey patching for async support, disable thread patching to avoid greenlet errors
 
+# Make psycopg2 cooperate with gevent so DB queries yield to the event loop
+# instead of blocking it. Orthogonal to the thread= flag.
+from psycogreen.gevent import patch_psycopg
+patch_psycopg()
+
 import logging
 from app import create_app
 from app.core import celery as celery_app

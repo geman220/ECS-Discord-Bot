@@ -1157,8 +1157,13 @@ async def _fetch_role_status_async(session, player_data: List[Dict[str, Any]]) -
     return results
 
 
-def _extract_remove_roles_data(session, player_id: int, team_id: int):
-    """Extract player data for role removal."""
+def _extract_remove_roles_data(session, player_id: int, team_id: Optional[int] = None):
+    """Extract player data for role removal.
+
+    When team_id is provided, only roles scoped to that team are removed.
+    When team_id is None, all of the player's team-scoped roles across their
+    current-season teams are removed (used for user denial/deactivation flows).
+    """
     try:
         # OPTIMIZED: Load minimal player data, avoid nested joinedloads
         player = session.query(Player).options(
@@ -1169,14 +1174,32 @@ def _extract_remove_roles_data(session, player_id: int, team_id: int):
         raise
     if not player:
         raise ValueError(f"Player {player_id} not found")
-    
-    # Get team info with minimal data
-    target_team = session.query(Team).options(
-        joinedload(Team.league)
-    ).get(team_id)
-    if not target_team:
-        raise ValueError(f"Team {team_id} not found")
-    
+
+    target_teams = []
+    if team_id is not None:
+        target_team = session.query(Team).options(
+            joinedload(Team.league)
+        ).get(team_id)
+        if not target_team:
+            raise ValueError(f"Team {team_id} not found")
+        target_teams.append({
+            'id': target_team.id,
+            'name': target_team.name,
+            'league_name': target_team.league.name if target_team.league else None
+        })
+    else:
+        # Remove roles across all of the player's current-season teams
+        target_teams = get_current_season_teams(session, player)
+        # Also include any other teams the player is associated with to catch stale roles
+        for team in player.teams:
+            entry = {
+                'id': team.id,
+                'name': team.name,
+                'league_name': team.league.name if team.league else None
+            }
+            if not any(t['id'] == entry['id'] for t in target_teams):
+                target_teams.append(entry)
+
     # Get Flask user roles for division role assignment
     user_roles = []
     try:
@@ -1185,7 +1208,7 @@ def _extract_remove_roles_data(session, player_id: int, team_id: int):
     except Exception as e:
         logger.warning(f"Could not load user roles for player {player.id}: {e}")
         user_roles = []
-    
+
     return {
         'player_id': player_id,
         'team_id': team_id,
@@ -1193,26 +1216,21 @@ def _extract_remove_roles_data(session, player_id: int, team_id: int):
         'name': player.name,
         'current_roles': player.discord_roles or [],
         'user_roles': user_roles,
-        'target_team': {
-            'id': target_team.id,
-            'name': target_team.name,
-            'league_name': target_team.league.name if target_team.league else None
-        }
+        'target_teams': target_teams,
     }
 
 
 async def _execute_remove_roles_async(data):
     """Execute role removal without database session."""
-    target_team = data['target_team']
-    
-    # Calculate roles to remove for this specific team
+    target_teams = data.get('target_teams', [])
+
+    # Calculate roles to remove across all target teams
     roles_to_remove = []
-    if target_team and target_team.get('league_name') in ['Premier', 'Classic']:
-        roles_to_remove.extend([
-            f"ECS-FC-PL-{normalize_name(target_team['name'])}-Player",
-            f"ECS-FC-PL-{normalize_name(target_team['name'])}-Coach"
-        ])
-    
+    for team in target_teams:
+        if team and team.get('league_name') in ['Premier', 'Classic', 'ECS FC']:
+            roles_to_remove.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Player")
+            roles_to_remove.append(f"ECS-FC-PL-{normalize_name(team['name'])}-Coach")
+
     # Prepare data for role removal
     player_data = {
         'id': data['player_id'],
@@ -1222,17 +1240,17 @@ async def _execute_remove_roles_async(data):
         'expected_roles': [],  # Empty - we want to remove roles
         'app_managed_roles': roles_to_remove  # Only these specific roles
     }
-    
+
     # Execute role removal using existing function
     from app.discord_utils import update_player_roles_async_only
     result = await update_player_roles_async_only(player_data, force_update=True)
-    
+
     return {
         'success': result.get('success', False),
         'message': result.get('message', result.get('error', '')),
         'roles_removed': result.get('roles_removed', []),
         'player_id': data['player_id'],
-        'team_id': data['team_id'],
+        'team_id': data.get('team_id'),
         'processed_at': datetime.utcnow().isoformat()
     }
 
@@ -1241,7 +1259,7 @@ def _update_player_after_role_removal(session, result):
     """Update player record after role removal."""
     if not result.get('success'):
         return result
-    
+
     player = session.query(Player).get(result['player_id'])
     if player:
         if result.get('success'):
@@ -1254,12 +1272,12 @@ def _update_player_after_role_removal(session, result):
             player.last_role_removal = datetime.utcnow()
             if result.get('message'):
                 player.role_removal_error = result['message']
-    
+
     return {
         'success': True,
         'message': 'Roles removed successfully',
         'player_id': result['player_id'],
-        'team_id': result['team_id'],
+        'team_id': result.get('team_id'),
         'processed_at': result['processed_at'],
         'roles_removed': result.get('roles_removed', [])
     }
@@ -1272,15 +1290,17 @@ def _update_player_after_role_removal(session, result):
     max_retries=3,
     retry_backoff=True
 )
-async def remove_player_roles_task(self, session, player_id: int, team_id: int) -> Dict[str, Any]:
+async def remove_player_roles_task(self, session, player_id: int, team_id: Optional[int] = None) -> Dict[str, Any]:
     """
     Remove Discord roles for a player using two-phase pattern.
-    
+
     Args:
         session: Database session (used only in phase 1).
         player_id: ID of the player.
-        team_id: ID of the team.
-        
+        team_id: Optional. If provided, only roles scoped to that team are removed.
+                 If None, all of the player's team-scoped Discord roles are removed
+                 (used for user denial / deactivation flows).
+
     Returns:
         A dictionary with the result and updated player info.
     """

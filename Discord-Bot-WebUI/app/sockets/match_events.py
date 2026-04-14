@@ -115,6 +115,9 @@ def handle_join_match_room(data):
             emit('match_room_error', {'message': 'Invalid match ID format'})
             return
 
+        # Collect all DB-dependent data inside the session, then release it
+        # before emitting to the match room (prevents pool exhaustion during
+        # fan-out to every connected coach).
         with managed_session() as session:
             # Get the match
             match = session.query(Match).filter(Match.id == match_id).first()
@@ -141,11 +144,7 @@ def handle_join_match_room(data):
                 emit('match_room_error', {'message': 'You are not authorized to report for this match'})
                 return
 
-            # Join the match room
-            room = f'match_{match_id}'
-            join_room(room)
-
-            # Get current connected coaches in room
+            # Get current connected coaches in room (reads from Redis; needs session for fallbacks)
             connected_coaches = get_match_room_coaches(match_id, session)
 
             team_name = (
@@ -153,37 +152,45 @@ def handle_join_match_room(data):
                 else match.away_team.name
             )
 
-            # Add current user to the list
-            if current_user.id not in [coach['user_id'] for coach in connected_coaches]:
-                connected_coaches.append({
-                    'user_id': current_user.id,
-                    'username': current_user.username,
-                    'player_name': player.name,
-                    'team_name': team_name,
-                    'profile_picture_url': player.profile_picture_url,
-                })
+            # Serialize match while session is live
+            match_payload = match.to_dict(include_teams=True, include_events=True)
+            user_team_id = user_teams[0].team_id
+            player_name = player.name
+            player_profile_picture_url = player.profile_picture_url
 
-            emit('joined_match_room', {
-                'match_id': match_id,
-                'room': room,
-                'match': match.to_dict(include_teams=True, include_events=True),
-                'connected_coaches': connected_coaches,
-                'your_team_id': user_teams[0].team_id
-            })
+        # ---- Session released; safe to join room + emit below ----
 
-            # Broadcast to room that a new coach joined (room-scoped, includes match_id)
-            emit('coach_joined', {
-                'match_id': match_id,
-                'coach': {
-                    'user_id': current_user.id,
-                    'username': current_user.username,
-                    'player_name': player.name,
-                    'team_name': team_name,
-                    'profile_picture_url': player.profile_picture_url,
-                }
-            }, room=room)
+        # Join the match room
+        room = f'match_{match_id}'
+        join_room(room)
 
-            logger.info(f"Coach {current_user.username} joined match room {room}")
+        coach_entry = {
+            'user_id': current_user.id,
+            'username': current_user.username,
+            'player_name': player_name,
+            'team_name': team_name,
+            'profile_picture_url': player_profile_picture_url,
+        }
+
+        # Add current user to the list if not already present
+        if current_user.id not in [coach['user_id'] for coach in connected_coaches]:
+            connected_coaches.append(coach_entry)
+
+        emit('joined_match_room', {
+            'match_id': match_id,
+            'room': room,
+            'match': match_payload,
+            'connected_coaches': connected_coaches,
+            'your_team_id': user_team_id
+        })
+
+        # Broadcast to room that a new coach joined (room-scoped, includes match_id)
+        emit('coach_joined', {
+            'match_id': match_id,
+            'coach': coach_entry,
+        }, room=room)
+
+        logger.info(f"Coach {current_user.username} joined match room {room}")
 
     except Exception as e:
         logger.error(f"Error joining match room: {str(e)}", exc_info=True)

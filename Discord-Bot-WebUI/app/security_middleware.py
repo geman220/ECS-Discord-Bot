@@ -308,8 +308,8 @@ class SecurityMiddleware:
         try:
             from app.models.security import IPBan
             duration_hours = duration_seconds / 3600
-            IPBan.ban_ip(ip, duration_hours=duration_hours, reason=reason, 
-                        banned_by="SYSTEM_AUTO_BAN", is_permanent=False)
+            IPBan.ban_ip(ip, duration_hours=duration_hours, reason=reason,
+                        banned_by="SYSTEM_AUTO_BAN")
             logger.info(f"Stored auto-ban for {ip} in database")
         except Exception as e:
             logger.error(f"Failed to store security ban in database: {e}")

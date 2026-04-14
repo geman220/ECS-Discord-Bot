@@ -615,37 +615,44 @@ def handle_remove_player_enhanced(data):
                 # Commit the transaction
                 session.commit()
 
-                # Queue Discord role update task AFTER commit to ensure team removal is reflected
-                from app.tasks.tasks_discord import assign_roles_to_player_task
-                assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
+                # Capture values needed after the session is released
+                player_name_local = player.name
+                team_id_local = team.id
+                team_name_local = team.name
 
-                # Success response with full enhanced player data
-                response_data = {
-                    'success': True,
-                    'player': player_data,
-                    'team_id': team.id,
-                    'team_name': team.name,
-                    'league_name': league_name
-                }
-
-                # Broadcast to all clients in the draft room so everyone sees the update
-                emit('player_removed_enhanced', response_data, room=f'draft_{league_name}')
-                print(f"✅ Successfully removed {player.name} from {team.name} - broadcasted to room draft_{league_name}")
-                logger.info(f"✅ Successfully removed {player.name} from {team.name}")
-
-                # CRITICAL: Invalidate draft cache so page refresh shows correct data
-                try:
-                    from app.draft_cache_service import DraftCacheService
-                    deleted = DraftCacheService.invalidate_player_cache_ultra_safe(player_id, db_league_name)
-                    print(f"🗑️ Invalidated {deleted} cache keys for player {player_id} in {db_league_name}")
-                    logger.info(f"🗑️ Invalidated {deleted} cache keys after player removal")
-                except Exception as cache_error:
-                    print(f"⚠️ Cache invalidation failed (non-critical): {cache_error}")
-                    logger.warning(f"Cache invalidation failed: {cache_error}")
-
-                # Clean up Flask context
+                # Clean up Flask context that was set for DraftService.get_enhanced_player_data
                 if hasattr(g, 'db_session'):
                     delattr(g, 'db_session')
+
+            # ---- Session released; safe to do emit + cache + Celery below ----
+
+            # Queue Discord role update task AFTER commit
+            from app.tasks.tasks_discord import assign_roles_to_player_task
+            assign_roles_to_player_task.delay(player_id=player_id, only_add=False)
+
+            # Success response with full enhanced player data
+            response_data = {
+                'success': True,
+                'player': player_data,
+                'team_id': team_id_local,
+                'team_name': team_name_local,
+                'league_name': league_name
+            }
+
+            # Broadcast to all clients in the draft room so everyone sees the update
+            emit('player_removed_enhanced', response_data, room=f'draft_{league_name}')
+            print(f"✅ Successfully removed {player_name_local} from {team_name_local} - broadcasted to room draft_{league_name}")
+            logger.info(f"✅ Successfully removed {player_name_local} from {team_name_local}")
+
+            # CRITICAL: Invalidate draft cache so page refresh shows correct data
+            try:
+                from app.draft_cache_service import DraftCacheService
+                deleted = DraftCacheService.invalidate_player_cache_ultra_safe(player_id, db_league_name)
+                print(f"🗑️ Invalidated {deleted} cache keys for player {player_id} in {db_league_name}")
+                logger.info(f"🗑️ Invalidated {deleted} cache keys after player removal")
+            except Exception as cache_error:
+                print(f"⚠️ Cache invalidation failed (non-critical): {cache_error}")
+                logger.warning(f"Cache invalidation failed: {cache_error}")
 
             # Trigger Discord role update task (will remove roles since player is no longer on team)
             from app.tasks.tasks_discord import update_player_discord_roles

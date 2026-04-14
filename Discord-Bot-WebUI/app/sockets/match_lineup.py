@@ -371,6 +371,8 @@ def handle_join_lineup_room(data):
         room_key = _get_room_key(match_id, team_id, is_ecs_fc)
         join_room(room_key)
 
+        # Collect all DB-dependent data inside the session, then release it
+        # before the multi-namespace emit fan-out.
         with managed_session() as session:
             # Verify match and team exist based on match type
             if is_ecs_fc:
@@ -405,32 +407,6 @@ def handle_join_lineup_room(data):
             user = session.query(User).filter_by(id=user_id).first()
             display_name = user.username if user else username
 
-            # Track coach in room
-            global _lineup_cleanup_counter
-            sid = request.sid
-
-            if room_key not in lineup_room_coaches:
-                lineup_room_coaches[room_key] = {}
-
-            lineup_room_coaches[room_key][user_id] = {
-                'name': display_name,
-                'sid': sid,
-                'is_coach': is_coach,
-                'joined_at': datetime.utcnow().isoformat(),
-                'joined_at_timestamp': time.time()
-            }
-
-            # Track reverse mapping for disconnect cleanup
-            if sid not in _sid_to_lineup_rooms:
-                _sid_to_lineup_rooms[sid] = []
-            _sid_to_lineup_rooms[sid].append((room_key, user_id))
-
-            # Periodically cleanup stale entries
-            _lineup_cleanup_counter += 1
-            if _lineup_cleanup_counter >= _LINEUP_CLEANUP_INTERVAL:
-                _lineup_cleanup_counter = 0
-                _cleanup_stale_coaches()
-
             # Get current lineup data
             # For ECS FC, we store with negative match_id in database
             db_match_id = -match_id if is_ecs_fc else match_id
@@ -446,31 +422,59 @@ def handle_join_lineup_room(data):
                 'version': lineup.version if lineup else 1
             }
 
-            # Get active coaches
-            active_coaches = get_active_coaches_for_room(room_key)
+        # ---- Session released; in-memory tracking + emits below ----
 
-            # Send success response with initial data
-            emit('joined_lineup_room', {
-                'match_id': match_id,
-                'team_id': team_id,
-                'room': room_key,
-                'lineup': lineup_data,
-                'active_coaches': active_coaches,
-                'is_coach': is_coach,
-                'message': 'Successfully joined lineup room'
-            })
+        # Track coach in room
+        global _lineup_cleanup_counter
+        sid = request.sid
 
-            # Notify others in room (both namespaces so mobile /live clients receive it)
-            coach_event_data = {
-                'coach_id': user_id,
-                'coach_name': display_name,
-                'is_coach': is_coach,
-                'timestamp': datetime.utcnow().isoformat()
-            }
-            socketio.emit('lineup_coach_joined', coach_event_data, room=room_key, namespace='/', skip_sid=sid)
-            socketio.emit('lineup_coach_joined', coach_event_data, room=room_key, namespace='/live', skip_sid=sid)
+        if room_key not in lineup_room_coaches:
+            lineup_room_coaches[room_key] = {}
 
-            logger.info(f"User {display_name} joined lineup room {room_key}")
+        lineup_room_coaches[room_key][user_id] = {
+            'name': display_name,
+            'sid': sid,
+            'is_coach': is_coach,
+            'joined_at': datetime.utcnow().isoformat(),
+            'joined_at_timestamp': time.time()
+        }
+
+        # Track reverse mapping for disconnect cleanup
+        if sid not in _sid_to_lineup_rooms:
+            _sid_to_lineup_rooms[sid] = []
+        _sid_to_lineup_rooms[sid].append((room_key, user_id))
+
+        # Periodically cleanup stale entries
+        _lineup_cleanup_counter += 1
+        if _lineup_cleanup_counter >= _LINEUP_CLEANUP_INTERVAL:
+            _lineup_cleanup_counter = 0
+            _cleanup_stale_coaches()
+
+        # Get active coaches (reads from in-memory tracking dict)
+        active_coaches = get_active_coaches_for_room(room_key)
+
+        # Send success response with initial data
+        emit('joined_lineup_room', {
+            'match_id': match_id,
+            'team_id': team_id,
+            'room': room_key,
+            'lineup': lineup_data,
+            'active_coaches': active_coaches,
+            'is_coach': is_coach,
+            'message': 'Successfully joined lineup room'
+        })
+
+        # Notify others in room (both namespaces so mobile /live clients receive it)
+        coach_event_data = {
+            'coach_id': user_id,
+            'coach_name': display_name,
+            'is_coach': is_coach,
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        socketio.emit('lineup_coach_joined', coach_event_data, room=room_key, namespace='/', skip_sid=sid)
+        socketio.emit('lineup_coach_joined', coach_event_data, room=room_key, namespace='/live', skip_sid=sid)
+
+        logger.info(f"User {display_name} joined lineup room {room_key}")
 
     except Exception as e:
         logger.error(f"Error joining lineup room: {str(e)}", exc_info=True)

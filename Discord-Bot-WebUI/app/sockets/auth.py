@@ -340,21 +340,25 @@ def handle_disconnect(reason=None):
     if user_id and match_rooms:
         try:
             from app.models import User
+            # Look up the username with a short-lived session, release before
+            # the multi-room broadcast so we don't hold a pooled connection
+            # across socket fan-out.
             with managed_session() as db_session:
                 user = db_session.query(User).get(user_id)
                 username = user.username if user else f"User_{user_id}"
-                for room_name in match_rooms:
-                    try:
-                        match_id = int(room_name.split('_', 1)[1])
-                    except (IndexError, ValueError):
-                        continue
-                    socketio.emit('coach_left', {
-                        'match_id': match_id,
-                        'coach': {
-                            'user_id': user_id,
-                            'username': username,
-                        }
-                    }, room=room_name, namespace='/')
-                    logger.info(f"Broadcast coach_left for user {user_id} in match {match_id} on disconnect")
+
+            for room_name in match_rooms:
+                try:
+                    match_id = int(room_name.split('_', 1)[1])
+                except (IndexError, ValueError):
+                    continue
+                socketio.emit('coach_left', {
+                    'match_id': match_id,
+                    'coach': {
+                        'user_id': user_id,
+                        'username': username,
+                    }
+                }, room=room_name, namespace='/')
+                logger.info(f"Broadcast coach_left for user {user_id} in match {match_id} on disconnect")
         except Exception as e:
             logger.error(f"Error broadcasting coach_left on disconnect: {e}")

@@ -234,21 +234,22 @@ def emit_rsvp_summary(match_id):
     Useful for updating UI counters without fetching full RSVP lists.
     """
     try:
+        # Collect all data inside the session, then release it before
+        # emitting to multiple rooms / namespaces.
+        summary_data = None
         with managed_session() as session:
-            # Get RSVP counts by response type
             availability_counts = session.query(
                 Availability.response,
                 db.func.count(Availability.id)
             ).filter(
                 Availability.match_id == match_id
             ).group_by(Availability.response).all()
-            
+
             counts = {'yes': 0, 'no': 0, 'maybe': 0}
             for response, count in availability_counts:
                 if response in counts:
                     counts[response] = count
-            
-            # Get match details
+
             match = session.query(Match).get(match_id)
             if match:
                 summary_data = {
@@ -259,19 +260,22 @@ def emit_rsvp_summary(match_id):
                     'total_responses': sum(counts.values()),
                     'timestamp': datetime.utcnow().isoformat()
                 }
-                
-                # Emit to both room formats for compatibility
-                room_with_underscore = f'match_{match_id}'
-                room_without_underscore = f'match{match_id}'
-                # Emit to default namespace (web browser clients)
-                socketio.emit('rsvp_summary', summary_data, room=room_with_underscore, namespace='/')
-                socketio.emit('rsvp_summary', summary_data, room=room_without_underscore, namespace='/')
-                # Emit to /live namespace (Flutter mobile clients)
-                socketio.emit('rsvp_summary', summary_data, room=room_with_underscore, namespace='/live')
-                socketio.emit('rsvp_summary', summary_data, room=room_without_underscore, namespace='/live')
 
-                logger.debug(f"📊 Emitted RSVP summary for match {match_id}: {counts}")
-                
+        # ---- Session released; safe to emit ----
+        if summary_data is None:
+            return
+
+        room_with_underscore = f'match_{match_id}'
+        room_without_underscore = f'match{match_id}'
+        # Emit to default namespace (web browser clients)
+        socketio.emit('rsvp_summary', summary_data, room=room_with_underscore, namespace='/')
+        socketio.emit('rsvp_summary', summary_data, room=room_without_underscore, namespace='/')
+        # Emit to /live namespace (Flutter mobile clients)
+        socketio.emit('rsvp_summary', summary_data, room=room_with_underscore, namespace='/live')
+        socketio.emit('rsvp_summary', summary_data, room=room_without_underscore, namespace='/live')
+
+        logger.debug(f"📊 Emitted RSVP summary for match {match_id}: {summary_data['rsvp_counts']}")
+
     except Exception as e:
         logger.error(f"Error emitting RSVP summary: {str(e)}", exc_info=True)
 
@@ -280,16 +284,20 @@ def emit_rsvp_summary(match_id):
 def handle_join_match_rsvp(data):
     """
     Handle client joining a match room for RSVP updates.
-    
+
     Mobile apps and web clients call this to receive real-time RSVP updates
     for a specific match.
-    
+
     Expected data:
     {
         'match_id': 123,
         'team_id': 45 (optional - for coaches/admins),
         'auth': {'token': 'jwt_token'} (for mobile apps)
     }
+
+    The DB session is scoped tightly to the queries that need it; socket
+    emits run after the session is released to avoid holding a connection
+    during fan-out (prevents pool exhaustion under match-day load).
     """
     try:
         # Authenticate the user (lazy import to avoid circular dependency)
@@ -325,11 +333,14 @@ def handle_join_match_rsvp(data):
         room = f'match_{match_id}'
         join_room(room)
 
-        # Get player info and current RSVPs
+        # Extract all DB-dependent data, then release the session BEFORE any
+        # socket emit() fan-out so we don't hold a pooled connection across I/O.
+        team_room = None
         with managed_session() as session:
             # Check both regular Match and ECS FC Match models
             match = session.query(Match).get(match_id)
             is_ecs_fc = False
+            ecs_fc_match = None
             if not match:
                 ecs_fc_match = session.query(EcsFcMatch).get(match_id)
                 if not ecs_fc_match:
@@ -343,36 +354,7 @@ def handle_join_match_rsvp(data):
             player_name = player.name if player else username
             player_id = player.id if player else None
 
-            # Track user in room with SID for disconnect cleanup
-            import time
-            global _room_cleanup_counter
-
-            sid = request.sid
-            if match_id not in match_room_users:
-                match_room_users[match_id] = {}
-
-            match_room_users[match_id][user_id] = {
-                'username': username,
-                'player_name': player_name,
-                'player_id': player_id,
-                'team_id': team_id,
-                'sid': sid,
-                'joined_at': datetime.utcnow().isoformat(),
-                'joined_at_timestamp': time.time()
-            }
-
-            # Track reverse mapping for disconnect cleanup
-            if sid not in _sid_to_match_users:
-                _sid_to_match_users[sid] = []
-            _sid_to_match_users[sid].append((match_id, user_id))
-
-            # Periodically cleanup stale entries
-            _room_cleanup_counter += 1
-            if _room_cleanup_counter >= _ROOM_CLEANUP_INTERVAL:
-                _room_cleanup_counter = 0
-                _cleanup_stale_room_users()
-
-            # Build response based on match type
+            # Build response data based on match type (read all attrs while session is live)
             current_rsvps = {}
             if is_ecs_fc:
                 match_info = {
@@ -380,9 +362,7 @@ def handle_join_match_rsvp(data):
                     'date': ecs_fc_match.match_date.isoformat() if ecs_fc_match.match_date else None,
                     'match_type': 'ecs_fc'
                 }
-                # Also join the team room for ECS FC matches
                 team_room = f'team_{ecs_fc_match.team_id}'
-                join_room(team_room)
             else:
                 current_rsvps = get_match_rsvps_data(match_id, team_id, session)
                 match_info = {
@@ -394,24 +374,59 @@ def handle_join_match_rsvp(data):
                     'time': match.time.isoformat() if match.time else None
                 }
 
-            # Send success response with initial data
-            emit('joined_match_rsvp', {
-                'match_id': match_id,
-                'room': room,
-                'team_id': team_id,
-                'current_rsvps': current_rsvps,
-                'match_info': match_info,
-                'message': 'Successfully joined match RSVP updates'
-            })
+        # ---- Session released; safe to do socket + in-memory work below ----
 
-            # Notify others in room (optional, for presence awareness)
-            emit('user_joined_rsvp', {
-                'user_id': user_id,
-                'player_name': player_name,
-                'timestamp': datetime.utcnow().isoformat()
-            }, room=room, include_self=False)
-            
-            logger.info(f"👥 User {username} (player: {player_name}) joined match {match_id} RSVP room")
+        # Track user in room with SID for disconnect cleanup
+        import time
+        global _room_cleanup_counter
+
+        sid = request.sid
+        if match_id not in match_room_users:
+            match_room_users[match_id] = {}
+
+        match_room_users[match_id][user_id] = {
+            'username': username,
+            'player_name': player_name,
+            'player_id': player_id,
+            'team_id': team_id,
+            'sid': sid,
+            'joined_at': datetime.utcnow().isoformat(),
+            'joined_at_timestamp': time.time()
+        }
+
+        # Track reverse mapping for disconnect cleanup
+        if sid not in _sid_to_match_users:
+            _sid_to_match_users[sid] = []
+        _sid_to_match_users[sid].append((match_id, user_id))
+
+        # Periodically cleanup stale entries
+        _room_cleanup_counter += 1
+        if _room_cleanup_counter >= _ROOM_CLEANUP_INTERVAL:
+            _room_cleanup_counter = 0
+            _cleanup_stale_room_users()
+
+        # Also join the team room for ECS FC matches
+        if team_room:
+            join_room(team_room)
+
+        # Send success response with initial data
+        emit('joined_match_rsvp', {
+            'match_id': match_id,
+            'room': room,
+            'team_id': team_id,
+            'current_rsvps': current_rsvps,
+            'match_info': match_info,
+            'message': 'Successfully joined match RSVP updates'
+        })
+
+        # Notify others in room (optional, for presence awareness)
+        emit('user_joined_rsvp', {
+            'user_id': user_id,
+            'player_name': player_name,
+            'timestamp': datetime.utcnow().isoformat()
+        }, room=room, include_self=False)
+
+        logger.info(f"👥 User {username} (player: {player_name}) joined match {match_id} RSVP room")
             
     except Exception as e:
         logger.error(f"Error joining match RSVP room: {str(e)}", exc_info=True)
@@ -491,13 +506,14 @@ def handle_get_match_rsvps_live(data):
         
         with managed_session() as session:
             rsvps_data = get_match_rsvps_data(match_id, team_id, session, include_details)
-            
-            emit('match_rsvps_data', {
-                'match_id': match_id,
-                'team_id': team_id,
-                'rsvps': rsvps_data,
-                'timestamp': datetime.utcnow().isoformat()
-            })
+
+        # Emit after session release so the connection is returned before fan-out
+        emit('match_rsvps_data', {
+            'match_id': match_id,
+            'team_id': team_id,
+            'rsvps': rsvps_data,
+            'timestamp': datetime.utcnow().isoformat()
+        })
             
     except Exception as e:
         logger.error(f"Error getting match RSVPs: {str(e)}", exc_info=True)
@@ -545,27 +561,29 @@ def handle_update_rsvp_live(data):
             emit('rsvp_error', {'message': 'Invalid response value'})
             return
         
+        # Do DB work inside the session, then release it before emit fan-out
+        # and Celery dispatch to avoid holding a pooled connection during I/O.
         with managed_session() as session:
             # Get player
             player = session.query(Player).filter(Player.user_id == user_id).first()
             if not player:
                 emit('rsvp_error', {'message': 'Player profile not found'})
                 return
-            
+
             # Verify match exists
             match = session.query(Match).get(match_id)
             if not match:
                 emit('rsvp_error', {'message': 'Match not found'})
                 return
-            
+
             # Update availability in database
             availability = session.query(Availability).filter_by(
                 match_id=match_id,
                 player_id=player.id
             ).first()
-            
+
             old_response = availability.response if availability else 'no_response'
-            
+
             if response == 'no_response':
                 if availability:
                     session.delete(availability)
@@ -582,42 +600,47 @@ def handle_update_rsvp_live(data):
                         responded_at=datetime.utcnow()
                     )
                     session.add(availability)
-            
+
             session.commit()
-            
-            # Determine team_id
+
+            # Capture all values needed for post-session emit/dispatch
+            player_id = player.id
+            player_name = player.name
+            player_discord_id = player.discord_id
             team_id = None
             if player in match.home_team.players:
                 team_id = match.home_team_id
             elif player in match.away_team.players:
                 team_id = match.away_team_id
-            
-            # Send success response to requester
-            emit('rsvp_updated', {
-                'success': True,
-                'match_id': match_id,
-                'player_id': player.id,
-                'old_response': old_response,
-                'new_response': response,
-                'message': f'RSVP updated to {response}'
-            })
-            
-            # Broadcast to all clients in match room
-            emit_rsvp_update(
-                match_id=match_id,
-                player_id=player.id,
-                availability=response,
-                source='mobile',
-                player_name=player.name,
-                team_id=team_id
-            )
-            
-            # Trigger Discord notification if player has Discord ID
-            if player.discord_id:
-                from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task
-                notify_discord_of_rsvp_change_task.delay(match_id)
-            
-            logger.info(f"✅ RSVP updated via WebSocket: {player.name} -> {response} for match {match_id}")
+
+        # ---- Session released; safe to do emit + Celery work below ----
+
+        # Send success response to requester
+        emit('rsvp_updated', {
+            'success': True,
+            'match_id': match_id,
+            'player_id': player_id,
+            'old_response': old_response,
+            'new_response': response,
+            'message': f'RSVP updated to {response}'
+        })
+
+        # Broadcast to all clients in match room
+        emit_rsvp_update(
+            match_id=match_id,
+            player_id=player_id,
+            availability=response,
+            source='mobile',
+            player_name=player_name,
+            team_id=team_id
+        )
+
+        # Trigger Discord notification if player has Discord ID
+        if player_discord_id:
+            from app.tasks.tasks_rsvp import notify_discord_of_rsvp_change_task
+            notify_discord_of_rsvp_change_task.delay(match_id)
+
+        logger.info(f"✅ RSVP updated via WebSocket: {player_name} -> {response} for match {match_id}")
             
     except Exception as e:
         logger.error(f"Error updating RSVP via WebSocket: {str(e)}", exc_info=True)

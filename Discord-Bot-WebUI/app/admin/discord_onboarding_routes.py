@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
 from flask import Blueprint, request, jsonify, g, render_template, redirect, url_for
+from psycopg2.extras import Json
 from sqlalchemy import and_, or_, text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -50,7 +51,8 @@ def log_discord_interaction(user_id: int, discord_id: str, interaction_type: str
             text("SELECT log_discord_interaction(:user_id, :discord_id, :interaction_type, :message_content, :channel_id, :success, :error_message, :metadata)"),
             {"user_id": user_id, "discord_id": discord_id, "interaction_type": interaction_type,
              "message_content": message_content, "channel_id": None,
-             "success": success, "error_message": error_message, "metadata": metadata}
+             "success": success, "error_message": error_message,
+             "metadata": Json(metadata) if metadata is not None else None}
         )
         if auto_commit:
             session.commit()

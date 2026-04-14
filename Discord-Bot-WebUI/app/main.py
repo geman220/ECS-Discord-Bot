@@ -1305,12 +1305,16 @@ def update_application():
 
 
 @main.route('/set-theme', methods=['POST'])
+@csrf.exempt
 def set_theme():
     """
     Set the user's theme preference.
 
     This endpoint allows users to toggle between light and dark themes.
     The preference is stored in the session and persists between page loads.
+
+    CSRF is exempted: the attack surface is a user's own theme preference
+    and the WTF_CSRF_TIME_LIMIT (8h) was causing failures for long-open tabs.
 
     Returns:
         JSON: A JSON response indicating success or failure of the operation.
@@ -1348,6 +1352,7 @@ def set_theme():
 
 
 @main.route('/set-theme-variant', methods=['POST'])
+@csrf.exempt
 def set_theme_variant():
     """
     Set the user's theme variant preference (modern only).
@@ -1392,6 +1397,7 @@ def set_theme_variant():
 
 
 @main.route('/set-theme-preset', methods=['POST'])
+@csrf.exempt
 def set_theme_preset():
     """
     Set the user's theme preset preference.

@@ -11,6 +11,11 @@ to monkey-patch the standard library for asynchronous operations.
 from gevent import monkey
 monkey.patch_all(thread=False)
 
+# Make psycopg2 cooperate with gevent. Idempotent with celery_worker_base,
+# but applied here as well to cover any DB access before that import.
+from psycogreen.gevent import patch_psycopg
+patch_psycopg()
+
 import os
 import sys
 

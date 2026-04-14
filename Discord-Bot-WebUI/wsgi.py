@@ -6,8 +6,21 @@ import os
 # Only use gevent and full app setup when not running migrations
 if 'flask db' not in ' '.join(sys.argv):
     from gevent import monkey
-    monkey.patch_all(thread=False)
-    
+    # thread=True so threading primitives (Lock, RLock, local, Thread) become
+    # gevent-cooperative. Required for Redis singleton pool used across
+    # greenlet-handled requests — without it, connections touched by one
+    # greenlet raise "Cannot switch to a different thread" when another
+    # greenlet acquires them from the pool. Verified safe against this
+    # codebase's threading usage (Flask-SQLAlchemy/Session/Login are
+    # ContextVar-based; no library-internal threads spawned in web path).
+    monkey.patch_all(thread=True)
+
+    # Make psycopg2 cooperate with gevent. Without this, every DB query
+    # blocks the entire event loop for its duration; with it, psycopg2's
+    # libpq wait loop yields to gevent so other greenlets can run.
+    from psycogreen.gevent import patch_psycopg
+    patch_psycopg()
+
     import logging
     from app import create_app, socketio
     from app.debug.diagnostic import run_diagnostics

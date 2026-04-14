@@ -280,9 +280,14 @@ async def add_role_to_member(guild_id: int, user_id: int, role_id: int, bot: com
     if not guild:
         raise HTTPException(status_code=404, detail="Guild not found")
 
-    member = await guild.fetch_member(user_id)
-    if not member:
+    try:
+        member = await guild.fetch_member(user_id)
+    except discord.NotFound:
         raise HTTPException(status_code=404, detail="Member not found")
+    except discord.Forbidden:
+        raise HTTPException(status_code=403, detail="Bot doesn't have permission to fetch this member")
+    except discord.HTTPException as e:
+        raise HTTPException(status_code=e.status, detail=f"Discord API error fetching member: {e.text}")
 
     role = guild.get_role(role_id)
     if not role:
@@ -292,8 +297,24 @@ async def add_role_to_member(guild_id: int, user_id: int, role_id: int, bot: com
         await member.add_roles(role)
         logger.info(f"Role {role.name} assigned to user {member.name}")
         return {"status": "Role assigned"}
+    except discord.Forbidden:
+        logger.error(
+            f"Bot lacks permission to assign role {role.name} ({role_id}) "
+            f"to member {member.name} ({user_id}) in guild {guild.name} ({guild_id}). "
+            f"Check bot role hierarchy and Manage Roles permission."
+        )
+        raise HTTPException(status_code=403, detail="Bot lacks permission to assign this role")
+    except discord.HTTPException as e:
+        logger.error(
+            f"Discord HTTPException assigning role {role.name} ({role_id}) "
+            f"to {member.name} ({user_id}): status={e.status}, text={e.text}"
+        )
+        raise HTTPException(status_code=e.status, detail=f"Discord API error: {e.text}")
     except Exception as e:
-        logger.error(f"Failed to assign role: {e}")
+        logger.exception(
+            f"Unexpected error assigning role {role.name} ({role_id}) "
+            f"to {member.name} ({user_id}) in guild {guild.name} ({guild_id})"
+        )
         raise HTTPException(status_code=500, detail="Failed to assign role")
 
 @router.delete("/guilds/{guild_id}/members/{user_id}/roles/{role_id}")
@@ -302,9 +323,14 @@ async def remove_role_from_member(guild_id: int, user_id: int, role_id: int, bot
     if not guild:
         raise HTTPException(status_code=404, detail="Guild not found")
 
-    member = await guild.fetch_member(user_id)
-    if not member:
+    try:
+        member = await guild.fetch_member(user_id)
+    except discord.NotFound:
         raise HTTPException(status_code=404, detail="Member not found")
+    except discord.Forbidden:
+        raise HTTPException(status_code=403, detail="Bot doesn't have permission to fetch this member")
+    except discord.HTTPException as e:
+        raise HTTPException(status_code=e.status, detail=f"Discord API error fetching member: {e.text}")
 
     role = guild.get_role(role_id)
     if not role:
@@ -314,8 +340,23 @@ async def remove_role_from_member(guild_id: int, user_id: int, role_id: int, bot
         await member.remove_roles(role)
         logger.info(f"Role {role.name} removed from user {member.name}")
         return {"status": "Role removed"}
+    except discord.Forbidden:
+        logger.error(
+            f"Bot lacks permission to remove role {role.name} ({role_id}) "
+            f"from member {member.name} ({user_id}) in guild {guild.name} ({guild_id})."
+        )
+        raise HTTPException(status_code=403, detail="Bot lacks permission to remove this role")
+    except discord.HTTPException as e:
+        logger.error(
+            f"Discord HTTPException removing role {role.name} ({role_id}) "
+            f"from {member.name} ({user_id}): status={e.status}, text={e.text}"
+        )
+        raise HTTPException(status_code=e.status, detail=f"Discord API error: {e.text}")
     except Exception as e:
-        logger.error(f"Failed to remove role: {e}")
+        logger.exception(
+            f"Unexpected error removing role {role.name} ({role_id}) "
+            f"from {member.name} ({user_id}) in guild {guild.name} ({guild_id})"
+        )
         raise HTTPException(status_code=500, detail="Failed to remove role")
 
 @router.get("/guilds/{guild_id}/members/{user_id}")

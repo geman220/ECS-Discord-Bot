@@ -32,6 +32,14 @@ class SafeRedisClient:
         """Get the underlying Redis client."""
         return self._manager.client
     
+    # Known-benign error substrings from Redis singleton reinitialization
+    # edge cases (e.g. first request during app startup). The fallback path
+    # in `safe_operation` handles these correctly; we don't need to shout.
+    _BENIGN_ERROR_SUBSTRINGS = (
+        "Redis decoded client is not available",
+        "Redis raw client is not available",
+    )
+
     @property
     def is_available(self) -> bool:
         """Check if Redis is actually available (not a fallback client)."""
@@ -39,13 +47,13 @@ class SafeRedisClient:
             client = self.client
             if client is None:
                 return False
-                
+
             # Try to ping - this should always work in our Docker environment
             result = client.ping()
             return bool(result)
         except Exception as e:
-            # Only log if it's not a "client is not available" error during reinitialization
-            if "Redis decoded client is not available" not in str(e) and "Redis raw client is not available" not in str(e):
+            msg = str(e)
+            if not any(s in msg for s in self._BENIGN_ERROR_SUBSTRINGS):
                 logger.warning(f"Redis availability check failed: {e}")
             return False
     

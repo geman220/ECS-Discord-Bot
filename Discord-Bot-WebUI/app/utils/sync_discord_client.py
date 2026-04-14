@@ -787,8 +787,17 @@ class SyncDiscordClient:
                     'message': result.get('status', 'Role assigned successfully')
                 }
             else:
-                error_msg = f"Failed to assign role: {response.status_code} - {response.text}"
-                logger.error(error_msg)
+                error_msg = f"Failed to assign role: {response.status_code} - {response.reason}"
+                logger.error(
+                    error_msg,
+                    extra={
+                        'server_id': server_id,
+                        'discord_id': discord_id,
+                        'role_id': role_id,
+                        'status_code': response.status_code,
+                        'response_body': response.text[:500],
+                    },
+                )
                 return {
                     'success': False,
                     'message': error_msg,
