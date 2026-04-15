@@ -78,11 +78,18 @@ def log_api_request_async(
             timestamp=timestamp
         )
         session.add(log_entry)
-        # Commit is handled by the celery_task decorator's managed_session
+        # Commit here so connection/DB errors are caught inside this try
+        # block instead of bubbling out of managed_session as ERROR logs.
+        # API request logging is non-critical — a dropped insert is fine.
+        session.commit()
 
         return {'status': 'logged', 'endpoint': endpoint_path}
 
     except Exception as e:
         logger.debug(f"Failed to log API request: {e}")
+        try:
+            session.rollback()
+        except Exception:
+            pass
         # Don't raise - logging failures shouldn't cause task retries
         return {'status': 'failed', 'error': str(e)}

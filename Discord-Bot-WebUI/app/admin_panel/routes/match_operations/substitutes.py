@@ -66,7 +66,7 @@ def substitute_management():
 
         if week_filter:
             upcoming_matches_query = upcoming_matches_query.filter(
-                Schedule.week_number == week_filter
+                Schedule.week == str(week_filter)
             )
 
         upcoming_matches = upcoming_matches_query.limit(20).all()

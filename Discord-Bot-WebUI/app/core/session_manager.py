@@ -4,6 +4,7 @@ from flask import g, current_app, has_request_context
 from contextlib import contextmanager
 import logging
 from sqlalchemy import text
+from sqlalchemy.exc import DBAPIError, OperationalError
 from app.core import db
 from app.utils.pgbouncer_utils import set_session_timeout
 
@@ -41,7 +42,29 @@ def managed_session():
         yield session
         session.commit()
     except Exception as e:
-        logger.error(f"Session error: {e}")
+        # Downgrade transient connection drops to WARNING — the pool's
+        # pre_ping + invalidation handles recovery on the next checkout,
+        # and ERROR-level spam here masks real problems.
+        is_disconnect = (
+            isinstance(e, (OperationalError, DBAPIError))
+            and getattr(e, 'connection_invalidated', False)
+        ) or (
+            isinstance(e, DBAPIError)
+            and any(s in str(e) for s in (
+                'server closed the connection',
+                'PGRES_TUPLES_OK and no message',
+                'SSL connection has been closed',
+            ))
+        )
+        if is_disconnect:
+            logger.warning(f"Transient DB connection drop: {e.__class__.__name__}")
+            try:
+                # Force SQLAlchemy to discard this connection from the pool
+                session.invalidate()
+            except Exception:
+                pass
+        else:
+            logger.error(f"Session error: {e}")
         try:
             session.rollback()
         except Exception as rollback_error:
