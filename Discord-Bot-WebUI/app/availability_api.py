@@ -1377,21 +1377,32 @@ def sync_discord_rsvps():
                 
             # Process each RSVP update
             updates = []
+            unattributed = []  # RSVPs we couldn't map to a Player — bot should alert
             logger.debug(f"🔵 [AVAILABILITY_API] Processing {len(rsvps)} RSVP updates")
-            
+
             for rsvp_data in rsvps:
                 discord_id = rsvp_data.get('discord_id')
                 response = rsvp_data.get('response')
-                
+
                 if not discord_id or not response:
                     logger.debug(f"🟡 [AVAILABILITY_API] Skipping incomplete RSVP data: {rsvp_data}")
+                    unattributed.append({
+                        'discord_id': discord_id,
+                        'response': response,
+                        'reason': 'incomplete_data',
+                    })
                     continue
-                    
+
                 # Find the player by Discord ID
                 logger.debug(f"🔵 [AVAILABILITY_API] Looking up player with discord_id {discord_id}")
                 player = session_db.query(Player).filter_by(discord_id=discord_id).first()
                 if not player:
-                    logger.warning(f"🟡 [AVAILABILITY_API] Player with Discord ID {discord_id} not found")
+                    logger.warning(f"🟡 [AVAILABILITY_API] Player with Discord ID {discord_id} not found; RSVP dropped")
+                    unattributed.append({
+                        'discord_id': discord_id,
+                        'response': response,
+                        'reason': 'player_not_found',
+                    })
                     continue
                     
                 # Check if an availability record exists
@@ -1442,11 +1453,19 @@ def sync_discord_rsvps():
                         response=update['new_response']
                     )
                 
-            logger.info(f"🟢 [AVAILABILITY_API] Successfully processed {len(updates)} RSVP updates for match {match_id}")
+            if unattributed:
+                logger.warning(
+                    f"🟡 [AVAILABILITY_API] {len(unattributed)} RSVP(s) for match {match_id} could not be attributed to a Player"
+                )
+            logger.info(
+                f"🟢 [AVAILABILITY_API] Processed {len(updates)} RSVP updates, "
+                f"{len(unattributed)} unattributed for match {match_id}"
+            )
             return jsonify({
                 'success': True,
-                'message': f'Successfully processed {len(updates)} RSVP updates',
-                'updates': updates
+                'message': f'Processed {len(updates)} updates, {len(unattributed)} unattributed',
+                'updates': updates,
+                'unattributed': unattributed,
             })
             
     except Exception as e:

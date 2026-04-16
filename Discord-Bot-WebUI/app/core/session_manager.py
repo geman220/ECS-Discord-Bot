@@ -49,11 +49,15 @@ def managed_session():
             isinstance(e, (OperationalError, DBAPIError))
             and getattr(e, 'connection_invalidated', False)
         ) or (
-            isinstance(e, DBAPIError)
+            isinstance(e, (OperationalError, DBAPIError))
             and any(s in str(e) for s in (
                 'server closed the connection',
                 'PGRES_TUPLES_OK and no message',
                 'SSL connection has been closed',
+                'Connection refused',
+                'could not translate host name',
+                'Name or service not known',
+                'could not connect to server',
             ))
         )
         if is_disconnect:

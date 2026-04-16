@@ -9,6 +9,7 @@ Template context processors for user info, roles, permissions, and admin setting
 import logging
 
 from flask import g, has_request_context
+from sqlalchemy.exc import OperationalError, DBAPIError
 
 from app.utils.user_helpers import safe_current_user
 
@@ -220,6 +221,9 @@ def _register_season_processor(app):
                     _ = season.id, season.name, season.league_type, season.is_current
                     session.expunge(season)
             return dict(current_pub_league_season=season)
+        except (OperationalError, DBAPIError) as e:
+            logger.warning(f"DB unavailable fetching pub league season: {e.__class__.__name__}")
+            return dict(current_pub_league_season=None)
         except Exception as e:
             logger.error(f"Error fetching pub league season: {e}", exc_info=True)
             return dict(current_pub_league_season=None)

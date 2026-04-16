@@ -10,6 +10,7 @@ and feature toggles that can be controlled through the admin panel.
 import logging
 from datetime import datetime
 from sqlalchemy import Boolean, String, Text, DateTime, Integer
+from sqlalchemy.exc import OperationalError, DBAPIError
 from app.core import db
 
 # Set up the module logger
@@ -95,6 +96,16 @@ class AdminConfig(db.Model):
                         return setting.parsed_value
 
             return default
+        except (OperationalError, DBAPIError) as e:
+            # DB unreachable (restart, network blip). Log once per callsite at WARNING
+            # without a traceback — the connection-pool pre_ping recovers on next call.
+            logger.warning(f"DB unavailable for admin setting {key}: {e.__class__.__name__}")
+            if has_request_context() and hasattr(g, 'db_session') and g.db_session:
+                try:
+                    g.db_session.rollback()
+                except Exception:
+                    pass
+            return default
         except Exception as e:
             logger.error(f"Error getting admin setting {key}: {e}")
             # Rollback the session to clear the failed transaction state
@@ -167,6 +178,9 @@ class AdminConfig(db.Model):
                 from app.core.session_manager import managed_session
                 with managed_session() as session:
                     return session.query(cls).filter_by(category=category, is_enabled=True).all()
+        except (OperationalError, DBAPIError) as e:
+            logger.warning(f"DB unavailable for admin settings category {category}: {e.__class__.__name__}")
+            return []
         except Exception as e:
             logger.error(f"Error getting settings for category {category}: {e}")
             return []

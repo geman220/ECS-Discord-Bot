@@ -82,7 +82,14 @@ class SafeRedisClient:
         try:
             yield (self.client, True)
         except Exception as e:
-            logger.error(f"Redis operation '{operation_name}' failed: {str(e)}")
+            # Greenlet-mixing is a gevent artifact, not a Redis failure — the next
+            # request's greenlet gets a fresh connection. See redis_manager.py:262
+            # for the longer explanation. Logging at ERROR buries real failures.
+            msg = str(e)
+            if 'Cannot switch to a different thread' in msg or 'greenlet' in msg.lower():
+                logger.warning(f"Redis greenlet-mix on '{operation_name}' (transient, non-fatal)")
+            else:
+                logger.error(f"Redis operation '{operation_name}' failed: {msg}")
             # Don't yield again - just return
     
     # Safe wrapper methods for common Redis operations

@@ -168,10 +168,26 @@ def install_error_handlers(app):
             }), 403
         return '', 403
 
+    # Paths that 404 so often they drown real 404s: browser auto-requests for
+    # favicons/apple-touch-icons and the known stale mobile-client prefix
+    # /api/v1/v1/... (client-side bug, real fix lives in the RN app).
+    QUIET_404_PATHS = (
+        '/favicon.ico',
+        '/apple-touch-icon.png',
+        '/apple-touch-icon-precomposed.png',
+        '/apple-touch-icon-120x120.png',
+        '/apple-touch-icon-120x120-precomposed.png',
+        '/api/v1/v1/',
+    )
+
     @app.errorhandler(404)
     def not_found(error):
         """Handle 404 not found errors."""
-        logger.warning(f"404 error: {request.path}")
+        path = request.path
+        if any(path == p or path.startswith(p) for p in QUIET_404_PATHS):
+            logger.debug(f"404 (suppressed): {path}")
+        else:
+            logger.warning(f"404 error: {path}")
 
         # Return JSON for API requests
         if _is_api_request():

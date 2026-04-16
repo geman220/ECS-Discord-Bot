@@ -30,6 +30,9 @@ def init_session(app, redis_manager):
         # monkey-patched sockets don't support cross-thread usage.
         # Sharing the pool causes "Cannot switch to a different thread" crashes.
         from redis import Redis, ConnectionPool
+        from redis.retry import Retry
+        from redis.backoff import ExponentialBackoff
+        from redis.exceptions import BusyLoadingError, ConnectionError as RedisConnectionError, TimeoutError as RedisTimeoutError
         redis_url = app.config.get('REDIS_URL', 'redis://redis:6379/0')
         session_pool = ConnectionPool.from_url(
             redis_url,
@@ -38,9 +41,14 @@ def init_session(app, redis_manager):
             socket_connect_timeout=3.0,
             retry_on_timeout=True,
         )
+        # Retry transient errors so a Redis restart doesn't 500 every request.
+        # BusyLoadingError fires while Redis reloads its RDB (~1-3s); ConnectionError
+        # covers the brief window the socket is refused during container restart.
         session_redis_client = Redis(
             connection_pool=session_pool,
-            decode_responses=False
+            decode_responses=False,
+            retry=Retry(ExponentialBackoff(cap=2.0, base=0.1), retries=3),
+            retry_on_error=[BusyLoadingError, RedisConnectionError, RedisTimeoutError],
         )
 
         app.config.update({

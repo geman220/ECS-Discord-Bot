@@ -15,7 +15,8 @@ class UserAuthData:
     """
     def __init__(self, id, username, is_active, roles, player_id=None, player_name=None,
                  has_completed_onboarding=False, has_skipped_profile_creation=False,
-                 waitlist_joined_at=None):
+                 waitlist_joined_at=None, is_approved=False, approval_status='pending',
+                 approval_league=None):
         self.id = id
         self.username = username
         self.is_active = is_active
@@ -27,6 +28,9 @@ class UserAuthData:
         self.has_completed_onboarding = has_completed_onboarding
         self.has_skipped_profile_creation = has_skipped_profile_creation
         self.waitlist_joined_at = waitlist_joined_at
+        self.is_approved = is_approved
+        self.approval_status = approval_status
+        self.approval_league = approval_league
 
     def has_role(self, role_name):
         return role_name.lower() in [r.lower() for r in self.roles]
@@ -50,7 +54,10 @@ class UserAuthData:
             'player_name': self.player_name,
             'has_completed_onboarding': self.has_completed_onboarding,
             'has_skipped_profile_creation': self.has_skipped_profile_creation,
-            'waitlist_joined_at': self.waitlist_joined_at.isoformat() if hasattr(self.waitlist_joined_at, 'isoformat') else self.waitlist_joined_at
+            'waitlist_joined_at': self.waitlist_joined_at.isoformat() if hasattr(self.waitlist_joined_at, 'isoformat') else self.waitlist_joined_at,
+            'is_approved': self.is_approved,
+            'approval_status': self.approval_status,
+            'approval_league': self.approval_league,
         })
 
     @classmethod
@@ -76,7 +83,10 @@ class UserAuthData:
             player_name=data.get('player_name'),
             has_completed_onboarding=data.get('has_completed_onboarding', False),
             has_skipped_profile_creation=data.get('has_skipped_profile_creation', False),
-            waitlist_joined_at=waitlist_at
+            waitlist_joined_at=waitlist_at,
+            is_approved=data.get('is_approved', False),
+            approval_status=data.get('approval_status', 'pending'),
+            approval_league=data.get('approval_league'),
         )
 
 
@@ -255,7 +265,10 @@ class EfficientQuery:
                     player_name=user.player.name if user.player else None,
                     has_completed_onboarding=user.has_completed_onboarding,
                     has_skipped_profile_creation=user.has_skipped_profile_creation,
-                    waitlist_joined_at=user.waitlist_joined_at
+                    waitlist_joined_at=user.waitlist_joined_at,
+                    is_approved=user.is_approved,
+                    approval_status=user.approval_status,
+                    approval_league=user.approval_league,
                 )
         else:
             # Fallback to managed_session for non-request contexts (like Celery)
@@ -276,7 +289,10 @@ class EfficientQuery:
                         player_name=user.player.name if user.player else None,
                         has_completed_onboarding=user.has_completed_onboarding,
                         has_skipped_profile_creation=user.has_skipped_profile_creation,
-                        waitlist_joined_at=user.waitlist_joined_at
+                        waitlist_joined_at=user.waitlist_joined_at,
+                        is_approved=user.is_approved,
+                        approval_status=user.approval_status,
+                        approval_league=user.approval_league,
                     )
 
         # Cache in Redis for future requests

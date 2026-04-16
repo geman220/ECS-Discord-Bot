@@ -787,21 +787,35 @@ class SyncDiscordClient:
                     'message': result.get('status', 'Role assigned successfully')
                 }
             else:
+                # Parse Discord's error code (not HTTP status) so we can tell
+                # "user left server" (benign) from "guild misconfigured" (real bug).
+                # Codes: 10004 unknown guild, 10007 unknown member, 10011 unknown role.
+                # https://discord.com/developers/docs/topics/opcodes-and-status-codes#json
+                discord_code = None
+                try:
+                    discord_code = response.json().get('code') or response.json().get('discord_code')
+                except Exception:
+                    pass
                 error_msg = f"Failed to assign role: {response.status_code} - {response.reason}"
-                logger.error(
-                    error_msg,
-                    extra={
-                        'server_id': server_id,
-                        'discord_id': discord_id,
-                        'role_id': role_id,
-                        'status_code': response.status_code,
-                        'response_body': response.text[:500],
-                    },
-                )
+                log_extra = {
+                    'server_id': server_id,
+                    'discord_id': discord_id,
+                    'role_id': role_id,
+                    'status_code': response.status_code,
+                    'discord_code': discord_code,
+                    'response_body': response.text[:500],
+                }
+                if discord_code in (10007, 10013):
+                    logger.warning(f"Discord role-assign skipped: member left server (discord_id={discord_id})", extra=log_extra)
+                elif discord_code == 10011:
+                    logger.warning(f"Discord role-assign skipped: role {role_id} not found (may have been deleted)", extra=log_extra)
+                else:
+                    logger.error(error_msg, extra=log_extra)
                 return {
                     'success': False,
                     'message': error_msg,
-                    'status_code': response.status_code
+                    'status_code': response.status_code,
+                    'discord_code': discord_code,
                 }
 
         except requests.Timeout:

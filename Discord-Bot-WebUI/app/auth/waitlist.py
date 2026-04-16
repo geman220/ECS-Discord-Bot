@@ -144,8 +144,9 @@ def waitlist_status():
     if not user.waitlist_joined_at:
         return redirect(url_for('auth.waitlist_register'))
 
-    # Get player data
-    player = user.player
+    # Get player data — user is a UserAuthData (no .player relationship), so query by id
+    from app.models import Player
+    player = db_session.query(Player).get(user.player_id) if user.player_id else None
 
     # Determine waitlist type
     # is_approved=True means they're an approved player waiting for a spot (league full)

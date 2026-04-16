@@ -772,8 +772,14 @@ document.getElementById('health-check-btn')?.addEventListener('click', function(
         tbody.innerHTML = rows;
     };
 
+    // Skip N upcoming ticks after a 429 (rate-limited). Each tick decrements;
+    // when we hit zero we resume. Keeps us from hammering the endpoint when
+    // the server is already telling us to slow down.
+    let skipTicks = 0;
+
     const load = () => {
-        if (paused) return;
+        if (paused || document.hidden) return;
+        if (skipTicks > 0) { skipTicks--; return; }
         const params = new URLSearchParams();
         params.set('limit', '100');
         const stage = filter && filter.value;
@@ -782,7 +788,10 @@ document.getElementById('health-check-btn')?.addEventListener('click', function(
             headers: { 'Accept': 'application/json' },
             credentials: 'same-origin'
         })
-            .then(r => r.ok ? r.json() : { events: [] })
+            .then(r => {
+                if (r.status === 429) { skipTicks = 6; return { events: [] }; }
+                return r.ok ? r.json() : { events: [] };
+            })
             .then(data => render(data.events || []))
             .catch(() => { /* silent */ });
     };
@@ -795,9 +804,12 @@ document.getElementById('health-check-btn')?.addEventListener('click', function(
             : '<i class="ti ti-player-pause mr-1"></i><span>Pause</span>';
         if (!paused) load();
     });
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && !paused) load();
+    });
 
     load();
-    setInterval(load, 5000);
+    setInterval(load, 10000);
 })();
 </script>
 {% endblock %}
