@@ -96,6 +96,11 @@ def schedule_upcoming_matches(self, session):
             from app.models.admin_config import AdminConfig
             thread_creation_hours = AdminConfig.get_setting('mls_thread_creation_hours_before', 48)
             live_reporting_minutes = AdminConfig.get_setting('mls_live_reporting_minutes_before', 5)
+            # Lineup post: 30min default. ESPN typically publishes 30-60min
+            # before kickoff; if not ready, the task self-retries every 5min.
+            lineup_post_minutes = AdminConfig.get_setting('mls_lineup_post_minutes_before', 30)
+
+            scheduled_lineups = 0
 
             for match in upcoming_matches:
                 try:
@@ -145,6 +150,42 @@ def schedule_upcoming_matches(self, session):
                                 session.add(db_task)
                                 scheduled_threads += 1
                                 logger.info(f"Immediately creating thread for match {match.id} (overdue by {now - thread_time}), task_id={celery_task.id}")
+
+                    # Schedule lineup post (configurable minutes before, default 30).
+                    # Only scheduled if a thread has been (or will be) created — no
+                    # point fetching lineups for a match with no thread to post to.
+                    lineup_time = match_dt - timedelta(minutes=lineup_post_minutes)
+
+                    existing_lineup_task = ScheduledTask.find_existing_task(
+                        session, match.id, TaskType.LINEUP_POST
+                    )
+                    if not existing_lineup_task:
+                        if lineup_time > now:
+                            db_task = ScheduledTask(
+                                task_type=TaskType.LINEUP_POST,
+                                match_id=match.id,
+                                celery_task_id=None,
+                                scheduled_time=lineup_time,
+                                state=TaskState.SCHEDULED
+                            )
+                            session.add(db_task)
+                            scheduled_lineups += 1
+                            logger.info(f"Scheduled lineup post for match {match.id} at {lineup_time} (poll-dispatch)")
+                        elif match_dt > now:
+                            # Past T-{lineup_post_minutes} but match hasn't started — fire immediately
+                            celery_task = post_match_lineups_task.apply_async(args=[match.id])
+                            db_task = ScheduledTask(
+                                task_type=TaskType.LINEUP_POST,
+                                match_id=match.id,
+                                celery_task_id=celery_task.id,
+                                scheduled_time=lineup_time,
+                                state=TaskState.RUNNING,
+                                execution_time=now
+                            )
+                            session.add(db_task)
+                            scheduled_lineups += 1
+                            logger.info(f"Immediately dispatched lineup post for match {match.id}, task_id={celery_task.id}")
+                        # If match has already started, skip — too late for a pre-match lineup post
 
                     # Schedule live reporting start (configurable minutes before, default 5)
                     live_start_time = match_dt - timedelta(minutes=live_reporting_minutes)
@@ -220,15 +261,21 @@ def schedule_upcoming_matches(self, session):
                 'success': True,
                 'total_matches': len(upcoming_matches),
                 'threads_scheduled': scheduled_threads,
-                'reporting_scheduled': scheduled_live
+                'reporting_scheduled': scheduled_live,
+                'lineups_scheduled': scheduled_lineups,
             }
 
         if result['success']:
-            logger.info(f"✅ Enterprise scheduler: {result['threads_scheduled']} threads, {result['reporting_scheduled']} live sessions")
+            logger.info(
+                f"✅ Enterprise scheduler: {result['threads_scheduled']} threads, "
+                f"{result['lineups_scheduled']} lineups, "
+                f"{result['reporting_scheduled']} live sessions"
+            )
             return {
                 'success': True,
                 'enterprise_system': True,
                 'threads_scheduled': result['threads_scheduled'],
+                'lineups_scheduled': result['lineups_scheduled'],
                 'reporting_scheduled': result['reporting_scheduled'],
                 'message': 'Enterprise scheduling completed successfully'
             }
@@ -685,18 +732,24 @@ def create_mls_match_thread_task(self, session, match_id: int) -> Dict[str, Any]
 @celery_task(
     name='app.tasks.match_scheduler.post_match_lineups_task',
     queue='discord',
-    max_retries=2,
+    max_retries=6,  # 6 retries × 5 min = covers up to 30 min waiting for ESPN
+    default_retry_delay=300,
     soft_time_limit=30,
     time_limit=45
 )
 def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
     """
-    Post match lineups to the Discord thread at T-10 minutes.
+    Post match lineups to the Discord thread.
 
-    Fetches lineup data from ESPN summary API and posts a formatted
-    embed showing starters and subs for both teams.
+    Fetches lineup data from ESPN summary API and posts a formatted embed
+    showing starters and subs for both teams. Self-retries every 5min if
+    ESPN hasn't published lineups yet (they typically appear 30-60min before
+    kickoff but the exact timing varies). Gives up once the match has
+    started, since pre-match lineup posts after kickoff are pointless.
     """
+    from celery.exceptions import Retry
     try:
+        from datetime import timezone
         from app.models.external import MLSMatch
         from app.utils.espn_api_client import ESPNAPIClient
         from app.utils.discord_request_handler import send_to_discord_bot
@@ -727,14 +780,38 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
             espn_client = ESPNAPIClient()
             lineups = espn_client.get_match_lineups(str(espn_id), league_code)
 
+            # Determine whether the match has already started — used to decide
+            # if we should retry or give up on a no-lineups response.
+            match_dt = match.date_time
+            if match_dt and match_dt.tzinfo is None:
+                match_dt = match_dt.replace(tzinfo=timezone.utc)
+            match_started = match_dt and match_dt <= datetime.now(timezone.utc)
+
             if not lineups:
-                logger.info(f"No lineup data available yet for match {match_id}")
-                # Mark as completed — lineups just weren't available
+                attempt = (self.request.retries or 0) + 1
                 task = ScheduledTask.find_existing_task(db_session, match_id, TaskType.LINEUP_POST)
+
+                # If the match hasn't started yet AND we have retries left, wait
+                # 5 more minutes and try again — ESPN often publishes lineups
+                # closer to kickoff than the T-30 min default.
+                if not match_started and self.request.retries < self.max_retries:
+                    logger.info(
+                        f"No lineup data yet for match {match_id} "
+                        f"(attempt {attempt}/{self.max_retries + 1}), retrying in 5min"
+                    )
+                    if task:
+                        task.last_error = f"Awaiting ESPN lineups (attempt {attempt})"
+                        db_session.commit()
+                    raise self.retry(countdown=300)
+
+                # Match started or we exhausted retries — give up cleanly.
+                reason = "match started before lineups published" if match_started else "no lineups after retries"
+                logger.warning(f"Lineup post for match {match_id} abandoned: {reason}")
                 if task:
-                    task.mark_completed()
+                    task.mark_expired()
+                    task.last_error = reason
                     db_session.commit()
-                return {"success": True, "message": "No lineup data available from ESPN"}
+                return {"success": False, "message": reason}
 
             # Build lineup embeds for each team
             for side in ('home', 'away'):
@@ -796,6 +873,9 @@ def post_match_lineups_task(self, session, match_id: int) -> Dict[str, Any]:
 
             return {"success": True, "message": "Lineups posted"}
 
+    except Retry:
+        # Celery's retry mechanism — must propagate, not swallow
+        raise
     except Exception as e:
         logger.error(f"Error posting lineups for match {match_id}: {e}")
         return {"success": False, "error": str(e)}

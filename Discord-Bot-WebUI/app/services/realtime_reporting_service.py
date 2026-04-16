@@ -70,8 +70,12 @@ class RealtimeReportingService:
         self.is_running = True
         logger.info("Starting real-time live reporting service")
 
-        # Set status in Redis to coordinate with Celery tasks
+        # Seed status + heartbeat immediately so the container healthcheck
+        # (which polls realtime_service:heartbeat) doesn't flap during the
+        # first 60 seconds before the main loop's periodic refresh kicks in.
+        now_iso = datetime.utcnow().isoformat()
         self.redis_service.execute_command('setex', 'realtime_service:status', 300, 'running')
+        self.redis_service.execute_command('setex', 'realtime_service:heartbeat', 120, now_iso)
 
         try:
             await self._main_loop()
