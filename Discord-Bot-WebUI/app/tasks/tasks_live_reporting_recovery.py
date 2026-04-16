@@ -284,3 +284,91 @@ def recover_missing_tasks(self, session) -> Dict[str, Any]:
 # The task is registered as 'app.tasks.tasks_live_reporting_recovery.recover_missing_tasks'.
 # Any Celery beat schedules or apply_async calls must use the registered name.
 check_and_start_missing_live_reporting = recover_missing_tasks
+
+
+@celery_task(
+    name='app.tasks.tasks_live_reporting_recovery.monitor_stalled_sessions',
+    queue='monitoring',
+    max_retries=0,
+    soft_time_limit=30,
+    time_limit=45,
+)
+def monitor_stalled_sessions(self, session) -> Dict[str, Any]:
+    """
+    Flag active LiveReportingSessions that are silently stalled.
+
+    Two failure modes this catches:
+    1. Session row created but never polled by the realtime service
+       (update_count=0 after >3min since started_at) — e.g. realtime
+       container down, ESPN client returning only errors, DB connectivity
+       between services broken.
+    2. Session was polling but stopped
+       (last_update >5min ago while still is_active=True) — e.g. service
+       hung, ESPN persistent failures.
+
+    Logs an ERROR (visible in container logs and errors.log) and writes a
+    'watchdog' entry to the admin UI live-reporting event ring buffer so
+    the condition is discoverable in-app without having to grep container
+    logs.
+    """
+    from datetime import timezone
+    from app.services.live_reporting_event_log import record_event as log_event
+
+    now = datetime.now(timezone.utc)
+    alerts = []
+
+    active_sessions = session.query(LiveReportingSession).filter_by(is_active=True).all()
+
+    for s in active_sessions:
+        started_at = s.started_at
+        last_update = s.last_update
+        if started_at and started_at.tzinfo is None:
+            started_at = started_at.replace(tzinfo=timezone.utc)
+        if last_update and last_update.tzinfo is None:
+            last_update = last_update.replace(tzinfo=timezone.utc)
+
+        age = (now - started_at).total_seconds() if started_at else 0
+        since_update = (now - last_update).total_seconds() if last_update else None
+
+        issue = None
+        if (s.update_count or 0) == 0 and age > 180:
+            issue = f"never polled (age={age:.0f}s, update_count=0)"
+        elif since_update is not None and since_update > 300:
+            issue = f"polling stalled (last_update={since_update:.0f}s ago)"
+
+        if not issue:
+            continue
+
+        logger.error(
+            f"STALLED LIVE SESSION id={s.id} match_id={s.match_id} "
+            f"competition={s.competition} thread_id={s.thread_id}: {issue}"
+        )
+        try:
+            log_event(
+                stage="watchdog", outcome="error",
+                session_id=s.id, match_id=str(s.match_id),
+                message=f"Stalled session: {issue}",
+                context={
+                    'update_count': s.update_count,
+                    'error_count': s.error_count,
+                    'last_error': s.last_error,
+                    'last_status': s.last_status,
+                    'age_seconds': int(age),
+                    'since_update_seconds': int(since_update) if since_update is not None else None,
+                },
+            )
+        except Exception as log_err:
+            logger.warning(f"Failed to write watchdog event log for session {s.id}: {log_err}")
+
+        alerts.append({
+            'session_id': s.id,
+            'match_id': s.match_id,
+            'issue': issue,
+        })
+
+    return {
+        'success': True,
+        'checked': len(active_sessions),
+        'alerts': len(alerts),
+        'details': alerts,
+    }

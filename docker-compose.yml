@@ -251,11 +251,14 @@ services:
       - ./Discord-Bot-WebUI:/app
       - realtime_logs:/app/logs
     healthcheck:
-      test: ["CMD", "python", "-c", "import redis; r=redis.from_url('redis://redis:6379/0'); exit(0 if r.get('realtime_service:status') == b'running' else 1)"]
+      # Check the heartbeat key (TTL=120s, refreshed by the main loop every 60s).
+      # If the loop stops cycling, the key expires and the container is marked
+      # unhealthy — restart: unless-stopped then auto-recovers.
+      test: ["CMD", "python", "-c", "import redis,sys; r=redis.from_url('redis://redis:6379/0'); sys.exit(0 if r.exists('realtime_service:heartbeat') else 1)"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 60s
     depends_on:
       redis:
         condition: service_healthy

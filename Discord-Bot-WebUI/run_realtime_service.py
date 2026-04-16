@@ -70,10 +70,22 @@ class RealtimeServiceManager:
             logger.info("🚀 Starting ECS Real-Time Live Reporting Service")
             logger.info("=" * 60)
 
-            # Initialize Flask app context (needed for database connections)
+            # Initialize Flask app context (needed for database connections).
+            # create_app() calls init_logging() which applies LOGGING_CONFIG via
+            # dictConfig, attaching the live_reporting.log RotatingFileHandler to
+            # the realtime_reporting_service logger.
             app = create_app()
 
             with app.app_context():
+                # Confirm the file handler is actually attached. If this prints
+                # only ['StreamHandler'], file logging is broken and the log
+                # volume won't receive any records.
+                svc_logger = logging.getLogger('app.services.realtime_reporting_service')
+                handler_types = [type(h).__name__ for h in svc_logger.handlers]
+                logger.info(
+                    f"Logging wired: realtime_reporting_service handlers={handler_types}"
+                )
+
                 # Start the real-time service
                 self.service_task = asyncio.create_task(realtime_service.start_service())
                 await self.service_task

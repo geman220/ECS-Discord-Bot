@@ -339,6 +339,19 @@ class CeleryConfig:
                 'soft_time_limit': 30
             }
         },
+        # Live Reporting Watchdog - Flag active sessions that aren't being polled
+        # (caught the 2026-04-16 ESPN-client silent-mock-data incident post hoc;
+        # this task would have surfaced it within 3 minutes of the session going stale).
+        'monitor-stalled-live-sessions': {
+            'task': 'app.tasks.tasks_live_reporting_recovery.monitor_stalled_sessions',
+            'schedule': crontab(minute='*/2'),
+            'options': {
+                'queue': 'monitoring',
+                'expires': 90,
+                'time_limit': 45,
+                'soft_time_limit': 30,
+            }
+        },
         # Cache tasks
         'update-task-status-cache': {
             'task': 'app.tasks.tasks_cache_management.update_task_status_cache',

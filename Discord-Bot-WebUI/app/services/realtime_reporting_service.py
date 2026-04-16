@@ -207,7 +207,7 @@ class RealtimeReportingService:
                         if live_session.last_score:
                             score_key = f"last_score_{live_session.id}"
                             try:
-                                self.redis_service.execute_command('setex', score_key, 3600, live_session.last_score)
+                                self.redis_service.setex(score_key, 3600, str(live_session.last_score))
                                 logger.info(f"Restored last score '{live_session.last_score}' for session {live_session.id}")
                             except Exception:
                                 pass
@@ -301,7 +301,7 @@ class RealtimeReportingService:
 
             status = match_data.get('status', 'UNKNOWN')
             score = f"{match_data.get('home_score', 0)}-{match_data.get('away_score', 0)}"
-            logger.info(f"Session {session_id}: ESPN status={status}, score={score}, mock={match_data.get('mock_data', False)}")
+            logger.info(f"Session {session_id}: ESPN status={status}, score={score}")
 
             # Detect status transitions for lifecycle messages
             previous_status = self._last_statuses.get(session_id)
@@ -653,9 +653,9 @@ class RealtimeReportingService:
             processed_events = self.last_events.get(session_id, set())
 
             for event in events:
-                # Build a robust dedup key from all available fields.
-                # ESPN events via _process_event_data() lack an 'id' field, so we
-                # combine type + minute + player + team to avoid collisions.
+                # Build a robust dedup key from all available fields. ESPN
+                # keyEvents carry a unique 'id' but we include type/minute/
+                # player/team so dedup survives even if id is missing.
                 parts = [
                     event.get('id', ''),
                     event.get('type', 'unknown'),
@@ -677,17 +677,16 @@ class RealtimeReportingService:
             if status != 'HALFTIME':
                 current_score = self._get_current_score(match_data)
                 last_score_key = f"last_score_{session_id}"
-                last_score = self.redis_service.execute_command('get', last_score_key)
-
-                # Ensure consistent string comparison
-                if last_score is not None:
-                    last_score = str(last_score)
+                last_score_raw = self.redis_service.get(last_score_key)
+                if isinstance(last_score_raw, bytes):
+                    last_score_raw = last_score_raw.decode('utf-8')
+                last_score = str(last_score_raw) if last_score_raw is not None else None
 
                 if last_score != current_score:
                     # Only emit score_update if no goal event was already detected this cycle
                     # (goals naturally change the score, so posting both would be a double-post)
                     has_goal_event = any(
-                        e.get('type', '').upper() in ('GOAL', 'OWN GOAL', 'PENALTY')
+                        e.get('type', '').upper() in ('GOAL', 'OWN GOAL', 'PENALTY', 'OWN_GOAL', 'PENALTY_GOAL')
                         for e in new_events
                     )
                     if last_score is not None and not has_goal_event:
@@ -697,7 +696,7 @@ class RealtimeReportingService:
                             'previous_score': last_score
                         })
 
-                    self.redis_service.execute_command('setex', last_score_key, 3600, current_score)
+                    self.redis_service.setex(last_score_key, 3600, str(current_score))
 
         except Exception as e:
             logger.error(f"Error extracting events for session {session_id}: {e}")
