@@ -258,27 +258,16 @@ class RealtimeReportingService:
             competition = session_data.get('competition')
             league_code = resolve_league_code(competition)
 
-            # Build an optional YYYYMMDD date hint from the match's scheduled
-            # date so the ESPN scoreboard query always contains our fixture,
-            # even near UTC day boundaries.
-            match_date_hint = None
-            match_dt_val = session_data.get('match_date')
-            if match_dt_val:
-                try:
-                    match_date_hint = match_dt_val.strftime('%Y%m%d') if hasattr(match_dt_val, 'strftime') else None
-                except Exception:
-                    match_date_hint = None
-
             logger.info(
                 f"Polling ESPN for session {session_id} "
-                f"(match={espn_match_id}, league={league_code}, date={match_date_hint})"
+                f"(match={espn_match_id}, league={league_code})"
             )
             # Run sync ESPN client in executor to avoid blocking the async event loop
             loop = asyncio.get_running_loop()
             match_data = await loop.run_in_executor(
                 self._executor,
                 self.espn_client.get_match_data,
-                espn_match_id, league_code, match_date_hint,
+                espn_match_id, league_code,
             )
             if not match_data:
                 # If ESPN returned nothing after the match was previously live,
@@ -792,10 +781,11 @@ class RealtimeReportingService:
         if player_headshot:
             embed['thumbnail'] = {'url': player_headshot}
 
-        # Team logo as author icon
+        # Team logo as author icon — only for our side, not the opponent
         if team:
             author = {'name': team}
-            if team_logo:
+            opponent_name = session_data.get('opponent', '')
+            if team_logo and team != opponent_name:
                 author['icon_url'] = team_logo
             embed['author'] = author
 

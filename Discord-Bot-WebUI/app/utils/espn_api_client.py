@@ -22,25 +22,46 @@ class ESPNAPIClient:
     """
     ESPN API Client optimized for real-time match updates.
 
-    Features:
-    - Efficient polling for live matches
-    - Smart caching to reduce API calls
-    - Error handling with retry logic
-    - Mock data fallback for testing
+    Uses ESPN's /summary?event={match_id} endpoint exclusively. This endpoint
+    is keyed directly on the match ID and is independent of ESPN's
+    "current-day scoreboard" window, so it works for every supported league
+    (MLS, Concacaf, Leagues Cup, etc.) without timezone/date heuristics.
     """
 
     BASE_URL = "https://site.api.espn.com/apis/site/v2/sports/soccer"
-    TIMEOUT = 3  # Reduced from 5 to 3 seconds for faster failure detection
-    MAX_RETRIES = 2  # Maximum retries per request
+    TIMEOUT = 5
+    MAX_RETRIES = 2
 
     # Cache TTLs
-    LIVE_MATCH_CACHE_TTL = 15  # Increased from 10 to 15 seconds to reduce API load
-    SCHEDULED_MATCH_CACHE_TTL = 300  # 5 minutes for scheduled matches
-    FINISHED_MATCH_CACHE_TTL = 3600  # 1 hour for finished matches
+    LIVE_MATCH_CACHE_TTL = 15
+    SCHEDULED_MATCH_CACHE_TTL = 300
+    FINISHED_MATCH_CACHE_TTL = 3600
 
     # Circuit breaker settings
-    FAILURE_THRESHOLD = 5  # Number of failures before circuit opens
-    RECOVERY_TIMEOUT = 60  # Seconds to wait before trying again
+    FAILURE_THRESHOLD = 5
+    RECOVERY_TIMEOUT = 60
+
+    # ESPN status name → our normalized status
+    STATUS_MAP = {
+        'STATUS_SCHEDULED': 'SCHEDULED',
+        'STATUS_PRE_EVENT': 'PRE_MATCH',
+        'STATUS_IN_PROGRESS': 'IN_PLAY',
+        'STATUS_FIRST_HALF': 'IN_PLAY',
+        'STATUS_SECOND_HALF': 'IN_PLAY',
+        'STATUS_HALFTIME': 'HALFTIME',
+        'STATUS_FINAL': 'FINAL',
+        'STATUS_FULL_TIME': 'FINAL',
+        'STATUS_FINAL_AET': 'FINAL',
+        'STATUS_FINAL_PEN': 'FINAL',
+        'STATUS_END_OF_REGULATION': 'IN_PLAY',
+        'STATUS_EXTRA_TIME': 'IN_PLAY',
+        'STATUS_PENALTIES': 'IN_PLAY',
+        'STATUS_POSTPONED': 'POSTPONED',
+        'STATUS_CANCELED': 'CANCELLED',
+        'STATUS_SUSPENDED': 'POSTPONED',
+        'STATUS_ABANDONED': 'CANCELLED',
+        'STATUS_DELAYED': 'SCHEDULED',
+    }
 
     def __init__(self):
         self.session = requests.Session()
@@ -72,157 +93,93 @@ class ESPNAPIClient:
         self,
         match_id: str,
         competition: str = 'eng.1',
-        match_date: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """
-        Get real-time match data from ESPN API.
+        Get real-time match data from ESPN's /summary endpoint.
 
-        Optimized for live matches with smart caching and rate limiting.
+        Returns None on any failure. Callers are expected to treat None as an
+        error signal (increment error counters, retry next cycle). Never
+        returns fabricated/mock data — silent fake data is how we missed live
+        goals once before.
 
         Args:
             match_id: ESPN event id.
             competition: ESPN league code (e.g. ``usa.1`` / ``concacaf.champions``).
-            match_date: Optional ``YYYYMMDD`` date hint. ESPN's default
-                scoreboard only returns today's matches; passing the match's
-                scheduled date scopes the query so the event is always
-                included even near UTC day boundaries.
         """
-        try:
-            # Check cache first
-            cache_key = f"espn:match:{competition}:{match_id}"
-            cached_data = self._get_cached_data(cache_key)
+        cache_key = f"espn:match:{competition}:{match_id}"
+        cached_data = self._get_cached_data(cache_key)
 
-            if cached_data:
-                # Check if cache is still valid based on match status
-                status = cached_data.get('status', '')
-                cache_age = time.time() - cached_data.get('cached_at', 0)
-
-                # Dynamic cache validation based on match status
-                if status in ['IN_PLAY', 'HALFTIME']:
-                    if cache_age < self.LIVE_MATCH_CACHE_TTL:
-                        logger.debug(f"Using cached live data for {match_id} (age: {cache_age:.1f}s)")
-                        return cached_data
-                elif status in ['SCHEDULED', 'PRE_MATCH']:
-                    if cache_age < self.SCHEDULED_MATCH_CACHE_TTL:
-                        logger.debug(f"Using cached scheduled data for {match_id}")
-                        return cached_data
-                elif status in ['FINAL', 'COMPLETED']:
-                    if cache_age < self.FINISHED_MATCH_CACHE_TTL:
-                        logger.debug(f"Using cached finished data for {match_id}")
-                        return cached_data
-
-            # Check circuit breaker
-            if self._is_circuit_open(match_id):
-                logger.warning(f"Circuit breaker open for {match_id}, using cached data or returning None")
-                return cached_data if cached_data else None
-
-            # Rate limiting - minimum 3 seconds between requests for same match (increased from 2)
-            last_request = self._last_request_time.get(match_id, 0)
-            time_since_last = time.time() - last_request
-            if time_since_last < 3:
-                wait_time = 3 - time_since_last
-                logger.debug(f"Rate limiting: waiting {wait_time:.1f}s for {match_id}")
-                time.sleep(wait_time)
-
-            # Make API request
-            data = self._fetch_from_api(match_id, competition, match_date)
-
-            if data:
-                # Cache with appropriate TTL
-                self._cache_data(cache_key, data)
-                self._last_request_time[match_id] = time.time()
-
-                # Track request count for monitoring
-                self._request_counts[match_id] = self._request_counts.get(match_id, 0) + 1
-
-                # Record success for circuit breaker
-                self._record_success(match_id)
-
-                return data
-
-            # If API fails, return cached data even if expired
-            if cached_data:
-                logger.warning(f"API failed, using expired cache for {match_id}")
+        # Serve fresh cache hits
+        if cached_data:
+            status = cached_data.get('status', '')
+            cache_age = time.time() - cached_data.get('cached_at', 0)
+            ttl = self._cache_ttl_for_status(status)
+            if ttl is not None and cache_age < ttl:
+                logger.debug(f"Using cached data for {match_id} (status={status}, age={cache_age:.1f}s)")
                 return cached_data
 
-            # Last resort - return mock data
-            return self._get_mock_data(match_id)
+        # Circuit breaker shortcut
+        if self._is_circuit_open(match_id):
+            logger.warning(f"Circuit breaker open for {match_id}; skipping fetch")
+            return cached_data  # may be None — caller handles as error
 
-        except Exception as e:
-            logger.error(f"Error getting match data for {match_id}: {e}")
-            return self._get_mock_data(match_id)
+        # Rate limit: at most one live request per 3s per match
+        last_request = self._last_request_time.get(match_id, 0)
+        wait_time = 3 - (time.time() - last_request)
+        if wait_time > 0:
+            time.sleep(wait_time)
+
+        data = self._fetch_from_api(match_id, competition)
+        if data:
+            self._cache_data(cache_key, data)
+            self._last_request_time[match_id] = time.time()
+            self._request_counts[match_id] = self._request_counts.get(match_id, 0) + 1
+            self._record_success(match_id)
+            return data
+
+        # Real failure — surface it. Expired cache is not returned silently
+        # because stale data masks problems during live matches.
+        self._record_failure(match_id)
+        return None
+
+    def _cache_ttl_for_status(self, status: str) -> Optional[int]:
+        if status in ('IN_PLAY', 'HALFTIME'):
+            return self.LIVE_MATCH_CACHE_TTL
+        if status in ('SCHEDULED', 'PRE_MATCH'):
+            return self.SCHEDULED_MATCH_CACHE_TTL
+        if status in ('FINAL', 'COMPLETED'):
+            return self.FINISHED_MATCH_CACHE_TTL
+        return None
 
     def _fetch_from_api(
         self,
         match_id: str,
         competition: str,
-        match_date: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """
-        Fetch match data from ESPN API.
+        Fetch match data from ESPN's /summary?event={match_id} endpoint.
         """
+        url = f"{self.BASE_URL}/{competition}/summary?event={match_id}"
         try:
-            # The scoreboard endpoint is the only reliable ESPN API for MLS.
-            # It returns all current-day matches including recently finished ones.
-            # The /summary endpoint returns 404 for MLS (usa.1).
-            base = f"{self.BASE_URL}/sports/soccer/{competition}/scoreboard"
-            # If we have a match date, try that first (handles UTC-midnight
-            # rollovers during live games), then fall back to the default
-            # scoreboard window.
-            endpoints = []
-            if match_date:
-                endpoints.append(f"{base}?dates={match_date}")
-            endpoints.append(base)
-
-            for url in endpoints:
-                try:
-                    response = self.session.get(url, timeout=self.TIMEOUT)
-
-                    if response.status_code == 200:
-                        raw_data = response.json()
-
-                        # Scoreboard endpoint: search for this match among all events
-                        if '/scoreboard' in url and 'events' in raw_data:
-                            for event in raw_data['events']:
-                                if str(event.get('id')) == str(match_id):
-                                    return self._process_event_data(event)
-                            # Match not in scoreboard — try next endpoint
-                            logger.debug(f"Match {match_id} not found in scoreboard ({len(raw_data['events'])} events)")
-                            continue
-
-                        # Summary endpoint: has a different structure with header/boxscore
-                        if '/summary' in url and 'header' in raw_data:
-                            return self._process_summary_data(raw_data, match_id)
-
-                        # Generic fallback processing
-                        return self._process_espn_data(raw_data, match_id)
-                    elif response.status_code in (400, 404):
-                        logger.debug(f"ESPN returned {response.status_code} for {url}")
-                        continue  # Try next endpoint
-                    else:
-                        logger.warning(f"ESPN API returned {response.status_code} for {url}")
-
-                except requests.Timeout:
-                    logger.warning(f"Timeout fetching from {url}")
-                    self._record_failure(match_id)
-                    continue
-                except requests.RequestException as e:
-                    logger.warning(f"Request error fetching from {url}: {e}")
-                    self._record_failure(match_id)
-                    continue
-                except Exception as e:
-                    logger.error(f"Unexpected error fetching from {url}: {e}")
-                    self._record_failure(match_id)
-                    continue
-
-            # All endpoints failed
-            self._record_failure(match_id)
+            response = self.session.get(url, timeout=self.TIMEOUT)
+        except requests.Timeout:
+            logger.warning(f"Timeout fetching {url}")
+            return None
+        except requests.RequestException as e:
+            logger.warning(f"Request error fetching {url}: {e}")
             return None
 
-        except Exception as e:
-            logger.error(f"Error fetching from ESPN API: {e}")
-            self._record_failure(match_id)
+        if response.status_code != 200:
+            logger.warning(f"ESPN returned {response.status_code} for {url}")
             return None
+
+        try:
+            raw_data = response.json()
+        except ValueError as e:
+            logger.error(f"Invalid JSON from {url}: {e}")
+            return None
+
+        return self._process_summary_data(raw_data, match_id)
 
     def _is_circuit_open(self, match_id: str) -> bool:
         """Check if circuit breaker is open for this match."""
@@ -281,104 +238,85 @@ class ESPNAPIClient:
 
     def _process_summary_data(self, raw_data: Dict[str, Any], match_id: str) -> Optional[Dict[str, Any]]:
         """
-        Process ESPN summary endpoint response.
+        Process ESPN /summary?event={id} response into our normalized schema.
 
-        The summary endpoint (/summary?event=ID) has a different structure:
-        - header.competitions[0] contains status and competitors
-        - boxscore.teams contains scores
-        - keyEvents or plays may contain match events
+        Sources used:
+        - header.competitions[0]: status, competitors (team, score, logo, form, homeAway)
+        - boxscore.teams[].statistics: live match statistics
+        - keyEvents[]: goals, cards, substitutions (with participants → athletes)
+        - rosters[].roster[]: athlete_id → jersey + headshot enrichment
+        - gameInfo.venue.fullName: venue
+
+        Output schema matches what downstream consumers expect (see
+        realtime_reporting_service._extract_new_events / _build_event_embed):
+        match_id, status, completed, minute, period, home_team, home_score,
+        home_logo, home_form, away_team, away_score, away_logo, away_form,
+        stats{home, away}, events[{type, minute, player, player_headshot,
+        player_jersey, team, team_logo, detail_text, description, id}],
+        venue, attendance, cached_at.
         """
         try:
-            header = raw_data.get('header', {})
-            competitions = header.get('competitions', [{}])
+            header = raw_data.get('header') or {}
+            competitions = header.get('competitions') or []
             if not competitions:
+                logger.error(f"No competitions in summary for {match_id}")
                 return None
 
-            competition_data = competitions[0]
-            competitors = competition_data.get('competitors', [])
-
+            comp = competitions[0]
+            competitors = comp.get('competitors') or []
             if len(competitors) < 2:
+                logger.error(f"Incomplete competitors in summary for {match_id}")
                 return None
 
-            home_comp = competitors[0]
-            away_comp = competitors[1]
+            # Pick home/away by explicit flag (ESPN order is not guaranteed)
+            home = next((c for c in competitors if c.get('homeAway') == 'home'), competitors[0])
+            away = next((c for c in competitors if c.get('homeAway') == 'away'), competitors[1])
 
-            # Status from header
-            status_detail = competition_data.get('status', {})
-            status_type = status_detail.get('type', {})
+            # Status
+            status_detail = comp.get('status') or {}
+            status_type = status_detail.get('type') or {}
+            status = self._map_status(status_type)
 
-            # Reuse the same status mapping
-            status_map = {
-                'STATUS_SCHEDULED': 'SCHEDULED',
-                'STATUS_PRE_EVENT': 'PRE_MATCH',
-                'STATUS_IN_PROGRESS': 'IN_PLAY',
-                'STATUS_FIRST_HALF': 'IN_PLAY',
-                'STATUS_SECOND_HALF': 'IN_PLAY',
-                'STATUS_HALFTIME': 'HALFTIME',
-                'STATUS_FINAL': 'FINAL',
-                'STATUS_FULL_TIME': 'FINAL',
-                'STATUS_FINAL_AET': 'FINAL',
-                'STATUS_FINAL_PEN': 'FINAL',
-                'STATUS_END_OF_REGULATION': 'IN_PLAY',
-                'STATUS_EXTRA_TIME': 'IN_PLAY',
-                'STATUS_PENALTIES': 'IN_PLAY',
-                'STATUS_POSTPONED': 'POSTPONED',
-                'STATUS_CANCELED': 'CANCELLED',
-                'STATUS_SUSPENDED': 'POSTPONED',
-                'STATUS_ABANDONED': 'CANCELLED',
-                'STATUS_DELAYED': 'SCHEDULED',
-            }
+            # Build team_id → {name, logo} so we can resolve events that
+            # carry only team.id.
+            team_lookup = {}
+            for c in competitors:
+                team_obj = c.get('team') or {}
+                tid = str(team_obj.get('id') or c.get('id') or '')
+                if tid:
+                    team_lookup[tid] = {
+                        'name': team_obj.get('displayName', 'Unknown'),
+                        'logo': self._team_logo_url(team_obj),
+                    }
 
-            espn_status_name = status_type.get('name', '')
-            status = status_map.get(espn_status_name, '')
-            if not status:
-                espn_state = status_type.get('state', '').lower()
-                if espn_state == 'post':
-                    status = 'FINAL'
-                elif espn_state == 'in':
-                    status = 'IN_PLAY'
-                elif espn_state == 'pre':
-                    status = 'SCHEDULED'
-                else:
-                    status = 'UNKNOWN'
+            # Build athlete_id → {jersey, headshot} from rosters
+            athlete_lookup = self._build_athlete_lookup(raw_data.get('rosters') or [])
 
-            # Extract events from keyEvents or roster/details
-            match_events = []
-            for ke in raw_data.get('keyEvents', []):
-                ke_type_text = ke.get('type', {}).get('text', '')
-                athletes = ke.get('athletesInvolved', [])
-                clock_val = ke.get('clock', {}).get('displayValue', '')
-                team_name = ke.get('team', {}).get('displayName', '')
-                player_name = athletes[0].get('displayName', '') if athletes else ''
+            match_events = self._extract_events_from_summary(
+                raw_data.get('keyEvents') or [],
+                team_lookup,
+                athlete_lookup,
+            )
 
-                if ke_type_text in ('Goal', 'Own Goal', 'Penalty'):
-                    match_events.append({
-                        'type': 'GOAL', 'minute': clock_val,
-                        'player': player_name, 'team': team_name,
-                        'description': ke.get('text', '')
-                    })
-                elif 'Card' in ke_type_text:
-                    card_type = 'YELLOW_CARD' if 'Yellow' in ke_type_text else 'RED_CARD'
-                    match_events.append({
-                        'type': card_type, 'minute': clock_val,
-                        'player': player_name, 'team': team_name,
-                        'description': ke.get('text', '')
-                    })
-                elif ke_type_text in ('Substitution', 'Sub'):
-                    sub_text = ke.get('text', '')
-                    player_on, player_off = self._parse_substitution_text(sub_text)
-                    if not player_on and athletes:
-                        player_on = athletes[0].get('displayName', 'Unknown')
-                    if not player_off and len(athletes) > 1:
-                        player_off = athletes[1].get('displayName', 'Unknown')
-                    match_events.append({
-                        'type': 'SUBSTITUTION', 'minute': clock_val,
-                        'player': player_on or 'Unknown',
-                        'player_on': player_on or 'Unknown',
-                        'player_off': player_off or 'Unknown',
-                        'team': team_name,
-                        'description': sub_text
-                    })
+            # Boxscore stats
+            home_stats = {}
+            away_stats = {}
+            for team_entry in (raw_data.get('boxscore') or {}).get('teams', []) or []:
+                side = team_entry.get('homeAway')
+                parsed = {
+                    s.get('name', ''): s.get('displayValue', '0')
+                    for s in (team_entry.get('statistics') or [])
+                }
+                if side == 'home':
+                    home_stats = parsed
+                elif side == 'away':
+                    away_stats = parsed
+
+            home_team_obj = home.get('team') or {}
+            away_team_obj = away.get('team') or {}
+            game_info = raw_data.get('gameInfo') or {}
+            venue_name = (game_info.get('venue') or {}).get('fullName', '') or \
+                         (comp.get('venue') or {}).get('fullName', '')
 
             return {
                 'match_id': match_id,
@@ -386,229 +324,217 @@ class ESPNAPIClient:
                 'completed': status_type.get('completed', False),
                 'minute': status_detail.get('displayClock', '0'),
                 'period': status_detail.get('period', 0),
-                'home_team': home_comp.get('team', {}).get('displayName', 'Unknown'),
-                'home_score': int(home_comp.get('score', '0')),
-                'away_team': away_comp.get('team', {}).get('displayName', 'Unknown'),
-                'away_score': int(away_comp.get('score', '0')),
+                'home_team': home_team_obj.get('displayName', 'Unknown'),
+                'home_score': int(home.get('score', 0) or 0),
+                'home_logo': self._team_logo_url(home_team_obj),
+                'home_form': home_team_obj.get('form', '') or home.get('form', ''),
+                'away_team': away_team_obj.get('displayName', 'Unknown'),
+                'away_score': int(away.get('score', 0) or 0),
+                'away_logo': self._team_logo_url(away_team_obj),
+                'away_form': away_team_obj.get('form', '') or away.get('form', ''),
+                'stats': {'home': home_stats, 'away': away_stats},
                 'events': match_events,
-                'venue': header.get('venue', {}).get('fullName', ''),
-                'cached_at': time.time()
+                'venue': venue_name,
+                'attendance': comp.get('attendance', 0) or game_info.get('attendance', 0) or 0,
+                'cached_at': time.time(),
             }
 
         except Exception as e:
-            logger.error(f"Error processing ESPN summary data for {match_id}: {e}")
+            logger.error(f"Error processing ESPN summary for {match_id}: {e}", exc_info=True)
             return None
 
-    def _process_espn_data(self, raw_data: Dict[str, Any], match_id: str) -> Dict[str, Any]:
+    def _team_logo_url(self, team_obj: Dict[str, Any]) -> str:
+        """Return logo URL from a team object (summary uses logos[], scoreboard uses logo)."""
+        direct = team_obj.get('logo')
+        if isinstance(direct, str) and direct:
+            return direct
+        logos = team_obj.get('logos') or []
+        if logos and isinstance(logos, list):
+            first = logos[0]
+            if isinstance(first, dict):
+                return first.get('href', '')
+        return ''
+
+    def _map_status(self, status_type: Dict[str, Any]) -> str:
+        """Map ESPN status.type → our normalized status, with state fallback."""
+        name = status_type.get('name', '')
+        mapped = self.STATUS_MAP.get(name, '')
+        if mapped:
+            return mapped
+        state = (status_type.get('state') or '').lower()
+        if state == 'post':
+            return 'FINAL'
+        if state == 'in':
+            return 'IN_PLAY'
+        if state == 'pre':
+            return 'SCHEDULED'
+        logger.warning(f"Unmapped ESPN status: name={name}, state={state}")
+        return 'UNKNOWN'
+
+    def _build_athlete_lookup(self, rosters: List[Dict[str, Any]]) -> Dict[str, Dict[str, str]]:
         """
-        Process raw ESPN API response into standardized format.
+        Build athlete_id → {jersey, headshot_url, team_name} lookup.
+
+        Summary rosters carry the jersey + headshot that keyEvents.participants
+        don't include. Without this the event embeds would miss player photos.
         """
-        try:
-            # Handle different ESPN response formats
-            if 'events' in raw_data:
-                # Scoreboard format
-                events = raw_data.get('events', [])
-                if events:
-                    event = events[0]
-                    return self._process_event_data(event)
+        lookup = {}
+        for roster_entry in rosters:
+            team_name = (roster_entry.get('team') or {}).get('displayName', '')
+            for player in roster_entry.get('roster') or []:
+                athlete = player.get('athlete') or {}
+                aid = str(athlete.get('id') or '')
+                if not aid:
+                    continue
+                headshot = athlete.get('headshot')
+                if isinstance(headshot, dict):
+                    headshot_url = headshot.get('href', '')
+                elif isinstance(headshot, str):
+                    headshot_url = headshot
+                else:
+                    headshot_url = ''
+                lookup[aid] = {
+                    'jersey': str(player.get('jersey') or athlete.get('jersey') or ''),
+                    'headshot': headshot_url,
+                    'team_name': team_name,
+                }
+        return lookup
 
-            elif 'header' in raw_data:
-                return self._process_summary_data(raw_data, match_id)
-
-            # Fallback processing
-            return {
-                'match_id': match_id,
-                'status': 'UNKNOWN',
-                'home_score': 0,
-                'away_score': 0,
-                'events': [],
-                'cached_at': time.time()
-            }
-
-        except Exception as e:
-            logger.error(f"Error processing ESPN data: {e}")
-            return None
-
-    def _process_event_data(self, event: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Process event data from ESPN scoreboard API.
-        """
-        competitions = event.get('competitions', [{}])[0]
-        competitors = competitions.get('competitors', [])
-
-        home_team = competitors[0] if len(competitors) > 0 else {}
-        away_team = competitors[1] if len(competitors) > 1 else {}
-
-        status_detail = competitions.get('status', {})
-        status_type = status_detail.get('type', {})
-
-        # Map ESPN status to our status
-        status_map = {
-            'STATUS_SCHEDULED': 'SCHEDULED',
-            'STATUS_PRE_EVENT': 'PRE_MATCH',
-            'STATUS_IN_PROGRESS': 'IN_PLAY',
-            'STATUS_FIRST_HALF': 'IN_PLAY',
-            'STATUS_SECOND_HALF': 'IN_PLAY',
-            'STATUS_HALFTIME': 'HALFTIME',
-            'STATUS_FINAL': 'FINAL',
-            'STATUS_FULL_TIME': 'FINAL',
-            'STATUS_FINAL_AET': 'FINAL',
-            'STATUS_FINAL_PEN': 'FINAL',
-            'STATUS_END_OF_REGULATION': 'IN_PLAY',
-            'STATUS_EXTRA_TIME': 'IN_PLAY',
-            'STATUS_PENALTIES': 'IN_PLAY',
-            'STATUS_POSTPONED': 'POSTPONED',
-            'STATUS_CANCELED': 'CANCELLED',
-            'STATUS_SUSPENDED': 'POSTPONED',
-            'STATUS_ABANDONED': 'CANCELLED',
-            'STATUS_DELAYED': 'SCHEDULED',
+    def _enrich_athlete(self, athlete_dict: Dict[str, Any],
+                        athlete_lookup: Dict[str, Dict[str, str]]) -> Dict[str, str]:
+        """Return {name, jersey, headshot} for a keyEvents.participants[].athlete."""
+        if not athlete_dict:
+            return {'name': '', 'jersey': '', 'headshot': ''}
+        aid = str(athlete_dict.get('id') or '')
+        enrich = athlete_lookup.get(aid, {})
+        return {
+            'name': athlete_dict.get('displayName', '') or '',
+            'jersey': enrich.get('jersey', ''),
+            'headshot': enrich.get('headshot', ''),
         }
 
-        espn_status_name = status_type.get('name', '')
-        status = status_map.get(espn_status_name, '')
+    def _extract_events_from_summary(
+        self,
+        key_events: List[Dict[str, Any]],
+        team_lookup: Dict[str, Dict[str, str]],
+        athlete_lookup: Dict[str, Dict[str, str]],
+    ) -> List[Dict[str, Any]]:
+        """
+        Extract goals, cards, and substitutions from /summary keyEvents[].
+        """
+        out = []
+        for ke in key_events:
+            type_text = (ke.get('type') or {}).get('text', '')
+            clock_val = (ke.get('clock') or {}).get('displayValue', '')
+            participants = ke.get('participants') or []
+            ke_team = ke.get('team') or {}
+            team_name = ke_team.get('displayName', '')
+            if not team_name:
+                tid = str(ke_team.get('id') or '')
+                team_name = team_lookup.get(tid, {}).get('name', '')
+            tid = str(ke_team.get('id') or '')
+            team_logo = team_lookup.get(tid, {}).get('logo', '')
 
-        # Fallback: use the ESPN 'state' field if the name didn't match our map
-        if not status:
-            espn_state = status_type.get('state', '').lower()
-            if espn_state == 'post':
-                status = 'FINAL'
-            elif espn_state == 'in':
-                status = 'IN_PLAY'
-            elif espn_state == 'pre':
-                status = 'SCHEDULED'
-            else:
-                status = 'UNKNOWN'
-                logger.warning(f"Unmapped ESPN status: name={espn_status_name}, state={espn_state}")
+            is_scoring = ke.get('scoringPlay', False)
+            event_id = str(ke.get('id') or '')
 
-        # Build team_id → team_name lookup from competitors.
-        # ESPN details only have team.id, NOT team.displayName.
-        team_lookup = {}
-        for comp in competitors:
-            tid = comp.get('team', {}).get('id', comp.get('id', ''))
-            tname = comp.get('team', {}).get('displayName', 'Unknown')
-            tlogo = comp.get('team', {}).get('logo', '')
-            if tid:
-                team_lookup[str(tid)] = {'name': tname, 'logo': tlogo}
-
-        home_display = home_team.get('team', {}).get('displayName', 'Unknown')
-        away_display = away_team.get('team', {}).get('displayName', 'Unknown')
-
-        # Extract events (goals, cards, subs) in a single pass
-        match_events = []
-        for detail in competitions.get('details', []):
-            detail_type_text = detail.get('type', {}).get('text', '')
-            clock_val = detail.get('clock', {}).get('displayValue', '')
-            athletes = detail.get('athletesInvolved', [])
-            player_name = athletes[0].get('displayName', '') if athletes else ''
-            player_headshot = ''
-            if athletes:
-                hs = athletes[0].get('headshot', '')
-                player_headshot = hs if isinstance(hs, str) else hs.get('href', '') if isinstance(hs, dict) else ''
-            player_jersey = athletes[0].get('jersey', '') if athletes else ''
-
-            # Resolve team name from ID
-            detail_team_id = str(detail.get('team', {}).get('id', ''))
-            team_info = team_lookup.get(detail_team_id, {})
-            team_name = team_info.get('name', '')
-            team_logo = team_info.get('logo', '')
-
-            # Use ESPN's boolean flags for reliable event type detection
-            is_scoring = detail.get('scoringPlay', False)
-            is_yellow = detail.get('yellowCard', False)
-            is_red = detail.get('redCard', False)
-            is_own_goal = detail.get('ownGoal', False)
-            is_penalty = detail.get('penaltyKick', False)
-
-            if is_scoring or 'Goal' in detail_type_text:
-                # Goal variants: "Goal", "Goal - Header", "Goal - Free-kick",
-                # "Goal - Volley", "Own Goal", "Penalty - Scored", etc.
+            # Goals: "Goal", "Goal - Header", "Goal - Free Kick", "Own Goal", "Penalty"
+            if is_scoring or type_text.startswith('Goal') or 'Penalty' in type_text:
+                is_own_goal = 'Own Goal' in type_text
+                is_penalty = type_text == 'Penalty' or 'Penalty' in type_text
                 goal_type = 'OWN_GOAL' if is_own_goal else 'PENALTY_GOAL' if is_penalty else 'GOAL'
-                match_events.append({
+                scorer = self._enrich_athlete(
+                    (participants[0].get('athlete') if participants else {}) or {},
+                    athlete_lookup,
+                )
+                # Fall back to parsing player from text when participants are empty
+                if not scorer['name']:
+                    scorer['name'] = self._player_from_goal_text(ke.get('text', ''))
+                out.append({
+                    'id': event_id,
                     'type': goal_type,
                     'minute': clock_val,
-                    'player': player_name,
-                    'player_headshot': player_headshot,
-                    'player_jersey': player_jersey,
+                    'player': scorer['name'],
+                    'player_headshot': scorer['headshot'],
+                    'player_jersey': scorer['jersey'],
                     'team': team_name,
                     'team_logo': team_logo,
-                    'detail_text': detail_type_text,
-                    'description': f"{detail_type_text}. {player_name} ({team_name}). {clock_val}."
+                    'detail_text': type_text,
+                    'description': ke.get('text', '') or f"{type_text}. {scorer['name']} ({team_name}). {clock_val}.",
                 })
 
-            elif is_yellow or is_red or 'Card' in detail_type_text:
-                card_type = 'RED_CARD' if is_red else 'YELLOW_CARD'
-                match_events.append({
+            elif 'Card' in type_text:
+                card_type = 'RED_CARD' if 'Red' in type_text else 'YELLOW_CARD'
+                carded = self._enrich_athlete(
+                    (participants[0].get('athlete') if participants else {}) or {},
+                    athlete_lookup,
+                )
+                out.append({
+                    'id': event_id,
                     'type': card_type,
                     'minute': clock_val,
-                    'player': player_name,
-                    'player_headshot': player_headshot,
-                    'player_jersey': player_jersey,
+                    'player': carded['name'],
+                    'player_headshot': carded['headshot'],
+                    'player_jersey': carded['jersey'],
                     'team': team_name,
                     'team_logo': team_logo,
-                    'detail_text': detail_type_text,
-                    'description': f"{detail_type_text}. {player_name} ({team_name}). {clock_val}."
+                    'detail_text': type_text,
+                    'description': ke.get('text', '') or f"{type_text}. {carded['name']} ({team_name}). {clock_val}.",
                 })
 
-            elif detail_type_text in ('Substitution', 'Sub') or 'substitution' in detail_type_text.lower():
-                sub_text = detail.get('text', '')
-                player_on, player_off = self._parse_substitution_text(sub_text)
-                if not player_on and athletes:
-                    player_on = athletes[0].get('displayName', 'Unknown')
-                if not player_off and len(athletes) > 1:
-                    player_off = athletes[1].get('displayName', 'Unknown')
-
-                # Headshot for the player coming on
-                on_headshot = ''
-                if athletes:
-                    hs = athletes[0].get('headshot', '')
-                    on_headshot = hs if isinstance(hs, str) else hs.get('href', '') if isinstance(hs, dict) else ''
-
-                match_events.append({
+            elif type_text in ('Substitution', 'Sub'):
+                # participants: [0]=on, [1]=off (verified against ESPN data)
+                on = self._enrich_athlete(
+                    (participants[0].get('athlete') if participants else {}) or {},
+                    athlete_lookup,
+                )
+                off = self._enrich_athlete(
+                    (participants[1].get('athlete') if len(participants) > 1 else {}) or {},
+                    athlete_lookup,
+                )
+                sub_text = ke.get('text', '')
+                if not on['name'] or not off['name']:
+                    parsed_on, parsed_off = self._parse_substitution_text(sub_text)
+                    on['name'] = on['name'] or parsed_on or 'Unknown'
+                    off['name'] = off['name'] or parsed_off or 'Unknown'
+                out.append({
+                    'id': event_id,
                     'type': 'SUBSTITUTION',
                     'minute': clock_val,
-                    'player': player_on or 'Unknown',
-                    'player_on': player_on or 'Unknown',
-                    'player_off': player_off or 'Unknown',
-                    'player_headshot': on_headshot,
+                    'player': on['name'],
+                    'player_on': on['name'],
+                    'player_off': off['name'],
+                    'player_headshot': on['headshot'],
+                    'player_jersey': on['jersey'],
                     'team': team_name,
                     'team_logo': team_logo,
-                    'detail_text': detail_type_text,
-                    'description': sub_text or f"{player_on} replaces {player_off}. {clock_val}."
+                    'detail_text': type_text,
+                    'description': sub_text or f"{on['name']} replaces {off['name']}. {clock_val}.",
                 })
 
-        # Extract match statistics from both competitors
-        def _parse_stats(competitor: Dict) -> Dict[str, str]:
-            stats = {}
-            for stat in competitor.get('statistics', []):
-                stats[stat.get('name', '')] = stat.get('displayValue', '0')
-            return stats
+        return out
 
-        home_stats = _parse_stats(home_team)
-        away_stats = _parse_stats(away_team)
-
-        return {
-            'match_id': event.get('id'),
-            'status': status,
-            'completed': status_type.get('completed', False),
-            'minute': status_detail.get('displayClock', '0'),
-            'period': status_detail.get('period', 0),
-            'home_team': home_display,
-            'home_score': int(home_team.get('score', 0)),
-            'home_logo': home_team.get('team', {}).get('logo', ''),
-            'home_form': home_team.get('form', ''),
-            'away_team': away_display,
-            'away_score': int(away_team.get('score', 0)),
-            'away_logo': away_team.get('team', {}).get('logo', ''),
-            'away_form': away_team.get('form', ''),
-            'stats': {
-                'home': home_stats,
-                'away': away_stats,
-            },
-            'events': match_events,
-            'venue': event.get('venue', {}).get('fullName', ''),
-            'attendance': event.get('attendance', 0),
-            'cached_at': time.time()
-        }
+    def _player_from_goal_text(self, text: str) -> str:
+        """
+        Parse scorer name from ESPN goal text when participants are empty.
+        Example input: "Goal! Seattle Sounders FC 1, Tigres 0. Albert Rusnák
+        (Seattle Sounders FC) left footed shot from the..."
+        Returns "Albert Rusnák" or '' if it can't parse.
+        """
+        if not text:
+            return ''
+        try:
+            # Strip "Goal! …. " prefix if present
+            if '. ' in text:
+                after_score = text.split('. ', 1)[1]
+            else:
+                after_score = text
+            # Name ends at the " (TEAM)" parenthetical
+            if ' (' in after_score:
+                return after_score.split(' (', 1)[0].strip()
+        except Exception:
+            pass
+        return ''
 
     def _get_cached_data(self, cache_key: str) -> Optional[Dict[str, Any]]:
         """
@@ -643,26 +569,6 @@ class ESPNAPIClient:
 
         except Exception as e:
             logger.error(f"Failed to cache data: {e}")
-
-    def _get_mock_data(self, match_id: str) -> Dict[str, Any]:
-        """Return minimal mock data when API is unavailable."""
-        logger.warning(f"All ESPN API endpoints failed for match {match_id}, using mock data")
-        return {
-            'match_id': match_id,
-            'status': 'UNKNOWN',
-            'minute': '0',
-            'period': 0,
-            'home_team': 'Unknown',
-            'home_score': 0,
-            'away_team': 'Unknown',
-            'away_score': 0,
-            'events': [],
-            'venue': 'Unknown Venue',
-            'attendance': 0,
-            'cached_at': time.time(),
-            'mock_data': True,
-            'error': 'ESPN API unavailable'
-        }
 
     def get_match_lineups(self, match_id: str, competition: str = 'usa.1') -> Optional[Dict[str, Any]]:
         """
