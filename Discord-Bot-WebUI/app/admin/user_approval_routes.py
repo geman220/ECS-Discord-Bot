@@ -434,6 +434,21 @@ def approve_user(user_id: int):
 
     except LockAcquisitionError:
         clear_deferred_discord()
+        # Likely a concurrent submission (e.g. double-click). If the other
+        # request already approved the user, return success idempotently so
+        # the client doesn't see a spurious error for a completed action.
+        db_session.rollback()
+        existing = db_session.query(User).filter_by(id=user_id).first()
+        if existing and existing.approval_status == 'approved':
+            logger.info(f"User {user_id} already approved by concurrent request; returning success")
+            return jsonify({
+                'success': True,
+                'message': f'User {existing.username} approved for {existing.approval_league or "league"}',
+                'user_id': existing.id,
+                'league_type': existing.approval_league,
+                'approved_at': existing.approved_at.isoformat() if existing.approved_at else None,
+                'idempotent': True
+            })
         logger.warning(f"Lock acquisition failed for user {user_id} during approval")
         return jsonify({
             'success': False,
@@ -509,6 +524,17 @@ def deny_user(user_id: int):
 
     except LockAcquisitionError:
         clear_deferred_discord()
+        db_session.rollback()
+        existing = db_session.query(User).filter_by(id=user_id).first()
+        if existing and existing.approval_status == 'denied':
+            logger.info(f"User {user_id} already denied by concurrent request; returning success")
+            return jsonify({
+                'success': True,
+                'message': f'User {existing.username} application denied',
+                'user_id': existing.id,
+                'denied_at': existing.approved_at.isoformat() if existing.approved_at else None,
+                'idempotent': True
+            })
         logger.warning(f"Lock acquisition failed for user {user_id} during denial")
         return jsonify({
             'success': False,

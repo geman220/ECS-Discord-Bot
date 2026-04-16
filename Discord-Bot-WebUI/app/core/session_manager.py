@@ -8,6 +8,11 @@ from sqlalchemy.exc import DBAPIError, OperationalError
 from app.core import db
 from app.utils.pgbouncer_utils import set_session_timeout
 
+try:
+    from celery.exceptions import Retry as CeleryRetry
+except ImportError:
+    CeleryRetry = ()
+
 logger = logging.getLogger(__name__)
 
 # Expose frequently used SQLAlchemy components from our DB instance
@@ -42,6 +47,14 @@ def managed_session():
         yield session
         session.commit()
     except Exception as e:
+        # Celery's Retry is a control-flow signal, not a DB error. Roll back
+        # and re-raise silently so the task can be rescheduled.
+        if CeleryRetry and isinstance(e, CeleryRetry):
+            try:
+                session.rollback()
+            except Exception:
+                pass
+            raise
         # Downgrade transient connection drops to WARNING — the pool's
         # pre_ping + invalidation handles recovery on the next checkout,
         # and ERROR-level spam here masks real problems.
