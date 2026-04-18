@@ -28,9 +28,10 @@ export function createSkipAction(tourVar) {
             body: JSON.stringify({})
         })
         .then(response => {
-            if (response.ok) {
-                tourVar.cancel();
+            if (!response.ok) {
+                console.warn('[Tour] set_tour_complete returned', response.status);
             }
+            tourVar.cancel();
         })
         .catch(() => {
             tourVar.cancel();

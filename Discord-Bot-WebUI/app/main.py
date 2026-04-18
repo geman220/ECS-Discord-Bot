@@ -1178,6 +1178,7 @@ def onboarding():
 
 
 @main.route('/set_tour_skipped', endpoint='set_tour_skipped', methods=['POST'])
+@csrf.exempt
 @login_required
 def set_tour_skipped():
     """
@@ -1203,6 +1204,7 @@ def set_tour_skipped():
 
 
 @main.route('/set_tour_complete', endpoint='set_tour_complete', methods=['POST'])
+@csrf.exempt
 @login_required
 def set_tour_complete():
     """

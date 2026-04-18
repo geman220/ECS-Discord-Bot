@@ -749,16 +749,10 @@ def send_sms(phone_number, message, user_id=None, status_callback=None, message_
         
         # Send message with enhanced parameters
         msg = client.messages.create(**message_params)
-        
-        # Track the SMS send if rate limiting is enabled for this message
-        if user_id is not None:
-            track_sms_send(user_id)
 
-        # Log successful send (phone number masked for privacy)
-        logger.info(f"SMS sent successfully to {mask_phone(phone_number)} with ID {msg.sid}")
-        logger.debug(f"SMS details: Length={len(prefixed_message)} chars")
-
-        # Audit log the SMS send
+        # Commit the SMS audit log IMMEDIATELY — Twilio status callbacks can fire
+        # within milliseconds and look up by twilio_sid. If the row isn't committed
+        # before the webhook arrives, status updates are silently dropped.
         try:
             from app.models import SMSLog
             SMSLog.log_sms(
@@ -773,6 +767,14 @@ def send_sms(phone_number, message, user_id=None, status_callback=None, message_
         except Exception as log_error:
             # Don't fail the SMS send if logging fails
             logger.warning(f"Failed to create SMS audit log: {log_error}")
+
+        # Track the SMS send if rate limiting is enabled for this message
+        if user_id is not None:
+            track_sms_send(user_id)
+
+        # Log successful send (phone number masked for privacy)
+        logger.info(f"SMS sent successfully to {mask_phone(phone_number)} with ID {msg.sid}")
+        logger.debug(f"SMS details: Length={len(prefixed_message)} chars")
 
         return True, msg.sid
     except Exception as e:
