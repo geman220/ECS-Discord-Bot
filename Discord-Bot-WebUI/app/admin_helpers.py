@@ -23,6 +23,8 @@ import logging
 import docker
 import requests
 from datetime import datetime, date
+
+from app.utils.pacific_time import pacific_today
 from typing import Optional, Dict, Any, List, Tuple
 from twilio.rest import Client
 from sqlalchemy import or_
@@ -714,7 +716,7 @@ def get_match_stats() -> Dict[str, Any]:
             Match.home_team_score.isnot(None),
             Match.away_team_score.isnot(None)
         ).count()
-        upcoming_matches = Match.query.filter(Match.date >= date.today()).count()
+        upcoming_matches = Match.query.filter(Match.date >= pacific_today()).count()
         
         return {
             'total_matches': total_matches,

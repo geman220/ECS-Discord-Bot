@@ -8,20 +8,27 @@ Celery tasks for automated RSVP and match reminders using the
 unified NotificationOrchestrator.
 
 Tasks:
-- send_rsvp_reminders: Send RSVP reminders for upcoming matches
-- send_match_reminders: Send match reminders (day before, 2 hours before)
-- process_notification_queue: Process any queued notifications
+- send_rsvp_reminders: Legacy RSVP reminder window task (may be unused)
+- send_match_reminders_daily: Day-before digest (one DM per player per day,
+  even if they have multiple matches). Yes responders get a confirmation;
+  non-responders get an RSVP chase. Maybe and No responders are skipped.
 
 Schedule (via celery beat):
-- RSVP reminders: Daily at 9 AM for matches in next 3-5 days
-- Match reminders: Daily at 6 PM for next-day matches
-- Same-day reminders: Hourly check for matches in next 2-4 hours
+- Match reminders: Daily at 6 PM Pacific for next-day matches
+
+Timezone note: all date math uses `pacific_today()` / `pacific_now()` from
+`app.utils.pacific_time`. The league is local to Seattle — Pacific is the
+only timezone that matters. See that module for why naive `date.today()`
+misbehaves inside our UTC containers.
 """
 
 import logging
+import uuid
+from collections import defaultdict
 from datetime import datetime, timedelta
 
 from app.decorators import celery_task
+from app.utils.pacific_time import pacific_now, pacific_today, pacific_datetime
 
 logger = logging.getLogger(__name__)
 
@@ -34,22 +41,20 @@ def send_rsvp_reminders(self, session):
     Targets players who haven't responded to RSVP for matches
     happening in 3-5 days.
 
-    Run daily at 9 AM via celery beat.
+    Run daily at 9 AM Pacific via celery beat.
     """
     from app.models import Match
     from app.services.notification_orchestrator import orchestrator
-    from datetime import date
 
     try:
-        today = date.today()
+        today = pacific_today()
         reminder_start = today + timedelta(days=3)
         reminder_end = today + timedelta(days=5)
 
-        # Get matches in the reminder window
         matches = session.query(Match).filter(
             Match.date >= reminder_start,
             Match.date <= reminder_end,
-            Match.is_special_week == False,  # Skip BYE/FUN weeks
+            Match.is_special_week == False,
             Match.week_type.in_(['REGULAR', 'PLAYOFF'])
         ).all()
 
@@ -58,9 +63,7 @@ def send_rsvp_reminders(self, session):
         total_reminders = 0
 
         for match in matches:
-            # Get players who haven't responded
             non_responders = _get_non_responding_players(match)
-
             if not non_responders:
                 continue
 
@@ -68,7 +71,6 @@ def send_rsvp_reminders(self, session):
             if not user_ids:
                 continue
 
-            # Get opponent name
             opponent = match.away_team.name if match.home_team else match.home_team.name
             match_date = match.date.strftime('%A, %B %d')
             days_until = (match.date - today).days
@@ -98,164 +100,238 @@ def send_rsvp_reminders(self, session):
 @celery_task(max_retries=3, default_retry_delay=300)
 def send_match_reminders_daily(self, session):
     """
-    Send match reminders for tomorrow's matches.
+    Send one consolidated DM per player covering every match they have tomorrow.
 
-    Targets all players on teams with matches tomorrow.
-    Run daily at 6 PM via celery beat.
+    Audience and tone depend on RSVP state per-match:
+      - Responded 'yes'            -> confirmation ("see you there")
+      - No response                -> chase ("please RSVP or tell your coach")
+      - Responded 'no' or 'maybe'  -> skipped
+
+    A player with two matches tomorrow gets ONE DM listing both. If some are
+    confirmed and some are unanswered, the DM mixes both.
+
+    - Skips players who have already received this reminder (MatchReminderLog dedup)
+    - Orchestrator enforces per-user preferences (match_reminder_notifications)
+
+    Run daily at 6 PM Pacific via celery beat.
     """
-    from app.models import Match
+    from app.models import Match, EcsFcMatch
+    from app.models.communication import MatchReminderLog
     from app.services.notification_orchestrator import orchestrator
-    from datetime import date
 
     try:
-        tomorrow = date.today() + timedelta(days=1)
+        target_date = pacific_today() + timedelta(days=1)
+        batch_id = str(uuid.uuid4())
 
-        # Get tomorrow's matches
-        matches = session.query(Match).filter(
-            Match.date == tomorrow,
+        pub_matches = session.query(Match).filter(
+            Match.date == target_date,
             Match.is_special_week == False,
             Match.week_type.in_(['REGULAR', 'PLAYOFF'])
         ).all()
 
-        logger.info(f"Found {len(matches)} matches for tomorrow reminders")
+        ecs_fc_matches = session.query(EcsFcMatch).filter(
+            EcsFcMatch.match_date == target_date,
+            EcsFcMatch.status == 'SCHEDULED'
+        ).all()
 
-        total_reminders = 0
+        logger.info(
+            f"Daily match reminder for {target_date}: "
+            f"{len(pub_matches)} pub + {len(ecs_fc_matches)} ECS FC matches"
+        )
 
-        for match in matches:
-            # Get all players from both teams
-            home_players = _get_team_players_with_users(match.home_team)
-            away_players = _get_team_players_with_users(match.away_team)
+        # Group match summaries by user_id. Each entry is a full roster-player
+        # view of the match annotated with their RSVP status.
+        user_digests = defaultdict(list)
 
-            # Send to home team
-            if home_players:
-                home_user_ids = [p.user.id for p in home_players if p.user]
-                if home_user_ids:
-                    result = orchestrator.send_match_reminder(
-                        match_id=match.id,
-                        user_ids=home_user_ids,
-                        opponent=match.away_team.name,
-                        match_time=match.time.strftime('%I:%M %p') if match.time else 'TBD',
-                        location=match.location or 'TBD',
-                        hours_until=24
+        for match in pub_matches:
+            responses = _get_rsvp_responses(match, 'pub')
+            if match.home_team:
+                for player in match.home_team.players:
+                    if not player.user:
+                        continue
+                    status = _reminder_audience_status(responses.get(player.id))
+                    if status is None:
+                        continue
+                    info = _pub_match_info(
+                        match, opponent=match.away_team.name if match.away_team else 'TBD'
                     )
-                    total_reminders += result['in_app']['created']
-
-            # Send to away team
-            if away_players:
-                away_user_ids = [p.user.id for p in away_players if p.user]
-                if away_user_ids:
-                    result = orchestrator.send_match_reminder(
-                        match_id=match.id,
-                        user_ids=away_user_ids,
-                        opponent=match.home_team.name,
-                        match_time=match.time.strftime('%I:%M %p') if match.time else 'TBD',
-                        location=match.location or 'TBD',
-                        hours_until=24
+                    info['rsvp_status'] = status
+                    user_digests[player.user.id].append(info)
+            if match.away_team:
+                for player in match.away_team.players:
+                    if not player.user:
+                        continue
+                    status = _reminder_audience_status(responses.get(player.id))
+                    if status is None:
+                        continue
+                    info = _pub_match_info(
+                        match, opponent=match.home_team.name if match.home_team else 'TBD'
                     )
-                    total_reminders += result['in_app']['created']
+                    info['rsvp_status'] = status
+                    user_digests[player.user.id].append(info)
 
-        logger.info(f"Daily match reminders complete: {total_reminders} notifications sent")
-        return {'success': True, 'total_reminders': total_reminders}
+        for ecs_match in ecs_fc_matches:
+            responses = _get_rsvp_responses(ecs_match, 'ecs_fc')
+            if not ecs_match.team:
+                continue
+            for player in ecs_match.team.players:
+                if not player.user:
+                    continue
+                status = _reminder_audience_status(responses.get(player.id))
+                if status is None:
+                    continue
+                info = _ecs_fc_match_info(ecs_match)
+                info['rsvp_status'] = status
+                user_digests[player.user.id].append(info)
+
+        if not user_digests:
+            logger.info("No eligible players for daily match reminder")
+            return {'success': True, 'total_reminders': 0, 'batch_id': batch_id}
+
+        # Dedup against the audit log at (user, match) granularity — rerunning
+        # the task (e.g., retry, manual trigger) won't double-DM.
+        already_sent = _get_already_reminded(
+            session, target_date, list(user_digests.keys()), reminder_type='daily'
+        )
+
+        sent_count = 0
+        skipped_dedup = 0
+
+        for user_id, matches in user_digests.items():
+            matches = [
+                m for m in matches
+                if (user_id, m['match_id'], m['match_type']) not in already_sent
+            ]
+            if not matches:
+                skipped_dedup += 1
+                continue
+
+            matches.sort(key=lambda m: m['time_sort'])
+
+            result = orchestrator.send_match_reminders_digest(
+                user_id=user_id,
+                matches=matches,
+                target_date=target_date,
+            )
+
+            delivered = (
+                result['push']['success'] > 0 or
+                result['discord']['success'] > 0 or
+                result['email']['success'] > 0 or
+                result['in_app']['created'] > 0
+            )
+            status = 'sent' if delivered else 'failed'
+            for m in matches:
+                session.add(MatchReminderLog(
+                    user_id=user_id,
+                    match_id=m['match_id'],
+                    match_type=m['match_type'],
+                    reminder_type='daily',
+                    target_date=target_date,
+                    delivery_status=status,
+                    batch_id=batch_id,
+                ))
+
+            if delivered:
+                sent_count += 1
+
+        logger.info(
+            f"Daily match reminders complete: {sent_count} players notified, "
+            f"{skipped_dedup} skipped (already reminded), batch_id={batch_id}"
+        )
+        return {
+            'success': True,
+            'total_reminders': sent_count,
+            'skipped_dedup': skipped_dedup,
+            'batch_id': batch_id,
+        }
 
     except Exception as e:
         logger.error(f"Error in send_match_reminders_daily: {e}", exc_info=True)
         raise self.retry(exc=e)
 
 
-@celery_task(max_retries=2, default_retry_delay=60)
-def send_match_reminders_urgent(self, session):
+# ============================================================================
+# Per-match info builders — these produce the dicts consumed by the
+# orchestrator's send_match_reminders_digest.
+# ============================================================================
+
+def _pub_match_info(match, opponent: str) -> dict:
+    return {
+        'match_id': match.id,
+        'match_type': 'pub',
+        'opponent': opponent,
+        'time_sort': match.time,  # time object for sort key
+        'time_str': match.time.strftime('%I:%M %p').lstrip('0') if match.time else 'TBD',
+        'location': match.location or 'TBD',
+    }
+
+
+def _ecs_fc_match_info(match) -> dict:
+    return {
+        'match_id': match.id,
+        'match_type': 'ecs_fc',
+        'opponent': match.opponent_name or 'TBD',
+        'time_sort': match.match_time,
+        'time_str': match.match_time.strftime('%I:%M %p').lstrip('0') if match.match_time else 'TBD',
+        'location': match.location or 'TBD',
+    }
+
+
+def _get_rsvp_responses(match, match_type: str) -> dict:
+    """Return {player_id: response_string} for all RSVP rows on this match."""
+    availability = match.availability if match_type == 'pub' else match.availabilities
+    return {
+        a.player_id: a.response
+        for a in (availability or [])
+        if a.player_id
+    }
+
+
+def _reminder_audience_status(response):
     """
-    Send urgent match reminders for matches starting in 2-4 hours.
+    Map an RSVP response to the reminder audience bucket, or None to skip.
 
-    High-priority reminders for same-day matches.
-    Run hourly via celery beat.
+    - None (no row) or 'no_response' -> 'no_response' (chase them)
+    - 'yes'                          -> 'yes'         (confirm)
+    - 'no' / 'maybe' / anything else -> None           (skip)
     """
-    from app.models import Match
-    from app.services.notification_orchestrator import orchestrator
-    from datetime import date
+    if response == 'yes':
+        return 'yes'
+    if response in (None, '', 'no_response'):
+        return 'no_response'
+    return None
 
-    try:
-        now = datetime.utcnow()
-        today = date.today()
 
-        # Get today's matches
-        matches = session.query(Match).filter(
-            Match.date == today,
-            Match.is_special_week == False
-        ).all()
-
-        total_reminders = 0
-
-        for match in matches:
-            # Calculate hours until match
-            if not match.time:
-                continue
-
-            match_datetime = datetime.combine(match.date, match.time)
-            hours_until = (match_datetime - now).total_seconds() / 3600
-
-            # Only send for matches 2-4 hours away
-            if not (2 <= hours_until <= 4):
-                continue
-
-            hours_until_int = int(hours_until)
-
-            # Get all players from both teams
-            home_players = _get_team_players_with_users(match.home_team)
-            away_players = _get_team_players_with_users(match.away_team)
-
-            # Send to home team
-            if home_players:
-                home_user_ids = [p.user.id for p in home_players if p.user]
-                if home_user_ids:
-                    result = orchestrator.send_match_reminder(
-                        match_id=match.id,
-                        user_ids=home_user_ids,
-                        opponent=match.away_team.name,
-                        match_time=match.time.strftime('%I:%M %p') if match.time else 'TBD',
-                        location=match.location or 'TBD',
-                        hours_until=hours_until_int
-                    )
-                    total_reminders += result['in_app']['created']
-
-            # Send to away team
-            if away_players:
-                away_user_ids = [p.user.id for p in away_players if p.user]
-                if away_user_ids:
-                    result = orchestrator.send_match_reminder(
-                        match_id=match.id,
-                        user_ids=away_user_ids,
-                        opponent=match.home_team.name,
-                        match_time=match.time.strftime('%I:%M %p') if match.time else 'TBD',
-                        location=match.location or 'TBD',
-                        hours_until=hours_until_int
-                    )
-                    total_reminders += result['in_app']['created']
-
-        logger.info(f"Urgent match reminders complete: {total_reminders} notifications sent")
-        return {'success': True, 'total_reminders': total_reminders}
-
-    except Exception as e:
-        logger.error(f"Error in send_match_reminders_urgent: {e}", exc_info=True)
-        raise self.retry(exc=e)
+def _get_already_reminded(session, target_date, user_ids, reminder_type: str) -> set:
+    """Return set of (user_id, match_id, match_type) already logged as sent."""
+    from app.models.communication import MatchReminderLog
+    if not user_ids:
+        return set()
+    rows = session.query(
+        MatchReminderLog.user_id,
+        MatchReminderLog.match_id,
+        MatchReminderLog.match_type,
+    ).filter(
+        MatchReminderLog.user_id.in_(user_ids),
+        MatchReminderLog.target_date == target_date,
+        MatchReminderLog.reminder_type == reminder_type,
+        MatchReminderLog.delivery_status == 'sent',
+    ).all()
+    return {(r.user_id, r.match_id, r.match_type) for r in rows}
 
 
 def _get_non_responding_players(match):
     """Get users who haven't RSVPed for a match."""
-    from app.models import Availability, Player, User
-
-    # Get all player IDs who have responded
     responded_player_ids = set(
         a.player_id for a in match.availability
         if a.player_id and a.response in ('yes', 'no', 'maybe')
     )
 
-    # Get players from both teams
     home_players = match.home_team.players if match.home_team else []
     away_players = match.away_team.players if match.away_team else []
     all_players = list(home_players) + list(away_players)
 
-    # Filter to those who haven't responded and have user accounts
     non_responders = []
     for player in all_players:
         if player.id not in responded_player_ids and player.user:
@@ -264,68 +340,87 @@ def _get_non_responding_players(match):
     return non_responders
 
 
-def _get_team_players_with_users(team):
-    """Get players from a team who have linked user accounts."""
-    if not team or not team.players:
-        return []
-    return [p for p in team.players if p.user]
-
-
 # ============================================================================
 # MANUAL TRIGGER TASKS (for admin use)
 # ============================================================================
 
 @celery_task()
-def send_match_reminder_for_match(self, session, match_id: int, hours_until: int = 24):
+def send_match_reminder_for_match(self, session, match_id: int, match_type: str = 'pub'):
     """
-    Manually trigger match reminder for a specific match.
+    Manually trigger a match reminder for a single match. Sends one DM per
+    eligible player (yes responders get confirmation, no-responders get a
+    chase). Maybe and No responders are skipped.
 
     Args:
         match_id: The match ID
-        hours_until: Hours until match (for message customization)
+        match_type: 'pub' for pub-league Match, 'ecs_fc' for EcsFcMatch
     """
-    from app.models import Match
+    from app.models import Match, EcsFcMatch
+    from app.models.communication import MatchReminderLog
     from app.services.notification_orchestrator import orchestrator
 
     try:
-        match = session.query(Match).get(match_id)
-        if not match:
-            logger.error(f"Match {match_id} not found")
-            return {'success': False, 'error': 'Match not found'}
+        batch_id = str(uuid.uuid4())
 
-        results = []
-
-        # Send to home team
-        home_players = _get_team_players_with_users(match.home_team)
-        if home_players:
-            home_user_ids = [p.user.id for p in home_players if p.user]
-            if home_user_ids:
-                result = orchestrator.send_match_reminder(
-                    match_id=match.id,
-                    user_ids=home_user_ids,
-                    opponent=match.away_team.name,
-                    match_time=match.time.strftime('%I:%M %p') if match.time else 'TBD',
-                    location=match.location or 'TBD',
-                    hours_until=hours_until
+        if match_type == 'ecs_fc':
+            match = session.query(EcsFcMatch).get(match_id)
+            if not match:
+                return {'success': False, 'error': 'EcsFcMatch not found'}
+            target_date = match.match_date
+            responses = _get_rsvp_responses(match, 'ecs_fc')
+            roster = [(p, _ecs_fc_match_info(match))
+                      for p in (match.team.players if match.team else [])]
+        else:
+            match = session.query(Match).get(match_id)
+            if not match:
+                return {'success': False, 'error': 'Match not found'}
+            target_date = match.date
+            responses = _get_rsvp_responses(match, 'pub')
+            roster = []
+            if match.home_team:
+                roster.extend(
+                    (p, _pub_match_info(match, opponent=match.away_team.name if match.away_team else 'TBD'))
+                    for p in match.home_team.players
                 )
-                results.append({'team': 'home', **result})
-
-        # Send to away team
-        away_players = _get_team_players_with_users(match.away_team)
-        if away_players:
-            away_user_ids = [p.user.id for p in away_players if p.user]
-            if away_user_ids:
-                result = orchestrator.send_match_reminder(
-                    match_id=match.id,
-                    user_ids=away_user_ids,
-                    opponent=match.home_team.name,
-                    match_time=match.time.strftime('%I:%M %p') if match.time else 'TBD',
-                    location=match.location or 'TBD',
-                    hours_until=hours_until
+            if match.away_team:
+                roster.extend(
+                    (p, _pub_match_info(match, opponent=match.home_team.name if match.home_team else 'TBD'))
+                    for p in match.away_team.players
                 )
-                results.append({'team': 'away', **result})
 
-        return {'success': True, 'results': results}
+        sent = 0
+        for player, info in roster:
+            if not player.user:
+                continue
+            status = _reminder_audience_status(responses.get(player.id))
+            if status is None:
+                continue
+            info = {**info, 'rsvp_status': status}
+
+            result = orchestrator.send_match_reminders_digest(
+                user_id=player.user.id,
+                matches=[info],
+                target_date=target_date,
+            )
+            delivered = (
+                result['push']['success'] > 0 or
+                result['discord']['success'] > 0 or
+                result['email']['success'] > 0 or
+                result['in_app']['created'] > 0
+            )
+            session.add(MatchReminderLog(
+                user_id=player.user.id,
+                match_id=info['match_id'],
+                match_type=info['match_type'],
+                reminder_type='manual',
+                target_date=target_date,
+                delivery_status='sent' if delivered else 'failed',
+                batch_id=batch_id,
+            ))
+            if delivered:
+                sent += 1
+
+        return {'success': True, 'sent': sent, 'batch_id': batch_id}
 
     except Exception as e:
         logger.error(f"Error sending match reminder for {match_id}: {e}")
@@ -334,20 +429,13 @@ def send_match_reminder_for_match(self, session, match_id: int, hours_until: int
 
 @celery_task()
 def send_rsvp_reminder_for_match(self, session, match_id: int):
-    """
-    Manually trigger RSVP reminder for a specific match.
-
-    Args:
-        match_id: The match ID
-    """
+    """Manually trigger RSVP reminder for a specific pub-league match."""
     from app.models import Match
     from app.services.notification_orchestrator import orchestrator
-    from datetime import date
 
     try:
         match = session.query(Match).get(match_id)
         if not match:
-            logger.error(f"Match {match_id} not found")
             return {'success': False, 'error': 'Match not found'}
 
         non_responders = _get_non_responding_players(match)
@@ -360,7 +448,7 @@ def send_rsvp_reminder_for_match(self, session, match_id: int):
 
         opponent = match.away_team.name if match.home_team else match.home_team.name
         match_date = match.date.strftime('%A, %B %d')
-        days_until = (match.date - date.today()).days
+        days_until = (match.date - pacific_today()).days
 
         result = orchestrator.send_rsvp_reminder(
             match_id=match.id,
@@ -386,25 +474,16 @@ def send_league_event_reminders(self, session, days_ahead: int = 2, event_types:
     """
     Send Discord reminders for upcoming league events.
 
-    Posts reminders to the announcements channel for events happening
-    in the next few days. Particularly useful for PLOP reminders on Fridays.
-
-    Args:
-        days_ahead: Number of days to look ahead (default: 2 for Fri->Sun)
-        event_types: List of event types to remind about (default: all)
-
-    Run Friday at 5 PM for weekend PLOP reminders.
+    Run Friday at 5 PM Pacific for weekend PLOP reminders.
     """
     import asyncio
     from app.models.calendar import LeagueEvent
     from app.services.discord_service import get_discord_service
-    from datetime import date
 
     try:
-        today = date.today()
+        today = pacific_today()
         reminder_end = today + timedelta(days=days_ahead)
 
-        # Query upcoming events
         query = session.query(LeagueEvent).filter(
             LeagueEvent.is_active == True,
             LeagueEvent.start_datetime >= datetime.combine(today, datetime.min.time()),
@@ -421,28 +500,22 @@ def send_league_event_reminders(self, session, days_ahead: int = 2, event_types:
         if not events:
             return {'success': True, 'message': 'No upcoming events', 'count': 0}
 
-        # Group events by type for cleaner announcements
         events_by_type = {}
         for event in events:
             event_type = event.event_type or 'other'
-            if event_type not in events_by_type:
-                events_by_type[event_type] = []
-            events_by_type[event_type].append(event)
+            events_by_type.setdefault(event_type, []).append(event)
 
-        # Post reminders to Discord
         discord_service = get_discord_service()
         posted_count = 0
 
         for event_type, type_events in events_by_type.items():
             for event in type_events:
                 try:
-                    # Format reminder message
                     event_date = event.start_datetime
                     day_name = event_date.strftime('%A')
                     date_str = event_date.strftime('%B %d')
                     time_str = event_date.strftime('%I:%M %p').lstrip('0')
 
-                    # Build reminder embed
                     result = asyncio.run(
                         discord_service.post_event_reminder(
                             title=event.title,
@@ -472,38 +545,19 @@ def send_league_event_reminders(self, session, days_ahead: int = 2, event_types:
 @celery_task(max_retries=3, default_retry_delay=300)
 def send_dynamic_event_reminders(self, session):
     """
-    Send Discord reminders for league events based on each event's settings.
-
-    This task is DYNAMIC - it checks each event's `reminder_days_before` setting
-    to determine when to send the reminder. Each event only gets ONE reminder.
-
-    Logic:
-    - Find events where send_reminder=True and reminder_sent_at is NULL
-    - For each event, check if today >= (event_date - reminder_days_before)
-    - If so, send reminder and mark reminder_sent_at
-
-    Examples:
-    - Party on Jan 15 with reminder_days_before=2: reminded on Jan 13
-    - PLOP on Feb 22 with reminder_days_before=2: reminded on Feb 20
-    - Meeting on Mar 5 with reminder_days_before=1: reminded on Mar 4
+    Send Discord reminders for league events based on each event's
+    `reminder_days_before` setting.
 
     Run hourly to catch events at the right time.
     """
     import asyncio
     from app.models.calendar import LeagueEvent
     from app.services.discord_service import get_discord_service
-    from datetime import date
 
     try:
-        today = date.today()
-        now = datetime.utcnow()
+        today = pacific_today()
+        now = pacific_now()
 
-        # Find events that:
-        # 1. Are active
-        # 2. Have send_reminder enabled
-        # 3. Haven't been reminded yet (reminder_sent_at IS NULL)
-        # 4. Haven't happened yet (start_datetime >= today)
-        # 5. Are within their reminder window
         events_needing_reminder = session.query(LeagueEvent).filter(
             LeagueEvent.is_active == True,
             LeagueEvent.send_reminder == True,
@@ -522,14 +576,11 @@ def send_dynamic_event_reminders(self, session):
 
         for event in events_needing_reminder:
             try:
-                # Calculate when reminder should be sent
                 event_date = event.start_datetime.date()
                 days_before = event.reminder_days_before or 2
                 reminder_date = event_date - timedelta(days=days_before)
 
-                # Check if it's time to remind (today >= reminder_date)
                 if today < reminder_date:
-                    # Not time yet for this event
                     continue
 
                 checked_count += 1
@@ -541,7 +592,6 @@ def send_dynamic_event_reminders(self, session):
                 if event.end_datetime:
                     end_time_str = event.end_datetime.strftime('%I:%M %p').lstrip('0')
 
-                # Use PLOP-specific format for PLOP events
                 if event.event_type == 'plop':
                     result = asyncio.run(
                         discord_service.post_plop_reminder(
@@ -552,7 +602,6 @@ def send_dynamic_event_reminders(self, session):
                         )
                     )
                 else:
-                    # Generic event reminder
                     result = asyncio.run(
                         discord_service.post_event_reminder(
                             title=event.title,
@@ -565,8 +614,8 @@ def send_dynamic_event_reminders(self, session):
                     )
 
                 if result:
-                    # Mark as reminded so we don't remind again
-                    event.reminder_sent_at = now
+                    # Store the wall-clock timestamp of when the reminder went out.
+                    event.reminder_sent_at = now.replace(tzinfo=None)
                     session.add(event)
                     posted_count += 1
                     logger.info(f"Posted reminder for '{event.title}' on {date_str} (event on {event_date})")

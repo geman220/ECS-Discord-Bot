@@ -92,6 +92,7 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
+      - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
       - CELERY_WORKER=1
       - REDIS_MAX_CONNECTIONS=20
@@ -134,6 +135,7 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
+      - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
       - CELERY_WORKER=1
       - REDIS_MAX_CONNECTIONS=20
@@ -170,6 +172,7 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
+      - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
       - CELERY_WORKER=1
       - REDIS_MAX_CONNECTIONS=20
@@ -207,6 +210,7 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
+      - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
       - CELERY_WORKER=1  # Prevent Flask initialization in worker
       - REDIS_MAX_CONNECTIONS=20
@@ -245,6 +249,7 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
+      - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
       - REDIS_MAX_CONNECTIONS=30
     volumes:
@@ -289,6 +294,7 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
+      - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
       - CELERY_WORKER=1
       - REDIS_MAX_CONNECTIONS=10
@@ -388,6 +394,7 @@ services:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONPATH=/app
+      - TZ=America/Los_Angeles
       - FLASK_DEBUG=${FLASK_DEBUG:-0}
       - REDIS_URL=redis://redis:6379/0
       - REDIS_MAX_CONNECTIONS=150
@@ -464,6 +471,7 @@ services:
     command: celery --broker=redis://redis:6379/0 flower --port=5555 --persistent=True --db=/data/flower.db
     environment:
       - FLOWER_UNAUTHENTICATED_API=true
+      - TZ=America/Los_Angeles
       - REDIS_URL=redis://redis:6379/0
     volumes:
       - flower_data:/data  # Persist task history across restarts
@@ -502,6 +510,7 @@ services:
       - .env
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - TZ=America/Los_Angeles
       - BOT_RESTART_ATTEMPT=0  # Track restart attempts
       - REDIS_MAX_CONNECTIONS=30
     volumes:

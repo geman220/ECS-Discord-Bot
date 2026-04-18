@@ -13,6 +13,8 @@ and monitoring overall RSVP system health.
 import logging
 import asyncio
 from datetime import datetime, date, timedelta
+
+from app.utils.pacific_time import pacific_today
 from typing import Optional, Dict, Any
 
 from app.core import socketio
@@ -931,7 +933,7 @@ def cleanup_stale_rsvps(self, session, days_old: int = 30) -> Dict[str, Any]:
             Match, Match.id == Availability.match_id
         ).filter(
             Availability.responded_at < cutoff_date,
-            Match.date < date.today()
+            Match.date < pacific_today()
         ).limit(100).all()
         
         deletion_details = [{
@@ -948,7 +950,7 @@ def cleanup_stale_rsvps(self, session, days_old: int = 30) -> Dict[str, Any]:
             exists().where(
                 and_(
                     Match.id == Availability.match_id,
-                    Match.date < date.today()
+                    Match.date < pacific_today()
                 )
             )
         ]

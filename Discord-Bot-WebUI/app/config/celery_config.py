@@ -478,21 +478,13 @@ class CeleryConfig:
         # The old daily send_rsvp_reminders task was removed to prevent
         # duplicate notifications — players get ONE reminder per match.
 
-        # Match reminders: Daily at 6 PM PST for tomorrow's matches
+        # Match reminders: Daily at 6 PM PST for tomorrow's matches.
+        # Sends one DM per player covering all their matches. Yes responders
+        # get a confirmation; non-responders get an RSVP chase. Maybe and No
+        # responders are skipped.
         'send-match-reminders-daily': {
             'task': 'app.tasks.tasks_notification_reminders.send_match_reminders_daily',
             'schedule': crontab(hour=18, minute=0),
-            'options': {
-                'queue': 'celery',
-                'expires': 3540,
-                'time_limit': 300,
-                'soft_time_limit': 240
-            }
-        },
-        # Urgent match reminders: Hourly check for matches in 2-4 hours
-        'send-match-reminders-urgent': {
-            'task': 'app.tasks.tasks_notification_reminders.send_match_reminders_urgent',
-            'schedule': crontab(minute=0),
             'options': {
                 'queue': 'celery',
                 'expires': 3540,

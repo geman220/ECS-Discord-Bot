@@ -13,6 +13,7 @@ from datetime import date, timedelta
 from app.core import db
 from app.models.communication import RsvpReminderSnooze
 from app.models.core import Season
+from app.utils.pacific_time import pacific_today
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 def get_snooze(player_id):
     """Get the active snooze for a player, or None if not snoozed."""
     snooze = RsvpReminderSnooze.query.filter_by(player_id=player_id).first()
-    if snooze and snooze.snooze_until >= date.today():
+    if snooze and snooze.snooze_until >= pacific_today():
         return snooze
     return None
 
@@ -39,7 +40,7 @@ def set_snooze(player_id, duration_weeks, reason='web_ui', created_by=None):
         The RsvpReminderSnooze instance
     """
     if duration_weeks is not None:
-        snooze_until = date.today() + timedelta(weeks=duration_weeks)
+        snooze_until = pacific_today() + timedelta(weeks=duration_weeks)
     else:
         # Rest of season - find current season end date
         snooze_until = _get_season_end_date()
@@ -79,7 +80,7 @@ def clear_snooze(player_id):
 
 def get_all_snoozed_player_ids():
     """Get set of player IDs with active snoozes."""
-    today = date.today()
+    today = pacific_today()
     rows = db.session.query(RsvpReminderSnooze.player_id).filter(
         RsvpReminderSnooze.snooze_until >= today
     ).all()
@@ -88,7 +89,7 @@ def get_all_snoozed_player_ids():
 
 def get_all_snoozed_players():
     """Get all active snoozes with player info (for admin view)."""
-    today = date.today()
+    today = pacific_today()
     return RsvpReminderSnooze.query.filter(
         RsvpReminderSnooze.snooze_until >= today
     ).all()
@@ -96,7 +97,7 @@ def get_all_snoozed_players():
 
 def cleanup_expired():
     """Delete expired snooze rows."""
-    today = date.today()
+    today = pacific_today()
     count = RsvpReminderSnooze.query.filter(
         RsvpReminderSnooze.snooze_until < today
     ).delete()
@@ -112,4 +113,4 @@ def _get_season_end_date():
     if current_season and current_season.end_date:
         return current_season.end_date
     # Fallback: 12 weeks from now
-    return date.today() + timedelta(weeks=12)
+    return pacific_today() + timedelta(weeks=12)

@@ -14,6 +14,8 @@ for soccer leagues with the following constraints:
 
 import random
 from datetime import datetime, timedelta, time, date
+
+from app.utils.pacific_time import pacific_today
 from typing import List, Dict, Tuple, Optional, Set
 from collections import defaultdict
 import logging
@@ -1172,7 +1174,7 @@ class AutoScheduleGenerator:
         else:
             # General case - use configured times
             start_time = self.start_time or time(8, 0)
-            current_time = datetime.combine(date.today(), start_time)
+            current_time = datetime.combine(pacific_today(), start_time)
             
             num_time_slots = self.num_teams // 2
             for i in range(num_time_slots):

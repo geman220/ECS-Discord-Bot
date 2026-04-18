@@ -19,11 +19,12 @@ Schedule: Thursday 12:00 PM PST (America/Los_Angeles)
 import logging
 import time
 import uuid
-from datetime import date, timedelta
+from datetime import timedelta
 
 import requests
 
 from app.decorators import celery_task
+from app.utils.pacific_time import pacific_today
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ def send_rsvp_dm_reminders(self, session):
 
     try:
         batch_id = str(uuid.uuid4())
-        today = date.today()
+        today = pacific_today()
         window_end = today + timedelta(days=4)
         bot_api_url = Config.BOT_API_URL
 

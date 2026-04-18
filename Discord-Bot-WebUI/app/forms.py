@@ -315,6 +315,7 @@ class NotificationSettingsForm(FlaskForm):
     email_notifications = BooleanField('Email Notifications')
     sms_notifications = BooleanField('SMS Notifications')
     discord_notifications = BooleanField('Discord Notifications')
+    match_reminder_notifications = BooleanField('Match Reminders')
     profile_visibility = SelectField('Profile Visibility', choices=[('everyone', 'Everyone'), ('teammates', 'Teammates'), ('private', 'Private')])
     submit_notifications = SubmitField('Save Changes')
 

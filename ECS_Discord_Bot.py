@@ -2329,12 +2329,14 @@ async def on_raw_reaction_add(payload):
 
 @bot.event
 async def on_interaction(interaction: discord.Interaction):
-    """Handle component interactions for RSVP reminder DM buttons."""
+    """Handle component interactions for reminder DM buttons."""
     if interaction.type != discord.InteractionType.component:
         return
     custom_id = interaction.data.get('custom_id', '')
     if custom_id.startswith('rsvp:'):
         await _handle_rsvp_reminder_interaction(interaction, custom_id)
+    elif custom_id.startswith('match_reminder:'):
+        await _handle_match_reminder_interaction(interaction, custom_id)
 
 
 async def _handle_rsvp_reminder_interaction(interaction: discord.Interaction, custom_id: str):
@@ -2503,6 +2505,58 @@ async def _handle_snooze_select(interaction: discord.Interaction, discord_id: st
         try:
             await interaction.edit_original_response(
                 content="Something went wrong setting your snooze. Please try again later.",
+                embed=None, view=None
+            )
+        except Exception:
+            pass
+
+
+async def _handle_match_reminder_interaction(interaction: discord.Interaction, custom_id: str):
+    """Process the "Don't remind me anymore" button on match reminder DMs."""
+    parts = custom_id.split(':')
+    if len(parts) < 2 or parts[1] != 'optout':
+        return
+
+    await interaction.response.defer()
+
+    discord_id = str(interaction.user.id)
+
+    try:
+        session = getattr(bot, 'session', None)
+        if not session or session.closed:
+            session = aiohttp.ClientSession()
+            bot.session = session
+
+        async with session.post(
+            f"{WEBUI_API_URL}/api/match-reminder/opt-out",
+            json={'discord_id': discord_id, 'source': 'dm_button'},
+            timeout=aiohttp.ClientTimeout(total=10)
+        ) as resp:
+            if resp.status == 200:
+                confirm_embed = discord.Embed(
+                    title="Match reminders turned off",
+                    description=(
+                        "You won't get these DMs anymore. "
+                        "Turn them back on anytime in your account settings."
+                    ),
+                    color=0x2196f3  # Blue
+                )
+                await interaction.edit_original_response(
+                    content=None, embed=confirm_embed, view=None
+                )
+            else:
+                resp_text = await resp.text()
+                logger.error(f"Match reminder opt-out API error: {resp.status} - {resp_text}")
+                await interaction.edit_original_response(
+                    content="Couldn't save that right now. Try again later or flip it in your account settings.",
+                    embed=None, view=None
+                )
+
+    except Exception as e:
+        logger.error(f"Error processing match reminder opt-out: {e}", exc_info=True)
+        try:
+            await interaction.edit_original_response(
+                content="Something went wrong. Try again later.",
                 embed=None, view=None
             )
         except Exception:

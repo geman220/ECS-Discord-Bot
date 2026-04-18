@@ -52,22 +52,32 @@ LEAGUE_EVENT_ICONS = {
 async def send_discord_dm(
     message: str = Body(..., embed=True, description="The message to send"),
     discord_id: str = Body(..., embed=True, description="The player's Discord ID"),
+    view_type: Optional[str] = Body(None, embed=True, description="Optional UI view (e.g. 'match_reminder')"),
     bot: commands.Bot = Depends(get_bot)
 ):
-    """Send a direct message to a Discord user."""
+    """Send a direct message to a Discord user.
+
+    When `view_type='match_reminder'` is passed, attach the persistent
+    "Don't remind me anymore" opt-out button.
+    """
     # Fetch the Discord user by their discord_id
     try:
         user = await bot.fetch_user(int(discord_id))
     except Exception as e:
         raise HTTPException(status_code=404, detail="User not found or Discord ID invalid")
-    
+
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    
+
+    view = _build_view(view_type)
+
     # Attempt to send a DM to the user
     try:
         dm_channel = await user.create_dm()
-        dm_message = await dm_channel.send(message)
+        if view is not None:
+            dm_message = await dm_channel.send(message, view=view)
+        else:
+            dm_message = await dm_channel.send(message)
         return {"status": "sent", "message_id": dm_message.id}
     except discord.Forbidden as e:
         # Extract specific error details from Discord API
@@ -94,6 +104,21 @@ async def send_discord_dm(
     except Exception as e:
         logger.error(f"Unexpected error sending DM to {discord_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to send DM: {str(e)}")
+
+
+def _build_view(view_type):
+    """Return a persistent discord.ui.View for a named view_type, or None."""
+    if not view_type:
+        return None
+    if view_type == 'match_reminder':
+        try:
+            from match_reminder_views import MatchReminderView
+            return MatchReminderView()
+        except Exception as e:
+            logger.warning(f"Failed to build MatchReminderView: {e}")
+            return None
+    logger.warning(f"Unknown view_type: {view_type}")
+    return None
 
 
 def create_league_event_embed(request: LeagueEventAnnouncementRequest) -> discord.Embed:

@@ -277,6 +277,10 @@ def _register_admin_blueprints(app, bp, csrf):
     from app.routes.rsvp_reminder import rsvp_reminder_bp
     app.register_blueprint(rsvp_reminder_bp)
 
+    # Match Reminder opt-out API
+    from app.routes.match_reminder import match_reminder_bp
+    app.register_blueprint(match_reminder_bp)
+
     # Observability
     from app.api_observability import observability_bp
     app.register_blueprint(observability_bp)

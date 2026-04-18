@@ -20,6 +20,8 @@ import hashlib
 import logging
 import secrets
 from datetime import datetime, date
+
+from app.utils.pacific_time import pacific_today
 from typing import Any, Dict, List, Optional, Tuple
 
 # Third-party imports
@@ -710,7 +712,7 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
             )
 
     # Filter by match date (compare date to date, not date to datetime)
-    today = date.today()
+    today = pacific_today()
 
     if upcoming:
         query = query.filter(Match.date >= today)
@@ -848,7 +850,7 @@ def get_team_upcoming_matches(team_id: int, session=None) -> List[Dict]:
 
     upcoming_matches = session.query(Match).filter(
         ((Match.home_team_id == team_id) | (Match.away_team_id == team_id)) &
-        (Match.date >= date.today())
+        (Match.date >= pacific_today())
     ).order_by(Match.date).limit(5).all()
 
     return [match.to_dict() for match in upcoming_matches]

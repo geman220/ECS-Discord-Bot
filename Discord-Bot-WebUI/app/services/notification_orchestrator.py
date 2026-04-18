@@ -21,12 +21,24 @@ Key Features:
 
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional, Any
 from enum import Enum
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
+
+
+def _format_when_phrase(opponent: str, match_date, match_time: str, today) -> str:
+    """Build the opener for a single-match reminder based on the real date."""
+    if match_date is None:
+        return f"Your match against {opponent} is coming up at {match_time}"
+    if match_date == today:
+        return f"Your match against {opponent} is today at {match_time}"
+    if match_date == today + timedelta(days=1):
+        return f"Your match against {opponent} is tomorrow at {match_time}"
+    day_phrase = match_date.strftime('%A, %B %d').replace(' 0', ' ')
+    return f"Your match against {opponent} is {day_phrase} at {match_time}"
 
 
 class NotificationType(Enum):
@@ -99,6 +111,10 @@ class NotificationPayload:
 
     # Action URL for emails/SMS
     action_url: Optional[str] = None  # URL to include as call-to-action
+
+    # When set, the bot API attaches an interactive View with this name to
+    # the Discord DM. Currently recognized values: 'match_reminder'.
+    discord_view: Optional[str] = None
 
 
 # Default icons for notification types
@@ -903,6 +919,8 @@ class NotificationOrchestrator:
                 'discord_id': discord_id,
                 'message': discord_message
             }
+            if payload.discord_view:
+                send_payload['view_type'] = payload.discord_view
 
             response = requests.post(url, json=send_payload, timeout=10)
 
@@ -941,14 +959,29 @@ class NotificationOrchestrator:
         opponent: str,
         match_time: str,
         location: str,
-        hours_until: int = 24
+        hours_until: int = 24,
+        match_date=None,
     ) -> Dict[str, Any]:
-        """Send match reminder notification"""
+        """
+        Broadcast a match reminder to a group of users.
+
+        Prefer `send_match_reminders_digest` for per-user consolidation when
+        a player might have multiple matches on the same day.
+        """
+        from app.utils.pacific_time import pacific_today
         title = "⚽ Match Reminder"
+
         if hours_until <= 2:
-            message = f"Your match against {opponent} starts in {hours_until} hour{'s' if hours_until != 1 else ''}!"
+            hours_display = max(1, int(hours_until))
+            message = (
+                f"Your match against {opponent} starts in {hours_display} "
+                f"hour{'s' if hours_display != 1 else ''}"
+            )
         else:
-            message = f"Your match against {opponent} is tomorrow at {match_time}"
+            message = _format_when_phrase(opponent, match_date, match_time, pacific_today())
+
+        if location and location != 'TBD':
+            message += f"\nLocation: {location}"
 
         return self.send(NotificationPayload(
             notification_type=NotificationType.MATCH_REMINDER,
@@ -960,8 +993,94 @@ class NotificationOrchestrator:
                 'opponent': opponent,
                 'location': location,
                 'match_time': match_time,
+                'match_date': match_date.isoformat() if match_date else None,
             },
             priority='high' if hours_until <= 2 else 'normal'
+        ))
+
+    def send_match_reminders_digest(
+        self,
+        user_id: int,
+        matches: List[Dict[str, Any]],
+        target_date,
+    ) -> Dict[str, Any]:
+        """
+        Send one reminder DM to one player covering all their matches on
+        `target_date`.
+
+        Each match dict carries an `rsvp_status` of 'yes' or 'no_response'.
+        The message tone shifts: yes-only is a confirmation, any no_response
+        flips it into a chase ("please RSVP or tell your coach"). Declined
+        ('no') and 'maybe' players are filtered upstream, not here.
+
+        `matches` keys per entry: match_id, match_type, opponent, time_str,
+        location, rsvp_status.
+        """
+        from app.utils.pacific_time import pacific_today
+        today = pacific_today()
+
+        # Lead phrase — derived from the actual gap so we can't say "tomorrow"
+        # for something 48 hours away if the job fires at the wrong hour.
+        if target_date == today:
+            when = "today"
+        elif target_date == today + timedelta(days=1):
+            when = "tomorrow"
+        else:
+            when = target_date.strftime('%A, %B %d').replace(' 0', ' ')
+
+        has_chase = any(m.get('rsvp_status') == 'no_response' for m in matches)
+        title = "⚽ Please RSVP" if has_chase else "⚽ Match Reminder"
+
+        if len(matches) == 1:
+            m = matches[0]
+            if m.get('rsvp_status') == 'no_response':
+                message = (
+                    f"You haven't RSVP'd for your match against {m['opponent']} "
+                    f"{when} at {m['time_str']}. Please RSVP or let your coach "
+                    f"know if you can't make it."
+                )
+            else:
+                message = f"Your match against {m['opponent']} is {when} at {m['time_str']}"
+            if m.get('location') and m['location'] != 'TBD':
+                message += f"\nLocation: {m['location']}"
+        else:
+            lines = [f"You have {len(matches)} matches {when}:"]
+            for m in matches:
+                line = f"• {m['time_str']} vs {m['opponent']}"
+                if m.get('rsvp_status') == 'no_response':
+                    line += " — please RSVP"
+                elif m.get('rsvp_status') == 'yes':
+                    line += " — confirmed"
+                if m.get('location') and m['location'] != 'TBD':
+                    line += f" ({m['location']})"
+                lines.append(line)
+            if has_chase:
+                lines.append("")
+                lines.append("Please RSVP or let your coach know if you can't make it.")
+            message = "\n".join(lines)
+
+        return self.send(NotificationPayload(
+            notification_type=NotificationType.MATCH_REMINDER,
+            title=title,
+            message=message,
+            user_ids=[user_id],
+            data={
+                'target_date': target_date.isoformat(),
+                'match_count': len(matches),
+                'matches': [
+                    {
+                        'match_id': m['match_id'],
+                        'match_type': m['match_type'],
+                        'opponent': m['opponent'],
+                        'time': m['time_str'],
+                        'location': m.get('location'),
+                        'rsvp_status': m.get('rsvp_status'),
+                    }
+                    for m in matches
+                ],
+            },
+            priority='normal',
+            discord_view='match_reminder',
         ))
 
     def send_rsvp_reminder(

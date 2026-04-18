@@ -11,6 +11,8 @@ SMS enrollment and confirmation, and team lookup via case-insensitive queries.
 import io
 import logging
 from datetime import datetime, date
+
+from app.utils.pacific_time import pacific_today
 import ipaddress
 
 from flask import Blueprint, request, jsonify, g, url_for, current_app, Response
@@ -806,7 +808,7 @@ def player_schedule(discord_id):
                 "matches": []
             }), 200
 
-        today = date.today()
+        today = pacific_today()
         matches = (
             session_db.query(Match)
             .options(joinedload(Match.home_team), joinedload(Match.away_team))
@@ -920,7 +922,7 @@ def player_schedule_image(discord_id):
         if not pub_league_team_ids and not ecs_fc_team_ids:
             return jsonify({"error": "Player has no teams"}), 404
 
-        today = date.today()
+        today = pacific_today()
         matches_data = []
 
         # Query Pub League matches

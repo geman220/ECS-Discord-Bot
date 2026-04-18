@@ -13,6 +13,8 @@ Provides ECS FC match functionality for mobile clients:
 import logging
 from datetime import datetime, date
 
+from app.utils.pacific_time import pacific_today
+
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy import and_, or_
@@ -181,7 +183,7 @@ def get_ecs_fc_matches():
         # Exclude cancelled matches in all branches
         query = query.filter(EcsFcMatch.status != 'CANCELLED')
 
-        today = date.today()
+        today = pacific_today()
 
         # `completed` takes precedence over `upcoming` so mobile clients can
         # request history with just `?completed=true` (without also needing
@@ -1223,7 +1225,7 @@ def get_coach_ecs_fc_team_rsvp(team_id: int):
             return jsonify({"msg": "Team not found"}), 404
 
         # Get upcoming matches
-        today = date.today()
+        today = pacific_today()
         matches = session.query(EcsFcMatch).options(
             selectinload(EcsFcMatch.availabilities)
         ).filter(

@@ -14,6 +14,8 @@ Handles Pub League match-related operations including:
 import hashlib
 import logging
 from datetime import datetime, date
+
+from app.utils.pacific_time import pacific_today
 from collections import defaultdict
 
 from flask import jsonify, request
@@ -159,7 +161,7 @@ def query_ecs_fc_matches(session, team_ids: list, upcoming: bool = False,
         EcsFcMatch.status != 'CANCELLED'
     )
 
-    today = date.today()
+    today = pacific_today()
 
     if upcoming:
         query = query.filter(EcsFcMatch.match_date >= today)

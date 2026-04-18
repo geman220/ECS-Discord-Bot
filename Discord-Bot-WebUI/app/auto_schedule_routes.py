@@ -12,6 +12,8 @@ and balanced scheduling.
 from flask import Blueprint, render_template, request, jsonify, redirect, url_for, g
 from flask_login import login_required, current_user
 from datetime import datetime, time, date, timedelta
+
+from app.utils.pacific_time import pacific_today
 import logging
 from typing import Optional
 from sqlalchemy import func, or_, Integer as SAInteger
@@ -197,7 +199,7 @@ def view_seasonal_schedule(season_id):
         for wc in all_week_configs:
             if wc.week_order and wc.week_order not in schedule_by_week:
                 schedule_by_week[wc.week_order] = {
-                    'date': wc.week_date or date.today(),
+                    'date': wc.week_date or pacific_today(),
                     'week_type': wc.week_type or 'REGULAR',
                     'matches': []
                 }
@@ -642,7 +644,7 @@ def update_week():
                             bye_date = wc.week_date
                             break
                 if not bye_date:
-                    bye_date = date.today()
+                    bye_date = pacific_today()
 
                 # Collect IDs for bulk delete (bypasses ORM cascade/post_update issues)
                 match_ids = [m.id for m in all_week_matches]
@@ -840,7 +842,7 @@ def shift_weeks_down():
                     bye_date = wc.week_date
                     break
         if not bye_date:
-            bye_date = date.today()
+            bye_date = pacific_today()
 
         # Shift weeks from highest down to from_week (prevents collisions)
         for week_num in range(max_week, from_week - 1, -1):
@@ -2213,7 +2215,7 @@ def auto_schedule_config(league_id: int):
                 # If no week configs provided, generate them from season config
                 if not week_configs:
                     # Use the first week date if provided, otherwise use current date
-                    start_date = datetime.strptime(week_dates[0], '%Y-%m-%d').date() if week_dates and week_dates[0] else date.today()
+                    start_date = datetime.strptime(week_dates[0], '%Y-%m-%d').date() if week_dates and week_dates[0] else pacific_today()
                     week_configs = AutoScheduleGenerator.generate_week_configurations_from_season_config(
                         season_config, start_date
                     )

@@ -201,6 +201,7 @@ def update_notifications():
     if form.validate_on_submit():
         user.email_notifications = form.email_notifications.data
         user.discord_notifications = form.discord_notifications.data
+        user.match_reminder_notifications = form.match_reminder_notifications.data
         user.profile_visibility = form.profile_visibility.data
         show_success('Notification settings updated successfully.')
     else:

@@ -362,8 +362,39 @@ class RsvpReminderSnooze(db.Model):
 
     @property
     def is_active(self):
-        from datetime import date
-        return self.snooze_until >= date.today()
+        from app.utils.pacific_time import pacific_today
+        return self.snooze_until >= pacific_today()
+
+
+class MatchReminderLog(db.Model):
+    """Audit log for day-before and urgent match reminders.
+
+    Used for idempotency (skip duplicates on retry) and for admin visibility
+    into who was reminded when.
+    """
+    __tablename__ = 'match_reminder_log'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    match_id = db.Column(db.Integer, nullable=False)
+    match_type = db.Column(db.String(10), nullable=False)       # 'pub' | 'ecs_fc'
+    reminder_type = db.Column(db.String(20), nullable=False)    # 'daily' | 'urgent' | 'manual'
+    target_date = db.Column(db.Date, nullable=False)
+    sent_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    delivery_status = db.Column(db.String(20), default='sent', nullable=False)
+    error_message = db.Column(db.String(255), nullable=True)
+    batch_id = db.Column(db.String(36), nullable=True)
+
+    __table_args__ = (
+        db.Index('ix_mrl_dedup', 'user_id', 'match_id', 'match_type', 'reminder_type', 'target_date'),
+        db.Index('ix_mrl_sent_at', 'sent_at'),
+    )
+
+    def __repr__(self):
+        return (
+            f'<MatchReminderLog user={self.user_id} match={self.match_type}:{self.match_id} '
+            f'type={self.reminder_type} status={self.delivery_status}>'
+        )
 
 
 class RsvpDmReminderLog(db.Model):

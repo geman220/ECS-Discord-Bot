@@ -381,6 +381,14 @@
                                 <input type="checkbox" name="discord_notifications" {{ 'checked' if safe_current_user.discord_notifications else '' }}
                                        class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
                             </label>
+                            <label class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer">
+                                <div>
+                                    <p class="font-medium text-gray-900 dark:text-white">Match Reminders</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">Day-before and 2-hour reminders for your matches</p>
+                                </div>
+                                <input type="checkbox" name="match_reminder_notifications" {{ 'checked' if safe_current_user.match_reminder_notifications else '' }}
+                                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                            </label>
                         </div>
                         <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-ecs-green text-white rounded-lg hover:bg-ecs-green/90">
                             <i class="ti ti-device-floppy"></i> Save Preferences
