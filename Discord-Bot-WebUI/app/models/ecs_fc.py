@@ -215,7 +215,8 @@ class EcsFcPlayerEvent(db.Model):
     """
     Model representing a match event (goal, assist, card) for ECS FC matches.
 
-    This mirrors the PlayerEvent model for Pub League matches.
+    Mirrors PlayerEvent for Pub League, including offline resilience fields
+    (idempotency_key, client_timestamp, is_sub_event) added in the V2 migration.
     """
     __tablename__ = 'ecs_fc_player_events'
 
@@ -228,6 +229,11 @@ class EcsFcPlayerEvent(db.Model):
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # Offline resilience fields (parity with PlayerEvent).
+    idempotency_key = db.Column(db.String(128), nullable=True, index=True)
+    client_timestamp = db.Column(db.DateTime, nullable=True)
+    is_sub_event = db.Column(db.Boolean, default=False, nullable=False, server_default='false')
 
     # Relationships
     player = db.relationship('Player', backref='ecs_fc_events')
@@ -252,6 +258,54 @@ class EcsFcPlayerEvent(db.Model):
                 'jersey_number': self.player.jersey_number,
             }
         return data
+
+
+class EcsFcLiveMatch(db.Model):
+    """
+    Stub row per live-reported ECS FC match. Mirrors the LiveMatch/match_events
+    hook pattern used by Pub League: exists so EcsFcMatchEvent.match_id can FK
+    to "this ECS FC match is currently (or was) live-reported", without adding
+    a FK constraint to ecs_fc_matches directly from the event feed.
+    """
+    __tablename__ = 'ecs_fc_live_matches'
+
+    ecs_fc_match_id = db.Column(
+        db.Integer,
+        db.ForeignKey('ecs_fc_matches.id', ondelete='CASCADE'),
+        primary_key=True,
+    )
+    status = db.Column(db.String(20), nullable=False, default='in_progress')
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    last_updated = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    match = db.relationship('EcsFcMatch', backref=db.backref('live_state', uselist=False))
+
+
+class EcsFcMatchEvent(db.Model):
+    """
+    Live-reporting event feed for ECS FC matches. Mirrors the MatchEvent model
+    used by Pub League; the permanent stats table remains EcsFcPlayerEvent.
+    """
+    __tablename__ = 'ecs_fc_match_events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    match_id = db.Column(
+        db.Integer,
+        db.ForeignKey('ecs_fc_live_matches.ecs_fc_match_id', ondelete='CASCADE'),
+        nullable=False,
+        index=True,
+    )
+    event_type = db.Column(db.String(32), nullable=False)
+    team_id = db.Column(db.Integer, db.ForeignKey('team.id'), nullable=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id'), nullable=True)
+    minute = db.Column(db.String(10), nullable=True)  # parity with player_event.minute; "45+2" stoppage allowed
+    period = db.Column(db.String(8), nullable=True)
+    timestamp = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    reported_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    additional_data = db.Column(db.JSON, nullable=True)
+    idempotency_key = db.Column(db.String(128), nullable=True, index=True)
+    client_timestamp = db.Column(db.DateTime, nullable=True)
+    sync_status = db.Column(db.String(16), default='synced')
 
 
 class EcsFcScheduleTemplate(db.Model):

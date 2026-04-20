@@ -106,7 +106,9 @@ class MatchEvent(db.Model):
     event_type = db.Column(db.String(20), nullable=False)  # GOAL, YELLOW_CARD, RED_CARD, SUBSTITUTION, etc.
     team_id = db.Column(db.Integer, db.ForeignKey('team.id'))
     player_id = db.Column(db.Integer, db.ForeignKey('player.id'))
-    minute = db.Column(db.Integer)
+    # VARCHAR(10) as of 2026_04_20_widen_match_events_minute.sql — preserves
+    # stoppage-time notation like "45+2" and "90+4". Parity with player_event.minute.
+    minute = db.Column(db.String(10))
     period = db.Column(db.String(20))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     reported_by = db.Column(db.Integer, db.ForeignKey('users.id'))

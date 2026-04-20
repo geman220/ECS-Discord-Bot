@@ -45,6 +45,15 @@ logger = logging.getLogger(__name__)
 print("🔥 LIVE REPORTING SOCKET HANDLERS MODULE LOADED")
 logger.info("🔥 LIVE REPORTING SOCKET HANDLERS MODULE LOADED")
 
+
+def _v2_enabled() -> bool:
+    """Kill-switch gate for V2 (Redis-backed, server-authoritative) handlers."""
+    try:
+        from web_config import Config
+        return bool(getattr(Config, 'LIVE_MATCH_STATE_V2_ENABLED', False))
+    except Exception:
+        return False
+
 def get_socket_current_user(session):
     """
     Get the current user from the Socket.IO session
@@ -362,6 +371,31 @@ def handle_live_disconnect(reason=None):
     if reason:
         logger.debug(f"Live namespace disconnect reason: {reason}")
     try:
+        # V2 admin-observer cleanup. Runs even when the kill-switch is off so
+        # registry entries don't accumulate across a flag flip. No-op when empty.
+        try:
+            from app.sockets.live_reporting_v2 import cleanup_admin_sid, _admin_observers_for_room
+            for removed in cleanup_admin_sid(request.sid):
+                room = removed.get('room')
+                socketio.emit(
+                    'admin_left',
+                    {
+                        'user_id': removed.get('user_id'),
+                        'username': removed.get('username'),
+                        'role': removed.get('role'),
+                    },
+                    room=room,
+                    namespace='/live',
+                )
+                socketio.emit(
+                    'active_observers',
+                    {'observers': _admin_observers_for_room(room)},
+                    room=room,
+                    namespace='/live',
+                )
+        except Exception as admin_err:
+            logger.error(f"Error cleaning up V2 admin registry on disconnect: {admin_err}")
+
         # Clean up any lineup room tracking for this socket and notify other coaches.
         # Do this BEFORE presence cleanup so we emit while the sid is still meaningful.
         try:
@@ -516,13 +550,16 @@ def handle_test_connection(data=None):
 def on_join_match(data):
     """
     Join a match room for live reporting.
-    
+
     Records the user as an active reporter for the match, joins the
     Socket.IO room, and sends the current match state to the user.
-    
+
     Args:
         data: Dictionary containing match_id and team_id.
     """
+    if _v2_enabled():
+        from app.sockets import live_reporting_v2 as v2
+        return v2.on_join_match(data)
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -635,13 +672,16 @@ def on_join_match(data):
 def on_leave_match(data):
     """
     Leave a match room and stop reporting.
-    
+
     Updates the user's last_active timestamp and notifies
     other reporters that the user has left.
-    
+
     Args:
         data: Dictionary containing match_id.
     """
+    if _v2_enabled():
+        from app.sockets import live_reporting_v2 as v2
+        return v2.on_leave_match(data)
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -693,13 +733,16 @@ def on_leave_match(data):
 def on_score_update(data):
     """
     Update the match score.
-    
+
     Updates the score in the database and broadcasts the
     change to all connected reporters.
-    
+
     Args:
         data: Dictionary containing match_id, home_score, and away_score.
     """
+    if _v2_enabled():
+        from app.sockets import live_reporting_v2 as v2
+        return v2.on_update_score(data)
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -751,13 +794,16 @@ def on_score_update(data):
 def on_timer_update(data):
     """
     Update the match timer.
-    
+
     Updates the elapsed time and timer running status in the database
     and broadcasts the change to all connected reporters.
-    
+
     Args:
         data: Dictionary containing Flutter app timer data format.
     """
+    if _v2_enabled():
+        from app.sockets import live_reporting_v2 as v2
+        return v2.on_update_timer(data)
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -845,6 +891,9 @@ def on_add_event(data):
             - idempotency_key: Optional client-generated unique key for deduplication
             - client_timestamp: Optional timestamp from client device
     """
+    if _v2_enabled():
+        from app.sockets import live_reporting_v2 as v2
+        return v2.on_add_event(data)
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -988,6 +1037,13 @@ def on_add_event(data):
 
 @socketio.on('force_add_event', namespace='/live')
 def on_force_add_event(data):
+    if _v2_enabled():
+        from app.sockets import live_reporting_v2 as v2
+        return v2.on_force_add_event(data)
+    return _legacy_force_add_event(data)
+
+
+def _legacy_force_add_event(data):
     """
     Force add a match event, bypassing near-duplicate detection.
 
@@ -1137,6 +1193,9 @@ def on_player_shift_update(data):
             - team_id: The team ID
             - action: 'sit' or 'stay' to increment, 'undo_sit' or 'undo_stay' to decrement
     """
+    if _v2_enabled():
+        from app.sockets import live_reporting_v2 as v2
+        return v2.on_update_player_shift(data)
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -1244,6 +1303,9 @@ def on_shift_timer_update(data):
             - formatted_time: Human-readable time string (e.g., "05:30")
             - timestamp: ISO timestamp of the action
     """
+    if _v2_enabled():
+        from app.sockets import live_reporting_v2 as v2
+        return v2.on_update_shift_timer(data)
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -1306,13 +1368,16 @@ def on_shift_timer_update(data):
 def on_submit_report(data):
     """
     Submit the final match report.
-    
+
     This marks the match as reported and finalizes the scores and events.
     Any coach can submit the report, with the first submission winning.
-    
+
     Args:
         data: Dictionary containing match_id and optional report_data.
     """
+    if _v2_enabled():
+        from app.sockets import live_reporting_v2 as v2
+        return v2.on_submit_report(data)
     with socket_session(db.engine) as session:
         # Get authenticated user
         user = get_socket_current_user(session)
@@ -1388,6 +1453,36 @@ def on_submit_report(data):
         except Exception as e:
             logger.error(f"Error submitting report: {str(e)}", exc_info=True)
             emit('error', {'message': f'Error submitting report: {str(e)}'})
+
+
+@socketio.on('resync_match', namespace='/live')
+def on_resync_match(data):
+    """
+    V2: Targeted match_state replay to the requesting socket only.
+
+    Under V1 there is no resync_match; we fall back to emitting the legacy
+    match_state so any client sending this event still gets *something* back.
+    """
+    if _v2_enabled():
+        from app.sockets import live_reporting_v2 as v2
+        return v2.on_resync_match(data)
+    with socket_session(db.engine) as session:
+        user = get_socket_current_user(session)
+        if not user:
+            emit('error', {'message': 'Authentication required'})
+            disconnect()
+            return
+        match_id = (data or {}).get('match_id')
+        if not match_id:
+            emit('error', {'message': 'Match ID is required'})
+            return
+        emit('match_state', get_match_state(session, match_id))
+
+
+@socketio.on('request_state', namespace='/live')
+def on_request_state(data):
+    """Back-compat alias for resync_match."""
+    return on_resync_match(data)
 
 
 # Helper functions

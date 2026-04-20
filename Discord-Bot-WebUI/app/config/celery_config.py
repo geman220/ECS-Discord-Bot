@@ -74,6 +74,7 @@ class CeleryConfig:
         'app.tasks.tasks_data_export',  # User data export (GDPR)
         'app.tasks.ai_assistant_cleanup',  # AI assistant log retention
         'app.tasks.tasks_rsvp_dm_reminders',  # Thursday RSVP DM reminders
+        'app.tasks.tasks_live_reporting_timers',  # V2 live-match timer reminders + autostop
     )
 
     # Task Settings - Industry Best Practices

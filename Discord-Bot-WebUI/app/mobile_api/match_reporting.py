@@ -654,6 +654,27 @@ def update_match_event(match_id: int, event_id: int):
                 except Exception as e:
                     logger.error(f"Failed to update player stats on event update: {e}")
 
+        # Mirror the edit onto the paired MatchEvent row so the /live feed
+        # stays consistent with PlayerEvent. Finds by derived idempotency_key.
+        try:
+            if event.idempotency_key and event.idempotency_key.startswith('pe_'):
+                from app.database.db_models import MatchEvent as _LiveMatchEvent
+                me_key = event.idempotency_key[len('pe_'):]
+                live_event = session.query(_LiveMatchEvent).filter_by(
+                    match_id=match_id, idempotency_key=me_key
+                ).first()
+                if live_event is not None:
+                    if 'player_id' in data:
+                        live_event.player_id = event.player_id
+                    if 'team_id' in data:
+                        live_event.team_id = event.team_id
+                    if 'minute' in data:
+                        # Both tables are VARCHAR(10) post-widening migration; string passthrough.
+                        m = data.get('minute')
+                        live_event.minute = str(m) if m is not None else None
+        except Exception:
+            logger.exception(f"Failed to mirror PlayerEvent edit onto MatchEvent for match {match_id}")
+
         # Editing an event mutates the match — restart the two-coach handshake.
         if match.reset_verification():
             logger.info(f"Match {match_id} verification reset due to event update")
@@ -666,16 +687,39 @@ def update_match_event(match_id: int, event_id: int):
             event_player = session.query(Player).get(event.player_id)
             event_player_name = event_player.name if event_player else None
 
+        event_payload = {
+            "id": event.id,
+            "event_type": event.event_type.value,
+            "player_id": event.player_id,
+            "player_name": event_player_name,
+            "team_id": event.team_id,
+            "minute": event.minute,
+        }
+
+        # V2: broadcast event_updated to the /live room so in-room coaches
+        # refresh when an admin edits via REST mid-match. Safe no-op if no
+        # LiveMatchState exists for this match.
+        try:
+            from app.services.live_reporting import redis_state
+            if redis_state.load_state('pub', match_id) is not None:
+                from app.core import socketio as _socketio
+                _socketio.emit(
+                    'event_updated',
+                    {
+                        'match_id': match_id,
+                        'league_type': 'pub',
+                        'event': event_payload,
+                        'updated_by': current_user_id,
+                    },
+                    room=f"match_{match_id}",
+                    namespace='/live',
+                )
+        except Exception:
+            logger.exception(f"Failed to broadcast event_updated for match {match_id}")
+
         return jsonify({
             "success": True,
-            "event": {
-                "id": event.id,
-                "event_type": event.event_type.value,
-                "player_id": event.player_id,
-                "player_name": event_player_name,
-                "team_id": event.team_id,
-                "minute": event.minute
-            }
+            "event": event_payload,
         }), 200
 
 
@@ -731,6 +775,54 @@ def delete_match_event(match_id: int, event_id: int):
             except Exception as e:
                 logger.error(f"Failed to update player stats on event delete: {e}")
 
+        # Assist-cascade: when deleting a GOAL that has a paired ASSIST PlayerEvent
+        # (created server-side via additional_data.assist_player_id), delete the
+        # ASSIST too and reverse its stats. Key pattern: '{match_event_key}::assist'.
+        paired_assist = None
+        if event_type == 'goal' and event.idempotency_key and event.idempotency_key.startswith('pe_'):
+            match_event_key = event.idempotency_key[len('pe_'):]
+            paired_assist = session.query(PlayerEvent).filter_by(
+                match_id=match_id,
+                idempotency_key=f"{match_event_key}::assist",
+            ).first()
+            if paired_assist is not None:
+                try:
+                    if paired_assist.player_id:
+                        update_player_stats(
+                            session, paired_assist.player_id, 'assist', match, increment=False
+                        )
+                        logger.info(
+                            f"Updated stats for paired assist player {paired_assist.player_id}: -1 assist"
+                        )
+                    session.delete(paired_assist)
+                except Exception:
+                    logger.exception(f"Failed to cascade-delete paired assist for match {match_id}")
+
+        deleted_event_id = event.id
+        # Mirror the delete onto the paired MatchEvent row so the /live feed
+        # doesn't show a ghost event after admin edits via REST.
+        try:
+            from app.database.db_models import MatchEvent as _LiveMatchEvent
+            live_event = None
+            if event.idempotency_key and event.idempotency_key.startswith('pe_'):
+                me_key = event.idempotency_key[len('pe_'):]
+                live_event = session.query(_LiveMatchEvent).filter_by(
+                    match_id=match_id, idempotency_key=me_key
+                ).first()
+            if live_event is None:
+                # Fallback for pre-V2 PlayerEvents that lack an idempotency_key:
+                # heuristic match on (match_id, player_id, event_type, minute).
+                live_event = session.query(_LiveMatchEvent).filter_by(
+                    match_id=match_id,
+                    player_id=event.player_id,
+                    event_type=event.event_type.name,  # enum → UPPERCASE string
+                    minute=event.minute,
+                ).first()
+            if live_event is not None:
+                session.delete(live_event)
+        except Exception:
+            logger.exception(f"Failed to mirror PlayerEvent delete onto MatchEvent for match {match_id}")
+
         session.delete(event)
 
         # Deleting an event mutates the match — restart the two-coach handshake.
@@ -738,6 +830,25 @@ def delete_match_event(match_id: int, event_id: int):
             logger.info(f"Match {match_id} verification reset due to event deletion")
 
         session.commit()
+
+        # V2: notify /live room so in-room coaches drop this event from their UI.
+        try:
+            from app.services.live_reporting import redis_state
+            if redis_state.load_state('pub', match_id) is not None:
+                from app.core import socketio as _socketio
+                _socketio.emit(
+                    'event_deleted',
+                    {
+                        'match_id': match_id,
+                        'league_type': 'pub',
+                        'event_id': deleted_event_id,
+                        'deleted_by': current_user_id,
+                    },
+                    room=f"match_{match_id}",
+                    namespace='/live',
+                )
+        except Exception:
+            logger.exception(f"Failed to broadcast event_deleted for match {match_id}")
 
         return jsonify({
             "success": True,
@@ -929,6 +1040,22 @@ def report_match(match_id: int):
         created_count = sum(1 for e in events_result if e.get('status') == 'created')
         duplicate_count = sum(1 for e in events_result if e.get('status') == 'duplicate')
 
+        # V2 status flip: update Redis LiveMatchState + matches.report_submitted_at
+        # + cancel any in-flight timer Celery jobs + broadcast report_submitted to
+        # the /live room. Safe no-op if Redis is unavailable.
+        try:
+            from app.core import socketio as _socketio
+            from app.services.live_reporting.submit_helper import submit_match_report
+            submit_match_report(
+                session=session,
+                match_id=match_id,
+                league_type='pub',
+                submitted_by_user_id=current_user_id,
+                socketio=_socketio,
+            )
+        except Exception:
+            logger.exception(f"V2 submit_match_report failed for match {match_id}; REST write already succeeded")
+
         return jsonify({
             "success": True,
             "msg": "Match reported successfully",
@@ -1035,6 +1162,35 @@ def update_match_score(match_id: int):
             update_standings(session, match)
         except Exception as standings_error:
             logger.error(f"Failed to update standings for match {match_id}: {standings_error}")
+
+        # V2: if a live match is in progress in Redis, sync the new score into
+        # the state blob + broadcast score_updated so in-room coaches see the
+        # admin-driven correction immediately. Safe no-op when there's no state.
+        if score_changed:
+            try:
+                from app.services.live_reporting import redis_state
+                live_state = redis_state.load_state('pub', match_id)
+                if live_state is not None and live_state.get('report_status') != redis_state.REPORT_SUBMITTED:
+                    redis_state.set_scores(live_state, home_score, away_score, current_user_id)
+                    redis_state.save_state('pub', match_id, live_state)
+                    from app.core import socketio as _socketio
+                    _socketio.emit(
+                        'score_updated',
+                        {
+                            'match_id': match_id,
+                            'league_type': 'pub',
+                            'home_score': home_score,
+                            'away_score': away_score,
+                            'last_score_sequence': live_state['last_score_sequence'],
+                            'server_epoch_ms': redis_state.now_ms(),
+                            'updated_by': current_user_id,
+                            'source': 'rest_score_put',
+                        },
+                        room=f"match_{match_id}",
+                        namespace='/live',
+                    )
+            except Exception:
+                logger.exception(f"Failed to sync REST score PUT into Redis for match {match_id}")
 
         return jsonify({
             "success": True,

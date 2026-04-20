@@ -158,6 +158,16 @@ class Config:
     # Optional escape hatch: disable the limiter entirely in non-prod environments.
     RATE_LIMIT_DEV_DISABLE = os.getenv('RATE_LIMIT_DEV_DISABLE', '').lower() in ('true', '1', 'yes')
 
+    # Live match reporting V2 (server-authoritative timer, Redis LiveMatchState).
+    # Default OFF — ship cold, validate in prod, flip env to 'true' before game day.
+    LIVE_MATCH_STATE_V2_ENABLED = os.getenv('LIVE_MATCH_STATE_V2_ENABLED', 'false').lower() in ('true', '1', 'yes')
+    LIVE_MATCH_STATE_TTL_SECONDS = int(os.getenv('LIVE_MATCH_STATE_TTL_SECONDS', 86400))  # 24h
+    LIVE_MATCH_TIMER_AUTOSTOP_MINUTES = int(os.getenv('LIVE_MATCH_TIMER_AUTOSTOP_MINUTES', 70))
+    LIVE_MATCH_TIMER_HALFTIME_REMINDER_MIN = int(os.getenv('LIVE_MATCH_TIMER_HALFTIME_REMINDER_MIN', 30))
+    LIVE_MATCH_TIMER_FULLTIME_REMINDER_MIN = int(os.getenv('LIVE_MATCH_TIMER_FULLTIME_REMINDER_MIN', 60))
+    LIVE_MATCH_HALFTIME_TARGET_ELAPSED_MS = int(os.getenv('LIVE_MATCH_HALFTIME_TARGET_ELAPSED_MS', 1500000))  # 25:00
+    LIVE_MATCH_FULLTIME_TARGET_ELAPSED_MS = int(os.getenv('LIVE_MATCH_FULLTIME_TARGET_ELAPSED_MS', 3000000))  # 50:00
+
 
     # Content Security Policy (secure)
     CSP = {

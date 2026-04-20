@@ -45,25 +45,41 @@ class NotificationService:
             logger.debug(f"Could not increase FCM connection pool: {e}")
     
     def send_push_notification(
-        self, 
-        tokens: List[str], 
-        title: str, 
-        body: str, 
-        data: Optional[Dict[str, str]] = None
+        self,
+        tokens: List[str],
+        title: str,
+        body: str,
+        data: Optional[Dict[str, str]] = None,
+        apns_category: Optional[str] = None,
     ) -> Dict[str, int]:
-        """Send push notification to multiple tokens using 2025 best practices"""
+        """Send push notification to multiple tokens using 2025 best practices.
+
+        apns_category: iOS UNNotificationCategory identifier. When set, iOS
+        renders the actionable buttons registered for that category on the
+        client. Used by live-match timer reminders (TIMER_HALFTIME /
+        TIMER_FULLTIME) so coaches can Apply/Dismiss from the lock screen.
+        """
         if not self._initialized:
             raise RuntimeError("NotificationService not initialized")
-        
+
         if not tokens:
             return {"success": 0, "failure": 0}
-        
+
         # Filter out empty/invalid tokens
         valid_tokens = [token.strip() for token in tokens if token and token.strip()]
         if not valid_tokens:
             logger.warning("No valid tokens provided")
             return {"success": 0, "failure": len(tokens)}
-        
+
+        aps_kwargs = dict(
+            sound='default',
+            badge=1,
+            alert=messaging.ApsAlert(title=title, body=body),
+            content_available=True,
+        )
+        if apns_category:
+            aps_kwargs['category'] = apns_category
+
         # Create message with modern configuration
         message = messaging.MulticastMessage(
             tokens=valid_tokens,
@@ -84,15 +100,7 @@ class NotificationService:
             ),
             apns=messaging.APNSConfig(
                 payload=messaging.APNSPayload(
-                    aps=messaging.Aps(
-                        sound='default',
-                        badge=1,
-                        alert=messaging.ApsAlert(
-                            title=title,
-                            body=body
-                        ),
-                        content_available=True
-                    )
+                    aps=messaging.Aps(**aps_kwargs),
                 ),
                 headers={
                     'apns-priority': '10',
