@@ -155,8 +155,8 @@ Write only the reaction, nothing else."""
     
     async def _call_openai_api(self, prompt: str) -> Optional[str]:
         """Make the actual API call to Claude. (Name preserved for backward compat.)"""
+        client = anthropic.AsyncAnthropic(api_key=self.api_key, timeout=self.timeout)
         try:
-            client = anthropic.AsyncAnthropic(api_key=self.api_key, timeout=self.timeout)
             response = await client.messages.create(
                 model=self.model,
                 max_tokens=60,
@@ -186,6 +186,13 @@ Write only the reaction, nothing else."""
         except Exception as e:
             logger.error(f"🤖 Claude call failed: {type(e).__name__}: {e}")
             return None
+        finally:
+            # Explicit close prevents "Event loop is closed" finalizer noise
+            # when this coroutine runs inside sync_ai_client._run_sync.
+            try:
+                await client.close()
+            except Exception:
+                pass
 
 
 # Global service instance
@@ -275,8 +282,8 @@ class EnhancedAICommentaryService(AICommentaryService):
             or "You write short, casual match reactions. Never use em dashes. One or two sentences max."
         )
 
+        client = anthropic.AsyncAnthropic(api_key=self.api_key, timeout=self.timeout)
         try:
-            client = anthropic.AsyncAnthropic(api_key=self.api_key, timeout=self.timeout)
             response = await client.messages.create(
                 model=self.model,
                 max_tokens=max_tokens,
@@ -302,6 +309,11 @@ class EnhancedAICommentaryService(AICommentaryService):
         except Exception as e:
             logger.error(f"🤖 Claude call failed: {type(e).__name__}: {e}")
             return None
+        finally:
+            try:
+                await client.close()
+            except Exception:
+                pass
     
     def _render_prompt_template(self, template: str, context: Dict[str, Any]) -> str:
         """

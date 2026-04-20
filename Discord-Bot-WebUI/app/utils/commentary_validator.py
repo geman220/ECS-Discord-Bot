@@ -48,15 +48,20 @@ class ValidationResult:
 
 # --- AI-ism detection patterns ---
 
-# Phrases that scream "a language model wrote this"
+# Phrases that scream "a language model wrote this".
+# Philosophy: ban genuinely AI/sportswriter/narrator voice. Do NOT ban normal
+# supporter words like "clinical", "come on Seattle", "let's go Sounders",
+# "the boys", "our boys", "absolutely", "brilliant" — those are fine in
+# moderation. Anti-repetition tracker + prompt variety handle overuse.
 AI_PHRASES = [
+    # Stock sportswriter openers
     r"\bwhat a\b",
-    r"\babsolutely\b",
+
+    # Adjective stacks that scream ESPN/AI
     r"\bincredible\b",
     r"\bunbelievable\b",
     r"\bstunning\b",
     r"\bmagnificent\b",
-    r"\bbrilliant\b",
     r"\bsensational\b",
     r"\bspectacular\b",
     r"\bexquisite\b",
@@ -66,20 +71,37 @@ AI_PHRASES = [
     r"\bwonderful\b",
     r"\bphenomenal\b",
     r"\belectrifying\b",
-    r"\belectric\b",
     r"\bremarkable\b",
     r"\bextraordinary\b",
     r"\bimpressive display\b",
+
+    # Narrator / press-release voice
+    r"\blooking to (extend|continue|secure|chase|claim|maintain)\b",
+    r"\bseeking to\b",
+    r"\baiming to\b",
+    r"\bwill be (hoping|looking) to\b",
+    r"\banticipation (is|was) building\b",
+    r"\ba crucial (fixture|moment|opportunity|test)\b",
+    r"\ba defining moment\b",
+    r"\ba pivotal (moment|match)\b",
+
+    # Corporate / business-speak
     r"\bshowcase[sd]?\b",
     r"\bdemonstrat(e[sd]?|ing)\b",
-    r"\bclinical(ly)?\b",
-    r"\bclass act\b",
     r"\bmaster class\b",
     r"\bmasterclass\b",
     r"\bworld.?class\b",
     r"\bnothing short of\b",
+
+    # Coachy filler & performative takeaways
     r"\bprove[sd]? once again\b",
     r"\bonce again prove\b",
+    r"\bexactly how (we|you) (need|have) to play\b",
+    r"\btake the learnings\b",
+    r"\bplenty to build on\b",
+    r"\bcontinues? to demonstrate\b",
+
+    # Epic/mythic framing
     r"\bcements?\b.*(legacy|place|status)",
     r"\bwriting the narrative\b",
     r"\bscript couldn'?t\b",
@@ -91,35 +113,37 @@ AI_PHRASES = [
     r"\binstant classic\b",
     r"\bone for the ages\b",
     r"\bfor the history books\b",
+
+    # Platitude slogans
     r"\bthat'?s what it'?s all about\b",
     r"\bthis is what (it'?s|we'?re) all about\b",
     r"\bthis is why we\b",
     r"\bthis team never\b",
-    r"\bnever (stop|quit|give up)\b",
     r"\bheart and soul\b",
     r"\bblood,? sweat,? and tears\b",
     r"\bpassion and pride\b",
     r"\bpassionate display\b",
-    r"\brave green (magic|army|pride|faithful|nation)\b",
-    r"\becs (erupts?|faithful|army|nation)\b",
-    r"\bthe faithful\b",
-    r"\bwherever (we|sounders) (are|play)\b",
-    r"\bour boys\b",
-    r"\bthe boys\b",
-    r"\blet'?s go,?\s*(boys|seattle|sounders)\b",
-    r"\bcome on,?\s*(seattle|sounders|you)\b",
     r"\bbelieve\b.*\b(magic|team|boys)\b",
     r"\bdig deep\b",
     r"\bshow(ing)? (their|our|what).*(made of|quality|character|class)\b",
-    r"\bfresh legs\b.*(impact|difference|energy)",
     r"\bdelivers? when it matters\b",
     r"\bwhen it matters most\b",
     r"\brise to the occasion\b",
     r"\bstep up\b.*(big|when|moment)",
+
+    # Branded / hashtag-style community phrasing (AI pattern-matches this)
+    r"\brave green (magic|army|pride|faithful|nation)\b",
+    r"\becs (erupts?|faithful|army|nation)\b",
+    r"\bthe faithful\b",
+    r"\bwherever (we|sounders) (are|play)\b",
+
+    # Staged crowd description (AI loves stadium-cam narration)
     r"\bthe (whole|entire) (stadium|crowd|place)\b.*(erupt|goes|went|roar)",
     r"\bthunder(ous|ing)?\b",
     r"\b(crowd|stadium|place) (goes|went) (wild|crazy|nuts|mental|mad|bananas)\b",
     r"\bwild celebrations\b",
+
+    # Abstract emotion stacks
     r"\bpure (joy|emotion|elation|class|quality)\b",
     r"\bsheer (brilliance|quality|determination|class)\b",
     r"\bembodiment of\b",
