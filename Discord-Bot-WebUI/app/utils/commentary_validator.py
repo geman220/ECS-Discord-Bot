@@ -241,9 +241,11 @@ def _check_formatting_rules(text: str) -> Optional[str]:
     if '\u2014' in text or '\u2013' in text:
         return "contains em dash or en dash"
 
-    # Double exclamation marks
+    # Runs of exclamation marks ("!!", "!!!", etc) — spammy/cringe.
+    # Single "!" at sentence boundaries is fine even across multiple clauses,
+    # e.g. "Roldan! 2-1! Fuck the Timbers!" is real supporter energy, not AI.
     if '!!' in text:
-        return "contains double exclamation marks"
+        return "contains consecutive exclamation marks"
 
     # Hashtags
     if re.search(r'#\w+', text):
@@ -252,10 +254,6 @@ def _check_formatting_rules(text: str) -> Optional[str]:
     # Starts with "What a" (case insensitive)
     if re.match(r'^what a\b', text, re.IGNORECASE):
         return "starts with 'What a'"
-
-    # Excessive exclamation marks (more than 2 total)
-    if text.count('!') > 2:
-        return f"too many exclamation marks ({text.count('!')})"
 
     # Excessive emoji (more than 2)
     emoji_pattern = re.compile(
