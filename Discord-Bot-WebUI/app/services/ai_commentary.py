@@ -314,8 +314,16 @@ class EnhancedAICommentaryService(AICommentaryService):
         Returns:
             Rendered prompt string
         """
+        # Flatten {'displayName': '...'} team dicts so templates can use
+        # {home_team}/{away_team} as plain strings.
+        flat = {}
+        for k, v in context.items():
+            if isinstance(v, dict) and 'displayName' in v:
+                flat[k] = v['displayName']
+            else:
+                flat[k] = v
         try:
-            return template.format(**context)
+            return template.format(**flat)
         except KeyError as e:
             logger.warning(f"Missing template variable {e}, using template as-is")
             return template
