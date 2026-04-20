@@ -217,64 +217,62 @@ async def generate_ai_commentary(event_data: Dict[str, Any], match_context: Dict
 class EnhancedAICommentaryService(AICommentaryService):
     """Enhanced AI Commentary Service with pre-match, half-time, and full-time messages."""
     
-    def _get_prompt_config(self, prompt_type: str, competition: str = None) -> Optional[AIPromptConfig]:
+    def _get_prompt_config(self, prompt_type: str, competition: str = None) -> Optional[Dict[str, Any]]:
         """
-        Retrieve AI prompt configuration from database.
-        
-        Args:
-            prompt_type: Type of prompt ('pre_match_hype', 'half_time_message', etc.)
-            competition: Competition filter ('usa.1', 'mls', etc.)
-            
-        Returns:
-            AIPromptConfig object or None if not found
+        Retrieve AI prompt configuration from database, returned as a plain dict
+        so attributes are safe to access after the SQLAlchemy session closes.
         """
         try:
             with managed_session() as session:
-                # Try to find exact match with competition filter
+                config = None
                 if competition:
                     config = session.query(AIPromptConfig).filter(
                         AIPromptConfig.prompt_type == prompt_type,
                         AIPromptConfig.is_active == True,
                         AIPromptConfig.competition_filter.in_([competition.lower(), 'all'])
                     ).first()
-                    
-                    if config:
-                        return config
-                
-                # Fall back to general config
-                config = session.query(AIPromptConfig).filter(
-                    AIPromptConfig.prompt_type == prompt_type,
-                    AIPromptConfig.is_active == True
-                ).first()
 
-                # Merge template data if an active template is assigned
-                if config and config.active_template_id and config.active_template:
+                if not config:
+                    config = session.query(AIPromptConfig).filter(
+                        AIPromptConfig.prompt_type == prompt_type,
+                        AIPromptConfig.is_active == True
+                    ).first()
+
+                if not config:
+                    return None
+
+                system_prompt = config.system_prompt or ''
+                user_prompt_template = config.user_prompt_template
+                temperature = config.temperature
+                max_tokens = config.max_tokens
+                resolved_prompt_type = config.prompt_type
+
+                if config.active_template_id and config.active_template:
                     template_data = config.active_template.template_data or {}
-                    # Overlay template personality traits onto config
-                    if 'personality_traits' in template_data and template_data['personality_traits']:
-                        merged_traits = dict(config.personality_traits or {})
-                        merged_traits.update(template_data['personality_traits'])
-                        config.personality_traits = merged_traits
-                    # Overlay template system prompt tone modifiers
-                    if 'system_prompt_suffix' in template_data and template_data['system_prompt_suffix']:
-                        config.system_prompt = (config.system_prompt or '') + '\n' + template_data['system_prompt_suffix']
-                    # Overlay rivalry intensity if template specifies it
-                    if 'rivalry_intensity' in template_data:
-                        config.rivalry_intensity = template_data['rivalry_intensity']
+                    suffix = template_data.get('system_prompt_suffix')
+                    if suffix:
+                        system_prompt = (system_prompt + '\n' + suffix) if system_prompt else suffix
 
-                return config
-                
+                return {
+                    'system_prompt': system_prompt,
+                    'user_prompt_template': user_prompt_template,
+                    'temperature': temperature,
+                    'max_tokens': max_tokens,
+                    'prompt_type': resolved_prompt_type,
+                }
+
         except Exception as e:
             logger.error(f"Error retrieving prompt config for {prompt_type}: {e}")
             return None
     
-    async def _call_openai_api_with_config(self, prompt: str, config: AIPromptConfig) -> Optional[str]:
+    async def _call_openai_api_with_config(self, prompt: str, config: Optional[Dict[str, Any]]) -> Optional[str]:
         """Make Claude API call using database configuration. (Name preserved for backward compat.)"""
-        temperature = config.temperature if config and config.temperature is not None else 0.4
-        max_tokens = config.max_tokens if config and config.max_tokens else 60
+        cfg = config or {}
+        temperature = cfg.get('temperature') if cfg.get('temperature') is not None else 0.4
+        max_tokens = cfg.get('max_tokens') or 60
         system_prompt = (
-            config.system_prompt if config and config.system_prompt
-            else "You write short, casual match reactions. Never use em dashes. One or two sentences max."
+            cfg.get('system_prompt')
+            or "You write short, casual match reactions. Never use em dashes. One or two sentences max."
         )
 
         try:
@@ -345,12 +343,12 @@ class EnhancedAICommentaryService(AICommentaryService):
             config = self._get_prompt_config('pre_match_hype', competition)
             
             # Create prompt using database template or fallback
-            if config and config.user_prompt_template:
-                prompt = self._render_prompt_template(config.user_prompt_template, match_context)
+            if config and config.get('user_prompt_template'):
+                prompt = self._render_prompt_template(config['user_prompt_template'], match_context)
             else:
                 prompt = self._create_pre_match_prompt(match_context)
             
-            logger.info(f"🤖 Generating pre-match hype message (temp: {config.temperature if config else 'default'})")
+            logger.info(f"🤖 Generating pre-match hype message (temp: {config.get('temperature') if config else 'default'})")
             
             for attempt in range(self.max_retries):
                 try:
@@ -390,12 +388,12 @@ class EnhancedAICommentaryService(AICommentaryService):
             config = self._get_prompt_config('half_time_message', competition)
             
             # Create prompt using database template or fallback
-            if config and config.user_prompt_template:
-                prompt = self._render_prompt_template(config.user_prompt_template, match_context)
+            if config and config.get('user_prompt_template'):
+                prompt = self._render_prompt_template(config['user_prompt_template'], match_context)
             else:
                 prompt = self._create_half_time_prompt(match_context)
             
-            logger.info(f"🤖 Generating half-time analysis message (temp: {config.temperature if config else 'default'})")
+            logger.info(f"🤖 Generating half-time analysis message (temp: {config.get('temperature') if config else 'default'})")
             
             for attempt in range(self.max_retries):
                 try:
@@ -435,12 +433,12 @@ class EnhancedAICommentaryService(AICommentaryService):
             config = self._get_prompt_config('full_time_message', competition)
             
             # Create prompt using database template or fallback
-            if config and config.user_prompt_template:
-                prompt = self._render_prompt_template(config.user_prompt_template, match_context)
+            if config and config.get('user_prompt_template'):
+                prompt = self._render_prompt_template(config['user_prompt_template'], match_context)
             else:
                 prompt = self._create_full_time_prompt(match_context)
             
-            logger.info(f"🤖 Generating full-time summary message (temp: {config.temperature if config else 'default'})")
+            logger.info(f"🤖 Generating full-time summary message (temp: {config.get('temperature') if config else 'default'})")
             
             for attempt in range(self.max_retries):
                 try:
@@ -480,12 +478,12 @@ class EnhancedAICommentaryService(AICommentaryService):
             config = self._get_prompt_config('match_thread_context', competition)
             
             # Create prompt using database template or fallback
-            if config and config.user_prompt_template:
-                prompt = self._render_prompt_template(config.user_prompt_template, match_context)
+            if config and config.get('user_prompt_template'):
+                prompt = self._render_prompt_template(config['user_prompt_template'], match_context)
             else:
                 prompt = self._create_thread_context_prompt(match_context)
             
-            logger.info(f"🤖 Generating match thread context (temp: {config.temperature if config else 'default'})")
+            logger.info(f"🤖 Generating match thread context (temp: {config.get('temperature') if config else 'default'})")
             
             for attempt in range(self.max_retries):
                 try:
