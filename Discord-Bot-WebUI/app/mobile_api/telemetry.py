@@ -14,6 +14,7 @@ from datetime import datetime
 
 from flask import jsonify, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from app.mobile_api import mobile_api_v2
 from app.core.limiter import limiter, jwt_or_ip_key
@@ -21,6 +22,18 @@ from app.core.session_manager import managed_session
 from app.models.mobile_telemetry import MobileSession, MobileScreenView, MobileFeatureUsage
 
 logger = logging.getLogger(__name__)
+
+
+def _ensure_mobile_session(db_session, session_id, user_id, *, platform=None, app_version=None, started_at=None):
+    """Race-safe upsert: no-op if another request just inserted the same session_id."""
+    stmt = pg_insert(MobileSession.__table__).values(
+        user_id=int(user_id) if user_id else None,
+        session_id=session_id,
+        platform=platform,
+        app_version=app_version,
+        started_at=started_at or datetime.utcnow(),
+    ).on_conflict_do_nothing(index_elements=['session_id'])
+    db_session.execute(stmt)
 
 
 def _telemetry_key():
@@ -60,34 +73,26 @@ def telemetry_session():
 
         with managed_session() as db_session:
             if event == 'start':
-                existing = db_session.query(MobileSession).filter_by(session_id=session_id).first()
-                if existing:
-                    return jsonify({'status': 'already_exists'}), 200
-
-                session = MobileSession(
-                    user_id=int(user_id) if user_id else None,
-                    session_id=session_id,
+                _ensure_mobile_session(
+                    db_session,
+                    session_id,
+                    user_id,
                     platform=data.get('platform'),
                     app_version=data.get('app_version'),
-                    started_at=_parse_dt(data.get('started_at')) or datetime.utcnow(),
+                    started_at=_parse_dt(data.get('started_at')),
                 )
-                db_session.add(session)
-                db_session.flush()
                 return jsonify({'status': 'session_started', 'session_id': session_id}), 201
 
             else:  # end
+                _ensure_mobile_session(
+                    db_session,
+                    session_id,
+                    user_id,
+                    platform=data.get('platform'),
+                    app_version=data.get('app_version'),
+                    started_at=_parse_dt(data.get('started_at')),
+                )
                 session = db_session.query(MobileSession).filter_by(session_id=session_id).first()
-                if not session:
-                    # Create a retroactive session record
-                    session = MobileSession(
-                        user_id=int(user_id) if user_id else None,
-                        session_id=session_id,
-                        platform=data.get('platform'),
-                        app_version=data.get('app_version'),
-                        started_at=_parse_dt(data.get('started_at')) or datetime.utcnow(),
-                    )
-                    db_session.add(session)
-
                 session.ended_at = _parse_dt(data.get('ended_at')) or datetime.utcnow()
                 session.duration_seconds = data.get('duration_seconds')
                 session.screens_viewed = data.get('screens_viewed', 0)
@@ -135,16 +140,7 @@ def telemetry_screens():
 
         received = 0
         with managed_session() as db_session:
-            # Ensure the session exists before inserting screen views
-            existing = db_session.query(MobileSession).filter_by(session_id=session_id).first()
-            if not existing:
-                session = MobileSession(
-                    user_id=int(user_id) if user_id else None,
-                    session_id=session_id,
-                    started_at=datetime.utcnow(),
-                )
-                db_session.add(session)
-                db_session.flush()
+            _ensure_mobile_session(db_session, session_id, user_id)
 
             for screen in screens[:100]:  # Max 100 per batch
                 screen_name = screen.get('screen_name')

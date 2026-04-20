@@ -3,17 +3,18 @@
 """
 AI Commentary Service
 
-Generates dynamic, authentic ECS supporter commentary for match events using OpenAI GPT.
+Generates dynamic, authentic ECS supporter commentary for match events using Anthropic Claude.
 Replaces static templates with dynamic, contextual responses that sound like real ECS members.
 """
 
 import logging
 import os
 import asyncio
-import aiohttp
 import json
 from typing import Dict, Any, Optional
 from datetime import datetime
+
+import anthropic
 
 from app.models.ai_prompt_config import AIPromptConfig
 from app.core.session_manager import managed_session
@@ -28,16 +29,14 @@ class AICommentaryService:
     """Service for generating AI-powered match commentary with ECS supporter personality."""
     
     def __init__(self):
-        self.api_key = os.getenv('GPT_API')
-        self.api_url = "https://api.openai.com/v1/chat/completions"
-        self.model = "gpt-4o-mini"
+        self.api_key = os.getenv('CLAUDE_API') or os.getenv('ANTHROPIC_API_KEY')
+        self.model = os.getenv('ANTHROPIC_MODEL', 'claude-haiku-4-5')
         self.max_retries = 2
-        self.timeout = 5  # seconds
-        
+        self.timeout = 10  # seconds
+
         if not self.api_key:
-            logger.warning("🤖 AI Commentary DISABLED: GPT_API key not found in environment variables")
+            logger.warning("🤖 AI Commentary DISABLED: CLAUDE_API key not found in environment variables")
         else:
-            # Mask API key for security (show first 8 and last 4 chars)
             masked_key = f"{self.api_key[:8]}...{self.api_key[-4:]}" if len(self.api_key) > 12 else "***"
             logger.info(f"🤖 AI Commentary ENABLED: Using {self.model} with key {masked_key}, {self.max_retries} retries, {self.timeout}s timeout")
     
@@ -53,7 +52,7 @@ class AICommentaryService:
             Generated commentary string or None if failed
         """
         if not self.api_key:
-            logger.error("🤖 AI Commentary FAILED: No GPT API key configured - check GPT_API in .env")
+            logger.error("🤖 AI Commentary FAILED: No CLAUDE_API key configured - check CLAUDE_API in .env")
             return None
             
         event_type = event_data.get('type', 'Unknown')
@@ -92,8 +91,8 @@ class AICommentaryService:
                     logger.warning(f"🤖 AI Commentary attempt {attempt + 1} TIMEOUT after {elapsed:.2f}s")
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(1)
-                except aiohttp.ClientError as e:
-                    logger.warning(f"🤖 AI Commentary attempt {attempt + 1} CLIENT ERROR: {e}")
+                except anthropic.APIConnectionError as e:
+                    logger.warning(f"🤖 AI Commentary attempt {attempt + 1} CONNECTION ERROR: {e}")
                     if attempt < self.max_retries - 1:
                         await asyncio.sleep(1)
                 except Exception as e:
@@ -155,66 +154,38 @@ Write only the reaction, nothing else."""
         return prompt
     
     async def _call_openai_api(self, prompt: str) -> Optional[str]:
-        """Make the actual API call to OpenAI."""
-        
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        payload = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "system", 
-                    "content": "You are an authentic soccer supporter generating raw, genuine reactions. Never sound corporate or AI-like."
-                },
-                {
-                    "role": "user", 
-                    "content": prompt
-                }
-            ],
-            "max_tokens": 60,
-            "temperature": 0.4,
-            "top_p": 0.95,
-            "frequency_penalty": 0.3,  # Reduce repetition
-            "presence_penalty": 0.3
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                self.api_url,
-                headers=headers,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=self.timeout)
-            ) as response:
-                
-                if response.status == 200:
-                    result = await response.json()
-                    commentary = result['choices'][0]['message']['content'].strip()
-                    
-                    # Clean up any quotes or extra formatting
-                    commentary = commentary.strip('"\'')
-                    
-                    # Log usage stats if available
-                    usage = result.get('usage', {})
-                    if usage:
-                        logger.debug(f"🤖 OpenAI Usage: {usage.get('prompt_tokens', 0)} prompt + {usage.get('completion_tokens', 0)} completion = {usage.get('total_tokens', 0)} total tokens")
-                    
-                    return commentary
-                else:
-                    error_text = await response.text()
-                    if response.status == 401:
-                        logger.error(f"🤖 OpenAI API AUTHENTICATION ERROR {response.status}: Invalid API key - check GPT_API in .env")
-                    elif response.status == 429:
-                        logger.error(f"🤖 OpenAI API RATE LIMIT ERROR {response.status}: Too many requests - consider reducing frequency")
-                    elif response.status == 400:
-                        logger.error(f"🤖 OpenAI API BAD REQUEST {response.status}: {error_text}")
-                    elif response.status >= 500:
-                        logger.error(f"🤖 OpenAI API SERVER ERROR {response.status}: OpenAI servers having issues - {error_text}")
-                    else:
-                        logger.error(f"🤖 OpenAI API ERROR {response.status}: {error_text}")
-                    return None
+        """Make the actual API call to Claude. (Name preserved for backward compat.)"""
+        try:
+            client = anthropic.AsyncAnthropic(api_key=self.api_key, timeout=self.timeout)
+            response = await client.messages.create(
+                model=self.model,
+                max_tokens=60,
+                temperature=0.4,
+                system="You are an authentic soccer supporter generating raw, genuine reactions. Never sound corporate or AI-like.",
+                messages=[{"role": "user", "content": prompt}],
+            )
+            commentary = next(
+                (b.text for b in response.content if b.type == "text"),
+                "",
+            ).strip().strip('"\'')
+
+            usage = response.usage
+            logger.debug(
+                f"🤖 Claude Usage: {usage.input_tokens} in + {usage.output_tokens} out"
+            )
+            return commentary or None
+        except anthropic.AuthenticationError:
+            logger.error("🤖 Claude API AUTH ERROR: Invalid CLAUDE_API key")
+            return None
+        except anthropic.RateLimitError as e:
+            logger.error(f"🤖 Claude API RATE LIMIT: {e}")
+            return None
+        except anthropic.APIStatusError as e:
+            logger.error(f"🤖 Claude API ERROR {e.status_code}: {e.message}")
+            return None
+        except Exception as e:
+            logger.error(f"🤖 Claude call failed: {type(e).__name__}: {e}")
+            return None
 
 
 # Global service instance
@@ -298,56 +269,41 @@ class EnhancedAICommentaryService(AICommentaryService):
             return None
     
     async def _call_openai_api_with_config(self, prompt: str, config: AIPromptConfig) -> Optional[str]:
-        """Make OpenAI API call using database configuration."""
-        
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        # Use database configuration or fallback to defaults
+        """Make Claude API call using database configuration. (Name preserved for backward compat.)"""
         temperature = config.temperature if config and config.temperature is not None else 0.4
         max_tokens = config.max_tokens if config and config.max_tokens else 60
-        system_prompt = config.system_prompt if config and config.system_prompt else "You write short, casual match reactions. Never use em dashes. One or two sentences max."
+        system_prompt = (
+            config.system_prompt if config and config.system_prompt
+            else "You write short, casual match reactions. Never use em dashes. One or two sentences max."
+        )
 
-        payload = {
-            "model": self.model,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "top_p": 0.95,
-            "frequency_penalty": 0.5,
-            "presence_penalty": 0.3
-        }
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                self.api_url,
-                headers=headers,
-                json=payload,
-                timeout=aiohttp.ClientTimeout(total=self.timeout)
-            ) as response:
-                
-                if response.status == 200:
-                    result = await response.json()
-                    commentary = result['choices'][0]['message']['content'].strip()
-                    commentary = commentary.strip('"\'')
-                    # Light validation - cleaning only (strict validation at caller layer)
-                    from app.utils.commentary_validator import _clean_text
-                    return _clean_text(commentary)
-                else:
-                    error_text = await response.text()
-                    logger.error(f"🤖 OpenAI API ERROR {response.status}: {error_text}")
-                    return None
+        try:
+            client = anthropic.AsyncAnthropic(api_key=self.api_key, timeout=self.timeout)
+            response = await client.messages.create(
+                model=self.model,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                system=system_prompt,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            commentary = next(
+                (b.text for b in response.content if b.type == "text"),
+                "",
+            ).strip().strip('"\'')
+            from app.utils.commentary_validator import _clean_text
+            return _clean_text(commentary) if commentary else None
+        except anthropic.AuthenticationError:
+            logger.error("🤖 Claude API AUTH ERROR: Invalid CLAUDE_API key")
+            return None
+        except anthropic.RateLimitError as e:
+            logger.error(f"🤖 Claude API RATE LIMIT: {e}")
+            return None
+        except anthropic.APIStatusError as e:
+            logger.error(f"🤖 Claude API ERROR {e.status_code}: {e.message}")
+            return None
+        except Exception as e:
+            logger.error(f"🤖 Claude call failed: {type(e).__name__}: {e}")
+            return None
     
     def _render_prompt_template(self, template: str, context: Dict[str, Any]) -> str:
         """
@@ -380,7 +336,7 @@ class EnhancedAICommentaryService(AICommentaryService):
             Generated pre-match hype message or None
         """
         if not self.api_key:
-            logger.error("🤖 Pre-match Hype FAILED: No GPT API key configured")
+            logger.error("🤖 Pre-match Hype FAILED: No CLAUDE_API key configured")
             return None
             
         try:
@@ -425,7 +381,7 @@ class EnhancedAICommentaryService(AICommentaryService):
             Generated half-time message or None
         """
         if not self.api_key:
-            logger.error("🤖 Half-time Message FAILED: No GPT API key configured")
+            logger.error("🤖 Half-time Message FAILED: No CLAUDE_API key configured")
             return None
             
         try:
@@ -470,7 +426,7 @@ class EnhancedAICommentaryService(AICommentaryService):
             Generated full-time message or None
         """
         if not self.api_key:
-            logger.error("🤖 Full-time Message FAILED: No GPT API key configured")
+            logger.error("🤖 Full-time Message FAILED: No CLAUDE_API key configured")
             return None
             
         try:
@@ -515,7 +471,7 @@ class EnhancedAICommentaryService(AICommentaryService):
             Generated contextual description or None
         """
         if not self.api_key:
-            logger.error("🤖 Thread Context FAILED: No GPT API key configured")
+            logger.error("🤖 Thread Context FAILED: No CLAUDE_API key configured")
             return None
             
         try:

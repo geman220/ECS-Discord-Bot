@@ -250,15 +250,14 @@ class SyncAIClient:
             return None
 
     def _generate_dynamic_commentary(self, event_context: Dict[str, Any], match_history: Optional[List[Dict]] = None) -> Optional[str]:
-        """Generate dynamic commentary using ChatGPT API with database-configured prompts."""
+        """Generate dynamic commentary using Anthropic Claude with database-configured prompts."""
         try:
-            import openai
+            import anthropic
             import os
 
-            # Get OpenAI API key - check multiple possible env var names
-            api_key = os.getenv('OPENAI_API_KEY') or os.getenv('GPT_API') or os.getenv('GPT_API_KEY')
+            api_key = os.getenv('CLAUDE_API') or os.getenv('ANTHROPIC_API_KEY')
             if not api_key:
-                logger.warning("🤖 AI Commentary DISABLED: GPT_API key not found in environment variables")
+                logger.warning(f"commentary_fallback_reason=no_api_key event_type={event_context.get('event_type')}")
                 return self._generate_simple_fallback(event_context)
 
             # Get appropriate prompt configuration from database
@@ -266,7 +265,7 @@ class SyncAIClient:
             prompt_config = self._get_prompt_config(event_type, event_context)
 
             if not prompt_config:
-                logger.warning(f"No prompt configuration found for {event_type}, using fallback")
+                logger.warning(f"commentary_fallback_reason=no_prompt_config event_type={event_type}")
                 return self._generate_simple_fallback(event_context)
 
             # Extract event details - handle both string and dict formats
@@ -445,23 +444,21 @@ class SyncAIClient:
                 else:
                     user_prompt = f"{event_type} in minute {minute}. Write brief Sounders-biased commentary."
 
-# Debug logging removed for production
+            client = anthropic.Anthropic(api_key=api_key)
 
-            # Call OpenAI API with database-configured parameters
-            client = openai.OpenAI(api_key=api_key)
-
-            model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
-            response = client.chat.completions.create(
+            model = os.getenv('ANTHROPIC_MODEL', 'claude-haiku-4-5')
+            response = client.messages.create(
                 model=model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
                 max_tokens=prompt_config.get('max_tokens') or 60,
-                temperature=prompt_config.get('temperature') or 0.4
+                temperature=prompt_config.get('temperature') or 0.4,
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
             )
 
-            commentary = response.choices[0].message.content.strip()
+            commentary = next(
+                (b.text for b in response.content if b.type == "text"),
+                "",
+            ).strip()
 
             # Post-processing: Remove any hashtags that slipped through
             import re
@@ -479,7 +476,12 @@ class SyncAIClient:
             return commentary
 
         except Exception as e:
-            logger.error(f"Error generating dynamic commentary: {e}")
+            logger.error(
+                f"commentary_fallback_reason=llm_exception "
+                f"event_type={event_context.get('event_type')} "
+                f"error_type={type(e).__name__} error={e}",
+                exc_info=True,
+            )
             return self._generate_simple_fallback(event_context)
 
     def _build_match_context_string(self, event_context: Dict[str, Any], match_history: Optional[List[Dict]] = None) -> str:
@@ -542,6 +544,7 @@ class SyncAIClient:
         """Simple fallback when AI generation fails. Matches human supporter tone."""
         try:
             event_type = event_context.get('event_type', 'event')
+            logger.warning(f"commentary_fallback_reason=simple_fallback_invoked event_type={event_type}")
             player = event_context.get('player', 'Player')
             minute = event_context.get('minute', 0)
             scoring_team = event_context.get('scoring_team', '')

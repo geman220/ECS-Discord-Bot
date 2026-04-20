@@ -139,7 +139,7 @@ def league_management_team_detail(team_id):
     Shows team information, roster, stats, and Discord integration.
     """
     try:
-        from app.models import Team, Player
+        from app.models import Team, Player, League
 
         team = Team.query.options(
             joinedload(Team.league).joinedload(League.season),

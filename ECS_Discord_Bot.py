@@ -2528,7 +2528,7 @@ async def _handle_match_reminder_interaction(interaction: discord.Interaction, c
             bot.session = session
 
         async with session.post(
-            f"{WEBUI_API_URL}/api/match-reminder/opt-out",
+            f"{WEBUI_API_URL}/match-reminder/opt-out",
             json={'discord_id': discord_id, 'source': 'dm_button'},
             timeout=aiohttp.ClientTimeout(total=10)
         ) as resp:

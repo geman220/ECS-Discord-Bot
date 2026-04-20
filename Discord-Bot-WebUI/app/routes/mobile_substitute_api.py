@@ -1223,7 +1223,11 @@ def remove_substitute_assignment(assignment_id):
 # POOL MANAGEMENT ENDPOINTS (Admin Only)
 # =============================================================================
 
+# Legacy alias: older Flutter builds call `/substitutes/pool/<league>/approve/<id>`
+# instead of the canonical `/substitute-pools/...`. Keep the alias until those
+# builds are out of circulation.
 @mobile_substitute_api.route('/substitute-pools/<league_type>/approve/<int:player_id>', methods=['POST'])
+@mobile_substitute_api.route('/substitutes/pool/<league_type>/approve/<int:player_id>', methods=['POST'])
 @jwt_required()
 @api_key_required
 @jwt_role_required(['Global Admin', 'Pub League Admin'])
@@ -1292,7 +1296,9 @@ def approve_pool_member(league_type, player_id):
         }), 500
 
 
+# Legacy alias: see note on approve_pool_member above.
 @mobile_substitute_api.route('/substitute-pools/<league_type>/remove/<int:player_id>', methods=['POST'])
+@mobile_substitute_api.route('/substitutes/pool/<league_type>/remove/<int:player_id>', methods=['POST'])
 @jwt_required()
 @api_key_required
 @jwt_role_required(['Global Admin', 'Pub League Admin'])

@@ -156,9 +156,14 @@ def schedule_upcoming_matches(self, session):
                     # point fetching lineups for a match with no thread to post to.
                     lineup_time = match_dt - timedelta(minutes=lineup_post_minutes)
 
-                    existing_lineup_task = ScheduledTask.find_existing_task(
-                        session, match.id, TaskType.LINEUP_POST
-                    )
+                    # Lineup post is a one-shot per match; any prior row
+                    # (including COMPLETED/EXPIRED/FAILED) blocks re-scheduling.
+                    # Internal 6×5min retry in post_match_lineups_task handles
+                    # ESPN-not-ready cases without the beat loop duplicating.
+                    existing_lineup_task = session.query(ScheduledTask).filter(
+                        ScheduledTask.match_id == match.id,
+                        ScheduledTask.task_type == TaskType.LINEUP_POST
+                    ).first()
                     if not existing_lineup_task:
                         if lineup_time > now:
                             db_task = ScheduledTask(
