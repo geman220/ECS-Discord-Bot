@@ -151,7 +151,7 @@ class RateLimitedPool(QueuePool):
         Override the pool's _do_get to track active connections with fail-fast
         circuit breaker when pool is under pressure.
 
-        When pool utilization exceeds 90%, reduces timeout to 1 second to fail fast
+        When pool utilization exceeds 95%, reduces timeout to 3 seconds to fail fast
         instead of waiting the full timeout. This prevents thundering herd cascades
         where many requests pile up waiting, then all fail simultaneously.
 
@@ -168,13 +168,17 @@ class RateLimitedPool(QueuePool):
         checked_out = len(self._active_connections)
         total_capacity = self.size() + self._max_overflow
 
-        # If pool is >90% utilized, use short timeout to fail fast
-        if total_capacity > 0 and checked_out >= total_capacity * 0.9:
+        # If pool is >95% utilized, use short timeout to fail fast.
+        # 95% (not 90%) because bursts routinely hit 90% briefly during healthy
+        # operation; failing fast there just converts latency into 500s.
+        if total_capacity > 0 and checked_out >= total_capacity * 0.95:
             import queue
             from sqlalchemy import exc
             try:
-                # Try to get connection with very short timeout (1 second)
-                conn = self._pool.get(block=True, timeout=1.0)
+                # 3s fail-fast timeout — long enough to ride out a normal burst,
+                # short enough to avoid holding gevent workers if the pool is
+                # genuinely exhausted.
+                conn = self._pool.get(block=True, timeout=3.0)
                 # Capture stack trace at checkout if debugging is enabled.
                 stack = self._get_stack_info(depth=20) if DEBUG_POOL else "<stack omitted>"
                 self._active_connections[id(conn)] = (time.time(), stack, None)

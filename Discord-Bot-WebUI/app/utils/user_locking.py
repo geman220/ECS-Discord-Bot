@@ -20,13 +20,23 @@ we lock the user row first, then trigger lazy loading of relationships.
 import logging
 from contextlib import contextmanager
 
-from flask import g, has_request_context
+from flask import g, has_request_context, request
 from sqlalchemy.exc import OperationalError
 
 from app.core import db
 from app.models import User
 
 logger = logging.getLogger(__name__)
+
+
+def _caller_context():
+    """Return a short caller hint for lock-failure logs (route path or 'non-request')."""
+    if has_request_context():
+        try:
+            return f"route={request.method} {request.path}"
+        except Exception:
+            return "route=<unavailable>"
+    return "non-request"
 
 
 class LockAcquisitionError(Exception):
@@ -139,7 +149,9 @@ def lock_user_for_role_update(user_id, session=None, nowait=True, timeout=None):
             'lock timeout',
             'canceling statement due to lock timeout',
         ]):
-            logger.warning(f"Lock acquisition failed for user {user_id}: {e}")
+            logger.warning(
+                f"Lock acquisition failed for user {user_id} ({_caller_context()}): {e}"
+            )
             raise LockAcquisitionError(
                 f"User {user_id} is currently being modified by another request"
             ) from e
@@ -227,7 +239,9 @@ def lock_users_for_role_update(user_ids, session=None, nowait=True):
             'nowait is set',
             'lock timeout',
         ]):
-            logger.warning(f"Lock acquisition failed for users {sorted_ids}: {e}")
+            logger.warning(
+                f"Lock acquisition failed for users {sorted_ids} ({_caller_context()}): {e}"
+            )
             raise LockAcquisitionError(
                 f"One or more users are currently being modified by another request"
             ) from e

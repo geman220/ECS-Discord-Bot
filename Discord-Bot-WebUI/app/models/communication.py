@@ -64,7 +64,7 @@ class ScheduledMessage(db.Model):
     """Model representing a scheduled message for a match."""
     __tablename__ = 'scheduled_message'
     id = db.Column(db.Integer, primary_key=True)
-    match_id = db.Column(db.Integer, db.ForeignKey('matches.id'), nullable=True)  # Made nullable for ECS FC
+    match_id = db.Column(db.Integer, db.ForeignKey('matches.id', ondelete='CASCADE'), nullable=True)  # Nullable for ECS FC; CASCADE so match deletion can't orphan this row
     scheduled_send_time = db.Column(db.DateTime, nullable=False)
     status = db.Column(db.String(20), default='PENDING')
     home_channel_id = db.Column(db.String(20), nullable=True)

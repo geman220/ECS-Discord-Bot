@@ -31,7 +31,6 @@ from app.tasks.tasks_rsvp import (
     update_rsvp,
     force_discord_rsvp_sync
 )
-from app.tasks.tasks_match_updates import fetch_match_and_team_id_task
 from app.availability_api_helpers import (
     validate_date,
     validate_time,
@@ -850,123 +849,53 @@ def get_match_and_team_id_from_message():
                 'error': 'Missing required parameters'
             }), 400
 
-        # Try direct database query first as a fallback if the queue is overloaded
-        try:
-            # Quick synchronous check first to avoid queueing if possible
-            from app.models import ScheduledMessage
-            from sqlalchemy import or_
-            
-            with managed_session() as session_db:
-                logger.debug(f"🔵 [AVAILABILITY_API] Trying direct query for message_id {message_id}, channel_id {channel_id}")
-                scheduled_msg = session_db.query(ScheduledMessage).filter(
-                    or_(
-                        (ScheduledMessage.home_channel_id == channel_id) & (ScheduledMessage.home_message_id == message_id),
-                        (ScheduledMessage.away_channel_id == channel_id) & (ScheduledMessage.away_message_id == message_id)
-                    )
-                ).first()
-                
-                if scheduled_msg:
-                    # Found in direct query - return immediately without using Celery
-                    if scheduled_msg.home_channel_id == channel_id and scheduled_msg.home_message_id == message_id:
-                        team_id = scheduled_msg.match.home_team_id
-                    else:
-                        team_id = scheduled_msg.match.away_team_id
-                    
-                    logger.info(f"🟢 [AVAILABILITY_API] Found match via direct query: match_id={scheduled_msg.match_id}, team_id={team_id}")
-                    return jsonify({
-                        'status': 'success',
-                        'data': {
-                            'match_id': scheduled_msg.match_id,
-                            'team_id': team_id
-                        }
-                    }), 200
-        except Exception as e:
-            logger.warning(f"🟡 [AVAILABILITY_API] Direct query failed, falling back to Celery task: {e}")
-        
-        # Use a lower priority queue to avoid blocking other critical tasks
-        task = fetch_match_and_team_id_task.apply_async(
-            args=[message_id, channel_id],  # Pass as positional args, not kwargs
-            queue='discord',  # Use discord queue which should have proper worker allocation
-            priority=5,  # Lower priority to avoid blocking critical tasks
-            expires=25  # Task expires after 25 seconds
-        )
+        # Direct synchronous lookup. If no matching ScheduledMessage exists we
+        # return 404 immediately rather than falling back to a Celery task; a
+        # blocking task.get() here holds a web worker (and its DB connection)
+        # long enough to starve the pool when orphaned messages are retried.
+        from app.models import ScheduledMessage
+        from sqlalchemy import or_
 
-        try:
-            # Reduce timeout to 10 seconds to fail faster and avoid connection pool exhaustion
-            result = task.get(timeout=10)
-            logger.debug(f"Task result received: {result}")
+        with managed_session() as session_db:
+            logger.debug(f"🔵 [AVAILABILITY_API] Direct query for message_id {message_id}, channel_id {channel_id}")
+            scheduled_msg = session_db.query(ScheduledMessage).filter(
+                or_(
+                    (ScheduledMessage.home_channel_id == channel_id) & (ScheduledMessage.home_message_id == message_id),
+                    (ScheduledMessage.away_channel_id == channel_id) & (ScheduledMessage.away_message_id == message_id)
+                )
+            ).first()
 
-            if not isinstance(result, dict):
-                logger.error(f"Unexpected result format: {result}")
+            if not scheduled_msg:
+                logger.debug(f"Message not tracked: message_id={message_id}, channel_id={channel_id}")
                 return jsonify({
                     'status': 'error',
-                    'error': 'Invalid result format'
-                }), 500
+                    'error': 'Message not tracked'
+                }), 404
 
-            # Check for 'success' key as per fetch_match_and_team_id_task implementation
-            if 'success' in result:
-                if result['success']:
-                    # Format the response to match API expectations
-                    response = {
-                        'status': 'success',
-                        'data': {
-                            'match_id': result.get('match_id'),
-                            'team_id': result.get('team_id')
-                        }
-                    }
-                    return jsonify(response), 200
-                else:
-                    error_msg = result.get('message', 'Unknown error')
-                    if 'not found' in error_msg.lower():
-                        logger.debug(f"Message not tracked: {error_msg}")
-                    else:
-                        logger.error(f"Task returned error: {error_msg}")
+            # Orphaned ScheduledMessage whose match has been deleted.
+            if scheduled_msg.match is None:
+                logger.warning(
+                    f"Orphaned ScheduledMessage {scheduled_msg.id} (match_id={scheduled_msg.match_id}) "
+                    f"referenced by message_id={message_id}, channel_id={channel_id}"
+                )
+                return jsonify({
+                    'status': 'error',
+                    'error': 'Message not tracked'
+                }), 404
 
-                    response = {
-                        'status': 'error',
-                        'error': error_msg
-                    }
-
-                    if 'not found' in error_msg.lower():
-                        return jsonify(response), 404
-                    else:
-                        return jsonify(response), 500
+            if scheduled_msg.home_channel_id == channel_id and scheduled_msg.home_message_id == message_id:
+                team_id = scheduled_msg.match.home_team_id
             else:
-                # Legacy format check (status key)
-                status = result.get('status')
-                if status == 'success':
-                    data = result.get('data')
-                    if not data:
-                        logger.error("No data in success response")
-                        return jsonify({
-                            'status': 'error',
-                            'error': 'No data in response'
-                        }), 500
-                    return jsonify(result), 200
-                elif status == 'error':
-                    error_msg = result.get('message', 'Unknown error')
-                    if 'not found' in error_msg.lower():
-                        logger.debug(f"Message not tracked: {error_msg}")
-                    else:
-                        logger.error(f"Task returned error: {error_msg}")
-                    if 'not found' in error_msg.lower():
-                        return jsonify(result), 404
-                    else:
-                        return jsonify(result), 500
-                else:
-                    logger.error(f"Unknown status in result: {status}")
-                    return jsonify({
-                        'status': 'error', 
-                        'error': 'Unknown response status'
-                    }), 500
+                team_id = scheduled_msg.match.away_team_id
 
-        except TimeoutError:
-            logger.error("Task timed out")
-            _record_failure('get_match_and_team_id_from_message')
+            logger.info(f"🟢 [AVAILABILITY_API] Found match via direct query: match_id={scheduled_msg.match_id}, team_id={team_id}")
             return jsonify({
-                'status': 'error',
-                'error': 'Task timed out'
-            }), 504
+                'status': 'success',
+                'data': {
+                    'match_id': scheduled_msg.match_id,
+                    'team_id': team_id
+                }
+            }), 200
 
     except Exception as e:
         error_msg = (f"Failed to process request for message_id: {request.args.get('message_id')}, "
