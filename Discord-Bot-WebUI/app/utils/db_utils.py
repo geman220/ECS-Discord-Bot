@@ -50,7 +50,12 @@ def is_retryable_error(exception):
 
 
 def _safe_rollback():
-    """Safely rollback both session patterns without raising exceptions."""
+    """Safely rollback both session patterns without raising exceptions.
+
+    Also drops any request-scoped deferred work (Discord syncs, audit logs,
+    cache clears) so a retried or failed transaction doesn't dispatch side
+    effects for state that was rolled back.
+    """
     if hasattr(g, 'db_session') and g.db_session:
         try:
             g.db_session.rollback()
@@ -60,6 +65,23 @@ def _safe_rollback():
         db.session.rollback()
     except Exception:
         pass  # Session may already be invalidated
+
+    # Drop deferred work so a retry doesn't double-dispatch.
+    try:
+        from app.utils.deferred_discord import clear_deferred_discord
+        clear_deferred_discord()
+    except Exception:
+        pass
+    try:
+        if hasattr(g, '_deferred_audit_logs'):
+            g._deferred_audit_logs.clear()
+    except Exception:
+        pass
+    try:
+        from app.utils.deferred_cache import clear_deferred_cache
+        clear_deferred_cache()
+    except Exception:
+        pass
 
 
 def _invalidate_connection_if_needed(exception):

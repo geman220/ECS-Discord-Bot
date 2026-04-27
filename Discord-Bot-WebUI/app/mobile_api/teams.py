@@ -573,7 +573,9 @@ def get_my_teams():
             return jsonify({"msg": "Player not found"}), 404
 
         # Query all teams for this player using the player_teams association table
-        teams_query = session_db.query(Team).join(player_teams).filter(
+        teams_query = session_db.query(Team).options(
+            joinedload(Team.league)
+        ).join(player_teams).filter(
             player_teams.c.player_id == player.id
         )
 
@@ -592,6 +594,7 @@ def get_my_teams():
 
         for team in teams:
             team_data = team.to_dict()
+            team_data['league_name'] = team.league.name if team.league else None
 
             # Add is_primary flag
             team_data['is_primary'] = (team.id == player.primary_team_id)

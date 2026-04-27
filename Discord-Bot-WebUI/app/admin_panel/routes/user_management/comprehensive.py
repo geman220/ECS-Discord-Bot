@@ -28,7 +28,8 @@ from app.models.ecs_fc import is_ecs_fc_team
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
-from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal, execute_deferred_discord, clear_deferred_discord, DeferredDiscordQueue
+from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal
+from app.utils.deferred_cache import defer_clear_league_cache
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 
 logger = logging.getLogger(__name__)
@@ -785,8 +786,8 @@ def edit_user_comprehensive(user_id):
                 if new_league:
                     leagues_to_clear.add(new_league.name.lower())
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
+        # Discord sync dispatches automatically after the @transactional
+        # decorator commits, via after_this_request.
 
         # Emit socket events to update draft pages in real-time
         if draft_socket_events:
@@ -812,13 +813,9 @@ def edit_user_comprehensive(user_id):
             if db_name:
                 all_leagues_to_clear.add(db_name)
         if all_leagues_to_clear:
-            try:
-                from app.draft_cache_service import DraftCacheService
-                for league_name in all_leagues_to_clear:
-                    DraftCacheService.clear_all_league_caches(league_name)
-                logger.info(f"Cleared draft caches for {all_leagues_to_clear} after editing user {user_id}")
-            except Exception as e:
-                logger.warning(f"Could not clear draft cache: {e}")
+            for league_name in all_leagues_to_clear:
+                defer_clear_league_cache(league_name)
+            logger.info(f"Queued draft cache clear for {all_leagues_to_clear} after editing user {user_id}")
 
         print(f"[EDIT_USER] === SUCCESS === Returning JSON success for user {updated_username}", flush=True)
         return jsonify({
@@ -827,7 +824,6 @@ def edit_user_comprehensive(user_id):
         })
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         # CRITICAL: Rollback the aborted transaction BEFORE returning.
         # PostgreSQL aborts the entire transaction after a FOR UPDATE NOWAIT failure.
         # If we don't rollback here, @transactional's commit() will fail on the
@@ -841,7 +837,6 @@ def edit_user_comprehensive(user_id):
         }), 409
 
     except Exception as e:
-        clear_deferred_discord()
         # CRITICAL: Rollback to undo any partial changes and clear error state.
         # Without this, @transactional's commit() would either commit partial
         # changes (data integrity bug) or fail on an aborted transaction.
@@ -896,13 +891,9 @@ def approve_user_comprehensive(user_id):
 
             username = user.username
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
-
         return jsonify({'success': True, 'message': f'User {username} approved successfully'})
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -949,13 +940,9 @@ def deactivate_user_comprehensive(user_id):
 
             username = user.username
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
-
         return jsonify({'success': True, 'message': f'User {username} deactivated successfully'})
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -1009,22 +996,14 @@ def activate_user_comprehensive(user_id):
 
             username = user.username
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
-
-        # Invalidate draft cache so player appears immediately
-        if league_name_for_cache:
-            try:
-                from app.draft_cache_service import DraftCacheService
-                DraftCacheService.clear_all_league_caches(league_name_for_cache.lower())
-                logger.info(f"Cleared draft cache for {league_name_for_cache} after activating user {user_id}")
-            except Exception as e:
-                logger.warning(f"Could not clear draft cache: {e}")
+            # Invalidate draft cache so player appears immediately. Deferred
+            # until after commit so Redis I/O doesn't extend the user lock.
+            if league_name_for_cache:
+                defer_clear_league_cache(league_name_for_cache.lower())
 
         return jsonify({'success': True, 'message': f'User {username} activated successfully'})
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         db.session.rollback()
         return jsonify({
             'success': False,
@@ -1329,15 +1308,10 @@ def repair_season_assignments():
 
         db.session.commit()
 
-        # Clear all draft caches after bulk repair
-        try:
-            from app.draft_cache_service import DraftCacheService
-            DraftCacheService.clear_all_league_caches('classic')
-            DraftCacheService.clear_all_league_caches('premier')
-            DraftCacheService.clear_all_league_caches('ecs fc')
-            logger.info("Cleared all draft caches after season assignment repair")
-        except Exception as e:
-            logger.warning(f"Could not clear draft caches: {e}")
+        # Clear all draft caches after bulk repair (deferred until after commit)
+        defer_clear_league_cache('classic')
+        defer_clear_league_cache('premier')
+        defer_clear_league_cache('ecs fc')
 
         # Log the admin action
         AdminAuditLog.log_action(

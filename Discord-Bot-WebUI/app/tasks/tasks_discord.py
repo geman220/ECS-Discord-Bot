@@ -1503,30 +1503,35 @@ def cleanup_team_discord_resources_task(self, session, team_id: int):
         Retries the task on error.
     """
     try:
-        team = session.query(Team).with_for_update().get(team_id)
+        # Read the IDs without holding a row lock — Discord HTTP calls below
+        # would otherwise extend the transaction past idle_in_transaction_session_timeout.
+        team = session.query(Team).get(team_id)
         if not team:
             return {'success': False, 'message': 'Team not found'}
-        
+
         channel_id = team.discord_channel_id
         role_id = team.discord_player_role_id
-        
-        # Use synchronous Discord client
+
+        # End the read transaction before the network calls so no lock is held.
+        session.commit()
+
         from app.utils.sync_discord_client import get_sync_discord_client
         discord_client = get_sync_discord_client()
-        
-        if channel_id:
-            result = discord_client.delete_channel(channel_id)
-            if result.get('success', False):
-                team.discord_channel_id = None
+
+        channel_deleted = bool(channel_id) and discord_client.delete_channel(channel_id).get('success', False)
+        role_deleted = bool(role_id) and discord_client.delete_role(role_id).get('success', False)
+
+        # Brief locked write to clear the IDs we successfully deleted.
+        if channel_deleted or role_deleted:
+            team = session.query(Team).with_for_update().get(team_id)
+            if team:
+                if channel_deleted:
+                    team.discord_channel_id = None
+                if role_deleted:
+                    team.discord_player_role_id = None
                 session.flush()
-        
-        if role_id:
-            result = discord_client.delete_role(role_id)
-            if result.get('success', False):
-                team.discord_player_role_id = None
-                session.flush()
-        
-        # Commit happens automatically in @celery_task decorator
+
+        # Final commit happens in @celery_task decorator.
         return {'success': True, 'message': 'Discord resources cleaned up'}
             
     except Exception as e:

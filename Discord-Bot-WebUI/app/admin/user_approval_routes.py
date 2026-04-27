@@ -18,7 +18,7 @@ from flask_login import login_required
 from app.models import User, Role, Player, League, Season
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
-from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal, execute_deferred_discord, clear_deferred_discord
+from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal
 from app.decorators import role_required
 from app.admin.blueprint import admin_bp
 from app.utils.user_helpers import safe_current_user
@@ -41,12 +41,16 @@ def test_onboarding():
 @admin_bp.route('/admin/ux-test-flow', methods=['GET', 'POST'])
 @login_required
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
 def ux_test_flow():
     """
     Complete Onboarding UX Test - Test the entire new user journey.
     Uses the current user's account with reset capability to simulate new user states.
     Combines UI page links with Discord bot interaction testing.
+
+    NOTE: Intentionally NOT wrapped in @transactional. This route mixes DB
+    writes with synchronous HTTP calls to other services (10–30s timeouts),
+    and a wrapping transaction would extend past idle_in_transaction_session_timeout.
+    DB writes via g.db_session are committed by the request teardown handler.
     """
     import requests
     from datetime import datetime
@@ -427,13 +431,9 @@ def approve_user(user_id: int):
                 'approved_at': user.approved_at.isoformat()
             }
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
-
         return jsonify(response_data)
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         # Likely a concurrent submission (e.g. double-click). If the other
         # request already approved the user, return success idempotently so
         # the client doesn't see a spurious error for a completed action.
@@ -456,7 +456,6 @@ def approve_user(user_id: int):
         }), 409
 
     except Exception as e:
-        clear_deferred_discord()
         logger.error(f"Error approving user {user_id}: {str(e)}")
         db_session.rollback()
         return jsonify({'success': False, 'message': 'Error processing approval'}), 500
@@ -517,13 +516,9 @@ def deny_user(user_id: int):
                 'denied_at': user.approved_at.isoformat()
             }
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
-
         return jsonify(response_data)
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         db_session.rollback()
         existing = db_session.query(User).filter_by(id=user_id).first()
         if existing and existing.approval_status == 'denied':
@@ -542,7 +537,6 @@ def deny_user(user_id: int):
         }), 409
 
     except Exception as e:
-        clear_deferred_discord()
         logger.error(f"Error denying user {user_id}: {str(e)}")
         db_session.rollback()
         return jsonify({'success': False, 'message': 'Error processing denial'}), 500

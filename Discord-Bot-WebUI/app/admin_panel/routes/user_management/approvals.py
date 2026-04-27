@@ -25,7 +25,8 @@ from app.models.ecs_fc import is_ecs_fc_team
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError, UserNotFoundError
-from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal, execute_deferred_discord, clear_deferred_discord
+from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal
+from app.utils.deferred_cache import defer_clear_league_cache
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.utils.user_helpers import safe_current_user
 
@@ -256,12 +257,10 @@ def approve_user(user_id: int):
                         user.player.is_current_player = True
                         logger.info(f"Assigned player {user.player.id} to current season league {current_league.id} ({league_name})")
 
-                        # Clear draft cache so player appears immediately
-                        try:
-                            from app.draft_cache_service import DraftCacheService
-                            DraftCacheService.clear_all_league_caches(league_name.lower())
-                        except Exception as e:
-                            logger.warning(f"Could not clear draft cache: {e}")
+                        # Clear draft cache so player appears immediately.
+                        # Deferred until after commit so Redis I/O doesn't
+                        # extend the user row lock.
+                        defer_clear_league_cache(league_name.lower())
                     else:
                         logger.warning(f"Could not find current season league for type '{league_type}'")
 
@@ -297,13 +296,11 @@ def approve_user(user_id: int):
                 'approved_at': user.approved_at.isoformat()
             }
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
-
+        # Discord sync and cache clears dispatch automatically after the
+        # @transactional decorator commits, via after_this_request hooks.
         return jsonify(response_data)
 
     except UserNotFoundError:
-        clear_deferred_discord()
         logger.warning(f"User {user_id} not found during processing")
         return jsonify({
             'success': False,
@@ -311,7 +308,6 @@ def approve_user(user_id: int):
         }), 404
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         # Likely a concurrent submission (e.g. double-click). If the other
         # request already approved the user, return success idempotently so
         # the client doesn't see a spurious error for a completed action.
@@ -334,7 +330,6 @@ def approve_user(user_id: int):
         }), 409
 
     except Exception as e:
-        clear_deferred_discord()
         logger.error(f"Error approving user {user_id}: {str(e)}")
         return jsonify({'success': False, 'message': 'Error processing approval'}), 500
 
@@ -406,13 +401,11 @@ def deny_user(user_id: int):
                 'denied_at': user.approved_at.isoformat()
             }
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
-
+        # Discord removal dispatches automatically after the @transactional
+        # decorator commits, via after_this_request.
         return jsonify(response_data)
 
     except UserNotFoundError:
-        clear_deferred_discord()
         logger.warning(f"User {user_id} not found during processing")
         return jsonify({
             'success': False,
@@ -420,7 +413,6 @@ def deny_user(user_id: int):
         }), 404
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         db.session.rollback()
         existing = db.session.query(User).filter_by(id=user_id).first()
         if existing and existing.approval_status == 'denied':
@@ -439,7 +431,6 @@ def deny_user(user_id: int):
         }), 409
 
     except Exception as e:
-        clear_deferred_discord()
         logger.error(f"Error denying user {user_id}: {str(e)}")
         return jsonify({'success': False, 'message': 'Error processing denial'}), 500
 

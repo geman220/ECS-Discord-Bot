@@ -540,10 +540,14 @@ def admin_retry_contact(user_id: int):
 
 @discord_onboarding.route('/admin/test-onboarding', methods=['GET', 'POST'])
 @role_required(['Global Admin', 'Pub League Admin'])
-@transactional
 def admin_test_onboarding():
     """
     Admin interface to test the onboarding flow step by step.
+
+    NOTE: Intentionally NOT wrapped in @transactional. This route mixes DB
+    writes with synchronous HTTP calls to other services (10–30s timeouts);
+    a wrapping transaction would risk idle_in_transaction_session_timeout.
+    DB writes via g.db_session are committed by the request teardown handler.
     """
     # Get current user's Discord ID safely
     current_user = safe_current_user

@@ -23,7 +23,7 @@ from app.models.core import User, Role, Permission
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
-from app.utils.deferred_discord import defer_discord_sync, execute_deferred_discord, clear_deferred_discord
+from app.utils.deferred_discord import defer_discord_sync
 from app.tasks.tasks_discord import assign_roles_to_player_task
 from app.services.discord_role_sync_service import sync_role_assignment, sync_role_removal
 
@@ -229,14 +229,10 @@ def assign_user_roles():
 
             username = user.name or user.username
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
-
         flash(f'Roles assigned to "{username}" successfully', 'success')
         return redirect(url_for('admin_panel.roles_comprehensive'))
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         flash('User is currently being modified by another request. Please try again.', 'error')
         return redirect(url_for('admin_panel.roles_comprehensive'))
 
@@ -436,20 +432,15 @@ def assign_user_role():
                 user_agent=request.headers.get('User-Agent')
             )
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
-
         return jsonify({'success': True, 'message': message})
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         return jsonify({
             'success': False,
             'message': 'User is currently being modified by another request. Please try again.'
         }), 409
 
     except Exception as e:
-        clear_deferred_discord()
         logger.error(f"Error assigning user role: {e}")
         return jsonify({'success': False, 'message': 'Error updating user role'})
 

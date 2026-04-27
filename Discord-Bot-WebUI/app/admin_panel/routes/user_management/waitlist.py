@@ -25,7 +25,7 @@ from app.models.core import User, Role
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.utils.user_locking import lock_user_for_role_update, LockAcquisitionError
-from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal, execute_deferred_discord, clear_deferred_discord
+from app.utils.deferred_discord import defer_discord_sync, defer_discord_removal
 from app.tasks.tasks_discord import assign_roles_to_player_task, remove_player_roles_task
 from app.utils.user_helpers import safe_current_user
 from app.admin_panel.routes.user_management.helpers import (
@@ -177,9 +177,6 @@ def remove_from_waitlist(user_id: int):
 
             username = user.username
 
-        # Execute deferred Discord operations AFTER transaction commits
-        execute_deferred_discord()
-
         return jsonify({
             'success': True,
             'message': f'User {username} removed from waitlist successfully',
@@ -187,7 +184,6 @@ def remove_from_waitlist(user_id: int):
         })
 
     except LockAcquisitionError:
-        clear_deferred_discord()
         logger.warning(f"Lock acquisition failed for user {user_id} during waitlist removal")
         return jsonify({
             'success': False,
@@ -195,7 +191,6 @@ def remove_from_waitlist(user_id: int):
         }), 409
 
     except Exception as e:
-        clear_deferred_discord()
         logger.error(f"Error removing user {user_id} from waitlist: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': 'Failed to remove user from waitlist'}), 500
 
