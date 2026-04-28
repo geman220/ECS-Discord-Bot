@@ -78,6 +78,10 @@ from .live_reporting_session import (
     LiveReportingSession
 )
 
+from .live_activity import (
+    LiveActivityToken
+)
+
 from .scheduled_task import (
     ScheduledTask, TaskType, TaskState
 )

@@ -49,6 +49,79 @@ def is_coach_for_match(session, player_id: int, match: Match) -> bool:
     return len(coach_check) > 0
 
 
+def _user_team_for_match(session, match: Match, user_id: int):
+    """
+    Resolve which side of `match` the given user plays/coaches for.
+
+    Returns the team_id (home or away) the user belongs to, or None if the
+    user is on neither team (typically admins/refs editing on behalf).
+    """
+    player = session.query(Player).filter_by(user_id=user_id).first()
+    if not player:
+        return None
+    user_team_ids = {t.id for t in player.teams}
+    if match.home_team_id in user_team_ids:
+        return match.home_team_id
+    if match.away_team_id in user_team_ids:
+        return match.away_team_id
+    return None
+
+
+def _emit_live_match_event(match_id: int, event_name: str, payload: dict) -> None:
+    """
+    Emit an event to the /live match room. Best-effort — logs and swallows on
+    any error so a transient socket issue never aborts a write request.
+
+    Only emits if a LiveMatchState exists for this match in Redis (i.e. coaches
+    are actively reporting). Avoids broadcasting to empty rooms.
+    """
+    try:
+        from app.services.live_reporting import redis_state
+        if redis_state.load_state('pub', int(match_id)) is None:
+            return
+        from app.core import socketio as _socketio
+        _socketio.emit(
+            event_name,
+            payload,
+            room=f"match_{int(match_id)}",
+            namespace='/live',
+        )
+    except Exception:
+        logger.exception(f"Failed to emit '{event_name}' for match {match_id}")
+
+
+def _on_match_modified(session, match: Match, current_user_id: int) -> bool:
+    """
+    Run the post-mutation bookkeeping for a write to a reported match.
+
+    1. Calls match.reset_verification() — if it returns False (nothing was
+       verified to begin with), skip the rest and return False.
+    2. Stamps reported_at = now and reported_by_team_id = user's team for this match.
+    3. Broadcasts 'match_verification_reset' to coaches in the /live room so
+       their UI flips back to "awaiting verification" without waiting for a
+       refresh.
+
+    Returns True if reset_verification fired, mirroring the legacy contract so
+    callers can keep their existing if-checks.
+    """
+    if not match.reset_verification():
+        return False
+    match.reported_at = datetime.utcnow()
+    match.reported_by_team_id = _user_team_for_match(session, match, current_user_id)
+    _emit_live_match_event(
+        match.id,
+        'match_verification_reset',
+        {
+            'match_id': match.id,
+            'league_type': 'pub',
+            'reported_at': match.reported_at.isoformat() if match.reported_at else None,
+            'reported_by_team_id': match.reported_by_team_id,
+            'reset_by_user_id': current_user_id,
+        },
+    )
+    return True
+
+
 def can_report_match(session, user: User, player: Player, match: Match) -> bool:
     """
     Check if a user has permission to report/edit a match.
@@ -546,7 +619,7 @@ def add_match_event(match_id: int):
                 # Continue - event is still valid even if stats update fails
 
         # Adding an event mutates the match — restart the two-coach handshake.
-        if match.reset_verification():
+        if _on_match_modified(session, match, current_user_id):
             logger.info(f"Match {match_id} verification reset due to new event")
 
         session.commit()
@@ -682,7 +755,7 @@ def update_match_event(match_id: int, event_id: int):
             logger.exception(f"Failed to mirror PlayerEvent edit onto MatchEvent for match {match_id}")
 
         # Editing an event mutates the match — restart the two-coach handshake.
-        if match.reset_verification():
+        if _on_match_modified(session, match, current_user_id):
             logger.info(f"Match {match_id} verification reset due to event update")
 
         session.commit()
@@ -832,7 +905,7 @@ def delete_match_event(match_id: int, event_id: int):
         session.delete(event)
 
         # Deleting an event mutates the match — restart the two-coach handshake.
-        if match.reset_verification():
+        if _on_match_modified(session, match, current_user_id):
             logger.info(f"Match {match_id} verification reset due to event deletion")
 
         session.commit()
@@ -947,7 +1020,7 @@ def report_match(match_id: int):
         score_changed = (old_home_score != home_score) or (old_away_score != away_score)
         notes_changed = bool(notes) and notes != old_notes
         if score_changed or notes_changed or events_data:
-            if match.reset_verification():
+            if _on_match_modified(session, match, current_user_id):
                 logger.info(f"Match {match_id} verification reset due to report resubmission")
 
         # Handle verification if requested
@@ -1158,7 +1231,7 @@ def update_match_score(match_id: int):
         # Only restart the two-coach handshake if scores actually moved.
         # A no-op resubmission shouldn't punish coaches who already verified.
         if score_changed:
-            if match.reset_verification():
+            if _on_match_modified(session, match, current_user_id):
                 logger.info(f"Match {match_id} verification reset due to score change")
 
         session.commit()
@@ -1354,7 +1427,7 @@ def resolve_event_conflict(match_id: int):
                     logger.error(f"Failed to update player stats in resolve_conflict: {e}")
 
             # Force-creating an event mutates the match — restart the two-coach handshake.
-            if match.reset_verification():
+            if _on_match_modified(session, match, current_user_id):
                 logger.info(f"Match {match_id} verification reset due to force-created event")
 
             session.commit()
@@ -1471,6 +1544,25 @@ def verify_match(match_id: int):
                 logger.info(f"Away team verified for match {match_id} by user {current_user_id}")
 
         session.commit()
+
+        # Real-time fan-out: tell coaches in the /live room which side(s) just
+        # verified so their UI flips without needing a refresh.
+        if newly_verified:
+            _emit_live_match_event(
+                match.id,
+                'match_verified',
+                {
+                    'match_id': match.id,
+                    'league_type': 'pub',
+                    'verified_sides': sorted(newly_verified),
+                    'home_team_verified': match.home_team_verified,
+                    'away_team_verified': match.away_team_verified,
+                    'fully_verified': match.fully_verified,
+                    'home_team_verified_at': match.home_team_verified_at.isoformat() if match.home_team_verified_at else None,
+                    'away_team_verified_at': match.away_team_verified_at.isoformat() if match.away_team_verified_at else None,
+                    'verified_by_user_id': current_user_id,
+                },
+            )
 
         # Push the OTHER team's coaches if exactly one side was just verified.
         # If both were verified in this call (e.g. team='both' from an admin), the

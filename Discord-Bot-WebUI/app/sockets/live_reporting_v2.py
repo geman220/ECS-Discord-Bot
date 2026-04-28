@@ -587,6 +587,19 @@ def _broadcast_timer_update(
         include_self=include_self,
     )
 
+    # Live Activity fan-out: backgrounded iOS clients get the same state.
+    # State-change actions (start/pause/stop/reset/set_period) are high-pri.
+    try:
+        from app.services.live_activity import push_timer_update as _la_push_timer
+        _la_push_timer(
+            int(match_id),
+            league_type,
+            timer_proj,
+            state_changed=action in ('start', 'resume', 'pause', 'stop', 'reset', 'set_period'),
+        )
+    except Exception:
+        logger.exception(f"Live Activity timer push failed for match {match_id}")
+
 
 def on_update_timer(data):
     with socket_session(db.engine) as session:
@@ -791,6 +804,21 @@ def on_update_score(data):
             },
             room=_match_room(league_type, int(match_id)),
         )
+
+        # Live Activity score push.
+        try:
+            from app.services.live_activity import push_score_update as _la_push_score
+            home_tid, away_tid = _match_home_away_team_ids(league_type, match)
+            _la_push_score(
+                int(match_id),
+                league_type,
+                home_score,
+                away_score,
+                home_team_name=(_team_dict(session, home_tid) or {}).get('name'),
+                away_team_name=(_team_dict(session, away_tid) or {}).get('name'),
+            )
+        except Exception:
+            logger.exception(f"Live Activity score push failed for match {match_id}")
 
 
 # -----------------------------------------------------------------------------
@@ -1253,6 +1281,20 @@ def _handle_add_event_core(data, force: bool = False):
             room=_match_room(league_type, int(match_id)),
         )
 
+        # Live Activity event push (high priority — alert appears on lock screen).
+        try:
+            from app.services.live_activity import push_event as _la_push_event
+            _la_push_event(
+                int(match_id),
+                league_type,
+                event_type=event_out.get('event_type'),
+                minute=event_out.get('minute'),
+                player_name=event_out.get('player_name'),
+                team_name=event_out.get('team_name'),
+            )
+        except Exception:
+            logger.exception(f"Live Activity event push failed for match {match_id}")
+
         # Broadcast score_updated whenever the event triggered an auto-bump so
         # clients that don't synthesize score from event_added stay in sync.
         if score_bumped:
@@ -1271,6 +1313,21 @@ def _handle_add_event_core(data, force: bool = False):
                 },
                 room=_match_room(league_type, int(match_id)),
             )
+
+            # Auto-bump also fans out to Live Activity.
+            try:
+                from app.services.live_activity import push_score_update as _la_push_score
+                home_tid, away_tid = _match_home_away_team_ids(league_type, match)
+                _la_push_score(
+                    int(match_id),
+                    league_type,
+                    int(state.get('home_score') or 0),
+                    int(state.get('away_score') or 0),
+                    home_team_name=(_team_dict(session, home_tid) or {}).get('name'),
+                    away_team_name=(_team_dict(session, away_tid) or {}).get('name'),
+                )
+            except Exception:
+                logger.exception(f"Live Activity goal-bump score push failed for match {match_id}")
 
 
 def on_add_event(data):
@@ -1411,4 +1468,10 @@ def on_submit_report(data):
                 'submitted_by_name': result.get('submitted_by_name'),
             })
             return
-        # submit_helper already broadcast report_submitted; nothing more here.
+        # submit_helper already broadcast report_submitted; close out any iOS
+        # Live Activities for this match so they disappear from lock screens.
+        try:
+            from app.services.live_activity import end_activities as _la_end
+            _la_end(int(match_id), league_type, reason='submitted')
+        except Exception:
+            logger.exception(f"Live Activity end failed for match {match_id}")

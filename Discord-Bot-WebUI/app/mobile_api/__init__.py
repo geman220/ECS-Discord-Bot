@@ -32,6 +32,7 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
 - feedback: Feedback submission and management
 - app_config: App version/update configuration (unauthenticated)
 - onboarding: New-user onboarding (mirrors web /onboarding flow)
+- live_activity: iOS Live Activity push token register/unregister
 
 All endpoints are CSRF-exempt and use JWT authentication where required.
 """
@@ -82,6 +83,7 @@ def register_mobile_api_routes():
         app_config,
         telemetry,
         onboarding,
+        live_activity,
     )
 
 

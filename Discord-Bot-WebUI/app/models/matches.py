@@ -69,6 +69,14 @@ class Match(db.Model):
     away_team_verified = db.Column(db.Boolean, default=False)
     away_team_verified_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     away_team_verified_at = db.Column(db.DateTime, nullable=True)
+    # Most-recent-report audit. reported_at gets stamped whenever the match is
+    # modified post-report (and reset_verification fires); reported_by_team_id
+    # records which team's coach did that latest modification. Mobile uses this
+    # to render "Awaiting verification from <other_team> — N days" nudges.
+    reported_at = db.Column(db.DateTime, nullable=True)
+    reported_by_team_id = db.Column(db.Integer, db.ForeignKey('team.id', ondelete='SET NULL'), nullable=True)
+    # Set when admin reschedules date/time so mobile can warn coaches of orphaned reports.
+    rescheduled_at = db.Column(db.DateTime, nullable=True)
     
     # Optimistic locking for concurrent edit protection
     version = db.Column(db.Integer, default=1, nullable=False)
@@ -126,6 +134,9 @@ class Match(db.Model):
             ),
             'home_team_verified_at': self.home_team_verified_at.isoformat() if self.home_team_verified_at else None,
             'away_team_verified_at': self.away_team_verified_at.isoformat() if self.away_team_verified_at else None,
+            'reported_at': self.reported_at.isoformat() if self.reported_at else None,
+            'reported_by_team_id': self.reported_by_team_id,
+            'rescheduled_at': self.rescheduled_at.isoformat() if self.rescheduled_at else None,
             'week_type': self.week_type,
             'is_special_week': self.is_special_week,
             'is_playoff_game': self.is_playoff_game,

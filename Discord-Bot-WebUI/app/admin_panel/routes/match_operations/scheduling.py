@@ -336,11 +336,16 @@ def update_match_time():
 
     # Update date and time
     old_value = f'{match.date} {match.time}'
+    old_date, old_time = match.date, match.time
 
     if match_date:
         match.date = datetime.strptime(match_date, '%Y-%m-%d').date()
     if match_time:
         match.time = datetime.strptime(match_time, '%H:%M').time()
+
+    schedule_changed = (match.date != old_date) or (match.time != old_time)
+    if schedule_changed:
+        match.rescheduled_at = datetime.utcnow()
 
     # Update associated schedule if it exists
     if match.schedule_id:
@@ -361,6 +366,30 @@ def update_match_time():
         ip_address=request.remote_addr,
         user_agent=request.headers.get('User-Agent')
     )
+
+    # Emit a 'match_rescheduled' event so any coaches with the match open in
+    # mobile see the warning that a submitted report may now be orphaned by
+    # the schedule change. Best-effort — only fires if a /live room exists.
+    if schedule_changed:
+        try:
+            from app.services.live_reporting import redis_state
+            if redis_state.load_state('pub', int(match_id)) is not None:
+                from app.core import socketio as _socketio
+                _socketio.emit(
+                    'match_rescheduled',
+                    {
+                        'match_id': int(match_id),
+                        'league_type': 'pub',
+                        'rescheduled_at': match.rescheduled_at.isoformat(),
+                        'new_date': match.date.isoformat() if match.date else None,
+                        'new_time': match.time.isoformat() if match.time else None,
+                        'rescheduled_by_user_id': current_user.id,
+                    },
+                    room=f"match_{int(match_id)}",
+                    namespace='/live',
+                )
+        except Exception:
+            logger.exception(f"Failed to emit match_rescheduled for match {match_id}")
 
     return jsonify({
         'success': True,
