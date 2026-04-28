@@ -86,8 +86,7 @@ def exchange_discord_code(code: str, redirect_uri: str, code_verifier: str) -> D
             'code_verifier': code_verifier,
         }
         headers = {'Content-Type': 'application/x-www-form-urlencoded'}
-        
-        logger.debug(f"Sending token exchange request to Discord with data: {data}")
+
         response = requests.post('https://discord.com/api/oauth2/token', data=data, headers=headers)
         
         if not response.ok:
@@ -130,6 +129,11 @@ def process_discord_user(session, user_data: Dict) -> User:
     """
     Process Discord user data and create or update a local User record.
 
+    First-time creation mirrors the web `/register_with_discord` flow so that
+    mobile sign-ups land in the same gated state: pl-unverified role, sub
+    Player record, onboarding flags reset. Existing users are not modified
+    beyond linking a missing discord_id to their player.
+
     Args:
         session: The database session to use
         user_data (Dict): The user data obtained from Discord.
@@ -137,25 +141,68 @@ def process_discord_user(session, user_data: Dict) -> User:
     Returns:
         User: The created or updated User instance.
     """
-    email = user_data.get('email', '').lower()
-    discord_id = user_data.get('id')
-
-    # Try to find an existing user by email
+    from app.models import Role
     from app.utils.pii_encryption import create_hash
+
+    email = (user_data.get('email') or '').lower()
+    discord_id = user_data.get('id')
+    discord_username = user_data.get('username') or 'discord-user'
+
     email_hash = create_hash(email)
     user = session.query(User).filter(User.email_hash == email_hash).first()
+
     if not user:
+        # First-time Discord login. Match the web flow's gating: auto-approved
+        # with pending approval_status, pl-unverified role, onboarding required.
+        unverified_role = session.query(Role).filter_by(name='pl-unverified').first()
+        if not unverified_role:
+            unverified_role = Role(
+                name='pl-unverified',
+                description='Unverified player awaiting league approval',
+            )
+            session.add(unverified_role)
+            session.flush()
+
+        # Username mirrors the web cleanup (drop discriminator if old-style).
+        username = discord_username.split('#')[0] if '#' in discord_username else discord_username
+
         user = User(
             email=email,
-            username=user_data.get('username'),
-            is_approved=False
+            username=username,
+            is_approved=True,           # Discord-authenticated users are auto-approved
+            approval_status='pending',  # …but still need league approval
+            roles=[unverified_role],
+            has_completed_onboarding=False,
+            has_skipped_profile_creation=False,
+            has_completed_tour=False,
         )
+        # Random password — Discord OAuth is the auth method; password is just a placeholder.
+        import secrets as _secrets
+        import string as _string
+        user.set_password(''.join(_secrets.choice(_string.ascii_letters + _string.digits) for _ in range(16)))
         session.add(user)
+        session.flush()  # need user.id for the player FK
 
-    # If a player record exists but is missing the Discord ID, update it.
-    player = session.query(Player).filter_by(user_id=user.id).first()
-    if player and not player.discord_id:
-        player.discord_id = discord_id
+        # Create the linked sub Player. Onboarding will fill in the rest of
+        # the profile fields; until then the player exists in a minimal state
+        # so role-checks and Discord sync have something to bind to.
+        existing_player = session.query(Player).filter_by(discord_id=discord_id).first()
+        if not existing_player:
+            player = Player(
+                name=username,
+                user_id=user.id,
+                discord_id=discord_id,
+                is_current_player=True,
+                is_sub=True,
+            )
+            session.add(player)
+
+    else:
+        # Returning user — leave their account state alone, just backfill
+        # discord_id on the linked player if it's missing.
+        player = session.query(Player).filter_by(user_id=user.id).first()
+        if player and not player.discord_id:
+            player.discord_id = discord_id
 
     return user
 
@@ -182,6 +229,11 @@ def build_player_response(player: Player) -> Dict[str, Any]:
         'profile_picture_url': profile_picture,
         'team_name': player.primary_team.name if player.primary_team else None,
         'league_name': player.league.name if player.league else None,
+        # iSpy opt-out is exposed so mobile can disable the "tag this player"
+        # CTA at the UI level. DOB is intentionally NOT exposed here — the age
+        # gate is enforced server-side at submit time, and other users don't
+        # need to see anyone's birthdate.
+        'ispy_opt_out': player.ispy_opt_out,
     }
 
 

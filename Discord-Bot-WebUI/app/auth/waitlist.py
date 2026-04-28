@@ -22,7 +22,7 @@ from app.alert_helpers import show_error, show_warning, show_success, show_info
 from app.models import User, Role, Player
 from app.utils.db_utils import transactional
 from app.utils.user_helpers import safe_current_user
-from app.utils.log_sanitizer import get_safe_session_keys
+from app.utils.log_sanitizer import get_safe_session_keys, mask_code
 from app.auth_helpers import update_last_login
 from app.players_helpers import save_cropped_profile_picture
 from app.duplicate_prevention import (
@@ -669,15 +669,15 @@ def _update_player_profile(db_session, user, discord_id, discord_email, discord_
             if quick_profile and quick_profile.is_valid():
                 # Claim the profile - this merges data into the player
                 quick_profile.claim(player)
-                logger.info(f"Player {player.id} claimed quick profile {quick_profile.id} with code {claim_code}")
+                logger.info(f"Player {player.id} claimed quick profile {quick_profile.id} with code {mask_code(claim_code)}")
                 # Clear the claim code from session
                 session.pop('pending_claim_code', None)
             else:
                 # Log invalid code but don't fail registration
-                logger.warning(f"Invalid or expired claim code '{claim_code}' during waitlist registration for player {player.id}")
+                logger.warning(f"Invalid or expired claim code '{mask_code(claim_code)}' during waitlist registration for player {player.id}")
         except Exception as claim_error:
             # Don't fail registration if claim code processing fails
-            logger.error(f"Error processing claim code '{claim_code}': {str(claim_error)}")
+            logger.error(f"Error processing claim code '{mask_code(claim_code)}': {str(claim_error)}")
 
 
 def _clear_waitlist_session():

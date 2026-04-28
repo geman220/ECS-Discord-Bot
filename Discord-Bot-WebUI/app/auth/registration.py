@@ -23,6 +23,7 @@ from app.models import User, Role, Player
 from app.forms import RegistrationForm
 from app.utils.db_utils import transactional
 from app.utils.user_helpers import safe_current_user
+from app.utils.log_sanitizer import mask_code
 
 logger = logging.getLogger(__name__)
 
@@ -191,13 +192,13 @@ def register_with_discord():
                 if quick_profile and quick_profile.is_valid():
                     # Claim the profile - this merges data into the player
                     quick_profile.claim(player)
-                    logger.info(f"Player {player.id} claimed quick profile {quick_profile.id} with code {claim_code}")
+                    logger.info(f"Player {player.id} claimed quick profile {quick_profile.id} with code {mask_code(claim_code)}")
                 else:
                     # Log invalid code but don't fail registration
-                    logger.warning(f"Invalid or expired claim code '{claim_code}' during registration for player {player.id}")
+                    logger.warning(f"Invalid or expired claim code '{mask_code(claim_code)}' during registration for player {player.id}")
             except Exception as claim_error:
                 # Don't fail registration if claim code processing fails
-                logger.error(f"Error processing claim code '{claim_code}': {str(claim_error)}")
+                logger.error(f"Error processing claim code '{mask_code(claim_code)}': {str(claim_error)}")
 
         # Log in the user
         login_user(new_user)

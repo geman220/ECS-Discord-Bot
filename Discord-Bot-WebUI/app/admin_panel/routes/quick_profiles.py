@@ -31,6 +31,7 @@ from app.models.admin_config import AdminAuditLog
 from app.decorators import role_required
 from app.utils.db_utils import transactional
 from app.players_helpers import save_quick_profile_picture
+from app.utils.log_sanitizer import mask_code
 
 logger = logging.getLogger(__name__)
 
@@ -258,7 +259,7 @@ def create_quick_profile():
             new_value=str({'player_name': player_name, 'claim_code': profile.claim_code}),
         )
 
-        logger.info(f"Quick profile {profile.id} created by {current_user.username} with code {profile.claim_code}")
+        logger.info(f"Quick profile {profile.id} created by {current_user.username} with code {mask_code(profile.claim_code)}")
 
         return jsonify({
             'success': True,

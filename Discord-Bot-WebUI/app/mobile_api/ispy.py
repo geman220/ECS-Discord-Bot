@@ -16,6 +16,7 @@ import base64
 import os
 import aiohttp
 import asyncio
+from datetime import datetime, timedelta
 
 from flask import jsonify, request, g
 from sqlalchemy import or_
@@ -38,6 +39,8 @@ from app.ispy_helpers import (
     get_active_season,
     get_category_by_key,
     calculate_image_hash,
+    strip_image_exif,
+    check_ispy_consent_blockers,
 )
 
 logger = logging.getLogger(__name__)
@@ -404,11 +407,13 @@ def ispy_search_targets():
             if not current_season:
                 return jsonify({'error': 'No active Pub League season'}), 404
 
-            # Base query: only players with discord_id (required for I-Spy)
+            # Base query: only players with discord_id (required for I-Spy),
+            # excluding anyone who has opted out of being tagged.
             query = session.query(Player).filter(
                 Player.discord_id.isnot(None),
                 Player.discord_id != '',
-                Player.is_current_player == True
+                Player.is_current_player == True,
+                Player.ispy_opt_out == False
             )
 
             # Filter by team if specified
@@ -473,10 +478,10 @@ def ispy_get_team_roster(team_id: int):
             if not team:
                 return jsonify({'error': 'Team not found'}), 404
 
-            # Filter to players with discord_id
+            # Filter to players with discord_id who haven't opted out
             roster = []
             for player in team.players:
-                if player.discord_id and player.is_current_player:
+                if player.discord_id and player.is_current_player and not player.ispy_opt_out:
                     roster.append({
                         'discord_id': player.discord_id,
                         'name': player.name,
@@ -603,7 +608,7 @@ async def _upload_image_to_discord(image_data: bytes, filename: str) -> dict:
         return {'success': False, 'error': str(e)}
 
 
-async def _notify_discord_ispy_submission(shot_data: dict) -> bool:
+async def _notify_discord_ispy_submission(shot_data: dict) -> dict:
     """
     Notify Discord channel about a new I-Spy submission.
 
@@ -611,7 +616,9 @@ async def _notify_discord_ispy_submission(shot_data: dict) -> bool:
         shot_data: Dict with shot details for the notification
 
     Returns:
-        True if notification sent successfully
+        Dict with `success`, and on success also `message_id` and `channel_id`
+        from the bot's reply so the caller can persist them on the shot row
+        for later deletion / removal flows.
     """
     try:
         timeout = aiohttp.ClientTimeout(total=15)
@@ -620,16 +627,21 @@ async def _notify_discord_ispy_submission(shot_data: dict) -> bool:
 
             async with session.post(url, json=shot_data) as response:
                 if response.status == 200:
+                    body = await response.json()
                     logger.info(f"Discord notification sent for I-Spy shot {shot_data.get('shot_id')}")
-                    return True
+                    return {
+                        'success': True,
+                        'message_id': body.get('message_id'),
+                        'channel_id': body.get('channel_id'),
+                    }
                 else:
                     error_text = await response.text()
                     logger.warning(f"Discord notification failed: {response.status} - {error_text}")
-                    return False
+                    return {'success': False}
 
     except Exception as e:
         logger.warning(f"Error sending Discord notification: {str(e)}")
-        return False
+        return {'success': False}
 
 
 @mobile_api_v2.route('/ispy/submit/mobile', methods=['POST'])
@@ -716,7 +728,32 @@ def ispy_submit_mobile():
                 image_data[:6] in (b'GIF87a', b'GIF89a')):  # GIF
             return jsonify({'error': 'Invalid image format. Supported: JPEG, PNG, GIF'}), 400
 
-        # Calculate image hash for validation
+        # Consent gate: minors and opted-out targets are blocked BEFORE we touch
+        # the image or hit Discord. Mirrors the mobile-side checks but is the
+        # authoritative enforcement point — the client UI is convenience only.
+        consent = check_ispy_consent_blockers(discord_id, targets)
+        if consent['minor_blocked']:
+            return jsonify({
+                'success': False,
+                'error_code': 'MINOR_PROTECTION',
+                'message': 'iSpy is unavailable when the submitter or any tagged player is under 18.',
+                'blockers': consent['minor_blockers'],
+            }), 403
+        if consent['opted_out_targets']:
+            return jsonify({
+                'success': False,
+                'error_code': 'TARGET_OPTED_OUT',
+                'message': 'One or more tagged players have opted out of being tagged in iSpy.',
+                'opted_out': consent['opted_out_targets'],
+            }), 400
+
+        # Strip EXIF metadata server-side before the image leaves the backend.
+        # GPS coords, camera serials, and capture timestamps don't belong on a
+        # public Discord post just because the submitter forgot to scrub them.
+        image_data = strip_image_exif(image_data)
+
+        # Calculate image hash for validation (post-EXIF-strip so dedup keys
+        # off the image content shipped, not the metadata-bearing original).
         image_hash = calculate_image_hash(image_data)
 
         # Validate submission (without image URL check - we'll get that from Discord)
@@ -791,15 +828,65 @@ def ispy_submit_mobile():
             'points_awarded': shot.total_points
         }
 
-        # Send notification asynchronously
+        # Send notification asynchronously and persist Discord coordinates so
+        # removal / deletion flows can target the original post.
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         try:
-            loop.run_until_complete(_notify_discord_ispy_submission(notification_data))
+            notify_result = loop.run_until_complete(_notify_discord_ispy_submission(notification_data))
         except Exception as e:
+            notify_result = {'success': False}
             logger.warning(f"Failed to send Discord notification: {e}")
         finally:
             loop.close()
+
+        if notify_result.get('success') and notify_result.get('message_id'):
+            try:
+                from app.models.ispy import ISpyShot
+                with managed_session() as session:
+                    persisted = session.query(ISpyShot).get(shot.id)
+                    if persisted:
+                        persisted.discord_message_id = notify_result['message_id']
+                        persisted.discord_channel_id = notify_result.get('channel_id')
+                        session.commit()
+            except Exception as e:
+                logger.warning(f"Failed to persist Discord coordinates for shot {shot.id}: {e}")
+
+        # Push-notify the tagged players that they've been spotted. Best-effort —
+        # Discord post + DB row are already committed, so notification failure
+        # must not roll back the submission.
+        try:
+            from app.services.notification_orchestrator import (
+                orchestrator, NotificationPayload, NotificationType,
+            )
+            with managed_session() as session:
+                tagged_user_ids = [
+                    row[0] for row in session.query(Player.user_id).filter(
+                        Player.discord_id.in_(validation['valid_target_discord_ids']),
+                        Player.user_id.isnot(None),
+                    ).all()
+                ]
+            if tagged_user_ids:
+                orchestrator.send(NotificationPayload(
+                    notification_type=NotificationType.ISPY_SPOTTED,
+                    title="You've been spotted in iSpy",
+                    message=f"{author_name} tagged you in an iSpy shot at {location}.",
+                    user_ids=tagged_user_ids,
+                    data={
+                        'type': 'ispy_spotted',
+                        'submission_id': str(shot.id),
+                        'spotter_name': author_name,
+                        'category': category,
+                        'deep_link': f"ecs-fc-scheme://ispy/submission/{shot.id}",
+                    },
+                    priority='normal',
+                    force_push=True,
+                    force_email=False,
+                    force_sms=False,
+                    force_discord=False,
+                ))
+        except Exception as e:
+            logger.warning(f"Failed to send iSpy spotted push: {e}")
 
         response_data = {
             'success': True,
@@ -823,3 +910,170 @@ def ispy_submit_mobile():
     except Exception as e:
         logger.error(f"Error submitting mobile I-Spy shot: {str(e)}")
         return jsonify({'error': 'Internal server error'}), 500
+
+
+# ============================================================================
+# CONSENT / REMOVAL ENDPOINTS
+#
+# Retention: approved iSpy submissions live indefinitely on Discord and in our
+# DB. Tagged players can request removal at any time via the endpoints below
+# (no expiry window) — required for GDPR right-to-be-forgotten compliance.
+# Submitters get a 24h self-delete window; after that, removal goes through
+# the admin review path.
+# ============================================================================
+
+
+def _is_ispy_admin(player) -> bool:
+    """Return True if the given Player has iSpy admin authority."""
+    if not player or not player.user:
+        return False
+    user_roles = {r.name for r in (player.user.roles or [])}
+    return bool(user_roles & {'Global Admin', 'Pub League Admin', 'iSpy Admin'})
+
+
+@mobile_api_v2.route('/ispy/submissions/<int:submission_id>', methods=['DELETE'])
+@jwt_or_discord_auth_required
+def ispy_delete_submission(submission_id: int):
+    """
+    Delete an iSpy submission.
+
+    Allowed callers:
+      - The original submitter, within 24h of submission
+      - An iSpy / Pub League / Global admin, anytime
+
+    Marks the shot status='deleted' (soft delete) and asks the bot to remove
+    the Discord post. Discord post removal requires the bot to have stored a
+    message_id; if not, the DB row is still flipped and an admin can clean up
+    the post manually.
+    """
+    discord_id = get_current_discord_id()
+    if not discord_id:
+        return jsonify({'error': 'No linked Discord account'}), 400
+
+    with managed_session() as session:
+        from app.models.ispy import ISpyShot
+        shot = session.query(ISpyShot).get(submission_id)
+        if not shot or shot.status == 'deleted':
+            return jsonify({'error': 'Submission not found'}), 404
+
+        caller = session.query(Player).filter_by(discord_id=discord_id).first()
+        is_admin = _is_ispy_admin(caller)
+        is_submitter = (shot.author_discord_id == discord_id)
+        within_window = (datetime.utcnow() - shot.submitted_at) <= timedelta(hours=24)
+
+        if not is_admin and not (is_submitter and within_window):
+            return jsonify({
+                'error_code': 'NOT_AUTHORIZED',
+                'message': 'Only the submitter (within 24 hours) or an admin can delete this submission.',
+            }), 403
+
+        shot.status = 'deleted'
+        # Capture coordinates before commit so we can pass them to the bot
+        # outside the session scope.
+        msg_id = shot.discord_message_id
+        chan_id = shot.discord_channel_id
+        session.commit()
+
+    # Best-effort Discord post deletion. If we never captured a message_id
+    # (older submission, or the bot's notify-submission failed at submit time)
+    # the row is still authoritative — admin can clean up the post manually.
+    if msg_id:
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                async def _delete_discord_post():
+                    timeout = aiohttp.ClientTimeout(total=10)
+                    async with aiohttp.ClientSession(timeout=timeout) as s:
+                        await s.post(
+                            f"{BOT_API_URL}/api/ispy/delete-submission",
+                            json={
+                                'shot_id': submission_id,
+                                'message_id': msg_id,
+                                'channel_id': chan_id,
+                            },
+                        )
+                loop.run_until_complete(_delete_discord_post())
+            finally:
+                loop.close()
+        except Exception as e:
+            logger.warning(f"iSpy Discord post delete failed for shot {submission_id}: {e}")
+    else:
+        logger.info(f"iSpy shot {submission_id} soft-deleted; no Discord message_id stored — manual cleanup required if post is still live")
+
+    return jsonify({'success': True, 'submission_id': submission_id}), 200
+
+
+@mobile_api_v2.route('/ispy/submissions/<int:submission_id>/request-removal', methods=['POST'])
+@jwt_or_discord_auth_required
+def ispy_request_removal(submission_id: int):
+    """
+    Tagged-player removal request.
+
+    Any player tagged in the submission can flag it for admin review at any time
+    — no expiry window. Pings admins via the existing iSpy admin notification
+    path (Discord channel) so the post can be evaluated and removed if warranted.
+
+    Body: {"reason": "<string>"}
+    """
+    discord_id = get_current_discord_id()
+    if not discord_id:
+        return jsonify({'error': 'No linked Discord account'}), 400
+
+    payload = request.get_json(silent=True) or {}
+    reason = (payload.get('reason') or '').strip()
+    if not reason:
+        return jsonify({'error': 'Missing reason'}), 400
+    if len(reason) > 500:
+        return jsonify({'error': 'Reason too long (max 500 chars)'}), 400
+
+    with managed_session() as session:
+        from app.models.ispy import ISpyShot, ISpyShotTarget
+        shot = session.query(ISpyShot).get(submission_id)
+        if not shot or shot.status == 'deleted':
+            return jsonify({'error': 'Submission not found'}), 404
+
+        # The requester must be a tagged target — strangers can't trigger admin review.
+        is_target = session.query(ISpyShotTarget).filter_by(
+            shot_id=submission_id,
+            target_discord_id=discord_id,
+        ).first() is not None
+        if not is_target:
+            return jsonify({
+                'error_code': 'NOT_TAGGED',
+                'message': 'Only tagged players can request removal of this submission.',
+            }), 403
+
+        requester = session.query(Player).filter_by(discord_id=discord_id).first()
+        requester_name = requester.name if requester else f"discord:{discord_id}"
+        msg_id = shot.discord_message_id
+        chan_id = shot.discord_channel_id
+        author_discord_id = shot.author_discord_id
+
+    # Notify admins via the existing bot iSpy admin channel. Best-effort.
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            async def _notify_admins():
+                timeout = aiohttp.ClientTimeout(total=15)
+                async with aiohttp.ClientSession(timeout=timeout) as s:
+                    await s.post(
+                        f"{BOT_API_URL}/api/ispy/removal-request",
+                        json={
+                            'shot_id': submission_id,
+                            'requester_discord_id': discord_id,
+                            'requester_name': requester_name,
+                            'author_discord_id': author_discord_id,
+                            'reason': reason,
+                            'message_id': msg_id,
+                            'channel_id': chan_id,
+                        },
+                    )
+            loop.run_until_complete(_notify_admins())
+        finally:
+            loop.close()
+    except Exception as e:
+        logger.warning(f"iSpy admin removal-request notify failed for shot {submission_id}: {e}")
+
+    return jsonify({'success': True, 'submission_id': submission_id, 'message': 'Removal request submitted for admin review'}), 202

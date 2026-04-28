@@ -34,6 +34,7 @@ from app.app_api_helpers import (
 )
 from app.etag_utils import make_etag_response, CACHE_DURATIONS
 from app.utils.session_utils import create_user_session
+from app.utils.log_sanitizer import mask_code
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +89,7 @@ def _process_claim_code(session_db, user, discord_id, claim_code):
         }
 
     except Exception as e:
-        logger.error(f"Error processing claim code '{claim_code}' for user {user.id}: {e}", exc_info=True)
+        logger.error(f"Error processing claim code '{mask_code(claim_code)}' for user {user.id}: {e}", exc_info=True)
         return {"status": "error", "message": "Failed to process claim code"}
 
 
@@ -308,7 +309,7 @@ def verify_2fa():
     """
     user_id = request.json.get('user_id')
     token = request.json.get('token')
-    logger.debug(f"Received user_id: {user_id}, token: {token}")
+    logger.debug(f"Received 2FA verification request for user_id: {user_id}")
 
     if not user_id or not token:
         return jsonify({"msg": "Missing user_id or token"}), 400
@@ -513,6 +514,8 @@ def get_user_profile():
                 "is_ref": player.is_ref,
                 "discord_id": player.discord_id,
                 "pronouns": player.pronouns,
+                "date_of_birth": player.date_of_birth.isoformat() if player.date_of_birth else None,
+                "ispy_opt_out": player.ispy_opt_out,
                 "favorite_position": player.favorite_position,
                 "other_positions": player.other_positions,
                 "positions_not_to_play": player.positions_not_to_play,

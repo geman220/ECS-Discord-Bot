@@ -31,6 +31,7 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
 - quick_profiles: Quick profiles for tryout players (claim codes)
 - feedback: Feedback submission and management
 - app_config: App version/update configuration (unauthenticated)
+- onboarding: New-user onboarding (mirrors web /onboarding flow)
 
 All endpoints are CSRF-exempt and use JWT authentication where required.
 """
@@ -80,6 +81,7 @@ def register_mobile_api_routes():
         feedback,
         app_config,
         telemetry,
+        onboarding,
     )
 
 

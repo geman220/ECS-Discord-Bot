@@ -22,7 +22,7 @@ from app.core.limiter import limiter, get_client_ip
 from app.alert_helpers import show_success, show_error, show_warning, show_info
 from app.models import User, Role, Player
 from app.utils.db_utils import transactional
-from app.utils.log_sanitizer import get_safe_session_keys
+from app.utils.log_sanitizer import get_safe_session_keys, mask_code
 from app.auth_helpers import (
     get_discord_user_data,
     exchange_discord_code,
@@ -466,7 +466,7 @@ def discord_callback():
             session.modified = True
 
             logger.info(f"User {user.id} has 2FA enabled. Redirecting to 2FA verification.")
-            logger.info(f"Session data before redirect: {dict(session)}")
+            logger.info(f"Session keys before redirect: {get_safe_session_keys(session)}")
 
             # Always pass user_id as query parameter for reliability
             redirect_url = url_for('auth.verify_2fa_login', user_id=user.id)
@@ -601,7 +601,7 @@ def claim_quick_profile():
     session['pending_claim_code'] = code
     session.modified = True
 
-    logger.info(f"Valid claim code {code} accessed via /claim route, redirecting to Discord registration")
+    logger.info(f"Valid claim code {mask_code(code)} accessed via /claim route, redirecting to Discord registration")
 
     # Redirect to Discord OAuth registration with claim_code preserved in session
     return redirect(url_for('auth.discord_register'))

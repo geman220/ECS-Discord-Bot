@@ -80,6 +80,9 @@ class NotificationType(Enum):
     FEEDBACK_STATUS_CHANGE = 'feedback_status_change'
     FEEDBACK_CLOSED = 'feedback_closed'
 
+    # iSpy
+    ISPY_SPOTTED = 'ispy_spotted'
+
 
 @dataclass
 class NotificationPayload:
@@ -743,9 +746,11 @@ class NotificationOrchestrator:
                 logger.info(f"No active FCM tokens for users {user_ids}, skipping push")
                 return {'success': 0, 'failure': 0}
 
-            # Build data payload
+            # Build data payload. Caller-supplied data wins; the enum value is a
+            # fallback for callers that don't set their own 'type' literal. Avoids
+            # the silent overwrite that previously dropped the enum value whenever
+            # a caller passed data={'type': ...}.
             data = {
-                'type': payload.notification_type.value,
                 'timestamp': str(int(datetime.utcnow().timestamp())),
                 'priority': payload.priority,
             }
@@ -753,6 +758,8 @@ class NotificationOrchestrator:
             if payload.data:
                 for key, value in payload.data.items():
                     data[key] = str(value) if value is not None else ''
+
+            data.setdefault('type', payload.notification_type.value)
 
             # Add deep links based on notification type
             if 'match_id' in data:

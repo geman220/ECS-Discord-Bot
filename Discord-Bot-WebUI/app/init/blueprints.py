@@ -362,6 +362,8 @@ def _register_additional_blueprints(app, bp, csrf):
 
     # App Links (iOS Universal Links and Android App Links configuration)
     app.register_blueprint(bp['app_links_bp'])
+    from app.routes.app_links import validate_app_link_config
+    validate_app_link_config()
 
 
 def _init_enterprise_systems(app):

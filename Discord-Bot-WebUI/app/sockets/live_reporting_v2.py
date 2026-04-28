@@ -321,7 +321,7 @@ def _resolve_user(session):
     from app.sockets.live_reporting import get_socket_current_user
     user = get_socket_current_user(session)
     if not user:
-        emit('error', {'message': 'Authentication required'})
+        emit('error', {'reason': 'auth_failed', 'message': 'Authentication required'})
         disconnect()
         return None
     return user
@@ -336,18 +336,18 @@ def on_join_match(data):
         try:
             league_type = resolve_league_type(data)
         except ValueError as exc:
-            emit('error', {'message': str(exc)}); return
+            emit('error', {'reason': 'league_type_mismatch', 'message': str(exc)}); return
 
         match_id = data.get('match_id')
         team_id = data.get('team_id')
         role_hint = (data.get('role') or '').lower() or None
 
         if not match_id:
-            emit('error', {'message': 'Match ID is required'}); return
+            emit('error', {'reason': 'bad_request', 'message': 'Match ID is required'}); return
 
         match = _load_match_obj(session, league_type, match_id)
         if not match:
-            emit('error', {'message': f'Match {match_id} not found'}); return
+            emit('error', {'reason': 'match_not_found', 'message': f'Match {match_id} not found'}); return
 
         admin = is_admin_or_ref(user)
         user_id = user.id
@@ -388,10 +388,10 @@ def on_join_match(data):
         else:
             # Coach path — requires a valid team_id for one of the playing sides.
             if not team_id:
-                emit('error', {'message': 'Team ID is required for coaches'}); return
+                emit('error', {'reason': 'bad_request', 'message': 'Team ID is required for coaches'}); return
             home_tid, away_tid = _match_home_away_team_ids(league_type, match)
             if int(team_id) not in {t for t in (home_tid, away_tid) if t is not None}:
-                emit('error', {'message': 'Selected team is not playing in this match'}); return
+                emit('error', {'reason': 'team_not_in_match', 'message': 'Selected team is not playing in this match'}); return
 
             # Upsert ActiveMatchReporter (Pub League only — ECS FC has a single team).
             if league_type == redis_state.LEAGUE_PUB:
@@ -547,10 +547,10 @@ def on_resync_match(data):
         try:
             league_type = resolve_league_type(data)
         except ValueError as exc:
-            emit('error', {'message': str(exc)}); return
+            emit('error', {'reason': 'league_type_mismatch', 'message': str(exc)}); return
         match_id = data.get('match_id')
         if not match_id:
-            emit('error', {'message': 'Match ID is required'}); return
+            emit('error', {'reason': 'bad_request', 'message': 'Match ID is required'}); return
 
         payload = build_match_state_payload(session, league_type, int(match_id))
         emit('match_state', payload, to=request.sid)
@@ -626,13 +626,16 @@ def on_update_timer(data):
             elapsed_override_ms=elapsed_override_ms,
         )
 
-        # Enqueue / revoke scheduled jobs.
+        # Enqueue / revoke scheduled jobs. set_period is metadata-only — it must
+        # not touch scheduled timer jobs (a running timer's period-end FCM stays
+        # scheduled when the period label changes mid-flight).
         from app.tasks.tasks_live_reporting_timers import enqueue_timer_jobs, revoke_timer_jobs
         if action in ('start', 'resume'):
             revoke_timer_jobs(state)  # cancel any stragglers before re-enqueueing
             enqueue_timer_jobs(state, int(match_id), league_type)
-        else:  # pause / stop / reset
+        elif action in ('pause', 'stop', 'reset'):
             revoke_timer_jobs(state)
+        # set_period: no-op for scheduling.
 
         redis_state.save_state(league_type, int(match_id), state)
 

@@ -582,6 +582,8 @@ def update_player_profile_admin(player_id: int):
         jersey_size: Jersey size
         jersey_number: Jersey number
         pronouns: Preferred pronouns
+        date_of_birth: ISO date string (YYYY-MM-DD); used for iSpy age gate
+        ispy_opt_out: Boolean - hides player from iSpy targeting when true
         favorite_position: Favorite playing position
         other_positions: Other positions (comma-separated)
         positions_not_to_play: Positions to avoid

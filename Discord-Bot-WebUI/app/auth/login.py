@@ -26,6 +26,7 @@ from app.utils.user_helpers import safe_current_user
 from app.auth_helpers import update_last_login
 from app.auth.helpers import sync_discord_for_user
 from app.tasks.tasks_discord import assign_roles_to_player_task
+from app.utils.log_sanitizer import get_safe_session_keys
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,7 @@ def login():
     """
     logger.debug(f"Starting login route - Method: {request.method}")
     logger.debug(f"Next URL: {request.args.get('next')}")
-    logger.debug(f"Current session: {session}")
+    logger.debug(f"Current session keys: {get_safe_session_keys(session)}")
 
     # Initialize form at the start to prevent UnboundLocalError
     form = LoginForm()
@@ -180,8 +181,9 @@ def auth_check():
     try:
         logger.debug("=== Auth Check Debug Info ===")
         logger.debug(f"User authenticated: {safe_current_user.is_authenticated}")
-        logger.debug(f"Session data: {dict(session)}")
-        logger.debug(f"Request headers: {dict(request.headers)}")
+        logger.debug(f"Session keys: {get_safe_session_keys(session)}")
+        safe_headers = {k: v for k, v in request.headers.items() if k.lower() not in ('authorization', 'cookie', 'x-csrf-token')}
+        logger.debug(f"Request headers (sanitized): {safe_headers}")
         logger.debug(f"Current user object: {safe_current_user}")
         logger.debug(f"Current app name: {current_app.name}")
         logger.debug(f"Login view: {current_app.login_manager.login_view}")

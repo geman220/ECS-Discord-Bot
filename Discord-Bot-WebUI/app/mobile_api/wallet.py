@@ -310,26 +310,36 @@ def get_wallet_pass_info():
 
             base_url = request.host_url.rstrip('/')
 
+            # Look up the user's active WalletPass once — used for token-authenticated
+            # Apple Wallet URL and Google Wallet save URL.
+            wallet_pass = session_db.query(WalletPass).filter(
+                WalletPass.user_id == current_user_id,
+                WalletPass.status == 'active'
+            ).first()
+
+            # Prefer the token-authenticated route. Fall back to the legacy user_id route
+            # only when no WalletPass row exists yet (e.g., before WooCommerce flow has
+            # provisioned one).
+            if wallet_pass:
+                apple_pass_url = f"{base_url}/api/v1/wallet/pass/by-token/{wallet_pass.download_token}"
+            else:
+                apple_pass_url = f"{base_url}/api/v1/wallet/pass/{current_user_id}"
+
             # Check Google Wallet configuration
             google_config = pass_service.get_google_config_status()
             google_available = google_config.get('configured', False)
 
-            # Check if user has a wallet pass for Google URL generation
+            # Generate Google Wallet save URL if both Google is configured and we have a pass row
             google_save_url = None
-            if google_available:
-                wallet_pass = session_db.query(WalletPass).filter(
-                    WalletPass.user_id == current_user_id,
-                    WalletPass.status == 'active'
-                ).first()
-                if wallet_pass:
-                    try:
-                        google_save_url = pass_service.generate_google_pass_url(wallet_pass)
-                    except Exception as e:
-                        logger.warning(f"Could not generate Google Wallet URL: {e}")
+            if google_available and wallet_pass:
+                try:
+                    google_save_url = pass_service.generate_google_pass_url(wallet_pass)
+                except Exception as e:
+                    logger.warning(f"Could not generate Google Wallet URL: {e}")
 
             response_data = {
                 # Legacy fields for backwards compatibility
-                "passUrl": f"{base_url}/api/v1/wallet/pass/{current_user_id}",
+                "passUrl": apple_pass_url,
                 "downloadUrl": f"{base_url}/api/v1/membership/wallet/pass/download",
                 "passTypeIdentifier": "pass.com.weareecs.membership",
                 "serialNumber": str(player.id),
@@ -623,17 +633,60 @@ def refresh_membership_pass():
         return jsonify({"msg": "Internal server error"}), 500
 
 
-# PUBLIC Apple Wallet pass serving route (NO JWT required - Apple Wallet calls this)
+# PUBLIC Apple Wallet pass serving routes (NO JWT — Apple Wallet can't send Authorization headers)
+
+
+@mobile_api_v2.route('/wallet/pass/by-token/<token>', methods=['GET'])
+def serve_apple_wallet_pass_by_token(token):
+    """
+    Serve a .pkpass authenticated by per-pass signed token.
+
+    Replaces the user_id-keyed route. The token (43 chars, secrets.token_urlsafe(32))
+    lives on WalletPass.download_token so knowing a sequential user_id no longer
+    grants pass access. Apple Wallet still can't send Authorization headers, but the
+    token in the URL provides 256+ bits of entropy per pass.
+    """
+    try:
+        with managed_session() as session_db:
+            wallet_pass = session_db.query(WalletPass).filter_by(
+                download_token=token,
+                status='active'
+            ).first()
+            if not wallet_pass or not wallet_pass.player_id:
+                return "Pass not found", 404
+
+            player = session_db.query(Player).get(wallet_pass.player_id)
+            if not player or not player.is_current_player:
+                return "Pass expired", 410
+
+            from app.wallet_pass import create_pass_for_player
+            logger.info(f"Serving Apple Wallet pass via token for player {player.name}")
+            pass_data = create_pass_for_player(player.id)
+
+            response = make_response(pass_data.getvalue())
+            response.headers['Content-Type'] = 'application/vnd.apple.pkpass'
+            response.headers['Content-Disposition'] = (
+                f'attachment; filename="{player.name.replace(" ", "_")}_ecsfc_membership.pkpass"'
+            )
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
+
+    except Exception as e:
+        logger.error(f"Error serving Apple Wallet pass by token: {str(e)}")
+        return "Internal server error", 500
+
 
 @mobile_api_v2.route('/wallet/pass/<int:user_id>', methods=['GET'])
 def serve_apple_wallet_pass(user_id):
     """
-    PUBLIC route to serve .pkpass files directly to Apple Wallet.
+    LEGACY user_id-keyed route. Kept alive temporarily so already-installed passes
+    can still update — Apple Wallet apps re-fetch from the URL embedded in the
+    pass at install time, and rotating that URL would orphan existing passes.
 
-    This route is called by Apple Wallet and CANNOT have JWT authentication
-    because Apple Wallet doesn't send authorization headers.
-
-    URL: /api/v1/wallet/pass/2 (clean URL, no .pkpass extension)
+    New passes should use /wallet/pass/by-token/<token>. Plan: deprecate after one
+    season's worth of passes have rotated through.
     """
     try:
         with managed_session() as session_db:

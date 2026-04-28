@@ -28,6 +28,95 @@ def calculate_image_hash(image_data: bytes) -> str:
     return hashlib.sha256(image_data).hexdigest()
 
 
+def strip_image_exif(image_data: bytes) -> bytes:
+    """
+    Strip EXIF metadata from an image before upload.
+
+    iSpy submissions go to Discord. EXIF can carry GPS coordinates, camera
+    serials, and timestamps that the submitter never intended to share.
+    Don't trust the client to scrub this — strip server-side too.
+    """
+    from io import BytesIO
+    try:
+        from PIL import Image
+    except ImportError:
+        logger.warning("PIL unavailable; cannot strip EXIF, passing image through unchanged")
+        return image_data
+
+    try:
+        img = Image.open(BytesIO(image_data))
+        img_format = img.format or 'JPEG'
+        out = BytesIO()
+        save_kwargs = {'format': img_format}
+        if img_format.upper() == 'JPEG':
+            save_kwargs['quality'] = 92
+        # Re-saving via PIL drops EXIF unless we explicitly pass it through.
+        img.save(out, **save_kwargs)
+        return out.getvalue()
+    except Exception as e:
+        # Fail-closed on PIL errors would deny legitimate uploads, so log and pass through.
+        # Discord may still strip some metadata server-side as a second layer.
+        logger.warning(f"Failed to strip EXIF from iSpy image: {e}; using original")
+        return image_data
+
+
+def check_ispy_consent_blockers(author_discord_id: str, target_discord_ids: List[str]) -> Dict:
+    """
+    Check iSpy consent rules: opt-out and age gating (under-18 protection).
+
+    Age gate is fail-open: this is an adult-only league enforced at registration,
+    so a missing DOB is treated as adult. The age check fires only when a DOB is
+    explicitly on file AND it computes to under 18 — defense-in-depth for the
+    rare case where a minor's DOB ends up in the DB somehow, without making
+    DOB collection mandatory for the whole user base.
+
+    Returns dict with:
+        opted_out_targets: list of discord_ids that have opted out of being tagged
+        minor_blocked: True if author or any target has a DOB on file under 18
+        minor_blockers: human-readable list describing who triggered the block
+    """
+    from datetime import date
+
+    today = date.today()
+
+    def _is_minor(player):
+        # Fail-open: missing DOB → treated as adult. League is adult-only by policy.
+        if player is None or player.date_of_birth is None:
+            return False
+        dob = player.date_of_birth
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        return age < 18
+
+    with managed_session() as session:
+        all_discord_ids = list({author_discord_id, *target_discord_ids})
+        players = session.query(Player).filter(
+            Player.discord_id.in_(all_discord_ids)
+        ).all()
+
+        by_discord = {p.discord_id: p for p in players}
+
+        opted_out = [
+            tid for tid in target_discord_ids
+            if tid in by_discord and by_discord[tid].ispy_opt_out
+        ]
+
+        minor_blockers = []
+        author = by_discord.get(author_discord_id)
+        if _is_minor(author):
+            minor_blockers.append("submitter")
+        for tid in target_discord_ids:
+            target = by_discord.get(tid)
+            if _is_minor(target):
+                label = target.name if target.name else f"discord:{tid}"
+                minor_blockers.append(f"target {label}")
+
+        return {
+            'opted_out_targets': opted_out,
+            'minor_blocked': bool(minor_blockers),
+            'minor_blockers': minor_blockers,
+        }
+
+
 def is_duplicate_image(author_discord_id: str, image_hash: str, days_window: int = 7) -> bool:
     """Check if the same author has submitted the same image within the specified window."""
     cutoff_date = datetime.utcnow() - timedelta(days=days_window)

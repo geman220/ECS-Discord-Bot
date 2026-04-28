@@ -40,6 +40,7 @@ from app.forms import (
     willing_to_referee_choices, ReportMatchForm
 )
 from app.utils.user_helpers import safe_current_user
+from app.utils.log_sanitizer import mask_code
 
 logger = logging.getLogger(__name__)
 main = Blueprint('main', __name__)
@@ -1609,7 +1610,7 @@ def verify_sms_code():
         # Get the session code as backup
         from flask import session as flask_session
         session_code = flask_session.get('sms_confirmation_code')
-        logger.info(f"Found code in Flask session: {session_code}")
+        logger.info(f"Found code in Flask session: {mask_code(session_code)}")
         
         # If user has no code but we have one in the session, set it on the real User model
         if not safe_current_user.sms_confirmation_code and session_code:
@@ -1628,7 +1629,7 @@ def verify_sms_code():
                     return jsonify({"success": False, "message": "Error saving verification code"})
         
         # Verify the code
-        logger.info(f"Verifying SMS code for user {safe_current_user.id}: {code}")
+        logger.info(f"Verifying SMS code for user {safe_current_user.id}")
         success = verify_sms_confirmation(safe_current_user, code)
         
         # If verification failed but the code matches the one in session, force success
@@ -1758,7 +1759,7 @@ def set_verification_code():
         session.add(db_user)
         try:
             session.commit()
-            logger.info(f"[ADMIN] Manually set verification code {code} for user {safe_current_user.id}")
+            logger.info(f"[ADMIN] Manually set verification code {mask_code(code)} for user {safe_current_user.id}")
         except Exception as e:
             session.rollback()
             logger.exception(f"Error saving manual verification code for user {safe_current_user.id}: {str(e)}")

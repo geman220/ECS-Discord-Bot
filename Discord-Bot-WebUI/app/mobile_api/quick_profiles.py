@@ -27,6 +27,7 @@ from app.decorators import jwt_role_required
 from app.core.session_manager import managed_session
 from app.models import Player, User, QuickProfile, QuickProfileStatus
 from app.players_helpers import save_quick_profile_picture
+from app.utils.log_sanitizer import mask_code
 
 logger = logging.getLogger(__name__)
 
@@ -285,7 +286,7 @@ def create_quick_profile():
             # Exclude the profile we just created
             duplicates = [d for d in duplicates if not (d['type'] == 'quick_profile' and d['id'] == profile.id)]
 
-            logger.info(f"Quick profile {profile.id} created by user {current_user_id} with code {profile.claim_code}")
+            logger.info(f"Quick profile {profile.id} created by user {current_user_id} with code {mask_code(profile.claim_code)}")
 
             return jsonify({
                 'success': True,

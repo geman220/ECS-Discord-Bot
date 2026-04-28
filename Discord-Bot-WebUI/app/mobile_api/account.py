@@ -234,6 +234,8 @@ def update_profile():
     Expected JSON (all fields optional):
         phone: Phone number
         pronouns: Preferred pronouns
+        date_of_birth: ISO date string (YYYY-MM-DD); used for iSpy age gate
+        ispy_opt_out: Boolean — when true, hides player from iSpy targeting
         favorite_position: Favorite playing position
         other_positions: Other positions (comma-separated or list)
         expected_weeks_available: Number of weeks expected to be available
@@ -275,6 +277,20 @@ def update_profile():
                 player.phone = data['phone']
             if 'pronouns' in data:
                 player.pronouns = data['pronouns']
+            if 'date_of_birth' in data:
+                from datetime import date as _date
+                raw_dob = data['date_of_birth']
+                if raw_dob in (None, ''):
+                    player.date_of_birth = None
+                else:
+                    try:
+                        player.date_of_birth = _date.fromisoformat(raw_dob)
+                    except (ValueError, TypeError):
+                        return jsonify({
+                            "msg": "Invalid date_of_birth (expected YYYY-MM-DD)"
+                        }), 400
+            if 'ispy_opt_out' in data:
+                player.ispy_opt_out = bool(data['ispy_opt_out'])
             if 'favorite_position' in data:
                 player.favorite_position = data['favorite_position']
             if 'other_positions' in data:
@@ -324,6 +340,8 @@ def update_profile():
                 "name": player.name,
                 "phone": player.phone,
                 "pronouns": player.pronouns,
+                "date_of_birth": player.date_of_birth.isoformat() if player.date_of_birth else None,
+                "ispy_opt_out": player.ispy_opt_out,
                 "favorite_position": player.favorite_position,
                 "other_positions": player.other_positions,
                 "expected_weeks_available": player.expected_weeks_available,

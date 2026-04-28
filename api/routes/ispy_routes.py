@@ -9,6 +9,7 @@ Provides API endpoints for I-Spy mobile integration:
 """
 
 import logging
+import os
 from io import BytesIO
 from typing import List, Optional
 
@@ -25,7 +26,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/ispy", tags=["ispy"])
 
 # Channel name where I-Spy posts go
-ISPY_CHANNEL_NAME = "pl-nonsense"
+ISPY_CHANNEL_NAME = "pl-miscellaneous"
+
+# Channel that receives admin-only iSpy notifications (removal requests, etc.).
+# Override via env var. Falls through to a 404 if the channel doesn't exist —
+# we deliberately do NOT fall back to the public pl-miscellaneous channel because
+# that would leak the requester's identity and reason to all users.
+ISPY_ADMIN_CHANNEL_NAME = os.getenv("ISPY_ADMIN_CHANNEL_NAME", "ispy-mod")
 
 # Optional: Configure a dedicated channel for image uploads (hidden from users)
 # If not set, images will be uploaded to the same channel as notifications
@@ -46,10 +53,19 @@ class ISpySubmissionNotification(BaseModel):
 
 
 def get_ispy_channel(bot: commands.Bot) -> Optional[discord.TextChannel]:
-    """Find the I-Spy channel (#pl-nonsense) in any guild the bot is in."""
+    """Find the I-Spy channel (#pl-miscellaneous) in any guild the bot is in."""
     for guild in bot.guilds:
         for channel in guild.channels:
             if channel.name == ISPY_CHANNEL_NAME and isinstance(channel, discord.TextChannel):
+                return channel
+    return None
+
+
+def get_ispy_admin_channel(bot: commands.Bot) -> Optional[discord.TextChannel]:
+    """Find the iSpy admin/mod channel by name (configured via ISPY_ADMIN_CHANNEL_NAME)."""
+    for guild in bot.guilds:
+        for channel in guild.channels:
+            if channel.name == ISPY_ADMIN_CHANNEL_NAME and isinstance(channel, discord.TextChannel):
                 return channel
     return None
 
@@ -246,18 +262,175 @@ async def notify_ispy_submission(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class ISpyDeleteSubmission(BaseModel):
+    """Request model for deleting an iSpy submission's Discord post."""
+    shot_id: int
+    message_id: str
+    channel_id: Optional[str] = None  # If provided, look up by id; else search by name
+
+
+class ISpyRemovalRequest(BaseModel):
+    """Request model for an admin-channel removal request notification."""
+    shot_id: int
+    requester_discord_id: str
+    requester_name: str
+    author_discord_id: Optional[str] = None
+    reason: str
+    message_id: Optional[str] = None
+    channel_id: Optional[str] = None
+
+
+@router.post("/delete-submission")
+async def delete_ispy_submission(
+    data: ISpyDeleteSubmission,
+    bot: commands.Bot = Depends(get_bot)
+):
+    """
+    Delete the Discord message for a previously-posted iSpy submission.
+
+    Flask is the authoritative source — the DB row is already soft-deleted by
+    the time this fires. This endpoint just removes the post from Discord so
+    other users stop seeing it.
+    """
+    try:
+        # Prefer channel_id when supplied; fall back to the configured name.
+        channel: Optional[discord.TextChannel] = None
+        if data.channel_id:
+            try:
+                channel_id_int = int(data.channel_id)
+                got = bot.get_channel(channel_id_int)
+                if isinstance(got, discord.TextChannel):
+                    channel = got
+            except ValueError:
+                pass
+        if channel is None:
+            channel = get_ispy_channel(bot)
+        if channel is None:
+            raise HTTPException(status_code=404, detail="iSpy channel not found")
+
+        try:
+            message_id_int = int(data.message_id)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="message_id must be a numeric Discord snowflake")
+
+        try:
+            message = await channel.fetch_message(message_id_int)
+        except discord.NotFound:
+            # Already gone — treat as success so Flask doesn't keep retrying.
+            logger.info(f"iSpy delete: shot {data.shot_id} message {message_id_int} already gone")
+            return {"success": True, "already_deleted": True}
+
+        await message.delete()
+        logger.info(f"iSpy delete: removed Discord message {message_id_int} for shot {data.shot_id}")
+        return {"success": True, "shot_id": data.shot_id}
+
+    except HTTPException:
+        raise
+    except discord.Forbidden:
+        raise HTTPException(status_code=403, detail="Bot lacks Manage Messages on iSpy channel")
+    except discord.HTTPException as e:
+        raise HTTPException(status_code=502, detail=f"Discord API error: {e}")
+    except Exception as e:
+        logger.error(f"Error deleting iSpy submission {data.shot_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/removal-request")
+async def post_ispy_removal_request(
+    data: ISpyRemovalRequest,
+    bot: commands.Bot = Depends(get_bot)
+):
+    """
+    Forward a tagged-player removal request to the iSpy admin channel.
+
+    Configurable via env var ISPY_ADMIN_CHANNEL_NAME (default: ispy-mod).
+    Deliberately does not fall back to the public iSpy channel — leaking a
+    private removal request to everyone would defeat the point.
+    """
+    try:
+        channel = get_ispy_admin_channel(bot)
+        if channel is None:
+            logger.error(
+                f"iSpy removal-request: admin channel '{ISPY_ADMIN_CHANNEL_NAME}' not found in any guild. "
+                f"Set ISPY_ADMIN_CHANNEL_NAME env var or create the channel."
+            )
+            raise HTTPException(
+                status_code=404,
+                detail=f"iSpy admin channel '{ISPY_ADMIN_CHANNEL_NAME}' not found"
+            )
+
+        embed = discord.Embed(
+            title="⚠️ iSpy removal request",
+            color=discord.Color.orange(),
+            description="A tagged player has requested admin review of an iSpy submission."
+        )
+        embed.add_field(
+            name="Requester",
+            value=f"<@{data.requester_discord_id}> ({data.requester_name})",
+            inline=False
+        )
+        if data.author_discord_id:
+            embed.add_field(
+                name="Original submitter",
+                value=f"<@{data.author_discord_id}>",
+                inline=True
+            )
+        embed.add_field(
+            name="Shot ID",
+            value=str(data.shot_id),
+            inline=True
+        )
+        # Reason is user-supplied free text — Discord renders this raw, but
+        # it's contained inside an embed field so injected formatting only
+        # affects this one block. Trim to embed limits.
+        reason = data.reason or '(no reason provided)'
+        if len(reason) > 1000:
+            reason = reason[:1000] + '…'
+        embed.add_field(name="Reason", value=reason, inline=False)
+
+        # Build a jump-to-message link if we have message + channel coordinates.
+        content_parts = []
+        if data.channel_id and data.message_id:
+            try:
+                guild_id = channel.guild.id
+                jump_url = f"https://discord.com/channels/{guild_id}/{int(data.channel_id)}/{int(data.message_id)}"
+                content_parts.append(f"Original post: {jump_url}")
+            except (ValueError, AttributeError):
+                pass
+
+        await channel.send(
+            content="\n".join(content_parts) if content_parts else None,
+            embed=embed,
+        )
+        logger.info(f"iSpy removal-request posted to admin channel for shot {data.shot_id}")
+        return {"success": True, "shot_id": data.shot_id}
+
+    except HTTPException:
+        raise
+    except discord.Forbidden:
+        raise HTTPException(status_code=403, detail=f"Bot lacks send permission on '{ISPY_ADMIN_CHANNEL_NAME}'")
+    except discord.HTTPException as e:
+        raise HTTPException(status_code=502, detail=f"Discord API error: {e}")
+    except Exception as e:
+        logger.error(f"Error posting iSpy removal-request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/health")
 async def ispy_health():
     """Health check for I-Spy endpoints."""
     try:
         bot = get_bot_instance()
         channel = get_ispy_channel(bot) if bot and bot.is_ready() else None
+        admin_channel = get_ispy_admin_channel(bot) if bot and bot.is_ready() else None
 
         return {
             "status": "healthy",
             "bot_ready": bot.is_ready() if bot else False,
             "ispy_channel_found": channel is not None,
-            "ispy_channel_name": ISPY_CHANNEL_NAME
+            "ispy_channel_name": ISPY_CHANNEL_NAME,
+            "ispy_admin_channel_found": admin_channel is not None,
+            "ispy_admin_channel_name": ISPY_ADMIN_CHANNEL_NAME,
         }
     except Exception as e:
         return {

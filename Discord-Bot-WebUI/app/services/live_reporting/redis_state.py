@@ -45,7 +45,11 @@ REPORT_IN_PROGRESS = 'IN_PROGRESS'
 REPORT_SUBMITTED = 'SUBMITTED'
 
 # Timer actions accepted by apply_timer_action.
-TIMER_ACTIONS = ('start', 'resume', 'pause', 'stop', 'reset')
+# 'set_period' is a metadata-only action — updates the period label without
+# touching is_running/elapsed/paused. Used by the mobile period-picker pill so
+# coaches can switch period (1H → HT → 2H → ET1 → ET2 → PEN) without disturbing
+# whichever timer state the match is currently in.
+TIMER_ACTIONS = ('start', 'resume', 'pause', 'stop', 'reset', 'set_period')
 
 # Default period string on reset / fresh state.
 DEFAULT_PERIOD = '1H'
@@ -260,6 +264,12 @@ def apply_timer_action(
         timer['last_start_epoch_ms'] = None
         timer['period'] = DEFAULT_PERIOD
         timer['pause_reason'] = None
+
+    elif action == 'set_period':
+        # Period-only update: deliberately leaves is_running, base_elapsed_ms,
+        # last_start_epoch_ms, is_paused, is_stopped, and pause_reason untouched.
+        # The `if period is not None` block below performs the actual write.
+        pass
 
     if period is not None:
         timer['period'] = period
@@ -488,6 +498,9 @@ def build_match_state_payload(
         for team_id, t in (state.get('shift_timers') or {}).items()
     }
     payload = {
+        # Schema version. Mobile gates V2-specific behavior off this field.
+        # Bump only when the payload shape changes incompatibly.
+        'version': 2,
         'match_id': state['match_id'],
         'league_type': state.get('league_type', LEAGUE_PUB),
         'server_epoch_ms': at,

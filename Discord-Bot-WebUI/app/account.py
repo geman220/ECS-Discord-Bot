@@ -740,15 +740,12 @@ def show_2fa_qr():
     """
     try:
         totp_secret = pyotp.random_base32()
-        logger.debug(f"TOTP Secret (not saved yet): {totp_secret}")
 
         totp = pyotp.TOTP(totp_secret)
         otp_uri = totp.provisioning_uri(
-            name=safe_current_user.email, 
+            name=safe_current_user.email,
             issuer_name="ECS Web App"
         )
-
-        logger.debug(f"OTP URI: {otp_uri}")
 
         img = qrcode.make(otp_uri)
         buffer = BytesIO()

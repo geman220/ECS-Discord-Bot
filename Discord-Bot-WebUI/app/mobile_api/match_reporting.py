@@ -169,6 +169,12 @@ def _notify_opposing_coaches_to_verify(session, match: Match, just_verified: str
             data={
                 'type': 'verify_match',
                 'match_id': str(match.id),
+                'league_type': 'pl',
+                'reporter_team_id': str(target_team_id),
+                'home_team_id': str(match.home_team_id),
+                'away_team_id': str(match.away_team_id),
+                'home_score': str(match.home_team_score) if match.home_team_score is not None else '',
+                'away_score': str(match.away_team_score) if match.away_team_score is not None else '',
             },
             priority='high',
             # Push-only delivery: in-app bell entry still fires (default), but

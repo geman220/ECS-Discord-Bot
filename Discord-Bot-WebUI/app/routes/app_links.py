@@ -13,7 +13,8 @@ Android: /.well-known/assetlinks.json
 
 import os
 import logging
-from flask import Blueprint, jsonify, current_app
+from flask import Blueprint, jsonify, current_app, request, make_response
+from markupsafe import escape
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,10 @@ def apple_app_site_association():
                         "/match/*",
                         # RSVP pages
                         "/ecs-fc/rsvp/*",
-                        "/rsvp/*"
+                        "/rsvp/*",
+                        # OAuth callback bridge — Universal Link target so Discord's
+                        # HTTPS redirect lands in the app instead of Safari.
+                        "/oauth/callback*"
                     ]
                 }
             ]
@@ -111,6 +115,42 @@ def android_asset_links():
     response = jsonify(asset_links)
     response.headers['Content-Type'] = 'application/json'
     return response
+
+
+def validate_app_link_config():
+    """
+    Validate App Link env vars at startup.
+
+    Refuses to boot in production if Android/iOS App Link identity is missing
+    — without these set, /.well-known/assetlinks.json silently serves a
+    placeholder fingerprint and Android App Link verification fails.
+    """
+    is_production = os.getenv('FLASK_ENV', 'development').lower() == 'production'
+
+    issues = []
+
+    if os.getenv('ANDROID_PACKAGE_NAME', 'com.example.ecsfc') == 'com.example.ecsfc':
+        issues.append('ANDROID_PACKAGE_NAME is unset or using placeholder default')
+
+    fingerprints = [fp.strip() for fp in os.getenv('ANDROID_SHA256_FINGERPRINTS', '').split(',') if fp.strip()]
+    if not fingerprints:
+        issues.append('ANDROID_SHA256_FINGERPRINTS is empty — assetlinks.json will serve placeholder fingerprint')
+
+    if os.getenv('IOS_TEAM_ID', 'XXXXXXXXXX') == 'XXXXXXXXXX':
+        issues.append('IOS_TEAM_ID is unset or using placeholder default')
+
+    if os.getenv('IOS_BUNDLE_ID', 'com.example.ecsfc') == 'com.example.ecsfc':
+        issues.append('IOS_BUNDLE_ID is unset or using placeholder default')
+
+    if not issues:
+        return
+
+    detail = '; '.join(issues)
+    if is_production:
+        raise RuntimeError(
+            f"Refusing to start in production: App Link config incomplete ({detail})"
+        )
+    logger.warning(f"App Link config issues (dev mode, not blocking boot): {detail}")
 
 
 @app_links_bp.route('/.well-known/deep-links')
@@ -178,6 +218,50 @@ def deep_link_info():
     }
 
     return jsonify(deep_links)
+
+
+@app_links_bp.route('/oauth/callback', methods=['GET'])
+def oauth_callback_bridge():
+    """
+    HTTPS bridge endpoint for OAuth callbacks.
+
+    Discord (and any future OAuth provider) redirects here after the user
+    authorizes. On Android with autoVerify'd App Links and on iOS with the
+    /oauth/callback* path registered in apple-app-site-association above,
+    this URL is intercepted by the native app and never opens a browser tab.
+
+    For browsers and unverified installs, the page renders a meta-refresh
+    deep-link to ecs-fc-scheme://auth?<query> so the OAuth code/state still
+    reach the app via the custom scheme. Query params are passed through
+    unchanged so the mobile app receives `code`, `state`, `error`, etc.
+    exactly as the OAuth provider sent them.
+    """
+    query = request.query_string.decode('utf-8')
+    deep_link = f"ecs-fc-scheme://auth?{query}" if query else "ecs-fc-scheme://auth"
+    safe_deep_link = escape(deep_link)
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="refresh" content="0; url={safe_deep_link}">
+    <title>Returning to app...</title>
+    <style>
+        body {{ font-family: system-ui, -apple-system, sans-serif; padding: 2rem; text-align: center; color: #333; }}
+        a {{ color: #213e96; }}
+    </style>
+</head>
+<body>
+    <p>Returning to the ECS FC app...</p>
+    <p><a href="{safe_deep_link}">Tap here if you aren't redirected automatically.</a></p>
+</body>
+</html>"""
+
+    response = make_response(html, 200)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    response.headers['Cache-Control'] = 'no-store'
+    return response
 
 
 @app_links_bp.route('/robots.txt')

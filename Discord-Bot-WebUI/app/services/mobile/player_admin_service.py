@@ -254,6 +254,7 @@ class PlayerAdminService(BaseService):
         # Fields that admins/coaches can update
         allowed_fields = [
             'name', 'phone', 'jersey_size', 'jersey_number', 'pronouns',
+            'date_of_birth', 'ispy_opt_out',
             'favorite_position', 'other_positions', 'positions_not_to_play',
             'frequency_play_goal', 'expected_weeks_available', 'unavailable_dates',
             'willing_to_referee', 'additional_info', 'player_notes',
@@ -273,7 +274,17 @@ class PlayerAdminService(BaseService):
                     except (ValueError, TypeError):
                         continue
 
-                if field in ['is_coach', 'is_ref', 'is_current_player']:
+                if field == 'date_of_birth':
+                    if new_value in (None, ''):
+                        new_value = None
+                    else:
+                        from datetime import date as _date
+                        try:
+                            new_value = _date.fromisoformat(new_value)
+                        except (ValueError, TypeError):
+                            continue
+
+                if field in ['is_coach', 'is_ref', 'is_current_player', 'ispy_opt_out']:
                     new_value = bool(new_value)
 
                 if old_value != new_value:
@@ -456,6 +467,8 @@ class PlayerAdminService(BaseService):
             "jersey_number": player.jersey_number,
             "jersey_size": player.jersey_size,
             "pronouns": player.pronouns,
+            "date_of_birth": player.date_of_birth.isoformat() if player.date_of_birth else None,
+            "ispy_opt_out": player.ispy_opt_out,
             "phone": player.phone,
             "favorite_position": player.favorite_position,
             "other_positions": player.other_positions,

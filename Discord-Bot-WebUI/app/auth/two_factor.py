@@ -22,6 +22,7 @@ from app.models import User
 from app.forms import TwoFactorForm
 from app.utils.db_utils import transactional
 from app.auth.helpers import sync_discord_for_user
+from app.utils.log_sanitizer import get_safe_session_keys
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ def verify_2fa_login():
     current_app.permanent_session_lifetime = timedelta(days=1)  # Longer session
 
     # Debug session state
-    logger.info(f"2FA verification requested. Session data: {dict(session)}")
+    logger.info(f"2FA verification requested. Session keys: {get_safe_session_keys(session)}")
 
     # First check for user_id in POST data (form submission)
     user_id = None
@@ -99,7 +100,6 @@ def verify_2fa_login():
         # Process POST request
         if request.method == 'POST':
             logger.info(f"Received 2FA form submission for user {user.id}")
-            logger.info(f"Form data: {request.form}")
 
             # Get the token directly from form data
             token_value = request.form.get('token')
@@ -145,7 +145,7 @@ def verify_2fa_login():
                     logger.warning(f"Invalid 2FA token submitted for user {user.id}")
                     show_error('Invalid verification code. Please try again.')
             else:
-                logger.warning(f"Invalid 2FA token format: {token_value}")
+                logger.warning(f"Invalid 2FA token format submitted for user {user.id}")
                 show_error('Please enter a valid 6-digit verification code.')
     except Exception as e:
         logger.error(f"Error processing 2FA form: {str(e)}", exc_info=True)

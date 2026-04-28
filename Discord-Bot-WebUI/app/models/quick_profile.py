@@ -214,7 +214,7 @@ class QuickProfile(db.Model):
         self.claimed_at = datetime.utcnow()
         self.status = QuickProfileStatus.CLAIMED.value
 
-        logger.info(f"Quick profile {self.id} (code={self.claim_code}) claimed by player {player.id}")
+        logger.info(f"Quick profile {self.id} claimed by player {player.id}")
 
     def link_to_player(self, player, admin_user, overwrite_photo=False):
         """

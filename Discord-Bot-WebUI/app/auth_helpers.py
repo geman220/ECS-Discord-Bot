@@ -171,7 +171,7 @@ def exchange_discord_code(code, redirect_uri, code_verifier=None):
         response = requests.post(DISCORD_TOKEN_URL, data=data, headers=headers)
         response.raise_for_status()
         token_data = response.json()
-        logger.info(f"Successfully exchanged code for token: access_token={token_data.get('access_token', '')[:10]}...")
+        logger.info("Successfully exchanged code for Discord token")
         return token_data
     except requests.RequestException as e:
         if hasattr(e, 'response') and e.response is not None:
@@ -194,7 +194,7 @@ def get_discord_user_data(access_token):
     headers = {'Authorization': f'Bearer {access_token}'}
     
     try:
-        logger.info(f"Fetching user data from Discord with token {access_token[:10]}...")
+        logger.info("Fetching user data from Discord")
         response = requests.get(DISCORD_API_URL, headers=headers)
         response.raise_for_status()
         user_data = response.json()

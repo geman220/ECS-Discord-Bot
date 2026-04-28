@@ -84,6 +84,12 @@ class ISpyShot(db.Model):
     # Metadata
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     target_count = db.Column(db.Integer, nullable=False)
+
+    # Discord post coordinates — populated by mobile submissions after the bot's
+    # notify-submission endpoint replies. Used by removal/deletion flows to
+    # target the original Discord message precisely.
+    discord_message_id = db.Column(db.String(30), nullable=True)
+    discord_channel_id = db.Column(db.String(30), nullable=True)
     
     # Relationships
     targets = db.relationship('ISpyShotTarget', backref='shot', lazy='dynamic', cascade='all, delete-orphan')

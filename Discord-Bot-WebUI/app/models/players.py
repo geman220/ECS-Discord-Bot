@@ -194,6 +194,10 @@ class Player(db.Model):
     order_id = db.Column(db.String, nullable=True)
     events = db.relationship('PlayerEvent', back_populates='player', lazy=True, cascade='all, delete-orphan', passive_deletes=True)
     pronouns = db.Column(db.String(50), nullable=True)
+    date_of_birth = db.Column(db.Date, nullable=True)
+    # iSpy consent: opt-out hides this player from iSpy target search and blocks
+    # tagging in submissions. Defaults False (opt-in by default).
+    ispy_opt_out = db.Column(db.Boolean, default=False, nullable=False)
     expected_weeks_available = db.Column(db.String(20), nullable=True)
     unavailable_dates = db.Column(db.Text, nullable=True)
     willing_to_referee = db.Column(db.Text, nullable=True)

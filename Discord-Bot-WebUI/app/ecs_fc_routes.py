@@ -22,6 +22,7 @@ from app.models.substitutes import (
 from app.models.matches import TemporarySubAssignment
 from app.ecs_fc_schedule import EcsFcScheduleManager, is_user_ecs_fc_coach
 from app.decorators import role_required
+from app.utils.log_sanitizer import mask_token
 
 logger = logging.getLogger(__name__)
 
@@ -916,7 +917,7 @@ def sub_response_page(token: str):
                              coach_note=sub_request.notes)
 
     except Exception as e:
-        logger.error(f"Error loading sub response page for token {token}: {e}")
+        logger.error(f"Error loading sub response page for token {mask_token(token)}: {e}")
         return render_template('ecs_fc_sub_response_flowbite.html',
                              error='An error occurred',
                              token_valid=False)
@@ -1013,7 +1014,7 @@ def submit_sub_response(token: str):
 
     except Exception as e:
         session.rollback()
-        logger.error(f"Error submitting sub response for token {token}: {e}")
+        logger.error(f"Error submitting sub response for token {mask_token(token)}: {e}")
         flash('An error occurred. Please try again.', 'error')
         return redirect(url_for('ecs_fc.sub_response_page', token=token))
 

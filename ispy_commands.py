@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 WEBUI_API_URL = os.getenv("WEBUI_API_URL", "http://localhost:5000/api")
 
 # Channel restriction
-PL_NONSENSE_CHANNEL_NAME = "pl-nonsense"
+PL_NONSENSE_CHANNEL_NAME = "pl-miscellaneous"
 
 # Role requirements for I-Spy usage
 ALLOWED_ROLES = [
@@ -37,7 +37,7 @@ def has_moderator_role(interaction: discord.Interaction) -> bool:
     return any(role in user_roles for role in MODERATOR_ROLES)
 
 def is_pl_nonsense_channel(interaction: discord.Interaction) -> bool:
-    """Check if command is used in #pl-nonsense channel."""
+    """Check if command is used in #pl-miscellaneous channel."""
     return interaction.channel.name == PL_NONSENSE_CHANNEL_NAME
 
 class ISpyCategorySelect(discord.ui.Select):
@@ -309,7 +309,7 @@ async def ispy_submit(
         # Check channel restriction
         if not is_pl_nonsense_channel(interaction):
             await interaction.followup.send(
-                "❌ I-Spy commands can only be used in #pl-nonsense channel!",
+                "❌ I-Spy commands can only be used in #pl-miscellaneous channel!",
                 ephemeral=True
             )
             return
@@ -458,7 +458,7 @@ async def ispy_leaderboard(interaction: discord.Interaction, limit: Optional[int
     # Check channel restriction
     if not is_pl_nonsense_channel(interaction):
         await interaction.followup.send(
-            "❌ I-Spy commands can only be used in #pl-nonsense channel!",
+            "❌ I-Spy commands can only be used in #pl-miscellaneous channel!",
             ephemeral=True
         )
         return
@@ -553,7 +553,7 @@ async def ispy_personal_stats(interaction: discord.Interaction):
     # Check channel restriction
     if not is_pl_nonsense_channel(interaction):
         await interaction.followup.send(
-            "❌ I-Spy commands can only be used in #pl-nonsense channel!",
+            "❌ I-Spy commands can only be used in #pl-miscellaneous channel!",
             ephemeral=True
         )
         return
@@ -643,7 +643,7 @@ async def ispy_category_stats(interaction: discord.Interaction, category: str):
     # Check channel restriction
     if not is_pl_nonsense_channel(interaction):
         await interaction.followup.send(
-            "❌ I-Spy commands can only be used in #pl-nonsense channel!",
+            "❌ I-Spy commands can only be used in #pl-miscellaneous channel!",
             ephemeral=True
         )
         return
@@ -937,7 +937,7 @@ async def ispy_help(interaction: discord.Interaction):
     # Check channel restriction
     if not is_pl_nonsense_channel(interaction):
         await interaction.followup.send(
-            "❌ I-Spy commands can only be used in #pl-nonsense channel!",
+            "❌ I-Spy commands can only be used in #pl-miscellaneous channel!",
             ephemeral=True
         )
         return
@@ -953,7 +953,7 @@ async def ispy_help(interaction: discord.Interaction):
     main_embed.add_field(
         name="📏 Game Rules",
         value=(
-            "• **Channel:** Only works in #pl-nonsense\n"
+            "• **Channel:** Only works in #pl-miscellaneous\n"
             "• **Roles:** Requires ECS-FC-PL-CLASSIC or PREMIER\n"
             "• **Photos:** Must be candid - NO posed pictures allowed\n"
             "• **Targets:** Can't target yourself or same person twice\n"
@@ -1045,7 +1045,7 @@ async def ispy_check_cooldowns(interaction: discord.Interaction, user: discord.M
     # Check channel restriction
     if not is_pl_nonsense_channel(interaction):
         await interaction.followup.send(
-            "❌ I-Spy commands can only be used in #pl-nonsense channel!",
+            "❌ I-Spy commands can only be used in #pl-miscellaneous channel!",
             ephemeral=True
         )
         return
