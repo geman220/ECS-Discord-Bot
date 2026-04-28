@@ -83,6 +83,10 @@ class NotificationType(Enum):
     # iSpy
     ISPY_SPOTTED = 'ispy_spotted'
 
+    # Account lifecycle
+    ACCOUNT_APPROVED = 'account_approved'
+    ROLE_ASSIGNED = 'role_assigned'
+
 
 @dataclass
 class NotificationPayload:

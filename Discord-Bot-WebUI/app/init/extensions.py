@@ -108,7 +108,13 @@ def init_extensions(app, db):
 
             return user
         except Exception as e:
-            logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
+            from app.core.session_manager import is_transient_db_disconnect
+            if is_transient_db_disconnect(e):
+                logger.warning(
+                    f"Transient DB disconnect loading user {user_id}: {e.__class__.__name__}"
+                )
+            else:
+                logger.error(f"Error loading user {user_id}: {str(e)}", exc_info=True)
             return None
 
     return login_manager, mail, csrf, migrate

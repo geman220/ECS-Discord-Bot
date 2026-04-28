@@ -7,9 +7,17 @@ Initialize SQLAlchemy, create session factory, and ensure required roles exist.
 """
 
 import logging
+import time
+
 from sqlalchemy.orm import sessionmaker
 
 logger = logging.getLogger(__name__)
+
+# Startup tasks (role/preset bootstrap) tolerate a brief pgbouncer DNS race —
+# during a deploy, the webui container can come up just before docker DNS has
+# the pgbouncer hostname ready. A couple of short retries usually clears it.
+_STARTUP_DB_RETRIES = 3
+_STARTUP_DB_RETRY_DELAY = 2  # seconds
 
 
 def init_database(app, db):
@@ -50,18 +58,41 @@ def init_database(app, db):
         _ensure_system_presets(db)
 
 
+def _log_startup_db_failure(stage: str, exc: Exception) -> None:
+    """Log a startup-time DB failure, downgrading transient disconnects to WARNING."""
+    from app.core.session_manager import is_transient_db_disconnect
+    if is_transient_db_disconnect(exc):
+        logger.warning(
+            f"{stage}: transient DB disconnect ({exc.__class__.__name__}) — "
+            f"app will continue and recover on next request"
+        )
+    else:
+        logger.error(f"{stage}: {exc}", exc_info=True)
+
+
 def _ensure_system_presets(db):
     """Ensure system theme presets exist and are up-to-date."""
-    try:
-        from app.models.theme_preset import ThemePreset
-        from sqlalchemy import inspect
-        inspector = inspect(db.engine)
-        if not inspector.has_table('theme_presets'):
-            logger.warning("theme_presets table does not exist yet, skipping preset initialization")
+    from sqlalchemy import inspect
+    from app.core.session_manager import is_transient_db_disconnect
+    from app.models.theme_preset import ThemePreset
+
+    last_exc = None
+    for attempt in range(_STARTUP_DB_RETRIES):
+        try:
+            inspector = inspect(db.engine)
+            if not inspector.has_table('theme_presets'):
+                logger.warning("theme_presets table does not exist yet, skipping preset initialization")
+                return
+            ThemePreset.initialize_system_presets()
             return
-        ThemePreset.initialize_system_presets()
-    except Exception as e:
-        logger.error(f"Error initializing theme presets: {e}", exc_info=True)
+        except Exception as e:
+            last_exc = e
+            if is_transient_db_disconnect(e) and attempt < _STARTUP_DB_RETRIES - 1:
+                time.sleep(_STARTUP_DB_RETRY_DELAY)
+                continue
+            break
+
+    _log_startup_db_failure("Error initializing theme presets", last_exc)
 
 
 def _ensure_required_roles(SessionLocal):
@@ -71,14 +102,14 @@ def _ensure_required_roles(SessionLocal):
     Args:
         SessionLocal: The SQLAlchemy session factory.
     """
+    from sqlalchemy import inspect
+    from app.core.session_manager import is_transient_db_disconnect
     from app.models import Role
 
-    try:
+    last_exc = None
+    for attempt in range(_STARTUP_DB_RETRIES):
         session = SessionLocal()
         try:
-            # Check for pl-unverified role
-            # Use SQLAlchemy's inspect to check if table exists first to avoid OperationalError
-            from sqlalchemy import inspect
             inspector = inspect(session.bind)
             if not inspector.has_table('roles'):
                 logger.warning("Roles table does not exist yet, skipping role initialization")
@@ -91,7 +122,6 @@ def _ensure_required_roles(SessionLocal):
                 session.add(sub_role)
                 logger.info("pl-unverified role created successfully")
 
-            # Check for pl-waitlist role
             waitlist_role = session.query(Role).filter_by(name='pl-waitlist').first()
             if not waitlist_role:
                 logger.info("Creating pl-waitlist role in database")
@@ -100,11 +130,18 @@ def _ensure_required_roles(SessionLocal):
                 logger.info("pl-waitlist role created successfully")
 
             session.commit()
+            return
         except Exception as e:
-            session.rollback()
-            logger.error(f"Error ensuring roles exist: {e}", exc_info=True)
-            raise
+            last_exc = e
+            try:
+                session.rollback()
+            except Exception:
+                pass
+            if is_transient_db_disconnect(e) and attempt < _STARTUP_DB_RETRIES - 1:
+                time.sleep(_STARTUP_DB_RETRY_DELAY)
+                continue
+            break
         finally:
             session.close()
-    except Exception as e:
-        logger.error(f"Failed to initialize roles: {e}", exc_info=True)
+
+    _log_startup_db_failure("Failed to initialize roles", last_exc)

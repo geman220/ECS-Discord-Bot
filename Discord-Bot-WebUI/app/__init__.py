@@ -110,6 +110,13 @@ def create_app(config_object='web_config.Config'):
     init_template_helpers(app)
     install_error_handlers(app)
 
+    # Attach SQLAlchemy event listeners for account-approval FCM push.
+    # The import itself binds the listeners (decorators run at module load);
+    # the explicit register() call is a no-op safeguard so importers can't
+    # tree-shake this away.
+    from app.services.account_approval_push import register as _register_approval_push
+    _register_approval_push()
+
     # Phase 6: Middleware and session
     apply_middleware(app)
     if not skip_redis and redis_manager:

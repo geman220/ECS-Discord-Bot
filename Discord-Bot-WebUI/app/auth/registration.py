@@ -148,6 +148,56 @@ def register_with_discord():
             logger.error(f"Error with Discord server integration: {str(e)}")
             show_warning("Could not connect to Discord server. Your account will be created, but you'll need to join the Discord server manually.")
 
+        # Pre-insert duplicate detection. Without these checks an existing
+        # account hits the DB unique constraints at commit time and raises a
+        # 500 (see errors.log 2026-04-27 19:10:21). Each branch logs the user
+        # in and gives explicit feedback so they're never left wondering what
+        # happened.
+        from app.utils.pii_encryption import create_hash
+        from app.auth_helpers import update_last_login
+        from flask import session as flask_session
+
+        def _sign_in_existing(existing_user, alert_title, alert_text, banner_msg):
+            login_user(existing_user, remember=True)
+            update_last_login(existing_user)
+            session.pop('pending_discord_email', None)
+            session.pop('pending_discord_id', None)
+            session.pop('pending_discord_username', None)
+            session.pop('pending_claim_code', None)
+            session.pop('discord_registration_mode', None)
+            show_info(banner_msg)
+            flask_session['sweet_alert'] = {
+                'title': alert_title,
+                'text': alert_text,
+                'icon': 'info',
+            }
+            return redirect(url_for('main.index'))
+
+        # 1. Email match — same person re-registering with a different entry path.
+        existing_by_email = db_session.query(User).filter(
+            User.email_hash == create_hash(discord_email)
+        ).first()
+        if existing_by_email:
+            return _sign_in_existing(
+                existing_by_email,
+                'Account Already Exists',
+                "You already have an account with this email. We've signed you in.",
+                'Welcome back — we found your existing account and signed you in.',
+            )
+
+        # 2. Discord-ID match — Player.discord_id is unique and Player.user_id is
+        # NOT NULL, so any matching Player has a linked User to sign in as.
+        existing_player = db_session.query(Player).filter_by(discord_id=discord_id).first()
+        if existing_player and existing_player.user_id:
+            existing_user = db_session.query(User).get(existing_player.user_id)
+            if existing_user:
+                return _sign_in_existing(
+                    existing_user,
+                    'Discord Account Linked',
+                    "Your Discord account is already linked to an existing user. We've signed you in.",
+                    'This Discord account is already linked to an existing user — we\'ve signed you in.',
+                )
+
         # Find the pl-unverified role in database
         unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
         if not unverified_role:
@@ -157,7 +207,28 @@ def register_with_discord():
             db_session.flush()
 
         # Create the user
-        username = discord_username.split('#')[0] if '#' in discord_username else discord_username
+        original_username = discord_username.split('#')[0] if '#' in discord_username else discord_username
+        username = original_username
+        username_was_adjusted = False
+
+        # 3. Username collision — rare (different person already claimed this
+        # exact handle via plain /auth/register). Try once with a short suffix;
+        # if even that's taken, bail out cleanly rather than crash.
+        if db_session.query(User.id).filter_by(username=username).first():
+            username = f"{original_username}{secrets.token_hex(2)}"
+            username_was_adjusted = True
+            if db_session.query(User.id).filter_by(username=username).first():
+                show_error(
+                    "We couldn't automatically pick a username for your account. "
+                    "Please try the standard registration form, or contact an admin."
+                )
+                flask_session['sweet_alert'] = {
+                    'title': "Registration Couldn't Complete",
+                    'text': 'We were unable to create your account automatically. Please contact an admin.',
+                    'icon': 'error',
+                }
+                return redirect(url_for('auth.login'))
+
         # Generate a random password - user can reset it later
         temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
 
@@ -216,9 +287,6 @@ def register_with_discord():
         db_session.add(new_user)
         db_session.commit()  # Commit to ensure all flags are saved
 
-        # Use flask.session to avoid confusion with SQLAlchemy session
-        from flask import session as flask_session
-
         # Set session flag to ensure onboarding is shown
         flask_session['force_onboarding'] = True
 
@@ -227,12 +295,26 @@ def register_with_discord():
         flask_session['discord_invite_link'] = default_invite_link
         flask_session['needs_discord_join'] = True
 
-        # Set sweet alert flag instead of using flash
-        flask_session['sweet_alert'] = {
-            'title': 'Registration Successful!',
-            'text': 'Please join our Discord server and complete your profile.',
-            'icon': 'success'
-        }
+        # Set sweet alert flag instead of using flash. If we had to suffix the
+        # username, surface that prominently so the user isn't confused later.
+        if username_was_adjusted:
+            adjusted_msg = (
+                f"Your Discord username '{original_username}' was already taken, so "
+                f"we created your account as '{username}'. You can change it later "
+                f"in your profile settings."
+            )
+            show_warning(adjusted_msg)
+            flask_session['sweet_alert'] = {
+                'title': 'Username Adjusted',
+                'text': adjusted_msg,
+                'icon': 'warning',
+            }
+        else:
+            flask_session['sweet_alert'] = {
+                'title': 'Registration Successful!',
+                'text': 'Please join our Discord server and complete your profile.',
+                'icon': 'success',
+            }
 
         # Redirect to main index which will handle onboarding and show the sweet alert
         return redirect(url_for('main.index'))
@@ -240,4 +322,10 @@ def register_with_discord():
     except Exception as e:
         logger.error(f"Discord registration error: {str(e)}", exc_info=True)
         show_error('Registration failed. Please try again later.')
+        from flask import session as flask_session
+        flask_session['sweet_alert'] = {
+            'title': 'Registration Failed',
+            'text': 'We hit an unexpected error completing your registration. Please try again, or contact an admin if it keeps happening.',
+            'icon': 'error',
+        }
         return redirect(url_for('auth.login'))

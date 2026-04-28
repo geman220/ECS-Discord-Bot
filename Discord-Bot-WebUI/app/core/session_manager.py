@@ -22,6 +22,33 @@ ForeignKey = db.ForeignKey
 relationship = db.relationship
 
 
+_TRANSIENT_DB_ERROR_STRINGS = (
+    'server closed the connection',
+    'PGRES_TUPLES_OK and no message',
+    'SSL connection has been closed',
+    'Connection refused',
+    'could not translate host name',
+    'Name or service not known',
+    'could not connect to server',
+)
+
+
+def is_transient_db_disconnect(exc) -> bool:
+    """
+    Return True if `exc` looks like a transient DB connection drop
+    (pool will recover on next checkout via pre_ping).
+
+    Used to downgrade ERROR-level traceback spam to WARNING when the
+    underlying cause is a brief network/DNS blip rather than a real bug.
+    """
+    if not isinstance(exc, (OperationalError, DBAPIError)):
+        return False
+    if getattr(exc, 'connection_invalidated', False):
+        return True
+    msg = str(exc)
+    return any(s in msg for s in _TRANSIENT_DB_ERROR_STRINGS)
+
+
 @contextmanager
 def managed_session():
     """
@@ -58,22 +85,7 @@ def managed_session():
         # Downgrade transient connection drops to WARNING — the pool's
         # pre_ping + invalidation handles recovery on the next checkout,
         # and ERROR-level spam here masks real problems.
-        is_disconnect = (
-            isinstance(e, (OperationalError, DBAPIError))
-            and getattr(e, 'connection_invalidated', False)
-        ) or (
-            isinstance(e, (OperationalError, DBAPIError))
-            and any(s in str(e) for s in (
-                'server closed the connection',
-                'PGRES_TUPLES_OK and no message',
-                'SSL connection has been closed',
-                'Connection refused',
-                'could not translate host name',
-                'Name or service not known',
-                'could not connect to server',
-            ))
-        )
-        if is_disconnect:
+        if is_transient_db_disconnect(e):
             logger.warning(f"Transient DB connection drop: {e.__class__.__name__}")
             try:
                 # Force SQLAlchemy to discard this connection from the pool
