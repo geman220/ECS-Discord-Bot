@@ -169,7 +169,7 @@ def _notify_opposing_coaches_to_verify(session, match: Match, just_verified: str
             data={
                 'type': 'verify_match',
                 'match_id': str(match.id),
-                'league_type': 'pl',
+                'league_type': 'pub',
                 'reporter_team_id': str(target_team_id),
                 'home_team_id': str(match.home_team_id),
                 'away_team_id': str(match.away_team_id),
