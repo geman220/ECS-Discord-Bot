@@ -863,7 +863,29 @@ def delete_season(season_id):
     season_name = season.name
     was_current = season.is_current
     discord_cleanup_queued = False
-    
+
+    # Safety guard: a season holding reported match data carries real history
+    # (stats, standings, awards) that must not be silently destroyed. Refuse
+    # deletion outright when any match in the season has scores entered.
+    # Unplayed seasons (e.g. a wizard-generated mistake) remain freely deletable.
+    from app.models import Match
+    from sqlalchemy import or_
+    reported_match_count = session.query(Match).join(Schedule).filter(
+        Schedule.season_id == season_id,
+        or_(
+            Match.home_team_score.isnot(None),
+            Match.away_team_score.isnot(None)
+        )
+    ).count()
+    if reported_match_count > 0:
+        show_error(
+            f'Cannot delete season "{season_name}": {reported_match_count} '
+            f'match(es) have reported scores. This season holds real player '
+            f'and team history (stats, standings, awards). If deletion is '
+            f'genuinely required, contact a developer to do it manually.'
+        )
+        return redirect(url_for('publeague.season.manage_seasons'))
+
     try:
         logger.info(f"Starting comprehensive deletion of season: {season_name}")
         
