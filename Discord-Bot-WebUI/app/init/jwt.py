@@ -33,15 +33,29 @@ def init_jwt(app):
     @jwt.token_in_blocklist_loader
     def check_if_token_in_blocklist(jwt_header, jwt_payload):
         """Check if a token has been revoked (by JTI or session ID)."""
+        from flask import has_request_context, request
         jti = jwt_payload.get('jti')
         sid = jwt_payload.get('sid')  # Session ID embedded at login
+        token_type = jwt_payload.get('type')
         try:
             redis_client = current_app.redis
             if redis_client:
-                # Check per-token revocation
+                # Refresh tokens within their rotation grace window pass
+                # through so /refresh_token can return the cached new pair
+                # to clients that retried after a dropped response.
+                if (token_type == 'refresh' and jti
+                        and redis_client.exists(f"jwt_rotation:{jti}") > 0):
+                    return False
+                # Per-token revocation
                 if jti and redis_client.exists(f"jwt_blocklist:{jti}") > 0:
+                    if token_type == 'refresh':
+                        ip = request.remote_addr if has_request_context() else 'no-request-ctx'
+                        logger.warning(
+                            "refresh_token_replay_after_grace "
+                            f"jti={jti} user_id={jwt_payload.get('sub')} ip={ip}"
+                        )
                     return True
-                # Check per-session revocation
+                # Per-session revocation
                 if sid and redis_client.exists(f"session_revoked:{sid}") > 0:
                     return True
         except Exception as e:

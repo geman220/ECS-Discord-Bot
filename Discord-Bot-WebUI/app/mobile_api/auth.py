@@ -327,23 +327,49 @@ def verify_2fa():
         return jsonify(access_token=access_token, refresh_token=refresh_token), 200
 
 
+ROTATION_GRACE_SECONDS = 60
+
+
 @mobile_api_v2.route('/refresh_token', methods=['POST'])
 @jwt_required(refresh=True)
 def refresh_token():
     """
     Refresh an access token using a valid refresh token.
 
+    Rotates the refresh token: each call mints a new (access, refresh) pair
+    and blocklists the old refresh. To survive dropped responses on flaky
+    mobile networks, the rotation is idempotent for a 60s grace window —
+    a retry with the same old refresh token returns the same new pair as
+    the first call instead of issuing another, which would create token
+    chains and leave the client with a stale pair.
+
     Header:
         Authorization: Bearer <refresh_token>
 
     Returns:
-        JSON with new access token on success
+        JSON with new access_token and refresh_token on success
     """
-    from app.init.jwt import add_token_to_blocklist
+    import json
+    import time
 
     current_user_id = get_jwt_identity()
     jwt_data = get_jwt()
     session_id = jwt_data.get('sid')
+    old_jti = jwt_data.get('jti')
+    old_exp = jwt_data.get('exp')
+
+    redis_client = getattr(current_app, 'redis', None)
+
+    if redis_client and old_jti:
+        try:
+            cached = redis_client.get(f"jwt_rotation:{old_jti}")
+            if cached:
+                if isinstance(cached, bytes):
+                    cached = cached.decode('utf-8')
+                logger.info(f"Returning cached rotation pair for jti={old_jti}")
+                return jsonify(json.loads(cached)), 200
+        except Exception as e:
+            logger.error(f"Error reading rotation cache: {e}")
 
     with managed_session() as session_db:
         user = session_db.query(User).filter_by(id=int(current_user_id)).first()
@@ -365,12 +391,37 @@ def refresh_token():
                 user_session.last_activity = datetime.utcnow()
                 session_db.commit()
 
-        # Create new access token preserving session ID
         claims = {'sid': session_id} if session_id else {}
         new_access_token = create_access_token(identity=str(user.id), additional_claims=claims)
-        logger.info(f"Access token refreshed for user: {user.username}")
+        new_refresh_token = create_refresh_token(identity=str(user.id), additional_claims=claims)
+        response_payload = {
+            "access_token": new_access_token,
+            "refresh_token": new_refresh_token,
+        }
 
-        return jsonify({"access_token": new_access_token}), 200
+        # Cache the issued pair for the grace window so retries are idempotent,
+        # and blocklist the old jti for the rest of its lifetime so post-grace
+        # replay is rejected (and logged by the blocklist loader).
+        if redis_client and old_jti:
+            try:
+                redis_client.setex(
+                    f"jwt_rotation:{old_jti}",
+                    ROTATION_GRACE_SECONDS,
+                    json.dumps(response_payload),
+                )
+                if old_exp:
+                    blocklist_ttl = max(0, int(old_exp - time.time()))
+                    if blocklist_ttl > 0:
+                        redis_client.setex(
+                            f"jwt_blocklist:{old_jti}",
+                            blocklist_ttl,
+                            'rotated',
+                        )
+            except Exception as e:
+                logger.error(f"Error writing rotation/blocklist keys: {e}")
+
+        logger.info(f"Tokens rotated for user: {user.username}")
+        return jsonify(response_payload), 200
 
 
 @mobile_api_v2.route('/logout', methods=['POST'])
