@@ -534,13 +534,11 @@ def edit_user_comprehensive(user_id):
                     if history_record:
                         history_record.left_date = datetime.utcnow()
 
-                    # Remove PlayerTeamSeason records for current season
-                    if team.league and team.league.season_id:
-                        PlayerTeamSeason.query.filter_by(
-                            player_id=user.player.id,
-                            team_id=team.id,
-                            season_id=team.league.season_id
-                        ).delete()
+                    # PlayerTeamSeason rows are preserved as historical record of
+                    # who played for which team in which season — they are NOT
+                    # deleted when a player is removed from a team. (Previously
+                    # this block deleted the current-season PTS for the team being
+                    # removed, which destroyed legitimate history.)
 
                     logger.info(f"Removed player {user.player.id} from team {team.id}")
 
@@ -555,30 +553,12 @@ def edit_user_comprehensive(user_id):
                                 'league_name': room_name,
                             })
 
-                # Clean up orphaned PlayerTeamSeason records that don't match
-                # any target team. This handles the case where player_teams rows
-                # were previously deleted but PlayerTeamSeason rows were left behind
-                # (orphaned data), which causes the player profile to still show
-                # old team assignments.
-                orphan_pts = PlayerTeamSeason.query.filter(
-                    PlayerTeamSeason.player_id == user.player.id,
-                ).all()
-                orphan_team_ids_to_remove = []
-                for pts in orphan_pts:
-                    if pts.team_id not in target_team_ids:
-                        orphan_team_ids_to_remove.append(pts.team_id)
-                        db.session.delete(pts)
-                if orphan_team_ids_to_remove:
-                    print(f"[EDIT_USER] Cleaned up {len(orphan_team_ids_to_remove)} orphaned PlayerTeamSeason records for teams {orphan_team_ids_to_remove}", flush=True)
-                    # Also close out any orphaned PlayerTeamHistory records
-                    for otid in set(orphan_team_ids_to_remove):
-                        history_record = PlayerTeamHistory.query.filter_by(
-                            player_id=user.player.id,
-                            team_id=otid,
-                            left_date=None
-                        ).first()
-                        if history_record:
-                            history_record.left_date = datetime.utcnow()
+                # PlayerTeamSeason rows for past seasons are NOT orphans — they
+                # are the historical record of which team a player was on in
+                # which season, and they're how /api/v1/players/<id>/team-history
+                # and the WebUI profile render past-season history. Removing
+                # them on every admin edit was destroying that history (this
+                # caused a recoverable data-loss event for ~12 players).
 
                 # Add new teams
                 for team_id in target_team_ids:

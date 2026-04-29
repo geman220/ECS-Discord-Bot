@@ -66,12 +66,33 @@ class PlayerSeasonStats(db.Model):
 
     @classmethod
     def get_or_create(cls, session, player_id, season_id, league_id=None):
-        """Get existing stats record or create new one for player/season/league."""
+        """Get existing stats record or create new one for player/season/league.
+
+        If called with a non-NULL league_id and no row exists for that exact
+        (player, season, league) combo, also check for a legacy NULL-league_id
+        row for the same (player, season). When that legacy row exists and is
+        empty (all stats zero), upgrade it in place by setting its league_id —
+        this prevents creating duplicate rows like the ~85 cases where every
+        affected player had both a NULL-league row and a Premier=24 row for
+        season 20. Non-empty NULL rows are left alone (their stat values may
+        be a legacy aggregate we don't want to silently re-attribute).
+        """
         stats = session.query(cls).filter_by(
             player_id=player_id,
             season_id=season_id,
             league_id=league_id
         ).first()
+
+        if not stats and league_id is not None:
+            legacy = session.query(cls).filter_by(
+                player_id=player_id,
+                season_id=season_id,
+                league_id=None
+            ).first()
+            if legacy and legacy.goals == 0 and legacy.assists == 0 \
+                    and legacy.yellow_cards == 0 and legacy.red_cards == 0:
+                legacy.league_id = league_id
+                return legacy
 
         if not stats:
             stats = cls(

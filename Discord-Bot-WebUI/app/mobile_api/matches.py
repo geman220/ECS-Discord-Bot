@@ -418,7 +418,8 @@ def get_single_match_details(match_id: int):
     with managed_session() as session_db:
         match = session_db.query(Match).options(
             joinedload(Match.home_team),
-            joinedload(Match.away_team)
+            joinedload(Match.away_team),
+            joinedload(Match.ref),
         ).get(match_id)
 
         if not match:

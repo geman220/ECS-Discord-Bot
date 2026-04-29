@@ -71,6 +71,10 @@ class NotificationType(Enum):
     SUB_REQUEST = 'sub_request'
     SUB_FILLED = 'sub_filled'
 
+    # Referee-related
+    REF_ASSIGNMENT = 'ref_assignment'
+    REF_UNASSIGNED = 'ref_unassigned'
+
     # Direct Messaging
     DIRECT_MESSAGE = 'direct_message'
 
@@ -142,6 +146,8 @@ NOTIFICATION_ICONS = {
     NotificationType.WELCOME: 'ti ti-confetti',
     NotificationType.SUB_REQUEST: 'ti ti-hand-stop',
     NotificationType.SUB_FILLED: 'ti ti-user-check',
+    NotificationType.REF_ASSIGNMENT: 'ti ti-whistle',
+    NotificationType.REF_UNASSIGNED: 'ti ti-whistle-off',
     NotificationType.DIRECT_MESSAGE: 'ti ti-message-circle',
     NotificationType.FEEDBACK_NEW: 'ti ti-message-plus',
     NotificationType.FEEDBACK_REPLY: 'ti ti-message-reply',

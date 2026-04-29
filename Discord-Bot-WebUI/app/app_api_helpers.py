@@ -288,7 +288,8 @@ def build_player_season_stats_data(player_id: int, season_id_filter: Optional[in
     stats_query = session.query(PlayerSeasonStats).filter(
         PlayerSeasonStats.player_id == player_id
     ).options(
-        jl(PlayerSeasonStats.season)
+        jl(PlayerSeasonStats.season),
+        jl(PlayerSeasonStats.league),
     )
 
     if season_id_filter:
@@ -300,17 +301,38 @@ def build_player_season_stats_data(player_id: int, season_id_filter: Optional[in
         PlayerCareerStats.player_id == player_id
     ).first()
 
+    # Map (season_id, league_id) -> Team for the player so each stat row can be
+    # labelled with the team they were on. Past seasons whose PlayerTeamSeason
+    # rows have been wiped (e.g. by season deletion) yield no match and degrade
+    # gracefully to team_id/team_name = None.
+    team_lookup = {}
+    season_ids = {stat.season_id for stat in season_stats}
+    if season_ids:
+        pts_rows = session.query(PlayerTeamSeason).filter(
+            PlayerTeamSeason.player_id == player_id,
+            PlayerTeamSeason.season_id.in_(season_ids),
+        ).options(jl(PlayerTeamSeason.team).joinedload(Team.league)).all()
+        for pts in pts_rows:
+            team = pts.team
+            if team and team.league_id is not None:
+                team_lookup[(pts.season_id, team.league_id)] = team
+
     season_stats_data = []
     for stat in season_stats:
+        team = team_lookup.get((stat.season_id, stat.league_id))
         season_stats_data.append({
             "id": stat.id,
             "season_id": stat.season_id,
             "season_name": stat.season.name if stat.season else None,
             "is_current_season": stat.season.is_current if stat.season else False,
+            "league_id": stat.league_id,
+            "league_name": stat.league.name if stat.league else None,
+            "team_id": team.id if team else None,
+            "team_name": team.name if team else None,
             "goals": stat.goals,
             "assists": stat.assists,
             "yellow_cards": stat.yellow_cards,
-            "red_cards": stat.red_cards
+            "red_cards": stat.red_cards,
         })
 
     season_stats_data.sort(
@@ -725,11 +747,14 @@ def build_matches_query(team_id: Optional[int], player: Optional[Player],
     if session is None:
         session = g.db_session
 
-    # Use eager loading to prevent N+1 queries
+    # Use eager loading to prevent N+1 queries.
+    # Match.ref is loaded so Match.to_dict()['ref'] doesn't fan out one query
+    # per match in list endpoints.
     from sqlalchemy.orm import joinedload
     query = session.query(Match).options(
         joinedload(Match.home_team),
-        joinedload(Match.away_team)
+        joinedload(Match.away_team),
+        joinedload(Match.ref),
     )
 
     if not include_practice:

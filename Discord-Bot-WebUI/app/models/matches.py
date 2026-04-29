@@ -118,6 +118,7 @@ class Match(db.Model):
             'notes': self.notes,
             'schedule_id': self.schedule_id,
             'ref_id': self.ref_id,
+            'ref': self._ref_summary(),
             'reported': self.reported,
             'home_team_verified': self.home_team_verified,
             'away_team_verified': self.away_team_verified,
@@ -150,6 +151,29 @@ class Match(db.Model):
         if include_events:
             data['events'] = [event.to_dict() for event in self.events]
         return data
+
+    def _ref_summary(self):
+        """
+        Compact ref payload for mobile clients so they can render
+        "Referee: Jane Doe" without an extra round-trip. Returns None when
+        no ref is assigned. profile_picture_url is absolute when called in
+        a request context, relative (or None) otherwise.
+        """
+        if not self.ref_id or not self.ref:
+            return None
+        pic = self.ref.profile_picture_url
+        if pic:
+            try:
+                from flask import request, has_request_context
+                if has_request_context():
+                    pic = f"{request.host_url.rstrip('/')}{pic}"
+            except Exception:
+                pass
+        return {
+            'id': self.ref.id,
+            'name': self.ref.name,
+            'profile_picture_url': pic,
+        }
 
     @property
     def reported(self):
