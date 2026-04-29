@@ -414,14 +414,21 @@ def build_player_team_history_data(player_id: int, include_roster: bool = False,
                 jl(PlayerTeamSeason.player)
             ).all()
 
+            default_image = f"{base_url}/static/img/default_player.png"
             roster_data = []
             for roster_entry in team_roster:
                 p = roster_entry.player
                 if p:
+                    ppic = p.profile_picture_url
+                    if ppic:
+                        full_ppic = ppic if ppic.startswith('http') else f"{base_url}{ppic}"
+                    else:
+                        full_ppic = default_image
                     roster_data.append({
                         "id": p.id,
                         "name": p.name,
-                        "jersey_number": p.jersey_number
+                        "jersey_number": p.jersey_number,
+                        "profile_picture_url": full_ppic,
                     })
 
             team_data["roster"] = roster_data
