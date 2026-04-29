@@ -306,17 +306,29 @@ def update_player_stats(session, player_id, event_type, match, increment=True, i
             player_id=player_id, season_id=season_id, league_id=league_id
         ).first()
         if not season_stats:
-            logger.info(f"Creating new season stats record for player_id={player_id}, season_id={season_id}, league_id={league_id}")
-            season_stats = PlayerSeasonStats(
-                player_id=player_id,
-                season_id=season_id,
-                league_id=league_id,
-                goals=0,
-                assists=0,
-                yellow_cards=0,
-                red_cards=0
-            )
-            session.add(season_stats)
+            # No exact (player, season, league) match. Before creating a new row,
+            # check for a legacy NULL-league_id row for this (player, season) and
+            # upgrade it in place if it's still empty. Prevents recreating the
+            # same NULL-vs-league_id duplicate that this fix is closing.
+            legacy = session.query(PlayerSeasonStats).filter_by(
+                player_id=player_id, season_id=season_id, league_id=None
+            ).first()
+            if legacy and legacy.goals == 0 and legacy.assists == 0 \
+                    and legacy.yellow_cards == 0 and legacy.red_cards == 0:
+                legacy.league_id = league_id
+                season_stats = legacy
+            else:
+                logger.info(f"Creating new season stats record for player_id={player_id}, season_id={season_id}, league_id={league_id}")
+                season_stats = PlayerSeasonStats(
+                    player_id=player_id,
+                    season_id=season_id,
+                    league_id=league_id,
+                    goals=0,
+                    assists=0,
+                    yellow_cards=0,
+                    red_cards=0
+                )
+                session.add(season_stats)
     else:
         season_stats = None
         logger.info(f"Skipping season stats for sub event: player_id={player_id}")

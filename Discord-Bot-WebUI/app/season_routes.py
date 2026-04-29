@@ -279,6 +279,7 @@ def rollover_league(session, old_season: Season, new_season: Season) -> bool:
                 new_season_stats.append(PlayerSeasonStats(
                     player_id=player.id,
                     season_id=new_season.id,
+                    league_id=player.primary_league_id,
                     goals=0,
                     assists=0,
                     yellow_cards=0,
