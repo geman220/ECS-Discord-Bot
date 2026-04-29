@@ -517,17 +517,10 @@ def handle_remove_player_enhanced(data):
                     player.primary_team_id = None
                     print(f"🗑️ Cleared primary team for {player.name}")
 
-                # Remove PlayerTeamSeason records for current season
-                season_records = session.query(PlayerTeamSeason).filter(
-                    PlayerTeamSeason.player_id == player_id,
-                    PlayerTeamSeason.team_id == team_id,
-                    PlayerTeamSeason.season_id == league.season_id
-                ).all()
-
-                for record in season_records:
-                    session.delete(record)
-                    print(f"🗑️ Removed PlayerTeamSeason record: {record.id}")
-                    logger.info(f"🗑️ Removed PlayerTeamSeason record: {record.id}")
+                # PlayerTeamSeason rows are preserved as the historical record
+                # of who played for which team in which season. They are NOT
+                # deleted when a player is removed from a team via draft. (Same
+                # invariant as the admin "edit user" flow.)
 
                 # Remove from draft history and adjust subsequent picks
                 try:
