@@ -380,15 +380,19 @@ def get_active_substitutes(league_type, session=None, gender_filter=None):
     from app.models import Player, User, Role
     from sqlalchemy.orm import joinedload
     
-    # First, try to get existing SubstitutePool entries
-    # Only include active, approved, current players
+    # First, try to get existing SubstitutePool entries.
+    # Only include "Active in Pool" members per the tri-state model:
+    # is_active=True AND approved_at IS NOT NULL. Members in
+    # "Pending Approval" (approved_at IS NULL) or "On Break"
+    # (is_active=False) are excluded from broadcasts.
     existing_pools = session.query(SubstitutePool).options(
         joinedload(SubstitutePool.player).joinedload(Player.user).joinedload(User.roles)
     ).join(Player).join(User).join(User.roles).filter(
         Role.name == required_role,
         SubstitutePool.is_active == True,
-        Player.is_current_player == True,  # Must be an active player
-        User.is_approved == True  # Must be approved
+        SubstitutePool.approved_at.isnot(None),
+        Player.is_current_player == True,
+        User.is_approved == True
     )
 
     # Apply gender filter if specified

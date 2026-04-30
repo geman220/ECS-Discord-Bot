@@ -17,9 +17,6 @@ from app.models_substitute_pools import (
     SubstitutePool, SubstituteRequest, SubstituteResponse, SubstituteAssignment,
     get_active_substitutes, log_pool_action
 )
-from app.sms_helpers import send_sms
-from app.email import send_email
-from app.tasks.tasks_ecs_fc_rsvp_helpers import send_ecs_fc_dm_sync
 
 logger = logging.getLogger(__name__)
 
@@ -28,233 +25,100 @@ logger = logging.getLogger(__name__)
 def notify_substitute_pool_of_request(self, session, request_id: int, league_type: str) -> Dict[str, Any]:
     """
     Send notifications to all active substitutes in the pool about a new request.
-    
+
+    Delegates to SubstituteNotificationService for unified channel delivery
+    (SMS, Discord, Email, Push). Pre-resolves the eligible player_ids using
+    pronoun-inclusion semantics: when a gender filter is set, also include
+    players whose pronouns are 'they/them' or unset so they aren't left out.
+
     Args:
         request_id: ID of the SubstituteRequest
         league_type: Type of league ('ECS FC', 'Classic', 'Premier')
-        
+
     Returns:
         Dictionary with notification results
     """
     try:
-        # Get the request with related data
         sub_request = session.query(SubstituteRequest).options(
             joinedload(SubstituteRequest.team)
         ).get(request_id)
-        
         if not sub_request:
             logger.error(f"Substitute request {request_id} not found")
             return {'success': False, 'error': 'Request not found'}
-        
-        # Get match information based on league type
-        match_info = get_match_info_for_league(sub_request, league_type)
-        if not match_info:
-            logger.error(f"Could not get match info for request {request_id}")
-            return {'success': False, 'error': 'Match information not available'}
-        
-        # Get all active subs from the pool for this league, filtered by gender preference
-        gender_filter = sub_request.gender_preference if hasattr(sub_request, 'gender_preference') else None
-        
-        # Get gender-specific subs if filter is applied
-        if gender_filter:
-            gender_specific_subs = get_active_substitutes(league_type, session, gender_filter)
-        else:
-            gender_specific_subs = []
-            
-        # Get all subs with they/them or null pronouns (they get all notifications)
-        all_subs = get_active_substitutes(league_type, session, None)
-        from app.models import Player
-        inclusive_subs = []
-        for sub in all_subs:
-            if sub.player and sub.player.pronouns:
-                if 'they/them' in sub.player.pronouns.lower():
-                    inclusive_subs.append(sub)
-            elif not sub.player.pronouns:  # null pronouns
-                inclusive_subs.append(sub)
-        
-        # Combine lists and remove duplicates
-        if gender_filter:
-            active_subs = gender_specific_subs + inclusive_subs
-            # Remove duplicates by player_id
-            seen_player_ids = set()
-            unique_subs = []
-            for sub in active_subs:
-                if sub.player_id not in seen_player_ids:
-                    unique_subs.append(sub)
-                    seen_player_ids.add(sub.player_id)
-            active_subs = unique_subs
-        else:
-            # No filter, send to everyone
-            active_subs = all_subs
-        
-        if not active_subs:
-            gender_note = f" (filtered for {gender_filter} players)" if gender_filter else ""
-            logger.warning(f"No active substitutes in the {league_type} pool{gender_note}")
-            return {'success': True, 'notified': 0, 'message': f'No active substitutes in {league_type} pool{gender_note}'}
-        
-        # Prepare notification content
-        match_date = match_info['date'].strftime('%A, %B %d') if match_info['date'] else 'TBD'
-        match_time = match_info['time'].strftime('%I:%M %p').lstrip('0') if match_info['time'] else 'TBD'
-        location = match_info['location'] or 'TBD'
-        team_name = sub_request.team.name if sub_request.team else 'Unknown Team'
-        
-        positions_text = f" Positions needed: {sub_request.positions_needed}" if sub_request.positions_needed else ""
-        gender_text = f" (seeking {gender_filter} player)" if gender_filter else ""
-        notes_text = f" Notes: {sub_request.notes}" if sub_request.notes else ""
-        
-        # Track notification results
-        results = {
-            'total_subs': len(active_subs),
-            'sms_sent': 0,
-            'discord_sent': 0,
-            'email_sent': 0,
-            'errors': []
-        }
-        
-        for pool_entry in active_subs:
-            player = pool_entry.player
-            if not player or not player.user:
-                continue
-            
-            user = player.user
-            notification_methods = []
-            
-            # Send SMS if enabled (only if phone is verified and consent given)
-            if (pool_entry.sms_for_sub_requests and user.sms_notifications and player.phone
-                    and player.is_phone_verified and player.sms_consent_given):
-                sms_message = (
-                    f"{league_type} Sub Request: {team_name} needs a sub{gender_text} on {match_date} "
-                    f"at {match_time} at {location}.{positions_text} "
-                    f"Reply YES if available. Reply STOP to opt out."
-                )
-                
-                try:
-                    success, error = send_sms(
-                        player.phone, sms_message, user_id=user.id,
-                        message_type='sub_request', source='celery_task'
-                    )
-                    if success:
-                        results['sms_sent'] += 1
-                        notification_methods.append('SMS')
-                    else:
-                        results['errors'].append(f"SMS to {player.name}: {error}")
-                except Exception as e:
-                    logger.error(f"Error sending SMS to {player.name}: {e}")
-                    results['errors'].append(f"SMS to {player.name}: {str(e)}")
-            
-            # Send Discord DM if enabled
-            if pool_entry.discord_for_sub_requests and user.discord_notifications and player.discord_id:
-                discord_message = (
-                    f"**{league_type} Substitute Request{gender_text}**\n"
-                    f"Team: {team_name}\n"
-                    f"Date: {match_date}\n"
-                    f"Time: {match_time}\n"
-                    f"Location: {location}\n"
-                    f"{positions_text}\n"
-                    f"{notes_text}\n\n"
-                    f"Reply with **YES** if you are available to substitute."
-                )
-                
-                try:
-                    # Create response record for tracking
-                    response = SubstituteResponse(
-                        request_id=request_id,
-                        player_id=player.id,
-                        is_available=False,  # Will be updated when they respond
-                        response_method='DISCORD',
-                        notification_sent_at=datetime.utcnow(),
-                        notification_methods='DISCORD'
-                    )
-                    session.add(response)
-                    session.flush()  # Get the ID
-                    
-                    # Commit the session before making the external API call to avoid
-                    # holding the database transaction open during the Discord API call
-                    # Commit happens automatically in @celery_task decorator
-                    
-                    # Send DM using existing system
-                    dm_result = send_ecs_fc_dm_sync(player.discord_id, discord_message)
-                    if dm_result['success']:
-                        results['discord_sent'] += 1
-                        notification_methods.append('DISCORD')
-                        logger.info(f"{league_type} sub request DM sent to player {player.discord_id}")
-                    else:
-                        results['errors'].append(f"Discord DM failed: {dm_result.get('message')}")
-                        logger.warning(f"Failed to send {league_type} sub DM to player {player.discord_id}: {dm_result.get('message')}")
-                        
-                except Exception as e:
-                    logger.error(f"Error sending Discord DM to {player.name}: {e}")
-                    results['errors'].append(f"Discord to {player.name}: {str(e)}")
-            
-            # Send Email if enabled
-            if pool_entry.email_for_sub_requests and user.email_notifications and user.email:
-                email_subject = f"{league_type} Substitute Request - {team_name}"
-                
-                positions_html = f'<p><strong>Positions needed:</strong> {sub_request.positions_needed}</p>' if sub_request.positions_needed else ''
-                notes_html = f'<p><strong>Notes:</strong> {sub_request.notes}</p>' if sub_request.notes else ''
-                
-                email_body = f"""
-                <h3>{league_type} Substitute Request</h3>
-                <p><strong>Team:</strong> {team_name}</p>
-                <p><strong>Date:</strong> {match_date}</p>
-                <p><strong>Time:</strong> {match_time}</p>
-                <p><strong>Location:</strong> {location}</p>
-                {positions_html}
-                {notes_html}
-                <br>
-                <p>If you are available to substitute, please respond via SMS or Discord.</p>
-                """
-                
-                try:
-                    send_email(
-                        user.email,
-                        email_subject,
-                        email_body,
-                        is_html=True
-                    )
-                    results['email_sent'] += 1
-                    notification_methods.append('EMAIL')
-                except Exception as e:
-                    logger.error(f"Error sending email to {player.name}: {e}")
-                    results['errors'].append(f"Email to {player.name}: {str(e)}")
-            
-            # Update pool stats
-            pool_entry.requests_received += 1
-            pool_entry.last_active_at = datetime.utcnow()
-            
-            # Create or update response record for non-Discord notifications
-            if notification_methods and 'DISCORD' not in notification_methods:
-                response = session.query(SubstituteResponse).filter_by(
-                    request_id=request_id,
-                    player_id=player.id
-                ).first()
-                
-                if not response:
-                    response = SubstituteResponse(
-                        request_id=request_id,
-                        player_id=player.id,
-                        is_available=False,
-                        response_method='PENDING',
-                        notification_sent_at=datetime.utcnow(),
-                        notification_methods=','.join(notification_methods)
-                    )
-                    session.add(response)
-        
-        # Session will be committed by decorator
-        
-        results['success'] = True
-        results['message'] = (
-            f"Notified {results['sms_sent'] + results['discord_sent'] + results['email_sent']} "
-            f"substitutes out of {results['total_subs']} in the {league_type} pool"
+
+        gender_filter = getattr(sub_request, 'gender_preference', None)
+        eligible_player_ids = _resolve_eligible_player_ids(session, league_type, gender_filter)
+
+        if not eligible_player_ids:
+            note = f" (filtered for {gender_filter} players)" if gender_filter else ""
+            logger.warning(f"No active substitutes in the {league_type} pool{note}")
+            return {
+                'success': True,
+                'notified': 0,
+                'message': f'No active substitutes in {league_type} pool{note}',
+            }
+
+        custom_message = _build_default_pool_message(sub_request, league_type, gender_filter)
+
+        from app.services.substitute_notification_service import SubstituteNotificationService
+        service = SubstituteNotificationService()
+        result = service.notify_pool(
+            request_id=request_id,
+            league_type=league_type,
+            custom_message=custom_message,
+            player_ids=eligible_player_ids,
+            subs_needed=sub_request.substitutes_needed or 1,
         )
-        
-        logger.info(f"Substitute request {request_id} notification results: {results}")
-        return results
-        
+
+        notified = result.get('notifications_sent', 0)
+        result['message'] = (
+            f"Notified {notified} substitutes out of "
+            f"{result.get('total_subs', 0)} in the {league_type} pool"
+        )
+        logger.info(f"Substitute request {request_id} notification results: {result}")
+        return result
+
     except Exception as e:
         logger.error(f"Error in notify_substitute_pool_of_request: {e}", exc_info=True)
-        # Session rollback handled by decorator
         return {'success': False, 'error': str(e)}
+
+
+def _resolve_eligible_player_ids(session, league_type: str, gender_filter: Optional[str]) -> List[int]:
+    """Pick eligible substitute player_ids. When a gender filter is set,
+    also include players whose pronouns are 'they/them' or unset so broader
+    sub broadcasts don't exclude them."""
+    if not gender_filter:
+        return [s.player_id for s in get_active_substitutes(league_type, session, None) if s.player_id]
+
+    gender_specific = get_active_substitutes(league_type, session, gender_filter)
+    all_subs = get_active_substitutes(league_type, session, None)
+
+    inclusive = []
+    for sub in all_subs:
+        if not sub.player:
+            continue
+        prons = (sub.player.pronouns or '').lower().strip()
+        if 'they/them' in prons or not prons:
+            inclusive.append(sub)
+
+    seen = set()
+    out = []
+    for sub in list(gender_specific) + inclusive:
+        pid = sub.player_id
+        if pid and pid not in seen:
+            out.append(pid)
+            seen.add(pid)
+    return out
+
+
+def _build_default_pool_message(sub_request: SubstituteRequest, league_type: str, gender_filter: Optional[str]) -> str:
+    """Headline for the default pool broadcast. SubstituteNotificationService
+    appends match details (date / time / location / positions / notes) under it."""
+    team_name = sub_request.team.name if sub_request.team else 'a team'
+    parts = [f"{league_type} Sub Request: {team_name} needs a sub"]
+    if gender_filter:
+        parts.append(f"(seeking {gender_filter} player)")
+    return ' '.join(parts) + '.'
 
 
 @celery_task(name='notify_assigned_substitute')
@@ -269,199 +133,64 @@ def notify_assigned_substitute(self, session, assignment_id: int) -> Dict[str, A
         Dictionary with notification results
     """
     try:
-        # Get assignment with related data
         assignment = session.query(SubstituteAssignment).options(
-            joinedload(SubstituteAssignment.request).joinedload(SubstituteRequest.team),
-            joinedload(SubstituteAssignment.player).joinedload(Player.user)
+            joinedload(SubstituteAssignment.player)
         ).get(assignment_id)
-        
         if not assignment:
             logger.error(f"Assignment {assignment_id} not found")
             return {'success': False, 'error': 'Assignment not found'}
-        
-        player = assignment.player
-        user = player.user if player else None
-        
-        if not user:
-            logger.error(f"User not found for player {player.id if player else 'unknown'}")
-            return {'success': False, 'error': 'User not found'}
-        
-        # Get match information based on league type
-        match_info = get_match_info_for_league(assignment.request, assignment.request.league_type)
-        if not match_info:
-            logger.error(f"Could not get match info for assignment {assignment_id}")
-            return {'success': False, 'error': 'Match information not available'}
-        
-        # Prepare notification content
-        match_date = match_info['date'].strftime('%A, %B %d') if match_info['date'] else 'TBD'
-        match_time = match_info['time'].strftime('%I:%M %p').lstrip('0') if match_info['time'] else 'TBD'
-        location = match_info['location'] or 'TBD'
-        team_name = assignment.request.team.name if assignment.request.team else 'Unknown Team'
-        
-        position_text = f" Position: {assignment.position_assigned}" if assignment.position_assigned else ""
-        notes_text = f" Notes: {assignment.notes}" if assignment.notes else ""
-        match_notes = f" Match notes: {match_info.get('notes', '')}" if match_info.get('notes') else ""
-        
-        results = {
-            'player_name': player.name,
-            'methods_attempted': [],
-            'methods_successful': [],
-            'errors': []
-        }
-        
-        # Get sub pool preferences
+
+        # Bump the pool member's matches_played counter; the unified service
+        # owns sending the notification itself.
         pool_entry = session.query(SubstitutePool).filter_by(
-            player_id=player.id,
+            player_id=assignment.player_id,
             league_type=assignment.request.league_type,
-            is_active=True
+            is_active=True,
         ).first()
-        
-        # Default to user preferences if no pool entry
-        sms_enabled = pool_entry.sms_for_sub_requests if pool_entry else user.sms_notifications
-        discord_enabled = pool_entry.discord_for_sub_requests if pool_entry else user.discord_notifications
-        email_enabled = pool_entry.email_for_sub_requests if pool_entry else user.email_notifications
-        
-        # Send SMS (only if phone is verified and consent given)
-        if sms_enabled and player.phone and player.is_phone_verified and player.sms_consent_given:
-            sms_message = (
-                f"You're assigned as a sub for {team_name} on {match_date} "
-                f"at {match_time} at {location}.{position_text}{match_notes} "
-                f"Reply STOP to opt out."
-            )
-            
-            try:
-                success, error = send_sms(
-                    player.phone, sms_message, user_id=user.id,
-                    message_type='sub_assignment', source='celery_task'
-                )
-                results['methods_attempted'].append('SMS')
-                if success:
-                    results['methods_successful'].append('SMS')
-                else:
-                    results['errors'].append(f"SMS: {error}")
-            except Exception as e:
-                logger.error(f"Error sending assignment SMS: {e}")
-                results['errors'].append(f"SMS: {str(e)}")
-        
-        # Send Discord DM
-        if discord_enabled and player.discord_id:
-            try:
-                position_line = f"**Position:** {assignment.position_assigned}\n" if assignment.position_assigned else ""
-                notes_line = f"**Notes:** {assignment.notes}\n" if assignment.notes else ""
-                match_notes_line = f"**Match Notes:** {match_info.get('notes', '')}\n" if match_info.get('notes') else ""
-                
-                discord_message = (
-                    f"**You've been assigned as a substitute!**\n\n"
-                    f"**Team:** {team_name}\n"
-                    f"**Date:** {match_date}\n"
-                    f"**Time:** {match_time}\n"
-                    f"**Location:** {location}\n"
-                    f"{position_line}"
-                    f"{notes_line}"
-                    f"{match_notes_line}\n"
-                    f"Good luck!"
-                )
-                
-                results['methods_attempted'].append('Discord')
-                
-                # Commit the session before making the external API call to avoid
-                # holding the database transaction open during the Discord API call
-                # Commit happens automatically in @celery_task decorator
-                
-                dm_result = send_ecs_fc_dm_sync(player.discord_id, discord_message)
-                if dm_result['success']:
-                    results['methods_successful'].append('Discord')
-                    logger.info(f"Sub assignment DM sent to player {player.discord_id}")
-                else:
-                    results['errors'].append(f"Discord DM failed: {dm_result.get('message')}")
-                    logger.warning(f"Failed to send assignment DM to player {player.discord_id}: {dm_result.get('message')}")
-                    
-            except Exception as e:
-                logger.error(f"Error sending assignment Discord DM: {e}")
-                results['errors'].append(f"Discord: {str(e)}")
-        
-        # Send Email
-        if email_enabled and user.email:
-            email_subject = f"Substitute Assignment - {team_name} on {match_date}"
-            
-            position_html = f'<p><strong>Position:</strong> {assignment.position_assigned}</p>' if assignment.position_assigned else ''
-            notes_html = f'<p><strong>Assignment Notes:</strong> {assignment.notes}</p>' if assignment.notes else ''
-            match_notes_html = f'<p><strong>Match Notes:</strong> {match_info.get("notes", "")}</p>' if match_info.get('notes') else ''
-            
-            email_body = f"""
-            <h3>You've been assigned as a substitute!</h3>
-            
-            <p><strong>Team:</strong> {team_name}</p>
-            <p><strong>Date:</strong> {match_date}</p>
-            <p><strong>Time:</strong> {match_time}</p>
-            <p><strong>Location:</strong> {location}</p>
-            {position_html}
-            {notes_html}
-            {match_notes_html}
-            
-            <br>
-            <p>Good luck at the match!</p>
-            """
-            
-            try:
-                send_email(
-                    user.email,
-                    email_subject,
-                    email_body,
-                    is_html=True
-                )
-                results['methods_attempted'].append('Email')
-                results['methods_successful'].append('Email')
-            except Exception as e:
-                logger.error(f"Error sending assignment email: {e}")
-                results['errors'].append(f"Email: {str(e)}")
-        
-        # Update assignment notification status
-        assignment.notification_sent = True
-        assignment.notification_sent_at = datetime.utcnow()
-        assignment.notification_methods = ','.join(results['methods_successful'])
-        
-        # Update pool stats if exists
         if pool_entry:
-            pool_entry.matches_played += 1
-        
-        # Session will be committed by decorator
-        
-        results['success'] = len(results['methods_successful']) > 0
-        results['message'] = (
-            f"Notified {player.name} via {', '.join(results['methods_successful'])}" 
-            if results['methods_successful'] 
-            else f"Failed to notify {player.name}"
+            pool_entry.matches_played = (pool_entry.matches_played or 0) + 1
+
+        from app.services.substitute_notification_service import SubstituteNotificationService
+        service = SubstituteNotificationService()
+        result = service.send_confirmation(assignment_id=assignment_id, league_type='pub_league')
+
+        player_name = assignment.player.name if assignment.player else 'unknown'
+        channels = result.get('channels_used', [])
+        result['player_name'] = player_name
+        result['message'] = (
+            f"Notified {player_name} via {', '.join(channels)}"
+            if channels else f"Failed to notify {player_name}"
         )
-        
-        logger.info(f"Assignment {assignment_id} notification results: {results}")
-        return results
-        
+        logger.info(f"Assignment {assignment_id} notification results: {result}")
+        return result
+
     except Exception as e:
         logger.error(f"Error in notify_assigned_substitute: {e}", exc_info=True)
-        # Session rollback handled by decorator
         return {'success': False, 'error': str(e)}
 
 
 @celery_task(name='process_substitute_response')
 def process_substitute_response(self, session, player_id: int, response_text: str, response_method: str) -> Dict[str, Any]:
     """
-    Process a substitute's response to a request.
-    
+    Process a substitute's response to a request that arrived via SMS or Discord.
+
+    Records the availability on the SubstituteResponse row, bumps the pool's
+    accepted-counter when applicable, and delegates the admin-facing FCM push
+    to SubstituteNotificationService.notify_response_received so the same
+    payload contract holds across all entry points (SMS, Discord, web, app).
+
     Args:
         player_id: ID of the player responding
         response_text: The response text (e.g., "YES", "NO")
         response_method: How they responded (SMS, DISCORD)
-        
+
     Returns:
         Dictionary with processing results
     """
     try:
-        # Normalize response
         response_text = response_text.strip().upper()
         is_available = response_text in ['YES', 'Y', 'AVAILABLE', '1']
-        
-        # Find the most recent open request that this player was notified about
+
         response = session.query(SubstituteResponse).join(
             SubstituteRequest
         ).filter(
@@ -470,85 +199,45 @@ def process_substitute_response(self, session, player_id: int, response_text: st
         ).order_by(
             SubstituteResponse.notification_sent_at.desc()
         ).first()
-        
+
         if not response:
             logger.warning(f"No open sub request found for player {player_id}")
-            return {
-                'success': False,
-                'error': 'No active substitute request found'
-            }
-        
-        # Update the response
+            return {'success': False, 'error': 'No active substitute request found'}
+
         response.is_available = is_available
         response.response_method = response_method
         response.response_text = response_text
         response.responded_at = datetime.utcnow()
 
-        # Update pool stats
         pool_entry = session.query(SubstitutePool).filter_by(
             player_id=player_id,
             league_type=response.request.league_type,
             is_active=True
         ).first()
-
         if pool_entry and is_available:
-            pool_entry.requests_accepted += 1
+            pool_entry.requests_accepted = (pool_entry.requests_accepted or 0) + 1
 
-        # Get data for admin notification
-        request_id_val = response.request_id
-        player = session.query(Player).get(player_id)
-        player_name = player.name if player else f"Player {player_id}"
-        sub_request = response.request
-        team_name = sub_request.team.name if sub_request and sub_request.team else 'Unknown Team'
-        match_date_str = ''
-        if sub_request and sub_request.match and sub_request.match.date:
-            match_date_str = f" on {sub_request.match.date.strftime('%A, %B %d')}"
-
-        # Notify admins (Pub League admins manage subs)
         try:
-            from app.models.core import Role
-            from app.services.notification_orchestrator import (
-                orchestrator, NotificationType, NotificationPayload
+            from app.services.substitute_notification_service import SubstituteNotificationService
+            SubstituteNotificationService().notify_response_received(
+                request_id=response.request_id,
+                player_id=player_id,
+                is_available=is_available,
+                response_method=response_method,
+                league_type='pub_league',
             )
-            admin_roles = session.query(Role).filter(
-                Role.name.in_(['Global Admin', 'Pub League Admin'])
-            ).all()
-            admin_user_ids = list(set(
-                u.id for role in admin_roles for u in role.users
-            ))
-            if admin_user_ids:
-                availability_text = "is available" if is_available else "is NOT available"
-                orchestrator.send(NotificationPayload(
-                    notification_type=NotificationType.SUB_REQUEST,
-                    title="Sub Response Received",
-                    message=f"{player_name} {availability_text} for {team_name}{match_date_str}",
-                    user_ids=admin_user_ids,
-                    data={
-                        'type': 'sub_response',
-                        'request_id': str(request_id_val),
-                        'player_name': player_name,
-                        'is_available': str(is_available).lower(),
-                        'league_type': 'pub_league',
-                        'response_method': response_method,
-                        'click_action': 'FLUTTER_NOTIFICATION_CLICK',
-                    },
-                ))
-                logger.info(f"Notified {len(admin_user_ids)} admins of {response_method} sub response from {player_name}")
         except Exception as e:
             logger.error(f"Failed to notify admins of sub response: {e}")
-
-        # Session will be committed by decorator
 
         return {
             'success': True,
             'is_available': is_available,
-            'request_id': request_id_val,
+            'request_id': response.request_id,
             'message': f"Response recorded: {'Available' if is_available else 'Not available'}"
         }
-        
+
     except Exception as e:
         logger.error(f"Error processing substitute response: {e}", exc_info=True)
-        # Session rollback handled by decorator
         return {'success': False, 'error': str(e)}
 
 

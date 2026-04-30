@@ -44,27 +44,27 @@
     </div>
 </div>
 
-<!-- Statistics Cards -->
+<!-- Statistics Cards: tri-state pool model -->
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 text-center">
-        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_active }}</div>
-        <div class="text-sm text-blue-700 dark:text-blue-300">Active Subs</div>
+    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg p-4 text-center" title="Approved AND active — assignable">
+        <div class="text-2xl font-bold text-green-700 dark:text-green-400">{{ stats.total_active }}</div>
+        <div class="text-sm text-green-700 dark:text-green-300">Active in Pool</div>
     </div>
-    <div class="bg-green-50 dark:bg-green-900/30 rounded-lg p-4 text-center">
-        <div class="text-2xl font-bold text-green-600 dark:text-green-400">{{ stats.total_eligible }}</div>
-        <div class="text-sm text-green-700 dark:text-green-300">Eligible</div>
+    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-4 text-center" title="Approved but currently on break — eligible if reactivated">
+        <div class="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{{ stats.total_on_break }}</div>
+        <div class="text-sm text-yellow-700 dark:text-yellow-300">On Break</div>
+    </div>
+    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center" title="Awaiting admin approval">
+        <div class="text-2xl font-bold text-gray-700 dark:text-gray-300">{{ stats.total_pending }}</div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">Pending</div>
     </div>
     <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg p-4 text-center">
         <div class="text-2xl font-bold text-cyan-600 dark:text-cyan-400">{{ stats.total_requests_sent }}</div>
         <div class="text-sm text-cyan-700 dark:text-cyan-300">Requests</div>
     </div>
-    <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-lg p-4 text-center">
-        <div class="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{{ stats.total_matches_played }}</div>
-        <div class="text-sm text-yellow-700 dark:text-yellow-300">Matches</div>
-    </div>
-    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
-        <div class="text-2xl font-bold text-gray-600 dark:text-gray-400">{{ stats.pending_approval }}</div>
-        <div class="text-sm text-gray-700 dark:text-gray-300">Available</div>
+    <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ stats.total_matches_played }}</div>
+        <div class="text-sm text-blue-700 dark:text-blue-300">Matches</div>
     </div>
     <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 flex items-center justify-center">
         <button type="button" class="px-3 py-1.5 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 js-load-stats" data-action="load-stats">
@@ -74,12 +74,64 @@
 </div>
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Active Substitutes -->
-    <div class="lg:col-span-2">
+    <!-- Pool member sections (tri-state) -->
+    <div class="lg:col-span-2 space-y-6">
+
+        <!-- Pending Approval -->
+        {% if pending_pools %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow border-2 border-gray-300 dark:border-gray-600">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-clock mr-2 text-gray-500"></i>Pending Approval
+                </h5>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ pending_pools|length }}</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Player</th>
+                            <th class="px-4 py-3 text-center">Added</th>
+                            <th class="px-4 py-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pool in pending_pools %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-4 py-3">
+                                <div class="flex items-center">
+                                    <div class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-300 text-gray-700 font-bold text-sm mr-3 dark:bg-gray-600 dark:text-gray-200">
+                                        {{ pool.player.name[0] if pool.player else '?' }}
+                                    </div>
+                                    <div class="font-medium text-gray-900 dark:text-white">{{ pool.player.name if pool.player else 'Unknown' }}</div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-center text-xs text-gray-500 dark:text-gray-400">
+                                {{ pool.joined_pool_at.strftime('%m/%d') if pool.joined_pool_at else '—' }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex gap-2">
+                                    <button type="button" class="px-3 py-1 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg js-approve-member" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Player' }}">
+                                        <i class="ti ti-check mr-1"></i>Approve
+                                    </button>
+                                    <button type="button" class="px-3 py-1 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 js-remove-player" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Unknown' }}">
+                                        <i class="ti ti-x mr-1"></i>Reject
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Active in Pool -->
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
             <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                 <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
-                    <i class="ti ti-users mr-2"></i>Active Substitutes
+                    <i class="ti ti-users mr-2 text-green-600"></i>Active in Pool
                 </h5>
                 <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white" style="background-color: {{ league_config.color }}">{{ active_pools|length }} Players</span>
             </div>
@@ -88,12 +140,12 @@
                 <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                         <tr>
-                            <th scope="col" class="px-4 py-3">Player</th>
-                            <th scope="col" class="px-4 py-3 text-center">Matches</th>
-                            <th scope="col" class="px-4 py-3 text-center">Requests</th>
-                            <th scope="col" class="px-4 py-3 text-center">Acceptance</th>
-                            <th scope="col" class="px-4 py-3 text-center">Notifications</th>
-                            <th scope="col" class="px-4 py-3">Actions</th>
+                            <th class="px-4 py-3">Player</th>
+                            <th class="px-4 py-3 text-center">Matches</th>
+                            <th class="px-4 py-3 text-center">Requests</th>
+                            <th class="px-4 py-3 text-center">Acceptance</th>
+                            <th class="px-4 py-3 text-center">Notifications</th>
+                            <th class="px-4 py-3">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -107,15 +159,9 @@
                                     <div>
                                         <div class="font-medium text-gray-900 dark:text-white">{{ pool.player.name if pool.player else 'Unknown' }}</div>
                                         <div class="flex gap-1 mt-1">
-                                            {% if pool.player.phone %}
-                                            <i class="ti ti-phone text-green-500 text-xs"></i>
-                                            {% endif %}
-                                            {% if pool.player.discord_id %}
-                                            <i class="ti ti-brand-discord text-blue-500 text-xs"></i>
-                                            {% endif %}
-                                            {% if pool.player.user and pool.player.user.email %}
-                                            <i class="ti ti-mail text-gray-500 text-xs"></i>
-                                            {% endif %}
+                                            {% if pool.player.phone %}<i class="ti ti-phone text-green-500 text-xs"></i>{% endif %}
+                                            {% if pool.player.discord_id %}<i class="ti ti-brand-discord text-blue-500 text-xs"></i>{% endif %}
+                                            {% if pool.player.user and pool.player.user.email %}<i class="ti ti-mail text-gray-500 text-xs"></i>{% endif %}
                                         </div>
                                     </div>
                                 </div>
@@ -138,9 +184,14 @@
                                 </div>
                             </td>
                             <td class="px-4 py-3">
-                                <button type="button" class="px-2 py-1 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 js-remove-player" data-action="remove-pool-player" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Unknown' }}">
-                                    <i class="ti ti-trash"></i>
-                                </button>
+                                <div class="flex gap-2">
+                                    <button type="button" class="px-2 py-1 text-sm font-medium text-yellow-700 bg-yellow-50 border border-yellow-200 rounded hover:bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800 js-mark-on-break" title="Mark on break" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Player' }}">
+                                        <i class="ti ti-pause"></i>
+                                    </button>
+                                    <button type="button" class="px-2 py-1 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 js-remove-player" title="Remove from pool" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Unknown' }}">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -160,6 +211,59 @@
             </div>
             {% endif %}
         </div>
+
+        <!-- Approved · On Break -->
+        {% if on_break_pools %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+            <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                <h5 class="text-lg font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-zzz mr-2 text-yellow-600"></i>Approved · On Break
+                </h5>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ on_break_pools|length }}</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                        <tr>
+                            <th class="px-4 py-3">Player</th>
+                            <th class="px-4 py-3 text-center">Matches</th>
+                            <th class="px-4 py-3 text-center">Approved</th>
+                            <th class="px-4 py-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pool in on_break_pools %}
+                        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <td class="px-4 py-3">
+                                <div class="flex items-center">
+                                    <div class="flex items-center justify-center w-8 h-8 rounded-full bg-yellow-100 text-yellow-700 font-bold text-sm mr-3 dark:bg-yellow-900 dark:text-yellow-300">
+                                        {{ pool.player.name[0] if pool.player else '?' }}
+                                    </div>
+                                    <div class="font-medium text-gray-900 dark:text-white">{{ pool.player.name if pool.player else 'Unknown' }}</div>
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 text-center">{{ pool.matches_played }}</td>
+                            <td class="px-4 py-3 text-center text-xs text-gray-500 dark:text-gray-400">
+                                {{ pool.approved_at.strftime('%m/%d/%y') if pool.approved_at else '—' }}
+                            </td>
+                            <td class="px-4 py-3">
+                                <div class="flex gap-2">
+                                    <button type="button" class="px-3 py-1 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg js-activate-member" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Player' }}">
+                                        <i class="ti ti-player-play mr-1"></i>Activate
+                                    </button>
+                                    <button type="button" class="px-2 py-1 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800 js-remove-player" title="Remove from pool" data-player-id="{{ pool.player_id }}" data-player-name="{{ pool.player.name if pool.player else 'Unknown' }}">
+                                        <i class="ti ti-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 
     <!-- Sidebar -->
@@ -294,13 +398,85 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Reject player buttons
+    // Reject player buttons (eligible players, not yet in pool)
     document.querySelectorAll('.js-reject-player').forEach(btn => {
         btn.addEventListener('click', function() {
             rejectPlayer(this.dataset.playerId, this.dataset.playerName);
         });
     });
+
+    // Approve pending pool member
+    document.querySelectorAll('.js-approve-member').forEach(btn => {
+        btn.addEventListener('click', function() {
+            approvePoolMember(this.dataset.playerId, this.dataset.playerName);
+        });
+    });
+
+    // Mark active member on-break
+    document.querySelectorAll('.js-mark-on-break').forEach(btn => {
+        btn.addEventListener('click', function() {
+            setMemberActive(this.dataset.playerId, this.dataset.playerName, false);
+        });
+    });
+
+    // Activate on-break member
+    document.querySelectorAll('.js-activate-member').forEach(btn => {
+        btn.addEventListener('click', function() {
+            setMemberActive(this.dataset.playerId, this.dataset.playerName, true);
+        });
+    });
 });
+
+async function approvePoolMember(playerId, playerName) {
+    const isDark = document.documentElement.classList.contains('dark');
+    try {
+        const response = await fetch(`/admin-panel/substitute-pools/${encodeURIComponent(leagueType)}/approve-player`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrfToken },
+            body: JSON.stringify({ player_id: playerId })
+        });
+        const data = await response.json();
+        if (data.success) {
+            Swal.fire({
+                icon: 'success', title: 'Approved', text: `${playerName} is now Active in Pool`,
+                timer: 1800, showConfirmButton: false,
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+            }).then(() => location.reload());
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message,
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        }
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to approve member' });
+    }
+}
+
+async function setMemberActive(playerId, playerName, isActive) {
+    const isDark = document.documentElement.classList.contains('dark');
+    const verb = isActive ? 'activate' : 'mark on-break';
+    try {
+        const response = await fetch(`/admin-panel/substitute-pools/${encodeURIComponent(leagueType)}/set-active`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': _csrfToken },
+            body: JSON.stringify({ player_id: playerId, is_active: isActive })
+        });
+        const data = await response.json();
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: isActive ? 'Activated' : 'On Break',
+                text: `${playerName} ${isActive ? 'is back in the active pool' : 'is now on break'}`,
+                timer: 1800, showConfirmButton: false,
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827'
+            }).then(() => location.reload());
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message,
+                background: isDark ? '#1f2937' : '#ffffff', color: isDark ? '#f3f4f6' : '#111827' });
+        }
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'Error', text: `Failed to ${verb} member` });
+    }
+}
 
 function showAddPlayerModal() {
     const modal = FlowbiteInstances.getInstance('Modal', 'addPlayerModal');

@@ -2519,10 +2519,14 @@ def get_my_ecs_fc_assignments():
 
 
 @mobile_api_v2.route('/substitutes/ecs-fc/requests/<int:request_id>/notify-pool', methods=['POST'])
+@mobile_api_v2.route('/substitutes/ecs-fc/requests/<int:request_id>/contact', methods=['POST'])
 @jwt_required()
 def notify_ecs_fc_substitute_pool(request_id: int):
     """
     Contact ECS FC substitute pool members for a request (coach or admin).
+
+    Reachable at both /notify-pool (legacy) and /contact (Flutter spec).
+    Both paths share the same handler and identical body shape.
 
     Coaches can directly reach out to subs without admin approval.
 
@@ -2566,13 +2570,15 @@ def notify_ecs_fc_substitute_pool(request_id: int):
     from app.services.substitute_notification_service import SubstituteNotificationService
     notification_service = SubstituteNotificationService()
 
+    # subs_needed must default to None (not 1) — the service mutates
+    # sub_request.substitutes_needed when this is truthy.
     result = notification_service.notify_ecs_fc_pool(
         request_id=request_id,
         custom_message=custom_message,
         channels=data.get('channels'),
         position_filters=data.get('position_filters'),
         player_ids=data.get('player_ids'),
-        subs_needed=data.get('subs_needed', 1)
+        subs_needed=data.get('subs_needed')
     )
 
     status_code = 200 if result['success'] else 400

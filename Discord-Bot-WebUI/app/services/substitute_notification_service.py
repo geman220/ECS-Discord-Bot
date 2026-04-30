@@ -107,7 +107,7 @@ class SubstituteNotificationService:
         gender_filter: Optional[str] = None,
         position_filters: Optional[List[str]] = None,
         player_ids: Optional[List[int]] = None,
-        subs_needed: int = 1
+        subs_needed: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Contact substitutes in a pool for a specific request with filtering.
@@ -389,7 +389,7 @@ class SubstituteNotificationService:
         gender_filter: Optional[str] = None,
         position_filters: Optional[List[str]] = None,
         player_ids: Optional[List[int]] = None,
-        subs_needed: int = 1
+        subs_needed: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         Contact ECS FC substitutes in pool for a specific request.
@@ -428,11 +428,14 @@ class SubstituteNotificationService:
             if subs_needed and subs_needed > 0:
                 sub_request.substitutes_needed = subs_needed
 
-            # Get active ECS FC pool members
+            # Get "Active in Pool" ECS FC members (is_active=True AND
+            # approved_at IS NOT NULL). Pending-approval and on-break
+            # members are excluded from broadcasts.
             query = db.session.query(EcsFcSubPool).options(
                 joinedload(EcsFcSubPool.player).joinedload(Player.user)
             ).join(Player).join(User).filter(
                 EcsFcSubPool.is_active == True,
+                EcsFcSubPool.approved_at.isnot(None),
                 Player.is_current_player == True,
                 User.is_approved == True
             )
@@ -672,6 +675,106 @@ class SubstituteNotificationService:
             'notes': sub_request.notes or ''
         }
 
+    def notify_response_received(
+        self,
+        request_id: int,
+        player_id: int,
+        is_available: bool,
+        response_method: str,
+        league_type: str = 'pub_league',
+    ) -> Dict[str, Any]:
+        """
+        Notify the appropriate audience when a sub has responded with availability.
+
+        For Pub League, fans out to every Global Admin and Pub League Admin.
+        For ECS FC, notifies only the coach who made the original request.
+
+        The push payload follows the contract in docs/SUB_SYSTEM_ALIGNMENT.md §5.2:
+            data.type = 'sub_response'
+            data.request_id, data.league_type, data.player_name,
+            data.is_available (string), data.response_method.
+
+        Args:
+            request_id: SubstituteRequest / EcsFcSubRequest ID
+            player_id: Responding player's ID
+            is_available: Their availability answer
+            response_method: 'app' | 'web' | 'SMS' | 'DISCORD'
+            league_type: 'pub_league' or 'ecs_fc'
+
+        Returns:
+            {success: bool, recipients: int, errors: [...]}
+        """
+        from app.models import Player
+        from app.models.core import Role
+        from app.models.substitutes import SubstituteRequest, EcsFcSubRequest
+        from app.services.notification_orchestrator import (
+            orchestrator, NotificationType, NotificationPayload,
+        )
+
+        result = {'success': False, 'recipients': 0, 'errors': []}
+
+        try:
+            player = db.session.query(Player).get(player_id)
+            player_name = player.name if player else f'Player {player_id}'
+
+            if league_type == 'ecs_fc':
+                sub_request = db.session.query(EcsFcSubRequest).get(request_id)
+                if not sub_request:
+                    result['errors'].append(f'EcsFcSubRequest {request_id} not found')
+                    return result
+                team_name = sub_request.team.name if sub_request.team else 'ECS FC'
+                match_blurb = ''
+                if sub_request.match and sub_request.match.match_date:
+                    match_blurb = f" on {sub_request.match.match_date.strftime('%A, %B %d')}"
+                user_ids = [sub_request.requested_by] if sub_request.requested_by else []
+            else:
+                sub_request = db.session.query(SubstituteRequest).get(request_id)
+                if not sub_request:
+                    result['errors'].append(f'SubstituteRequest {request_id} not found')
+                    return result
+                team_name = sub_request.team.name if sub_request.team else 'Unknown Team'
+                match_blurb = ''
+                if sub_request.match and sub_request.match.date:
+                    match_blurb = f" on {sub_request.match.date.strftime('%A, %B %d')}"
+                admin_roles = db.session.query(Role).filter(
+                    Role.name.in_(['Global Admin', 'Pub League Admin'])
+                ).all()
+                user_ids = list({u.id for role in admin_roles for u in role.users})
+
+            if not user_ids:
+                result['errors'].append('No recipients to notify')
+                return result
+
+            availability_text = 'is available' if is_available else 'is NOT available'
+            orchestrator.send(NotificationPayload(
+                notification_type=NotificationType.SUB_REQUEST,
+                title='Sub Response Received',
+                message=f'{player_name} {availability_text} for {team_name}{match_blurb}',
+                user_ids=user_ids,
+                data={
+                    'type': 'sub_response',
+                    'request_id': str(request_id),
+                    'player_name': player_name,
+                    'is_available': str(is_available).lower(),
+                    'league_type': league_type,
+                    'response_method': response_method,
+                    'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+                },
+            ))
+
+            result['success'] = True
+            result['recipients'] = len(user_ids)
+            logger.info(
+                f"Notified {len(user_ids)} {league_type} recipients of {response_method} "
+                f"sub response from {player_name}"
+            )
+
+        except Exception as e:
+            logger.error(f"Error in notify_response_received: {e}")
+            result['errors'].append(str(e))
+
+        return result
+
     def send_confirmation(
         self,
         assignment_id: int,
@@ -731,11 +834,17 @@ class SubstituteNotificationService:
             match_details = self._format_match_details(match, sub_request)
             confirmation_message = self._build_confirmation_message(player, match_details, assignment)
 
-            # Convert channel list to dict format
+            # Convert channel list to dict format. For assignment confirmations
+            # we also send push if the user has the app installed, even if the
+            # initial outreach didn't go through push — the assignment event is
+            # critical and the app screen needs the type='substitute_assignment'
+            # signal to route to MyAssignmentsScreen.
+            available_channels = self.get_player_channels(player)
             channels_dict = {
                 self.CHANNEL_EMAIL: self.CHANNEL_EMAIL in outreach_channels,
                 self.CHANNEL_SMS: self.CHANNEL_SMS in outreach_channels,
-                self.CHANNEL_DISCORD: self.CHANNEL_DISCORD in outreach_channels
+                self.CHANNEL_DISCORD: self.CHANNEL_DISCORD in outreach_channels,
+                self.CHANNEL_PUSH: available_channels.get(self.CHANNEL_PUSH, False),
             }
 
             # Send confirmation notifications
@@ -744,7 +853,11 @@ class SubstituteNotificationService:
                 channels=channels_dict,
                 subject=f"Confirmed: You're subbing for {match_details['team_name']}",
                 message=confirmation_message,
-                rsvp_url=None  # No RSVP needed for confirmations
+                rsvp_url=None,  # No RSVP needed for confirmations
+                league_type=league_type,
+                request_id=sub_request.id if sub_request else None,
+                match_id=match.id if match else None,
+                purpose='assignment',
             )
 
             results['channels_used'] = send_results['channels_sent']
@@ -883,7 +996,8 @@ class SubstituteNotificationService:
         rsvp_token: Optional[str] = None,
         league_type: str = 'pub_league',
         request_id: Optional[int] = None,
-        match_id: Optional[int] = None
+        match_id: Optional[int] = None,
+        purpose: str = 'request',
     ) -> Dict[str, Any]:
         """
         Send notifications via specified channels.
@@ -898,6 +1012,9 @@ class SubstituteNotificationService:
             league_type: 'pub_league' or 'ecs_fc'
             request_id: SubstituteRequest ID for mobile API
             match_id: Match ID for mobile API
+            purpose: 'request' (initial outreach asking availability) or
+                'assignment' (confirmation that the player has been assigned).
+                Controls the FCM data.type field that Flutter routes on.
 
         Returns:
             Dict with 'sent_count' and 'channels_sent' list
@@ -954,7 +1071,7 @@ class SubstituteNotificationService:
             try:
                 deep_link = self._build_deep_link(rsvp_token, league_type) if rsvp_token else None
                 push_data = {
-                    'type': 'sub_request',
+                    'type': 'substitute_assignment' if purpose == 'assignment' else 'sub_request',
                     'token': rsvp_token,
                     'league_type': league_type,
                     'deep_link': deep_link,

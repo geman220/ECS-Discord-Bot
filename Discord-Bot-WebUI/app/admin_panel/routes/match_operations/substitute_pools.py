@@ -11,6 +11,7 @@ Routes for substitute pool management:
 """
 
 import logging
+from datetime import datetime
 
 from flask import render_template, request, jsonify, flash, redirect, url_for
 from flask_login import login_required, current_user
@@ -85,29 +86,43 @@ def substitute_pools():
             user_agent=request.headers.get('User-Agent')
         )
 
-        # Get data for filtered league types
+        # Get data for filtered league types using the tri-state pool model
+        # the Flutter mobile app expects:
+        #   Active in Pool      = is_active=True  AND approved_at IS NOT NULL
+        #   Approved · on Break = is_active=False AND approved_at IS NOT NULL
+        #   Pending Approval    = approved_at IS NULL
         pools_data = {}
         for league_type, config in filtered_types.items():
             try:
-                # Get active pools by league_type directly
-                active_pools = SubstitutePool.query.options(
+                all_pools = SubstitutePool.query.options(
                     joinedload(SubstitutePool.player).joinedload(Player.user)
                 ).filter(
-                    SubstitutePool.league_type == league_type,
-                    SubstitutePool.is_active == True
+                    SubstitutePool.league_type == league_type
                 ).all()
+
+                active_in_pool = [p for p in all_pools if p.is_active and p.approved_at]
+                on_break = [p for p in all_pools if not p.is_active and p.approved_at]
+                pending_approval = [p for p in all_pools if p.approved_at is None]
 
                 pools_data[league_type] = {
                     'config': config,
-                    'active_pools': active_pools,
-                    'total_active': len(active_pools)
+                    'active_pools': active_in_pool,
+                    'on_break_pools': on_break,
+                    'pending_pools': pending_approval,
+                    'total_active': len(active_in_pool),
+                    'total_on_break': len(on_break),
+                    'total_pending': len(pending_approval),
                 }
             except Exception as pool_error:
                 logger.warning(f"Error loading pool data for {league_type}: {pool_error}")
                 pools_data[league_type] = {
                     'config': config,
                     'active_pools': [],
-                    'total_active': 0
+                    'on_break_pools': [],
+                    'pending_pools': [],
+                    'total_active': 0,
+                    'total_on_break': 0,
+                    'total_pending': 0,
                 }
 
         return render_template(
@@ -145,32 +160,25 @@ def substitute_pool_detail(league_type):
             SubstituteResponse, SubstituteAssignment, get_eligible_players
         )
 
-        # Get active pools with full player information
-        active_pools = SubstitutePool.query.options(
+        # Tri-state pool model (matches Flutter mobile app):
+        #   Active in Pool      = is_active=True  AND approved_at IS NOT NULL
+        #   Approved · on Break = is_active=False AND approved_at IS NOT NULL
+        #   Pending Approval    = approved_at IS NULL
+        all_pools = SubstitutePool.query.options(
             joinedload(SubstitutePool.player).joinedload(Player.user)
         ).filter(
-            SubstitutePool.league_type == league_type,
-            SubstitutePool.is_active == True
+            SubstitutePool.league_type == league_type
         ).order_by(SubstitutePool.last_active_at.desc()).all()
 
-        # Get eligible players not in pool
+        active_pools = [p for p in all_pools if p.is_active and p.approved_at]
+        on_break_pools = [p for p in all_pools if not p.is_active and p.approved_at]
+        pending_pools = [p for p in all_pools if p.approved_at is None]
+
+        # Players eligible to be added (have the role) and not already in the pool
         eligible_players = get_eligible_players(league_type)
-        active_pool_player_ids = {pool.player_id for pool in active_pools}
+        in_pool_player_ids = {pool.player_id for pool in all_pools}
+        available_players = [p for p in eligible_players if p.id not in in_pool_player_ids]
 
-        # Also get rejected/inactive players to exclude from available list
-        rejected_player_ids = {
-            pool.player_id for pool in SubstitutePool.query.filter(
-                SubstitutePool.league_type == league_type,
-                SubstitutePool.is_active == False
-            ).all()
-        }
-
-        available_players = [
-            p for p in eligible_players
-            if p.id not in active_pool_player_ids and p.id not in rejected_player_ids
-        ]
-
-        # Get recent activity
         try:
             recent_activity = SubstitutePoolHistory.query.options(
                 joinedload(SubstitutePoolHistory.player),
@@ -186,13 +194,13 @@ def substitute_pool_detail(league_type):
             logger.warning(f"Error loading pool history: {hist_error}")
             recent_activity = []
 
-        # Get statistics
         stats = {
             'total_active': len(active_pools),
+            'total_on_break': len(on_break_pools),
+            'total_pending': len(pending_pools),
             'total_eligible': len(eligible_players),
-            'pending_approval': len(available_players),
             'total_requests_sent': sum(pool.requests_received for pool in active_pools),
-            'total_matches_played': sum(pool.matches_played for pool in active_pools)
+            'total_matches_played': sum(pool.matches_played for pool in active_pools),
         }
 
         return render_template(
@@ -200,6 +208,8 @@ def substitute_pool_detail(league_type):
             league_type=league_type,
             league_config=LEAGUE_TYPES[league_type],
             active_pools=active_pools,
+            on_break_pools=on_break_pools,
+            pending_pools=pending_pools,
             available_players=available_players,
             recent_activity=recent_activity,
             stats=stats
@@ -434,6 +444,103 @@ def remove_player_from_pool(league_type):
     return jsonify({
         'success': True,
         'message': f"{player_name} has been removed from the {league_type} substitute pool"
+    })
+
+
+@admin_panel_bp.route('/substitute-pools/<league_type>/approve-player', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
+def approve_pool_member(league_type):
+    """Approve a Pending Approval pool member. Sets approved_at and approved_by
+    so they transition to Active in Pool and become contactable."""
+    if league_type not in LEAGUE_TYPES:
+        return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+    from app.models_substitute_pools import SubstitutePool
+
+    player_id = request.json.get('player_id')
+    if not player_id:
+        return jsonify({'success': False, 'message': 'Player ID is required'}), 400
+
+    pool_entry = SubstitutePool.query.options(
+        joinedload(SubstitutePool.player)
+    ).filter_by(player_id=player_id, league_type=league_type).first()
+
+    if not pool_entry:
+        return jsonify({'success': False, 'message': 'Pool member not found'}), 404
+
+    if pool_entry.approved_at:
+        return jsonify({'success': False, 'message': 'Already approved'}), 400
+
+    pool_entry.approved_at = datetime.utcnow()
+    pool_entry.approved_by = current_user.id
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='approve_substitute_pool_member',
+        resource_type='substitute_pools',
+        resource_id=str(player_id),
+        new_value=f'Approved {pool_entry.player.name if pool_entry.player else "player"} for {league_type} pool',
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    return jsonify({
+        'success': True,
+        'message': f"{pool_entry.player.name if pool_entry.player else 'Player'} approved"
+    })
+
+
+@admin_panel_bp.route('/substitute-pools/<league_type>/set-active', methods=['POST'])
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@transactional
+def set_pool_member_active(league_type):
+    """Toggle a pool member between Active in Pool and Approved · On Break.
+    Body: {player_id, is_active: bool}. Idempotent. Does NOT touch approved_at
+    or substitute roles — that's what /remove-player is for."""
+    if league_type not in LEAGUE_TYPES:
+        return jsonify({'success': False, 'message': 'Invalid league type'}), 400
+
+    from app.models_substitute_pools import SubstitutePool
+
+    player_id = request.json.get('player_id')
+    is_active = request.json.get('is_active')
+
+    if not player_id or is_active is None:
+        return jsonify({'success': False, 'message': 'player_id and is_active are required'}), 400
+
+    pool_entry = SubstitutePool.query.options(
+        joinedload(SubstitutePool.player)
+    ).filter_by(player_id=player_id, league_type=league_type).first()
+
+    if not pool_entry:
+        return jsonify({'success': False, 'message': 'Pool member not found'}), 404
+
+    if not pool_entry.approved_at:
+        return jsonify({'success': False, 'message': 'Approve the member before changing active state'}), 400
+
+    target = bool(is_active)
+    if pool_entry.is_active == target:
+        return jsonify({'success': True, 'message': 'No change'})
+
+    pool_entry.is_active = target
+
+    AdminAuditLog.log_action(
+        user_id=current_user.id,
+        action='set_substitute_pool_active',
+        resource_type='substitute_pools',
+        resource_id=str(player_id),
+        new_value=f"Set {pool_entry.player.name if pool_entry.player else 'player'} is_active={target} in {league_type}",
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+
+    label = 'activated' if target else 'marked on-break'
+    return jsonify({
+        'success': True,
+        'message': f"{pool_entry.player.name if pool_entry.player else 'Player'} {label}"
     })
 
 

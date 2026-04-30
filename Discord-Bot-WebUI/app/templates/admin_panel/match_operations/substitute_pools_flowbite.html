@@ -67,16 +67,25 @@
             </div>
         </div>
         <div class="p-5">
-            <!-- Statistics -->
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ data.total_active }}</div>
-                    <small class="text-gray-500 dark:text-gray-400">Active Subs</small>
+            <!-- Statistics: tri-state pool model (matches Flutter mobile app) -->
+            <div class="grid grid-cols-3 gap-2 mb-4">
+                <div class="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg" title="Approved and active — assignable">
+                    <div class="text-2xl font-bold text-green-700 dark:text-green-400">{{ data.total_active }}</div>
+                    <small class="text-green-700 dark:text-green-400">Active</small>
                 </div>
-                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                    <div class="text-2xl font-bold text-gray-900 dark:text-white">{{ data.active_pools|sum(attribute='matches_played') if data.active_pools else 0 }}</div>
-                    <small class="text-gray-500 dark:text-gray-400">Matches Played</small>
+                <div class="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg" title="Approved but currently on break — eligible if reactivated">
+                    <div class="text-2xl font-bold text-yellow-700 dark:text-yellow-400">{{ data.total_on_break }}</div>
+                    <small class="text-yellow-700 dark:text-yellow-400">On Break</small>
                 </div>
+                <div class="text-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg" title="Awaiting admin approval — cannot be contacted yet">
+                    <div class="text-2xl font-bold text-gray-700 dark:text-gray-300">{{ data.total_pending }}</div>
+                    <small class="text-gray-500 dark:text-gray-400">Pending</small>
+                </div>
+            </div>
+            <div class="text-center p-2 mb-4 bg-gray-50 dark:bg-gray-700/30 rounded-lg">
+                <span class="text-sm text-gray-600 dark:text-gray-400">
+                    <strong class="text-gray-900 dark:text-white">{{ data.active_pools|sum(attribute='matches_played') if data.active_pools else 0 }}</strong> matches played by active subs
+                </span>
             </div>
 
             <!-- Top Substitutes Preview -->

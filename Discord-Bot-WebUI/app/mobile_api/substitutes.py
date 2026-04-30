@@ -691,10 +691,11 @@ def get_all_substitute_requests():
 
 @mobile_api_v2.route('/substitutes/requests/<int:request_id>/assign', methods=['POST'])
 @jwt_required()
-@jwt_role_required(['Global Admin', 'Pub League Admin'])
+@jwt_role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def assign_substitute(request_id: int):
     """
-    Assign a substitute to a request (admin only).
+    Assign a substitute to a request. Admins can assign for any team;
+    Pub League Coaches can assign only for their own team's requests.
 
     Args:
         request_id: Substitute request ID
@@ -726,6 +727,10 @@ def assign_substitute(request_id: int):
         sub_request = session.query(SubstituteRequest).get(request_id)
         if not sub_request:
             return jsonify({"msg": "Request not found"}), 404
+
+        if not (is_admin_user(session, current_user_id)
+                or is_coach_for_team(session, current_user_id, sub_request.team_id)):
+            return jsonify({"msg": "You can only assign subs for teams you coach"}), 403
 
         if sub_request.status not in ['OPEN', 'PENDING']:
             return jsonify({"msg": f"Cannot assign to request with status: {sub_request.status}"}), 400
@@ -834,15 +839,17 @@ def remove_assignment(assignment_id: int):
 
 
 @mobile_api_v2.route('/substitutes/requests/<int:request_id>/notify-pool', methods=['POST'])
+@mobile_api_v2.route('/substitutes/requests/<int:request_id>/contact', methods=['POST'])
 @jwt_required()
-@jwt_role_required(['Global Admin', 'Pub League Admin'])
+@jwt_role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def notify_substitute_pool(request_id: int):
     """
-    Contact substitute pool members for a request (admin only).
+    Contact substitute pool members for a request. Admins can contact for
+    any team; Pub League Coaches can only contact for their own team's
+    requests.
 
-    Admins use this to reach out to subs from the pool after a coach
-    has created a substitute request. This creates SubstituteResponse
-    records with notification_sent_at set, marking them as targeted.
+    Reachable at both /notify-pool (legacy) and /contact (Flutter spec).
+    Both paths share the same handler and identical body shape.
 
     Args:
         request_id: Substitute request ID
@@ -859,6 +866,7 @@ def notify_substitute_pool(request_id: int):
     Returns:
         JSON with notification results
     """
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
     if not data:
         return jsonify({"msg": "Missing request data"}), 400
@@ -872,6 +880,10 @@ def notify_substitute_pool(request_id: int):
         if not sub_request:
             return jsonify({"msg": "Request not found"}), 404
 
+        if not (is_admin_user(session, current_user_id)
+                or is_coach_for_team(session, current_user_id, sub_request.team_id)):
+            return jsonify({"msg": "You can only contact subs for teams you coach"}), 403
+
         if sub_request.status not in ['OPEN', 'PENDING']:
             return jsonify({"msg": f"Cannot notify for request with status: {sub_request.status}"}), 400
 
@@ -879,6 +891,9 @@ def notify_substitute_pool(request_id: int):
     notification_service = SubstituteNotificationService()
 
     league_type = data.get('league_type', 'Premier')
+    # subs_needed must default to None (not 1) — the service mutates
+    # sub_request.substitutes_needed when this is truthy, so a missing
+    # key shouldn't silently overwrite the request's stored count.
     result = notification_service.notify_pool(
         request_id=request_id,
         league_type=league_type,
@@ -887,7 +902,7 @@ def notify_substitute_pool(request_id: int):
         gender_filter=data.get('gender_filter'),
         position_filters=data.get('position_filters'),
         player_ids=data.get('player_ids'),
-        subs_needed=data.get('subs_needed', 1)
+        subs_needed=data.get('subs_needed')
     )
 
     status_code = 200 if result['success'] else 400
@@ -902,10 +917,11 @@ def notify_substitute_pool(request_id: int):
 
 @mobile_api_v2.route('/substitutes/requests/<int:request_id>/notify-individual', methods=['POST'])
 @jwt_required()
-@jwt_role_required(['Global Admin', 'Pub League Admin'])
+@jwt_role_required(['Global Admin', 'Pub League Admin', 'Pub League Coach'])
 def notify_individual_substitute(request_id: int):
     """
-    Contact a specific substitute for a request (admin only).
+    Contact a specific substitute for a request. Admins can contact for any
+    team; Pub League Coaches can only contact for their own team's requests.
 
     Args:
         request_id: Substitute request ID
@@ -919,6 +935,7 @@ def notify_individual_substitute(request_id: int):
     Returns:
         JSON with notification results
     """
+    current_user_id = int(get_jwt_identity())
     data = request.get_json()
     if not data:
         return jsonify({"msg": "Missing request data"}), 400
@@ -935,6 +952,10 @@ def notify_individual_substitute(request_id: int):
         sub_request = session.query(SubstituteRequest).get(request_id)
         if not sub_request:
             return jsonify({"msg": "Request not found"}), 404
+
+        if not (is_admin_user(session, current_user_id)
+                or is_coach_for_team(session, current_user_id, sub_request.team_id)):
+            return jsonify({"msg": "You can only contact subs for teams you coach"}), 403
 
         if sub_request.status not in ['OPEN', 'PENDING']:
             return jsonify({"msg": f"Cannot notify for request with status: {sub_request.status}"}), 400
