@@ -113,6 +113,9 @@ class MatchEvent(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     reported_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     additional_data = db.Column(FlexibleJSON())  # For flexible storage of event-specific details
+    # Added by 2026_04_29_add_card_reason_to_events.sql. Optional reason for
+    # YELLOW_CARD/RED_CARD: FOUL | DISSENT | PERSISTENT_INFRINGEMENT | SERIOUS_FOUL_PLAY.
+    card_reason = db.Column(db.String(30), nullable=True)
 
     # Offline resilience fields
     idempotency_key = db.Column(db.String(64), nullable=True, index=True)

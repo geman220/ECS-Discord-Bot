@@ -908,11 +908,11 @@
                                                 </span>
                                                 {% elif event.event_type == 'yellow_card' %}
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">
-                                                    🟨 Yellow
+                                                    🟨 Yellow{% if event.card_reason %} <span class="ml-1 opacity-70">· {{ event.card_reason | replace('_', ' ') | title }}</span>{% endif %}
                                                 </span>
                                                 {% elif event.event_type == 'red_card' %}
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
-                                                    🟥 Red
+                                                    🟥 Red{% if event.card_reason %} <span class="ml-1 opacity-70">· {{ event.card_reason | replace('_', ' ') | title }}</span>{% endif %}
                                                 </span>
                                                 {% else %}
                                                 <span class="text-gray-500">{{ event.event_type }}</span>

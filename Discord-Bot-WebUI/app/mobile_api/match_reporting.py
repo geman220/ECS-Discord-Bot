@@ -391,7 +391,8 @@ def get_match_reporting_info(match_id: int):
                 "player_name": event.player.name if event.player else None,
                 "team_id": event.team_id,
                 "minute": event.minute,
-                "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None
+                "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None,
+                "card_reason": event.card_reason,
             })
 
         return jsonify({
@@ -459,7 +460,8 @@ def get_match_events(match_id: int):
                 "player_name": event.player.name if event.player else None,
                 "team_id": event.team_id,
                 "minute": event.minute,
-                "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None
+                "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None,
+                "card_reason": event.card_reason,
             })
 
         return jsonify({

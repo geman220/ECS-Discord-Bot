@@ -376,6 +376,10 @@ class PlayerEvent(db.Model):
     # Substitute tracking — events by temp subs don't count toward season awards
     is_sub_event = db.Column(db.Boolean, default=False, nullable=False, server_default='false')
 
+    # Added by 2026_04_29_add_card_reason_to_events.sql. Optional reason for
+    # YELLOW_CARD/RED_CARD: FOUL | DISSENT | PERSISTENT_INFRINGEMENT | SERIOUS_FOUL_PLAY.
+    card_reason = db.Column(db.String(30), nullable=True)
+
     player = db.relationship('Player', back_populates='events', passive_deletes=True)
     match = db.relationship('Match', back_populates='events')
     team = db.relationship('Team', backref='own_goal_events')
@@ -394,6 +398,7 @@ class PlayerEvent(db.Model):
             'reported_by': self.reported_by,
             'reported_by_name': self.reporter.username if self.reporter else None,
             'is_sub_event': self.is_sub_event,
+            'card_reason': self.card_reason,
         }
         if include_player:
             data['player'] = self.player.to_dict(public=True)

@@ -39,6 +39,7 @@ from app.services.event_deduplication import (
     create_match_event_idempotent,
     parse_client_timestamp
 )
+from app.sockets.live_reporting_v2 import _extract_card_reason
 
 logger = logging.getLogger(__name__)
 
@@ -973,6 +974,7 @@ def on_add_event(data):
                 timestamp=datetime.utcnow(),
                 reported_by=user_id,
                 additional_data=event_data.get('additional_data'),
+                card_reason=_extract_card_reason(event_data),
                 idempotency_key=idempotency_key,
                 client_timestamp=client_timestamp,
                 sync_status='synced'
@@ -999,7 +1001,8 @@ def on_add_event(data):
                 'reported_by': event.reported_by,
                 'idempotency_key': event.idempotency_key,
                 'client_timestamp': event.client_timestamp.isoformat() if event.client_timestamp else None,
-                'sync_status': event.sync_status
+                'sync_status': event.sync_status,
+                'card_reason': event.card_reason,
             }
 
             # Add team and player names if available
@@ -1113,6 +1116,7 @@ def _legacy_force_add_event(data):
                 timestamp=datetime.utcnow(),
                 reported_by=user_id,
                 additional_data=event_data.get('additional_data'),
+                card_reason=_extract_card_reason(event_data),
                 idempotency_key=idempotency_key,
                 client_timestamp=client_timestamp,
                 sync_status='synced'
@@ -1139,7 +1143,8 @@ def _legacy_force_add_event(data):
                 'reported_by': event.reported_by,
                 'idempotency_key': event.idempotency_key,
                 'client_timestamp': event.client_timestamp.isoformat() if event.client_timestamp else None,
-                'sync_status': event.sync_status
+                'sync_status': event.sync_status,
+                'card_reason': event.card_reason,
             }
 
             # Add team and player names if available
@@ -1741,7 +1746,8 @@ def create_player_events_from_match_events(session, match_id):
                     event_type=event_type_map[event.event_type],
                     idempotency_key=derived_idempotency_key,
                     client_timestamp=event.client_timestamp,
-                    reported_by=event.reported_by  # Copy reporter from MatchEvent
+                    reported_by=event.reported_by,  # Copy reporter from MatchEvent
+                    card_reason=event.card_reason if event.event_type in ('YELLOW_CARD', 'RED_CARD') else None,
                 )
                 session.add(player_event)
 

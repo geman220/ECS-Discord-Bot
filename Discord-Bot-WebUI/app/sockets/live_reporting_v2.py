@@ -179,6 +179,7 @@ def _serialize_match_event(event: MatchEvent, session) -> Dict[str, Any]:
         'idempotency_key': event.idempotency_key,
         'client_timestamp': event.client_timestamp.isoformat() if event.client_timestamp else None,
         'sync_status': event.sync_status,
+        'card_reason': event.card_reason,
     }
 
 
@@ -882,6 +883,30 @@ def _sync_live_match_shim(session, league_type: str, match_id: int, state: Dict[
 # intentionally excluded — not wired end-to-end on Flutter + no stat rollup path.
 VALID_LIVE_EVENT_TYPES = frozenset({'GOAL', 'ASSIST', 'YELLOW_CARD', 'RED_CARD', 'OWN_GOAL'})
 
+# Whitelist of card reasons accepted from clients. Anything else (or a reason
+# attached to a non-card event) is dropped to NULL — we never reject the event.
+VALID_CARD_REASONS = frozenset({
+    'FOUL', 'DISSENT', 'PERSISTENT_INFRINGEMENT', 'SERIOUS_FOUL_PLAY',
+})
+
+
+def _extract_card_reason(event_data: dict) -> Optional[str]:
+    """Pull card_reason from event_data['additional_data']. Returns None for
+    missing / unknown values or non-card events. Never raises — card_reason is
+    always optional and must not block event ingestion."""
+    if event_data.get('event_type') not in ('YELLOW_CARD', 'RED_CARD'):
+        return None
+    additional = event_data.get('additional_data') or {}
+    if not isinstance(additional, dict):
+        return None
+    raw = additional.get('card_reason')
+    if not raw:
+        return None
+    if raw not in VALID_CARD_REASONS:
+        logger.warning(f"Dropping unknown card_reason={raw!r} for {event_data.get('event_type')}")
+        return None
+    return raw
+
 
 def _normalize_minute(raw) -> Optional[str]:
     """
@@ -942,6 +967,7 @@ def _dual_write_player_event_pub(session, match_event: MatchEvent, match: Match)
         idempotency_key=derived_key,
         client_timestamp=match_event.client_timestamp,
         reported_by=match_event.reported_by,
+        card_reason=match_event.card_reason if match_event.event_type in ('YELLOW_CARD', 'RED_CARD') else None,
     )
     session.add(pe)
     session.flush()
@@ -1195,6 +1221,7 @@ def _handle_add_event_core(data, force: bool = False):
                 timestamp=datetime.utcnow(),
                 reported_by=user.id,
                 additional_data=event_data.get('additional_data'),
+                card_reason=_extract_card_reason(event_data),
                 idempotency_key=idempotency_key,
                 client_timestamp=client_timestamp,
                 sync_status='synced',

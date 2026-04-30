@@ -227,7 +227,8 @@ def serialize_match_event(event: MatchEvent) -> dict:
         'reported_by': event.reported_by,
         'idempotency_key': event.idempotency_key,
         'client_timestamp': event.client_timestamp.isoformat() if event.client_timestamp else None,
-        'sync_status': event.sync_status
+        'sync_status': event.sync_status,
+        'card_reason': event.card_reason,
     }
 
 
