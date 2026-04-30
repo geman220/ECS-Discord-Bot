@@ -659,25 +659,37 @@ def get_all_substitute_requests():
         query = query.offset((page - 1) * limit).limit(limit)
         requests = query.all()
 
+        # Response shape mirrors GET /substitutes/requests/my-team so Flutter
+        # can deserialize both endpoints into the same SubstituteRequest model
+        # without optional-field gymnastics.
         requests_data = []
         for req in requests:
             requests_data.append({
                 "id": req.id,
+                "league_type": req.league_type or "",
+                "match_id": req.match_id,
+                "team_id": req.team_id,
+                "requested_by": req.requested_by,
+                "status": req.status,
+                "substitutes_needed": req.substitutes_needed or 1,
+                "positions_needed": req.positions_needed,
+                "gender_preference": req.gender_preference,
+                "notes": req.notes,
+                "filled_at": req.filled_at.isoformat() if req.filled_at else None,
+                "cancelled_at": req.cancelled_at.isoformat() if req.cancelled_at else None,
+                "created_at": req.created_at.isoformat() if req.created_at else None,
+                "updated_at": req.updated_at.isoformat() if req.updated_at else None,
                 "match": {
                     "id": req.match.id,
                     "date": req.match.date.isoformat() if req.match.date else None,
-                    "time": req.match.time.isoformat() if req.match.time else None
+                    "time": req.match.time.isoformat() if req.match.time else None,
                 } if req.match else None,
                 "team": {
                     "id": req.team.id,
-                    "name": req.team.name
+                    "name": req.team.name,
                 } if req.team else None,
-                "positions_needed": req.positions_needed,
-                "substitutes_needed": req.substitutes_needed,
-                "status": req.status,
                 "response_count": len(req.responses),
                 "assignment_count": len(req.assignments),
-                "created_at": req.created_at.isoformat() if req.created_at else None
             })
 
         return jsonify({
