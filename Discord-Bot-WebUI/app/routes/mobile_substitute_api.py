@@ -238,6 +238,7 @@ def get_substitute_pool_details(league_type):
 @mobile_substitute_api.route('/substitute-pools/<league_type>/join', methods=['POST'])
 @jwt_required()
 @api_key_required
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
 def join_substitute_pool(league_type):
     """
     Request to join a substitute pool.
@@ -359,6 +360,7 @@ def join_substitute_pool(league_type):
 @mobile_substitute_api.route('/substitute-pools/<league_type>/leave', methods=['POST'])
 @jwt_required()
 @api_key_required
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
 def leave_substitute_pool(league_type):
     """
     Leave a substitute pool.
@@ -1363,4 +1365,97 @@ def remove_pool_member(league_type, player_id):
         return jsonify({
             'error': 'Failed to remove pool member',
             'message': str(e)
+        }), 500
+
+
+# Toggle a pool member's active state (active in pool <-> approved on break).
+# Distinct from approve/remove: leaves is_approved/approved_at untouched and
+# only flips is_active, so the player remains visible in the pool listing
+# either way. Mirrors the Flutter "Mark on-break" / "Activate" buttons.
+@mobile_substitute_api.route('/substitutes/pool/<league_type>/<int:player_id>', methods=['PATCH'])
+@jwt_required()
+@api_key_required
+def toggle_pool_member_active(league_type, player_id):
+    """
+    Toggle the is_active flag on a SubstitutePool entry.
+
+    Auth: admin only (Global Admin / Pub League Admin) for any league_type;
+    ECS FC Coaches are additionally allowed when league_type == 'ECS FC'.
+
+    Body:
+        is_active (bool, required): new value for SubstitutePool.is_active
+
+    Response: {success: true, msg: "...", member: {is_active, is_approved, approved_at}}
+    """
+    try:
+        current_user_id = int(get_jwt_identity())
+        data = request.get_json(silent=True) or {}
+        if 'is_active' not in data or not isinstance(data['is_active'], bool):
+            return jsonify({"msg": "is_active (boolean) is required"}), 400
+        new_active = bool(data['is_active'])
+
+        with db.session() as session:
+            user = session.query(User).options(
+                joinedload(User.roles)
+            ).filter(User.id == current_user_id).first()
+            if not user:
+                return jsonify({"msg": "User not found"}), 404
+            user_roles = {r.name for r in user.roles}
+            is_admin = bool({'Global Admin', 'Pub League Admin', 'Admin'} & user_roles)
+            is_ecs_fc_coach = 'ECS FC Coach' in user_roles
+            if not (is_admin or (is_ecs_fc_coach and league_type == 'ECS FC')):
+                return jsonify({
+                    "msg": "Access denied: admin role required (or ECS FC Coach for the ECS FC pool)"
+                }), 403
+
+            pool_entry = session.query(SubstitutePool).filter_by(
+                player_id=player_id,
+                league_type=league_type,
+            ).first()
+            if not pool_entry:
+                return jsonify({"msg": "Pool entry not found for this player and league_type"}), 404
+
+            if pool_entry.is_active == new_active:
+                return jsonify({
+                    "success": True,
+                    "msg": "No change",
+                    "member": {
+                        "is_active": pool_entry.is_active,
+                        "is_approved": pool_entry.approved_at is not None,
+                        "approved_at": pool_entry.approved_at.isoformat() if pool_entry.approved_at else None,
+                    },
+                }), 200
+
+            pool_entry.is_active = new_active
+            if new_active:
+                pool_entry.last_active_at = datetime.utcnow()
+
+            log_pool_action(
+                player_id=player_id,
+                league_id=pool_entry.league_id,
+                action='ACTIVATED' if new_active else 'MARKED_ON_BREAK',
+                notes=f"is_active toggled to {new_active} via mobile",
+                performed_by=current_user_id,
+                pool_id=pool_entry.id,
+                session=session,
+            )
+
+            session.commit()
+
+            return jsonify({
+                "success": True,
+                "msg": "Pool member activated" if new_active else "Pool member marked on break",
+                "member": {
+                    "is_active": pool_entry.is_active,
+                    "is_approved": pool_entry.approved_at is not None,
+                    "approved_at": pool_entry.approved_at.isoformat() if pool_entry.approved_at else None,
+                },
+            }), 200
+
+    except Exception as e:
+        logger.exception(
+            "Error toggling pool member %s for %s: %s", player_id, league_type, e
+        )
+        return jsonify({
+            "msg": "Failed to toggle pool member active state"
         }), 500

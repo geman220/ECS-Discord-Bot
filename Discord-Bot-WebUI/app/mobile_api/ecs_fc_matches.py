@@ -21,6 +21,7 @@ from sqlalchemy import and_, or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.mobile_api import mobile_api_v2
+from app.decorators import jwt_role_required
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, League
 from app.models.ecs_fc import EcsFcMatch, EcsFcAvailability
@@ -2230,6 +2231,7 @@ def update_ecs_fc_pool_status():
 
 @mobile_api_v2.route('/substitutes/ecs-fc/pool/join', methods=['POST'])
 @jwt_required()
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
 def join_ecs_fc_substitute_pool():
     """Join the ECS FC substitute pool."""
     from app.models.substitutes import EcsFcSubPool
@@ -2281,6 +2283,7 @@ def join_ecs_fc_substitute_pool():
 
 @mobile_api_v2.route('/substitutes/ecs-fc/pool/leave', methods=['DELETE'])
 @jwt_required()
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
 def leave_ecs_fc_substitute_pool():
     """Leave the ECS FC substitute pool."""
     from app.models.substitutes import EcsFcSubPool
@@ -2696,22 +2699,41 @@ def get_ecs_fc_substitute_pool():
                 ]
             ]
 
+        base_url = request.host_url.rstrip('/')
+
+        def _profile_pic(p):
+            if not p or not getattr(p, 'profile_picture_url', None):
+                return f"{base_url}/static/img/default_player.png"
+            pic = p.profile_picture_url
+            return pic if pic.startswith('http') else f"{base_url}{pic}"
+
         members_data = []
         for member in pool_members:
             player = member.player
             if not player:
                 continue
             members_data.append({
-                "pool_id": member.id,
+                "id": member.id,
+                "pool_id": member.id,  # legacy alias
                 "player_id": player.id,
                 "player_name": player.name,
+                "player": {
+                    "id": player.id,
+                    "name": player.name,
+                    "favorite_position": player.favorite_position,
+                    "profile_picture_url": _profile_pic(player),
+                },
+                "league_type": member.league_type,
                 "preferred_positions": member.preferred_positions,
                 "max_matches_per_week": member.max_matches_per_week,
                 "is_active": member.is_active,
+                "is_approved": member.approved_at is not None,
+                "approved_at": member.approved_at.isoformat() if member.approved_at else None,
                 "requests_received": member.requests_received,
                 "requests_accepted": member.requests_accepted,
                 "matches_played": member.matches_played,
                 "joined_at": member.joined_pool_at.isoformat() if member.joined_pool_at else None,
+                "joined_pool_at": member.joined_pool_at.isoformat() if member.joined_pool_at else None,
                 "last_active_at": member.last_active_at.isoformat() if member.last_active_at else None,
                 "notification_preferences": {
                     "sms": member.sms_for_sub_requests,

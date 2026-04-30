@@ -32,6 +32,7 @@ from api.routes.websocket_routes import router as websocket_router
 from api.routes.live_reporting_routes import router as live_reporting_router
 from api.routes.testing_routes import router as testing_router
 from api.routes.ispy_routes import router as ispy_router
+from api.routes.poll_routes import router as poll_router
 
 app.include_router(server_router)
 app.include_router(match_router)  # Routes already have /api prefix where needed
@@ -43,6 +44,7 @@ app.include_router(websocket_router)
 app.include_router(live_reporting_router)  # Live reporting endpoints
 app.include_router(testing_router)  # Testing and mock match endpoints
 app.include_router(ispy_router)  # I-Spy mobile integration endpoints
+app.include_router(poll_router)  # Native Discord poll posting (mobile sub center)
 
 # Startup and shutdown events
 app.add_event_handler("startup", startup_event)

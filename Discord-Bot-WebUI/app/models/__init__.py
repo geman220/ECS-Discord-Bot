@@ -189,6 +189,10 @@ from .mobile_telemetry import (
     MobileSession, MobileScreenView, MobileFeatureUsage
 )
 
+from .discord_polls import (
+    DiscordPoll, DiscordPollVote
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -317,4 +321,7 @@ __all__ = [
 
     # Mobile telemetry models
     'MobileSession', 'MobileScreenView', 'MobileFeatureUsage',
+
+    # Native Discord poll tracking
+    'DiscordPoll', 'DiscordPollVote',
 ]

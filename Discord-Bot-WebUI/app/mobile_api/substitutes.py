@@ -10,23 +10,43 @@ Provides substitute system functionality for mobile clients:
 """
 
 import logging
+import os
+import json
 from datetime import datetime
 
-from flask import jsonify, request
+import requests
+from flask import jsonify, request, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload, selectinload
 from sqlalchemy import and_, or_
 
+from web_config import Config
 from app.mobile_api import mobile_api_v2
 from app.decorators import jwt_role_required
+from app.utils.mobile_auth import api_key_required
 from app.core.session_manager import managed_session
 from app.models import User, Player, Team, Match, player_teams
+from app.models.core import Role
+from app.models.admin_config import AdminAuditLog
+from app.models.discord_polls import DiscordPoll, DiscordPollVote
 from app.models.substitutes import (
     SubstituteRequest, SubstituteResponse, SubstituteAssignment,
     SubstitutePool, SubstitutePoolHistory
 )
 
 logger = logging.getLogger(__name__)
+
+
+# Channel registry for /substitutes/discord/availability-poll.
+# Maps channel_key -> env var holding the Discord channel ID and the role names
+# to ping when posting. Easily extensible for future channels (e.g. ecs_fc_subs).
+DISCORD_POLL_CHANNELS = {
+    'pl_subs': {
+        'channel_env_var': 'DISCORD_PL_SUBS_CHANNEL_ID',
+        'channel_id_default': '1420461752344117300',  # #pl-subs
+        'tag_role_names': ['ECS-FC-PL-CLASSIC-SUB', 'ECS-FC-PL-PREMIER-SUB'],
+    },
+}
 
 
 # ============================================================================
@@ -99,6 +119,21 @@ def is_in_substitute_pool(session, player_id: int, league_type: str = None) -> b
 def get_player_from_user(session, user_id: int) -> Player:
     """Get Player object for a user."""
     return session.query(Player).filter_by(user_id=user_id).first()
+
+
+def _resolve_profile_picture_url(player) -> str:
+    """
+    Resolve a Player's profile_picture_url to an absolute URL, matching the
+    shape used by /players/search and /teams/{id}/players. Falls back to the
+    default avatar when the player has no picture set.
+    """
+    base_url = request.host_url.rstrip('/')
+    if not player or not getattr(player, 'profile_picture_url', None):
+        return f"{base_url}/static/img/default_player.png"
+    pic = player.profile_picture_url
+    if pic.startswith('http'):
+        return pic
+    return f"{base_url}{pic}"
 
 
 # ============================================================================
@@ -956,13 +991,18 @@ def get_substitute_pool():
         for member in pool_members:
             members_data.append({
                 "id": member.id,
+                "player_id": member.player.id if member.player else None,
                 "player": {
                     "id": member.player.id,
                     "name": member.player.name,
-                    "position": member.player.favorite_position
+                    "favorite_position": member.player.favorite_position,
+                    "position": member.player.favorite_position,  # legacy alias
+                    "profile_picture_url": _resolve_profile_picture_url(member.player),
                 } if member.player else None,
                 "league_type": member.league_type,
                 "is_active": member.is_active,
+                "is_approved": member.approved_at is not None,
+                "approved_at": member.approved_at.isoformat() if member.approved_at else None,
                 "preferred_positions": member.preferred_positions,
                 "requests_received": member.requests_received,
                 "requests_accepted": member.requests_accepted,
@@ -974,6 +1014,520 @@ def get_substitute_pool():
             "pool_members": members_data,
             "count": len(members_data)
         }), 200
+
+
+# ============================================================================
+# Admin Endpoints - Discord Native Poll Posting
+# ============================================================================
+
+def _validate_emoji(value):
+    """
+    Return (ok, normalized_or_None). An emoji is valid if it is None/empty
+    (treated as no emoji) or exactly one Unicode codepoint after stripping
+    the variation selector-16 (U+FE0F) that often follows emoji in JSON.
+    """
+    if value is None or value == "":
+        return True, None
+    if not isinstance(value, str):
+        return False, None
+    stripped = value.replace("️", "")
+    if len(stripped) == 1:
+        return True, stripped
+    return False, None
+
+
+@mobile_api_v2.route('/substitutes/discord/availability-poll', methods=['POST'])
+@jwt_required()
+@api_key_required
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
+def post_discord_availability_poll():
+    """
+    Post a native Discord poll to a configured channel and ping the
+    associated substitute roles. Pub League Admin / Global Admin only.
+    """
+    current_user_id = int(get_jwt_identity())
+    data = request.get_json(silent=True) or {}
+
+    # --- Validation ---
+    channel_key = data.get('channel_key')
+    if channel_key not in DISCORD_POLL_CHANNELS:
+        allowed = ', '.join(sorted(DISCORD_POLL_CHANNELS.keys()))
+        return jsonify({"msg": f"channel_key must be one of: {allowed}"}), 400
+
+    match_date_raw = data.get('match_date')
+    if not isinstance(match_date_raw, str):
+        return jsonify({"msg": "match_date must be ISO format YYYY-MM-DD"}), 400
+    try:
+        match_date_dt = datetime.strptime(match_date_raw, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify({"msg": "match_date must be ISO format YYYY-MM-DD"}), 400
+    today_local = datetime.now(Config.TIMEZONE).date()
+    if match_date_dt < today_local:
+        return jsonify({"msg": "match_date must be today or later"}), 400
+
+    title = data.get('title')
+    if not isinstance(title, str) or not title.strip():
+        return jsonify({"msg": "title is required"}), 400
+    title = title.strip()
+    if len(title) > 300:
+        return jsonify({"msg": "title must be 1-300 characters"}), 400
+
+    options = data.get('options')
+    if not isinstance(options, list) or len(options) < 2 or len(options) > 10:
+        return jsonify({"msg": "options must contain 2-10 entries"}), 400
+
+    normalized_options = []
+    for i, opt in enumerate(options):
+        if not isinstance(opt, dict):
+            return jsonify({"msg": f"option[{i}].text must be 1-55 characters"}), 400
+        opt_text = opt.get('text')
+        if not isinstance(opt_text, str):
+            return jsonify({"msg": f"option[{i}].text must be 1-55 characters"}), 400
+        opt_text = opt_text.strip()
+        if len(opt_text) < 1 or len(opt_text) > 55:
+            return jsonify({"msg": f"option[{i}].text must be 1-55 characters"}), 400
+        ok, normalized_emoji = _validate_emoji(opt.get('emoji'))
+        if not ok:
+            return jsonify({"msg": f"option[{i}].emoji must be a single character"}), 400
+        normalized_options.append({"text": opt_text, "emoji": normalized_emoji})
+
+    duration_hours = data.get('duration_hours')
+    if not isinstance(duration_hours, int) or isinstance(duration_hours, bool) \
+            or duration_hours < 1 or duration_hours > 168:
+        return jsonify({"msg": "duration_hours must be an integer 1-168"}), 400
+
+    allow_multiselect = data.get('allow_multiselect')
+    if not isinstance(allow_multiselect, bool):
+        return jsonify({"msg": "allow_multiselect must be boolean"}), 400
+
+    # --- Resolve channel ID (env override, otherwise hardcoded default) ---
+    cfg = DISCORD_POLL_CHANNELS[channel_key]
+    channel_id = os.getenv(cfg['channel_env_var']) or cfg.get('channel_id_default')
+    if not channel_id:
+        logger.error(
+            "No channel ID for %s (env %s unset and no default)",
+            channel_key, cfg['channel_env_var'],
+        )
+        return jsonify({"msg": "Discord channel not configured"}), 500
+
+    # --- Resolve role mention IDs from DB ---
+    session = getattr(g, 'db_session', None)
+    tag_role_ids = []
+    try:
+        if session is None:
+            logger.error("No DB session available for role lookup")
+            return jsonify({"msg": "Internal error posting poll"}), 500
+        role_rows = session.query(Role).filter(
+            Role.name.in_(cfg['tag_role_names'])
+        ).all()
+        found_names = {r.name for r in role_rows}
+        for r in role_rows:
+            if r.discord_role_id:
+                tag_role_ids.append(str(r.discord_role_id))
+        missing = [n for n in cfg['tag_role_names'] if n not in found_names]
+        without_id = [r.name for r in role_rows if not r.discord_role_id]
+        if missing:
+            logger.warning("Mention roles missing from DB: %s", missing)
+        if without_id:
+            logger.warning("Mention roles without discord_role_id: %s", without_id)
+        if not tag_role_ids:
+            return jsonify({"msg": "No mention roles configured"}), 500
+    except Exception:
+        logger.exception("Error resolving mention role IDs")
+        return jsonify({"msg": "Internal error posting poll"}), 500
+
+    # --- Call bot ---
+    bot_payload = {
+        "channel_id": str(channel_id),
+        "tag_role_ids": tag_role_ids,
+        "question": title,
+        "answers": normalized_options,
+        "duration_hours": duration_hours,
+        "allow_multiselect": allow_multiselect,
+    }
+
+    bot_url = f"{Config.BOT_API_URL.rstrip('/')}/api/discord/post-poll"
+    try:
+        resp = requests.post(bot_url, json=bot_payload, timeout=15)
+    except (requests.ConnectionError, requests.Timeout):
+        logger.exception("Discord bot unreachable at %s", bot_url)
+        return jsonify({"msg": "Discord bot unreachable"}), 502
+    except requests.RequestException:
+        logger.exception("Error calling Discord bot at %s", bot_url)
+        return jsonify({"msg": "Discord bot unreachable"}), 502
+
+    if resp.status_code >= 400:
+        try:
+            err_body = resp.json()
+            detail = err_body.get('detail') or err_body.get('msg') or resp.text[:200]
+        except ValueError:
+            detail = resp.text[:200] if resp.text else f"status {resp.status_code}"
+        logger.warning("Bot rejected poll (status=%s): %s", resp.status_code, detail)
+        return jsonify({"msg": f"Discord rejected poll: {detail}"}), 502
+
+    try:
+        bot_resp = resp.json()
+    except ValueError:
+        logger.error("Bot returned non-JSON success body: %s", resp.text[:200])
+        return jsonify({"msg": "Internal error posting poll"}), 500
+
+    if not bot_resp.get('success'):
+        detail = bot_resp.get('detail') or bot_resp.get('msg') or 'unknown error'
+        return jsonify({"msg": f"Discord rejected poll: {detail}"}), 502
+
+    discord_message_id = str(bot_resp.get('message_id', ''))
+    bot_channel_id = str(bot_resp.get('channel_id', channel_id))
+    channel_name = bot_resp.get('channel_name', '')
+    guild_id = bot_resp.get('guild_id') or None
+    expires_at = bot_resp.get('expires_at', '')
+    message_url = bot_resp.get('message_url', '')
+    bot_answers = bot_resp.get('answers') or [
+        {"answer_id": i + 1, "text": o['text'], "emoji": o.get('emoji')}
+        for i, o in enumerate(normalized_options)
+    ]
+
+    # --- Persist DiscordPoll row so we can later track votes ---
+    try:
+        expires_dt = None
+        if expires_at:
+            try:
+                expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                if expires_dt.tzinfo is not None:
+                    expires_dt = expires_dt.astimezone(tz=None).replace(tzinfo=None)
+            except (ValueError, TypeError):
+                expires_dt = None
+        if expires_dt is None:
+            from datetime import timedelta as _td
+            expires_dt = datetime.utcnow() + _td(hours=duration_hours)
+
+        poll_row = DiscordPoll(
+            discord_message_id=discord_message_id,
+            channel_id=bot_channel_id,
+            channel_key=channel_key,
+            guild_id=guild_id,
+            title=title,
+            match_date=match_date_dt,
+            options=bot_answers,
+            duration_hours=duration_hours,
+            allow_multiselect=allow_multiselect,
+            created_by_user_id=current_user_id,
+            expires_at=expires_dt,
+            discord_message_url=message_url,
+        )
+        session.add(poll_row)
+        session.flush()
+    except Exception:
+        logger.exception("Failed to persist DiscordPoll row")
+        # Don't fail the whole request — the poll is already live in Discord.
+        # Vote tracking just won't work for this poll until manually backfilled.
+
+    # --- Audit log ---
+    try:
+        AdminAuditLog.log_action(
+            user_id=current_user_id,
+            action='discord_poll_posted',
+            resource_type='discord_poll',
+            resource_id=discord_message_id,
+            new_value=json.dumps({
+                'channel_key': channel_key,
+                'channel_id': bot_channel_id,
+                'title': title,
+                'options_count': len(normalized_options),
+                'duration_hours': duration_hours,
+                'allow_multiselect': allow_multiselect,
+                'expires_at': expires_at,
+                'discord_message_url': message_url,
+            }),
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+            deferred=True,
+        )
+    except Exception:
+        logger.exception("Failed to write discord_poll_posted audit log")
+
+    return jsonify({
+        "success": True,
+        "discord_message_id": discord_message_id,
+        "channel_id": bot_channel_id,
+        "channel_name": channel_name,
+        "expires_at": expires_at,
+        "discord_message_url": message_url,
+    }), 200
+
+
+# ============================================================================
+# Internal Endpoint - Bot pushes poll vote events here
+# ============================================================================
+
+@mobile_api_v2.route('/internal/discord-poll-vote', methods=['POST'])
+def receive_discord_poll_vote():
+    """
+    Receive a poll vote add/remove event from the Discord bot.
+
+    Auth: shared secret in X-Bot-Token header (must match FLASK_TOKEN env var,
+    which is the same value the bot reads from its own .env).
+
+    Body: {
+        discord_message_id, discord_user_id, answer_id,
+        action: "add"|"remove", channel_id?, guild_id?
+    }
+
+    Polls not previously persisted (i.e. polls created outside this system)
+    are silently ignored — the bot fires events for every poll in the guild.
+    """
+    expected = os.getenv('FLASK_TOKEN')
+    token = request.headers.get('X-Bot-Token', '')
+    if not expected or not token or token != expected:
+        return jsonify({"msg": "unauthorized"}), 401
+
+    data = request.get_json(silent=True) or {}
+    discord_message_id = str(data.get('discord_message_id') or '').strip()
+    discord_user_id = str(data.get('discord_user_id') or '').strip()
+    answer_id_raw = data.get('answer_id')
+    action = data.get('action')
+
+    if not discord_message_id or not discord_user_id:
+        return jsonify({"msg": "discord_message_id and discord_user_id required"}), 400
+    try:
+        answer_id = int(answer_id_raw)
+    except (TypeError, ValueError):
+        return jsonify({"msg": "answer_id must be an integer"}), 400
+    if action not in ('add', 'remove'):
+        return jsonify({"msg": "action must be 'add' or 'remove'"}), 400
+
+    session = getattr(g, 'db_session', None)
+    if session is None:
+        return jsonify({"msg": "Database session not available"}), 500
+
+    poll = session.query(DiscordPoll).filter_by(
+        discord_message_id=discord_message_id
+    ).first()
+    if poll is None:
+        # Untracked poll — ignore silently. Bot fires for every poll.
+        return jsonify({"success": True, "tracked": False}), 200
+
+    if action == 'add':
+        existing = session.query(DiscordPollVote).filter(
+            DiscordPollVote.poll_id == poll.id,
+            DiscordPollVote.discord_user_id == discord_user_id,
+            DiscordPollVote.answer_id == answer_id,
+            DiscordPollVote.removed_at.is_(None),
+        ).first()
+        if existing:
+            return jsonify({"success": True, "tracked": True, "noop": True}), 200
+        vote = DiscordPollVote(
+            poll_id=poll.id,
+            discord_user_id=discord_user_id,
+            answer_id=answer_id,
+            voted_at=datetime.utcnow(),
+        )
+        session.add(vote)
+    else:  # remove
+        existing = session.query(DiscordPollVote).filter(
+            DiscordPollVote.poll_id == poll.id,
+            DiscordPollVote.discord_user_id == discord_user_id,
+            DiscordPollVote.answer_id == answer_id,
+            DiscordPollVote.removed_at.is_(None),
+        ).order_by(DiscordPollVote.voted_at.desc()).first()
+        if existing:
+            existing.removed_at = datetime.utcnow()
+
+    return jsonify({"success": True, "tracked": True}), 200
+
+
+# ============================================================================
+# Read Endpoints - View poll responses (admin only)
+# ============================================================================
+
+def _build_options_lookup(options):
+    """Return {answer_id: {text, emoji}} from a poll's options jsonb."""
+    out = {}
+    for o in (options or []):
+        try:
+            out[int(o['answer_id'])] = {
+                'text': o.get('text', ''),
+                'emoji': o.get('emoji'),
+            }
+        except (KeyError, TypeError, ValueError):
+            continue
+    return out
+
+
+def _serialize_poll_summary(poll, vote_count_by_answer):
+    """Serialize a DiscordPoll with per-answer tallies (no responders)."""
+    options_out = []
+    for o in (poll.options or []):
+        ans_id = o.get('answer_id')
+        options_out.append({
+            'answer_id': ans_id,
+            'text': o.get('text', ''),
+            'emoji': o.get('emoji'),
+            'vote_count': vote_count_by_answer.get(ans_id, 0),
+        })
+    total_voters = sum(vote_count_by_answer.values()) if vote_count_by_answer else 0
+    return {
+        'discord_message_id': poll.discord_message_id,
+        'channel_id': poll.channel_id,
+        'channel_key': poll.channel_key,
+        'guild_id': poll.guild_id,
+        'title': poll.title,
+        'match_date': poll.match_date.isoformat() if poll.match_date else None,
+        'options': options_out,
+        'duration_hours': poll.duration_hours,
+        'allow_multiselect': poll.allow_multiselect,
+        'created_by_user_id': poll.created_by_user_id,
+        'created_at': poll.created_at.isoformat() if poll.created_at else None,
+        'expires_at': poll.expires_at.isoformat() if poll.expires_at else None,
+        'is_closed': bool(poll.expires_at and poll.expires_at <= datetime.utcnow()),
+        'discord_message_url': poll.discord_message_url,
+        'total_votes': total_voters,
+    }
+
+
+@mobile_api_v2.route('/substitutes/discord/availability-poll/recent', methods=['GET'])
+@jwt_required()
+@api_key_required
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
+def list_recent_discord_polls():
+    """
+    List recent Discord availability polls with per-answer tallies.
+
+    Query params:
+      - channel_key (optional): filter by channel_key (e.g. "pl_subs")
+      - limit (optional, default 10, max 50)
+    """
+    session = getattr(g, 'db_session', None)
+    if session is None:
+        return jsonify({"msg": "Database session not available"}), 500
+
+    channel_key = request.args.get('channel_key')
+    try:
+        limit = int(request.args.get('limit', 10))
+    except (TypeError, ValueError):
+        limit = 10
+    limit = max(1, min(limit, 50))
+
+    q = session.query(DiscordPoll).order_by(DiscordPoll.created_at.desc())
+    if channel_key:
+        q = q.filter(DiscordPoll.channel_key == channel_key)
+    polls = q.limit(limit).all()
+
+    if not polls:
+        return jsonify({"polls": []}), 200
+
+    poll_ids = [p.id for p in polls]
+    from sqlalchemy import func
+    tally_rows = session.query(
+        DiscordPollVote.poll_id,
+        DiscordPollVote.answer_id,
+        func.count(DiscordPollVote.id).label('cnt'),
+    ).filter(
+        DiscordPollVote.poll_id.in_(poll_ids),
+        DiscordPollVote.removed_at.is_(None),
+    ).group_by(
+        DiscordPollVote.poll_id, DiscordPollVote.answer_id
+    ).all()
+
+    tallies_by_poll = {}
+    for poll_id, answer_id, cnt in tally_rows:
+        tallies_by_poll.setdefault(poll_id, {})[answer_id] = cnt
+
+    polls_out = [
+        _serialize_poll_summary(p, tallies_by_poll.get(p.id, {}))
+        for p in polls
+    ]
+    return jsonify({"polls": polls_out}), 200
+
+
+@mobile_api_v2.route(
+    '/substitutes/discord/availability-poll/<string:discord_message_id>',
+    methods=['GET'],
+)
+@jwt_required()
+@api_key_required
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
+def get_discord_poll_detail(discord_message_id: str):
+    """
+    Get full details of a Discord availability poll: per-answer tally plus
+    the responders mapped to ECS player_id and player_name where possible.
+    """
+    session = getattr(g, 'db_session', None)
+    if session is None:
+        return jsonify({"msg": "Database session not available"}), 500
+
+    poll = session.query(DiscordPoll).filter_by(
+        discord_message_id=discord_message_id
+    ).first()
+    if poll is None:
+        return jsonify({"msg": "Poll not found"}), 404
+
+    active_votes = session.query(DiscordPollVote).filter(
+        DiscordPollVote.poll_id == poll.id,
+        DiscordPollVote.removed_at.is_(None),
+    ).order_by(DiscordPollVote.voted_at.asc()).all()
+
+    discord_ids = list({v.discord_user_id for v in active_votes})
+    players_by_discord_id = {}
+    if discord_ids:
+        rows = session.query(Player).options(
+            selectinload(Player.teams)
+        ).filter(
+            Player.discord_id.in_(discord_ids)
+        ).all()
+        players_by_discord_id = {p.discord_id: p for p in rows}
+
+    options_lookup = _build_options_lookup(poll.options)
+
+    responders_map = {}  # discord_user_id -> {player info, [selected]}
+    tally = {}
+    for v in active_votes:
+        tally[v.answer_id] = tally.get(v.answer_id, 0) + 1
+        entry = responders_map.get(v.discord_user_id)
+        if entry is None:
+            player = players_by_discord_id.get(v.discord_user_id)
+            entry = {
+                'discord_user_id': v.discord_user_id,
+                'player_id': player.id if player else None,
+                'player_name': player.name if player else None,
+                'team_ids': (
+                    [t.id for t in player.teams] if player and getattr(player, 'teams', None)
+                    else []
+                ),
+                'selected_answers': [],
+                'first_voted_at': v.voted_at.isoformat() if v.voted_at else None,
+                'last_voted_at': v.voted_at.isoformat() if v.voted_at else None,
+            }
+            responders_map[v.discord_user_id] = entry
+        opt = options_lookup.get(v.answer_id, {})
+        entry['selected_answers'].append({
+            'answer_id': v.answer_id,
+            'text': opt.get('text', ''),
+            'emoji': opt.get('emoji'),
+            'voted_at': v.voted_at.isoformat() if v.voted_at else None,
+        })
+        if v.voted_at and (not entry['last_voted_at'] or v.voted_at.isoformat() > entry['last_voted_at']):
+            entry['last_voted_at'] = v.voted_at.isoformat()
+
+    # Sort responders: mapped players first (by name), then unmapped by discord_user_id
+    def _sort_key(r):
+        name = (r['player_name'] or '').lower()
+        return (0 if r['player_id'] else 1, name, r['discord_user_id'])
+    responders = sorted(responders_map.values(), key=_sort_key)
+
+    poll_payload = _serialize_poll_summary(poll, tally)
+
+    mapped_count = sum(1 for r in responders if r['player_id'])
+    unmapped_count = len(responders) - mapped_count
+
+    return jsonify({
+        'poll': poll_payload,
+        'responders': responders,
+        'summary': {
+            'unique_responders': len(responders),
+            'mapped_to_player': mapped_count,
+            'unmapped_discord_users': unmapped_count,
+        },
+    }), 200
 
 
 # ============================================================================
@@ -1496,6 +2050,7 @@ def update_my_pool_status():
 
 @mobile_api_v2.route('/substitutes/pool/join', methods=['POST'])
 @jwt_required()
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
 def join_substitute_pool():
     """
     Request to join the substitute pool.
@@ -1562,6 +2117,7 @@ def join_substitute_pool():
 
 @mobile_api_v2.route('/substitutes/pool/leave', methods=['DELETE'])
 @jwt_required()
+@jwt_role_required(['Global Admin', 'Pub League Admin'])
 def leave_substitute_pool():
     """
     Leave the substitute pool.

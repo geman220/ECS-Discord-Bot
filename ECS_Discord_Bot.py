@@ -3302,6 +3302,56 @@ async def on_command_completion(ctx):
     except Exception as e:
         logger.error(f"Error tracking text command: {e}")
 
+
+# ----------------------------------------------------------------------
+# Native Discord Poll vote tracking (mobile sub center feature)
+# ----------------------------------------------------------------------
+
+async def _push_poll_vote(payload: discord.RawPollVoteActionEvent, action: str) -> None:
+    """
+    POST a poll vote event to the Flask internal endpoint.
+
+    Flask filters by message_id — if the poll wasn't created via the
+    /api/v1/substitutes/discord/availability-poll endpoint, the request is
+    a silent no-op.
+    """
+    base = WEBUI_API_URL or os.getenv("WEBUI_API_URL") or "http://webui:5000/api"
+    url = f"{base.rstrip('/')}/v1/internal/discord-poll-vote"
+    token = os.getenv("FLASK_TOKEN", "")
+    if not token:
+        logger.warning("FLASK_TOKEN not set; skipping poll-vote push for message %s", payload.message_id)
+        return
+    body = {
+        "discord_message_id": str(payload.message_id),
+        "discord_user_id": str(payload.user_id),
+        "answer_id": int(payload.answer_id),
+        "channel_id": str(payload.channel_id),
+        "guild_id": str(payload.guild_id) if payload.guild_id else None,
+        "action": action,
+    }
+    try:
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as http:
+            async with http.post(url, json=body, headers={"X-Bot-Token": token}) as resp:
+                if resp.status >= 400:
+                    text = await resp.text()
+                    logger.warning(
+                        "Flask rejected poll vote %s for msg=%s status=%s body=%s",
+                        action, payload.message_id, resp.status, text[:200],
+                    )
+    except Exception:
+        logger.exception("Failed to push poll vote (%s) for msg=%s", action, payload.message_id)
+
+
+@bot.event
+async def on_raw_poll_vote_add(payload: discord.RawPollVoteActionEvent):
+    await _push_poll_vote(payload, "add")
+
+
+@bot.event
+async def on_raw_poll_vote_remove(payload: discord.RawPollVoteActionEvent):
+    await _push_poll_vote(payload, "remove")
+
+
 # Register signal handlers
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
