@@ -73,6 +73,7 @@ def register_mobile_api_routes():
         coach_rsvp,
         substitutes,
         calendar,
+        calendar_subscription,
         admin,
         messages,
         ecs_fc_matches,
