@@ -116,6 +116,10 @@
                                class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-gray-700" title="View RSVP">
                                 <i class="ti ti-users"></i>
                             </a>
+                            <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='ecs_fc', match_id=match.id) }}"
+                               class="p-2 text-emerald-600 hover:bg-emerald-100 rounded dark:text-emerald-400 dark:hover:bg-gray-700" title="Check-In">
+                                <i class="ti ti-qrcode"></i>
+                            </a>
                             <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
                                class="p-2 text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700" title="Edit">
                                 <i class="ti ti-edit"></i>

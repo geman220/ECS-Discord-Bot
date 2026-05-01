@@ -83,6 +83,28 @@ function copyToClipboard(text) {
 // ----------------------------------------------------------------------------
 
 if (window.EventDelegation && window.EventDelegation.register) {
+    window.EventDelegation.register('backfill-wallet-passes', async function (element, e) {
+        e.preventDefault();
+        const cfg = window.MATCH_CHECKIN_LIST_CONFIG || {};
+        if (!cfg.backfillUrl) return;
+        const result = await window.Swal.fire({
+            title: 'Backfill member passes?',
+            text: 'Creates a membership pass row for every active Pub League player who doesn\'t have one. Required so coach scans can resolve player identities. Runs in the background.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Run backfill',
+        });
+        if (!result.isConfirmed) return;
+        element.disabled = true;
+        const { ok, data } = await jsonPost(cfg.backfillUrl, {});
+        element.disabled = false;
+        if (ok && data && data.success) {
+            showToast(data.message || 'Backfill started', 'success');
+        } else {
+            showToast((data && data.message) || 'Failed to start backfill', 'error');
+        }
+    });
+
     window.EventDelegation.register('generate-tokens-bulk', async function (element, e) {
         e.preventDefault();
         const days = parseInt(element.dataset.days || '14', 10);

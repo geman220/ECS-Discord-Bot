@@ -296,8 +296,22 @@ class WalletPass(db.Model):
         return secrets.token_urlsafe(32)
 
     def generate_barcode_data(self):
-        """Generate barcode data: ECSFC-{TYPE}-{SHORT_SERIAL}"""
-        type_code = self.pass_type.code.upper()[:3] if self.pass_type else 'UNK'
+        """Generate barcode data: ECSFC-{TYPE}-{SHORT_SERIAL}.
+
+        Falls back to a direct WalletPassType query when the relationship
+        isn't loaded — happens when create_pub_league_pass / create_ecs_*
+        helpers call this before the row is added to the session, which
+        previously emitted barcodes like 'ECSFC-UNK-...' for pub_league.
+        """
+        type_code = None
+        if self.pass_type and self.pass_type.code:
+            type_code = self.pass_type.code.upper()[:3]
+        elif self.pass_type_id:
+            wpt = WalletPassType.query.get(self.pass_type_id)
+            if wpt and wpt.code:
+                type_code = wpt.code.upper()[:3]
+        if not type_code:
+            type_code = 'UNK'
         short_serial = self.serial_number.replace('-', '')[:12].upper()
         return f"ECSFC-{type_code}-{short_serial}"
 

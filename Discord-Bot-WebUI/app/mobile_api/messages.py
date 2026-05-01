@@ -49,6 +49,7 @@ def _user_to_dict(user, session_db):
 
     return {
         'id': user.id,
+        'player_id': player.id if player else None,
         'username': user.username,
         'name': player.name if player else user.username,
         'avatar_url': avatar_url,

@@ -151,6 +151,27 @@ def match_check_in_index():
     )
 
 
+@admin_panel_bp.route('/match-operations/check-in/api/backfill-wallet-passes', methods=['POST'])
+@login_required
+@role_required(_ADMIN_ROLES)
+def match_check_in_backfill_wallet_passes():
+    """Kick the WalletPass backfill task — runs async, returns task id.
+
+    Why: the new GET /api/v1/membership/pass/lookup endpoint resolves
+    member_tokens via WalletPass.barcode_data. Players without a WalletPass
+    row 404 there, so the coach scanner can't render their identity card.
+    This task creates rows for active Pub League players who don't have one.
+    """
+    from app.tasks.check_in_tasks import backfill_wallet_passes_for_active_players
+
+    async_result = backfill_wallet_passes_for_active_players.delay()
+    return jsonify({
+        'success': True,
+        'message': 'WalletPass backfill kicked off in the background. Check task monitor for results.',
+        'task_id': async_result.id,
+    })
+
+
 @admin_panel_bp.route('/match-operations/check-in/api/generate-tokens-for-upcoming', methods=['POST'])
 @login_required
 @role_required(_ADMIN_ROLES)

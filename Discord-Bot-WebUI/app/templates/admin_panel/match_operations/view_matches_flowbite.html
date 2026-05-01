@@ -160,6 +160,10 @@
                         <button type="button" class="p-2 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg transition-colors" data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit">
                             <i class="ti ti-edit"></i>
                         </button>
+                        <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='pub_league', match_id=match.id) }}"
+                           class="p-2 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors inline-flex items-center" title="Check-In">
+                            <i class="ti ti-qrcode"></i>
+                        </a>
                     </div>
                 </td>
             </tr>

@@ -65,10 +65,17 @@
                 <option value="60" {% if days == 60 %}selected{% endif %}>Next 60 days</option>
             </select>
         </div>
-        <button type="button" data-action="generate-tokens-bulk" data-days="{{ days }}"
-                class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
-            <i class="ti ti-qrcode mr-1"></i>Generate missing QRs
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+            <button type="button" data-action="backfill-wallet-passes"
+                    class="px-3 py-2 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/40 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/60"
+                    title="Create membership pass rows for active players that don't have one. Required so coach scans can resolve player identities.">
+                <i class="ti ti-id-badge-2 mr-1"></i>Backfill member passes
+            </button>
+            <button type="button" data-action="generate-tokens-bulk" data-days="{{ days }}"
+                    class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+                <i class="ti ti-qrcode mr-1"></i>Generate missing QRs
+            </button>
+        </div>
     </div>
 </div>
 
@@ -141,6 +148,7 @@
 <script>
 window.MATCH_CHECKIN_LIST_CONFIG = {
     bulkUrl: '{{ url_for("admin_panel.match_check_in_generate_bulk") }}',
+    backfillUrl: '{{ url_for("admin_panel.match_check_in_backfill_wallet_passes") }}',
 };
 </script>
 {% endblock %}

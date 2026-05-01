@@ -124,6 +124,7 @@ def _user_to_dict(user, include_online=True):
 
     return {
         'id': user.id,
+        'player_id': player.id if player else None,
         'username': user.username,
         'name': player.name if player else user.username,
         'avatar_url': player.profile_picture_url if player else None,

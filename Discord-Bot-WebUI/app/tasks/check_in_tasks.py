@@ -17,6 +17,88 @@ logger = logging.getLogger(__name__)
 
 
 @celery_task(
+    name='app.tasks.check_in_tasks.backfill_wallet_passes_for_active_players',
+    bind=True,
+    queue='celery',
+    max_retries=1,
+)
+def backfill_wallet_passes_for_active_players(self, session, season_id: int = None):
+    """Create WalletPass rows for active Pub League players who don't have one.
+
+    Without a WalletPass row, the GET /api/v1/membership/pass/lookup endpoint
+    returns 404 for that player — the in-app coach scanner can't render their
+    identity card. Backfill creates a row with a stable barcode_data so
+    member_token lookups resolve.
+
+    Idempotent: skips players with an existing active WalletPass.
+    Scope: pub_league pass type, players where is_current_player=True with a
+    user_id and a team. ECS membership passes (for non-pub-league supporters)
+    are out of scope here — those flow through WooCommerce.
+    """
+    try:
+        from app.models import Player, Season
+        from app.models.wallet import WalletPass, WalletPassType, create_pub_league_pass
+
+        pub_type = WalletPassType.get_pub_league()
+        if not pub_type:
+            return {'success': False, 'error': 'Pub League pass type not configured'}
+
+        if season_id:
+            season = session.query(Season).get(season_id)
+        else:
+            season = session.query(Season).filter_by(
+                league_type='Pub League', is_current=True
+            ).first()
+        if not season:
+            return {'success': False, 'error': 'No current Pub League season'}
+
+        # Active players with a user account.
+        players = session.query(Player).filter(
+            Player.is_current_player.is_(True),
+            Player.user_id.isnot(None),
+        ).all()
+
+        created = 0
+        skipped = 0
+        skipped_no_team = 0
+        for p in players:
+            has_team = (p.primary_team is not None) or (
+                getattr(p, 'teams', None) and len(p.teams) > 0
+            )
+            if not has_team:
+                skipped_no_team += 1
+                continue
+
+            existing = session.query(WalletPass).filter(
+                WalletPass.user_id == p.user_id,
+                WalletPass.pass_type_id == pub_type.id,
+                WalletPass.status == 'active',
+            ).first()
+            if existing:
+                skipped += 1
+                continue
+
+            wp = create_pub_league_pass(p, season)
+            session.add(wp)
+            created += 1
+
+        logger.info(
+            f"WalletPass backfill: created {created}, skipped {skipped} "
+            f"(existing), skipped {skipped_no_team} (no team); season={season.name}"
+        )
+        return {
+            'success': True,
+            'created': created,
+            'skipped': skipped,
+            'skipped_no_team': skipped_no_team,
+            'season': season.name,
+        }
+    except Exception as e:
+        logger.error(f"WalletPass backfill failed: {e}", exc_info=True)
+        return {'success': False, 'error': str(e)}
+
+
+@celery_task(
     name='app.tasks.check_in_tasks.generate_check_in_tokens_for_upcoming_matches',
     bind=True,
     queue='celery',
