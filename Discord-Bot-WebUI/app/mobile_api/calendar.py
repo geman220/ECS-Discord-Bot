@@ -23,6 +23,7 @@ from app.core.session_manager import managed_session
 from app.models import Match, Player, Season
 from app.models.calendar import LeagueEvent
 from app.models_ecs import EcsFcMatch
+from app.utils.special_weeks import get_special_week_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -55,10 +56,20 @@ def _match_to_calendar_event(match, user_team_ids: list = None) -> dict:
     division = 'Premier' if getattr(match.home_team, 'league_id', None) == 10 else 'Classic'
     color = '#1976d2' if division == 'Premier' else '#4caf50'
 
+    # Use the special-week label as the title for FUN/TST/BYE/BONUS placeholder
+    # rows so the calendar shows e.g. "Fun Week!" instead of "FUN WEEK vs FUN WEEK".
+    special_week_display = get_special_week_display_name(match)
+    if special_week_display:
+        title = special_week_display
+    else:
+        home_name = match.home_team.name if match.home_team else 'TBD'
+        away_name = match.away_team.name if match.away_team else 'TBD'
+        title = f"{home_name} vs {away_name}"
+
     return {
         'id': f'match-{match.id}',
         'type': 'match',
-        'title': f"{match.home_team.name if match.home_team else 'TBD'} vs {match.away_team.name if match.away_team else 'TBD'}",
+        'title': title,
         'start': datetime.combine(match.date, match.time).isoformat() if match.time else match.date.isoformat(),
         'end': None,
         'all_day': False,
@@ -75,6 +86,10 @@ def _match_to_calendar_event(match, user_team_ids: list = None) -> dict:
             'id': match.away_team_id,
             'name': match.away_team.name if match.away_team else None
         },
+        'week_type': match.week_type,
+        'is_special_week': match.is_special_week,
+        'is_playoff_game': match.is_playoff_game,
+        'special_week_display': special_week_display,
         'referee': match.ref.name if match.ref else None
     }
 

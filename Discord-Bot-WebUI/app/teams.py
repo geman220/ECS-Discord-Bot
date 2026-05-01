@@ -44,6 +44,7 @@ from app.teams_helpers import populate_team_stats, update_standings, process_eve
 from app.utils.user_helpers import safe_current_user
 from app.decorators import role_required
 from app.admin_helpers import determine_match_league_type
+from app.utils.special_weeks import get_special_week_display_name
 
 logger = logging.getLogger(__name__)
 teams_bp = Blueprint('teams', __name__)
@@ -57,39 +58,11 @@ def allowed_file(filename):
 def _get_special_week_display_name(match):
     """
     Get the display name for special weeks where home_team_id == away_team_id.
-    
-    Args:
-        match: Match object where home_team_id == away_team_id
-        
-    Returns:
-        String display name for the special week
+
+    Always returns a string. Callers must verify home_team_id == away_team_id
+    before calling.
     """
-    # Check if the match has a week_type attribute
-    if hasattr(match, 'week_type'):
-        week_type = match.week_type.upper()
-        if week_type == 'FUN':
-            return 'Fun Week!'
-        elif week_type == 'TST':
-            return 'The Soccer Tournament!'
-        elif week_type == 'BYE':
-            return 'BYE Week!'
-        elif week_type == 'BONUS':
-            return 'Bonus Week!'
-    
-    # Fallback: try to determine from team names (backward compatibility)
-    if match.home_team and match.home_team.name:
-        team_name = match.home_team.name.upper()
-        if 'FUN' in team_name:
-            return 'Fun Week!'
-        elif 'TST' in team_name:
-            return 'The Soccer Tournament!'
-        elif 'BYE' in team_name:
-            return 'BYE Week!'
-        elif 'BONUS' in team_name:
-            return 'Bonus Week!'
-    
-    # Final fallback
-    return 'Special Week!'
+    return get_special_week_display_name(match) or 'Special Week!'
 
 
 def _is_playoff_placeholder_match(match, viewing_team_id):

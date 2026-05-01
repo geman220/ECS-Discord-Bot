@@ -19,6 +19,7 @@ from functools import wraps
 from flask import current_app, jsonify, g, request
 
 from app.utils.log_sanitizer import mask_phone, mask_code
+from app.utils.special_weeks import get_special_week_display_name
 from sqlalchemy import or_, and_, func
 
 
@@ -1147,21 +1148,8 @@ def get_next_match(phone_number):
                     opponent = m.away_team if m.home_team_id == team.id else m.home_team
                     opponent_display = opponent.name if opponent else 'Unknown'
             elif m.home_team_id == m.away_team_id:
-                # Special week - determine display name
-                if hasattr(m, 'week_type'):
-                    week_type = m.week_type.upper()
-                    if week_type == 'FUN':
-                        opponent_display = 'Fun Week!'
-                    elif week_type == 'TST':
-                        opponent_display = 'The Soccer Tournament!'
-                    elif week_type == 'BYE':
-                        opponent_display = 'BYE Week!'
-                    elif week_type == 'BONUS':
-                        opponent_display = 'Bonus Week!'
-                    else:
-                        opponent_display = 'Special Week!'
-                else:
-                    opponent_display = 'Special Week!'
+                # Special week placeholder (FUN/TST/BYE/BONUS) - use canonical label
+                opponent_display = get_special_week_display_name(m) or 'Special Week!'
             else:
                 # Regular match - determine opponent based on which side the team is on
                 opponent = m.away_team if m.home_team_id == team.id else m.home_team

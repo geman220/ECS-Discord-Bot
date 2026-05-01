@@ -93,6 +93,7 @@ def normalize_ecs_fc_match(match: EcsFcMatch, player: Player = None,
         'is_special_week': False,
         'is_playoff_game': False,
         'playoff_round': None,
+        'special_week_display': None,
         'version': 1,
         'updated_at': None,
         # Team info (ECS FC matches have single team + opponent; use 0 for external opponent ID)

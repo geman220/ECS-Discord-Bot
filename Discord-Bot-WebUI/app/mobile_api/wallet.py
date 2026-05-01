@@ -138,6 +138,86 @@ def get_membership_pass_info():
         return jsonify({"msg": "Internal server error"}), 500
 
 
+@mobile_api_v2.route('/membership/pass/reset-code', methods=['POST'])
+@jwt_required()
+def reset_membership_pass_code():
+    """Rotate the credentials on the user's active wallet pass.
+
+    Issues a fresh `barcode_data` (the QR coaches scan), `download_token`
+    (the public download URL), and `authentication_token` (the PassKit
+    web service auth). Old installed pass on Apple Wallet becomes inert
+    — Wallet will no longer be able to update it because the new auth
+    token doesn't match. Any existing `WalletPassDevice` rows for the
+    pass are wiped so the user starts fresh after re-adding.
+
+    Returns the new pass info (same shape as `GET /membership/pass`) so
+    the app can immediately offer "Add to Apple Wallet" with the rotated
+    URL.
+    """
+    try:
+        with managed_session() as session_db:
+            current_user_id = int(get_jwt_identity())
+            user = session_db.query(User).get(current_user_id)
+            if not user:
+                return jsonify({"msg": "User not found"}), 404
+            player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+            if not player or not player.is_current_player:
+                return jsonify({"msg": "No active membership pass to reset"}), 404
+
+            from app.models.wallet import WalletPass, WalletPassDevice
+            wallet_pass = session_db.query(WalletPass).filter(
+                WalletPass.user_id == current_user_id,
+                WalletPass.status == 'active'
+            ).first()
+            if not wallet_pass:
+                return jsonify({"msg": "No active membership pass to reset"}), 404
+
+            # Rotate identity tokens. serial_number → new barcode_data via
+            # generate_barcode_data() which keys off serial.
+            wallet_pass.serial_number = WalletPass.generate_serial_number()
+            wallet_pass.download_token = WalletPass.generate_download_token()
+            wallet_pass.authentication_token = WalletPass.generate_token()
+            wallet_pass.barcode_data = wallet_pass.generate_barcode_data()
+            wallet_pass.apple_pass_generated = False
+            wallet_pass.google_pass_generated = False
+            wallet_pass.version = (wallet_pass.version or 0) + 1
+            wallet_pass.updated_at = datetime.utcnow()
+
+            # Old installed pass on the user's device can no longer authenticate
+            # to PassKit web service — drop the device registrations so the
+            # post-reset re-install starts from a clean slate.
+            session_db.query(WalletPassDevice).filter_by(
+                wallet_pass_id=wallet_pass.id
+            ).delete()
+            session_db.commit()
+
+            base_url = request.host_url.rstrip('/')
+            new_apple_url = f"{base_url}/wallet/pass/by-token/{wallet_pass.download_token}"
+
+            logger.info(
+                f"Reset Code: rotated wallet pass {wallet_pass.id} for user {current_user_id} — "
+                f"new barcode {wallet_pass.barcode_data}"
+            )
+
+            return jsonify({
+                "id": str(wallet_pass.id),
+                "userId": str(current_user_id),
+                "playerName": wallet_pass.member_name,
+                "barcodeValue": wallet_pass.barcode_data,
+                "barcodeFormat": "qr",
+                "passUrl": new_apple_url,
+                "appleWallet": {
+                    "available": True,
+                    "downloadUrl": new_apple_url,
+                },
+                "message": "Pass reset. Add to Apple Wallet again to install the refreshed pass.",
+            }), 200
+
+    except Exception as e:
+        logger.error(f"Reset Code failed: {e}", exc_info=True)
+        return jsonify({"msg": "Internal server error"}), 500
+
+
 @mobile_api_v2.route('/membership/pass/generate', methods=['POST'])
 @jwt_required()
 def generate_membership_pass():

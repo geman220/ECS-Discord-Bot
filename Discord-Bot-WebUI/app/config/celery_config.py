@@ -76,6 +76,7 @@ class CeleryConfig:
         'app.tasks.tasks_rsvp_dm_reminders',  # Thursday RSVP DM reminders
         'app.tasks.tasks_live_reporting_timers',  # V2 live-match timer reminders + autostop
         'app.tasks.check_in_tasks',  # Match check-in: nightly venue token backfill
+        'app.tasks.wallet_refresh_tasks',  # Wallet pass auto-refresh + daily relevantDate sweep
     )
 
     # Task Settings - Industry Best Practices
@@ -326,6 +327,19 @@ class CeleryConfig:
                 'expires': 3540,
                 'time_limit': 120,
                 'soft_time_limit': 90,
+            }
+        },
+        # Wallet pass relevantDate refresh: each day at 4am, push a refresh
+        # for every active player-linked pass so the embedded next-match
+        # timestamp advances after the previous match completes.
+        'wallet-refresh-relevant-dates-daily': {
+            'task': 'app.tasks.wallet_refresh_tasks.refresh_relevant_dates_daily',
+            'schedule': crontab(hour=4, minute=0),
+            'options': {
+                'queue': 'celery',
+                'expires': 3540,
+                'time_limit': 600,  # APNs round-trips for many passes
+                'soft_time_limit': 540,
             }
         },
         # ENTERPRISE LIVE REPORTING SYSTEM - Uses dedicated real-time service + match scheduler

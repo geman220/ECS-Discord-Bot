@@ -21,6 +21,7 @@ import aiohttp
 from flask import g
 from app.models import Match, Availability, Player, ScheduledMessage
 from app.tasks.tasks_rsvp import update_discord_rsvp_task
+from app.utils.special_weeks import get_special_week_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -417,19 +418,8 @@ def get_match_request_data(match_id, session=None):
 
         # Check if this is a special week (self-match)
         if match.home_team_id == match.away_team_id:
-            # This is a special week - determine the display name
-            special_week_name = "Special Event"
-            if hasattr(match, 'week_type'):
-                week_type = match.week_type.upper()
-                if week_type == 'FUN':
-                    special_week_name = "Fun Week!"
-                elif week_type == 'TST':
-                    special_week_name = "The Soccer Tournament!"
-                elif week_type == 'BYE':
-                    special_week_name = "BYE Week!"
-                elif week_type == 'BONUS':
-                    special_week_name = "Bonus Week!"
-            
+            special_week_name = get_special_week_display_name(match) or "Special Event"
+
             return {
                 'match_id': match.id,
                 'home_team_name': match.home_team.name,

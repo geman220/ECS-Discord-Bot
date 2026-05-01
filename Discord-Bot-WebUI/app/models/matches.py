@@ -18,6 +18,7 @@ from datetime import datetime, time
 from sqlalchemy import event
 
 from app.core import db
+from app.utils.special_weeks import get_special_week_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -142,6 +143,10 @@ class Match(db.Model):
             'is_special_week': self.is_special_week,
             'is_playoff_game': self.is_playoff_game,
             'playoff_round': self.playoff_round,
+            # Pre-computed label for FUN/TST/BYE/BONUS placeholder rows so the
+            # Flutter app doesn't render "{home} vs {away}" as e.g. "FUN WEEK vs FUN WEEK".
+            # None for regular team-vs-team matches.
+            'special_week_display': get_special_week_display_name(self),
             'version': self.version,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

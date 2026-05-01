@@ -19,6 +19,7 @@ from sqlalchemy.orm import joinedload
 from app.mobile_api import mobile_api_v2
 from app.core.session_manager import managed_session
 from app.models import Match, Player, Season
+from app.utils.special_weeks import get_special_week_display_name
 
 logger = logging.getLogger(__name__)
 
@@ -79,6 +80,12 @@ def get_weekly_schedule():
                 "time": match.time.isoformat() if match.time else None,
                 "home_team": match.home_team.name if match.home_team else None,
                 "away_team": match.away_team.name if match.away_team else None,
+                "home_team_id": match.home_team_id,
+                "away_team_id": match.away_team_id,
+                "week_type": match.week_type,
+                "is_special_week": match.is_special_week,
+                "is_playoff_game": match.is_playoff_game,
+                "special_week_display": get_special_week_display_name(match),
                 "location": match.location if hasattr(match, 'location') else None
             })
 
@@ -146,7 +153,13 @@ def get_monthly_schedule():
                 "id": match.id,
                 "time": match.time.isoformat() if match.time else None,
                 "home_team": match.home_team.name if match.home_team else None,
-                "away_team": match.away_team.name if match.away_team else None
+                "away_team": match.away_team.name if match.away_team else None,
+                "home_team_id": match.home_team_id,
+                "away_team_id": match.away_team_id,
+                "week_type": match.week_type,
+                "is_special_week": match.is_special_week,
+                "is_playoff_game": match.is_playoff_game,
+                "special_week_display": get_special_week_display_name(match)
             })
 
         return jsonify({
@@ -207,7 +220,11 @@ def get_upcoming_schedule():
                 "away_team": {
                     "id": match.away_team_id,
                     "name": match.away_team.name if match.away_team else None
-                }
+                },
+                "week_type": match.week_type,
+                "is_special_week": match.is_special_week,
+                "is_playoff_game": match.is_playoff_game,
+                "special_week_display": get_special_week_display_name(match)
             })
 
         return jsonify({"upcoming_matches": matches_data}), 200

@@ -117,6 +117,11 @@ def create_app(config_object='web_config.Config'):
     from app.services.account_approval_push import register as _register_approval_push
     _register_approval_push()
 
+    # Wallet pass auto-refresh listeners: bump + APNs push when a Player or
+    # Match attribute that's baked into pass.json changes.
+    from app.wallet_pass.services.auto_refresh import install_listeners as _install_wallet_auto_refresh
+    _install_wallet_auto_refresh()
+
     # Phase 6: Middleware and session
     apply_middleware(app)
     if not skip_redis and redis_manager:
