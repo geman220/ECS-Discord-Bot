@@ -426,6 +426,38 @@ def download_wallet_pass_file():
         return jsonify({"msg": "Internal server error"}), 500
 
 
+@mobile_api_v2.route('/membership/wallet/pass/refresh-push', methods=['POST'])
+@jwt_required()
+def trigger_wallet_pass_refresh_push():
+    """Force a PassKit push to all of the caller's registered devices.
+
+    Flutter calls this after server-side state changes (player updates,
+    Reset Code, etc.) to nudge Apple Wallet into re-fetching the pass.
+    No body. Returns per-platform send counts.
+    """
+    try:
+        with managed_session() as session_db:
+            current_user_id = int(get_jwt_identity())
+            wallet_pass = session_db.query(WalletPass).filter(
+                WalletPass.user_id == current_user_id,
+                WalletPass.status == 'active'
+            ).first()
+            if not wallet_pass:
+                return jsonify({"msg": "No active wallet pass for user"}), 404
+
+            from app.wallet_pass.services.push_service import trigger_wallet_refresh
+            result = trigger_wallet_refresh(wallet_pass, commit=False)
+            session_db.commit()
+            return jsonify({
+                'success': bool(result.get('any_success')),
+                'apple': result.get('apple'),
+                'google': result.get('google'),
+            }), 200
+    except Exception as e:
+        logger.error(f"Error triggering wallet pass refresh push: {e}", exc_info=True)
+        return jsonify({"msg": "Internal server error"}), 500
+
+
 @mobile_api_v2.route('/membership/wallet/google/pass', methods=['GET'])
 @jwt_required()
 def get_google_wallet_pass():

@@ -281,9 +281,11 @@ class PushService:
         # Apple Wallet passes use an empty payload
         payload = {}
 
-        # Build headers
+        # Build headers. apns-topic MUST match the passTypeIdentifier the cert
+        # is bound to, which is `pass.com.ecsfc.membership` in this deployment.
+        # Both pub_league and ecs_membership pass types share that identifier.
         headers = {
-            'apns-topic': os.getenv('APPLE_WALLET_PASS_TYPE_ID', 'pass.com.weareecs.membership'),
+            'apns-topic': os.getenv('APPLE_WALLET_PASS_TYPE_ID', 'pass.com.ecsfc.membership'),
             'apns-push-type': 'background',
             'apns-priority': '5'
         }
@@ -750,3 +752,44 @@ def register_apple_wallet_routes(app):
 
 # Singleton instance
 push_service = PushService()
+
+
+# ===========================================================================
+# Pass-changed trigger
+# ===========================================================================
+
+def trigger_wallet_refresh(wallet_pass: WalletPass, *, commit: bool = True) -> dict:
+    """Mark a WalletPass as updated and push the change to all registered devices.
+
+    Call this whenever data baked into the .pkpass would change (player
+    name, jersey number, team, season, barcode reset, voiding, next-match
+    relevance, etc.). Apple Wallet polls the PassKit web service after the
+    APNs nudge and fetches the regenerated pass via GET /v1/passes/...
+
+    Args:
+        wallet_pass: the row that changed.
+        commit: bump updated_at + version and commit. Set False if the
+                caller is in a larger transaction and will commit itself.
+
+    Returns: same shape as send_update_to_all_platforms — per-platform
+    counts plus an `any_success` summary.
+    """
+    if not wallet_pass:
+        return {'apple': None, 'google': None, 'any_success': False, 'error': 'no pass'}
+
+    try:
+        wallet_pass.version = (wallet_pass.version or 0) + 1
+        wallet_pass.updated_at = datetime.utcnow()
+        if commit:
+            db.session.commit()
+    except Exception as e:
+        logger.error(f"trigger_wallet_refresh: failed to bump version on {wallet_pass.id}: {e}")
+        if commit:
+            db.session.rollback()
+        return {'apple': None, 'google': None, 'any_success': False, 'error': str(e)}
+
+    try:
+        return push_service.send_update_to_all_platforms(wallet_pass)
+    except Exception as e:
+        logger.error(f"trigger_wallet_refresh: push failed for pass {wallet_pass.id}: {e}", exc_info=True)
+        return {'apple': None, 'google': None, 'any_success': False, 'error': str(e)}
