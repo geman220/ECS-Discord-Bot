@@ -1,0 +1,16 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Check-in unavailable — ECS FC{% endblock %}
+
+{% block main_content %}
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 text-center">
+    <div class="w-20 h-20 mx-auto rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+        <i class="ti ti-clock-x text-4xl text-gray-400"></i>
+    </div>
+    <h1 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Check-in unavailable</h1>
+    <p class="text-sm text-gray-600 dark:text-gray-400">
+        This check-in code is no longer valid. Ask a coach or organizer
+        for the current match QR.
+    </p>
+</div>
+{% endblock %}

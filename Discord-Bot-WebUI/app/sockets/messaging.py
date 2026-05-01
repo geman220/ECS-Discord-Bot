@@ -248,45 +248,47 @@ def _handle_send_dm_impl(data):
             'timestamp': datetime.utcnow().isoformat()
         })
 
-        # Send to recipient if online
+        # Send to recipient if online (real-time WebSocket delivery)
         recipient_online = emit_to_user(recipient_id, 'new_message', message_data)
-
         if recipient_online:
             logger.info(f"Real-time message delivered to user {recipient_id}")
-        else:
-            # User is offline - send notifications via all their enabled channels
-            # (email, SMS, Discord DM) based on their preferences
+
+        # Always dispatch via orchestrator regardless of WebSocket presence.
+        # The orchestrator honors per-channel preferences and the Flutter app
+        # suppresses its own foreground banner when the DM thread is active,
+        # so duplicate-banner risk is contained client-side. WebSocket-only
+        # gating used to mask mobile pushes whenever a stale web tab kept
+        # the recipient marked online for the 5-minute presence TTL.
+        try:
+            from app.services.notification_orchestrator import orchestrator
+
+            sender_name = sender.player.name if sender.player else sender.username
+            message_preview = content[:50] + '...' if len(content) > 50 else content
+
+            orchestrator.send_direct_message(
+                recipient_id=recipient_id,
+                sender_id=user_id,
+                sender_name=sender_name,
+                message_preview=message_preview,
+                message_id=message.id
+            )
+            logger.info(f"Notifications dispatched for user {recipient_id} (recipient_online={recipient_online})")
+
+        except Exception as e:
+            logger.warning(f"Failed to dispatch notifications: {e}")
+            # Fallback to basic in-app notification
             try:
-                from app.services.notification_orchestrator import orchestrator
-
+                from app.routes.navbar_notifications import create_notification
                 sender_name = sender.player.name if sender.player else sender.username
-                message_preview = content[:50] + '...' if len(content) > 50 else content
-
-                # Send via orchestrator - this handles in-app, email, SMS, Discord
-                orchestrator.send_direct_message(
-                    recipient_id=recipient_id,
-                    sender_id=user_id,
-                    sender_name=sender_name,
-                    message_preview=message_preview,
-                    message_id=message.id
+                create_notification(
+                    user_id=recipient_id,
+                    content=f"New message from {sender_name}",
+                    notification_type='info',
+                    icon='ti ti-message'
                 )
-                logger.info(f"Offline notifications triggered for user {recipient_id}")
-
-            except Exception as e:
-                logger.warning(f"Failed to send offline notifications: {e}")
-                # Fallback to basic in-app notification
-                try:
-                    from app.routes.navbar_notifications import create_notification
-                    sender_name = sender.player.name if sender.player else sender.username
-                    create_notification(
-                        user_id=recipient_id,
-                        content=f"New message from {sender_name}",
-                        notification_type='info',
-                        icon='ti ti-message'
-                    )
-                    db.session.commit()
-                except Exception as fallback_e:
-                    logger.error(f"Fallback notification also failed: {fallback_e}")
+                db.session.commit()
+            except Exception as fallback_e:
+                logger.error(f"Fallback notification also failed: {fallback_e}")
 
         logger.info(f"Message sent from {user_id} to {recipient_id}")
 

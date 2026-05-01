@@ -113,7 +113,8 @@ def send_scheduled_campaign(self, session, campaign_id: int) -> Dict[str, Any]:
             tokens=tokens,
             title=campaign.title,
             body=campaign.body,
-            data=data
+            data=data,
+            android_channel_id='general',
         )
 
         # Update campaign with results

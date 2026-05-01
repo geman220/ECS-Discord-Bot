@@ -34,6 +34,8 @@ def apple_app_site_association():
     - /sub-rsvp/* - Pub League substitute response pages
     - /ecs-fc/matches/* - ECS FC match details
     - /match/* - Pub League match pages
+    - /m/* - Member identity (player QR scan)
+    - /check-in/* - Venue check-in (printed QR sign / NFC sticker at the pitch)
     """
     # Get app identifiers from environment
     ios_team_id = os.getenv('IOS_TEAM_ID', 'XXXXXXXXXX')
@@ -58,7 +60,11 @@ def apple_app_site_association():
                         "/rsvp/*",
                         # OAuth callback bridge — Universal Link target so Discord's
                         # HTTPS redirect lands in the app instead of Safari.
-                        "/oauth/callback*"
+                        "/oauth/callback*",
+                        # Member identity card (player QR camera-app scans)
+                        "/m/*",
+                        # Venue check-in (printed QR / NFC at the pitch)
+                        "/check-in/*"
                     ]
                 }
             ]

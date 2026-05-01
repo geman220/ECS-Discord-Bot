@@ -75,6 +75,7 @@ class CeleryConfig:
         'app.tasks.ai_assistant_cleanup',  # AI assistant log retention
         'app.tasks.tasks_rsvp_dm_reminders',  # Thursday RSVP DM reminders
         'app.tasks.tasks_live_reporting_timers',  # V2 live-match timer reminders + autostop
+        'app.tasks.check_in_tasks',  # Match check-in: nightly venue token backfill
     )
 
     # Task Settings - Industry Best Practices
@@ -313,6 +314,18 @@ class CeleryConfig:
                 'expires': 3540,
                 'time_limit': 300,
                 'soft_time_limit': 240
+            }
+        },
+        # Match check-in: nightly venue-token backfill so admins always have
+        # a printable QR ready for upcoming matches. Idempotent.
+        'generate-check-in-tokens-for-upcoming-matches': {
+            'task': 'app.tasks.check_in_tasks.generate_check_in_tokens_for_upcoming_matches',
+            'schedule': crontab(hour=3, minute=0),
+            'options': {
+                'queue': 'celery',
+                'expires': 3540,
+                'time_limit': 120,
+                'soft_time_limit': 90,
             }
         },
         # ENTERPRISE LIVE REPORTING SYSTEM - Uses dedicated real-time service + match scheduler

@@ -193,6 +193,10 @@ from .discord_polls import (
     DiscordPoll, DiscordPollVote
 )
 
+from .match_check_in import (
+    MatchCheckInToken, MatchAttendance, LEAGUE_TYPES, CHECK_IN_SOURCES
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -324,4 +328,7 @@ __all__ = [
 
     # Native Discord poll tracking
     'DiscordPoll', 'DiscordPollVote',
+
+    # Match check-in models
+    'MatchCheckInToken', 'MatchAttendance', 'LEAGUE_TYPES', 'CHECK_IN_SOURCES',
 ]

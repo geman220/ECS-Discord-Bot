@@ -172,6 +172,7 @@ def _send_timer_fcm(
             body=body,
             data=data,
             apns_category=apns_category,
+            android_channel_id='match_timers',
         )
     except Exception:
         logger.exception(f"Timer FCM send failed for match {league_type}:{match_id}")

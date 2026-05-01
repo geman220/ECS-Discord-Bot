@@ -235,6 +235,9 @@ MOBILE_FEATURE_TOGGLES = [
      'description': 'Voice-controlled navigation', 'default': 'false', 'category': 'experimental'},
     {'key': 'mobile_smart_predictions', 'label': 'Smart Predictions',
      'description': 'AI-powered match predictions', 'default': 'false', 'category': 'experimental'},
+    {'key': 'admin_points_events_enabled', 'label': 'Admin Points Events',
+     'description': 'Enables the More→Admin "Points Events" entry in the mobile app for awarding participation points at non-match league events. Backend is Phase 4 — leave OFF until that ships.',
+     'default': 'false', 'category': 'experimental'},
 ]
 
 

@@ -147,6 +147,17 @@
                 <i class="ti ti-chevron-right text-gray-400"></i>
             </div>
         </a>
+
+        <a href="{{ url_for('admin_panel.match_check_in_index') }}"
+           class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
+            <div class="flex items-center gap-3">
+                <div class="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+                    <i class="ti ti-qrcode text-emerald-500"></i>
+                </div>
+                <span class="text-gray-900 dark:text-white font-medium">Check-In</span>
+            </div>
+            <i class="ti ti-chevron-right text-gray-400"></i>
+        </a>
     </div>
     {% endcall %}
 </div>

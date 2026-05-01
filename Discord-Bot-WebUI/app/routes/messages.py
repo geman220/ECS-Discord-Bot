@@ -356,20 +356,24 @@ def send_message(user_id):
         except Exception as e:
             logger.warning(f"Failed to emit WebSocket message: {e}")
 
-        # Send push notification for offline users (in-app + FCM push)
-        if not recipient_online:
-            try:
-                from app.services.notification_orchestrator import orchestrator
-                sender_name = current_user.player.name if current_user.player else current_user.username
-                orchestrator.send_direct_message(
-                    recipient_id=user_id,
-                    sender_id=current_user.id,
-                    sender_name=sender_name,
-                    message_preview=content,
-                    message_id=message.id
-                )
-            except Exception as e:
-                logger.warning(f"Failed to send message notification: {e}")
+        # Always dispatch via orchestrator. WebSocket presence is unreliable
+        # for mobile (iOS suspends sockets in background) and a stale web tab
+        # can keep a user "online" for the 5-minute presence TTL even when
+        # they're only on their phone. The Flutter app suppresses its own
+        # foreground banner when the DM thread is open, so duplicate-banner
+        # risk is contained client-side.
+        try:
+            from app.services.notification_orchestrator import orchestrator
+            sender_name = current_user.player.name if current_user.player else current_user.username
+            orchestrator.send_direct_message(
+                recipient_id=user_id,
+                sender_id=current_user.id,
+                sender_name=sender_name,
+                message_preview=content,
+                message_id=message.id
+            )
+        except Exception as e:
+            logger.warning(f"Failed to send message notification: {e}")
 
         return jsonify({
             'success': True,

@@ -172,6 +172,7 @@ import '../custom_js/admin_actions.js';
 import '../custom_js/appearance.js';
 import '../custom_js/admin-discord-management.js';
 import '../custom_js/admin-manage-subs.js';
+import '../custom_js/admin-match-checkin.js';
 import '../custom_js/admin-match-detail.js';
 import '../custom_js/admin-panel-match-list.js';
 import '../custom_js/cache-stats.js';

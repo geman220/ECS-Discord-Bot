@@ -27,6 +27,27 @@ from app.models.wallet import WalletPass
 logger = logging.getLogger(__name__)
 
 
+def _resolve_member_barcode(session_db, user_id, player, team_name, season_name):
+    """Return the stable barcode value for a member.
+
+    Prefers WalletPass.barcode_data when an active row exists for the user
+    (format: ECSFC-{TYPE}-{SHORT_SERIAL}). Falls back to a deterministic
+    synthetic value when no WalletPass row exists yet so legacy clients
+    still get the same QR string across calls — never includes uuid/timestamp,
+    which historically rotated the value on every fetch and broke any
+    server-side token lookup.
+    """
+    existing = session_db.query(WalletPass).filter(
+        WalletPass.user_id == user_id,
+        WalletPass.status == 'active'
+    ).first()
+    if existing and existing.barcode_data:
+        return existing.barcode_data
+    seed = f"ECS-{player.id}-{team_name}-{season_name}"
+    barcode_hash = hashlib.md5(seed.encode()).hexdigest()[:12].upper()
+    return f"ECS2025{barcode_hash}"
+
+
 @mobile_api_v2.route('/membership/pass', methods=['GET'])
 @jwt_required()
 def get_membership_pass_info():
@@ -72,10 +93,7 @@ def get_membership_pass_info():
             ).first()
             season_name = current_season.name if current_season else "Spring 2025"
 
-            # Generate barcode value (unique identifier)
-            barcode_data = f"ECS-{player.id}-{team_name}-{season_name}-{uuid.uuid4().hex[:8]}"
-            barcode_hash = hashlib.md5(barcode_data.encode()).hexdigest()[:12].upper()
-            barcode_value = f"ECS2025{barcode_hash}"
+            barcode_value = _resolve_member_barcode(session_db, current_user_id, player, team_name, season_name)
 
             # Build profile picture URL
             profile_picture_url = None
@@ -167,11 +185,8 @@ def generate_membership_pass():
             ).first()
             season_name = current_season.name if current_season else "Spring 2025"
 
-            # Generate NEW barcode value (fresh generation)
-            barcode_data = f"ECS-{player.id}-{team_name}-{season_name}-{uuid.uuid4().hex[:8]}-{datetime.utcnow().timestamp()}"
-            barcode_hash = hashlib.md5(barcode_data.encode()).hexdigest()[:12].upper()
             preferred_format = data.get('barcode_format', 'qr')
-            barcode_value = f"ECS2025{barcode_hash}"
+            barcode_value = _resolve_member_barcode(session_db, current_user_id, player, team_name, season_name)
 
             # Build profile picture URL
             profile_picture_url = None
@@ -586,10 +601,7 @@ def refresh_membership_pass():
             ).first()
             season_name = current_season.name if current_season else "Spring 2025"
 
-            # Generate barcode value
-            barcode_data = f"ECS-{player.id}-{team_name}-{season_name}-{uuid.uuid4().hex[:8]}"
-            barcode_hash = hashlib.md5(barcode_data.encode()).hexdigest()[:12].upper()
-            barcode_value = f"ECS2025{barcode_hash}"
+            barcode_value = _resolve_member_barcode(session_db, current_user_id, player, team_name, season_name)
 
             # Build URLs
             profile_picture_url = None

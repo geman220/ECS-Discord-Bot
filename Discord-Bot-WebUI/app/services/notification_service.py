@@ -51,6 +51,8 @@ class NotificationService:
         body: str,
         data: Optional[Dict[str, str]] = None,
         apns_category: Optional[str] = None,
+        android_channel_id: Optional[str] = None,
+        ios_badge: Optional[int] = None,
     ) -> Dict[str, int]:
         """Send push notification to multiple tokens using 2025 best practices.
 
@@ -58,6 +60,13 @@ class NotificationService:
         renders the actionable buttons registered for that category on the
         client. Used by live-match timer reminders (TIMER_HALFTIME /
         TIMER_FULLTIME) so coaches can Apply/Dismiss from the lock screen.
+
+        android_channel_id: Android O+ notification channel id. Must match a
+        channel registered by the Flutter app (e.g. 'direct_messages',
+        'match_reminders'). Defaults to 'general'.
+
+        ios_badge: iOS app icon badge count. When None, badge is omitted from
+        the APNS payload so the client can manage the badge itself.
         """
         if not self._initialized:
             raise RuntimeError("NotificationService not initialized")
@@ -73,10 +82,11 @@ class NotificationService:
 
         aps_kwargs = dict(
             sound='default',
-            badge=1,
             alert=messaging.ApsAlert(title=title, body=body),
             content_available=True,
         )
+        if ios_badge is not None:
+            aps_kwargs['badge'] = ios_badge
         if apns_category:
             aps_kwargs['category'] = apns_category
 
@@ -95,6 +105,7 @@ class NotificationService:
                     priority='high',
                     default_sound=True,
                     default_vibrate_timings=True,
+                    channel_id=android_channel_id or 'general',
                 ),
                 priority='high',
             ),
@@ -196,16 +207,19 @@ class NotificationService:
             'priority': 'high'
         }
         
-        return self.send_push_notification(user_tokens, title, body, data)
-    
+        return self.send_push_notification(
+            user_tokens, title, body, data,
+            android_channel_id='match_reminders',
+        )
+
     def send_rsvp_reminder(self, user_tokens: List[str], match_data: Dict) -> Dict[str, int]:
         """Send RSVP reminder notification with enhanced tracking"""
         title = "📝 RSVP Reminder"
         opponent = match_data.get('opponent', 'TBD')
         match_date = match_data.get('date', 'TBD')
-        
+
         body = f"Don't forget to RSVP for your match against {opponent} on {match_date}"
-        
+
         # Enhanced data for better app integration
         data = {
             'type': 'rsvp_reminder',
@@ -217,9 +231,12 @@ class NotificationService:
             'priority': 'normal',
             'category': 'rsvp'
         }
-        
-        return self.send_push_notification(user_tokens, title, body, data)
-    
+
+        return self.send_push_notification(
+            user_tokens, title, body, data,
+            android_channel_id='rsvp_reminders',
+        )
+
     def send_general_notification(self, user_tokens: List[str], title: str, body: str, extra_data: Optional[Dict] = None) -> Dict[str, int]:
         """Send general notification with modern payload structure"""
         # Base data payload with 2025 standards
@@ -229,14 +246,17 @@ class NotificationService:
             'timestamp': str(int(__import__('time').time())),
             'priority': 'normal'
         }
-        
+
         # Merge additional data safely
         if extra_data:
             # Ensure all values are strings (FCM requirement)
             for key, value in extra_data.items():
                 data[key] = str(value) if value is not None else ''
-        
-        return self.send_push_notification(user_tokens, title, body, data)
+
+        return self.send_push_notification(
+            user_tokens, title, body, data,
+            android_channel_id='general',
+        )
     
     def _cleanup_invalid_tokens(self, invalid_tokens: List[str]):
         """Remove invalid tokens from database using 2025 best practices"""

@@ -1,0 +1,175 @@
+# app/models/match_check_in.py
+
+"""
+Match Check-In Models
+
+- MatchCheckInToken: opaque per-match venue token (encoded in printed QR /
+  NFC sticker at the pitch). One active token per match.
+- MatchAttendance: idempotent record that a specific player was checked in
+  to a specific match. UNIQUE on (league_type, match_id, player_id).
+
+No FK on match_id — pub_league `Match` and `EcsFcMatch` share an integer
+ID space across tables, so enforcement lives at the app layer.
+"""
+
+import secrets
+from datetime import datetime
+from typing import Optional, Tuple
+
+from app.core import db
+
+
+LEAGUE_TYPES = ('pub_league', 'ecs_fc')
+CHECK_IN_SOURCES = ('self', 'coach', 'coach_manual', 'admin')
+
+
+class MatchCheckInToken(db.Model):
+    __tablename__ = 'match_check_in_token'
+
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(32), unique=True, nullable=False)
+    match_id = db.Column(db.Integer, nullable=False)
+    league_type = db.Column(db.String(16), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    revoked_at = db.Column(db.DateTime, nullable=True)
+
+    created_by = db.relationship('User', foreign_keys=[created_by_user_id])
+
+    __table_args__ = (
+        db.Index('idx_match_check_in_token_match', 'league_type', 'match_id'),
+    )
+
+    def __repr__(self):
+        return f'<MatchCheckInToken {self.token[:8]}... {self.league_type}/{self.match_id}>'
+
+    @staticmethod
+    def generate_token() -> str:
+        # 16 bytes → ~22 url-safe chars; well under the 32-char column limit.
+        return secrets.token_urlsafe(16)
+
+    @property
+    def is_active(self) -> bool:
+        return self.revoked_at is None
+
+    @classmethod
+    def find_active_by_token(cls, token: str) -> Optional['MatchCheckInToken']:
+        if not token:
+            return None
+        return cls.query.filter_by(token=token, revoked_at=None).first()
+
+    @classmethod
+    def find_active_for_match(cls, league_type: str, match_id: int) -> Optional['MatchCheckInToken']:
+        return cls.query.filter_by(
+            league_type=league_type,
+            match_id=match_id,
+            revoked_at=None
+        ).first()
+
+    @classmethod
+    def get_or_create_for_match(
+        cls, league_type: str, match_id: int, user_id: Optional[int] = None
+    ) -> 'MatchCheckInToken':
+        """Return the active token for this match, creating one if none exists.
+
+        Caller must commit. Idempotent — safe to call repeatedly.
+        """
+        existing = cls.find_active_for_match(league_type, match_id)
+        if existing:
+            return existing
+        ct = cls(
+            token=cls.generate_token(),
+            match_id=match_id,
+            league_type=league_type,
+            created_by_user_id=user_id,
+        )
+        db.session.add(ct)
+        return ct
+
+    def revoke(self):
+        if self.revoked_at is None:
+            self.revoked_at = datetime.utcnow()
+
+
+class MatchAttendance(db.Model):
+    __tablename__ = 'match_attendance'
+
+    id = db.Column(db.Integer, primary_key=True)
+    match_id = db.Column(db.Integer, nullable=False)
+    league_type = db.Column(db.String(16), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('player.id', ondelete='CASCADE'), nullable=False)
+    checked_in_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    checked_in_by = db.Column(db.String(16), nullable=False)
+    recorded_by_user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True)
+    venue_token_id = db.Column(db.Integer, db.ForeignKey('match_check_in_token.id', ondelete='SET NULL'), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+
+    player = db.relationship('Player', backref='match_attendance_records')
+    recorded_by = db.relationship('User', foreign_keys=[recorded_by_user_id])
+    venue_token = db.relationship('MatchCheckInToken')
+
+    __table_args__ = (
+        db.UniqueConstraint('league_type', 'match_id', 'player_id', name='uq_match_attendance_match_player'),
+        db.Index('idx_match_attendance_match', 'league_type', 'match_id'),
+        db.Index('idx_match_attendance_player', 'player_id'),
+    )
+
+    def __repr__(self):
+        return f'<MatchAttendance player={self.player_id} match={self.league_type}/{self.match_id} by={self.checked_in_by}>'
+
+    @classmethod
+    def find_for_match_player(
+        cls, league_type: str, match_id: int, player_id: int
+    ) -> Optional['MatchAttendance']:
+        return cls.query.filter_by(
+            league_type=league_type,
+            match_id=match_id,
+            player_id=player_id,
+        ).first()
+
+    @classmethod
+    def list_for_match(cls, league_type: str, match_id: int):
+        return cls.query.filter_by(league_type=league_type, match_id=match_id).all()
+
+    @classmethod
+    def record(
+        cls,
+        league_type: str,
+        match_id: int,
+        player_id: int,
+        source: str,
+        recorded_by_user_id: Optional[int] = None,
+        venue_token_id: Optional[int] = None,
+        notes: Optional[str] = None,
+    ) -> Tuple['MatchAttendance', bool]:
+        """Idempotent attendance record.
+
+        Returns (row, created) where `created=False` if the player was
+        already checked in for this match. Caller commits.
+        """
+        existing = cls.find_for_match_player(league_type, match_id, player_id)
+        if existing:
+            return existing, False
+
+        row = cls(
+            match_id=match_id,
+            league_type=league_type,
+            player_id=player_id,
+            checked_in_by=source,
+            recorded_by_user_id=recorded_by_user_id,
+            venue_token_id=venue_token_id,
+            notes=notes,
+        )
+        db.session.add(row)
+        return row, True
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'match_id': self.match_id,
+            'league_type': self.league_type,
+            'player_id': self.player_id,
+            'checked_in_at': self.checked_in_at.isoformat() + 'Z' if self.checked_in_at else None,
+            'checked_in_by': self.checked_in_by,
+            'recorded_by_user_id': self.recorded_by_user_id,
+        }

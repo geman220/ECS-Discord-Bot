@@ -156,6 +156,24 @@ NOTIFICATION_ICONS = {
 }
 
 
+# Android notification channel ids. Must match channels the Flutter app
+# registers (see notification_service.dart). Unmapped types fall through to
+# 'general'. Direct-path callers (timers, broadcasts) pass channel id at the
+# call site rather than using this map.
+NOTIFICATION_CHANNEL_IDS = {
+    NotificationType.DIRECT_MESSAGE: 'direct_messages',
+    NotificationType.MATCH_REMINDER: 'match_reminders',
+    NotificationType.MATCH_RESULT: 'match_reminders',
+    NotificationType.MATCH_CANCELLED: 'match_reminders',
+    NotificationType.MATCH_RESCHEDULED: 'match_reminders',
+    NotificationType.MATCH_VERIFICATION_NEEDED: 'match_reminders',
+    NotificationType.RSVP_REMINDER: 'rsvp_reminders',
+    NotificationType.RSVP_CONFIRMED: 'rsvp_reminders',
+    NotificationType.SUB_REQUEST: 'substitute_requests',
+    NotificationType.SUB_FILLED: 'substitute_requests',
+}
+
+
 class NotificationOrchestrator:
     """
     Central orchestrator for all notification delivery.
@@ -770,6 +788,9 @@ class NotificationOrchestrator:
                     data[key] = str(value) if value is not None else ''
 
             data.setdefault('type', payload.notification_type.value)
+            # Mirror the body into data so Flutter's data-only background
+            # handlers can render preview text without a notification field.
+            data.setdefault('body', payload.message or '')
 
             # Add deep links based on notification type
             if 'match_id' in data:
@@ -780,13 +801,16 @@ class NotificationOrchestrator:
             elif 'feedback_id' in data:
                 data['deep_link'] = f"ecs-fc-scheme://feedback/{data['feedback_id']}"
 
+            channel_id = NOTIFICATION_CHANNEL_IDS.get(payload.notification_type, 'general')
+
             # Send via push service
             push_service = self._get_push_service()
             result = push_service.send_push_notification(
                 tokens=token_list,
                 title=payload.title,
                 body=payload.message,
-                data=data
+                data=data,
+                android_channel_id=channel_id,
             )
 
             return result

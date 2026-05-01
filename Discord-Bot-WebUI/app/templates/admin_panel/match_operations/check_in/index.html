@@ -1,0 +1,146 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Match Check-In{% endblock %}
+{% block panel_description %}Generate venue QR codes and review attendance for upcoming matches{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.match_operations') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">Match Operations</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Check-In</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+<div data-page="admin-match-checkin-list">
+
+<!-- Stat cards + bulk action -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center">
+        <div class="w-12 h-12 bg-emerald-100 dark:bg-emerald-900 rounded-lg flex items-center justify-center mr-4">
+            <i class="ti ti-calendar text-xl text-emerald-600 dark:text-emerald-400"></i>
+        </div>
+        <div>
+            <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{ rows|length }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Matches in next {{ days }} days</p>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center">
+        <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center mr-4">
+            <i class="ti ti-qrcode text-xl text-blue-600 dark:text-blue-400"></i>
+        </div>
+        <div>
+            <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{ rows|selectattr('has_token')|list|length }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">With active QR</p>
+        </div>
+    </div>
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center">
+        <div class="w-12 h-12 bg-amber-100 dark:bg-amber-900 rounded-lg flex items-center justify-center mr-4">
+            <i class="ti ti-alert-circle text-xl text-amber-600 dark:text-amber-400"></i>
+        </div>
+        <div>
+            <h4 class="text-2xl font-bold text-gray-900 dark:text-white">{{ rows|rejectattr('has_token')|list|length }}</h4>
+            <p class="text-sm text-gray-500 dark:text-gray-400">No QR yet</p>
+        </div>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
+    <div class="p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <label for="daysFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Window</label>
+            <select id="daysFilter" onchange="window.location.href='?days='+this.value"
+                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg p-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                <option value="7" {% if days == 7 %}selected{% endif %}>Next 7 days</option>
+                <option value="14" {% if days == 14 %}selected{% endif %}>Next 14 days</option>
+                <option value="30" {% if days == 30 %}selected{% endif %}>Next 30 days</option>
+                <option value="60" {% if days == 60 %}selected{% endif %}>Next 60 days</option>
+            </select>
+        </div>
+        <button type="button" data-action="generate-tokens-bulk" data-days="{{ days }}"
+                class="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700">
+            <i class="ti ti-qrcode mr-1"></i>Generate missing QRs
+        </button>
+    </div>
+</div>
+
+<!-- Matches table -->
+<div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-700 dark:text-gray-300">
+            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <tr>
+                    <th class="px-6 py-3">Match</th>
+                    <th class="px-6 py-3">Kickoff</th>
+                    <th class="px-6 py-3">Location</th>
+                    <th class="px-6 py-3">League</th>
+                    <th class="px-6 py-3">QR</th>
+                    <th class="px-6 py-3">Attendance</th>
+                    <th class="px-6 py-3 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in rows %}
+                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <td class="px-6 py-4">
+                        <a href="{{ r.detail_url }}" class="font-medium text-emerald-700 dark:text-emerald-400 hover:underline">{{ r.label }}</a>
+                    </td>
+                    <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                        {% if r.kickoff %}{{ r.kickoff.strftime('%a %b %-d, %-I:%M %p') }}{% else %}—{% endif %}
+                    </td>
+                    <td class="px-6 py-4 text-gray-600 dark:text-gray-400 max-w-xs truncate">{{ r.location or '—' }}</td>
+                    <td class="px-6 py-4">
+                        <span class="text-xs px-2 py-0.5 rounded {% if r.league_type == 'pub_league' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% else %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200{% endif %}">
+                            {% if r.league_type == 'pub_league' %}Pub League{% else %}ECS FC{% endif %}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        {% if r.has_token %}
+                        <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                            <i class="ti ti-check"></i>Active
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                            <i class="ti ti-minus"></i>None
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ r.checked_in_count }}</span>
+                        <span class="text-gray-500 dark:text-gray-400">/ {{ r.yes_count }}</span>
+                    </td>
+                    <td class="px-6 py-4 text-right">
+                        <a href="{{ r.detail_url }}"
+                           class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded hover:bg-emerald-700">
+                            <i class="ti ti-eye mr-1"></i>Manage
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                        No matches found in the next {{ days }} days.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</div>{# /data-page #}
+
+<script>
+window.MATCH_CHECKIN_LIST_CONFIG = {
+    bulkUrl: '{{ url_for("admin_panel.match_check_in_generate_bulk") }}',
+};
+</script>
+{% endblock %}

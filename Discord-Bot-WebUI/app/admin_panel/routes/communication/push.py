@@ -522,7 +522,10 @@ def push_notification_broadcast_enhanced():
             notification_data['action_url'] = action_url
             notification_data['deep_link'] = action_url
 
-        result = notification_service.send_push_notification(tokens=tokens, title=title, body=body, data=notification_data)
+        result = notification_service.send_push_notification(
+            tokens=tokens, title=title, body=body, data=notification_data,
+            android_channel_id='general',
+        )
         sent_count = result.get('success', 0) + result.get('failure', 0)
 
         AdminAuditLog.log_action(

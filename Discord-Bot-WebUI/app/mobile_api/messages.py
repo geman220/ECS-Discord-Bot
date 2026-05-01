@@ -373,25 +373,28 @@ def send_message(user_id):
         except Exception as e:
             logger.warning(f"Failed to emit WebSocket: {e}")
 
-        # Send push notification if recipient is offline
-        if not recipient_online:
-            try:
-                from app.services.notification_orchestrator import orchestrator
+        # Always dispatch via orchestrator regardless of presence. Mobile
+        # WebSocket drops within ~30s of backgrounding on iOS, and a stale
+        # web tab can mark a user "online" for the full 5-minute presence
+        # TTL, masking legitimate mobile pushes. The Flutter app suppresses
+        # its own foreground banner when the DM thread is active.
+        try:
+            from app.services.notification_orchestrator import orchestrator
 
-                sender_name = None
-                player = session_db.query(Player).filter_by(user_id=current_user_id).first()
-                sender_name = player.name if player else current_user.username
+            sender_name = None
+            player = session_db.query(Player).filter_by(user_id=current_user_id).first()
+            sender_name = player.name if player else current_user.username
 
-                orchestrator.send_direct_message(
-                    recipient_id=user_id,
-                    sender_id=current_user_id,
-                    sender_name=sender_name,
-                    message_preview=content,
-                    message_id=message.id
-                )
-                logger.info(f"Sent offline notifications to user {user_id}")
-            except Exception as e:
-                logger.warning(f"Failed to send push notification: {e}")
+            orchestrator.send_direct_message(
+                recipient_id=user_id,
+                sender_id=current_user_id,
+                sender_name=sender_name,
+                message_preview=content,
+                message_id=message.id
+            )
+            logger.info(f"Dispatched DM notification for user {user_id} (recipient_online={recipient_online})")
+        except Exception as e:
+            logger.warning(f"Failed to send push notification: {e}")
 
         # Return to sender with is_from_me=True
         return jsonify({

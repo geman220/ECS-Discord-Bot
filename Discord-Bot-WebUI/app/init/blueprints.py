@@ -104,6 +104,7 @@ def _import_blueprints():
     from app.legal_routes import legal_bp
     from app.pub_league import pub_league_bp
     from app.routes.app_links import app_links_bp
+    from app.routes.check_in_public import check_in_public_bp
 
     return {
         'auth_bp': auth_bp,
@@ -163,6 +164,7 @@ def _import_blueprints():
         'legal_bp': legal_bp,
         'pub_league_bp': pub_league_bp,
         'app_links_bp': app_links_bp,
+        'check_in_public_bp': check_in_public_bp,
     }
 
 
@@ -364,6 +366,10 @@ def _register_additional_blueprints(app, bp, csrf):
     app.register_blueprint(bp['app_links_bp'])
     from app.routes.app_links import validate_app_link_config
     validate_app_link_config()
+
+    # Public check-in pages: GET /m/<token> + GET /check-in/<token>
+    # Browser fallback for QR codes; iOS/Android intercept these via universal links.
+    app.register_blueprint(bp['check_in_public_bp'])
 
 
 def _init_enterprise_systems(app):

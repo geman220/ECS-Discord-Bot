@@ -1,0 +1,27 @@
+{% extends "base_unauthenticated_flowbite.html" %}
+
+{% block title %}Check In — ECS FC{% endblock %}
+
+{% block main_content %}
+<div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+    <div class="px-6 pt-8 pb-6 bg-gradient-to-br from-emerald-600 to-emerald-800 text-center">
+        <div class="w-16 h-16 mx-auto rounded-full bg-white/20 flex items-center justify-center mb-3">
+            <i class="ti ti-soccer-field text-3xl text-white"></i>
+        </div>
+        <h1 class="text-xl font-bold text-white">{{ match_label }}</h1>
+        {% if kickoff_local %}
+        <p class="text-emerald-100 text-sm mt-1">{{ kickoff_local }}</p>
+        {% endif %}
+    </div>
+
+    <div class="px-6 py-6 text-center">
+        <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">
+            Open the ECS FC app to check in.
+        </p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+            If the app didn't open automatically, install it from the App Store
+            or Google Play, then re-scan this code.
+        </p>
+    </div>
+</div>
+{% endblock %}

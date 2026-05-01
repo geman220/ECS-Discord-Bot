@@ -63,6 +63,8 @@ def _build_coach_search_index():
          'keywords': ['upload', 'csv', 'import'], 'url': url_for('admin_panel.ecs_fc_import'), 'icon': 'ti-file-import'},
         {'name': 'Substitute Pool', 'category': 'ECS FC', 'description': 'Manage ECS FC substitute player pool',
          'keywords': ['subs', 'reserves', 'bench'], 'url': url_for('admin_panel.substitute_pools', context='ecs-fc'), 'icon': 'ti-user-plus'},
+        {'name': 'Match Check-In', 'category': 'ECS FC', 'description': 'Generate venue QR + review attendance for upcoming matches',
+         'keywords': ['check-in', 'attendance', 'qr', 'venue', 'roster', 'present'], 'url': url_for('admin_panel.match_check_in_index'), 'icon': 'ti-qrcode'},
     ]
 
     try:
@@ -127,6 +129,10 @@ def _build_admin_search_index():
          'description': 'Real-time match reporting and commentary',
          'keywords': ['live', 'real-time', 'commentary', 'broadcast'],
          'url': url_for('admin_panel.live_reporting_dashboard'), 'icon': 'ti-live-view'},
+        {'name': 'Match Check-In', 'category': 'Pub League', 'subcategory': 'Match Management',
+         'description': 'Generate venue QR codes and review attendance for upcoming matches',
+         'keywords': ['check-in', 'attendance', 'qr', 'venue', 'roster', 'present', 'pitch'],
+         'url': url_for('admin_panel.match_check_in_index'), 'icon': 'ti-qrcode'},
 
         # --- Pub League: Substitutes ---
         {'name': 'Manage Substitutes', 'category': 'Pub League', 'subcategory': 'Substitutes',

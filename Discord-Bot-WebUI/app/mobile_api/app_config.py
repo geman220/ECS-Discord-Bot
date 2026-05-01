@@ -64,6 +64,7 @@ def get_app_config():
         'mobile_ar_match_views': 'false',
         'mobile_voice_commands': 'false',
         'mobile_smart_predictions': 'false',
+        'admin_points_events_enabled': 'false',
     }
     feature_toggles = {}
     for key, default in feature_toggle_defaults.items():

@@ -101,8 +101,8 @@ def validate_pass():
             location = data.get('location')
 
             checkin = WalletPassCheckin(
-                pass_id=wallet_pass.id,
-                check_in_type=CheckInType.QR_SCAN,
+                wallet_pass_id=wallet_pass.id,
+                check_in_type=CheckInType.QR_SCAN.value,
                 event_name=event_name,
                 location=location
             )
@@ -176,7 +176,7 @@ def list_checkins():
         query = WalletPassCheckin.query
 
         if pass_id:
-            query = query.filter_by(pass_id=pass_id)
+            query = query.filter_by(wallet_pass_id=pass_id)
 
         if event_name:
             query = query.filter(
@@ -200,10 +200,10 @@ def list_checkins():
             'checkins': [
                 {
                     'id': c.id,
-                    'pass_id': c.pass_id,
+                    'pass_id': c.wallet_pass_id,
                     'member_name': c.wallet_pass.member_name if c.wallet_pass else None,
                     'pass_type': c.wallet_pass.pass_type.name if c.wallet_pass and c.wallet_pass.pass_type else None,
-                    'check_in_type': c.check_in_type.value,
+                    'check_in_type': c.check_in_type,
                     'event_name': c.event_name,
                     'location': c.location,
                     'checked_in_at': c.checked_in_at.isoformat()
@@ -251,7 +251,7 @@ def checkin_stats():
 
         # Get unique members checked in
         unique_members = query.with_entities(
-            WalletPassCheckin.pass_id
+            WalletPassCheckin.wallet_pass_id
         ).distinct().count()
 
         # Get by pass type
@@ -259,7 +259,7 @@ def checkin_stats():
             WalletPass.pass_type_id,
             db.func.count(WalletPassCheckin.id).label('count')
         ).join(
-            WalletPassCheckin, WalletPass.id == WalletPassCheckin.pass_id
+            WalletPassCheckin, WalletPass.id == WalletPassCheckin.wallet_pass_id
         )
 
         if event_name:

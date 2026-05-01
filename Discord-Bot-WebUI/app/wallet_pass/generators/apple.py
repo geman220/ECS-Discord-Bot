@@ -286,9 +286,34 @@ class ApplePassGenerator(BasePassGenerator):
 
         # Add locations for location-based notifications
         locations = WalletLocation.get_for_pass_type(self.pass_type.code, limit=10)
-        if locations:
-            pass_obj.locations = [loc.to_pass_dict() for loc in locations]
-            logger.debug(f"Added {len(locations)} locations to pass")
+        loc_dicts = [loc.to_pass_dict() for loc in locations] if locations else []
+
+        # Inject next-upcoming-match relevance so Apple Wallet auto-surfaces
+        # the pass on the lock screen near the venue + close to kickoff.
+        # Bake-in only — re-issue the pass when the next match changes.
+        try:
+            next_info = _get_next_match_relevance(wallet_pass)
+        except Exception as e:
+            logger.warning(f"Next-match relevance lookup failed for pass {wallet_pass.id}: {e}")
+            next_info = None
+
+        if next_info:
+            relevant_iso, lat, lng, label = next_info
+            # Cap at Apple's 10-location limit; drop the oldest bar if we're full.
+            venue_entry = {
+                'latitude': lat,
+                'longitude': lng,
+                'relevantText': f'{label} - Match Day!',
+            }
+            if len(loc_dicts) >= 10:
+                loc_dicts = loc_dicts[:9]
+            loc_dicts.append(venue_entry)
+            pass_obj.relevantDate = relevant_iso
+            logger.debug(f"Set relevantDate={relevant_iso} and added match-venue location for pass {wallet_pass.id}")
+
+        if loc_dicts:
+            pass_obj.locations = loc_dicts
+            logger.debug(f"Added {len(loc_dicts)} locations to pass")
 
         # Web service configuration for push updates
         if self.config.web_service_url:
@@ -707,3 +732,105 @@ def validate_apple_config():
         'configured': len(issues) == 0,
         'issues': issues
     }
+
+
+# ---------------------------------------------------------------------------
+# Next-match relevance helper (Slice 4 of the check-in plan)
+# ---------------------------------------------------------------------------
+
+def _get_next_match_relevance(wallet_pass):
+    """Look up the player's next upcoming match for Apple Wallet relevantDate.
+
+    Returns (relevant_iso, lat, lng, label) or None.
+
+    The pass auto-surfaces on the device's lock screen near `relevantDate`
+    and near any of the `locations[]` entries. We bake-in only — when the
+    player's next match changes, the pass goes stale until they regenerate.
+    Push-based refresh is a follow-up.
+    """
+    from datetime import datetime, timedelta, timezone
+    from app.check_in.constants import NEXT_MATCH_WINDOW_DAYS
+    from app.check_in.service import build_match_label
+
+    if not wallet_pass or not wallet_pass.player_id:
+        return None
+
+    from app.models import Match, Player
+    from app.models.players import player_teams
+    from app.models.ecs_fc import EcsFcMatch
+    from app.core import db
+
+    today = datetime.utcnow().date()
+    horizon = today + timedelta(days=NEXT_MATCH_WINDOW_DAYS)
+    player_id = wallet_pass.player_id
+
+    session = db.session
+
+    # Player's team IDs.
+    rows = session.query(player_teams.c.team_id).filter(
+        player_teams.c.player_id == player_id
+    ).all()
+    team_ids = [r[0] for r in rows if r[0]]
+    if not team_ids:
+        return None
+
+    # Soonest pub_league match where any of these teams is home OR away.
+    pl_match = (
+        session.query(Match)
+        .filter(
+            Match.date >= today,
+            Match.date <= horizon,
+            (Match.home_team_id.in_(team_ids)) | (Match.away_team_id.in_(team_ids)),
+        )
+        .order_by(Match.date, Match.time)
+        .first()
+    )
+
+    # Soonest ECS FC match for these teams.
+    ecs_match = (
+        session.query(EcsFcMatch)
+        .filter(
+            EcsFcMatch.match_date >= today,
+            EcsFcMatch.match_date <= horizon,
+            EcsFcMatch.team_id.in_(team_ids),
+        )
+        .order_by(EcsFcMatch.match_date, EcsFcMatch.match_time)
+        .first()
+    )
+
+    # Pick the earlier of the two.
+    candidates = []
+    if pl_match and pl_match.date and pl_match.time:
+        candidates.append((datetime.combine(pl_match.date, pl_match.time), pl_match))
+    if ecs_match and ecs_match.match_date and ecs_match.match_time:
+        candidates.append((datetime.combine(ecs_match.match_date, ecs_match.match_time), ecs_match))
+    if not candidates:
+        return None
+    candidates.sort(key=lambda x: x[0])
+    kickoff_naive, match = candidates[0]
+
+    lat = getattr(match, 'latitude', None)
+    lng = getattr(match, 'longitude', None)
+    if lat is None or lng is None:
+        return None
+
+    # Naive kickoff is stored in venue-local time (Pacific). Localize to
+    # America/Los_Angeles, then format with offset for Apple's relevantDate.
+    try:
+        try:
+            from zoneinfo import ZoneInfo
+            tz = ZoneInfo('America/Los_Angeles')
+        except Exception:
+            import pytz
+            tz = pytz.timezone('America/Los_Angeles')
+        kickoff_local = kickoff_naive.replace(tzinfo=tz) if hasattr(kickoff_naive, 'replace') else kickoff_naive
+        relevant_iso = kickoff_local.strftime('%Y-%m-%dT%H:%M:%S%z')
+        # Insert colon in offset (Apple wants RFC 3339 form -08:00, not -0800)
+        if len(relevant_iso) >= 5 and (relevant_iso[-5] in ('+', '-')):
+            relevant_iso = relevant_iso[:-2] + ':' + relevant_iso[-2:]
+    except Exception:
+        # Fallback: best-effort UTC.
+        relevant_iso = kickoff_naive.replace(tzinfo=timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    label = build_match_label(match)
+    return (relevant_iso, float(lat), float(lng), label)
