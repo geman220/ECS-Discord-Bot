@@ -420,14 +420,19 @@ def build_roster_view(session, match, league_type: str, include_all: bool = Fals
     """Return the spec's roster payload: split list for the coach scanner."""
     if include_all:
         # Everyone on either team's roster, regardless of RSVP.
+        # Note: can't SELECT DISTINCT player.* because player has JSON columns
+        # (discord_roles, unavailable_dates, etc.) and Postgres has no default
+        # equality operator for json. Dedupe on player_id via subquery instead.
         team_ids = _match_team_ids(match)
         if not team_ids:
             players = []
         else:
-            rows = session.query(Player).join(
-                player_teams, Player.id == player_teams.c.player_id
-            ).filter(player_teams.c.team_id.in_(team_ids)).distinct().all()
-            players = rows
+            player_ids_q = session.query(player_teams.c.player_id).filter(
+                player_teams.c.team_id.in_(team_ids)
+            ).distinct()
+            players = session.query(Player).filter(
+                Player.id.in_(player_ids_q)
+            ).all()
     else:
         players = get_match_roster_yes(session, match)
 
