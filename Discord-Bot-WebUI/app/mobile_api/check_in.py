@@ -9,7 +9,10 @@ Endpoints powering the Flutter app's membership QR + match check-in feature:
 - POST /api/v1/check-in/<venue_token>             Player self check-in at the pitch
 - POST /api/v1/matches/<lt>/<id>/attendance       Coach/admin scans a player
 - GET  /api/v1/matches/<lt>/<id>/attendance       Live roster (split list)
-- POST /api/v1/events/<id>/check_in               Phase 4 stub (deferred)
+
+For non-match league events (parties, field setup help), see
+app/mobile_api/points_events.py — the original 501 stub at
+POST /api/v1/events/<id>/check_in has been retired.
 
 All endpoints require X-API-Key (enforced by mobile_api middleware) and
 @jwt_required() bearer auth. Per the Flutter contract, business-rule
@@ -310,20 +313,3 @@ def coach_scan_attendance(league_type: str, match_id: int):
         return jsonify({"msg": "Internal server error"}), 500
 
 
-# ---------------------------------------------------------------------------
-# POST /api/v1/events/<event_id>/check_in — Phase 4 stub
-# ---------------------------------------------------------------------------
-
-@mobile_api_v2.route('/events/<int:event_id>/check_in', methods=['POST'])
-@jwt_required()
-def points_event_check_in(event_id: int):
-    """Phase 4 — admin scans player at non-match league event for points.
-
-    Backend deferred. Endpoint exists so the Flutter dev path is unambiguous;
-    the feature flag `admin_points_events_enabled` gates the UI entry point.
-    """
-    return jsonify({
-        "status": "not_implemented",
-        "message": "Points events backend not yet built. "
-                   "Track via the admin_points_events_enabled feature toggle.",
-    }), 501

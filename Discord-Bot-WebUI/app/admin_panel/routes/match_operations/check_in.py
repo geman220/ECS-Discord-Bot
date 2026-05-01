@@ -59,7 +59,7 @@ def _public_check_in_url(token: str) -> str:
 
 def _can_view_match(session_db, match, league_type: str) -> bool:
     """True if the current user is admin OR coach of this match."""
-    if has_admin_role(current_user):
+    if has_admin_role(current_user, session=session_db):
         return True
     caller = session_db.query(Player).filter_by(user_id=current_user.id).first()
     return is_coach_of_match(session_db, caller, match)

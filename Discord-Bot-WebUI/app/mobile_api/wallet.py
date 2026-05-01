@@ -332,19 +332,26 @@ def get_wallet_pass_info():
                 WalletPass.status == 'active'
             ).first()
 
-            # Prefer the token-authenticated route. Fall back to the legacy user_id route
-            # only when no WalletPass row exists yet (e.g., before WooCommerce flow has
-            # provisioned one).
+            # Apple Wallet / Safari can't send Authorization or X-API-Key
+            # headers, so the URL we hand back must live OUTSIDE /api/v1/.
+            # The /wallet/pass/by-token/<token> route is unauthenticated;
+            # the download_token (256 bits of entropy) is the security boundary.
+            #
+            # Without a WalletPass row we have no token — return None for the
+            # Apple URLs; Flutter renders a "Generate pass first" CTA in that
+            # case rather than try to open a 401.
             if wallet_pass:
-                apple_pass_url = f"{base_url}/api/v1/wallet/pass/by-token/{wallet_pass.download_token}"
+                apple_pass_url = f"{base_url}/wallet/pass/by-token/{wallet_pass.download_token}"
             else:
-                apple_pass_url = f"{base_url}/api/v1/wallet/pass/{current_user_id}"
+                apple_pass_url = None
 
             # Check Google Wallet configuration
             google_config = pass_service.get_google_config_status()
             google_available = google_config.get('configured', False)
 
-            # Generate Google Wallet save URL if both Google is configured and we have a pass row
+            # Generate Google Wallet save URL if both Google is configured and we have a pass row.
+            # The save URL is a pay.google.com/gp/v/save/<jwt> URL signed by Google's
+            # Pass API — already self-authenticating, no app headers needed.
             google_save_url = None
             if google_available and wallet_pass:
                 try:
@@ -353,15 +360,16 @@ def get_wallet_pass_info():
                     logger.warning(f"Could not generate Google Wallet URL: {e}")
 
             response_data = {
-                # Legacy fields for backwards compatibility
+                # Legacy fields for backwards compatibility — also point to the
+                # public route so Safari/Wallet can open them directly.
                 "passUrl": apple_pass_url,
-                "downloadUrl": f"{base_url}/api/v1/membership/wallet/pass/download",
-                "passTypeIdentifier": "pass.com.weareecs.membership",
-                "serialNumber": str(player.id),
-                # New platform-specific fields
+                "downloadUrl": apple_pass_url,
+                "passTypeIdentifier": "pass.com.ecsfc.membership",
+                "serialNumber": wallet_pass.serial_number if wallet_pass else str(player.id),
+                # Platform-specific fields
                 "appleWallet": {
-                    "available": True,
-                    "downloadUrl": f"{base_url}/api/v1/membership/wallet/pass/download"
+                    "available": apple_pass_url is not None,
+                    "downloadUrl": apple_pass_url,
                 },
                 "googleWallet": {
                     "available": google_available,

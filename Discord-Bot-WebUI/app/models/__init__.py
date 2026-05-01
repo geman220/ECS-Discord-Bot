@@ -197,6 +197,10 @@ from .match_check_in import (
     MatchCheckInToken, MatchAttendance, LEAGUE_TYPES, CHECK_IN_SOURCES
 )
 
+from .points_events import (
+    PointsEventType, PointsEventAward
+)
+
 # Make all models available at package level for backward compatibility
 __all__ = [
     # Database instance
@@ -331,4 +335,7 @@ __all__ = [
 
     # Match check-in models
     'MatchCheckInToken', 'MatchAttendance', 'LEAGUE_TYPES', 'CHECK_IN_SOURCES',
+
+    # Points events models
+    'PointsEventType', 'PointsEventAward',
 ]

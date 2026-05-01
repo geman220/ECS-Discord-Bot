@@ -34,6 +34,7 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
 - onboarding: New-user onboarding (mirrors web /onboarding flow)
 - live_activity: iOS Live Activity push token register/unregister
 - check_in: Match check-in (member lookup, self check-in, coach scan, roster)
+- points_events: Admin-awarded participation points for non-match events
 
 All endpoints are CSRF-exempt and use JWT authentication where required.
 """
@@ -87,6 +88,7 @@ def register_mobile_api_routes():
         onboarding,
         live_activity,
         check_in,
+        points_events,
     )
 
 

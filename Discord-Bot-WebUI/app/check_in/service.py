@@ -185,15 +185,51 @@ def is_coach_of_match(session, player: Optional[Player], match) -> bool:
     return row is not None
 
 
-def has_admin_role(user) -> bool:
-    """True if the user has Global Admin / Pub League Admin / ECS FC Admin role."""
+_ADMIN_ROLE_NAMES = {'Global Admin', 'Pub League Admin', 'ECS FC Admin'}
+
+
+def has_admin_role(user, session=None) -> bool:
+    """True if the user has Global Admin / Pub League Admin / ECS FC Admin role.
+
+    Loads roles via a fresh query against the request-scoped session
+    (g.db_session) — matches the @role_required pattern so this works even
+    when current_user is a Flask-Login proxy whose `roles` relationship
+    isn't eagerly loaded. Honors role impersonation when active.
+    """
     if not user:
         return False
-    try:
-        names = {r.name for r in (user.roles or [])}
-    except Exception:
+    user_id = getattr(user, 'id', None)
+    if not user_id:
         return False
-    return bool(names & {'Global Admin', 'Pub League Admin', 'ECS FC Admin'})
+
+    try:
+        from app.role_impersonation import is_impersonation_active, get_effective_roles
+        if is_impersonation_active():
+            names = set(get_effective_roles() or [])
+            return bool(names & _ADMIN_ROLE_NAMES)
+    except Exception:
+        pass  # role_impersonation may not be importable in all contexts.
+
+    try:
+        from flask import g
+        from sqlalchemy.orm import selectinload
+        from app.models import User
+
+        # Prefer the request-scoped session so we use the same connection /
+        # transaction state as the surrounding route work.
+        sess = session or getattr(g, 'db_session', None)
+        if sess is None:
+            from app.core import db
+            sess = db.session
+
+        db_user = sess.query(User).options(selectinload(User.roles)).get(user_id)
+        if not db_user:
+            return False
+        names = {r.name for r in (db_user.roles or [])}
+        return bool(names & _ADMIN_ROLE_NAMES)
+    except Exception as e:
+        logger.warning(f"has_admin_role lookup failed for user_id={user_id}: {e}")
+        return False
 
 
 # ---------------------------------------------------------------------------

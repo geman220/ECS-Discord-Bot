@@ -92,6 +92,7 @@ def _import_blueprints():
     from app.admin.wallet import wallet_admin_bp, wallet_config_bp, pass_studio_bp
     from app.admin.notification_admin_routes import notification_admin_bp
     from app.wallet_pass.routes import public_wallet_bp, webhook_bp, validation_bp
+    from app.wallet_pass.routes.serve import apple_wallet_serve_bp
     from app.admin_panel import admin_panel_bp
     from app.routes.notifications import notifications_bp
     from app.routes.navbar_notifications import navbar_notifications_bp
@@ -149,6 +150,7 @@ def _import_blueprints():
         'pass_studio_bp': pass_studio_bp,
         'notification_admin_bp': notification_admin_bp,
         'public_wallet_bp': public_wallet_bp,
+        'apple_wallet_serve_bp': apple_wallet_serve_bp,
         'webhook_bp': webhook_bp,
         'validation_bp': validation_bp,
         'admin_panel_bp': admin_panel_bp,
@@ -335,6 +337,11 @@ def _register_wallet_blueprints(app, bp, csrf):
     app.register_blueprint(bp['wallet_config_bp'])
     app.register_blueprint(bp['pass_studio_bp'])
     app.register_blueprint(bp['public_wallet_bp'])
+
+    # Apple Wallet pass-by-token serving — public, no auth headers required.
+    # Must live outside /api/v1/ (mobile API key middleware) and outside any
+    # JWT-protected blueprint, since Safari/Wallet can't send custom headers.
+    app.register_blueprint(bp['apple_wallet_serve_bp'])
     app.register_blueprint(bp['webhook_bp'])
     app.register_blueprint(bp['validation_bp'])
     csrf.exempt(bp['webhook_bp'])
