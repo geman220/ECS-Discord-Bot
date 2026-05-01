@@ -117,7 +117,7 @@
             </a>
 
             {# League Ops #}
-            {% set league_ops_active = request.endpoint and request.endpoint in ['auto_schedule.schedule_manager', 'auto_schedule.current_season_schedule', 'admin_panel.league_management_seasons', 'admin_panel.league_management_teams', 'admin_panel.coach_dashboard', 'admin_panel.match_operations', 'admin_panel.manage_leagues', 'admin_panel.match_verification', 'admin_panel.substitute_management', 'admin_panel.substitute_pools', 'admin_panel.draft_overview', 'admin_panel.draft_history', 'draft_predictions.admin_dashboard', 'pub_league_orders_admin.orders_list'] %}
+            {% set league_ops_active = request.endpoint and request.endpoint in ['auto_schedule.schedule_manager', 'auto_schedule.current_season_schedule', 'admin_panel.league_management_seasons', 'admin_panel.league_management_teams', 'admin_panel.coach_dashboard', 'admin_panel.match_operations', 'admin_panel.manage_leagues', 'admin_panel.match_verification', 'admin_panel.substitute_management', 'admin_panel.substitute_pools', 'admin_panel.draft_overview', 'admin_panel.draft_history', 'draft_predictions.admin_dashboard', 'pub_league_orders_admin.orders_list', 'admin_panel.match_check_in_index', 'admin_panel.match_check_in_detail'] %}
             <div>
                 <button type="button" data-action="admin-nav-mobile-accordion"
                         class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors
@@ -136,6 +136,7 @@
                     <a href="{{ url_for('admin_panel.match_operations') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-dashboard text-gray-400 text-xs"></i>Match Dashboard</a>
                     <a href="{{ url_for('admin_panel.manage_leagues') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-trophy text-gray-400 text-xs"></i>Leagues</a>
                     <a href="{{ url_for('admin_panel.match_verification') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-check text-gray-400 text-xs"></i>Match Verification</a>
+                    <a href="{{ url_for('admin_panel.match_check_in_index') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-qrcode text-gray-400 text-xs"></i>Match Check-In</a>
                     <div class="px-3 py-1 text-xs font-semibold text-gray-400 uppercase mt-1">Substitutes</div>
                     <a href="{{ url_for('admin_panel.substitute_management') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-user-plus text-gray-400 text-xs"></i>Manage Substitutes</a>
                     <a href="{{ url_for('admin_panel.substitute_pools', context='pub-league') }}" class="flex items-center gap-2 px-3 py-1.5 rounded text-sm text-gray-600 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50"><i class="ti ti-users text-gray-400 text-xs"></i>Substitute Pools</a>
@@ -375,6 +376,9 @@
                             </a>
                             <a href="{{ url_for('admin_panel.match_verification') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 <i class="ti ti-check text-gray-400"></i>Match Verification
+                            </a>
+                            <a href="{{ url_for('admin_panel.match_check_in_index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <i class="ti ti-qrcode text-gray-400"></i>Match Check-In
                             </a>
                         </div>
                         {# Right Column #}

@@ -66,20 +66,28 @@ def _can_view_match(session_db, match, league_type: str) -> bool:
 
 
 def _list_upcoming_matches(session_db, days: int = 14):
-    """Yield (league_type, match) tuples for matches in the next `days` days."""
+    """Yield (league_type, match) tuples for matches in the next `days` days.
+
+    Excludes special-week placeholders (FUN / TST / BYE) and same-team-vs-itself
+    rows — those aren't real matches and shouldn't appear in the check-in list.
+    """
     today = datetime.utcnow().date()
     horizon = today + timedelta(days=days)
 
-    # Pub league
+    # Pub league: real matches only.
     pl_matches = session_db.query(Match).filter(
-        Match.date >= today, Match.date <= horizon
+        Match.date >= today,
+        Match.date <= horizon,
+        Match.is_special_week.is_(False),
+        Match.home_team_id != Match.away_team_id,
     ).order_by(Match.date, Match.time).all()
     for m in pl_matches:
         yield ('pub_league', m)
 
-    # ECS FC
+    # ECS FC: single team_id, opponent is external — no same-team check applies.
     ecs_matches = session_db.query(EcsFcMatch).filter(
-        EcsFcMatch.match_date >= today, EcsFcMatch.match_date <= horizon
+        EcsFcMatch.match_date >= today,
+        EcsFcMatch.match_date <= horizon,
     ).order_by(EcsFcMatch.match_date, EcsFcMatch.match_time).all()
     for m in ecs_matches:
         yield ('ecs_fc', m)

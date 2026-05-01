@@ -31,13 +31,16 @@ def backfill_wallet_passes_for_active_players(self, session, season_id: int = No
     member_token lookups resolve.
 
     Idempotent: skips players with an existing active WalletPass.
-    Scope: pub_league pass type, players where is_current_player=True with a
-    user_id and a team. ECS membership passes (for non-pub-league supporters)
-    are out of scope here — those flow through WooCommerce.
+
+    Scope: ONLY players whose team is in a Pub League league (not ECS FC).
+    ECS FC players don't get a pub_league pass — the wallet flow for ECS FC
+    players is separate.
     """
     try:
-        from app.models import Player, Season
+        from app.models import Player, Season, Team, League
+        from app.models.players import player_teams
         from app.models.wallet import WalletPass, WalletPassType, create_pub_league_pass
+        from app.models.ecs_fc import is_ecs_fc_team
 
         pub_type = WalletPassType.get_pub_league()
         if not pub_type:
@@ -61,12 +64,28 @@ def backfill_wallet_passes_for_active_players(self, session, season_id: int = No
         created = 0
         skipped = 0
         skipped_no_team = 0
+        skipped_ecs_fc = 0
+
         for p in players:
-            has_team = (p.primary_team is not None) or (
-                getattr(p, 'teams', None) and len(p.teams) > 0
-            )
-            if not has_team:
-                skipped_no_team += 1
+            # Pick the player's primary pub league team. Skip if the only
+            # teams they're on are ECS FC teams.
+            pub_league_team = None
+            for team in (getattr(p, 'teams', None) or []):
+                if is_ecs_fc_team(team.id):
+                    continue
+                # First non-ECS-FC team wins (or primary_team if it qualifies).
+                if p.primary_team and p.primary_team.id == team.id:
+                    pub_league_team = team
+                    break
+                if pub_league_team is None:
+                    pub_league_team = team
+
+            if pub_league_team is None:
+                if getattr(p, 'teams', None):
+                    # Has teams but they're all ECS FC.
+                    skipped_ecs_fc += 1
+                else:
+                    skipped_no_team += 1
                 continue
 
             existing = session.query(WalletPass).filter(
@@ -83,14 +102,16 @@ def backfill_wallet_passes_for_active_players(self, session, season_id: int = No
             created += 1
 
         logger.info(
-            f"WalletPass backfill: created {created}, skipped {skipped} "
-            f"(existing), skipped {skipped_no_team} (no team); season={season.name}"
+            f"WalletPass backfill: created {created}, skipped {skipped} (existing), "
+            f"skipped {skipped_no_team} (no team), skipped {skipped_ecs_fc} (ECS FC only); "
+            f"season={season.name}"
         )
         return {
             'success': True,
             'created': created,
             'skipped': skipped,
             'skipped_no_team': skipped_no_team,
+            'skipped_ecs_fc': skipped_ecs_fc,
             'season': season.name,
         }
     except Exception as e:
@@ -120,9 +141,12 @@ def generate_check_in_tokens_for_upcoming_matches(self, session, days: int = 14)
         created = 0
         skipped = 0
 
-        # Pub league
+        # Pub league: skip FUN/TST/BYE placeholders + same-team-vs-itself.
         pl_matches = session.query(Match).filter(
-            Match.date >= today, Match.date <= horizon
+            Match.date >= today,
+            Match.date <= horizon,
+            Match.is_special_week.is_(False),
+            Match.home_team_id != Match.away_team_id,
         ).all()
         for m in pl_matches:
             existing = MatchCheckInToken.find_active_for_match('pub_league', m.id)
