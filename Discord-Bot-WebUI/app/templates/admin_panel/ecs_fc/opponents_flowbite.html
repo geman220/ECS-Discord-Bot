@@ -52,35 +52,35 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-6 py-3">Name</th>
-                    <th scope="col" class="px-6 py-3">Short Name</th>
-                    <th scope="col" class="px-6 py-3">Home Venue</th>
-                    <th scope="col" class="px-6 py-3">City</th>
-                    <th scope="col" class="px-6 py-3">League</th>
-                    <th scope="col" class="px-6 py-3">Matches</th>
-                    <th scope="col" class="px-6 py-3">Status</th>
-                    <th scope="col" class="px-6 py-3">Actions</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Name</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Short Name</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Home Venue</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">City</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">League</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Matches</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Status</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for opp in opponents %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ opp.name }}</td>
-                    <td class="px-6 py-4">{{ opp.short_name or '-' }}</td>
-                    <td class="px-6 py-4">{{ opp.home_venue or '-' }}</td>
-                    <td class="px-6 py-4">{{ opp.city or '-' }}</td>
-                    <td class="px-6 py-4">{{ opp.league_affiliation or '-' }}</td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 font-medium text-gray-900 dark:text-white">{{ opp.name }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ opp.short_name or '-' }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ opp.home_venue or '-' }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ opp.city or '-' }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ opp.league_affiliation or '-' }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ opp.matches|length }}</span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         {% if opp.is_active %}
                         <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">Active</span>
                         {% else %}
                         <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">Inactive</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4">
                         <div class="flex gap-1">
                             <button type="button" class="p-2 text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700"
                                     onclick="editOpponent({{ opp.id }}, '{{ opp.name }}', '{{ opp.short_name or '' }}', '{{ opp.home_venue or '' }}', '{{ opp.city or '' }}', '{{ opp.league_affiliation or '' }}', '{{ opp.contact_info or '' }}', '{{ opp.notes or '' }}', {{ 'true' if opp.is_active else 'false' }})">

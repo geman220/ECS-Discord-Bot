@@ -136,11 +136,11 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">User</th>
-                    <th scope="col" class="px-4 py-3">Discord</th>
-                    <th scope="col" class="px-4 py-3">Status</th>
-                    <th scope="col" class="px-4 py-3">Approval</th>
-                    <th scope="col" class="px-4 py-3">Roles</th>
-                    <th scope="col" class="px-4 py-3">Registered</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Discord</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Approval</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Roles</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Registered</th>
                     <th scope="col" class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
@@ -156,7 +156,7 @@
                             {% endif %}
                         </div>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if user.discord_id %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 mb-1">
                             <i class="ti ti-check mr-1"></i>Linked
@@ -166,7 +166,7 @@
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Not Linked</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if user.onboarding_status == 'completed' %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Completed</span>
                         {% elif user.onboarding_status == 'pending_discord' %}
@@ -177,7 +177,7 @@
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Unknown</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if user.approval_status == 'approved' %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Approved</span>
                         {% elif user.approval_status == 'denied' %}
@@ -186,7 +186,7 @@
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Pending</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if user.roles %}
                         <div class="flex flex-wrap gap-1">
                             {% for role in user.roles[:3] %}
@@ -200,7 +200,7 @@
                         <span class="text-gray-400 dark:text-gray-500 text-xs">No roles</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if user.created_at %}
                         <span class="text-xs">{{ user.created_at[:10] }}</span>
                         {% else %}

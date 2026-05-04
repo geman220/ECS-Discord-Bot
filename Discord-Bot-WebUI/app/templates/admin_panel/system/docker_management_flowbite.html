@@ -76,9 +76,9 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Name</th>
-                    <th scope="col" class="px-4 py-3">Image</th>
-                    <th scope="col" class="px-4 py-3">Status</th>
-                    <th scope="col" class="px-4 py-3">Ports</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Image</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Ports</th>
                     <th scope="col" class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
@@ -91,10 +91,10 @@
                             <span class="font-medium text-gray-900 dark:text-white">{{ container.name }}</span>
                         </div>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ container.image }}</code>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if container.status.startswith('running') %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                             <i class="ti ti-circle-check mr-1"></i>Running
@@ -109,7 +109,7 @@
                         </span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if container.ports %}
                         <span class="text-sm">{{ container.ports }}</span>
                         {% else %}

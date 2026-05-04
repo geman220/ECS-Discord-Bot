@@ -87,29 +87,29 @@
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
-                        <th scope="col" class="px-6 py-3">Team Name</th>
-                        <th scope="col" class="px-6 py-3">League</th>
-                        <th scope="col" class="px-6 py-3">Season</th>
-                        <th scope="col" class="px-6 py-3">Discord</th>
-                        <th scope="col" class="px-6 py-3">Actions</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Team Name</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">League</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Season</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Discord</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for team in teams %}
                     <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4">
                             <a href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}" class="font-medium text-blue-600 hover:underline dark:text-blue-400">
                                 {{ team.name }}
                             </a>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                             {% if team.league %}
                             <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">{{ team.league.name }}</span>
                             {% else %}
                             <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">N/A</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                             {% if team.league and team.league.season %}
                             {{ team.league.season.name }}
                             {% if team.league.season.is_current %}
@@ -119,7 +119,7 @@
                             <span class="text-gray-400">N/A</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                             {% if team.discord_channel_id %}
                             <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
                                 <i class="ti ti-check mr-1"></i>Connected
@@ -130,7 +130,7 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4">
                             <button id="dropdownBtn{{ team.id }}" data-dropdown-toggle="dropdown{{ team.id }}"
                                     class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700">
                                 <i class="ti ti-dots-vertical"></i>

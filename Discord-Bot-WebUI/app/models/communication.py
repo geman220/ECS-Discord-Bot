@@ -103,7 +103,12 @@ class Feedback(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     closed_at = db.Column(db.DateTime, nullable=True)
-    
+    # Free-form client context blob (device, app version, OS, route, role) sent
+    # by mobile on submit. Stored verbatim — never validated or schema-bound so
+    # that mobile can iterate the shape without backend coordination. Exposed
+    # only on admin endpoints (owners don't need their own device echoed back).
+    extra_metadata = db.Column('metadata', JSON, nullable=True)
+
     user = db.relationship('User', back_populates='feedbacks')
     notes = db.relationship('Note', back_populates='feedback', cascade='all, delete-orphan', lazy=True)
     replies = db.relationship('FeedbackReply', back_populates='feedback', cascade='all, delete-orphan', lazy=True)

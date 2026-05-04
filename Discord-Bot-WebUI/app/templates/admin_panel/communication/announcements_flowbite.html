@@ -83,10 +83,10 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Announcement</th>
-                    <th scope="col" class="px-4 py-3">Type</th>
-                    <th scope="col" class="px-4 py-3">Priority</th>
-                    <th scope="col" class="px-4 py-3">Created</th>
-                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Type</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Priority</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Created</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
                     <th scope="col" class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
@@ -97,15 +97,15 @@
                         <div class="font-medium text-gray-900 dark:text-white">{{ announcement.title }}</div>
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ announcement.content[:100] }}{% if announcement.content|length > 100 %}...{% endif %}</p>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ announcement.announcement_type or 'General' }}</span>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% set priority = announcement.priority or 'normal' %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if priority == 'high' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif priority == 'medium' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% endif %}">{{ priority|title }}</span>
                     </td>
-                    <td class="px-4 py-3 text-sm">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 text-sm hidden md:table-cell">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
                     </td>
                     <td class="px-4 py-3">

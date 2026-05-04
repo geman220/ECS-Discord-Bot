@@ -21,7 +21,7 @@
 
 {% block panel_content %}
 <!-- Stats Cards -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-yellow-500 text-white rounded-lg shadow p-5">
         <div class="flex items-center justify-between">
             <div>
@@ -77,11 +77,11 @@
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
                 <th scope="col" class="px-4 py-3">User</th>
-                <th scope="col" class="px-4 py-3">Email</th>
-                <th scope="col" class="px-4 py-3">League Preference</th>
-                <th scope="col" class="px-4 py-3">Discord ID</th>
-                <th scope="col" class="px-4 py-3">Registered</th>
-                <th scope="col" class="px-4 py-3">Current Roles</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Email</th>
+                <th scope="col" class="px-4 py-3 hidden lg:table-cell">League Preference</th>
+                <th scope="col" class="px-4 py-3 hidden xl:table-cell">Discord ID</th>
+                <th scope="col" class="px-4 py-3 hidden lg:table-cell">Registered</th>
+                <th scope="col" class="px-4 py-3 hidden xl:table-cell">Current Roles</th>
                 <th scope="col" class="px-4 py-3">Actions</th>
             </tr>
         </thead>
@@ -97,14 +97,16 @@
                             {{ user.username[0].upper() }}
                             {% endif %}
                         </div>
-                        <div class="ml-3">
-                            <p class="font-medium text-gray-900 dark:text-white cursor-pointer hover:text-ecs-green" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.player.name if user.player else 'No player record' }}</p>
+                        <div class="ml-3 min-w-0">
+                            <p class="font-medium text-gray-900 dark:text-white cursor-pointer hover:text-ecs-green truncate" data-modal-target="playerDetailsModal" data-modal-toggle="playerDetailsModal" data-action="show-player-details" data-user-id="{{ user.id }}">{{ user.username }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.player.name if user.player else 'No player record' }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate md:hidden">{{ user.email }}</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 lg:hidden">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '' }}{% if user.preferred_league %} · {{ user.preferred_league.replace('pub_league_', '').replace('_', ' ').title() }}{% endif %}</p>
                         </div>
                     </div>
                 </td>
-                <td class="px-4 py-3">{{ user.email }}</td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">{{ user.email }}</td>
+                <td class="px-4 py-3 hidden lg:table-cell">
                     {% if user.preferred_league %}
                         {% if user.preferred_league == 'pub_league_classic' %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Pub League Classic</span>
@@ -125,25 +127,25 @@
                     {% endif %}
                     {% endif %}
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden xl:table-cell">
                     {% if user.player and user.player.discord_id %}
                     <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ user.player.discord_id }}</code>
                     {% else %}
                     <span class="text-gray-400 dark:text-gray-500">No Discord ID</span>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3 text-xs">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 text-xs hidden lg:table-cell">{{ user.created_at.strftime('%Y-%m-%d') if user.created_at else 'Unknown' }}</td>
+                <td class="px-4 py-3 hidden xl:table-cell">
                     {% for role in user.roles %}
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 mr-1 mb-1">{{ role.name }}</span>
                     {% endfor %}
                 </td>
                 <td class="px-4 py-3">
-                    <div class="flex gap-1">
-                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-green-500 rounded hover:bg-green-600" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
+                    <div class="flex flex-col sm:flex-row gap-1">
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-green-500 rounded hover:bg-green-600 whitespace-nowrap" data-modal-target="approvalModal" data-modal-toggle="approvalModal" data-action="show-approval-modal" data-user-id="{{ user.id }}">
                             <i class="ti ti-check mr-1"></i>Approve
                         </button>
-                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
+                        <button type="button" class="px-2 py-1 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600 whitespace-nowrap" data-modal-target="denialModal" data-modal-toggle="denialModal" data-action="show-denial-modal" data-user-id="{{ user.id }}">
                             <i class="ti ti-x mr-1"></i>Deny
                         </button>
                     </div>

@@ -98,11 +98,11 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Team</th>
-                    <th scope="col" class="px-4 py-3">Opponent</th>
-                    <th scope="col" class="px-4 py-3">Date & Time</th>
-                    <th scope="col" class="px-4 py-3">Location</th>
-                    <th scope="col" class="px-4 py-3">RSVP</th>
-                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Opponent</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Date & Time</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Location</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">RSVP</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
                     <th scope="col" class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
@@ -114,7 +114,7 @@
                             {{ match.team.name }}
                         </a>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <div class="flex items-center">
                             {% if match.is_home_match %}
                             <span class="inline-flex items-center px-2 py-0.5 mr-2 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">H</span>
@@ -124,24 +124,24 @@
                             <span class="text-gray-900 dark:text-white">{{ match.opponent_name }}</span>
                         </div>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <p class="font-medium text-gray-900 dark:text-white">{{ match.match_date.strftime('%a, %b %d') }}</p>
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ match.match_time.strftime('%I:%M %p') }}</p>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <p class="text-gray-900 dark:text-white">{{ match.location }}</p>
                         {% if match.field_name %}
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ match.field_name }}</p>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <div class="flex gap-1">
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" title="Yes">{{ match.rsvp_counts.yes }}</span>
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300" title="No">{{ match.rsvp_counts.no }}</span>
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" title="Maybe">{{ match.rsvp_counts.maybe }}</span>
                         </div>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if match.status_color == 'success' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if match.status_color == 'warning' else 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if match.status_color == 'info' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
                             <i class="{{ match.status_icon }} mr-1"></i>{{ match.status }}
                         </span>

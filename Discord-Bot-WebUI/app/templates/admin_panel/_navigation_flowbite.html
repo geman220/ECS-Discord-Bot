@@ -923,7 +923,10 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Mobile admin nav: toggle menu and accordion sections
-if (window.EventDelegation) {
+// Wait for DOMContentLoaded so window.EventDelegation (loaded via deferred main-entry.js module) is available
+document.addEventListener('DOMContentLoaded', function() {
+    if (!window.EventDelegation) return;
+
     // Toggle the entire mobile nav menu
     window.EventDelegation.register('admin-nav-mobile-toggle', function(element) {
         var menu = document.getElementById('admin-nav-mobile-menu');
@@ -944,5 +947,5 @@ if (window.EventDelegation) {
         var chevron = element.querySelector('.ti-chevron-down');
         if (chevron) chevron.style.transform = isHidden ? 'rotate(180deg)' : '';
     });
-}
+});
 </script>

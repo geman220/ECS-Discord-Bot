@@ -124,12 +124,12 @@
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
                         <th scope="col" class="px-4 py-3">ID</th>
-                        <th scope="col" class="px-4 py-3">Type</th>
-                        <th scope="col" class="px-4 py-3">Match</th>
-                        <th scope="col" class="px-4 py-3">Scheduled Time</th>
-                        <th scope="col" class="px-4 py-3">State</th>
-                        <th scope="col" class="px-4 py-3">Retry</th>
-                        <th scope="col" class="px-4 py-3">Last Error</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Type</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Match</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Scheduled Time</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">State</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Retry</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Last Error</th>
                         <th scope="col" class="px-4 py-3">Actions</th>
                     </tr>
                 </thead>
@@ -139,7 +139,7 @@
                         <td class="px-4 py-3">
                             <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">#{{ task.id }}</span>
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 hidden md:table-cell">
                             {% if task.task_type == 'thread_creation' %}
                             <span class="text-cyan-600 dark:text-cyan-400"><i class="ti ti-message-circle mr-1"></i>Thread</span>
                             {% elif task.task_type == 'live_reporting_start' %}
@@ -148,7 +148,7 @@
                             {{ task.task_type }}
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 hidden md:table-cell">
                             {% if task.match %}
                             <div>
                                 <span class="font-medium text-gray-900 dark:text-white">{{ task.match.opponent }}</span>
@@ -160,7 +160,7 @@
                             <span class="text-gray-400">Unknown</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap hidden md:table-cell">
                             {{ task.scheduled_time | replace('T', ' ') | replace('Z', '') | truncate(16, True, '') }}
                             {% if task.is_overdue %}
                             <br><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">
@@ -168,7 +168,7 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 hidden md:table-cell">
                             {% if task.state == 'scheduled' %}
                             <span class="px-2.5 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 rounded dark:bg-cyan-900 dark:text-cyan-300">
                                 <i class="ti ti-clock mr-1"></i>Scheduled
@@ -197,14 +197,14 @@
                             <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">{{ task.state }}</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 hidden md:table-cell">
                             {% if task.retry_count > 0 %}
                             <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">{{ task.retry_count }}</span>
                             {% else %}
                             <span class="text-gray-400">0</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 hidden md:table-cell">
                             {% if task.last_error %}
                             <button type="button" class="text-xs text-red-600 dark:text-red-400 hover:underline cursor-pointer text-left"
                                     data-modal-target="errorDetailModal"

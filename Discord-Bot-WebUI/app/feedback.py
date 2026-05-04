@@ -224,7 +224,7 @@ def view_feedback(feedback_id):
                         admin_user_ids = [u.id for u in admin_users]
                         if admin_user_ids:
                             orchestrator.send(NotificationPayload(
-                                notification_type=NotificationType.FEEDBACK_REPLY,
+                                notification_type=NotificationType.FEEDBACK_REPLY_FROM_USER,
                                 title=f"User Reply: {feedback.title}",
                                 message=f"{safe_current_user.username} replied to feedback #{feedback.id}: {feedback.title}",
                                 user_ids=admin_user_ids,

@@ -65,6 +65,7 @@ def get_app_config():
         'mobile_voice_commands': 'false',
         'mobile_smart_predictions': 'false',
         'admin_points_events_enabled': 'false',
+        'admin_feedback_inbox_enabled': 'true',
     }
     feature_toggles = {}
     for key, default in feature_toggle_defaults.items():

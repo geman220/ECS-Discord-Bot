@@ -34,7 +34,7 @@
 </div>
 
 <!-- Statistics Cards -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<div class="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-5">
         <div class="flex items-center gap-4">
             <div class="p-3 bg-ecs-green/10 rounded-lg">
@@ -221,27 +221,33 @@
             <i class="ti ti-calendar text-gray-400"></i>Upcoming Matches
         </h3>
     </div>
-    <div class="p-6">
+    <div class="p-3 sm:p-6">
         {% if upcoming_matches %}
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
-                        <th scope="col" class="px-6 py-3">Date</th>
-                        <th scope="col" class="px-6 py-3">League</th>
-                        <th scope="col" class="px-6 py-3">Match</th>
-                        <th scope="col" class="px-6 py-3">Sub Requests</th>
-                        <th scope="col" class="px-6 py-3">Actions</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Date</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">League</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Match</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden lg:table-cell">Sub Requests</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for match in upcoming_matches %}
                     <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="px-6 py-4">
-                            <span class="text-gray-900 dark:text-white">{{ match.date.strftime('%m/%d') if match.date else 'TBD' }}</span><br>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ match.time.strftime('%I:%M %p') if match.time else '' }}</span>
+                        <td class="px-3 sm:px-6 py-4 align-top">
+                            <span class="text-gray-900 dark:text-white whitespace-nowrap">{{ match.date.strftime('%m/%d') if match.date else 'TBD' }}</span><br>
+                            <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ match.time.strftime('%I:%M %p') if match.time else '' }}</span>
+                            {% set league_name = match.home_team.league.name if match.home_team and match.home_team.league else '' %}
+                            <p class="text-xs mt-1 md:hidden">
+                                {% if 'premier' in league_name|lower %}<span class="text-red-600 dark:text-red-400">Premier</span>
+                                {% elif 'classic' in league_name|lower %}<span class="text-green-600 dark:text-green-400">Classic</span>
+                                {% endif %}
+                            </p>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                             {% set league_name = match.home_team.league.name if match.home_team and match.home_team.league else '' %}
                             {% if 'premier' in league_name|lower %}
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Premier</span>
@@ -251,12 +257,22 @@
                             <span class="text-xs text-gray-400">-</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 align-top">
                             <span class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name }}</span><br>
                             <span class="text-xs text-gray-500 dark:text-gray-400">vs</span><br>
                             <span class="font-medium text-gray-900 dark:text-white">{{ match.away_team.name }}</span>
+                            {% set match_requests = requested_teams_by_match.get(match.id, {}) %}
+                            <div class="mt-2 lg:hidden flex flex-wrap gap-1">
+                                {% if match_requests %}
+                                {% for team_id, request in match_requests.items() %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">
+                                    {{ request.assignments_count or 0 }}/{{ request.substitutes_needed }}
+                                </span>
+                                {% endfor %}
+                                {% endif %}
+                            </div>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden lg:table-cell">
                             {% set match_requests = requested_teams_by_match.get(match.id, {}) %}
                             {% if match_requests %}
                             {% for team_id, request in match_requests.items() %}
@@ -268,10 +284,10 @@
                             <span class="text-gray-400 dark:text-gray-500">No requests</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
-                            <button class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors"
+                        <td class="px-3 sm:px-6 py-4">
+                            <button class="inline-flex items-center px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white transition-colors whitespace-nowrap"
                                     data-action="show-sub-assignment" data-match-id="{{ match.id }}">
-                                <i class="ti ti-plus mr-1"></i>Quick Assign
+                                <i class="ti ti-plus mr-1"></i><span class="hidden sm:inline">Quick </span>Assign
                             </button>
                         </td>
                     </tr>
@@ -393,7 +409,7 @@
         <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Who do you want to contact?</h4>
         <div class="space-y-3">
             <!-- Recipient Type -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 <label class="flex items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg cursor-pointer border-2 border-transparent has-[:checked]:border-ecs-green has-[:checked]:bg-ecs-green/10">
                     <input type="radio" name="recipient_type" value="all" checked class="sr-only">
                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">All Subs</span>

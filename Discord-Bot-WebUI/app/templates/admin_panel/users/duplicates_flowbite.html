@@ -123,12 +123,12 @@
                         <th scope="col" class="px-4 py-3 w-16">
                             <span class="sr-only">Select Primary</span>
                         </th>
-                        <th scope="col" class="px-4 py-3">Username</th>
-                        <th scope="col" class="px-4 py-3">Email</th>
-                        <th scope="col" class="px-4 py-3">Player Name</th>
-                        <th scope="col" class="px-4 py-3">Discord ID</th>
-                        <th scope="col" class="px-4 py-3">Status</th>
-                        <th scope="col" class="px-4 py-3">Created</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Username</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Email</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Player Name</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Discord ID</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Created</th>
                         <th scope="col" class="px-4 py-3">Actions</th>
                     </tr>
                 </thead>
@@ -142,19 +142,19 @@
                                    class="primary-select w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600"
                                    data-group="{{ loop.parent.loop.index }}">
                         </td>
-                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                        <td class="px-4 py-3 font-medium text-gray-900 dark:text-white hidden md:table-cell">
                             {{ user.username }}
                         </td>
-                        <td class="px-4 py-3">{{ user.email }}</td>
-                        <td class="px-4 py-3">{{ user.player.name if user.player else '-' }}</td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 hidden md:table-cell">{{ user.email }}</td>
+                        <td class="px-4 py-3 hidden md:table-cell">{{ user.player.name if user.player else '-' }}</td>
+                        <td class="px-4 py-3 hidden md:table-cell">
                             {% if user.player and user.player.discord_id %}
                             <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ user.player.discord_id }}</code>
                             {% else %}
                             <span class="text-gray-400">-</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3">
+                        <td class="px-4 py-3 hidden md:table-cell">
                             {% if user.approval_status == 'approved' %}
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Approved</span>
                             {% elif user.approval_status == 'pending' %}
@@ -163,7 +163,7 @@
                             <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ user.approval_status }}</span>
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 text-xs">
+                        <td class="px-4 py-3 text-xs hidden md:table-cell">
                             {{ user.created_at[:10] if user.created_at else 'N/A' }}
                         </td>
                         <td class="px-4 py-3">

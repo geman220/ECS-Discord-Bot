@@ -85,31 +85,31 @@
         <table class="w-full text-sm text-left text-gray-700 dark:text-gray-300">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th class="px-6 py-3">Match</th>
-                    <th class="px-6 py-3">Kickoff</th>
-                    <th class="px-6 py-3">Location</th>
-                    <th class="px-6 py-3">League</th>
-                    <th class="px-6 py-3">QR</th>
-                    <th class="px-6 py-3">Attendance</th>
-                    <th class="px-6 py-3 text-right">Actions</th>
+                    <th class="px-3 sm:px-6 py-3">Match</th>
+                    <th class="px-3 sm:px-6 py-3 hidden md:table-cell">Kickoff</th>
+                    <th class="px-3 sm:px-6 py-3 hidden md:table-cell">Location</th>
+                    <th class="px-3 sm:px-6 py-3 hidden md:table-cell">League</th>
+                    <th class="px-3 sm:px-6 py-3 hidden md:table-cell">QR</th>
+                    <th class="px-3 sm:px-6 py-3 hidden md:table-cell">Attendance</th>
+                    <th class="px-3 sm:px-6 py-3 text-right">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for r in rows %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4">
                         <a href="{{ r.detail_url }}" class="font-medium text-emerald-700 dark:text-emerald-400 hover:underline">{{ r.label }}</a>
                     </td>
-                    <td class="px-6 py-4 text-gray-600 dark:text-gray-400">
+                    <td class="px-3 sm:px-6 py-4 text-gray-600 dark:text-gray-400 hidden md:table-cell">
                         {% if r.kickoff %}{{ r.kickoff.strftime('%a %b %-d, %-I:%M %p') }}{% else %}—{% endif %}
                     </td>
-                    <td class="px-6 py-4 text-gray-600 dark:text-gray-400 max-w-xs truncate">{{ r.location or '—' }}</td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 text-gray-600 dark:text-gray-400 max-w-xs truncate hidden md:table-cell">{{ r.location or '—' }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <span class="text-xs px-2 py-0.5 rounded {% if r.league_type == 'pub_league' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% else %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200{% endif %}">
                             {% if r.league_type == 'pub_league' %}Pub League{% else %}ECS FC{% endif %}
                         </span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         {% if r.has_token %}
                         <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
                             <i class="ti ti-check"></i>Active
@@ -120,11 +120,11 @@
                         </span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <span class="font-medium text-gray-900 dark:text-white">{{ r.checked_in_count }}</span>
                         <span class="text-gray-500 dark:text-gray-400">/ {{ r.yes_count }}</span>
                     </td>
-                    <td class="px-6 py-4 text-right">
+                    <td class="px-3 sm:px-6 py-4 text-right">
                         <a href="{{ r.detail_url }}"
                            class="inline-flex items-center px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 rounded hover:bg-emerald-700">
                             <i class="ti ti-eye mr-1"></i>Manage
@@ -133,7 +133,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                    <td colspan="7" class="px-3 sm:px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                         No matches found in the next {{ days }} days.
                     </td>
                 </tr>

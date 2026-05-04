@@ -152,10 +152,10 @@
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
                 <th scope="col" class="px-4 py-3">League</th>
-                <th scope="col" class="px-4 py-3">Match</th>
-                <th scope="col" class="px-4 py-3">Match Date</th>
-                <th scope="col" class="px-4 py-3">Scheduled Send</th>
-                <th scope="col" class="px-4 py-3">Status</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Match</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Match Date</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Scheduled Send</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
                 <th scope="col" class="px-4 py-3">Actions</th>
             </tr>
         </thead>
@@ -174,7 +174,7 @@
                     </span>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     <div class="flex items-center">
                         <div class="flex items-center justify-center w-8 h-8 rounded-full mr-2 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-green-100 dark:bg-green-900/30' }}">
                             <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-green-600 dark:text-green-400' }}"></i>
@@ -190,7 +190,7 @@
                         </div>
                     </div>
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     {% if not message.message_type or message.message_type == 'standard' %}
                     <p class="font-medium text-gray-900 dark:text-white">{{ message.match.date.strftime('%a, %b %d, %Y') }}</p>
                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ message.match.time.strftime('%I:%M %p') }}</p>
@@ -199,11 +199,11 @@
                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ message.scheduled_send_time_pst.strftime('%I:%M %p') }} PST</p>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     <p class="font-medium text-gray-900 dark:text-white">{{ message.scheduled_send_time_pst.strftime('%a, %b %d, %Y') }}</p>
                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ message.scheduled_send_time_pst.strftime('%I:%M %p') }} PST</p>
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     {% if message.status == 'SENT' %}
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">SENT</span>
                     {% elif message.status == 'PENDING' %}

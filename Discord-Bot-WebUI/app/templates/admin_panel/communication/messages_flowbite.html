@@ -76,9 +76,9 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Category</th>
-                    <th scope="col" class="px-4 py-3">Description</th>
-                    <th scope="col" class="px-4 py-3 text-center">Templates</th>
-                    <th scope="col" class="px-4 py-3">Last Updated</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Description</th>
+                    <th scope="col" class="px-4 py-3 text-center hidden md:table-cell">Templates</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Last Updated</th>
                     <th scope="col" class="px-4 py-3 text-right">Actions</th>
                 </tr>
             </thead>
@@ -91,17 +91,17 @@
                             <strong>{{ category.name }}</strong>
                         </a>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <span class="text-sm text-gray-500 dark:text-gray-400">{{ category.description or 'No description' }}</span>
                     </td>
-                    <td class="px-4 py-3 text-center">
+                    <td class="px-4 py-3 text-center hidden md:table-cell">
                         {% set template_count = category.templates|length %}
                         {% set active_count = category.templates|selectattr('is_active', 'equalto', true)|list|length %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if template_count == 0 %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% elif active_count == template_count %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% endif %}">
                             {{ template_count }}{% if template_count > 0 %} <span class="ml-1 opacity-75">({{ active_count }} active)</span>{% endif %}
                         </span>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <span class="text-sm text-gray-500 dark:text-gray-400">{{ category.updated_at.strftime('%Y-%m-%d %H:%M') if category.updated_at else 'Never' }}</span>
                     </td>
                     <td class="px-4 py-3 text-right">

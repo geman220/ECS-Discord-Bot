@@ -157,37 +157,41 @@
         </h3>
     </div>
 
-    <div class="p-6">
+    <div class="p-3 sm:p-6">
         {% if recent_actions %}
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
-                        <th scope="col" class="px-6 py-3">Date</th>
-                        <th scope="col" class="px-6 py-3">Admin</th>
-                        <th scope="col" class="px-6 py-3">Action</th>
-                        <th scope="col" class="px-6 py-3">Resource</th>
-                        <th scope="col" class="px-6 py-3">Details</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Date</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Admin</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Action</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden lg:table-cell">Resource</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden lg:table-cell">Details</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for action in recent_actions %}
                     <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="px-6 py-4">
-                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ action.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                        <td class="px-3 sm:px-6 py-4 align-top">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ action.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+                            <p class="text-xs text-gray-900 dark:text-white font-medium mt-0.5 md:hidden truncate max-w-[120px]">{{ action.admin.username if action.admin else 'System' }}</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 lg:hidden truncate max-w-[140px]">
+                                {{ action.resource_type.replace('_', ' ').title() }}{% if action.new_value %} · {{ action.new_value[:30] }}{% if action.new_value|length > 30 %}…{% endif %}{% endif %}
+                            </p>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                             <span class="font-medium text-gray-900 dark:text-white">{{ action.admin.username if action.admin else 'System' }}</span>
                         </td>
-                        <td class="px-6 py-4">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+                        <td class="px-3 sm:px-6 py-4 align-top">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20 whitespace-nowrap">
                                 {{ action.action.replace('_', ' ').title() }}
                             </span>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden lg:table-cell">
                             <span class="text-xs text-gray-500 dark:text-gray-400">{{ action.resource_type.replace('_', ' ').title() }}</span>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden lg:table-cell">
                             <span class="text-xs text-gray-500 dark:text-gray-400">{{ action.new_value[:50] }}{% if action.new_value and action.new_value|length > 50 %}...{% endif %}</span>
                         </td>
                     </tr>

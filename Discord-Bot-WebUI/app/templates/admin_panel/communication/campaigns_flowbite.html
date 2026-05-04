@@ -103,18 +103,18 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-6 py-3">Campaign</th>
-                    <th scope="col" class="px-6 py-3">Target</th>
-                    <th scope="col" class="px-6 py-3">Status</th>
-                    <th scope="col" class="px-6 py-3">Schedule</th>
-                    <th scope="col" class="px-6 py-3">Analytics</th>
-                    <th scope="col" class="px-6 py-3">Actions</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Campaign</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Target</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Status</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Schedule</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Analytics</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for campaign in campaigns.items %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4">
                         <div>
                             <div class="font-medium text-gray-900 dark:text-white">{{ campaign.name }}</div>
                             <div class="text-sm text-gray-500 dark:text-gray-400">{{ campaign.title }}</div>
@@ -125,11 +125,11 @@
                             {% endif %}
                         </div>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300">{{ campaign.target_type|title }}</span>
                         <div class="text-sm text-gray-500 dark:text-gray-400">{{ campaign.target_count or 0 }} recipients</div>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         {% set status = campaign.status %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                             {% if status == 'sent' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
@@ -139,7 +139,7 @@
                             {{ status|title }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         {% if campaign.scheduled_send_time %}
                         <span class="text-sm">{{ campaign.scheduled_send_time.strftime('%Y-%m-%d %H:%M') }}</span>
                         {% elif campaign.actual_send_time %}
@@ -148,7 +148,7 @@
                         <span class="text-sm text-gray-400">Not scheduled</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <div class="flex items-center gap-3 text-sm">
                             <div class="flex items-center" title="Sent">
                                 <i class="ti ti-send text-blue-500 mr-1"></i>{{ campaign.sent_count or 0 }}
@@ -161,7 +161,7 @@
                             </div>
                         </div>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4">
                         <div class="flex items-center gap-1">
                             <button class="p-2 text-cyan-600 hover:bg-cyan-50 rounded dark:hover:bg-cyan-900/30" title="View" data-action="view-campaign" data-campaign-id="{{ campaign.id }}">
                                 <i class="ti ti-eye"></i>

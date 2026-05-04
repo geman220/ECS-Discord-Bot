@@ -65,9 +65,9 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Flask Role</th>
-                    <th scope="col" class="px-4 py-3">Discord Role</th>
-                    <th scope="col" class="px-4 py-3">Users</th>
-                    <th scope="col" class="px-4 py-3">Sync Status</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Discord Role</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Users</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Sync Status</th>
                     <th scope="col" class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
@@ -85,7 +85,7 @@
                             </div>
                         </div>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <select class="discord-role-select block w-full px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500"
                                 data-role-id="{{ role.id }}"
                                 data-current="{{ role.discord_role_id or '' }}">
@@ -101,7 +101,7 @@
                             {% endfor %}
                         </select>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <button type="button" class="px-3 py-1.5 text-xs font-medium text-cyan-600 bg-cyan-50 border border-cyan-200 rounded-lg hover:bg-cyan-100 dark:bg-cyan-900/30 dark:text-cyan-400 dark:border-cyan-800"
                                 data-action="preview-users"
                                 data-role-id="{{ role.id }}">
@@ -109,7 +109,7 @@
                             <span class="user-count">{{ role.users|length }}</span>
                         </button>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if role.discord_role_id %}
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                             <i class="ti ti-check mr-1"></i>Mapped

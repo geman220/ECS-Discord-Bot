@@ -382,6 +382,8 @@ def get_notification_preferences():
             "league_announcements": user.announcement_notifications,
             "general_announcements": user.general_announcements,
             "dm_notifications": getattr(user, 'dm_notifications', True),
+            "feedback_updates": getattr(user, 'feedback_update_notifications', True),
+            "feedback_alerts": getattr(user, 'feedback_alert_notifications', True),
         }), 200
 
 
@@ -445,6 +447,12 @@ def update_notification_preferences():
         if 'dm_notifications' in data:
             user.dm_notifications = bool(data['dm_notifications'])
 
+        # Feedback notification preferences (owner-side updates and admin-side alerts)
+        if 'feedback_updates' in data:
+            user.feedback_update_notifications = bool(data['feedback_updates'])
+        if 'feedback_alerts' in data:
+            user.feedback_alert_notifications = bool(data['feedback_alerts'])
+
         session.commit()
 
         logger.info(f"Notification preferences updated for user {user.username}")
@@ -461,6 +469,8 @@ def update_notification_preferences():
             "league_announcements": user.announcement_notifications,
             "general_announcements": user.general_announcements,
             "dm_notifications": getattr(user, 'dm_notifications', True),
+            "feedback_updates": getattr(user, 'feedback_update_notifications', True),
+            "feedback_alerts": getattr(user, 'feedback_alert_notifications', True),
         }), 200
 
 

@@ -238,6 +238,9 @@ MOBILE_FEATURE_TOGGLES = [
     {'key': 'admin_points_events_enabled', 'label': 'Admin Points Events',
      'description': 'Enables the More→Admin "Points Events" entry in the mobile app for awarding participation points at non-match league events.',
      'default': 'false', 'category': 'experimental'},
+    {'key': 'admin_feedback_inbox_enabled', 'label': 'Admin Feedback Inbox',
+     'description': 'Enables the mobile admin feedback inbox (list/triage/reply/close/bulk) for Global Admins. Backend endpoints under /api/v1/admin/feedback.',
+     'default': 'true', 'category': 'core'},
 ]
 
 

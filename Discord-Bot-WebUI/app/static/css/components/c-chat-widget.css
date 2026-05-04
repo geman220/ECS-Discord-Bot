@@ -80,14 +80,28 @@
   transition: right var(--cw-animation-duration) ease;
 }
 
-/* Avoid bottom nav on mobile */
+/* Mobile sizing & positioning.
+   The 90px bottom clearance was a holdover from when a mobile bottom nav was rendered;
+   the current base layout no longer includes one (it's on the Flutter app instead).
+   We keep a small safe-area allowance and shrink the trigger so it doesn't dominate
+   the viewport on phones — admin work from a phone is uncommon but must stay usable. */
 
 @media (max-width: 767.98px) {
   .c-chat-widget {
-    --cw-spacing: 16px;
-    /* Position above mobile bottom nav - increased clearance to avoid overlap */
-    bottom: 90px;
-    right: 16px;
+    --cw-icon-size: 44px;
+    --cw-spacing: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    right: 12px;
+    opacity: 0.85;
+  }
+  .c-chat-widget:hover,
+  .c-chat-widget:focus-within,
+  .c-chat-widget.is-open {
+    opacity: 1;
+  }
+  /* Pages that DO render a bottom nav can opt into clearance via body class */
+  body.has-mobile-bottom-nav .c-chat-widget {
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 }
 

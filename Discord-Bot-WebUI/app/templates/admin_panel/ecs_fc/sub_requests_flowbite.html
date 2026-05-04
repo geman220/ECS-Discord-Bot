@@ -116,21 +116,21 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-6 py-3">Match</th>
-                    <th scope="col" class="px-6 py-3">Team</th>
-                    <th scope="col" class="px-6 py-3">Status</th>
-                    <th scope="col" class="px-6 py-3">Needed</th>
-                    <th scope="col" class="px-6 py-3">Responses</th>
-                    <th scope="col" class="px-6 py-3">Assigned</th>
-                    <th scope="col" class="px-6 py-3">Created</th>
-                    <th scope="col" class="px-6 py-3">Actions</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Match</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Team</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Status</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Needed</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Responses</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Assigned</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Created</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in requests_data %}
                 {% set req = item.request %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4">
                         {% if req.match %}
                         <div class="font-medium text-gray-900 dark:text-white">
                             vs {{ req.match.opponent_name or 'TBD' }}
@@ -146,10 +146,10 @@
                         <span class="text-gray-400">No match</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <span class="font-medium text-gray-900 dark:text-white">{{ req.team.name if req.team else 'Unknown' }}</span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         {% if req.status == 'OPEN' %}
                         <span class="px-2.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full dark:bg-yellow-900 dark:text-yellow-300">Open</span>
                         {% elif req.status == 'FILLED' %}
@@ -160,13 +160,13 @@
                         <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-full dark:bg-gray-700 dark:text-gray-300">{{ req.status }}</span>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <span class="font-medium text-gray-900 dark:text-white">{{ req.substitutes_needed or 1 }}</span>
                         {% if req.positions_needed %}
                         <div class="text-xs text-gray-500 dark:text-gray-400">{{ req.positions_needed }}</div>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <div class="flex items-center gap-2">
                             {% if item.available > 0 %}
                             <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
@@ -194,12 +194,12 @@
                         </button>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <span class="font-medium {% if item.assigned >= (req.substitutes_needed or 1) %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">
                             {{ item.assigned }} / {{ req.substitutes_needed or 1 }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <div class="text-xs text-gray-500 dark:text-gray-400">
                             {{ req.created_at.strftime('%b %d, %Y') if req.created_at else '' }}
                         </div>
@@ -207,7 +207,7 @@
                             {{ req.created_at.strftime('%I:%M %p').lstrip('0') if req.created_at else '' }}
                         </div>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4">
                         <div class="flex items-center gap-2">
                             {% if req.match %}
                             <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=req.match.id) }}"

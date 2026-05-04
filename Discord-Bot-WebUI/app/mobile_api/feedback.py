@@ -14,7 +14,7 @@ Provides feedback functionality for mobile clients:
 import logging
 from datetime import datetime
 
-from flask import jsonify, request, render_template
+from flask import jsonify, request, render_template, url_for
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload
 
@@ -43,12 +43,36 @@ def _feedback_to_dict(feedback):
     }
 
 
+def _player_picture_url(user):
+    """Absolute profile picture URL or None.
+
+    Mirrors Player.to_dict (players.py:299): prepends request host to the
+    stored relative path. None when the user has no Player row or no picture.
+    """
+    if not user or not user.player or not user.player.profile_picture_url:
+        return None
+    base = request.host_url.rstrip('/')
+    return f"{base}{user.player.profile_picture_url}"
+
+
+def _user_lite(user):
+    """Lightweight user identity for nesting under replies."""
+    if not user:
+        return None
+    return {
+        'id': user.id,
+        'username': user.username,
+        'profile_picture_url': _player_picture_url(user),
+    }
+
+
 def _reply_to_dict(reply):
     return {
         'id': reply.id,
         'content': reply.content,
         'is_admin_reply': reply.is_admin_reply,
-        'user_name': reply.user.username if reply.user else None,
+        'user_name': reply.user.username if reply.user else None,  # legacy field, retained for back-compat
+        'user': _user_lite(reply.user),
         'created_at': reply.created_at.isoformat() + 'Z' if reply.created_at else None,
     }
 
@@ -77,6 +101,7 @@ def submit_feedback():
     category = (data.get('category') or '').strip()
     title = (data.get('title') or '').strip()
     description = (data.get('description') or '').strip()
+    extra_metadata = data.get('metadata')  # optional free-form client context blob
 
     if not category or not title or not description:
         return jsonify({"msg": "category, title, and description are required"}), 400
@@ -99,6 +124,7 @@ def submit_feedback():
             title=title,
             description=description,
             source='app',
+            extra_metadata=extra_metadata if isinstance(extra_metadata, dict) else None,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
         )
@@ -120,6 +146,7 @@ def submit_feedback():
                         data={'feedback_id': str(feedback.id)},
                         email_subject=f"New App Feedback Submitted: {feedback.title}",
                         email_html_body=render_template('emails/new_feedback_notification.html', feedback=feedback),
+                        action_url=url_for('admin_panel.view_feedback', feedback_id=feedback.id, _external=True),
                     ))
         except Exception as e:
             logger.error(f"Failed to send feedback notification: {e}")
@@ -187,7 +214,7 @@ def get_feedback(feedback_id):
         feedback = (
             session.query(Feedback)
             .options(
-                joinedload(Feedback.replies).joinedload(FeedbackReply.user)
+                joinedload(Feedback.replies).joinedload(FeedbackReply.user).joinedload(User.player)
             )
             .get(feedback_id)
         )
@@ -254,13 +281,34 @@ def reply_to_feedback(feedback_id):
         feedback.updated_at = datetime.utcnow()
         session.commit()
 
-        # Load user for serialization
-        user = session.query(User).get(current_user_id)
+        # Load user (with player for avatar) for serialization & admin notification
+        user = session.query(User).options(joinedload(User.player)).get(current_user_id)
+
+        # Notify admins of user reply (mirrors web /feedback/<id> POST handler)
+        try:
+            admin_role = session.query(Role).filter_by(name='Global Admin').first()
+            if admin_role:
+                admin_users = session.query(User).filter(User.roles.contains(admin_role)).all()
+                admin_user_ids = [u.id for u in admin_users]
+                if admin_user_ids:
+                    username = user.username if user else 'Unknown'
+                    orchestrator.send(NotificationPayload(
+                        notification_type=NotificationType.FEEDBACK_REPLY_FROM_USER,
+                        title=f"User Reply: {feedback.title}",
+                        message=f"{username} replied to feedback #{feedback.id}: {feedback.title}",
+                        user_ids=admin_user_ids,
+                        data={'feedback_id': str(feedback.id)},
+                        action_url=url_for('admin_panel.view_feedback', feedback_id=feedback.id, _external=True),
+                    ))
+        except Exception as notify_err:
+            logger.error(f"Failed to notify admins of mobile user reply: {notify_err}")
+
         return jsonify({
             'id': reply.id,
             'content': reply.content,
             'is_admin_reply': False,
-            'user_name': user.username if user else None,
+            'user_name': user.username if user else None,  # legacy field, retained for back-compat
+            'user': _user_lite(user),
             'created_at': reply.created_at.isoformat() + 'Z',
         }), 201
 

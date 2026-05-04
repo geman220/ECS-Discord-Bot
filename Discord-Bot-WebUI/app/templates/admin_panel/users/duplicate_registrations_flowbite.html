@@ -136,11 +136,11 @@
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
                 <th scope="col" class="px-4 py-3">Alert #</th>
-                <th scope="col" class="px-4 py-3">New User</th>
-                <th scope="col" class="px-4 py-3">Existing Player</th>
-                <th scope="col" class="px-4 py-3">Match Type</th>
-                <th scope="col" class="px-4 py-3">Resolution</th>
-                <th scope="col" class="px-4 py-3">Resolved By</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">New User</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Existing Player</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Match Type</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Resolution</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Resolved By</th>
                 <th scope="col" class="px-4 py-3">Date</th>
             </tr>
         </thead>
@@ -150,14 +150,14 @@
                 <td class="px-4 py-3">
                     <a href="{{ url_for('duplicate_management.duplicate_registration_detail', alert_id=alert.id) }}" class="text-ecs-green hover:underline">#{{ alert.id }}</a>
                 </td>
-                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ alert.new_name or 'N/A' }}</td>
-                <td class="px-4 py-3">{{ alert.existing_player.name }}</td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white hidden md:table-cell">{{ alert.new_name or 'N/A' }}</td>
+                <td class="px-4 py-3 hidden md:table-cell">{{ alert.existing_player.name }}</td>
+                <td class="px-4 py-3 hidden md:table-cell">
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if alert.match_type == 'phone' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
                         {{ alert.match_type.replace('_', ' ').title() }}
                     </span>
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     {% if alert.resolution_action == 'merged' %}
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Merged</span>
                     {% elif alert.resolution_action == 'allowed' %}
@@ -168,7 +168,7 @@
                     <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ alert.resolution_action or 'N/A' }}</span>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3">{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>
+                <td class="px-4 py-3 hidden md:table-cell">{{ alert.resolved_by.username if alert.resolved_by else 'System' }}</td>
                 <td class="px-4 py-3 text-xs">{{ alert.resolved_at.strftime('%m/%d %H:%M') if alert.resolved_at else 'N/A' }}</td>
             </tr>
             {% endfor %}

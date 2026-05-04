@@ -83,10 +83,10 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Group Name</th>
-                    <th scope="col" class="px-4 py-3">Type</th>
-                    <th scope="col" class="px-4 py-3">Members/Reach</th>
-                    <th scope="col" class="px-4 py-3">Created</th>
-                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Type</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Members/Reach</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Created</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
                     <th scope="col" class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
@@ -99,21 +99,21 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ group.description[:60] }}{% if group.description|length > 60 %}...{% endif %}</p>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if group.group_type == 'dynamic' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300{% endif %}">
                             <i class="ti ti-{% if group.group_type == 'dynamic' %}adjustments{% else %}list-check{% endif %} mr-1"></i>
                             {{ group.group_type|title }}
                         </span>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if group.group_type == 'static' %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ group.members|length if group.members else 0 }} members</span>
                         {% else %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" title="Dynamic - based on criteria">Dynamic</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 text-sm">{{ group.created_at.strftime('%Y-%m-%d') if group.created_at else 'N/A' }}</td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 text-sm hidden md:table-cell">{{ group.created_at.strftime('%Y-%m-%d') if group.created_at else 'N/A' }}</td>
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if group.is_active %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
                         {% else %}

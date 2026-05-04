@@ -137,10 +137,10 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Player</th>
-                    <th scope="col" class="px-4 py-3">Discord</th>
-                    <th scope="col" class="px-4 py-3">Status</th>
-                    <th scope="col" class="px-4 py-3">Teams</th>
-                    <th scope="col" class="px-4 py-3">Last Checked</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Discord</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Teams</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Last Checked</th>
                     <th scope="col" class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
@@ -153,7 +153,7 @@
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ player.user.email }}</p>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if player.discord_username %}
                         <span class="text-[#5865F2] font-medium text-sm" title="ID: {{ player.discord_id }}">
                             <i class="ti ti-brand-discord mr-1"></i>{{ player.discord_username }}
@@ -162,7 +162,7 @@
                         <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded" title="No username available">{{ player.discord_id }}</code>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if player.discord_in_server == True %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">In Server</span>
                         {% elif player.discord_in_server == False %}
@@ -171,7 +171,7 @@
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Unknown</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if player_current_teams.get(player.id) %}
                             {% for team in player_current_teams[player.id][:2] %}
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mr-1">{{ team.name }}</span>
@@ -183,7 +183,7 @@
                         <span class="text-xs text-gray-500 dark:text-gray-400">No current teams</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3 text-sm">
+                    <td class="px-4 py-3 text-sm hidden md:table-cell">
                         {% if player.discord_last_checked and player.discord_last_checked is not string %}
                         {{ player.discord_last_checked.strftime('%b %d, %Y %H:%M') }}
                         {% elif player.discord_last_checked %}

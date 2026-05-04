@@ -147,29 +147,29 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-6 py-3">Order ID</th>
-                    <th scope="col" class="px-6 py-3">Customer</th>
-                    <th scope="col" class="px-6 py-3">Items</th>
-                    <th scope="col" class="px-6 py-3">Total</th>
-                    <th scope="col" class="px-6 py-3">Status</th>
-                    <th scope="col" class="px-6 py-3">Date</th>
-                    <th scope="col" class="px-6 py-3">Actions</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Order ID</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Customer</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Items</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Total</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Status</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Date</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for order in recent_orders %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">#{{ order.id }}</td>
-                    <td class="px-6 py-4">{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</td>
-                    <td class="px-6 py-4">{{ order.quantity or 1 }} × {{ order.item.name if order.item else 'Unknown Item' }}</td>
-                    <td class="px-6 py-4">N/A</td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 font-medium text-gray-900 dark:text-white">#{{ order.id }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ order.quantity or 1 }} × {{ order.item.name if order.item else 'Unknown Item' }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">N/A</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if order.status == 'completed' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif order.status == 'pending' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
                             {{ order.status.title() if order.status else 'Unknown' }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</td>
+                    <td class="px-3 sm:px-6 py-4">
                         <button class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-blue-900/50"
                                 onclick="viewOrder('{{ order.id }}')" title="View Order">
                             <i class="ti ti-eye"></i>

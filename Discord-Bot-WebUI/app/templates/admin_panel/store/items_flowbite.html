@@ -77,12 +77,12 @@
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
                 <th scope="col" class="px-4 py-3">Image</th>
-                <th scope="col" class="px-4 py-3">Name</th>
-                <th scope="col" class="px-4 py-3">Category</th>
-                <th scope="col" class="px-4 py-3">Price</th>
-                <th scope="col" class="px-4 py-3">Status</th>
-                <th scope="col" class="px-4 py-3">Options</th>
-                <th scope="col" class="px-4 py-3">Created</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Name</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Category</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Price</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Options</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Created</th>
                 <th scope="col" class="px-4 py-3">Actions</th>
             </tr>
         </thead>
@@ -98,34 +98,34 @@
                     </div>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     <p class="font-medium text-gray-900 dark:text-white">{{ item.name }}</p>
                     {% if item.description %}
                     <p class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</p>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     {% if item.category %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ item.category }}</span>
                     {% else %}
                     <span class="text-gray-400">Uncategorized</span>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     {% if item.price %}
                     <span class="font-medium text-gray-900 dark:text-white">${{ "%.2f"|format(item.price) }}</span>
                     {% else %}
                     <span class="text-gray-400">N/A</span>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     {% if item.is_active %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</span>
                     {% else %}
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Inactive</span>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     {% set colors = item.available_colors|from_json if item.available_colors else [] %}
                     {% set sizes = item.available_sizes|from_json if item.available_sizes else [] %}
                     {% if colors %}
@@ -138,7 +138,7 @@
                     <span class="text-gray-400">None</span>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{{ item.created_at.strftime('%Y-%m-%d') if item.created_at else 'Unknown' }}</td>
+                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ item.created_at.strftime('%Y-%m-%d') if item.created_at else 'Unknown' }}</td>
                 <td class="px-4 py-3">
                     <div class="flex items-center gap-1">
                         <a href="{{ url_for('admin_panel.edit_store_item', item_id=item.id) }}" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" title="Edit">

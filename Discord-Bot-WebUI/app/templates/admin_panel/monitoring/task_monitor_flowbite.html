@@ -76,11 +76,11 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Task ID</th>
-                    <th scope="col" class="px-4 py-3">Name</th>
-                    <th scope="col" class="px-4 py-3">Status</th>
-                    <th scope="col" class="px-4 py-3">Started</th>
-                    <th scope="col" class="px-4 py-3">Duration</th>
-                    <th scope="col" class="px-4 py-3">Progress</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Name</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Started</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Duration</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Progress</th>
                     <th scope="col" class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
@@ -90,19 +90,19 @@
                     <td class="px-4 py-3">
                         <code class="text-xs bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ task.id[:8] }}...</code>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <span class="font-medium text-gray-900 dark:text-white">{{ task.name }}</span>
                         {% if task.description %}
                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ task.description }}</p>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if task.status == 'running' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif task.status == 'queued' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% elif task.status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
                             {{ task.status|title }}
                         </span>
                     </td>
-                    <td class="px-4 py-3 text-sm">{{ task.started_at.strftime('%H:%M:%S') if task.started_at else 'Not started' }}</td>
-                    <td class="px-4 py-3 text-sm">
+                    <td class="px-4 py-3 text-sm hidden md:table-cell">{{ task.started_at.strftime('%H:%M:%S') if task.started_at else 'Not started' }}</td>
+                    <td class="px-4 py-3 text-sm hidden md:table-cell">
                         {% if task.started_at %}
                         {% set duration = (now - task.started_at).total_seconds() %}
                         {{ (duration // 60)|int }}m {{ (duration % 60)|int }}s
@@ -110,7 +110,7 @@
                         -
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if task.progress is not none %}
                         <div class="flex items-center">
                             <div class="w-24 bg-gray-200 rounded-full h-2 dark:bg-gray-700 mr-2">

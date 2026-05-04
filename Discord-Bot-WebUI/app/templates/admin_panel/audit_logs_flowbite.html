@@ -137,28 +137,34 @@
         </button>
     </div>
 
-    <div class="p-6">
+    <div class="p-3 sm:p-6">
         {% if logs.items %}
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
-                        <th scope="col" class="px-6 py-3">Timestamp</th>
-                        <th scope="col" class="px-6 py-3">User</th>
-                        <th scope="col" class="px-6 py-3">Action</th>
-                        <th scope="col" class="px-6 py-3">Resource Type</th>
-                        <th scope="col" class="px-6 py-3">Resource ID</th>
-                        <th scope="col" class="px-6 py-3">Details</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Timestamp</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">User</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Action</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden lg:table-cell">Resource Type</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden xl:table-cell">Resource ID</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Details</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for log in logs.items %}
                     <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4">
                             <span class="whitespace-nowrap text-gray-900 dark:text-white">{{ log.timestamp.strftime('%Y-%m-%d') }}</span><br>
                             <span class="text-xs text-gray-500 dark:text-gray-400">{{ log.timestamp.strftime('%H:%M:%S') }}</span>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 md:hidden truncate max-w-[120px]">
+                                {% if log.user %}{{ log.user.name or log.user.username or log.user.email }}{% else %}System{% endif %}
+                            </p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 lg:hidden truncate max-w-[120px]">
+                                {% if log.resource_type %}{{ log.resource_type.replace('_', ' ').title() }}{% if log.resource_id %} #{{ log.resource_id }}{% endif %}{% endif %}
+                            </p>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                             {% if log.user %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
                                 {{ log.user.name or log.user.username or log.user.email }}
@@ -167,7 +173,7 @@
                             <span class="text-gray-400 dark:text-gray-500">System</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4">
                             {% if log.action == 'create' %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                                 <i class="ti ti-plus mr-1"></i>{{ log.action }}
@@ -194,15 +200,15 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden lg:table-cell">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
                                 {{ log.resource_type.replace('_', ' ').title() if log.resource_type else 'N/A' }}
                             </span>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden xl:table-cell">
                             <code class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 rounded">{{ log.resource_id or '-' }}</code>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4">
                             <button type="button"
                                     class="js-show-log-details p-2 text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50"
                                     data-action="show-log-details"

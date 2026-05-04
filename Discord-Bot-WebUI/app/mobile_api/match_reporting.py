@@ -1018,10 +1018,20 @@ def report_match(match_id: int):
         # any incoming events), restart the two-coach handshake. We do this BEFORE
         # re-applying any verify_* flags below, so a submitter who verifies in the
         # same request still ends up verified.
+        #
+        # Filter the incoming events list to ones the match doesn't already have
+        # (matched on idempotency_key) — Flutter echoes existing events during
+        # verify/sync flows and a raw truthy check on `events` would otherwise
+        # invalidate the OTHER team's prior verification on every late verify.
         events_data = data.get('events', [])
+        existing_event_keys = {e.idempotency_key for e in match.events if e.idempotency_key}
+        new_events = [
+            e for e in events_data
+            if not e.get('idempotency_key') or e.get('idempotency_key') not in existing_event_keys
+        ]
         score_changed = (old_home_score != home_score) or (old_away_score != away_score)
         notes_changed = bool(notes) and notes != old_notes
-        if score_changed or notes_changed or events_data:
+        if score_changed or notes_changed or new_events:
             if _on_match_modified(session, match, current_user_id):
                 logger.info(f"Match {match_id} verification reset due to report resubmission")
 

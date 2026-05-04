@@ -259,19 +259,19 @@
             <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
-                        <th scope="col" class="px-6 py-3">Notification</th>
-                        <th scope="col" class="px-6 py-3">Target</th>
-                        <th scope="col" class="px-6 py-3">Sent</th>
-                        <th scope="col" class="px-6 py-3">Delivered</th>
-                        <th scope="col" class="px-6 py-3">Clicked</th>
-                        <th scope="col" class="px-6 py-3">Status</th>
-                        <th scope="col" class="px-6 py-3">Actions</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Notification</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Target</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Sent</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Delivered</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Clicked</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Status</th>
+                        <th scope="col" class="px-3 sm:px-6 py-3">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for notification in notification_history %}
                     <tr class="notification-row bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700" data-status="{{ notification.status or 'sent' }}">
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4">
                             <div class="font-medium text-gray-900 dark:text-white">{{ notification.title }}</div>
                             <div class="text-xs text-gray-500 dark:text-gray-400">{{ notification.body[:40] }}...</div>
                             {% if notification.priority == 'urgent' %}
@@ -280,32 +280,32 @@
                             <span class="inline-flex items-center px-2 py-0.5 mt-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">High Priority</span>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ notification.target_audience|title }}</span>
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ notification.target_count or 0 }} recipients</div>
                         </td>
-                        <td class="px-6 py-4 text-xs">
+                        <td class="px-3 sm:px-6 py-4 text-xs hidden md:table-cell">
                             {{ notification.sent_at.strftime('%Y-%m-%d %H:%M') if notification.sent_at else 'Not sent' }}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ notification.delivered_count or 0 }}</span>
                             {% if notification.target_count and notification.target_count > 0 %}
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ ((notification.delivered_count or 0) / notification.target_count * 100)|round(1) }}%</div>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ notification.clicked_count or 0 }}</span>
                             {% if notification.delivered_count and notification.delivered_count > 0 %}
                             <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ ((notification.clicked_count or 0) / notification.delivered_count * 100)|round(1) }}%</div>
                             {% endif %}
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                             {% set status = notification.status or 'sent' %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if status == 'sent' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif status == 'failed' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif status == 'scheduled' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
                                 {{ status|title }}
                             </span>
                         </td>
-                        <td class="px-6 py-4">
+                        <td class="px-3 sm:px-6 py-4">
                             <div class="flex items-center gap-1">
                                 <button class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-blue-900/50"
                                         onclick="viewNotificationDetails('{{ notification.id }}', '{{ notification.title|e }}')" title="View">

@@ -192,42 +192,51 @@
     <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
-                <th scope="col" class="px-4 py-3 w-10">
+                <th scope="col" class="px-2 sm:px-4 py-3 w-10">
                     <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
                 </th>
-                <th scope="col" class="px-6 py-3">Player</th>
-                <th scope="col" class="px-6 py-3">Email</th>
-                <th scope="col" class="px-6 py-3">Roles</th>
-                <th scope="col" class="px-6 py-3">League/Team</th>
-                <th scope="col" class="px-6 py-3">Status</th>
-                <th scope="col" class="px-6 py-3">Joined</th>
-                <th scope="col" class="px-6 py-3 w-24">Actions</th>
+                <th scope="col" class="px-3 sm:px-6 py-3">Player</th>
+                <th scope="col" class="px-3 sm:px-6 py-3 hidden lg:table-cell">Email</th>
+                <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Roles</th>
+                <th scope="col" class="px-3 sm:px-6 py-3 hidden xl:table-cell">League/Team</th>
+                <th scope="col" class="px-3 sm:px-6 py-3 hidden sm:table-cell">Status</th>
+                <th scope="col" class="px-3 sm:px-6 py-3 hidden xl:table-cell">Joined</th>
+                <th scope="col" class="px-3 sm:px-6 py-3 w-12 sm:w-24">Actions</th>
             </tr>
         </thead>
         <tbody>
             {% for user in users %}
             <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                <td class="px-4 py-4">
+                <td class="px-2 sm:px-4 py-4">
                     <input type="checkbox" class="user-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}">
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-3 sm:px-6 py-4">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center mr-3">
                             {% set display_name = user.player.name if user.player and user.player.name else user.username %}
                             <span class="text-white font-bold">{{ display_name[0].upper() }}</span>
                         </div>
-                        <div>
+                        <div class="min-w-0">
                             {% if user.player and user.player.name %}
-                            <p class="font-medium text-gray-900 dark:text-white">{{ user.player.name }}</p>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.username }}</p>
+                            <p class="font-medium text-gray-900 dark:text-white truncate">{{ user.player.name }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.username }}</p>
                             {% else %}
-                            <p class="font-medium text-gray-900 dark:text-white">{{ user.username }}</p>
+                            <p class="font-medium text-gray-900 dark:text-white truncate">{{ user.username }}</p>
                             {% endif %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate lg:hidden max-w-[180px]">{{ user.email }}</p>
+                            <div class="flex flex-wrap gap-1 mt-1 md:hidden">
+                                {% for role in user.roles[:2] %}
+                                <span class="inline-flex items-center px-1.5 py-0 rounded text-[10px] font-medium {% if 'admin' in role.name.lower() %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif 'coach' in role.name.lower() %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                                    {{ role.name }}
+                                </span>
+                                {% endfor %}
+                                {% if user.roles|length > 2 %}<span class="text-[10px] text-gray-400">+{{ user.roles|length - 2 }}</span>{% endif %}
+                            </div>
                         </div>
                     </div>
                 </td>
-                <td class="px-6 py-4">{{ user.email }}</td>
-                <td class="px-6 py-4">
+                <td class="px-3 sm:px-6 py-4 hidden lg:table-cell">{{ user.email }}</td>
+                <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                     <div class="flex flex-wrap gap-1">
                         {% for role in user.roles %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if 'admin' in role.name.lower() %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% elif 'coach' in role.name.lower() %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
@@ -239,7 +248,7 @@
                         {% endif %}
                     </div>
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-3 sm:px-6 py-4 hidden xl:table-cell">
                     {% if user.player %}
                         {# Show all leagues (primary + other) #}
                         {% set all_leagues = [] %}
@@ -274,7 +283,7 @@
                     <span class="text-gray-400">-</span>
                     {% endif %}
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-3 sm:px-6 py-4 hidden sm:table-cell">
                     <div class="flex flex-wrap gap-1">
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if user.is_approved %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300{% endif %}">
                             {{ 'Approved' if user.is_approved else 'Pending' }}
@@ -284,14 +293,14 @@
                         </span>
                     </div>
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-3 sm:px-6 py-4 hidden xl:table-cell">
                     {% if user.created_at %}
                     <span class="text-xs">{{ user.created_at.strftime('%Y-%m-%d') }}</span>
                     {% else %}
                     <span class="text-gray-400">-</span>
                     {% endif %}
                 </td>
-                <td class="px-6 py-4">
+                <td class="px-3 sm:px-6 py-4">
                     <button type="button" id="userActionsBtn{{ user.id }}" data-dropdown-toggle="userActionsDropdown{{ user.id }}" class="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">
                         <i class="ti ti-dots-vertical"></i>
                     </button>

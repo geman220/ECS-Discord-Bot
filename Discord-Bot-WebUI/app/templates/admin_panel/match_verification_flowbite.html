@@ -136,12 +136,12 @@
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
                     <th scope="col" class="px-4 py-3">Week</th>
-                    <th scope="col" class="px-4 py-3">Date</th>
-                    <th scope="col" class="px-4 py-3">Match</th>
-                    <th scope="col" class="px-4 py-3">Score</th>
-                    <th scope="col" class="px-4 py-3">Home Verification</th>
-                    <th scope="col" class="px-4 py-3">Away Verification</th>
-                    <th scope="col" class="px-4 py-3">Status</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Date</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Match</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Score</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Home Verification</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Away Verification</th>
+                    <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
                     <th scope="col" class="px-4 py-3">Actions</th>
                 </tr>
             </thead>
@@ -155,23 +155,23 @@
                         <span class="text-gray-400">-</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <div class="text-sm">{{ match.date.strftime('%m/%d') if match.date else 'TBD' }}</div>
                         <div class="text-xs text-gray-400">{{ match.time.strftime('%I:%M %p') if match.time else '' }}</div>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         <div class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</div>
                         <div class="text-xs text-gray-400">vs</div>
                         <div class="font-medium text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</div>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if match.home_team_score is not none and match.away_team_score is not none %}
                         <span class="font-bold text-gray-900 dark:text-white">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
                         {% else %}
                         <span class="text-gray-400">Not reported</span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if match.home_team_verified %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                             <i class="ti ti-check mr-1"></i>Verified
@@ -186,7 +186,7 @@
                         </span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if match.away_team_verified %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
                             <i class="ti ti-check mr-1"></i>Verified
@@ -201,7 +201,7 @@
                         </span>
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-4 py-3 hidden md:table-cell">
                         {% if match.home_team_verified and match.away_team_verified %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Fully Verified</span>
                         {% elif match.home_team_verified or match.away_team_verified %}

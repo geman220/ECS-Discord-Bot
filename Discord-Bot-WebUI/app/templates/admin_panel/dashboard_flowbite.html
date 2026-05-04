@@ -75,7 +75,7 @@
     </div>
 
     <!-- Row 2: Quick Actions -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Pub League Quick Links -->
         {% call card(title="Pub League", subtitle="Season and team management") %}
         <div class="space-y-1">
@@ -166,25 +166,26 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-4 py-3">Date</th>
-                    <th scope="col" class="px-4 py-3">Home</th>
-                    <th scope="col" class="px-4 py-3">Away</th>
-                    <th scope="col" class="px-4 py-3">Time</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3">Date</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3">Home</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3">Away</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 hidden sm:table-cell">Time</th>
                 </tr>
             </thead>
             <tbody>
                 {% for match in upcoming_matches %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td class="px-4 py-3 whitespace-nowrap">
+                    <td class="px-3 sm:px-4 py-3 whitespace-nowrap align-top">
                         <span class="text-sm font-medium text-gray-900 dark:text-white">{{ match.date.strftime('%b %d') if match.date else 'TBD' }}</span>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 sm:hidden whitespace-nowrap">{{ match.time.strftime('%I:%M %p') if match.time else '' }}</p>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-3 sm:px-4 py-3">
                         <span class="text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-3 sm:px-4 py-3">
                         <span class="text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
                     </td>
-                    <td class="px-4 py-3 whitespace-nowrap">
+                    <td class="px-3 sm:px-4 py-3 whitespace-nowrap hidden sm:table-cell">
                         <span class="text-xs text-gray-500 dark:text-gray-400">{{ match.time.strftime('%I:%M %p') if match.time else 'TBD' }}</span>
                     </td>
                 </tr>
@@ -216,27 +217,30 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-4 py-3">Time</th>
-                    <th scope="col" class="px-4 py-3">User</th>
-                    <th scope="col" class="px-4 py-3">Action</th>
-                    <th scope="col" class="px-4 py-3">Resource</th>
-                    <th scope="col" class="px-4 py-3">Details</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3">Time</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 hidden md:table-cell">User</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3">Action</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 hidden lg:table-cell">Resource</th>
+                    <th scope="col" class="px-3 sm:px-4 py-3 hidden lg:table-cell">Details</th>
                 </tr>
             </thead>
             <tbody>
                 {% for action in recent_actions[:5] %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td class="px-4 py-3 whitespace-nowrap">
+                    <td class="px-3 sm:px-4 py-3 whitespace-nowrap align-top">
                         <span class="text-xs text-gray-500 dark:text-gray-400">{{ action.timestamp.strftime('%m/%d %H:%M') }}</span>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 md:hidden truncate max-w-[100px]">
+                            {% if action.user %}{{ action.user.name or action.user.username }}{% else %}User {{ action.user_id }}{% endif %}
+                        </p>
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-3 sm:px-4 py-3 hidden md:table-cell">
                         {% if action.user %}
                             {{ action.user.name or action.user.username }}
                         {% else %}
                             User {{ action.user_id }}
                         {% endif %}
                     </td>
-                    <td class="px-4 py-3">
+                    <td class="px-3 sm:px-4 py-3 align-top">
                         {% if action.action == 'toggle' %}
                             {{ badge('Toggle', variant='info') }}
                         {% elif action.action == 'update' %}
@@ -248,9 +252,12 @@
                         {% else %}
                             {{ badge(action.action|title, variant='default') }}
                         {% endif %}
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 lg:hidden truncate max-w-[140px]">
+                            {{ action.resource_type }}{% if action.resource_id %} #{{ action.resource_id }}{% endif %}
+                        </p>
                     </td>
-                    <td class="px-4 py-3">{{ action.resource_type }}</td>
-                    <td class="px-4 py-3">
+                    <td class="px-3 sm:px-4 py-3 hidden lg:table-cell">{{ action.resource_type }}</td>
+                    <td class="px-3 sm:px-4 py-3 hidden lg:table-cell">
                         <span class="text-xs">
                             {% if action.resource_id %}{{ action.resource_id }}{% endif %}
                             {% if action.old_value and action.new_value %}

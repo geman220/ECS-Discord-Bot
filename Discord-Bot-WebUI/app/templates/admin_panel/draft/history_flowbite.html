@@ -115,10 +115,10 @@
                         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                             <tr>
                                 <th scope="col" class="px-4 py-3 w-16">Pick #</th>
-                                <th scope="col" class="px-4 py-3">Player</th>
-                                <th scope="col" class="px-4 py-3">Team</th>
-                                <th scope="col" class="px-4 py-3">Drafted By</th>
-                                <th scope="col" class="px-4 py-3">Notes</th>
+                                <th scope="col" class="px-4 py-3 hidden md:table-cell">Player</th>
+                                <th scope="col" class="px-4 py-3 hidden md:table-cell">Team</th>
+                                <th scope="col" class="px-4 py-3 hidden md:table-cell">Drafted By</th>
+                                <th scope="col" class="px-4 py-3 hidden md:table-cell">Notes</th>
                                 <th scope="col" class="px-4 py-3 w-24">Actions</th>
                             </tr>
                         </thead>
@@ -128,10 +128,10 @@
                                 <td class="px-4 py-3">
                                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ pick.draft_position }}</span>
                                 </td>
-                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ pick.player.name if pick.player else 'Unknown' }}</td>
-                                <td class="px-4 py-3">{{ pick.team.name if pick.team else 'Unknown' }}</td>
-                                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{{ pick.drafter.username if pick.drafter else 'System' }}</td>
-                                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{{ pick.notes|truncate(30) if pick.notes else '-' }}</td>
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white hidden md:table-cell">{{ pick.player.name if pick.player else 'Unknown' }}</td>
+                                <td class="px-4 py-3 hidden md:table-cell">{{ pick.team.name if pick.team else 'Unknown' }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ pick.drafter.username if pick.drafter else 'System' }}</td>
+                                <td class="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ pick.notes|truncate(30) if pick.notes else '-' }}</td>
                                 <td class="px-4 py-3">
                                     <div class="flex items-center gap-1">
                                         <button type="button" class="p-1.5 text-blue-600 bg-blue-50 border border-blue-200 rounded hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800" data-action="edit-pick" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}" title="Edit">

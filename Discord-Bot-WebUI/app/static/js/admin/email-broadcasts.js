@@ -820,18 +820,28 @@ function initTinyMCE() {
     if (!document.getElementById('emailBody')) return;
 
     const isDark = document.documentElement.classList.contains('dark');
+    const isPhone = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
 
     window.tinymce.init({
         selector: '#emailBody',
-        height: 400,
+        width: '100%',
+        height: isPhone ? 280 : 400,
         menubar: false,
         plugins: 'lists link image table code wordcount autolink',
-        toolbar: 'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image table | inserttokens | code',
+        toolbar: isPhone
+            ? 'undo redo | bold italic | bullist numlist | link inserttokens'
+            : 'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image table | inserttokens | code',
+        toolbar_mode: 'sliding',
         content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
         skin: isDark ? 'oxide-dark' : 'oxide',
         content_css: isDark ? 'dark' : 'default',
         branding: false,
         promotion: false,
+        mobile: {
+            menubar: false,
+            toolbar: 'undo redo | bold italic | bullist numlist | link inserttokens',
+            toolbar_mode: 'sliding'
+        },
         setup: function(editor) {
             // Custom "Insert Token" menu button
             editor.ui.registry.addMenuButton('inserttokens', {

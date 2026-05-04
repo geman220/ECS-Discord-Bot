@@ -60,27 +60,27 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-6 py-3">Team</th>
-                    <th scope="col" class="px-6 py-3">Date</th>
-                    <th scope="col" class="px-6 py-3">Time</th>
-                    <th scope="col" class="px-6 py-3">Opponent</th>
-                    <th scope="col" class="px-6 py-3">Location</th>
-                    <th scope="col" class="px-6 py-3">RSVP</th>
-                    <th scope="col" class="px-6 py-3">Status</th>
-                    <th scope="col" class="px-6 py-3">Actions</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Team</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Date</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Time</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Opponent</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Location</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">RSVP</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Status</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for match in matches %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4">
                         <a href="{{ url_for('admin_panel.ecs_fc_team_schedule', team_id=match.team_id) }}" class="text-blue-600 hover:underline dark:text-blue-400">
                             {{ match.team.name }}
                         </a>
                     </td>
-                    <td class="px-6 py-4">{{ match.match_date.strftime('%a, %b %d') }}</td>
-                    <td class="px-6 py-4">{{ match.match_time.strftime('%I:%M %p') }}</td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ match.match_date.strftime('%a, %b %d') }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ match.match_time.strftime('%I:%M %p') }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         {% if match.is_home_match %}
                         <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300 mr-1">H</span>
                         {% else %}
@@ -88,20 +88,20 @@
                         {% endif %}
                         {{ match.opponent_name }}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <div>{{ match.location }}</div>
                         {% if match.field_name %}
                         <div class="text-xs text-gray-400">{{ match.field_name }}</div>
                         {% endif %}
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="inline-flex gap-1">
                             <span class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
                             <span class="px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
                             <span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
                         </a>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
                         <span class="px-2.5 py-0.5 text-xs font-medium rounded
                             {% if match.status_color == 'success' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
                             {% elif match.status_color == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
@@ -110,7 +110,7 @@
                             <i class="{{ match.status_icon }} mr-1"></i>{{ match.status }}
                         </span>
                     </td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4">
                         <div class="flex gap-1">
                             <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
                                class="p-2 text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-gray-700" title="View RSVP">

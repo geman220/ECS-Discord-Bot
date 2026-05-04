@@ -1,0 +1,10 @@
+auth.json
+screenshots/
+screenshots-before-fix/
+test-results/
+playwright-report/
+audit-report.json
+audit-report.md
+audit-report.jsonl
+.audit-report-rows/
+.env.test

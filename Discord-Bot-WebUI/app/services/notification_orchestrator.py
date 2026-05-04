@@ -79,10 +79,11 @@ class NotificationType(Enum):
     DIRECT_MESSAGE = 'direct_message'
 
     # Feedback-related
-    FEEDBACK_NEW = 'feedback_new'
-    FEEDBACK_REPLY = 'feedback_reply'
-    FEEDBACK_STATUS_CHANGE = 'feedback_status_change'
-    FEEDBACK_CLOSED = 'feedback_closed'
+    FEEDBACK_NEW = 'feedback_new'                       # admin recipients (new ticket fan-out)
+    FEEDBACK_REPLY = 'feedback_reply'                   # owner recipient (admin replied)
+    FEEDBACK_REPLY_FROM_USER = 'feedback_reply_from_user'  # admin recipients (owner replied to existing ticket)
+    FEEDBACK_STATUS_CHANGE = 'feedback_status_change'   # owner recipient
+    FEEDBACK_CLOSED = 'feedback_closed'                 # owner recipient
 
     # iSpy
     ISPY_SPOTTED = 'ispy_spotted'
@@ -151,6 +152,7 @@ NOTIFICATION_ICONS = {
     NotificationType.DIRECT_MESSAGE: 'ti ti-message-circle',
     NotificationType.FEEDBACK_NEW: 'ti ti-message-plus',
     NotificationType.FEEDBACK_REPLY: 'ti ti-message-reply',
+    NotificationType.FEEDBACK_REPLY_FROM_USER: 'ti ti-message-dots',
     NotificationType.FEEDBACK_STATUS_CHANGE: 'ti ti-exchange',
     NotificationType.FEEDBACK_CLOSED: 'ti ti-message-off',
 }
@@ -529,6 +531,8 @@ class NotificationOrchestrator:
                 'team_updates': getattr(user, 'team_update_notifications', True),
                 'announcements': getattr(user, 'announcement_notifications', True),
                 'dm_notifications': getattr(user, 'dm_notifications', True),
+                'feedback_updates': getattr(user, 'feedback_update_notifications', True),
+                'feedback_alerts': getattr(user, 'feedback_alert_notifications', True),
             }
 
         return result
@@ -576,6 +580,17 @@ class NotificationOrchestrator:
         if notification_type == NotificationType.DIRECT_MESSAGE:
             return preferences.get('dm_notifications', True)
 
+        if notification_type in (NotificationType.FEEDBACK_NEW,
+                                  NotificationType.FEEDBACK_REPLY_FROM_USER):
+            # Admin-side fan-out events
+            return preferences.get('feedback_alerts', True)
+
+        if notification_type in (NotificationType.FEEDBACK_REPLY,
+                                  NotificationType.FEEDBACK_STATUS_CHANGE,
+                                  NotificationType.FEEDBACK_CLOSED):
+            # Owner-side update events
+            return preferences.get('feedback_updates', True)
+
         # Default: send
         return True
 
@@ -618,6 +633,17 @@ class NotificationOrchestrator:
 
         if notification_type == NotificationType.DIRECT_MESSAGE:
             return preferences.get('dm_notifications', True)
+
+        if notification_type in (NotificationType.FEEDBACK_NEW,
+                                  NotificationType.FEEDBACK_REPLY_FROM_USER):
+            # Admin-side fan-out events
+            return preferences.get('feedback_alerts', True)
+
+        if notification_type in (NotificationType.FEEDBACK_REPLY,
+                                  NotificationType.FEEDBACK_STATUS_CHANGE,
+                                  NotificationType.FEEDBACK_CLOSED):
+            # Owner-side update events
+            return preferences.get('feedback_updates', True)
 
         # Default: send
         return True

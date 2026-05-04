@@ -139,10 +139,10 @@
                 <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                     <tr>
                         <th scope="col" class="px-4 py-3">Blueprint</th>
-                        <th scope="col" class="px-4 py-3">Total</th>
-                        <th scope="col" class="px-4 py-3">Active</th>
-                        <th scope="col" class="px-4 py-3">Requests</th>
-                        <th scope="col" class="px-4 py-3">Avg Response</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Total</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Active</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Requests</th>
+                        <th scope="col" class="px-4 py-3 hidden md:table-cell">Avg Response</th>
                         <th scope="col" class="px-4 py-3">Health</th>
                     </tr>
                 </thead>
@@ -150,10 +150,10 @@
                     {% for blueprint, blueprint_stats in stats.endpoint_breakdown.items() %}
                     <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                         <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ blueprint }}</td>
-                        <td class="px-4 py-3">{{ blueprint_stats.count }}</td>
-                        <td class="px-4 py-3">{{ blueprint_stats.active }}</td>
-                        <td class="px-4 py-3">{{ "{:,}".format(blueprint_stats.total_requests) }}</td>
-                        <td class="px-4 py-3">{{ "%.3f"|format(blueprint_stats.avg_response_time) }}s</td>
+                        <td class="px-4 py-3 hidden md:table-cell">{{ blueprint_stats.count }}</td>
+                        <td class="px-4 py-3 hidden md:table-cell">{{ blueprint_stats.active }}</td>
+                        <td class="px-4 py-3 hidden md:table-cell">{{ "{:,}".format(blueprint_stats.total_requests) }}</td>
+                        <td class="px-4 py-3 hidden md:table-cell">{{ "%.3f"|format(blueprint_stats.avg_response_time) }}s</td>
                         <td class="px-4 py-3">
                             {% set health_score = (blueprint_stats.active / blueprint_stats.count) * 100 if blueprint_stats.count > 0 else 0 %}
                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if health_score > 80 else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if health_score > 60 else 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' }}">
@@ -210,11 +210,11 @@
         <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
             <tr>
                 <th scope="col" class="px-4 py-3">Endpoint</th>
-                <th scope="col" class="px-4 py-3">Blueprint</th>
-                <th scope="col" class="px-4 py-3">Methods</th>
-                <th scope="col" class="px-4 py-3">Requests</th>
-                <th scope="col" class="px-4 py-3">Avg Response</th>
-                <th scope="col" class="px-4 py-3">Status</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Blueprint</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Methods</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Requests</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Avg Response</th>
+                <th scope="col" class="px-4 py-3 hidden md:table-cell">Status</th>
                 <th scope="col" class="px-4 py-3">Actions</th>
             </tr>
         </thead>
@@ -227,19 +227,19 @@
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ endpoint.description }}</p>
                     {% endif %}
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ endpoint.blueprint }}</span>
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 hidden md:table-cell">
                     <div class="flex flex-wrap gap-1">
                         {% for method in endpoint.methods %}
                         <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if method == 'GET' else 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if method == 'POST' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if method == 'PUT' else 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300' if method == 'DELETE' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ method }}</span>
                         {% endfor %}
                     </div>
                 </td>
-                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ "{:,}".format(endpoint.request_count) }}</td>
-                <td class="px-4 py-3">{{ "%.3f"|format(endpoint.avg_response_time) }}s</td>
-                <td class="px-4 py-3">
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white hidden md:table-cell">{{ "{:,}".format(endpoint.request_count) }}</td>
+                <td class="px-4 py-3 hidden md:table-cell">{{ "%.3f"|format(endpoint.avg_response_time) }}s</td>
+                <td class="px-4 py-3 hidden md:table-cell">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if endpoint.status == 'active' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">{{ endpoint.status }}</span>
                 </td>
                 <td class="px-4 py-3">

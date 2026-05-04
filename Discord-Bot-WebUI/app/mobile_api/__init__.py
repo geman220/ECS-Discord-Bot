@@ -35,6 +35,7 @@ This package provides RESTful API endpoints for mobile clients, organized by dom
 - live_activity: iOS Live Activity push token register/unregister
 - check_in: Match check-in (member lookup, self check-in, coach scan, roster)
 - points_events: Admin-awarded participation points for non-match events
+- admin_feedback: Global Admin management of user feedback tickets (list, reply, status, bulk)
 
 All endpoints are CSRF-exempt and use JWT authentication where required.
 """
@@ -89,6 +90,7 @@ def register_mobile_api_routes():
         live_activity,
         check_in,
         points_events,
+        admin_feedback,
     )
 
 

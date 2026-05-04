@@ -195,17 +195,17 @@
         <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
             <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
                 <tr>
-                    <th scope="col" class="px-6 py-3">Rank</th>
-                    <th scope="col" class="px-6 py-3">Customer</th>
-                    <th scope="col" class="px-6 py-3">Orders</th>
-                    <th scope="col" class="px-6 py-3">Total Items</th>
-                    <th scope="col" class="px-6 py-3">Activity</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Rank</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Customer</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Orders</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3 hidden md:table-cell">Total Items</th>
+                    <th scope="col" class="px-3 sm:px-6 py-3">Activity</th>
                 </tr>
             </thead>
             <tbody>
                 {% for customer in analytics.top_customers %}
                 <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4">
                         <div class="flex items-center">
                             {% if loop.index == 1 %}
                             <i class="ti ti-trophy text-yellow-500 mr-1"></i>
@@ -217,10 +217,10 @@
                             <span class="font-medium text-gray-900 dark:text-white">#{{ loop.index }}</span>
                         </div>
                     </td>
-                    <td class="px-6 py-4 font-medium text-gray-900 dark:text-white">{{ customer.username }}</td>
-                    <td class="px-6 py-4">{{ customer.orders }}</td>
-                    <td class="px-6 py-4">{{ customer.items }}</td>
-                    <td class="px-6 py-4">
+                    <td class="px-3 sm:px-6 py-4 font-medium text-gray-900 dark:text-white hidden md:table-cell">{{ customer.username }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ customer.orders }}</td>
+                    <td class="px-3 sm:px-6 py-4 hidden md:table-cell">{{ customer.items }}</td>
+                    <td class="px-3 sm:px-6 py-4">
                         <div class="w-24 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
                             <div class="h-2 rounded-full {{ 'bg-yellow-500' if loop.index == 1 else 'bg-blue-500' if loop.index <= 3 else 'bg-ecs-green' }}" style="width: {{ (customer.orders / analytics.top_customers[0].orders * 100)|int }}%"></div>
                         </div>
