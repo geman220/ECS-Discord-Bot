@@ -430,48 +430,6 @@ def get_match_reporting_info(match_id: int):
         }), 200
 
 
-@mobile_api_v2.route('/matches/<int:match_id>/events', methods=['GET'])
-@jwt_required()
-def get_match_events(match_id: int):
-    """
-    Get all events for a match.
-
-    Args:
-        match_id: Match ID
-
-    Returns:
-        JSON with list of match events
-    """
-    with managed_session() as session:
-        match = session.query(Match).options(
-            joinedload(Match.events).joinedload(PlayerEvent.player)
-        ).get(match_id)
-
-        if not match:
-            return jsonify({"msg": "Match not found"}), 404
-
-        events = []
-        for event in match.events:
-            events.append({
-                "id": event.id,
-                "idempotency_key": event.idempotency_key,
-                "event_type": event.event_type.value,
-                "player_id": event.player_id,
-                "player_name": event.player.name if event.player else None,
-                "team_id": event.team_id,
-                "minute": event.minute,
-                "client_timestamp": event.client_timestamp.isoformat() if event.client_timestamp else None,
-                "card_reason": event.card_reason,
-            })
-
-        return jsonify({
-            "match_id": match_id,
-            "events": events,
-            "home_team_score": match.home_team_score,
-            "away_team_score": match.away_team_score
-        }), 200
-
-
 @mobile_api_v2.route('/matches/<int:match_id>/events', methods=['POST'])
 @jwt_required()
 def add_match_event(match_id: int):

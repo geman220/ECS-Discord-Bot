@@ -677,28 +677,57 @@ def get_match_events(match: Match) -> Dict:
         Dict: A dictionary with card counts and detailed events array including player information.
     """
     events = match.events  # Assumes events are already loaded.
+
+    home_team_id = match.home_team_id
+    away_team_id = match.away_team_id
+
+    def _attribution_team_id(event):
+        """
+        Resolve which side of this match an event belongs to. Prefer event.team_id
+        (post team-aware reporting); fall back to player.primary_team_id for
+        legacy rows that pre-date the team_id column being populated. Returns
+        None when neither signal points to home or away.
+        """
+        if event.team_id in (home_team_id, away_team_id):
+            return event.team_id
+        if event.player and event.player.primary_team_id in (home_team_id, away_team_id):
+            return event.player.primary_team_id
+        return None
+
+    def _is_for_team(event, team_id):
+        return _attribution_team_id(event) == team_id
+
     result = {
         'home_yellow_cards': sum(1 for event in events
-                                 if event.event_type == PlayerEventType.YELLOW_CARD 
-                                 and event.player.primary_team_id == match.home_team_id),
+                                 if event.event_type == PlayerEventType.YELLOW_CARD
+                                 and _is_for_team(event, home_team_id)),
         'away_yellow_cards': sum(1 for event in events
-                                 if event.event_type == PlayerEventType.YELLOW_CARD 
-                                 and event.player.primary_team_id == match.away_team_id),
+                                 if event.event_type == PlayerEventType.YELLOW_CARD
+                                 and _is_for_team(event, away_team_id)),
         'home_red_cards': sum(1 for event in events
-                              if event.event_type == PlayerEventType.RED_CARD 
-                              and event.player.primary_team_id == match.home_team_id),
+                              if event.event_type == PlayerEventType.RED_CARD
+                              and _is_for_team(event, home_team_id)),
         'away_red_cards': sum(1 for event in events
-                              if event.event_type == PlayerEventType.RED_CARD 
-                              and event.player.primary_team_id == match.away_team_id),
+                              if event.event_type == PlayerEventType.RED_CARD
+                              and _is_for_team(event, away_team_id)),
         'events': [
             {
                 'id': event.id,
+                'idempotency_key': event.idempotency_key,
                 'player_id': event.player_id,
-                'player_name': event.player.name if event.player else 'Unknown Player',
+                'player_name': event.player.name if event.player else None,
+                # team_id is reported authoritatively (None when unattributed) so
+                # mobile clients can detect missing data; the 'team' string falls
+                # back through player.primary_team_id to keep legacy UIs working.
+                'team_id': event.team_id,
                 'match_id': event.match_id,
                 'minute': event.minute,
-                'event_type': event.event_type.name if event.event_type else None,
-                'team': 'home' if (event.player and event.player.primary_team_id == match.home_team_id) else 'away'
+                'event_type': event.event_type.value if event.event_type else None,
+                'card_reason': event.card_reason,
+                'client_timestamp': event.client_timestamp.isoformat() if event.client_timestamp else None,
+                'team': ('home' if _attribution_team_id(event) == home_team_id
+                         else 'away' if _attribution_team_id(event) == away_team_id
+                         else None),
             }
             for event in events
         ]

@@ -131,34 +131,44 @@ export function setupAndShowModal(matchId, data) {
     const modalId = `reportMatchModal-${matchId}`;
     const modal = document.getElementById(modalId);
 
-    if (!modal) {
-        // Try to load modal from server
-        fetch(`/modals/render_modals?match_ids=${matchId}`, {
-            method: 'GET',
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(response => response.text())
-        .then(modalContent => {
-            const container = document.getElementById('reportMatchModal-container') || document.body;
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = modalContent;
-            while (tempDiv.firstChild) {
-                container.appendChild(tempDiv.firstChild);
-            }
-
-            const modalRecheck = document.getElementById(modalId);
-            if (modalRecheck) {
-                populateModal(modalRecheck, data);
-            } else {
-                createDynamicModal(matchId, data);
-            }
-        })
-        .catch(() => {
-            createDynamicModal(matchId, data);
-        });
-    } else {
+    if (modal) {
         populateModal(modal, data);
+        return;
     }
+
+    // ECS FC IDs (e.g. "ecs_31") get filtered out by /modals/render_modals
+    // because that endpoint's parser only accepts numeric IDs. Skip the
+    // round-trip and build the modal client-side instead.
+    const isEcsFc = typeof matchId === 'string' && matchId.startsWith('ecs_');
+    if (isEcsFc) {
+        createDynamicModal(matchId, data);
+        return;
+    }
+
+    // Pub League: try to load the server-rendered modal for this match.
+    fetch(`/modals/render_modals?match_ids=${matchId}`, {
+        method: 'GET',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(response => response.text())
+    .then(modalContent => {
+        const container = document.getElementById('reportMatchModal-container') || document.body;
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = modalContent;
+        while (tempDiv.firstChild) {
+            container.appendChild(tempDiv.firstChild);
+        }
+
+        const modalRecheck = document.getElementById(modalId);
+        if (modalRecheck) {
+            populateModal(modalRecheck, data);
+        } else {
+            createDynamicModal(matchId, data);
+        }
+    })
+    .catch(() => {
+        createDynamicModal(matchId, data);
+    });
 }
 
 // Attach submit handler using event delegation

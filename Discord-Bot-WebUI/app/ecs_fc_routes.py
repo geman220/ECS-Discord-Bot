@@ -268,8 +268,11 @@ def report_match_get(match_id: int):
             'location': match.location,
             'home_team': home_team_data,
             'away_team': away_team_data,
-            'goals': goals,
-            'assists': assists,
+            # Keys match the Pub League /teams/report_match shape so the shared
+            # match-reporting modal JS (state.js / modal-builder.js) populates the
+            # form correctly for ECS FC matches too.
+            'goal_scorers': goals,
+            'assist_providers': assists,
             'yellow_cards': yellow_cards,
             'red_cards': red_cards,
             'own_goals': own_goals,

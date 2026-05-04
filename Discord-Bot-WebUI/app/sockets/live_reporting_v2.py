@@ -961,7 +961,10 @@ def _dual_write_player_event_pub(session, match_event: MatchEvent, match: Match)
     pe = PlayerEvent(
         player_id=match_event.player_id,
         match_id=match.id,
-        team_id=match_event.team_id if match_event.event_type == 'OWN_GOAL' else None,
+        # MatchEvent always carries team_id (the side that scored / was carded /
+        # owned the own-goal). Propagate it so PlayerEvent rows are attributable
+        # without re-deriving from player.primary_team_id.
+        team_id=match_event.team_id,
         minute=_normalize_minute(match_event.minute),
         event_type=player_event_enum,
         idempotency_key=derived_key,
@@ -1012,7 +1015,8 @@ def _dual_write_player_event_pub(session, match_event: MatchEvent, match: Match)
                 assist_pe = PlayerEvent(
                     player_id=int(assist_player_id),
                     match_id=match.id,
-                    team_id=None,
+                    # The assister is on the same side as the scoring MatchEvent.
+                    team_id=match_event.team_id,
                     minute=_normalize_minute(match_event.minute),
                     event_type=PlayerEventType.ASSIST,
                     idempotency_key=assist_key,
@@ -1053,7 +1057,9 @@ def _dual_write_player_event_ecs_fc(session, match_event: EcsFcMatchEvent) -> Op
     pe = EcsFcPlayerEvent(
         player_id=match_event.player_id,
         ecs_fc_match_id=match_event.match_id,
-        team_id=match_event.team_id if match_event.event_type == 'OWN_GOAL' else None,
+        # Propagate team_id from MatchEvent for all event types (was previously
+        # only set for own goals, leaving regular goals/cards unattributed).
+        team_id=match_event.team_id,
         minute=_normalize_minute(match_event.minute),
         event_type=event_type_value,
         created_by=match_event.reported_by,

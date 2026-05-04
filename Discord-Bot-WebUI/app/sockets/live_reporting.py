@@ -1742,6 +1742,7 @@ def create_player_events_from_match_events(session, match_id):
                 player_event = PlayerEvent(
                     player_id=event.player_id,
                     match_id=match_id,
+                    team_id=event.team_id,  # Propagate from MatchEvent for attribution.
                     minute=str(event.minute) if event.minute else None,
                     event_type=event_type_map[event.event_type],
                     idempotency_key=derived_idempotency_key,
@@ -1776,6 +1777,7 @@ def create_player_events_from_match_events(session, match_id):
                     assist_event = PlayerEvent(
                         player_id=assist_player_id,
                         match_id=match_id,
+                        team_id=event.team_id,  # Assister is on the same side as the goal.
                         minute=str(event.minute) if event.minute else None,
                         event_type=PlayerEventType.ASSIST,
                         idempotency_key=assist_idempotency_key,

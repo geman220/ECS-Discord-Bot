@@ -186,6 +186,45 @@ def process_own_goals(session, match, data, add_key, remove_key):
             logger.info(f"Added new OWN_GOAL for team_id={team_id} at minute {minute}")
 
 
+def _resolve_player_team_for_match(session, player, match, is_sub: bool):
+    """
+    Given a player who is participating in `match`, return the team_id (home or away)
+    they're attributed to for that match.
+
+    Roster players: prefer primary_team_id when it matches; otherwise fall through
+    to player.teams. Temp subs: read the active TemporarySubAssignment row. Returns
+    None as a last resort so callers can still create the event row — Flutter will
+    surface the missing attribution rather than silently swallow it.
+    """
+    home_id = match.home_team_id
+    away_id = match.away_team_id
+
+    if player.primary_team_id in (home_id, away_id):
+        return player.primary_team_id
+
+    player_team_ids = {t.id for t in player.teams}
+    if home_id in player_team_ids:
+        return home_id
+    if away_id in player_team_ids:
+        return away_id
+
+    if is_sub:
+        from app.models.matches import TemporarySubAssignment
+        sub_assignment = session.query(TemporarySubAssignment).filter_by(
+            match_id=match.id,
+            player_id=player.id,
+            is_active=True,
+        ).first()
+        if sub_assignment and sub_assignment.team_id in (home_id, away_id):
+            return sub_assignment.team_id
+
+    logger.warning(
+        f"Could not attribute player_id={player.id} to a side for match_id={match.id}; "
+        f"event will be created with team_id=NULL"
+    )
+    return None
+
+
 def process_events(session, match, data, event_type, add_key, remove_key):
     """
     Process player events for a match: remove and add/update events.
@@ -239,6 +278,11 @@ def process_events(session, match, data, event_type, add_key, remove_key):
         if not is_sub:
             is_sub = is_player_temp_sub_for_match(player_id, match.id, session=session)
 
+        # Resolve which side of the match this event attributes to. Mobile clients
+        # rely on event.team_id to render score breakdowns and validate
+        # report-vs-events parity, so every PlayerEvent created here must carry it.
+        event_team_id = _resolve_player_team_for_match(session, player, match, is_sub)
+
         if stat_id:
             event = session.query(PlayerEvent).get(stat_id)
             if event:
@@ -250,6 +294,9 @@ def process_events(session, match, data, event_type, add_key, remove_key):
                     event.player_id = player_id
                     event.is_sub_event = is_sub
                 event.minute = minute
+                # Backfill team_id on existing rows that pre-date team-aware reporting.
+                if event_team_id is not None and event.team_id != event_team_id:
+                    event.team_id = event_team_id
                 logger.info(f"Updated {event_type.name}: Stat ID {stat_id}")
             else:
                 logger.warning(f"Event with Stat ID {stat_id} not found.")
@@ -258,6 +305,7 @@ def process_events(session, match, data, event_type, add_key, remove_key):
             new_event = PlayerEvent(
                 player_id=player_id,
                 match_id=match.id,
+                team_id=event_team_id,
                 minute=minute,
                 event_type=event_type,
                 is_sub_event=is_sub

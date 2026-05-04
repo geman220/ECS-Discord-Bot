@@ -249,15 +249,13 @@ export function populateModal(modal, data) {
     // Initialize player choices for this match
     initializePlayerChoices(matchId, data);
 
-    // Check if player data is available
+    // Player choices may be empty for ECS FC matches (external opponent has no
+    // tracked players) or for matches with unfinished rosters. Don't block the
+    // modal — the user may just need to set scores or remove an existing event.
+    // The "add event" UI surfaces a clearer error if players are genuinely needed.
     const playerChoices = getPlayerChoices(matchId);
     if (Object.keys(playerChoices).length === 0) {
-        window.Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Match data is not loaded yet. Please try again in a moment.'
-        });
-        return;
+        console.warn(`[populateModal] No player choices loaded for match ${matchId}; opening anyway`);
     }
 
     // Set form values
