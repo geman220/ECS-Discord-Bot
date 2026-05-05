@@ -11,9 +11,9 @@ validated inputs and dynamic form generation based on the application's needs.
 
 from flask_wtf import FlaskForm
 from wtforms import (
-    StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField, 
-    SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList, 
-    FormField, EmailField
+    StringField, PasswordField, BooleanField, SubmitField, SelectMultipleField,
+    SelectField, TextAreaField, IntegerField, FileField, HiddenField, FieldList,
+    FormField, EmailField, DateField
 )
 from wtforms.validators import (
     DataRequired, Email, EqualTo, ValidationError, Optional, Length, Regexp, 
@@ -86,6 +86,7 @@ class OnboardingForm(FlaskForm):
     profile_picture = FileField('Profile Picture', validators=[Optional()])
 
     pronouns = SelectField('Preferred Pronouns', choices=pronoun_choices, validators=[Optional()])
+    date_of_birth = DateField('Date of Birth', validators=[Optional()])
     expected_weeks_available = SelectField('Expected Availability (Weeks)', choices=availability_choices, validators=[Optional()])
     unavailable_dates = StringField('Unavailable Dates', validators=[Optional()])
     willing_to_referee = SelectField('Interested in Refereeing?', choices=willing_to_referee_choices, validators=[Optional()])
@@ -180,6 +181,7 @@ class PlayerProfileForm(FlaskForm):
     edit_career_stats = HiddenField(default='false')
 
     pronouns = SelectField('Preferred Pronouns', choices=pronoun_choices, validators=[Optional()])
+    date_of_birth = DateField('Date of Birth', validators=[Optional()])
     expected_weeks_available = SelectField('Expected Availability (Weeks)', choices=availability_choices, validators=[Optional()])
     unavailable_dates = StringField('Unavailable Dates', validators=[Optional()])
     willing_to_referee = SelectField('Interested in Refereeing?', choices=willing_to_referee_choices, validators=[Optional()])

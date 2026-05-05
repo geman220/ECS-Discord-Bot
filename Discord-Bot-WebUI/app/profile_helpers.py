@@ -241,6 +241,7 @@ def handle_profile_update(form, player, user):
         player.phone = form.phone.data.strip() if form.phone.data else player.phone
         player.jersey_size = form.jersey_size.data
         player.pronouns = form.pronouns.data
+        player.date_of_birth = form.date_of_birth.data
         player.expected_weeks_available = form.expected_weeks_available.data
         player.favorite_position = form.favorite_position.data
         player.frequency_play_goal = form.frequency_play_goal.data
@@ -555,6 +556,7 @@ def handle_profile_update_mobile(form, player, user):
         player.phone = form.phone.data.strip() if form.phone.data else player.phone
         player.jersey_size = form.jersey_size.data
         player.pronouns = form.pronouns.data
+        player.date_of_birth = form.date_of_birth.data
         player.expected_weeks_available = form.expected_weeks_available.data
         player.favorite_position = form.favorite_position.data
         player.frequency_play_goal = form.frequency_play_goal.data
@@ -617,6 +619,7 @@ def handle_wizard_completion(form, player, user):
         player.phone = form.phone.data.strip() if form.phone.data else player.phone
         player.jersey_size = form.jersey_size.data
         player.pronouns = form.pronouns.data
+        player.date_of_birth = form.date_of_birth.data
         player.expected_weeks_available = form.expected_weeks_available.data
         player.favorite_position = form.favorite_position.data
         player.frequency_play_goal = form.frequency_play_goal.data

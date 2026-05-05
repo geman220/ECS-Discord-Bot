@@ -411,6 +411,14 @@
                                         {{ form.jersey_size(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white") }}
                                     </div>
                                 </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Birth</label>
+                                    <div class="view-mode text-gray-900 dark:text-white py-2">{{ player.date_of_birth.strftime('%B %d, %Y') if player.date_of_birth else 'Not set' }}</div>
+                                    <div class="edit-mode hidden">
+                                        {{ form.date_of_birth(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white", type="date") }}
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional &mdash; only used so we can wish you a happy birthday.</p>
+                                    </div>
+                                </div>
                             </div>
                             <div class="edit-mode hidden mt-4 flex gap-2">
                                 <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-action="cancel-edit" data-section="contact-info">Cancel</button>

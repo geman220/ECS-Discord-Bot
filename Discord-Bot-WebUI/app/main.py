@@ -197,6 +197,7 @@ def create_player_profile(onboarding_form):
             jersey_number=onboarding_form.jersey_number.data,
             profile_picture_url=None,
             pronouns=onboarding_form.pronouns.data,
+            date_of_birth=onboarding_form.date_of_birth.data,
             expected_weeks_available=onboarding_form.expected_weeks_available.data,
             unavailable_dates=onboarding_form.unavailable_dates.data,
             willing_to_referee=onboarding_form.willing_to_referee.data,
@@ -289,6 +290,7 @@ def handle_profile_update(player, onboarding_form):
         player.jersey_size = onboarding_form.jersey_size.data
         player.jersey_number = onboarding_form.jersey_number.data
         player.pronouns = onboarding_form.pronouns.data
+        player.date_of_birth = onboarding_form.date_of_birth.data
         player.favorite_position = onboarding_form.favorite_position.data
         player.expected_weeks_available = onboarding_form.expected_weeks_available.data
         player.unavailable_dates = onboarding_form.unavailable_dates.data

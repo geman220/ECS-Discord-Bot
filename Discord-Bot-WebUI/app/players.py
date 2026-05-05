@@ -1094,6 +1094,16 @@ def wizard_profile_update(player_id):
         player.phone = request.form.get('phone', player.phone)
         player.jersey_size = request.form.get('jersey_size', player.jersey_size)
         player.pronouns = request.form.get('pronouns', player.pronouns)
+        if 'date_of_birth' in request.form:
+            raw_dob = request.form.get('date_of_birth', '').strip()
+            if raw_dob:
+                from datetime import date as _date
+                try:
+                    player.date_of_birth = _date.fromisoformat(raw_dob)
+                except ValueError:
+                    logger.warning(f"Ignoring invalid date_of_birth from wizard: {raw_dob!r}")
+            else:
+                player.date_of_birth = None
         player.favorite_position = request.form.get('favorite_position', player.favorite_position)
         player.frequency_play_goal = request.form.get('frequency_play_goal', player.frequency_play_goal)
         player.expected_weeks_available = request.form.get('expected_weeks_available', player.expected_weeks_available)
@@ -1190,6 +1200,16 @@ def wizard_auto_save(player_id):
             player.jersey_size = data['jersey_size']
         if 'pronouns' in data:
             player.pronouns = data['pronouns']
+        if 'date_of_birth' in data:
+            raw_dob = data['date_of_birth']
+            if raw_dob in (None, ''):
+                player.date_of_birth = None
+            else:
+                from datetime import date as _date
+                try:
+                    player.date_of_birth = _date.fromisoformat(raw_dob)
+                except (ValueError, TypeError):
+                    logger.warning(f"Ignoring invalid date_of_birth from auto-save: {raw_dob!r}")
         if 'favorite_position' in data:
             player.favorite_position = data['favorite_position']
         if 'frequency_play_goal' in data:
@@ -1355,6 +1375,7 @@ def create_profile():
             jersey_size=form.jersey_size.data,
             jersey_number=form.jersey_number.data,
             pronouns=form.pronouns.data,
+            date_of_birth=form.date_of_birth.data,
             expected_weeks_available=form.expected_weeks_available.data,
             unavailable_dates=form.unavailable_dates.data,
             willing_to_referee=form.willing_to_referee.data,

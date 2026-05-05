@@ -67,6 +67,11 @@
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Preferred Pronouns</label>
                         {{ onboarding_form.pronouns(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green") }}
                     </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Birth</label>
+                        {{ onboarding_form.date_of_birth(class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-ecs-green focus:ring-ecs-green", type="date") }}
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional — only used so we can wish you a happy birthday.</p>
+                    </div>
                 </div>
             </div>
 
