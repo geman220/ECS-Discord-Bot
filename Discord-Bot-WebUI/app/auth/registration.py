@@ -153,8 +153,15 @@ def register_with_discord():
         # 500 (see errors.log 2026-04-27 19:10:21). Each branch logs the user
         # in and gives explicit feedback so they're never left wondering what
         # happened.
-        from app.utils.pii_encryption import create_hash
+        #
+        # Lookup order is discord_id first, email_hash second. Discord ID is
+        # the stable identity — emails can change on the Discord side, and
+        # an email-first lookup creates a duplicate User in that case.
         from app.auth_helpers import update_last_login
+        from app.duplicate_prevention import (
+            find_user_for_discord_login,
+            apply_email_change_session,
+        )
         from flask import session as flask_session
 
         def _sign_in_existing(existing_user, alert_title, alert_text, banner_msg):
@@ -173,30 +180,37 @@ def register_with_discord():
             }
             return redirect(url_for('main.index'))
 
-        # 1. Email match — same person re-registering with a different entry path.
-        existing_by_email = db_session.query(User).filter(
-            User.email_hash == create_hash(discord_email)
-        ).first()
-        if existing_by_email:
-            return _sign_in_existing(
-                existing_by_email,
-                'Account Already Exists',
-                "You already have an account with this email. We've signed you in.",
-                'Welcome back — we found your existing account and signed you in.',
-            )
-
-        # 2. Discord-ID match — Player.discord_id is unique and Player.user_id is
-        # NOT NULL, so any matching Player has a linked User to sign in as.
-        existing_player = db_session.query(Player).filter_by(discord_id=discord_id).first()
-        if existing_player and existing_player.user_id:
-            existing_user = db_session.query(User).get(existing_player.user_id)
-            if existing_user:
+        existing_user, discord_player = find_user_for_discord_login(
+            db_session, discord_id, discord_email
+        )
+        if existing_user:
+            # Sync email if Discord side changed it; adopt orphan Players if any.
+            if discord_player and discord_player.user_id == existing_user.id:
+                if (existing_user.email or '').lower() != discord_email:
+                    apply_email_change_session(
+                        db_session, existing_user, discord_player, discord_email
+                    )
                 return _sign_in_existing(
                     existing_user,
                     'Discord Account Linked',
                     "Your Discord account is already linked to an existing user. We've signed you in.",
                     'This Discord account is already linked to an existing user — we\'ve signed you in.',
                 )
+            # Match was via email_hash: adopt orphan Player or backfill discord_id.
+            if discord_player and discord_player.user_id is None:
+                discord_player.user_id = existing_user.id
+            else:
+                user_player = db_session.query(Player).filter_by(
+                    user_id=existing_user.id
+                ).first()
+                if user_player and not user_player.discord_id:
+                    user_player.discord_id = discord_id
+            return _sign_in_existing(
+                existing_user,
+                'Account Already Exists',
+                "You already have an account with this email. We've signed you in.",
+                'Welcome back — we found your existing account and signed you in.',
+            )
 
         # Find the pl-unverified role in database
         unverified_role = db_session.query(Role).filter_by(name='pl-unverified').first()
@@ -243,15 +257,26 @@ def register_with_discord():
         db_session.add(new_user)
         db_session.flush()
 
-        # Create a player record linked to the user
-        player = Player(
-            name=username,
-            user_id=new_user.id,
-            discord_id=discord_id,
-            is_current_player=True,
-            is_sub=True  # Set is_sub flag since pl-unverified role is assigned
-        )
-        db_session.add(player)
+        # If a Player with this discord_id already exists as an orphan
+        # (legacy roster entry, no user_id) adopt it instead of creating a
+        # duplicate. The unique constraint on Player.discord_id would
+        # otherwise reject the insert below.
+        if discord_player and discord_player.user_id is None:
+            discord_player.user_id = new_user.id
+            player = discord_player
+            logger.info(
+                f"Adopted orphan Player {player.id} to new User {new_user.id} "
+                f"(discord_id={discord_id})"
+            )
+        else:
+            player = Player(
+                name=username,
+                user_id=new_user.id,
+                discord_id=discord_id,
+                is_current_player=True,
+                is_sub=True  # Set is_sub flag since pl-unverified role is assigned
+            )
+            db_session.add(player)
         db_session.flush()
 
         # Check for and process quick profile claim code

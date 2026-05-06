@@ -129,10 +129,16 @@ def process_discord_user(session, user_data: Dict) -> User:
     """
     Process Discord user data and create or update a local User record.
 
+    Lookup order is **discord_id first, email_hash second**. Discord ID is
+    the stable identity — email can change on the Discord side and we must
+    not create a duplicate User when it does. The legacy email-only lookup
+    was the source of duplicate-account bugs (one User+Player linked by
+    discord_id, a second User+Player created on the next login because the
+    user's Discord email had changed).
+
     First-time creation mirrors the web `/register_with_discord` flow so that
     mobile sign-ups land in the same gated state: pl-unverified role, sub
-    Player record, onboarding flags reset. Existing users are not modified
-    beyond linking a missing discord_id to their player.
+    Player record, onboarding flags reset.
 
     Args:
         session: The database session to use
@@ -142,67 +148,98 @@ def process_discord_user(session, user_data: Dict) -> User:
         User: The created or updated User instance.
     """
     from app.models import Role
-    from app.utils.pii_encryption import create_hash
+    from app.duplicate_prevention import (
+        find_user_for_discord_login,
+        apply_email_change_session,
+    )
 
     email = (user_data.get('email') or '').lower()
     discord_id = user_data.get('id')
     discord_username = user_data.get('username') or 'discord-user'
 
-    email_hash = create_hash(email)
-    user = session.query(User).filter(User.email_hash == email_hash).first()
+    user, discord_player = find_user_for_discord_login(session, discord_id, email)
 
-    if not user:
-        # First-time Discord login. Match the web flow's gating: auto-approved
-        # with pending approval_status, pl-unverified role, onboarding required.
-        unverified_role = session.query(Role).filter_by(name='pl-unverified').first()
-        if not unverified_role:
-            unverified_role = Role(
-                name='pl-unverified',
-                description='Unverified player awaiting league approval',
-            )
-            session.add(unverified_role)
-            session.flush()
+    if user is not None:
+        # Returning user. Two possible matches:
+        #   1. discord_player set with user_id == user.id → primary identity match.
+        #      Sync the email if Discord changed it.
+        #   2. discord_player is None (or orphan) → matched only by email_hash.
+        #      Backfill discord_id on the user's Player so the next login
+        #      hits path #1 and doesn't depend on email-hash continuing to match.
+        if discord_player and discord_player.user_id == user.id:
+            if email and (user.email or '').lower() != email:
+                apply_email_change_session(session, user, discord_player, email)
+        else:
+            # email_hash match. Adopt orphan Player if one exists, otherwise
+            # backfill discord_id on the user's existing Player.
+            if discord_player and discord_player.user_id is None:
+                discord_player.user_id = user.id
+                logger.info(
+                    f"Adopted orphan Player {discord_player.id} (discord_id={discord_id}) "
+                    f"to existing User {user.id}"
+                )
+            else:
+                user_player = session.query(Player).filter_by(user_id=user.id).first()
+                if user_player and not user_player.discord_id:
+                    # Safe: any conflicting Player would have been returned as
+                    # discord_player above, so we know nothing else owns this id.
+                    user_player.discord_id = discord_id
+                    logger.info(
+                        f"Backfilled discord_id={discord_id} on Player {user_player.id} "
+                        f"for User {user.id}"
+                    )
+        return user
 
-        # Username mirrors the web cleanup (drop discriminator if old-style).
-        username = discord_username.split('#')[0] if '#' in discord_username else discord_username
-
-        user = User(
-            email=email,
-            username=username,
-            is_approved=True,           # Discord-authenticated users are auto-approved
-            approval_status='pending',  # …but still need league approval
-            roles=[unverified_role],
-            has_completed_onboarding=False,
-            has_skipped_profile_creation=False,
-            has_completed_tour=False,
+    # First-time Discord login. Match the web flow's gating: auto-approved
+    # with pending approval_status, pl-unverified role, onboarding required.
+    unverified_role = session.query(Role).filter_by(name='pl-unverified').first()
+    if not unverified_role:
+        unverified_role = Role(
+            name='pl-unverified',
+            description='Unverified player awaiting league approval',
         )
-        # Random password — Discord OAuth is the auth method; password is just a placeholder.
-        import secrets as _secrets
-        import string as _string
-        user.set_password(''.join(_secrets.choice(_string.ascii_letters + _string.digits) for _ in range(16)))
-        session.add(user)
-        session.flush()  # need user.id for the player FK
+        session.add(unverified_role)
+        session.flush()
 
-        # Create the linked sub Player. Onboarding will fill in the rest of
-        # the profile fields; until then the player exists in a minimal state
-        # so role-checks and Discord sync have something to bind to.
-        existing_player = session.query(Player).filter_by(discord_id=discord_id).first()
-        if not existing_player:
-            player = Player(
-                name=username,
-                user_id=user.id,
-                discord_id=discord_id,
-                is_current_player=True,
-                is_sub=True,
-            )
-            session.add(player)
+    # Username mirrors the web cleanup (drop discriminator if old-style).
+    username = discord_username.split('#')[0] if '#' in discord_username else discord_username
 
-    else:
-        # Returning user — leave their account state alone, just backfill
-        # discord_id on the linked player if it's missing.
-        player = session.query(Player).filter_by(user_id=user.id).first()
-        if player and not player.discord_id:
-            player.discord_id = discord_id
+    user = User(
+        email=email,
+        username=username,
+        is_approved=True,           # Discord-authenticated users are auto-approved
+        approval_status='pending',  # …but still need league approval
+        roles=[unverified_role],
+        has_completed_onboarding=False,
+        has_skipped_profile_creation=False,
+        has_completed_tour=False,
+    )
+    # Random password — Discord OAuth is the auth method; password is just a placeholder.
+    import secrets as _secrets
+    import string as _string
+    user.set_password(''.join(_secrets.choice(_string.ascii_letters + _string.digits) for _ in range(16)))
+    session.add(user)
+    session.flush()  # need user.id for the player FK
+
+    # If a Player with this discord_id already exists (orphan from legacy
+    # roster import), adopt it instead of creating a duplicate. Otherwise
+    # create the linked sub Player so role-checks and Discord sync have
+    # something to bind to.
+    if discord_player and discord_player.user_id is None:
+        discord_player.user_id = user.id
+        logger.info(
+            f"Adopted orphan Player {discord_player.id} to new User {user.id} "
+            f"(discord_id={discord_id})"
+        )
+    elif discord_player is None:
+        player = Player(
+            name=username,
+            user_id=user.id,
+            discord_id=discord_id,
+            is_current_player=True,
+            is_sub=True,
+        )
+        session.add(player)
 
     return user
 

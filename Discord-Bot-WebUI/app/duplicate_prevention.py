@@ -23,35 +23,138 @@ def check_discord_id_first(discord_user_data):
     """
     Check if a player already exists with this Discord ID.
     This is the primary method to prevent duplicates when users change emails.
-    
+
     Args:
         discord_user_data (dict): User data from Discord OAuth
-        
+
     Returns:
         tuple: (existing_player, needs_email_update)
     """
     discord_id = discord_user_data.get('id')
     discord_email = discord_user_data.get('email', '').lower()
-    
+
     if not discord_id:
         logger.error("No Discord ID in user data")
         return None, False
-    
+
     # Check for existing player with this Discord ID
     existing_player = Player.query.filter_by(discord_id=discord_id).first()
-    
+
     if existing_player:
         logger.info(f"Found existing player {existing_player.id} with Discord ID {discord_id}")
-        
+
         # Check if email has changed
         current_email = existing_player.user.email.lower() if existing_player.user else None
         if current_email and current_email != discord_email:
             logger.info(f"Email change detected for player {existing_player.id}: {current_email} → {discord_email}")
             return existing_player, True
-        
+
         return existing_player, False
-    
+
     return None, False
+
+
+def find_user_for_discord_login(session, discord_id, email):
+    """
+    Resolve a Discord OAuth login to a (User, Player) pair using Discord ID
+    first and email_hash as a fallback. Discord ID is the stable identity —
+    it survives the user changing their Discord email. email_hash is the
+    fallback for users whose Player record has not yet been linked to a
+    discord_id (legacy roster entries, manual admin creates, etc).
+
+    This is the session-aware counterpart to ``check_discord_id_first`` for
+    callers that operate inside an explicit transaction (mobile API,
+    ``register_with_discord``) and must not commit mid-flight.
+
+    Returns:
+        (user, player) where:
+          - user is the resolved User, or None if no match (caller should create).
+          - player is the Player matching ``discord_id`` (may be None, or may
+            be an orphan with user_id=NULL — caller should adopt).
+
+    Does not mutate any rows. The caller decides whether to update User.email
+    (via apply_email_change_session), backfill Player.discord_id, or adopt
+    an orphan Player.
+    """
+    from app.utils.pii_encryption import create_hash
+
+    player = None
+    if discord_id:
+        player = session.query(Player).filter_by(discord_id=discord_id).first()
+        if player and player.user_id:
+            user = session.query(User).get(player.user_id)
+            if user:
+                logger.info(
+                    f"Discord login matched user {user.id} via Player.discord_id={discord_id} "
+                    f"(player {player.id})"
+                )
+                return user, player
+
+    if email:
+        email_hash = create_hash(email)
+        user = session.query(User).filter(User.email_hash == email_hash).first()
+        if user:
+            logger.info(
+                f"Discord login matched user {user.id} via email_hash "
+                f"(no Player.discord_id={discord_id} match)"
+            )
+            return user, player  # player may be None or an orphan
+
+    return None, player
+
+
+def apply_email_change_session(session, user, player, new_email):
+    """
+    Update the User's email + email_hash and append the prior email to the
+    Player's last_known_emails history. Session-aware variant of
+    ``handle_email_change`` — does not commit, does not touch Flask session.
+
+    Args:
+        session: SQLAlchemy session that owns ``user``/``player``.
+        user (User): The user whose email is changing.
+        player (Player | None): The associated player (may be None — history
+            update is skipped in that case).
+        new_email (str): The new email from Discord.
+
+    Returns:
+        bool: True if email actually changed and was applied, False if
+        no-op (same address, or new_email empty).
+    """
+    if not new_email:
+        return False
+    new_email = new_email.lower()
+    old_email = (user.email or '').lower() if user.email else None
+    if old_email == new_email:
+        return False
+
+    if player is not None:
+        history = []
+        if player.last_known_emails:
+            try:
+                history = json.loads(player.last_known_emails)
+            except json.JSONDecodeError:
+                history = []
+        if old_email and old_email not in [e.lower() for e in history]:
+            history.append(old_email)
+        player.last_known_emails = json.dumps(history[-10:])
+        player.profile_last_updated = datetime.utcnow()
+
+        merge_note = (
+            f"Email updated from {old_email or '(none)'} to {new_email} "
+            f"via Discord login on {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"
+        )
+        player.player_notes = (
+            f"{player.player_notes}\n\n{merge_note}" if player.player_notes else merge_note
+        )
+
+    # User.email setter re-encrypts and updates email_hash atomically.
+    user.email = new_email
+
+    logger.info(
+        f"Discord email change applied for user {user.id}: "
+        f"{old_email or '(none)'} → {new_email}"
+    )
+    return True
 
 
 def handle_email_change(player, new_email, old_email=None):
