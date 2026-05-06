@@ -12,7 +12,7 @@ from urllib.parse import urlparse, urljoin
 
 from flask import (
     render_template, redirect, url_for, request,
-    current_app, session, g, make_response
+    current_app, session, g
 )
 from flask_login import login_user
 from flask_wtf.csrf import generate_csrf
@@ -30,8 +30,8 @@ from app.auth_helpers import (
 )
 from app.auth.helpers import sync_discord_for_user
 from app.duplicate_prevention import (
-    check_discord_id_first,
-    handle_email_change,
+    find_user_for_discord_login,
+    perform_discord_login_actions,
     find_potential_duplicates,
 )
 
@@ -272,24 +272,41 @@ def discord_callback():
             show_error('Unable to access Discord email.')
             return redirect(url_for('auth.login'))
 
-        # NEW: Check Discord ID first before anything else (prevents duplicates from email changes)
-        existing_player, needs_email_update = check_discord_id_first(user_data)
+        # Three-tier identity match (discord_id → email_hash → email-history)
+        # with hijack/ambiguity guards. See find_user_for_discord_login. The
+        # always-on perform_discord_login_actions backfills Player.discord_id
+        # and appends to last_known_emails, so future logins self-heal back
+        # to the highest-confidence tier. User.email is never touched —
+        # portal email is user-controlled.
+        existing_user, existing_player, match_tier, blocked_reason = (
+            find_user_for_discord_login(db_session, discord_id, discord_email)
+        )
 
-        if existing_player:
-            # Player exists with this Discord ID - this is the same person
-            user = existing_player.user
+        if blocked_reason:
+            logger.warning(
+                f"Discord callback refusing login: blocked_reason={blocked_reason} "
+                f"discord_id={discord_id}"
+            )
+            session['sweet_alert'] = {
+                'title': 'Account Conflict',
+                'text': (
+                    "The email on this Discord account is already linked to a "
+                    "different Discord profile in our system. Please contact an "
+                    "admin so we can reconcile the accounts."
+                    if blocked_reason == 'email_in_use_by_other_discord'
+                    else
+                    "We found multiple accounts that may match this Discord login. "
+                    "Please contact an admin so we can confirm which is yours."
+                ),
+                'icon': 'warning',
+            }
+            return redirect(url_for('auth.login'))
 
-            if needs_email_update:
-                # Handle email change automatically
-                old_email = user.email
-                success = handle_email_change(existing_player, discord_email, old_email)
-                if not success:
-                    session['sweet_alert'] = {
-                        'title': 'Welcome Back!',
-                        'text': 'There was an issue updating your email. Please contact support if needed.',
-                        'icon': 'warning'
-                    }
-            # No additional notification needed for normal login
+        if existing_user:
+            user = existing_user
+            perform_discord_login_actions(
+                db_session, user, existing_player, discord_id, discord_email
+            )
 
             # Check if 2FA is enabled before full login
             if user.is_2fa_enabled:
@@ -368,163 +385,54 @@ def discord_callback():
                 return redirect(next_page)
             return redirect(url_for('main.index'))
 
-        # Get registration mode from session (default to False if not set)
+        # No existing User matched. Branch on the user's intent (login vs
+        # registration) — the matched-user path above already exited.
         is_registration = session.get('discord_registration_mode', False)
         is_waitlist_registration = session.get('waitlist_registration', False)
 
-        # Check if the user already exists by email (fallback check)
-        from app.utils.pii_encryption import create_hash
-        discord_email_hash = create_hash(discord_email)
-        user = db_session.query(User).filter(User.email_hash == discord_email_hash).first()
-
-        # If user exists and this is a registration attempt
-        if user and is_registration:
-            if is_waitlist_registration:
-                # For waitlist registration, existing users can still join the waitlist
-                session['pending_discord_email'] = discord_email
-                session['pending_discord_id'] = discord_id
-                session['pending_discord_username'] = discord_username
-                return redirect(url_for('auth.waitlist_register_with_discord'))
-            else:
-                show_info('An account with this email already exists. Please login instead.')
-                return redirect(url_for('auth.login'))
-
-        # If user doesn't exist and this is a login attempt
-        if not user and not is_registration:
-            # Check if this is a waitlist login attempt
+        if not is_registration:
+            # Login intent with no account on file — shepherd them into
+            # registration with their Discord credentials carried over.
             is_waitlist_intent = session.get('waitlist_intent', False)
-
             if is_waitlist_intent:
-                # For waitlist login attempts, show error with SweetAlert and redirect to waitlist registration
                 session['sweet_alert'] = {
                     'title': 'No Account Found',
                     'text': 'No account found. Please register for the waitlist instead.',
-                    'icon': 'error'
+                    'icon': 'error',
                 }
                 return redirect(url_for('auth.waitlist_register'))
-            else:
-                show_error('No account found. Please register first.')
-                # Redirect to registration with the same Discord auth data
-                session['pending_discord_email'] = discord_email
-                session['pending_discord_id'] = discord_id
-                session['pending_discord_username'] = discord_username
-                session['discord_registration_mode'] = True
-                return redirect(url_for('auth.register_with_discord'))
-
-        # If user doesn't exist and this is a registration attempt
-        if not user and is_registration:
-            # NEW: Check for potential duplicates before creating account
-            potential_duplicates = find_potential_duplicates({
-                'name': discord_username,
-                'email': discord_email
-            })
-
-            if potential_duplicates and len(potential_duplicates) > 0:
-                # Store data in session and show duplicate check screen
-                session['pending_discord_data'] = user_data
-                session['potential_duplicates'] = [
-                    {
-                        'id': p[0].id,
-                        'name': p[0].name,
-                        'email': p[0].email,
-                        'reason': p[1],
-                        'confidence': p[2]
-                    } for p in potential_duplicates
-                ]
-                return redirect(url_for('auth.check_duplicate'))
-
-            # No duplicates found - store Discord info in session for registration flow
+            show_error('No account found. Please register first.')
             session['pending_discord_email'] = discord_email
             session['pending_discord_id'] = discord_id
             session['pending_discord_username'] = discord_username
+            session['discord_registration_mode'] = True
+            return redirect(url_for('auth.register_with_discord'))
 
-            # Proceed to Discord registration flow
-            if is_waitlist_registration:
-                return redirect(url_for('auth.waitlist_register_with_discord'))
-            else:
-                return redirect(url_for('auth.register_with_discord'))
+        # Registration intent with no existing account — fuzzy-match
+        # potential duplicates (name / phone / email-domain) before creating.
+        potential_duplicates = find_potential_duplicates({
+            'name': discord_username,
+            'email': discord_email,
+        })
+        if potential_duplicates:
+            session['pending_discord_data'] = user_data
+            session['potential_duplicates'] = [
+                {
+                    'id': p[0].id,
+                    'name': p[0].name,
+                    'email': p[0].email,
+                    'reason': p[1],
+                    'confidence': p[2],
+                } for p in potential_duplicates
+            ]
+            return redirect(url_for('auth.check_duplicate'))
 
-        # User exists and this is a login attempt - normal login flow
-
-        # Link Discord account and assign roles.
-        sync_discord_for_user(user, discord_id)
-
-        # If 2FA is enabled, store pending user info and redirect.
-        if user.is_2fa_enabled:
-            # Make sure session is permanent and will persist with long lifetime
-            session.permanent = True
-            current_app.permanent_session_lifetime = timedelta(days=30)  # Much longer session
-
-            # Store the necessary information in the session
-            session['pending_2fa_user_id'] = user.id
-            session['remember_me'] = True  # Always remember for better persistence
-
-            # Generate CSRF token in advance
-            csrf_token = generate_csrf()
-
-            # Force session to be saved
-            session.modified = True
-
-            logger.info(f"User {user.id} has 2FA enabled. Redirecting to 2FA verification.")
-            logger.info(f"Session keys before redirect: {get_safe_session_keys(session)}")
-
-            # Always pass user_id as query parameter for reliability
-            redirect_url = url_for('auth.verify_2fa_login', user_id=user.id)
-            response = make_response(redirect(redirect_url))
-
-            # Configure strong cookie settings
-            response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
-
-            # Force the session to be saved before redirecting
-            from flask.sessions import SessionInterface
-            if hasattr(current_app, 'session_interface') and isinstance(current_app.session_interface, SessionInterface):
-                current_app.session_interface.save_session(current_app, session, response)
-
-            return response
-
-        # Log in the user normally.
-        user.last_login = datetime.utcnow()
-        # User is already attached to db_session, no need to add
-
-        # Enhanced login flow with stronger session handling for Docker environments
-        login_user(user, remember=True)  # Always set remember=True for persistence
-
-        # Set theme from user preferences if available
-        try:
-            player = Player.query.get(user.id)
-            if player and hasattr(player, 'preferences') and player.preferences:
-                if 'theme' in player.preferences:
-                    session['theme'] = player.preferences['theme']
-                    logger.debug(f"Set theme to {player.preferences['theme']} from user preferences")
-        except Exception as e:
-            logger.error(f"Error loading user theme preference: {e}")
-
-        # Clear any registration mode flag
-        session.pop('discord_registration_mode', None)
-
-        # Force session persistence
-        session.permanent = True
-        session.modified = True
-
-        # Check if there's a stored redirect URL (with URL safety check)
-        next_page = session.pop('next', None)
-        if next_page and is_safe_url(next_page):
-            redirect_url = next_page
-            logger.info(f"Redirecting user {user.id} to stored next page: {redirect_url}")
-        else:
-            redirect_url = url_for('main.index')
-            logger.info(f"Redirecting user {user.id} to main index (no stored next page)")
-
-        # Create a response with secure cookie settings for better session persistence
-        response = make_response(redirect(redirect_url))
-        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
-
-        # Force the session to be saved before redirecting
-        from flask.sessions import SessionInterface
-        if hasattr(current_app, 'session_interface') and isinstance(current_app.session_interface, SessionInterface):
-            current_app.session_interface.save_session(current_app, session, response)
-
-        return response
+        session['pending_discord_email'] = discord_email
+        session['pending_discord_id'] = discord_id
+        session['pending_discord_username'] = discord_username
+        if is_waitlist_registration:
+            return redirect(url_for('auth.waitlist_register_with_discord'))
+        return redirect(url_for('auth.register_with_discord'))
 
     except Exception as e:
         logger.error(f"Discord auth error: {str(e)}", exc_info=True)

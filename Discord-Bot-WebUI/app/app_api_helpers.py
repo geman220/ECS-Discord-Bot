@@ -129,66 +129,55 @@ def process_discord_user(session, user_data: Dict) -> User:
     """
     Process Discord user data and create or update a local User record.
 
-    Lookup order is **discord_id first, email_hash second**. Discord ID is
-    the stable identity — email can change on the Discord side and we must
-    not create a duplicate User when it does. The legacy email-only lookup
-    was the source of duplicate-account bugs (one User+Player linked by
-    discord_id, a second User+Player created on the next login because the
-    user's Discord email had changed).
+    Identity resolution uses the three-tier matcher in
+    ``app.duplicate_prevention.find_user_for_discord_login`` (discord_id →
+    email_hash → email-history) with hijack guards. After a match we run
+    the always-on actions (backfill discord_id, append to last_known_emails)
+    so the system self-heals across logins. ``User.email`` is never touched
+    — portal email is user-controlled.
 
     First-time creation mirrors the web `/register_with_discord` flow so that
     mobile sign-ups land in the same gated state: pl-unverified role, sub
     Player record, onboarding flags reset.
 
-    Args:
-        session: The database session to use
-        user_data (Dict): The user data obtained from Discord.
-
-    Returns:
-        User: The created or updated User instance.
+    Raises:
+        DiscordLoginConflictError: when a candidate User exists but is
+            refused on hijack/ambiguity grounds. Caller should surface a
+            "contact an admin" message.
     """
     from app.models import Role
     from app.duplicate_prevention import (
+        DiscordLoginConflictError,
         find_user_for_discord_login,
-        apply_email_change_session,
+        perform_discord_login_actions,
     )
 
     email = (user_data.get('email') or '').lower()
     discord_id = user_data.get('id')
     discord_username = user_data.get('username') or 'discord-user'
 
-    user, discord_player = find_user_for_discord_login(session, discord_id, email)
+    existing_user, discord_player, match_tier, blocked_reason = find_user_for_discord_login(
+        session, discord_id, email
+    )
 
-    if user is not None:
-        # Returning user. Two possible matches:
-        #   1. discord_player set with user_id == user.id → primary identity match.
-        #      Sync the email if Discord changed it.
-        #   2. discord_player is None (or orphan) → matched only by email_hash.
-        #      Backfill discord_id on the user's Player so the next login
-        #      hits path #1 and doesn't depend on email-hash continuing to match.
-        if discord_player and discord_player.user_id == user.id:
-            if email and (user.email or '').lower() != email:
-                apply_email_change_session(session, user, discord_player, email)
-        else:
-            # email_hash match. Adopt orphan Player if one exists, otherwise
-            # backfill discord_id on the user's existing Player.
-            if discord_player and discord_player.user_id is None:
-                discord_player.user_id = user.id
-                logger.info(
-                    f"Adopted orphan Player {discord_player.id} (discord_id={discord_id}) "
-                    f"to existing User {user.id}"
-                )
-            else:
-                user_player = session.query(Player).filter_by(user_id=user.id).first()
-                if user_player and not user_player.discord_id:
-                    # Safe: any conflicting Player would have been returned as
-                    # discord_player above, so we know nothing else owns this id.
-                    user_player.discord_id = discord_id
-                    logger.info(
-                        f"Backfilled discord_id={discord_id} on Player {user_player.id} "
-                        f"for User {user.id}"
-                    )
-        return user
+    if blocked_reason == 'email_in_use_by_other_discord':
+        raise DiscordLoginConflictError(
+            blocked_reason,
+            "The email on this Discord account is already linked to a different "
+            "Discord profile in our system. Please contact an admin to reconcile."
+        )
+    if blocked_reason == 'email_history_ambiguous':
+        raise DiscordLoginConflictError(
+            blocked_reason,
+            "We found multiple accounts that may match this Discord login. "
+            "Please contact an admin so we can confirm which is yours."
+        )
+
+    if existing_user is not None:
+        perform_discord_login_actions(
+            session, existing_user, discord_player, discord_id, email
+        )
+        return existing_user
 
     # First-time Discord login. Match the web flow's gating: auto-approved
     # with pending approval_status, pl-unverified role, onboarding required.

@@ -221,9 +221,20 @@ def discord_callback():
         if not discord_user or 'id' not in discord_user:
             return jsonify({"msg": "Failed to get Discord user data"}), 400
 
-        # Find or create user based on Discord data
+        # Find or create user based on Discord data. ``process_discord_user``
+        # raises DiscordLoginConflictError on hijack/ambiguity guards — we
+        # surface those as 409 with the human-readable reason so the mobile
+        # client can show "contact admin" rather than silently retry.
+        from app.duplicate_prevention import DiscordLoginConflictError
         with managed_session() as session_db:
-            user = process_discord_user(session_db, discord_user)
+            try:
+                user = process_discord_user(session_db, discord_user)
+            except DiscordLoginConflictError as conflict:
+                logger.warning(
+                    f"Mobile Discord login refused: reason={conflict.reason} "
+                    f"discord_id={discord_user.get('id')}"
+                )
+                return jsonify({"msg": conflict.message, "code": conflict.reason}), 409
 
             if not user:
                 return jsonify({"msg": "Failed to process Discord user"}), 500

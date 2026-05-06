@@ -54,53 +54,204 @@ def check_discord_id_first(discord_user_data):
     return None, False
 
 
+class DiscordLoginConflictError(Exception):
+    """
+    Raised when a Discord login candidate is refused on hijack/ambiguity
+    grounds — a matching User/Player exists but we can't safely authenticate
+    to it (different Discord ID already linked, or multiple plausible
+    matches). Callers should surface a "contact an admin" message rather
+    than fall through to creating a duplicate account.
+    """
+
+    def __init__(self, reason: str, message: str):
+        super().__init__(message)
+        self.reason = reason
+        self.message = message
+
+
 def find_user_for_discord_login(session, discord_id, email):
     """
-    Resolve a Discord OAuth login to a (User, Player) pair using Discord ID
-    first and email_hash as a fallback. Discord ID is the stable identity —
-    it survives the user changing their Discord email. email_hash is the
-    fallback for users whose Player record has not yet been linked to a
-    discord_id (legacy roster entries, manual admin creates, etc).
+    Resolve a Discord OAuth login to an existing (User, Player) using a
+    three-tier matching strategy with hijack/ambiguity guards.
 
-    This is the session-aware counterpart to ``check_discord_id_first`` for
-    callers that operate inside an explicit transaction (mobile API,
-    ``register_with_discord``) and must not commit mid-flight.
+    **Tier 1 — Player.discord_id (highest confidence)**
+        The stable Discord identity. Matches survive any email change on
+        either side. Every successful lower-tier match backfills this so
+        future logins always hit Tier 1.
+
+    **Tier 2 — User.email_hash (medium confidence, hijack-guarded)**
+        Discord email hashes to an existing User. Refused if that User's
+        Player is already linked to a *different* discord_id — blocks the
+        "change my Discord email to your portal email" hijack.
+
+    **Tier 3 — Player.last_known_emails history (low, hijack-guarded)**
+        Incoming email appears in a Player's stored email history (built
+        up by every prior Discord login). Refused if multiple Players
+        match, or if the matched Player is linked to a different Discord ID.
 
     Returns:
-        (user, player) where:
-          - user is the resolved User, or None if no match (caller should create).
-          - player is the Player matching ``discord_id`` (may be None, or may
-            be an orphan with user_id=NULL — caller should adopt).
+        (user, player, tier, blocked_reason)
+          - user: matched User, or None.
+          - player: best-known Player for the caller (may be None; may be
+            the Tier-1 player; at Tier 3 will be the history-matched
+            Player so callers can backfill discord_id on it).
+          - tier: 'discord_id' | 'email_hash' | 'email_history' | None.
+          - blocked_reason: short identifier when a candidate was refused
+            ('email_in_use_by_other_discord', 'email_history_ambiguous'),
+            or None. Callers should treat a non-None reason as "do NOT
+            create a new user — show the user a conflict message."
 
-    Does not mutate any rows. The caller decides whether to update User.email
-    (via apply_email_change_session), backfill Player.discord_id, or adopt
-    an orphan Player.
+    Does not mutate any rows. Pair with
+    ``perform_discord_login_actions`` for the always-on housekeeping
+    (discord_id backfill + email-history append) that makes the system
+    self-healing across logins.
     """
     from app.utils.pii_encryption import create_hash
 
-    player = None
+    email_lower = (email or '').lower()
+    player_by_discord = None
+
+    # Tier 1: Discord ID is the stable identity.
     if discord_id:
-        player = session.query(Player).filter_by(discord_id=discord_id).first()
-        if player and player.user_id:
-            user = session.query(User).get(player.user_id)
+        player_by_discord = session.query(Player).filter_by(discord_id=discord_id).first()
+        if player_by_discord and player_by_discord.user_id:
+            user = session.query(User).get(player_by_discord.user_id)
             if user:
                 logger.info(
-                    f"Discord login matched user {user.id} via Player.discord_id={discord_id} "
-                    f"(player {player.id})"
+                    f"Discord login Tier 1 matched user {user.id} "
+                    f"(player {player_by_discord.id}, discord_id={discord_id})"
                 )
-                return user, player
+                return user, player_by_discord, 'discord_id', None
 
-    if email:
-        email_hash = create_hash(email)
-        user = session.query(User).filter(User.email_hash == email_hash).first()
-        if user:
+    # Tier 2: email_hash, with hijack guard.
+    if email_lower:
+        email_hash = create_hash(email_lower)
+        user_by_email = session.query(User).filter(User.email_hash == email_hash).first()
+        if user_by_email:
+            user_player = session.query(Player).filter_by(user_id=user_by_email.id).first()
+            if (
+                user_player is not None
+                and user_player.discord_id
+                and user_player.discord_id != discord_id
+            ):
+                logger.warning(
+                    f"Discord login Tier 2 BLOCKED: email_hash matches user "
+                    f"{user_by_email.id} but its Player {user_player.id} is linked "
+                    f"to discord_id={user_player.discord_id} (incoming={discord_id})."
+                )
+                return None, player_by_discord, None, 'email_in_use_by_other_discord'
             logger.info(
-                f"Discord login matched user {user.id} via email_hash "
-                f"(no Player.discord_id={discord_id} match)"
+                f"Discord login Tier 2 matched user {user_by_email.id} via email_hash"
             )
-            return user, player  # player may be None or an orphan
+            return user_by_email, player_by_discord, 'email_hash', None
 
-    return None, player
+    # Tier 3: last_known_emails history, with hijack/ambiguity guard.
+    if email_lower:
+        history_matches = _find_players_by_email_history(session, email_lower)
+        valid = []
+        for p in history_matches:
+            if p.discord_id and p.discord_id != discord_id:
+                continue  # already linked to a different Discord identity
+            if not p.user_id:
+                continue  # no User to authenticate as
+            valid.append(p)
+
+        if len(valid) == 1:
+            matched_player = valid[0]
+            user = session.query(User).get(matched_player.user_id)
+            if user:
+                logger.info(
+                    f"Discord login Tier 3 matched user {user.id} via email-history "
+                    f"on Player {matched_player.id}"
+                )
+                return user, player_by_discord or matched_player, 'email_history', None
+        elif len(valid) > 1:
+            logger.warning(
+                f"Discord login Tier 3 AMBIGUOUS: {len(valid)} players have this "
+                f"email in history (player_ids={[p.id for p in valid]}). Refusing to guess."
+            )
+            return None, player_by_discord, None, 'email_history_ambiguous'
+
+    return None, player_by_discord, None, None
+
+
+def _find_players_by_email_history(session, email):
+    """
+    Return Players whose ``last_known_emails`` JSON column contains ``email``.
+
+    The column stores a JSON array of lowercased strings, e.g.
+    ``["alice@example.com", "old@example.com"]``. We match the email
+    surrounded by JSON quote delimiters to avoid substring false positives
+    (``alice@x.com`` would otherwise match ``alice@x.com.au``).
+    """
+    if not email:
+        return []
+    needle = f'%"{email.lower()}"%'
+    return session.query(Player).filter(
+        Player.last_known_emails.ilike(needle)
+    ).all()
+
+
+def record_discord_email_seen(player, email):
+    """
+    Append ``email`` to ``player.last_known_emails`` (lowercased, deduped,
+    capped at the 10 most recent entries). This builds the Tier-3 fallback
+    index incrementally on every Discord login.
+
+    Does NOT touch ``User.email`` — portal email is user-controlled and is
+    never overwritten by Discord profile drift.
+    """
+    if player is None or not email:
+        return
+    email = email.lower()
+    history = []
+    if player.last_known_emails:
+        try:
+            history = json.loads(player.last_known_emails)
+        except json.JSONDecodeError:
+            history = []
+    if email in [e.lower() for e in history if isinstance(e, str)]:
+        return
+    history.append(email)
+    player.last_known_emails = json.dumps(history[-10:])
+
+
+def perform_discord_login_actions(session, user, player, discord_id, email):
+    """
+    Always-on housekeeping after a successful Discord login match.
+
+    Self-healing actions (run regardless of which tier matched):
+    1. **Backfill** ``Player.discord_id`` if missing — guarantees the next
+       login matches via Tier 1, even if the user changes either email.
+    2. **Append** the incoming Discord email to ``Player.last_known_emails``
+       — builds the Tier-3 fallback index for future recovery.
+
+    Explicitly does **not** touch ``User.email``. Portal email belongs to
+    the user; a previous regression overwrote a manually-set portal email
+    every time the user logged in via Discord, which is the bug class this
+    function exists to prevent.
+
+    Args:
+        session: SQLAlchemy session that owns ``user``/``player``.
+        user (User): The authenticated User.
+        player (Player | None): Best-known Player from the matcher
+            (Tier-1 match, Tier-3 history match, or None at Tier 2).
+        discord_id (str): Discord ID from this OAuth response.
+        email (str): Discord email from this OAuth response.
+    """
+    target = player if (player is not None and player.user_id == user.id) else None
+    if target is None:
+        target = session.query(Player).filter_by(user_id=user.id).first()
+    if target is None:
+        return
+
+    if discord_id and not target.discord_id:
+        target.discord_id = discord_id
+        logger.info(
+            f"Backfilled discord_id={discord_id} on Player {target.id} (user {user.id})"
+        )
+
+    record_discord_email_seen(target, email)
 
 
 def apply_email_change_session(session, user, player, new_email):

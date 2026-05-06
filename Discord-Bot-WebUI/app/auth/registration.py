@@ -148,19 +148,18 @@ def register_with_discord():
             logger.error(f"Error with Discord server integration: {str(e)}")
             show_warning("Could not connect to Discord server. Your account will be created, but you'll need to join the Discord server manually.")
 
-        # Pre-insert duplicate detection. Without these checks an existing
-        # account hits the DB unique constraints at commit time and raises a
-        # 500 (see errors.log 2026-04-27 19:10:21). Each branch logs the user
-        # in and gives explicit feedback so they're never left wondering what
-        # happened.
-        #
-        # Lookup order is discord_id first, email_hash second. Discord ID is
-        # the stable identity — emails can change on the Discord side, and
-        # an email-first lookup creates a duplicate User in that case.
+        # Pre-insert identity resolution. Three-tier match (discord_id →
+        # email_hash → email-history) with hijack guards in
+        # ``find_user_for_discord_login``. Without this an existing account
+        # hits DB unique constraints at commit time and raises a 500 (see
+        # errors.log 2026-04-27 19:10:21). Always-on actions backfill
+        # ``Player.discord_id`` and append to ``Player.last_known_emails``
+        # so the system self-heals on every login. ``User.email`` is never
+        # touched — portal email is user-controlled.
         from app.auth_helpers import update_last_login
         from app.duplicate_prevention import (
             find_user_for_discord_login,
-            apply_email_change_session,
+            perform_discord_login_actions,
         )
         from flask import session as flask_session
 
@@ -180,36 +179,39 @@ def register_with_discord():
             }
             return redirect(url_for('main.index'))
 
-        existing_user, discord_player = find_user_for_discord_login(
+        existing_user, discord_player, match_tier, blocked_reason = find_user_for_discord_login(
             db_session, discord_id, discord_email
         )
+
+        if blocked_reason:
+            logger.warning(
+                f"register_with_discord refusing login: blocked_reason={blocked_reason} "
+                f"discord_id={discord_id}"
+            )
+            flask_session['sweet_alert'] = {
+                'title': 'Account Conflict',
+                'text': (
+                    "The email on this Discord account is already linked to a "
+                    "different Discord profile in our system. Please contact an "
+                    "admin so we can reconcile the accounts."
+                    if blocked_reason == 'email_in_use_by_other_discord'
+                    else
+                    "We found multiple accounts that may match this Discord login. "
+                    "Please contact an admin so we can confirm which is yours."
+                ),
+                'icon': 'warning',
+            }
+            return redirect(url_for('auth.login'))
+
         if existing_user:
-            # Sync email if Discord side changed it; adopt orphan Players if any.
-            if discord_player and discord_player.user_id == existing_user.id:
-                if (existing_user.email or '').lower() != discord_email:
-                    apply_email_change_session(
-                        db_session, existing_user, discord_player, discord_email
-                    )
-                return _sign_in_existing(
-                    existing_user,
-                    'Discord Account Linked',
-                    "Your Discord account is already linked to an existing user. We've signed you in.",
-                    'This Discord account is already linked to an existing user — we\'ve signed you in.',
-                )
-            # Match was via email_hash: adopt orphan Player or backfill discord_id.
-            if discord_player and discord_player.user_id is None:
-                discord_player.user_id = existing_user.id
-            else:
-                user_player = db_session.query(Player).filter_by(
-                    user_id=existing_user.id
-                ).first()
-                if user_player and not user_player.discord_id:
-                    user_player.discord_id = discord_id
+            perform_discord_login_actions(
+                db_session, existing_user, discord_player, discord_id, discord_email
+            )
             return _sign_in_existing(
                 existing_user,
-                'Account Already Exists',
-                "You already have an account with this email. We've signed you in.",
-                'Welcome back — we found your existing account and signed you in.',
+                'Welcome Back',
+                "We found your existing account and signed you in.",
+                "Welcome back — we found your existing account and signed you in.",
             )
 
         # Find the pl-unverified role in database
