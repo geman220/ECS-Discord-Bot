@@ -854,6 +854,7 @@ def get_match_and_team_id_from_message():
         # blocking task.get() here holds a web worker (and its DB connection)
         # long enough to starve the pool when orphaned messages are retried.
         from app.models import ScheduledMessage
+        from app.models_ecs import EcsFcMatch
         from sqlalchemy import or_
 
         with managed_session() as session_db:
@@ -865,37 +866,81 @@ def get_match_and_team_id_from_message():
                 )
             ).first()
 
-            if not scheduled_msg:
-                logger.debug(f"Message not tracked: message_id={message_id}, channel_id={channel_id}")
+            if scheduled_msg:
+                # Orphaned ScheduledMessage whose match has been deleted.
+                if scheduled_msg.match is None:
+                    logger.warning(
+                        f"Orphaned ScheduledMessage {scheduled_msg.id} (match_id={scheduled_msg.match_id}) "
+                        f"referenced by message_id={message_id}, channel_id={channel_id}"
+                    )
+                    return jsonify({
+                        'status': 'error',
+                        'error': 'Message not tracked'
+                    }), 404
+
+                if scheduled_msg.home_channel_id == channel_id and scheduled_msg.home_message_id == message_id:
+                    team_id = scheduled_msg.match.home_team_id
+                else:
+                    team_id = scheduled_msg.match.away_team_id
+
+                logger.info(f"🟢 [AVAILABILITY_API] Found pub league match: match_id={scheduled_msg.match_id}, team_id={team_id}")
                 return jsonify({
-                    'status': 'error',
-                    'error': 'Message not tracked'
-                }), 404
+                    'status': 'success',
+                    'data': {
+                        'match_id': scheduled_msg.match_id,
+                        'team_id': team_id
+                    }
+                }), 200
 
-            # Orphaned ScheduledMessage whose match has been deleted.
-            if scheduled_msg.match is None:
-                logger.warning(
-                    f"Orphaned ScheduledMessage {scheduled_msg.id} (match_id={scheduled_msg.match_id}) "
-                    f"referenced by message_id={message_id}, channel_id={channel_id}"
-                )
+            # ECS FC lookup: messages posted via /api/ecs_fc/post_rsvp_message
+            # store the discord message ID directly on EcsFcMatch.
+            ecs_match = session_db.query(EcsFcMatch).filter(
+                EcsFcMatch.discord_message_id == str(message_id)
+            ).first()
+
+            if ecs_match:
+                logger.info(f"🟢 [AVAILABILITY_API] Found ECS FC match: ecs_{ecs_match.id}, team_id={ecs_match.team_id}")
                 return jsonify({
-                    'status': 'error',
-                    'error': 'Message not tracked'
-                }), 404
+                    'status': 'success',
+                    'data': {
+                        'match_id': f'ecs_{ecs_match.id}',
+                        'team_id': ecs_match.team_id
+                    }
+                }), 200
 
-            if scheduled_msg.home_channel_id == channel_id and scheduled_msg.home_message_id == message_id:
-                team_id = scheduled_msg.match.home_team_id
-            else:
-                team_id = scheduled_msg.match.away_team_id
+            # Legacy ECS FC fallback: discord message ID stored in
+            # ScheduledMessage.message_metadata for older rows that predate the
+            # EcsFcMatch.discord_message_id column.
+            from sqlalchemy import text
+            ecs_message = session_db.query(ScheduledMessage).filter(
+                ScheduledMessage.message_type == 'ecs_fc_rsvp',
+                text("message_metadata @> :metadata")
+            ).params(
+                metadata=f'{{"discord_message_id": "{message_id}", "discord_channel_id": "{channel_id}"}}'
+            ).first()
 
-            logger.info(f"🟢 [AVAILABILITY_API] Found match via direct query: match_id={scheduled_msg.match_id}, team_id={team_id}")
+            if ecs_message:
+                metadata = ecs_message.message_metadata or {}
+                ecs_fc_match_id = metadata.get('ecs_fc_match_id')
+                if ecs_fc_match_id:
+                    legacy_match = session_db.query(EcsFcMatch).filter(
+                        EcsFcMatch.id == ecs_fc_match_id
+                    ).first()
+                    if legacy_match:
+                        logger.info(f"🟢 [AVAILABILITY_API] Found ECS FC match via metadata: ecs_{legacy_match.id}, team_id={legacy_match.team_id}")
+                        return jsonify({
+                            'status': 'success',
+                            'data': {
+                                'match_id': f'ecs_{legacy_match.id}',
+                                'team_id': legacy_match.team_id
+                            }
+                        }), 200
+
+            logger.debug(f"Message not tracked: message_id={message_id}, channel_id={channel_id}")
             return jsonify({
-                'status': 'success',
-                'data': {
-                    'match_id': scheduled_msg.match_id,
-                    'team_id': team_id
-                }
-            }), 200
+                'status': 'error',
+                'error': 'Message not tracked'
+            }), 404
 
     except Exception as e:
         error_msg = (f"Failed to process request for message_id: {request.args.get('message_id')}, "
