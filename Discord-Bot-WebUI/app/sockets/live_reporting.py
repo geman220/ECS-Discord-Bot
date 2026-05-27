@@ -1759,38 +1759,66 @@ def create_player_events_from_match_events(session, match_id):
                 except Exception as stats_error:
                     logger.error(f"Failed to update player stats for event {event.id}: {stats_error}")
 
-                # If this is a goal, also look for an assist
-                if event.event_type == 'GOAL' and event.additional_data and 'assist_player_id' in event.additional_data:
-                    assist_player_id = event.additional_data['assist_player_id']
-                    # Generate derived idempotency key for assist
-                    assist_idempotency_key = f"assist_{event.idempotency_key}" if event.idempotency_key else None
+                # If this is a goal, also look for assists. A goal may credit up
+                # to two assists: additional_data.assist_player_id (primary) and
+                # additional_data.secondary_assist_player_id (secondary). Both roll
+                # up into the same `assists` stat.
+                if event.event_type == 'GOAL' and event.additional_data:
+                    scorer_id = event.player_id
+                    seen_assist_ids = set()
+                    if scorer_id is not None:
+                        seen_assist_ids.add(int(scorer_id))
 
-                    # Skip if assist PlayerEvent already exists
-                    if assist_idempotency_key:
-                        existing_assist = session.query(PlayerEvent).filter_by(
-                            match_id=match_id, idempotency_key=assist_idempotency_key
-                        ).first()
-                        if existing_assist:
-                            logger.info(f"Skipping duplicate assist PlayerEvent: idempotency_key={assist_idempotency_key}")
+                    assist_specs = (
+                        ('assist_player_id', f"assist_{event.idempotency_key}" if event.idempotency_key else None),
+                        ('secondary_assist_player_id', f"assist2_{event.idempotency_key}" if event.idempotency_key else None),
+                    )
+
+                    for field_name, assist_idempotency_key in assist_specs:
+                        raw_assist_id = event.additional_data.get(field_name)
+                        if raw_assist_id is None:
+                            continue
+                        try:
+                            assist_player_id = int(raw_assist_id)
+                        except (TypeError, ValueError):
+                            logger.warning(f"Ignoring non-integer {field_name}={raw_assist_id!r} for event {event.id}")
                             continue
 
-                    assist_event = PlayerEvent(
-                        player_id=assist_player_id,
-                        match_id=match_id,
-                        team_id=event.team_id,  # Assister is on the same side as the goal.
-                        minute=str(event.minute) if event.minute else None,
-                        event_type=PlayerEventType.ASSIST,
-                        idempotency_key=assist_idempotency_key,
-                        client_timestamp=event.client_timestamp,
-                        reported_by=event.reported_by  # Copy reporter from MatchEvent
-                    )
-                    session.add(assist_event)
+                        # Drop self-assists and the same player credited twice.
+                        if assist_player_id in seen_assist_ids:
+                            logger.warning(
+                                f"Skipping {field_name}={assist_player_id} for event {event.id}: "
+                                f"collides with scorer/other assister"
+                            )
+                            continue
+                        seen_assist_ids.add(assist_player_id)
 
-                    # Update assist stats (use lowercase value)
-                    try:
-                        update_player_stats(session, assist_player_id, 'assist', match, increment=True)
-                    except Exception as stats_error:
-                        logger.error(f"Failed to update assist stats for player {assist_player_id}: {stats_error}")
+                        # Skip if assist PlayerEvent already exists (dedup guard).
+                        if assist_idempotency_key:
+                            existing_assist = session.query(PlayerEvent).filter_by(
+                                match_id=match_id, idempotency_key=assist_idempotency_key
+                            ).first()
+                            if existing_assist:
+                                logger.info(f"Skipping duplicate assist PlayerEvent: idempotency_key={assist_idempotency_key}")
+                                continue
+
+                        assist_event = PlayerEvent(
+                            player_id=assist_player_id,
+                            match_id=match_id,
+                            team_id=event.team_id,  # Assister is on the same side as the goal.
+                            minute=str(event.minute) if event.minute else None,
+                            event_type=PlayerEventType.ASSIST,
+                            idempotency_key=assist_idempotency_key,
+                            client_timestamp=event.client_timestamp,
+                            reported_by=event.reported_by  # Copy reporter from MatchEvent
+                        )
+                        session.add(assist_event)
+
+                        # Update assist stats (use lowercase value)
+                        try:
+                            update_player_stats(session, assist_player_id, 'assist', match, increment=True)
+                        except Exception as stats_error:
+                            logger.error(f"Failed to update assist stats for player {assist_player_id}: {stats_error}")
         
         except Exception as e:
             logger.error(f"Error creating player event from match event {event.id}: {str(e)}")

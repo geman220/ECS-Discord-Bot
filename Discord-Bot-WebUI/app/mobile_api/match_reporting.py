@@ -814,17 +814,20 @@ def delete_match_event(match_id: int, event_id: int):
             except Exception as e:
                 logger.error(f"Failed to update player stats on event delete: {e}")
 
-        # Assist-cascade: when deleting a GOAL that has a paired ASSIST PlayerEvent
-        # (created server-side via additional_data.assist_player_id), delete the
-        # ASSIST too and reverse its stats. Key pattern: '{match_event_key}::assist'.
-        paired_assist = None
+        # Assist-cascade: when deleting a GOAL that has paired ASSIST PlayerEvent(s)
+        # (created server-side via additional_data.assist_player_id /
+        # secondary_assist_player_id), delete them too and reverse their stats.
+        # Key patterns: '{match_event_key}::assist' (primary) and
+        # '{match_event_key}::assist2' (secondary).
         if event_type == 'goal' and event.idempotency_key and event.idempotency_key.startswith('pe_'):
             match_event_key = event.idempotency_key[len('pe_'):]
-            paired_assist = session.query(PlayerEvent).filter_by(
-                match_id=match_id,
-                idempotency_key=f"{match_event_key}::assist",
-            ).first()
-            if paired_assist is not None:
+            for assist_suffix in ('::assist', '::assist2'):
+                paired_assist = session.query(PlayerEvent).filter_by(
+                    match_id=match_id,
+                    idempotency_key=f"{match_event_key}{assist_suffix}",
+                ).first()
+                if paired_assist is None:
+                    continue
                 try:
                     if paired_assist.player_id:
                         update_player_stats(
@@ -835,7 +838,9 @@ def delete_match_event(match_id: int, event_id: int):
                         )
                     session.delete(paired_assist)
                 except Exception:
-                    logger.exception(f"Failed to cascade-delete paired assist for match {match_id}")
+                    logger.exception(
+                        f"Failed to cascade-delete paired assist ({assist_suffix}) for match {match_id}"
+                    )
 
         deleted_event_id = event.id
         # Mirror the delete onto the paired MatchEvent row so the /live feed

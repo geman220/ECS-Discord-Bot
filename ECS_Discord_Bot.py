@@ -2387,9 +2387,10 @@ async def _handle_rsvp_reminder_interaction(interaction: discord.Interaction, cu
         sync_match_id = match_id_int
 
     try:
-        result = await sync_rsvp_with_web_ui(sync_match_id, discord_id, response)
+        # sync_rsvp_with_web_ui returns a boolean: True on success, False on failure.
+        success = await sync_rsvp_with_web_ui(sync_match_id, discord_id, response)
 
-        if result and result.get('success'):
+        if success:
             # Update the DM to show confirmation
             response_emoji = {'yes': '\u2705', 'no': '\u274c', 'maybe': '\u2753'}
             response_label = {'yes': 'Yes', 'no': 'No', 'maybe': 'Maybe'}
@@ -2409,10 +2410,9 @@ async def _handle_rsvp_reminder_interaction(interaction: discord.Interaction, cu
             except Exception as e:
                 logger.warning(f"Failed to update channel embed after DM RSVP: {e}")
         else:
-            error_msg = result.get('message', 'Unknown error') if result else 'No response from server'
             error_embed = discord.Embed(
                 title="RSVP Failed",
-                description=f"Could not process your RSVP: {error_msg}",
+                description="Could not process your RSVP. Please try using the RSVP embed in your team channel instead.",
                 color=0xf44336  # Red
             )
             await interaction.edit_original_response(embed=error_embed, view=None)

@@ -350,6 +350,10 @@ def _register_wallet_blueprints(app, bp, csrf):
     # per-pass `Authorization: ApplePass <token>` (NOT JWT). Must also live
     # outside /api/v1/.
     app.register_blueprint(bp['passkit_web_service_bp'])
+    # Apple's servers POST/DELETE to these PassKit endpoints (device
+    # registration, /v1/log) and cannot send a CSRF token, so exempt the
+    # whole blueprint — otherwise every callback raises a 400 CSRFError.
+    csrf.exempt(bp['passkit_web_service_bp'])
     app.register_blueprint(bp['webhook_bp'])
     app.register_blueprint(bp['validation_bp'])
     csrf.exempt(bp['webhook_bp'])

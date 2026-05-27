@@ -929,10 +929,58 @@ _PLAYER_EVENT_TYPE_MAP = {
 
 
 def _assist_idempotency_key(match_event_key: Optional[str]) -> Optional[str]:
-    """Derived key for the paired ASSIST PlayerEvent; format: '{goal_uuid}::assist'."""
+    """Derived key for the primary paired ASSIST PlayerEvent; format: '{goal_uuid}::assist'."""
     if not match_event_key:
         return None
     return f"{match_event_key}::assist"
+
+
+def _secondary_assist_idempotency_key(match_event_key: Optional[str]) -> Optional[str]:
+    """Derived key for the secondary paired ASSIST PlayerEvent; format: '{goal_uuid}::assist2'."""
+    if not match_event_key:
+        return None
+    return f"{match_event_key}::assist2"
+
+
+def _dual_write_paired_assist(session, match: Match, match_event: MatchEvent,
+                              assist_player_id: int, assist_key: Optional[str]) -> Optional[PlayerEvent]:
+    """
+    Create one paired ASSIST PlayerEvent for a goal and roll up its assist stat.
+
+    Idempotent on assist_key: if a PlayerEvent already exists for this key it is
+    returned untouched (no double-counting). The assister is attributed to the
+    same side (team_id) as the scoring MatchEvent. Used for both the primary and
+    secondary assist of a GOAL.
+    """
+    if not assist_player_id or not assist_key:
+        return None
+
+    existing = session.query(PlayerEvent).filter_by(
+        match_id=match.id, idempotency_key=assist_key
+    ).first()
+    if existing is not None:
+        return existing
+
+    assist_pe = PlayerEvent(
+        player_id=int(assist_player_id),
+        match_id=match.id,
+        team_id=match_event.team_id,
+        minute=_normalize_minute(match_event.minute),
+        event_type=PlayerEventType.ASSIST,
+        idempotency_key=assist_key,
+        client_timestamp=match_event.client_timestamp,
+        reported_by=match_event.reported_by,
+    )
+    session.add(assist_pe)
+    session.flush()
+    try:
+        update_player_stats(
+            session, assist_pe.player_id, 'assist', match,
+            increment=True, is_sub_event=False,
+        )
+    except Exception:
+        logger.exception(f"update_player_stats failed for assist player_event {assist_pe.id}")
+    return assist_pe
 
 
 def _dual_write_player_event_pub(session, match_event: MatchEvent, match: Match) -> Optional[PlayerEvent]:
@@ -989,53 +1037,54 @@ def _dual_write_player_event_pub(session, match_event: MatchEvent, match: Match)
         except Exception:
             logger.exception(f"update_player_stats failed for player_event {pe.id}")
 
-    # ----- Paired ASSIST PlayerEvent from additional_data.assist_player_id -----
-    # Only for GOAL. Own-goals have no assister; cards/assists-as-primary don't apply.
+    # ----- Paired ASSIST PlayerEvent(s) from additional_data -----------------
+    # Only for GOAL. A goal may credit up to two assists:
+    #   additional_data.assist_player_id           -> primary assist (::assist)
+    #   additional_data.secondary_assist_player_id -> secondary assist (::assist2)
+    # Both roll up into the same `assists` stat. Own-goals have no assister;
+    # cards / assists-as-primary don't apply.
     if match_event.event_type == 'GOAL':
-        assist_player_id = None
-        additional = match_event.additional_data or {}
-        if isinstance(additional, dict):
-            assist_player_id = additional.get('assist_player_id')
+        additional = match_event.additional_data if isinstance(match_event.additional_data, dict) else {}
+        scorer_id = int(pe.player_id) if pe.player_id is not None else None
 
-        if assist_player_id is not None and pe.player_id is not None and int(assist_player_id) == int(pe.player_id):
-            logger.warning(
-                f"Skipping assist split for match_event {match_event.id}: "
-                f"assist_player_id == scorer ({assist_player_id})"
-            )
-            assist_player_id = None
-
-        if assist_player_id:
-            assist_key = _assist_idempotency_key(match_event.idempotency_key)
-            existing_assist = None
-            if assist_key:
-                existing_assist = session.query(PlayerEvent).filter_by(
-                    match_id=match.id, idempotency_key=assist_key
-                ).first()
-            if existing_assist is None:
-                assist_pe = PlayerEvent(
-                    player_id=int(assist_player_id),
-                    match_id=match.id,
-                    # The assister is on the same side as the scoring MatchEvent.
-                    team_id=match_event.team_id,
-                    minute=_normalize_minute(match_event.minute),
-                    event_type=PlayerEventType.ASSIST,
-                    idempotency_key=assist_key,
-                    client_timestamp=match_event.client_timestamp,
-                    reported_by=match_event.reported_by,
+        def _resolve_assister(raw, exclude):
+            """Coerce an assist id from additional_data, dropping invalid or
+            colliding refs (self-assist, or same player credited twice)."""
+            if raw is None:
+                return None
+            try:
+                aid = int(raw)
+            except (TypeError, ValueError):
+                logger.warning(
+                    f"Ignoring non-integer assist id {raw!r} for match_event {match_event.id}"
                 )
-                session.add(assist_pe)
-                session.flush()
-                try:
-                    update_player_stats(
-                        session,
-                        assist_pe.player_id,
-                        'assist',
-                        match,
-                        increment=True,
-                        is_sub_event=False,
-                    )
-                except Exception:
-                    logger.exception(f"update_player_stats failed for assist player_event {assist_pe.id}")
+                return None
+            if aid in exclude:
+                logger.warning(
+                    f"Skipping assist split for match_event {match_event.id}: "
+                    f"assist id {aid} collides with scorer/other assister"
+                )
+                return None
+            return aid
+
+        scorer_set = {scorer_id} if scorer_id is not None else set()
+        primary_id = _resolve_assister(additional.get('assist_player_id'), scorer_set)
+
+        secondary_exclude = set(scorer_set)
+        if primary_id is not None:
+            secondary_exclude.add(primary_id)
+        secondary_id = _resolve_assister(additional.get('secondary_assist_player_id'), secondary_exclude)
+
+        if primary_id is not None:
+            _dual_write_paired_assist(
+                session, match, match_event, primary_id,
+                _assist_idempotency_key(match_event.idempotency_key),
+            )
+        if secondary_id is not None:
+            _dual_write_paired_assist(
+                session, match, match_event, secondary_id,
+                _secondary_assist_idempotency_key(match_event.idempotency_key),
+            )
 
     return pe
 

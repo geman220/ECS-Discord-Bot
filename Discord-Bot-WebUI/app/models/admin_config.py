@@ -79,13 +79,27 @@ class AdminConfig(db.Model):
         """
         from flask import g, has_request_context
 
+        # Request-scoped cache: the same setting is often read many times in a
+        # single request (nav toggles, registration flags — see dashboard.py).
+        # Cache the parsed value on `g` so we issue at most one query per key
+        # per request. Only hits are cached, so per-callsite defaults still
+        # apply on a miss. Because the cache lives only for the request, admin
+        # panel changes take effect on the next request — no staleness window.
+        in_request = has_request_context()
+        if in_request:
+            cache = g.__dict__.setdefault('_admin_config_cache', {})
+            if key in cache:
+                return cache[key]
+
         try:
             # Use Flask request session when available to prevent session conflicts
-            if has_request_context() and hasattr(g, 'db_session') and g.db_session:
+            if in_request and hasattr(g, 'db_session') and g.db_session:
                 setting = g.db_session.query(cls).filter_by(key=key, is_enabled=True).first()
                 if setting:
                     # Access parsed_value while session is still active
-                    return setting.parsed_value
+                    value = setting.parsed_value
+                    cache[key] = value
+                    return value
             else:
                 # Fallback to managed session for non-request contexts
                 from app.core.session_manager import managed_session
@@ -156,6 +170,15 @@ class AdminConfig(db.Model):
 
             if auto_commit:
                 db.session.commit()
+
+            # Drop any request-scoped cached value so a read-after-write in the
+            # same request sees the new value (see get_setting's g cache).
+            from flask import g, has_request_context
+            if has_request_context():
+                cache = g.__dict__.get('_admin_config_cache')
+                if cache is not None:
+                    cache.pop(key, None)
+
             logger.debug(f"Admin setting {key} updated to {value} by user {user_id}")
             return setting
         except Exception as e:

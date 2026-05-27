@@ -111,6 +111,11 @@ def register_api_middleware(blueprint: Blueprint):
 
         if is_sub_or_rsvp:
             logger.info(log_msg)
+        elif response.status_code == 401:
+            # Routine unauthenticated access — the auth layer already returned
+            # 401 correctly. Keep at DEBUG so monitors/logged-out clients don't
+            # flood the logs. Other 4xx/5xx (403/404/422/500) stay at WARNING.
+            logger.debug(log_msg)
         elif response.status_code >= 400:
             logger.warning(log_msg)
 

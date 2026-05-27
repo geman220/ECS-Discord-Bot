@@ -14,6 +14,7 @@ from werkzeug.routing import BuildError
 from werkzeug.routing.exceptions import WebsocketMismatch
 from werkzeug.exceptions import HTTPException
 from flask_limiter.errors import RateLimitExceeded
+from flask_wtf.csrf import CSRFError
 
 from app.alert_helpers import show_error
 
@@ -111,6 +112,31 @@ def install_error_handlers(app):
                 'status_code': 405
             }), 405
         return render_template("500_flowbite.html"), 405
+
+    @app.errorhandler(CSRFError)
+    def handle_csrf_error(error):
+        """Handle CSRF failures.
+
+        A missing/invalid CSRF token is a client-side condition (400), not a
+        server fault — typically scanners POSTing to the site or a stale form.
+        Log it at WARNING without a stack trace so it doesn't drown error.log,
+        and return the same secure response shape as other 4xx errors.
+        """
+        app.logger.warning(
+            f"CSRF validation failed: {error.description} | "
+            f"{request.method} {request.path} | "
+            f"User-Agent: {request.headers.get('User-Agent', 'unknown')[:100]}"
+        )
+        if _is_api_request():
+            return jsonify({
+                'success': False,
+                'error': _get_safe_error_message(400),
+                'status_code': 400
+            }), 400
+        try:
+            return render_template("500_flowbite.html"), 400
+        except Exception:
+            return _get_safe_error_message(400), 400, {'Content-Type': 'text/plain'}
 
     @app.errorhandler(Exception)
     def handle_unexpected_error(error):

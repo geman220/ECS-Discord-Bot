@@ -83,8 +83,14 @@ def init_jwt(app):
 
     @jwt.unauthorized_loader
     def missing_token_callback(error):
-        """Handle missing JWT tokens."""
-        logger.warning(f"Missing JWT token: {error}")
+        """Handle missing JWT tokens.
+
+        A missing Authorization header on a protected endpoint is routine —
+        any unauthenticated client (uptime monitors, logged-out apps, scanners)
+        triggers it. Enforcement is unchanged (still 401); log at DEBUG so it
+        doesn't flood the logs. Invalid/revoked tokens stay at WARNING below.
+        """
+        logger.debug(f"Missing JWT token: {error}")
         return jsonify({
             'error': 'Authorization required',
             'code': 'MISSING_TOKEN'
