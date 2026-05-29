@@ -84,6 +84,13 @@ def _ensure_system_presets(db):
                 logger.warning("theme_presets table does not exist yet, skipping preset initialization")
                 return
             ThemePreset.initialize_system_presets()
+            # Self-heal the gitignored design tokens file to the ECS green
+            # identity if it still holds the retired violet default (prod).
+            try:
+                from app.admin_panel.routes.appearance import migrate_retired_default_colors
+                migrate_retired_default_colors()
+            except Exception as e:
+                logger.error(f"Error during design-token green migration: {e}")
             return
         except Exception as e:
             last_exc = e
