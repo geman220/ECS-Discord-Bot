@@ -140,12 +140,11 @@
 
     {% set shell = shell|default('classic') %}
     {% if safe_current_user.is_authenticated %}
-    <!-- Shell chrome (Shell A/B/C) — role-based nav from the shared nav_sections source -->
+    <!-- Left shell chrome: Classic sidebar (w-64) or Console rail (w-16). Matchday
+         has no left chrome — its header renders inside the content wrapper below. -->
     {% if shell == 'console' %}
         {% include 'shells/_shell_console.html' %}
-    {% elif shell == 'matchday' %}
-        {% include 'shells/_shell_matchday.html' %}
-    {% else %}
+    {% elif shell != 'matchday' %}
         {% include 'sidebar_flowbite.html' %}
     {% endif %}
     {% endif %}
@@ -157,17 +156,15 @@
     <div class="{% if safe_current_user.is_authenticated %}{{ _shell_offset }}{% endif %}">
         <!-- Top Navbar (shared utility bar). Non-sticky under Matchday, whose own
              top nav is the sticky primary bar rendered above this content. -->
-        {% if safe_current_user.is_authenticated %}
-        <nav class="{{ 'sticky top-0' if shell != 'matchday' else '' }} z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        {% if safe_current_user.is_authenticated and shell != 'matchday' %}
+        <nav class="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
             <div class="px-4 py-3 lg:px-6">
                 <div class="flex items-center justify-between">
-                    <!-- Mobile menu button (hidden under Matchday, which uses a bottom tab bar) -->
-                    {% if shell != 'matchday' %}
+                    <!-- Mobile menu button (opens the Classic sidebar / Console rail drawer) -->
                     <button data-drawer-target="sidebar" data-drawer-toggle="sidebar" aria-controls="sidebar" type="button" class="inline-flex items-center p-2 text-gray-500 rounded-lg lg:hidden hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-600">
                         <span class="sr-only">Open sidebar</span>
                         <i class="ti ti-menu-2 w-6 h-6"></i>
                     </button>
-                    {% endif %}
 
                     <!-- Mobile Search (visible only on mobile) -->
                     <!-- NOTE: Using flexbox for icon centering instead of transform (-translate-y-1/2) -->
@@ -368,6 +365,11 @@
                 </div>
             </div>
         </nav>
+        {% endif %}
+
+        {% if safe_current_user.is_authenticated and shell == 'matchday' %}
+        <!-- Matchday: single integrated green header + mobile bottom tab bar -->
+        {% include 'shells/_shell_matchday.html' %}
         {% endif %}
 
         <!-- Flash Messages -->
