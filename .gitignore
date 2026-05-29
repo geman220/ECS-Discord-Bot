@@ -96,3 +96,6 @@ Discord-Bot-WebUI/flask_session/
 /Discord-Bot-WebUI/MOBILE_API_DOCUMENTATION.md
 .kiro/context/session-handoff.md
 .DS_Store
+/Discord-Bot-WebUI/DESIGN_DIRECTION.md
+/Discord-Bot-WebUI/SHELL_SYSTEM.md
+/Discord-Bot-WebUI/UI_UX_REVIEW.md
