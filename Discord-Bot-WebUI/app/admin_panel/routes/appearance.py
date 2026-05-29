@@ -30,19 +30,19 @@ from typing import Dict, Any, Optional
 # Flowbite Dark Mode: bg #111827, card #1f2937, border #374151
 DEFAULT_COLORS = {
     "light": {
-        "primary": "#7c3aed",           # Violet-600
-        "primary_light": "#8b5cf6",     # Violet-500 for hover
-        "primary_dark": "#6d28d9",      # Violet-700 for pressed
+        "primary": "#1a472a",           # ECS Green (brand) - deep forest green
+        "primary_light": "#15803d",     # Green-700 for hover
+        "primary_dark": "#14532d",      # Green-900 for pressed
         "secondary": "#64748b",         # Slate-500
-        "accent": "#d97706",            # Amber-600 (warm gold)
-        "success": "#059669",           # Emerald-600
-        "warning": "#ea580c",           # Orange-600 (distinct from accent)
+        "accent": "#c9a227",            # ECS Gold (the one celebratory accent)
+        "success": "#059669",           # Emerald-600 (distinct from forest primary)
+        "warning": "#ea580c",           # Orange-600 (distinct from gold accent)
         "danger": "#dc2626",            # Red-600
-        "info": "#2563eb",              # Blue-600
+        "info": "#2563eb",              # Blue-600 (demoted: informational only)
         "text_heading": "#18181b",      # Zinc-900
         "text_body": "#3f3f46",         # Zinc-700
         "text_muted": "#71717a",        # Zinc-500
-        "text_link": "#7c3aed",         # Violet-600
+        "text_link": "#15803d",         # Green-700 (on-brand link)
         "bg_body": "#fafafa",           # Zinc-50
         "bg_card": "#ffffff",           # White
         "bg_input": "#fafafa",          # Zinc-50
@@ -51,19 +51,19 @@ DEFAULT_COLORS = {
         "border_input": "#d4d4d8"       # Zinc-300
     },
     "dark": {
-        "primary": "#a78bfa",           # Violet-400 (brighter for dark mode)
-        "primary_light": "#c4b5fd",     # Violet-300 for hover
-        "primary_dark": "#8b5cf6",      # Violet-500 for pressed
+        "primary": "#22c55e",           # Green-500 (brightened for dark interactive)
+        "primary_light": "#4ade80",     # Green-400 for hover
+        "primary_dark": "#16a34a",      # Green-600 for pressed
         "secondary": "#a1a1aa",         # Zinc-400
-        "accent": "#fbbf24",            # Amber-400 (gold)
+        "accent": "#facc15",            # Gold-400 (brighter gold for dark)
         "success": "#34d399",           # Emerald-400
-        "warning": "#fb923c",           # Orange-400 (distinct from accent)
+        "warning": "#fb923c",           # Orange-400 (distinct from gold accent)
         "danger": "#f87171",            # Red-400
-        "info": "#60a5fa",              # Blue-400
+        "info": "#60a5fa",              # Blue-400 (demoted: informational only)
         "text_heading": "#fafafa",      # Zinc-50
         "text_body": "#d4d4d8",         # Zinc-300
         "text_muted": "#a1a1aa",        # Zinc-400
-        "text_link": "#a78bfa",         # Violet-400
+        "text_link": "#4ade80",         # Green-400 (on-brand link)
         "bg_body": "#18181b",           # Zinc-900 (warm neutral, no blue)
         "bg_card": "#27272a",           # Zinc-800 (elevated surface)
         "bg_input": "#3f3f46",          # Zinc-700
@@ -168,6 +168,37 @@ def save_design_tokens(tokens: Dict[str, Any]) -> bool:
     except Exception as e:
         current_app.logger.error(f"Error saving design tokens: {e}")
         return False
+
+
+# The retired Vuexy-era default primary. Used to detect an unconfigured legacy
+# tokens file so prod can self-heal to the ECS green identity on deploy.
+RETIRED_DEFAULT_PRIMARY = '#7c3aed'
+
+
+def migrate_retired_default_colors() -> bool:
+    """One-time self-heal for the green identity rollout.
+
+    The design tokens file (instance/design_tokens.json) is gitignored, so a
+    prod environment keeps its own copy — which still holds the retired violet
+    default. If the stored light primary is exactly that retired value, rewrite
+    the tokens from the current green DEFAULT_COLORS. Only the exact retired
+    value triggers this, so a genuinely customized palette is never touched.
+
+    Returns True if a migration was performed.
+    """
+    try:
+        tokens = load_design_tokens()
+        if not tokens:
+            # No file (or invalid) -> defaults already apply, which are green.
+            return False
+        light = (tokens.get('colors') or {}).get('light', {})
+        if (light.get('primary') or '').lower() == RETIRED_DEFAULT_PRIMARY:
+            save_design_tokens(DEFAULT_DESIGN_TOKENS)
+            current_app.logger.info("Migrated retired violet design tokens to ECS green defaults")
+            return True
+    except Exception as e:
+        current_app.logger.error(f"Error migrating retired default colors: {e}")
+    return False
 
 
 def validate_design_tokens(tokens: Dict[str, Any]) -> bool:

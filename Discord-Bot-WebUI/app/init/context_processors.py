@@ -16,6 +16,114 @@ from app.utils.user_helpers import safe_current_user
 logger = logging.getLogger(__name__)
 
 
+def build_nav_sections(user_roles, admin_settings):
+    """
+    Single source of truth for the primary navigation.
+
+    Returns a role-gated list of section dicts so that every shell (classic
+    sidebar, console icon-rail, matchday top-nav) renders the SAME, permission-
+    correct set of items. Presentation is left entirely to each shell template;
+    this function owns only *what* a user may see, never *how* it looks.
+
+    Section shape: {'title': str, 'items': [item, ...]}  (omitted if it has no
+    visible items). Item shape:
+        {'label', 'icon', 'url', 'endpoint', 'active', 'badge', 'highlight',
+         'children'}  where children (if present) marks a dropdown group.
+    """
+    from flask import url_for, request
+
+    try:
+        def has_any(*roles):
+            return any(r in user_roles for r in roles)
+
+        is_admin = has_any('Global Admin', 'Pub League Admin')
+        authenticated = bool(safe_current_user and safe_current_user.is_authenticated)
+
+        # Role capability flags — kept verbatim from the legacy sidebar gating.
+        can_view_draft = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach', 'ECS FC Coach')
+        can_view_draft_predictions = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach')
+        can_view_teams = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach', 'ECS FC Coach', 'pl-classic', 'pl-ecs-fc', 'pl-premier')
+        can_view_standings = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach', 'ECS FC Coach')
+        can_view_calendar = has_any('Pub League Admin', 'Global Admin', 'Pub League Coach', 'ECS FC Coach', 'Pub League Ref', 'pl-classic', 'pl-premier', 'pl-ecs-fc')
+        store_enabled = admin_settings.get('store_navigation_enabled', True)
+        can_view_store = has_any('Pub League Coach', 'Pub League Admin', 'Global Admin') and (store_enabled or 'Global Admin' in user_roles)
+
+        endpoint = request.endpoint if has_request_context() else None
+        path = request.path if has_request_context() else ''
+
+        def item(label, icon, endpoint_name=None, *, args=None, badge=None,
+                 highlight=False, children=None, active_path=None):
+            url = url_for(endpoint_name, **(args or {})) if endpoint_name else None
+            active = False
+            if endpoint_name:
+                active = (active_path in path) if active_path is not None else (endpoint == endpoint_name)
+            if children:
+                active = active or any(c['active'] for c in children)
+            return {
+                'label': label, 'icon': icon, 'url': url, 'endpoint': endpoint_name,
+                'active': active, 'badge': badge, 'highlight': highlight,
+                'children': children,
+            }
+
+        sections = []
+
+        # --- Main ---
+        main_items = []
+        if authenticated:
+            main_items.append(item('Dashboard', 'ti-home', 'main.index'))
+            main_items.append(item('Submit Feedback', 'ti-message-report', 'feedback.submit_feedback'))
+        if has_any('Pub League Coach', 'ECS FC Coach', 'Pub League Admin', 'Global Admin'):
+            main_items.append(item('Coach Dashboard', 'ti-clipboard', 'teams.coach_dashboard'))
+        if authenticated:
+            main_items.append(item('Help Topics', 'ti-help-circle', 'help.index'))
+        if main_items:
+            sections.append({'title': 'Main', 'items': main_items})
+
+        # --- ECS FC League ---
+        league_items = []
+        if can_view_draft:
+            draft_children = [
+                item('Classic Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'classic'}),
+                item('Premier Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'premier'}),
+                item('ECS FC Division', 'ti-point', 'draft_enhanced.draft_league', args={'league_name': 'ecs_fc'}),
+            ]
+            if can_view_draft_predictions:
+                draft_children.append(item('Draft Predictions', 'ti-point', 'draft_predictions.index'))
+            if is_admin:
+                draft_children.append(item('Draft History', 'ti-point', 'admin_panel.draft_history'))
+            league_items.append(item('Draft', 'ti-list', children=draft_children))
+        if can_view_teams and admin_settings.get('teams_navigation_enabled', True):
+            league_items.append(item('Teams', 'ti-users', 'teams.teams_overview'))
+        if can_view_standings:
+            league_items.append(item('Standings', 'ti-chart-bar', 'teams.view_standings'))
+        if can_view_store:
+            league_items.append(item('League Store', 'ti-shopping-cart', 'store.index', active_path='store'))
+        if can_view_calendar:
+            league_items.append(item('Calendar', 'ti-calendar', 'calendar.calendar_view'))
+        if league_items:
+            sections.append({'title': 'ECS FC League', 'items': league_items})
+
+        # --- Administration ---
+        if is_admin:
+            wallet_children = [
+                item('Setup Wizard', 'ti-point', 'wallet_config.setup_wizard'),
+                item('Dashboard', 'ti-point', 'wallet_admin.wallet_management'),
+                item('Pass Studio', 'ti-point', 'pass_studio.index'),
+                item('Manage Passes', 'ti-point', 'wallet_admin.passes_list'),
+                item('Scanner', 'ti-point', 'wallet_admin.scanner'),
+                item('Check-ins', 'ti-point', 'wallet_admin.checkins_list'),
+            ]
+            sections.append({'title': 'Administration', 'items': [
+                item('Admin Panel', 'ti-layout-dashboard', 'admin_panel.dashboard', badge='NEW', highlight=True),
+                item('Digital Wallets', 'ti-device-mobile', children=wallet_children),
+            ]})
+
+        return sections
+    except Exception as e:
+        logger.error(f"Error building nav sections: {e}")
+        return []
+
+
 def init_context_processors(app):
     """
     Register context processors with the Flask application.
@@ -162,6 +270,23 @@ def _register_utility_processor(app):
             """Check if user can access some part of the admin panel."""
             return is_admin() or 'ECS FC Coach' in user_roles
 
+        # Resolve the active UI shell (layout). 'classic' is the default for
+        # everyone; alternate shells are admin-only during the trial, and the
+        # admin panel always uses the 'console' shell. See main.set_ui_shell.
+        shell = 'classic'
+        try:
+            from flask import session, request
+            if is_admin():
+                if has_request_context() and request.blueprint == 'admin_panel':
+                    shell = 'console'
+                else:
+                    requested = session.get('ui_shell')
+                    if requested in ('classic', 'console', 'matchday'):
+                        shell = requested
+        except Exception as e:
+            logger.error(f"Error resolving UI shell: {e}")
+            shell = 'classic'
+
         return {
             'safe_current_user': safe_current_user,
             'user_roles': user_roles,
@@ -174,7 +299,9 @@ def _register_utility_processor(app):
             'is_role_impersonation_active': is_role_impersonation_active,
             'real_is_global_admin': real_is_global_admin,
             'admin_settings': admin_settings,
-            'available_roles': available_roles
+            'available_roles': available_roles,
+            'nav_sections': build_nav_sections(user_roles, admin_settings),
+            'shell': shell
         }
 
 

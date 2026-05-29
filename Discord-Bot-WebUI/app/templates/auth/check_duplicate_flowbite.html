@@ -27,7 +27,7 @@
                 {% if duplicates %}
                 <div class="space-y-4 mb-6">
                     {% for dup in duplicates %}
-                    <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 transition-colors cursor-pointer" data-player-id="{{ dup.id }}">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-ecs-green-400 dark:hover:border-ecs-green-500 transition-colors cursor-pointer" data-player-id="{{ dup.id }}">
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                             <div class="flex-1">
                                 <h6 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">{{ dup.name }}</h6>
@@ -93,7 +93,7 @@
 
             <!-- Back to login -->
             <div class="mt-6 text-center">
-                <a href="{{ url_for('auth.login') }}" class="inline-flex items-center text-sm text-purple-600 dark:text-purple-400 hover:underline">
+                <a href="{{ url_for('auth.login') }}" class="inline-flex items-center text-sm text-theme-primary dark:text-ecs-green-400 hover:underline">
                     <i class="ti ti-arrow-left mr-1"></i>
                     <span>Back to Login</span>
                 </a>

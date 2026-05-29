@@ -190,8 +190,8 @@ html.dark .form-control:focus,
 [data-theme="dark"] .form-control:focus,
 [data-style="dark"] .form-select:focus,
 [data-style="dark"] .form-control:focus {
-    border-color: var(--color-primary, #a78bfa);
-    box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.4);
+    border-color: var(--color-primary, #22c55e);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 34 197 94) / 0.4);
 }
 
 /* Form-select dropdown arrow in dark mode */

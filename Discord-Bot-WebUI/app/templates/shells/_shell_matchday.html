@@ -1,0 +1,6 @@
+{# Shell C — Matchday / Community. Desktop horizontal top nav + mobile bottom
+   tab bar, both rendered from the shared role-gated nav_sections source.
+   The bottom tab bar is fixed; base_flowbite adds bottom padding on mobile. #}
+{% from 'macros/_nav_render.html' import matchday_topnav, matchday_bottomnav %}
+{{ matchday_topnav(nav_sections) }}
+{{ matchday_bottomnav(nav_sections) }}

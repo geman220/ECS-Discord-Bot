@@ -1401,6 +1401,59 @@ def set_theme_variant():
     return jsonify({"success": True, "message": f"Theme variant set to {variant}"})
 
 
+# Valid UI shell layouts. 'classic' is the default sidebar shell available to
+# everyone; 'console' and 'matchday' are alternate shells gated to admins during
+# the evaluation trial.
+UI_SHELLS = ('classic', 'console', 'matchday')
+
+
+@main.route('/set-ui-shell', methods=['POST'])
+@csrf.exempt
+def set_ui_shell():
+    """
+    Set the user's UI shell (layout) preference: classic | console | matchday.
+
+    Admin-only during the trial: only Global/Pub League Admins may select a
+    non-default shell. Non-admins are always served the 'classic' shell, so a
+    rejected request simply leaves them on classic. The choice is stored in the
+    session and (for logged-in users) persisted to their preferences.
+    """
+    data = request.get_json(silent=True) or {}
+    shell = data.get('shell')
+    if shell not in UI_SHELLS:
+        return jsonify({"success": False, "message": "Invalid shell"}), 400
+
+    # Gate alternate shells to admins (respects role impersonation).
+    from app.role_impersonation import get_effective_roles
+    try:
+        roles = get_effective_roles() if current_user.is_authenticated else []
+    except Exception:
+        roles = []
+    is_admin = 'Global Admin' in roles or 'Pub League Admin' in roles
+    if shell != 'classic' and not is_admin:
+        return jsonify({"success": False, "message": "Not authorized to change layout"}), 403
+
+    session['ui_shell'] = shell
+
+    if current_user.is_authenticated:
+        try:
+            user = Player.query.get(current_user.id)
+            if user and hasattr(user, 'preferences'):
+                preferences = user.preferences or {}
+                preferences['ui_shell'] = shell
+                user.preferences = preferences
+                g.db_session.add(user)
+                try:
+                    g.db_session.commit()
+                except Exception as e:
+                    g.db_session.rollback()
+                    logger.exception(f"Error saving ui_shell preference for user {current_user.id}: {e}")
+        except Exception as e:
+            logger.error(f"Error saving ui_shell preference for user {current_user.id}: {e}")
+
+    return jsonify({"success": True, "message": f"Layout set to {shell}"})
+
+
 @main.route('/set-theme-preset', methods=['POST'])
 @csrf.exempt
 def set_theme_preset():
