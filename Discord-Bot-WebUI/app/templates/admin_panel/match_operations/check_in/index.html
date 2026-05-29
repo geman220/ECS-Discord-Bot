@@ -105,7 +105,7 @@
                     </td>
                     <td class="px-3 sm:px-6 py-4 text-gray-600 dark:text-gray-400 max-w-xs truncate hidden md:table-cell">{{ r.location or '—' }}</td>
                     <td class="px-3 sm:px-6 py-4 hidden md:table-cell">
-                        <span class="text-xs px-2 py-0.5 rounded {% if r.league_type == 'pub_league' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% else %}bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200{% endif %}">
+                        <span class="text-xs px-2 py-0.5 rounded {% if r.league_type == 'pub_league' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200{% else %}bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-200{% endif %}">
                             {% if r.league_type == 'pub_league' %}Pub League{% else %}ECS FC{% endif %}
                         </span>
                     </td>

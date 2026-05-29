@@ -16,14 +16,14 @@
 {% block panel_content %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
-    <div data-component="appearance-header" class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-lg shadow">
+    <div data-component="appearance-header" class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 p-6 bg-gradient-to-r from-ecs-green-700 to-ecs-green-900 rounded-lg shadow">
         <div class="flex items-center gap-4">
             <div class="p-3 bg-white/20 rounded-lg">
                 <i class="ti ti-palette text-3xl text-white"></i>
             </div>
             <div>
                 <h1 class="text-2xl font-bold text-white">Theme Customization</h1>
-                <p class="text-purple-100">Customize colors for the Modern theme. Changes apply site-wide.</p>
+                <p class="text-ecs-green-100">Customize colors for the Modern theme. Changes apply site-wide.</p>
             </div>
         </div>
         <div class="flex flex-wrap gap-2">
@@ -54,7 +54,7 @@
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <div>
                 <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-eye text-purple-600"></i>
+                    <i class="ti ti-eye text-theme-primary"></i>
                     <span>Live Preview</span>
                 </h5>
                 <p class="text-sm text-gray-500 dark:text-gray-400">See your color changes in real-time for both modes</p>
@@ -359,19 +359,19 @@
         <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between p-6 border-b border-gray-200 dark:border-gray-700">
             <div>
                 <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                    <i class="ti ti-stack-2 text-purple-600"></i>
+                    <i class="ti ti-stack-2 text-theme-primary"></i>
                     <span>Theme Presets</span>
                 </h5>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Save and manage reusable color schemes for users to select</p>
             </div>
-            <button type="button" class="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" data-action="save-as-preset">
+            <button type="button" class="mt-4 lg:mt-0 inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-theme-primary hover:bg-theme-primary-dark rounded-lg transition-colors" data-action="save-as-preset">
                 <i class="ti ti-plus mr-2"></i>Save Current as Preset
             </button>
         </div>
         <div class="p-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" data-presets-grid>
                 <!-- Default Preset (always present) -->
-                <div class="relative p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-purple-300 dark:hover:border-purple-600 transition-colors" data-preset-card data-preset-slug="default">
+                <div class="relative p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border-2 border-gray-200 dark:border-gray-600 hover:border-ecs-green-300 dark:hover:border-ecs-green-600 transition-colors" data-preset-card data-preset-slug="default">
                     <span class="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded">System</span>
                     <div class="flex gap-1 mb-3">
                         <span class="w-6 h-6 rounded-full bg-purple-600"></span>
@@ -381,7 +381,7 @@
                     </div>
                     <h6 class="font-semibold text-gray-900 dark:text-white">Default</h6>
                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">System default color scheme</p>
-                    <button type="button" class="w-full px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors" data-action="apply-preset" data-preset-slug="default">
+                    <button type="button" class="w-full px-3 py-1.5 text-sm font-medium text-white bg-theme-primary hover:bg-theme-primary-dark rounded-lg transition-colors" data-action="apply-preset" data-preset-slug="default">
                         <i class="ti ti-check mr-1"></i>Apply
                     </button>
                 </div>
@@ -398,7 +398,7 @@
     <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
         <ul class="flex flex-wrap -mb-px text-sm font-medium" id="colorTabs" role="tablist">
             <li class="mr-2" role="presentation">
-                <button class="inline-flex items-center p-4 border-b-2 border-purple-600 text-purple-600 dark:text-purple-500 dark:border-purple-500 rounded-t-lg" id="light-tab" data-tabs-target="#light-colors" type="button" role="tab" aria-controls="light-colors" aria-selected="true">
+                <button class="inline-flex items-center p-4 border-b-2 border-theme-primary text-theme-primary dark:text-theme-primary dark:border-theme-primary rounded-t-lg" id="light-tab" data-tabs-target="#light-colors" type="button" role="tab" aria-controls="light-colors" aria-selected="true">
                     <i class="ti ti-sun mr-2"></i>Light Mode Colors
                 </button>
             </li>
@@ -418,7 +418,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
                         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-brush text-purple-600"></i>Brand Colors
+                            <i class="ti ti-brush text-theme-primary"></i>Brand Colors
                         </h6>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Main identity colors used throughout the site</p>
                     </div>
@@ -442,7 +442,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
                         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-typography text-purple-600"></i>Text Colors
+                            <i class="ti ti-typography text-theme-primary"></i>Text Colors
                         </h6>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Typography and content colors</p>
                     </div>
@@ -466,7 +466,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
                         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-traffic-lights text-purple-600"></i>Status Colors
+                            <i class="ti ti-traffic-lights text-theme-primary"></i>Status Colors
                         </h6>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Alerts, badges, feedback states</p>
                     </div>
@@ -490,7 +490,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
                         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-layout text-purple-600"></i>Backgrounds
+                            <i class="ti ti-layout text-theme-primary"></i>Backgrounds
                         </h6>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Page and component backgrounds</p>
                     </div>
@@ -514,7 +514,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
                         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-border-style text-purple-600"></i>Borders
+                            <i class="ti ti-border-style text-theme-primary"></i>Borders
                         </h6>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Separators and outlines</p>
                     </div>
@@ -543,7 +543,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
                         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-brush text-purple-600"></i>Brand Colors
+                            <i class="ti ti-brush text-theme-primary"></i>Brand Colors
                         </h6>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Adjusted for dark mode visibility</p>
                     </div>
@@ -567,7 +567,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
                         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-typography text-purple-600"></i>Text Colors
+                            <i class="ti ti-typography text-theme-primary"></i>Text Colors
                         </h6>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Light text on dark backgrounds</p>
                     </div>
@@ -591,7 +591,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
                         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-traffic-lights text-purple-600"></i>Status Colors
+                            <i class="ti ti-traffic-lights text-theme-primary"></i>Status Colors
                         </h6>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Brighter for dark backgrounds</p>
                     </div>
@@ -615,7 +615,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
                         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-layout text-purple-600"></i>Backgrounds
+                            <i class="ti ti-layout text-theme-primary"></i>Backgrounds
                         </h6>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Dark mode surface colors</p>
                     </div>
@@ -639,7 +639,7 @@
                 <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700">
                     <div class="p-4 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600 rounded-t-lg">
                         <h6 class="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                            <i class="ti ti-border-style text-purple-600"></i>Borders
+                            <i class="ti ti-border-style text-theme-primary"></i>Borders
                         </h6>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Subtle separators for dark mode</p>
                     </div>
@@ -664,7 +664,7 @@
 
     <!-- Save Button -->
     <div class="fixed bottom-6 right-6 z-50">
-        <button type="button" class="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg shadow-lg transition-colors" data-action="save-colors">
+        <button type="button" class="inline-flex items-center px-6 py-3 text-base font-medium text-white bg-theme-primary hover:bg-theme-primary-dark rounded-lg shadow-lg transition-colors" data-action="save-colors">
             <i class="ti ti-device-floppy mr-2"></i>
             <span>Save Changes</span>
         </button>
@@ -677,16 +677,16 @@
 <div class="space-y-4">
     <div>
         <label for="presetName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Preset Name <span class="text-red-500">*</span></label>
-        <input type="text" id="presetName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Ocean Blue" required>
+        <input type="text" id="presetName" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="e.g., Ocean Blue" required>
         <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">A unique, descriptive name for this color scheme</p>
     </div>
     <div>
         <label for="presetDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
-        <textarea id="presetDescription" rows="2" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Optional description..."></textarea>
+        <textarea id="presetDescription" rows="2" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white" placeholder="Optional description..."></textarea>
     </div>
     <div class="flex items-start">
         <div class="flex items-center h-5">
-            <input id="presetEnabled" type="checkbox" checked class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-purple-300 dark:bg-gray-600 dark:border-gray-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800">
+            <input id="presetEnabled" type="checkbox" checked class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-ecs-green-300 dark:bg-gray-600 dark:border-gray-500 dark:focus:ring-ecs-green-600 dark:ring-offset-gray-800">
         </div>
         <label for="presetEnabled" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
             Enable for user selection
@@ -695,7 +695,7 @@
     </div>
     <div class="flex items-start">
         <div class="flex items-center h-5">
-            <input id="presetDefault" type="checkbox" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-purple-300 dark:bg-gray-600 dark:border-gray-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800">
+            <input id="presetDefault" type="checkbox" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-ecs-green-300 dark:bg-gray-600 dark:border-gray-500 dark:focus:ring-ecs-green-600 dark:ring-offset-gray-800">
         </div>
         <label for="presetDefault" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">
             Set as default preset
@@ -705,7 +705,7 @@
 </div>
 <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-600 mt-4">
     <button type="button" data-modal-hide="savePresetModal" class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">Cancel</button>
-    <button type="button" class="px-5 py-2.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:outline-none focus:ring-purple-300 rounded-lg dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-800" data-action="confirm-save-preset">
+    <button type="button" class="px-5 py-2.5 text-sm font-medium text-white bg-theme-primary hover:bg-theme-primary-dark focus:ring-4 focus:outline-none focus:ring-ecs-green-300 rounded-lg dark:bg-theme-primary dark:hover:bg-theme-primary-dark dark:focus:ring-ecs-green-800" data-action="confirm-save-preset">
         <i class="ti ti-device-floppy mr-1"></i>Save Preset
     </button>
 </div>
@@ -715,11 +715,11 @@
 {% call modal('importModal', 'Import Color Scheme', size='md') %}
 <div>
     <label for="importJson" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Paste JSON</label>
-    <textarea id="importJson" rows="10" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white font-mono" placeholder='{"light": {...}, "dark": {...}}'></textarea>
+    <textarea id="importJson" rows="10" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white font-mono" placeholder='{"light": {...}, "dark": {...}}'></textarea>
 </div>
 <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-600 mt-4">
     <button type="button" data-modal-hide="importModal" class="px-5 py-2.5 text-sm font-medium text-gray-900 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700">Cancel</button>
-    <button type="button" class="px-5 py-2.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 focus:ring-4 focus:outline-none focus:ring-purple-300 rounded-lg dark:bg-purple-600 dark:hover:bg-purple-700 dark:focus:ring-purple-800" data-action="import-colors">Import</button>
+    <button type="button" class="px-5 py-2.5 text-sm font-medium text-white bg-theme-primary hover:bg-theme-primary-dark focus:ring-4 focus:outline-none focus:ring-ecs-green-300 rounded-lg dark:bg-theme-primary dark:hover:bg-theme-primary-dark dark:focus:ring-ecs-green-800" data-action="import-colors">Import</button>
 </div>
 {% endcall %}
 {% endblock %}
@@ -736,18 +736,18 @@ document.addEventListener('DOMContentLoaded', function() {
     lightTab?.addEventListener('click', function() {
         lightColors.classList.remove('hidden');
         darkColors.classList.add('hidden');
-        lightTab.classList.add('border-purple-600', 'text-purple-600', 'dark:text-purple-500', 'dark:border-purple-500');
+        lightTab.classList.add('border-theme-primary', 'text-theme-primary', 'dark:text-theme-primary', 'dark:border-theme-primary');
         lightTab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
-        darkTab.classList.remove('border-purple-600', 'text-purple-600', 'dark:text-purple-500', 'dark:border-purple-500');
+        darkTab.classList.remove('border-theme-primary', 'text-theme-primary', 'dark:text-theme-primary', 'dark:border-theme-primary');
         darkTab.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
     });
 
     darkTab?.addEventListener('click', function() {
         darkColors.classList.remove('hidden');
         lightColors.classList.add('hidden');
-        darkTab.classList.add('border-purple-600', 'text-purple-600', 'dark:text-purple-500', 'dark:border-purple-500');
+        darkTab.classList.add('border-theme-primary', 'text-theme-primary', 'dark:text-theme-primary', 'dark:border-theme-primary');
         darkTab.classList.remove('border-transparent', 'text-gray-500', 'dark:text-gray-400');
-        lightTab.classList.remove('border-purple-600', 'text-purple-600', 'dark:text-purple-500', 'dark:border-purple-500');
+        lightTab.classList.remove('border-theme-primary', 'text-theme-primary', 'dark:text-theme-primary', 'dark:border-theme-primary');
         lightTab.classList.add('border-transparent', 'text-gray-500', 'dark:text-gray-400');
     });
 

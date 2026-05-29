@@ -35,7 +35,7 @@
             <a href="{{ url_for('admin_panel.ecs_fc_import') }}" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600">
                 <i class="ti ti-file-import mr-2"></i>Import Schedule
             </a>
-            <button type="button" id="post-missing-rsvps-btn" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700">
+            <button type="button" id="post-missing-rsvps-btn" class="flex items-center justify-center px-4 py-3 text-sm font-medium text-white bg-theme-primary rounded-lg hover:bg-theme-primary-dark">
                 <i class="ti ti-send mr-2"></i>Post Missing RSVPs
             </button>
         </div>
@@ -148,7 +148,7 @@
                     </td>
                     <td class="px-4 py-3">
                         <div class="flex items-center gap-1">
-                            <button type="button" class="post-rsvp-btn p-2 text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30 rounded-lg" data-match-id="{{ match.id }}" data-opponent="{{ match.opponent_name }}" title="Post RSVP Now">
+                            <button type="button" class="post-rsvp-btn p-2 text-theme-primary hover:bg-ecs-green-100 dark:hover:bg-ecs-green-900/30 rounded-lg" data-match-id="{{ match.id }}" data-opponent="{{ match.opponent_name }}" title="Post RSVP Now">
                                 <i class="ti ti-send"></i>
                             </button>
                             <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg" title="View RSVP">

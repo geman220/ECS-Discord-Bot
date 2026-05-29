@@ -85,7 +85,7 @@ class ThemePreset(db.Model):
             'name': self.name,
             'slug': self.slug,
             'is_default': self.is_default,
-            'primary_color': self.colors.get('light', {}).get('primary', '#7C3AED') if self.colors else '#7C3AED'
+            'primary_color': self.colors.get('light', {}).get('primary', '#1a472a') if self.colors else '#1a472a'
         }
 
     @classmethod
@@ -173,16 +173,17 @@ class ThemePreset(db.Model):
         """Initialize or update system presets.
 
         Uses DEFAULT_COLORS from appearance.py as the single source of truth
-        for the 'Default Purple' preset. Creates missing presets and updates
-        existing system presets to stay in sync.
+        for the 'ECS Green' default preset. Creates missing presets and updates
+        existing system presets to stay in sync. Also removes the retired
+        'Default Purple' system preset so it can no longer re-inject violet.
         """
         # Import here to avoid circular imports
         from app.admin_panel.routes.appearance import DEFAULT_COLORS
 
         system_presets = [
             {
-                'name': 'Default Purple',
-                'description': 'The default ECS theme with purple accents',
+                'name': 'ECS Green',
+                'description': 'The default ECS theme — deep forest green brand with gold accents',
                 'colors': DEFAULT_COLORS,  # Single source of truth
                 'is_default': True
             },
@@ -285,6 +286,14 @@ class ThemePreset(db.Model):
         ]
 
         try:
+            # Remove the retired default preset (renamed to 'ECS Green'). Only
+            # touches the system-owned row, never a user's custom preset.
+            legacy = cls.query.filter_by(name='Default Purple', is_system=True).first()
+            if legacy:
+                db.session.delete(legacy)
+                db.session.commit()
+                logger.info("Removed retired 'Default Purple' system preset")
+
             for preset_data in system_presets:
                 existing = cls.query.filter_by(name=preset_data['name']).first()
                 if existing:

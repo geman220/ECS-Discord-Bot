@@ -32,6 +32,7 @@ export default {
           700: '#15803d',
           800: '#1a472a',
           900: '#14532d',
+          950: '#052e16',
         },
         'ecs-gold': {
           DEFAULT: 'rgb(var(--color-accent-rgb, 201 162 39) / <alpha-value>)',
