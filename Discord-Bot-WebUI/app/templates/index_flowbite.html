@@ -16,8 +16,30 @@
     </div>
     {% endif %}
 
+    {# Real-data summary stats (no placeholders), derived from the player's teams
+       and their matches: counts + the soonest upcoming match (for the spotlight). #}
+    {% set stats = namespace(upcoming=0, recent=0, next_date=None, next_match=None, next_team=None) %}
+    {% if player and user_team %}
+        {% set _all = namespace(items=[]) %}
+        {% for t in user_team %}
+            {% for d, ms in team_matches.get(t.id, {}).get('next', {}).items() %}
+                {% set stats.upcoming = stats.upcoming + (ms | length) %}
+                {% for m in ms %}{% set _all.items = _all.items + [(d, t, m)] %}{% endfor %}
+            {% endfor %}
+            {% for d, ms in team_matches.get(t.id, {}).get('prev', {}).items() %}
+                {% set stats.recent = stats.recent + (ms | length) %}
+            {% endfor %}
+        {% endfor %}
+        {% set _sorted = _all.items | sort(attribute='0') %}
+        {% if _sorted %}
+            {% set stats.next_date = _sorted[0][0] %}
+            {% set stats.next_team = _sorted[0][1] %}
+            {% set stats.next_match = _sorted[0][2] %}
+        {% endif %}
+    {% endif %}
+
     <!-- Welcome Header -->
-    <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 text-white">
+    <div class="bg-gradient-to-r from-ecs-green-800 to-ecs-green-950 rounded-xl p-6 text-white shadow-sm">
         {% if player %}
         <h2 class="text-2xl font-bold mb-2">Welcome, {{ player.name }}!</h2>
         {% if user_team and user_team|length > 0 %}
@@ -39,6 +61,75 @@
         </div>
         {% endif %}
     </div>
+
+    {% if player and user_team and user_team|length > 0 %}
+    <!-- Stat cards (real data) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {% set _cards = [
+            ('ti-users', 'text-ecs-green', 'bg-ecs-green/10', user_team|length, 'Team' if user_team|length == 1 else 'Teams'),
+            ('ti-calendar-event', 'text-blue-600 dark:text-blue-400', 'bg-blue-100 dark:bg-blue-900/40', stats.upcoming, 'Upcoming'),
+            ('ti-history', 'text-gray-600 dark:text-gray-300', 'bg-gray-100 dark:bg-gray-700', stats.recent, 'Recent Played'),
+        ] %}
+        {% for icon, fg, bg, value, label in _cards %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
+            <div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 {{ bg }} {{ fg }}">
+                <i class="ti {{ icon }} text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="text-2xl font-bold font-mono leading-none text-gray-900 dark:text-white">{{ value }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">{{ label }}</div>
+            </div>
+        </div>
+        {% endfor %}
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
+            <div class="w-11 h-11 rounded-lg flex items-center justify-center shrink-0 bg-ecs-gold/20 text-ecs-gold">
+                <i class="ti ti-ball-football text-xl"></i>
+            </div>
+            <div class="min-w-0">
+                <div class="text-lg font-bold leading-tight text-gray-900 dark:text-white truncate">{{ stats.next_date.strftime('%a, %b %d') if stats.next_date else 'None' }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">Next Match</div>
+            </div>
+        </div>
+    </div>
+
+    {# Next Match spotlight — informational (RSVP stays in the list below to avoid duplicate radio groups). #}
+    {% if stats.next_match %}
+    {% set nm = stats.next_match %}{% set nt = stats.next_team %}
+    {% set nm_home = nm['home_team_id'] == nt.id %}
+    {% set nm_opp = nm['opponent_name'] if nm_home else nm['home_team_name'] %}
+    <div class="rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-sm bg-white dark:bg-gray-800">
+        <div class="bg-gradient-to-r from-ecs-green-800 to-ecs-green-950 px-5 py-2.5 flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wide text-ecs-gold flex items-center gap-1.5"><i class="ti ti-star-filled"></i>Next Match</span>
+            <span class="text-xs text-white/80">{{ stats.next_date.strftime('%A, %B %d') }}</span>
+        </div>
+        <div class="p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div class="min-w-0">
+                {% if nm['week_type'] in ['FUN','TST','BYE','BONUS','PLAYOFF'] %}
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ {'FUN':'Fun Week','TST':'TST Week','BYE':'Bye Week','BONUS':'Bonus Week','PLAYOFF':'Playoff Week'}[nm['week_type']] }}</h3>
+                {% else %}
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white truncate">
+                    <span class="text-ecs-green dark:text-ecs-gold">{{ nt.name }}</span>
+                    <span class="text-gray-400 font-normal text-base mx-1">vs</span>{{ nm_opp }}
+                </h3>
+                {% endif %}
+                {% if nm['week_type'] != 'BYE' %}
+                <div class="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mt-2">
+                    <span class="flex items-center gap-1.5"><i class="ti ti-clock"></i>{{ nm['time'].strftime('%I:%M %p') }}</span>
+                    <span class="flex items-center gap-1.5"><i class="ti ti-map-pin"></i>{{ nm['location'] }}</span>
+                    <span class="flex items-center gap-1.5"><i class="ti {{ 'ti-home' if nm_home else 'ti-plane' }}"></i>{{ 'Home' if nm_home else 'Away' }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% if has_permission('view_match_page') and nm['week_type'] != 'BYE' %}
+            <a href="{{ url_for('ecs_fc.match_details', match_id=nm['match_id']) if nm.get('is_ecs_fc') else url_for('match_pages.view_match', match_id=nm['match_id']) }}"
+               class="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green-700 transition-colors">
+                <i class="ti ti-arrow-right"></i>Match Details
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    {% endif %}
 
     {% if not show_onboarding %}
     <!-- Announcements Card -->
