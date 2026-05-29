@@ -4,11 +4,15 @@
   Each macro here is presentation-only; none of them re-decide visibility.
 
   Macros:
-    sidebar_nav(nav_sections)  — Classic shell (Shell A): vertical sidebar.
-  Console (B) and Matchday (C) renderers are added in Phase 3.
+    sidebar_nav(nav_sections)     — Classic shell (A): vertical sidebar.
+    console_rail(nav_sections)    — Console shell (B): expand-on-hover icon rail.
+    matchday_topnav(nav_sections) — Matchday shell (C): desktop horizontal nav.
+    matchday_bottomnav(nav_sections) — Matchday shell (C): mobile bottom tab bar.
 #}
 
-{# ---- Classic vertical sidebar (Shell A) ---- #}
+{# ============================================================================
+   Shell A — Classic vertical sidebar.
+   ============================================================================ #}
 {% macro sidebar_nav(nav_sections) %}
   {% for section in nav_sections %}
     <div class="{{ 'mb-4' if loop.first else 'mt-6 mb-4' }}">
@@ -22,7 +26,6 @@
   {% endfor %}
 {% endmacro %}
 
-{# Single sidebar entry: dropdown group, highlighted CTA, or plain link. #}
 {% macro _sidebar_item(item) %}
   {% if item.children %}
     {% set ddid = 'dropdown-' + item.label|lower|replace(' ', '-') %}
@@ -66,35 +69,28 @@
 
 {# ============================================================================
    Shell B — Modern Console: expand-on-hover icon rail.
-   Collapsed w-16 (icons only); on hover the rail widens to w-64 and reveals
-   labels. Uses id="sidebar" so the existing mobile drawer/hamburger still works.
+   Collapsed to w-16 on desktop (icons only); widens to w-64 on hover to reveal
+   labels + group children. On mobile it is a full w-64 drawer (id="sidebar",
+   toggled by the top-bar hamburger) with everything visible.
+   Label/children visibility: visible on mobile, hidden when collapsed on lg,
+   revealed on lg hover (group-hover beats lg:hidden / lg:opacity-0 by specificity).
    ============================================================================ #}
 {% macro console_rail(nav_sections) %}
 <aside id="sidebar"
-       class="group fixed top-0 left-0 z-40 h-screen w-64 lg:w-16 lg:hover:w-64 transition-[width] duration-200 ease-out -translate-x-full lg:translate-x-0 overflow-hidden"
+       class="group fixed top-0 left-0 z-40 h-screen w-64 lg:w-16 lg:hover:w-64 lg:focus-within:w-64 transition-[width] duration-200 ease-out -translate-x-full lg:translate-x-0"
        aria-label="Sidebar">
-  <div class="h-full flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
-    <!-- Logo -->
-    <div class="flex items-center h-16 px-3 border-b border-gray-200 dark:border-gray-700">
+  <div class="h-full flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-x-hidden">
+    <div class="flex items-center h-16 px-4 shrink-0 border-b border-gray-200 dark:border-gray-700">
       <a href="{{ url_for('main.index') }}" class="flex items-center gap-3 min-w-0">
         <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" class="h-8 w-8 shrink-0" alt="ECS Logo" />
-        <span class="text-xl font-semibold text-gray-900 dark:text-white whitespace-nowrap opacity-0 lg:group-hover:opacity-100 transition-opacity">ECS FC</span>
+        <span class="text-lg font-semibold text-gray-900 dark:text-white whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity">ECS FC</span>
       </a>
     </div>
-    <nav class="flex-1 overflow-y-auto overflow-x-hidden py-3">
+    <nav class="flex-1 overflow-y-auto overflow-x-hidden py-2">
       {% for section in nav_sections %}
-        <div class="px-3 mt-3 mb-1 h-4">
-          <span class="text-[10px] font-semibold text-gray-400 uppercase tracking-wide whitespace-nowrap opacity-0 lg:group-hover:opacity-100 transition-opacity">{{ section.title }}</span>
-        </div>
+        {% if not loop.first %}<div class="mx-3 my-2 border-t border-gray-100 dark:border-gray-700"></div>{% endif %}
         <ul class="space-y-1 px-2">
-          {% for item in section['items'] %}
-            {% if item.children %}
-              {{ _console_item(item, true) }}
-              {% for child in item.children %}{{ _console_item(child, false, true) }}{% endfor %}
-            {% else %}
-              {{ _console_item(item, false) }}
-            {% endif %}
-          {% endfor %}
+          {% for item in section['items'] %}{{ _console_item(item) }}{% endfor %}
         </ul>
       {% endfor %}
     </nav>
@@ -102,66 +98,104 @@
 </aside>
 {% endmacro %}
 
-{% macro _console_item(item, is_group=false, is_child=false) %}
-  <li>
-    <a href="{{ item.url or '#' }}" title="{{ item.label }}"
-       class="flex items-center h-10 rounded-lg {{ 'pl-7' if is_child else 'px-2.5' }} hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20' if item.active else 'text-gray-700 dark:text-gray-300' }}">
-      <i class="ti {{ item.icon }} w-5 h-5 shrink-0 {{ 'text-ecs-green' if item.active else 'text-gray-500 dark:text-gray-400' }}"></i>
-      <span class="ml-3 text-sm whitespace-nowrap opacity-0 lg:group-hover:opacity-100 transition-opacity {{ 'font-semibold uppercase text-[11px] tracking-wide text-gray-400' if is_group else '' }}">{{ item.label }}</span>
-      {% if item.badge %}<span class="ml-auto mr-1 px-1.5 py-0.5 text-[10px] font-medium bg-ecs-green/10 text-ecs-green rounded opacity-0 lg:group-hover:opacity-100 transition-opacity">{{ item.badge }}</span>{% endif %}
-    </a>
-  </li>
+{% macro _console_item(item) %}
+  {% if item.children %}
+    <li>
+      <div class="flex items-center h-10 px-3 rounded-lg">
+        <i class="ti {{ item.icon }} w-5 h-5 shrink-0 {{ 'text-ecs-green' if item.active else 'text-gray-500 dark:text-gray-400' }}"></i>
+        <span class="ml-3 text-[11px] font-semibold uppercase tracking-wide text-gray-400 whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity">{{ item.label }}</span>
+      </div>
+      <ul class="block lg:hidden lg:group-hover:block lg:group-focus-within:block space-y-1">
+        {% for child in item.children %}
+          <li>
+            <a href="{{ child.url }}" title="{{ child.label }}"
+               class="flex items-center h-9 pl-10 pr-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20' if child.active else 'text-gray-600 dark:text-gray-400' }}">
+              <span class="text-sm whitespace-nowrap">{{ child.label }}</span>
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    </li>
+  {% else %}
+    <li>
+      <a href="{{ item.url or '#' }}" title="{{ item.label }}"
+         class="flex items-center h-10 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20' if item.active else 'text-gray-700 dark:text-gray-300' }}">
+        <i class="ti {{ item.icon }} w-5 h-5 shrink-0 {{ 'text-ecs-green' if item.active else 'text-gray-500 dark:text-gray-400' }}"></i>
+        <span class="ml-3 text-sm whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity">{{ item.label }}</span>
+        {% if item.badge %}<span class="ml-auto px-1.5 py-0.5 text-[10px] font-medium bg-ecs-green/10 text-ecs-green rounded whitespace-nowrap opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:group-focus-within:opacity-100 transition-opacity">{{ item.badge }}</span>{% endif %}
+      </a>
+    </li>
+  {% endif %}
 {% endmacro %}
 
 
 {# ============================================================================
-   Shell C — Matchday: desktop horizontal top nav + mobile bottom tab bar.
+   Shell C — Matchday: desktop horizontal nav (Admin tucked into an overflow
+   dropdown to avoid crowding) + mobile bottom tab bar.
    ============================================================================ #}
 {% macro matchday_topnav(nav_sections) %}
-<header class="sticky top-0 z-40 bg-gradient-to-r from-ecs-green-800 to-ecs-green-950 text-white shadow-md">
-  <div class="px-4 lg:px-6">
-    <div class="flex items-center h-16 gap-6">
-      <a href="{{ url_for('main.index') }}" class="flex items-center gap-2 shrink-0">
-        <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" class="h-9 w-9" alt="ECS Logo" />
-        <span class="text-lg font-bold tracking-tight">ECS FC</span>
-      </a>
-      <!-- Desktop horizontal nav -->
-      <nav class="hidden lg:flex items-center gap-1 flex-1">
-        {% for section in nav_sections %}{% for item in section['items'] %}
+<nav class="hidden lg:flex items-center gap-1 flex-1 min-w-0" aria-label="Primary">
+  {% for section in nav_sections if section.title != 'Administration' %}
+    {% for item in section['items'] %}
+      {% if item.children %}
+        {{ _matchday_dropdown(item, 'md-dd-' ~ item.label|lower|replace(' ', '-')) }}
+      {% else %}
+        <a href="{{ item.url }}" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap {{ 'bg-white/15 text-white' if item.active else 'text-white/90 hover:bg-white/10' }}">
+          <i class="ti {{ item.icon }} w-4 h-4"></i>{{ item.label }}
+        </a>
+      {% endif %}
+    {% endfor %}
+  {% endfor %}
+  {% for section in nav_sections if section.title == 'Administration' %}
+    <button type="button" data-dropdown-toggle="md-dd-admin" class="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-white/90 hover:bg-white/10">
+      <i class="ti ti-shield-cog w-4 h-4"></i>Admin<i class="ti ti-chevron-down w-3.5 h-3.5"></i>
+    </button>
+    <div id="md-dd-admin" class="z-50 hidden w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+      <ul>
+        {% for item in section['items'] %}
           {% if item.children %}
-            <div class="relative group">
-              <button type="button" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-white/90 hover:bg-white/10 {{ 'bg-white/10' if item.active else '' }}">
-                <i class="ti {{ item.icon }} w-4 h-4"></i>{{ item.label }}<i class="ti ti-chevron-down w-3.5 h-3.5"></i>
-              </button>
-              <div class="absolute left-0 top-full hidden group-hover:block pt-1 w-52">
-                <ul class="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
-                  {% for child in item.children %}
-                  <li><a href="{{ child.url }}" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'text-ecs-green font-medium' if child.active else 'text-gray-700 dark:text-gray-200' }}">{{ child.label }}</a></li>
-                  {% endfor %}
-                </ul>
-              </div>
-            </div>
+            <li class="px-4 pt-2 pb-1 text-[11px] font-semibold uppercase text-gray-400">{{ item.label }}</li>
+            {% for child in item.children %}
+              <li><a href="{{ child.url }}" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'text-ecs-green font-medium' if child.active else 'text-gray-700 dark:text-gray-200' }}">{{ child.label }}</a></li>
+            {% endfor %}
           {% else %}
-            <a href="{{ item.url }}" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium {{ 'bg-white/15 text-white' if item.active else 'text-white/90 hover:bg-white/10' }}">
-              <i class="ti {{ item.icon }} w-4 h-4"></i>{{ item.label }}
-              {% if item.badge %}<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-ecs-gold text-ecs-green-950 rounded">{{ item.badge }}</span>{% endif %}
-            </a>
+            <li><a href="{{ item.url }}" class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'text-ecs-green font-medium' if item.active else 'text-gray-700 dark:text-gray-200' }}"><i class="ti {{ item.icon }} w-4 h-4"></i><span class="flex-1">{{ item.label }}</span>{% if item.badge %}<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-ecs-gold text-ecs-green-950 rounded">{{ item.badge }}</span>{% endif %}</a></li>
           {% endif %}
-        {% endfor %}{% endfor %}
-      </nav>
+        {% endfor %}
+      </ul>
     </div>
-  </div>
-</header>
+  {% endfor %}
+</nav>
 {% endmacro %}
 
+{# Flowbite click dropdown — keyboard- and touch-accessible (no hover-only). #}
+{% macro _matchday_dropdown(item, ddid) %}
+  <button type="button" data-dropdown-toggle="{{ ddid }}" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap {{ 'bg-white/15 text-white' if item.active else 'text-white/90 hover:bg-white/10' }}">
+    <i class="ti {{ item.icon }} w-4 h-4"></i>{{ item.label }}<i class="ti ti-chevron-down w-3.5 h-3.5"></i>
+  </button>
+  <div id="{{ ddid }}" class="z-50 hidden w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+    <ul>
+      {% for child in item.children %}
+      <li><a href="{{ child.url }}" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'text-ecs-green font-medium' if child.active else 'text-gray-700 dark:text-gray-200' }}">{{ child.label }}</a></li>
+      {% endfor %}
+    </ul>
+  </div>
+{% endmacro %}
+
+{# Mobile bottom tabs — up to 5, curated by endpoint priority (RBAC-respecting:
+   only items already present in nav_sections can appear). #}
 {% macro matchday_bottomnav(nav_sections) %}
 {% set ns = namespace(items=[]) %}
 {% for s in nav_sections %}{% for it in s['items'] %}{% if it.children %}{% for c in it.children %}{% set ns.items = ns.items + [c] %}{% endfor %}{% else %}{% set ns.items = ns.items + [it] %}{% endif %}{% endfor %}{% endfor %}
+{% set priority = ['main.index', 'teams.teams_overview', 'teams.view_standings', 'calendar.calendar_view', 'store.index', 'teams.coach_dashboard'] %}
+{% set tabs = namespace(items=[]) %}
+{% for ep in priority %}{% for it in ns.items if it.endpoint == ep and tabs.items|length < 5 %}{% set tabs.items = tabs.items + [it] %}{% endfor %}{% endfor %}
+{% for it in ns.items if it not in tabs.items and tabs.items|length < 5 %}{% set tabs.items = tabs.items + [it] %}{% endfor %}
 <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex" aria-label="Primary">
-  {% for item in ns.items[:5] %}
+  {% for item in tabs.items %}
   <a href="{{ item.url }}" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[3.5rem] {{ 'text-ecs-green' if item.active else 'text-gray-500 dark:text-gray-400' }}">
     <i class="ti {{ item.icon }} w-5 h-5"></i>
-    <span class="text-[10px] font-medium truncate max-w-[4rem]">{{ item.label }}</span>
+    <span class="text-[10px] font-medium truncate max-w-[4.5rem]">{{ item.label }}</span>
   </a>
   {% endfor %}
 </nav>

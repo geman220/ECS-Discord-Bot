@@ -271,8 +271,9 @@ def _register_utility_processor(app):
             return is_admin() or 'ECS FC Coach' in user_roles
 
         # Resolve the active UI shell (layout). 'classic' is the default for
-        # everyone; alternate shells are admin-only during the trial, and the
-        # admin panel always uses the 'console' shell. See main.set_ui_shell.
+        # everyone; alternate shells are admin-only during the trial. The admin
+        # panel always uses the 'console' shell (built for power-users); every
+        # other page honors the admin's chosen shell. See main.set_ui_shell.
         shell = 'classic'
         try:
             from flask import session, request

@@ -1,119 +1,71 @@
-{# Appearance Settings Tab Partial #}
+{# Appearance Settings Tab — color mode + color preset picker.
+   Color mode buttons use data-action="set-theme"; preset buttons use
+   data-action="select-preset" — both handled globally by simple-theme-switcher.js
+   (EventDelegation). The [data-presets-list] container is auto-populated from
+   /admin-panel/api/presets. #}
 <div class="c-settings-tab" id="tab-appearance" role="tabpanel" data-component="settings-tab" data-tab-pane="appearance">
-    <div class="row">
-        <div class="col-12">
-            <!-- Theme Style Section -->
-            <div class="c-settings-c-card" data-component="settings-card">
-                <div class="c-settings-card__header">
-                    <div class="c-settings-card__icon c-settings-card__icon--primary">
-                        <i class="ti ti-brush"></i>
-                    </div>
-                    <div class="c-settings-card__header-info">
-                        <h5 class="c-settings-card__title">Theme Style</h5>
-                        <small class="c-settings-card__subtitle">Our modern design provides a clean, professional interface</small>
-                    </div>
+    <div class="space-y-6">
+
+        <!-- Color Mode -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-start gap-3 mb-4">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green shrink-0">
+                    <i class="ti ti-sun-moon w-5 h-5"></i>
                 </div>
-                <div class="c-settings-card__body">
-                    <div class="c-info-box c-info-box--primary" data-component="info-box">
-                        <p class="c-settings-card__subtitle c-settings-card__subtitle--no-margin">
-                            <i class="ti ti-info-circle"></i>
-                            <strong>Modern Theme:</strong> The modern design is our current standard, offering improved readability, accessibility, and performance. It supports light and dark color modes.
-                        </p>
-                    </div>
-
-                    <div class="row g-4 mt-3">
-                        <!-- Modern Theme Card -->
-                        <div class="col-md-6">
-                            <div class="c-theme-c-card is-active"
-                                 data-variant="modern"
-                                 data-action="select-theme-variant">
-                                <div class="c-theme-card__header">
-                                    <div>
-                                        <h6 class="c-theme-card__name">
-                                            <i class="ti ti-sparkles"></i>
-                                            Modern
-                                        </h6>
-                                        <span class="c-badge c-badge--success">Active</span>
-                                    </div>
-                                    <span class="c-badge c-badge--primary">
-                                        <i class="ti ti-check"></i> Current
-                                    </span>
-                                </div>
-
-                                <!-- Preview mockup -->
-                                <div class="c-theme-card__preview">
-                                    <div class="c-theme-card__preview-nav"></div>
-                                    <div class="c-theme-card__preview-sidebar"></div>
-                                    <div class="c-theme-card__preview-content"></div>
-                                    <div class="c-theme-card__preview-button"></div>
-                                </div>
-
-                                <p class="c-theme-card__description">
-                                    Clean, professional design with violet accents and improved readability.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                <div>
+                    <h5 class="text-base font-semibold text-gray-900 dark:text-white">Color Mode</h5>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Choose light, dark, or follow your system setting. You can also toggle this from the navbar.</p>
                 </div>
             </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {% set current_mode = session.get('theme', 'light') %}
+                {% for mode, icon, label in [('light','ti-sun','Light'), ('dark','ti-moon','Dark'), ('system','ti-device-desktop','System')] %}
+                <button type="button" data-action="set-theme" data-theme="{{ mode }}"
+                        class="flex items-center justify-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-colors min-h-[44px]
+                               {{ 'border-ecs-green bg-ecs-green/10 text-ecs-green' if current_mode == mode else 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
+                    <i class="ti {{ icon }} w-5 h-5"></i>
+                    {{ label }}
+                </button>
+                {% endfor %}
+            </div>
+        </div>
 
-            <!-- Color Mode Section -->
-            <div class="c-settings-c-card" data-component="settings-card">
-                <div class="c-settings-card__header">
-                    <div class="c-settings-card__icon c-settings-card__icon--info">
-                        <i class="ti ti-sun-moon"></i>
-                    </div>
-                    <div class="c-settings-card__header-info">
-                        <h5 class="c-settings-card__title">Color Mode</h5>
-                        <small class="c-settings-card__subtitle">Choose between light, dark, or system-based color mode</small>
-                    </div>
+        <!-- Color Preset -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-start gap-3 mb-4">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green shrink-0">
+                    <i class="ti ti-palette w-5 h-5"></i>
                 </div>
-                <div class="c-settings-card__body">
-                    <p class="c-settings-card__subtitle mb-4">You can also change this from the navbar theme switcher.</p>
-
-                    <div class="c-color-mode" data-component="color-mode-selector">
-                        <button type="button"
-                                class="c-color-mode__btn {{ 'is-active' if session.get('theme', 'light') == 'light' }}"
-                                data-action="set-theme"
-                                data-theme="light">
-                            <i class="ti ti-sun"></i>
-                            Light
-                        </button>
-                        <button type="button"
-                                class="c-color-mode__btn {{ 'is-active' if session.get('theme') == 'dark' }}"
-                                data-action="set-theme"
-                                data-theme="dark">
-                            <i class="ti ti-moon"></i>
-                            Dark
-                        </button>
-                        <button type="button"
-                                class="c-color-mode__btn {{ 'is-active' if session.get('theme') == 'system' }}"
-                                data-action="set-theme"
-                                data-theme="system">
-                            <i class="ti ti-device-desktop"></i>
-                            System
-                        </button>
-                    </div>
+                <div>
+                    <h5 class="text-base font-semibold text-gray-900 dark:text-white">Color Preset</h5>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Pick a color theme. Each preset includes matching light and dark variants.</p>
                 </div>
             </div>
+            <div data-presets-section class="space-y-1">
+                {# Default (ECS Green) — hardcoded; additional presets injected by JS #}
+                <button class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        data-action="select-preset" data-preset="default" role="menuitem">
+                    <span class="inline-block w-4 h-4 rounded-full bg-ecs-green ring-1 ring-black/10"></span>
+                    <span class="flex-1">ECS Green (Default)</span>
+                </button>
+                <div data-presets-list class="space-y-1"></div>
+            </div>
+        </div>
 
-            <!-- Info Card -->
-            <div class="c-settings-c-card" data-component="settings-card">
-                <div class="c-settings-card__body">
-                    <div class="d-flex align-items-start gap-3">
-                        <div class="c-settings-card__icon c-settings-card__icon--info c-settings-card__icon--sm">
-                            <i class="ti ti-info-circle"></i>
-                        </div>
-                        <div>
-                            <h6 class="c-settings-card__title c-settings-card__title--sm">About the Modern Theme</h6>
-                            <p class="c-settings-card__subtitle c-settings-card__subtitle--no-margin">
-                                The Modern theme is our complete redesign with refined colors, typography, and component styling.
-                                It provides an improved user experience with better accessibility and performance. Choose your preferred color mode above.
-                            </p>
-                        </div>
-                    </div>
+        <!-- Layout (admins only) -->
+        {% if is_admin and is_admin() %}
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
+            <div class="flex items-start gap-3">
+                <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 shrink-0">
+                    <i class="ti ti-layout-2 w-5 h-5"></i>
+                </div>
+                <div>
+                    <h5 class="text-base font-semibold text-gray-900 dark:text-white">Layout (admin preview)</h5>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">During the evaluation trial, admins can switch between the Classic, Modern Console, and Matchday layouts using the layout menu in the top bar.</p>
                 </div>
             </div>
         </div>
+        {% endif %}
+
     </div>
 </div>

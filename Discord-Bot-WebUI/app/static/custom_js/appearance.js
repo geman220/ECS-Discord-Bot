@@ -194,7 +194,7 @@ function updateLightPreview() {
     if (card) {
         card.style.background = getValue('light-bg_card') || '#FFFFFF';
         card.style.borderColor = getValue('light-border') || '#E4E4E7';
-        card.style.borderLeftColor = getValue('light-primary') || '#7C3AED';
+        card.style.borderLeftColor = getValue('light-primary') || '#1a472a';
     }
 
     // Text
@@ -208,14 +208,14 @@ function updateLightPreview() {
         el.style.color = getValue('light-text_muted') || '#71717A';
     });
     area.querySelectorAll('.preview-link').forEach(el => {
-        el.style.color = getValue('light-text_link') || '#7C3AED';
+        el.style.color = getValue('light-text_link') || '#1a472a';
     });
 
     // Buttons
     const btnPrimary = area.querySelector('.preview-btn-primary');
     if (btnPrimary) {
-        btnPrimary.style.background = getValue('light-primary') || '#7C3AED';
-        btnPrimary.style.borderColor = getValue('light-primary') || '#7C3AED';
+        btnPrimary.style.background = getValue('light-primary') || '#1a472a';
+        btnPrimary.style.borderColor = getValue('light-primary') || '#1a472a';
     }
     const btnSecondary = area.querySelector('.preview-btn-secondary');
     if (btnSecondary) {
@@ -298,7 +298,7 @@ function updateLightPreview() {
 
         // Toggle tracks
         modalSection.querySelectorAll('.preview-toggle__track').forEach(el => {
-            el.style.background = getValue('light-primary') || '#7C3AED';
+            el.style.background = getValue('light-primary') || '#1a472a';
         });
 
         // Toggle labels
@@ -315,8 +315,8 @@ function updateLightPreview() {
 
         // Role badges (active)
         modalSection.querySelectorAll('.preview-role-badge--active').forEach(el => {
-            el.style.background = getValue('light-primary') || '#7C3AED';
-            el.style.borderColor = getValue('light-primary') || '#7C3AED';
+            el.style.background = getValue('light-primary') || '#1a472a';
+            el.style.borderColor = getValue('light-primary') || '#1a472a';
             el.style.color = '#FFFFFF';
         });
 
@@ -327,8 +327,8 @@ function updateLightPreview() {
         // Primary button in modal
         const modalPrimaryBtn = modalSection.querySelector('.preview-btn-primary');
         if (modalPrimaryBtn) {
-            modalPrimaryBtn.style.background = getValue('light-primary') || '#7C3AED';
-            modalPrimaryBtn.style.borderColor = getValue('light-primary') || '#7C3AED';
+            modalPrimaryBtn.style.background = getValue('light-primary') || '#1a472a';
+            modalPrimaryBtn.style.borderColor = getValue('light-primary') || '#1a472a';
         }
 
         // Labels (muted text)
@@ -374,7 +374,7 @@ function updateDarkPreview() {
     if (card) {
         card.style.background = getValue('dark-bg_card') || '#27272A';
         card.style.borderColor = getValue('dark-border') || '#3F3F46';
-        card.style.borderLeftColor = getValue('dark-primary') || '#A78BFA';
+        card.style.borderLeftColor = getValue('dark-primary') || '#22c55e';
     }
 
     // Text
@@ -388,14 +388,14 @@ function updateDarkPreview() {
         el.style.color = getValue('dark-text_muted') || '#A1A1AA';
     });
     area.querySelectorAll('.preview-link-dark').forEach(el => {
-        el.style.color = getValue('dark-text_link') || '#A78BFA';
+        el.style.color = getValue('dark-text_link') || '#22c55e';
     });
 
     // Buttons
     const btnPrimary = area.querySelector('.preview-btn-primary-dark');
     if (btnPrimary) {
-        btnPrimary.style.background = getValue('dark-primary') || '#A78BFA';
-        btnPrimary.style.borderColor = getValue('dark-primary') || '#A78BFA';
+        btnPrimary.style.background = getValue('dark-primary') || '#22c55e';
+        btnPrimary.style.borderColor = getValue('dark-primary') || '#22c55e';
     }
     const btnSecondary = area.querySelector('.preview-btn-secondary-dark');
     if (btnSecondary) {
@@ -478,7 +478,7 @@ function updateDarkPreview() {
 
         // Toggle tracks
         modalSection.querySelectorAll('.preview-toggle__track').forEach(el => {
-            el.style.background = getValue('dark-primary') || '#A78BFA';
+            el.style.background = getValue('dark-primary') || '#22c55e';
         });
 
         // Toggle labels
@@ -495,8 +495,8 @@ function updateDarkPreview() {
 
         // Role badges (active)
         modalSection.querySelectorAll('.preview-role-badge--active').forEach(el => {
-            el.style.background = getValue('dark-primary') || '#A78BFA';
-            el.style.borderColor = getValue('dark-primary') || '#A78BFA';
+            el.style.background = getValue('dark-primary') || '#22c55e';
+            el.style.borderColor = getValue('dark-primary') || '#22c55e';
             el.style.color = '#FFFFFF';
         });
 
@@ -507,8 +507,8 @@ function updateDarkPreview() {
         // Primary button in modal
         const modalPrimaryBtn = modalSection.querySelector('.preview-btn-primary-dark');
         if (modalPrimaryBtn) {
-            modalPrimaryBtn.style.background = getValue('dark-primary') || '#A78BFA';
-            modalPrimaryBtn.style.borderColor = getValue('dark-primary') || '#A78BFA';
+            modalPrimaryBtn.style.background = getValue('dark-primary') || '#22c55e';
+            modalPrimaryBtn.style.borderColor = getValue('dark-primary') || '#22c55e';
         }
 
         // Labels (muted text)
@@ -776,7 +776,7 @@ function createPresetCard(preset) {
     // Color swatches
     const colors = preset.colors?.light || {};
     const swatchColors = [
-        colors.primary || '#7C3AED',
+        colors.primary || '#1a472a',
         colors.accent || '#D97706',
         colors.success || '#059669',
         colors.info || '#2563EB'

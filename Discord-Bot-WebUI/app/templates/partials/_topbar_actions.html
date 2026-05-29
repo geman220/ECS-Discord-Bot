@@ -1,0 +1,180 @@
+{# Shared top-bar utility actions: search, AI, layout switcher, dark-mode
+   toggle, role impersonation, user menu. Used by the Classic/Console white
+   bar (actions_dark=false) and the Matchday green header (actions_dark=true).
+   Rendered for exactly one shell per request, so the control IDs are unique. #}
+{% set _ab_idle = 'text-white/90 hover:bg-white/10' if actions_dark else 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700' %}
+{% set _ab = _ab_idle ~ (' focus:ring-white/30' if actions_dark else ' focus:ring-gray-200 dark:focus:ring-gray-700') %}
+                    <div class="flex items-center gap-4">
+                        <!-- Desktop Search -->
+                        <!-- NOTE: Using flexbox + margin for icon centering instead of top-2.5 -->
+                        <!-- This avoids any transform-related touch issues on iOS Safari -->
+                        <div class="relative hidden md:block flex items-center">
+                            <input type="text" id="player-search-flowbite" placeholder="Search players..."
+                                   autocomplete="off"
+                                   aria-expanded="false"
+                                   aria-haspopup="listbox"
+                                   aria-controls="search-results-desktop"
+                                   class="w-64 px-4 py-2 pl-10 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" />
+                            <i class="ti ti-search absolute left-3 text-gray-500 dark:text-gray-400" style="top: 50%; margin-top: -0.5em;"></i>
+                            <!-- Desktop Search Results Dropdown -->
+                            <div id="search-results-desktop"
+                                 role="listbox"
+                                 class="hidden absolute top-full left-0 w-full mt-1 bg-white dark:bg-gray-700
+                                        border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg
+                                        z-50 max-h-80 overflow-y-auto">
+                            </div>
+                        </div>
+
+                        <!-- AI Assistant Trigger -->
+                        {% if safe_current_user.is_authenticated and ai_assistant_enabled %}
+                        <button type="button" data-action="ai-assistant-toggle"
+                                class="p-2 rounded-lg focus:outline-none focus:ring-2 {{ _ab }}"
+                                title="AI Assistant" aria-label="Open AI Assistant">
+                            <i class="ti ti-sparkles w-5 h-5"></i>
+                        </button>
+                        {% endif %}
+
+                        <!-- Layout (shell) switcher — admin-only, evaluation trial -->
+                        {% if is_admin() %}
+                        <div class="relative">
+                            <button id="shell-switch-btn" type="button" data-dropdown-toggle="shell-switch-menu"
+                                    class="p-2 rounded-lg focus:outline-none focus:ring-2 {{ _ab }}"
+                                    title="Layout (admin preview)" aria-label="Switch layout">
+                                <i class="ti ti-layout-2 w-5 h-5"></i>
+                            </button>
+                            <div id="shell-switch-menu" class="z-50 hidden w-56 bg-white rounded-lg shadow-lg dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                                <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400 border-b border-gray-100 dark:border-gray-600">Layout (admin preview)</div>
+                                <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
+                                    {% for opt in [('classic','Classic','ti-layout-sidebar'), ('console','Modern Console','ti-layout-navbar'), ('matchday','Matchday','ti-layout-grid')] %}
+                                    <li>
+                                        <button type="button" data-set-shell="{{ opt[0] }}"
+                                                class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 {{ 'text-ecs-green font-medium' if shell == opt[0] else '' }}">
+                                            <i class="ti {{ opt[2] }} w-5 h-5"></i>
+                                            <span class="flex-1">{{ opt[1] }}</span>
+                                            {% if shell == opt[0] %}<i class="ti ti-check w-4 h-4"></i>{% endif %}
+                                        </button>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                                <div class="px-4 py-2 text-xs text-gray-400 border-t border-gray-100 dark:border-gray-600">Only you see this preview. Admin panel always uses Console.</div>
+                            </div>
+                        </div>
+                        <script>
+                            (function () {
+                                document.addEventListener('click', function (e) {
+                                    var el = e.target.closest('[data-set-shell]');
+                                    if (!el) return;
+                                    var _csrf = document.querySelector('meta[name=csrf-token]');
+                                    fetch('{{ url_for("main.set_ui_shell") }}', {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRFToken': _csrf ? _csrf.getAttribute('content') : ''
+                                        },
+                                        body: JSON.stringify({ shell: el.getAttribute('data-set-shell') })
+                                    }).then(function (r) { return r.json(); })
+                                      .then(function () { window.location.reload(); })
+                                      .catch(function () { window.location.reload(); });
+                                });
+                            })();
+                        </script>
+                        {% endif %}
+
+                        <!-- Dark Mode Toggle -->
+                        <button id="theme-toggle" type="button" class="p-2 rounded-lg focus:outline-none focus:ring-2 {{ _ab }}">
+                            <i class="ti ti-sun w-5 h-5 hidden dark:block"></i>
+                            <i class="ti ti-moon w-5 h-5 block dark:hidden"></i>
+                        </button>
+
+                        {% if real_is_global_admin %}
+                        <!-- Role Impersonation Toggle (Global Admin Only) -->
+                        <div class="relative">
+                            <button type="button" id="role-impersonation-toggle" data-dropdown-toggle="role-impersonation-dropdown"
+                                    class="p-2 rounded-lg focus:outline-none focus:ring-2 {{ 'focus:ring-white/30' if actions_dark else 'focus:ring-gray-200 dark:focus:ring-gray-700' }} {{ 'text-orange-500 bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50' if is_role_impersonation_active() else _ab_idle }}"
+                                    title="{{ 'Role Impersonation Active' if is_role_impersonation_active() else 'Impersonate Role' }}">
+                                <i class="ti ti-masks-theater w-5 h-5"></i>
+                                {% if is_role_impersonation_active() %}
+                                <span class="absolute -top-1 -right-1 w-3 h-3 bg-orange-500 rounded-full animate-pulse"></span>
+                                {% endif %}
+                            </button>
+
+                            <!-- Role Impersonation Dropdown -->
+                            <div id="role-impersonation-dropdown" class="z-50 hidden w-72 bg-white divide-y divide-gray-100 rounded-lg shadow-lg dark:bg-gray-700 dark:divide-gray-600 border border-gray-200 dark:border-gray-600">
+                                <div class="px-4 py-3">
+                                    <span class="block text-sm font-medium text-gray-900 dark:text-white">
+                                        <i class="ti ti-masks-theater mr-1"></i> Role Impersonation
+                                    </span>
+                                    <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        View the app as a different role
+                                    </span>
+                                </div>
+
+                                {% if is_role_impersonation_active() %}
+                                <!-- Active Impersonation Status -->
+                                <div class="px-4 py-3 bg-orange-50 dark:bg-orange-900/20">
+                                    <div class="flex items-center gap-2 text-sm text-orange-700 dark:text-orange-300">
+                                        <i class="ti ti-alert-circle"></i>
+                                        <span>Currently viewing as:</span>
+                                    </div>
+                                    <div class="mt-2 flex flex-wrap gap-1">
+                                        {% for role in user_roles %}
+                                        <span class="px-2 py-0.5 text-xs font-medium bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 rounded">
+                                            {{ role }}
+                                        </span>
+                                        {% endfor %}
+                                    </div>
+                                    <form action="{{ url_for('role_impersonation.stop_impersonation_form') }}" method="POST" class="mt-3">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="w-full px-3 py-2 text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors">
+                                            <i class="ti ti-player-stop mr-1"></i> Stop Impersonation
+                                        </button>
+                                    </form>
+                                </div>
+                                {% else %}
+                                <!-- Role Selection -->
+                                <div class="py-2 max-h-64 overflow-y-auto">
+                                    <div class="px-4 py-2 text-xs font-semibold text-gray-400 uppercase">Select Role to View As</div>
+                                    {% for role in available_roles %}
+                                    <button type="button"
+                                            class="role-impersonate-btn w-full flex items-center justify-between px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+                                            data-role="{{ role.name }}">
+                                        <span>{{ role.name }}</span>
+                                        <span class="text-xs text-gray-400">{{ role.permission_count }} perms</span>
+                                    </button>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- User Menu -->
+                        <button type="button" class="flex items-center gap-2 p-1 rounded-lg {{ _ab_idle }}" id="user-menu-button" data-dropdown-toggle="user-dropdown">
+                            <img class="w-8 h-8 rounded-full {{ 'ring-2 ring-white/30' if actions_dark else '' }}" src="{{ (safe_current_user.player.profile_picture_url if safe_current_user.player and safe_current_user.player.profile_picture_url else url_for('static', filename='img/default_player.png')) }}" alt="User photo" />
+                            <span class="hidden md:block text-sm font-medium {{ 'text-white' if actions_dark else 'text-gray-900 dark:text-white' }}">{{ safe_current_user.player.name if safe_current_user.player else safe_current_user.username }}</span>
+                            <i class="ti ti-chevron-down w-4 h-4"></i>
+                        </button>
+
+                        <!-- User Dropdown -->
+                        <div class="z-50 hidden my-4 text-base list-none bg-white divide-y divide-gray-100 rounded-lg shadow dark:bg-gray-700 dark:divide-gray-600" id="user-dropdown">
+                            <div class="px-4 py-3">
+                                <span class="block text-sm text-gray-900 dark:text-white">{{ safe_current_user.player.name if safe_current_user.player else safe_current_user.username }}</span>
+                                <span class="block text-sm text-gray-500 truncate dark:text-gray-400">{{ safe_current_user.email or '' }}</span>
+                            </div>
+                            <ul class="py-2" aria-labelledby="user-menu-button">
+                                {% if safe_current_user.player %}
+                                <li>
+                                    <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white">My Profile</a>
+                                </li>
+                                {% endif %}
+                                <li>
+                                    <a href="{{ url_for('account.settings') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white">
+                                        <i class="ti ti-settings mr-2"></i>Settings
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="{{ url_for('auth.logout') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200 dark:hover:text-white">Sign out</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>

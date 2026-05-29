@@ -574,7 +574,7 @@ import { showToast } from '../js/services/toast-service.js';
                         showCancelButton: true,
                         confirmButtonText: 'Save',
                         cancelButtonText: 'Cancel',
-                        confirmButtonColor: '#696cff',
+                        confirmButtonColor: '#1a472a',
                         preConfirm: () => {
                             return document.getElementById('stat-minute').value;
                         }

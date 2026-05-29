@@ -74,9 +74,9 @@ const colorMap = {
  * Fallback values
  */
 const fallbacks = {
-    primary: '#7C3AED',
-    'primary-light': '#8B5CF6',
-    'primary-dark': '#6D28D9',
+    primary: '#1a472a',
+    'primary-light': '#15803d',
+    'primary-dark': '#14532d',
     'primary-subtle': '#EDE9FE',
     secondary: '#64748B',
     accent: '#F59E0B',

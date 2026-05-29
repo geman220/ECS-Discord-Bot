@@ -22,7 +22,7 @@ function getCSSVariable(name, fallback) {
  */
 function initConfigColors() {
     window.config.colors = {
-        primary: getCSSVariable('--ecs-primary', '#7C3AED'),
+        primary: getCSSVariable('--ecs-primary', '#1a472a'),
         success: getCSSVariable('--ecs-success', '#10B981'),
         danger: getCSSVariable('--ecs-danger', '#EF4444'),
         warning: getCSSVariable('--ecs-warning', '#F59E0B'),
@@ -46,7 +46,7 @@ function initConfigColors() {
  */
 const defaultConfig = {
     colors: {
-        primary: '#7C3AED',
+        primary: '#1a472a',
         success: '#10B981',
         danger: '#EF4444',
         warning: '#F59E0B',
@@ -56,7 +56,7 @@ const defaultConfig = {
         dark: '#18181B',
     },
     colors_label: {
-        primary: '#7C3AED',
+        primary: '#1a472a',
         success: '#10B981',
         danger: '#EF4444',
         warning: '#F59E0B',

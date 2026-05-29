@@ -1,6 +1,30 @@
-{# Shell C — Matchday / Community. Desktop horizontal top nav + mobile bottom
-   tab bar, both rendered from the shared role-gated nav_sections source.
-   The bottom tab bar is fixed; base_flowbite adds bottom padding on mobile. #}
+{# Shell C — Matchday / Community. A single integrated green app bar (brand +
+   horizontal nav + the shared utility actions) plus a mobile bottom tab bar.
+   Rendered only when shell == 'matchday', so the shared actions partial's
+   control IDs don't collide with the white utility bar (which isn't rendered
+   in this shell). actions_dark=true gives the controls light-on-green styling. #}
 {% from 'macros/_nav_render.html' import matchday_topnav, matchday_bottomnav %}
-{{ matchday_topnav(nav_sections) }}
+
+<header class="sticky top-0 z-40 bg-gradient-to-r from-ecs-green-800 to-ecs-green-950 text-white shadow-md mb-4 lg:mb-6">
+    <div class="px-4 lg:px-6">
+        <div class="flex items-center h-16 gap-3">
+            <!-- Brand -->
+            <a href="{{ url_for('main.index') }}" class="flex items-center gap-2 shrink-0">
+                <img src="{{ url_for('static', filename='img/ecs_logo.png') }}" class="h-9 w-9" alt="ECS Logo" />
+                <span class="text-lg font-bold tracking-tight hidden sm:block">ECS FC</span>
+            </a>
+
+            <!-- Desktop horizontal nav (from the shared role-gated nav_sections) -->
+            {{ matchday_topnav(nav_sections) }}
+
+            <!-- Shared utility actions (search, AI, switcher, theme, impersonation, user menu) -->
+            <div class="ml-auto">
+                {% set actions_dark = true %}
+                {% include 'partials/_topbar_actions.html' %}
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Mobile bottom tab bar -->
 {{ matchday_bottomnav(nav_sections) }}

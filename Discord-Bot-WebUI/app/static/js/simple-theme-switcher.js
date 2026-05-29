@@ -401,7 +401,7 @@ class SimpleThemeSwitcher {
           // Add preset items (skip default, it's hardcoded)
           data.presets.filter(p => p.slug !== 'default' && p.is_enabled).forEach(preset => {
             const button = document.createElement('button');
-            button.className = 'c-navbar-modern__dropdown-item';
+            button.className = 'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-left text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700';
             button.setAttribute('data-action', 'select-preset');
             button.setAttribute('data-preset', preset.slug);
             button.setAttribute('role', 'menuitem');

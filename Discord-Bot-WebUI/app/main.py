@@ -1408,7 +1408,6 @@ UI_SHELLS = ('classic', 'console', 'matchday')
 
 
 @main.route('/set-ui-shell', methods=['POST'])
-@csrf.exempt
 def set_ui_shell():
     """
     Set the user's UI shell (layout) preference: classic | console | matchday.

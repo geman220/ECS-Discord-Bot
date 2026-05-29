@@ -454,7 +454,7 @@ const StoreAdmin = {
                 showCancelButton: true,
                 confirmButtonText: 'Yes, update them!',
                 cancelButtonText: 'Cancel',
-                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#696cff'
+                confirmButtonColor: (typeof ECSTheme !== 'undefined') ? ECSTheme.getColor('primary') : '#1a472a'
             }).then((result) => {
                 if (result.isConfirmed) {
                     this.performBulkUpdate(orderIds, newStatus);

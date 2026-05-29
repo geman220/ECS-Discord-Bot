@@ -238,7 +238,7 @@ function showDeleteConfirmation(messageId, isSent) {
     if (isSent) {
       options.showDenyButton = true;
       options.denyButtonText = 'Unsend for everyone';
-      options.denyButtonColor = 'var(--cw-accent, #7c3aed)';
+      options.denyButtonColor = 'var(--cw-accent, #1a472a)';
     }
 
     window.Swal.fire(options).then((result) => {
