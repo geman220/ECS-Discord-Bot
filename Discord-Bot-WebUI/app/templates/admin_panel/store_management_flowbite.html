@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
 
 {% block admin_title %}Store Management{% endblock %}
 {% block panel_description %}Manage products and orders{% endblock %}
@@ -14,6 +15,149 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== MODERN (console) ===================== #}
+{{ page_header("Store Management", subtitle="Products & Orders") }}
+
+<!-- KPI band -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+    {{ stat_card("ti-package", "Total Items", stats.total_items or 0, sublabel="in catalog", tone="info") }}
+    {{ stat_card("ti-shopping-cart", "Total Orders", stats.total_orders or 0, sublabel="all time", tone="success") }}
+    {{ stat_card("ti-clock", "Pending Orders", stats.pending_orders or 0, sublabel="awaiting fulfillment", tone="warning") }}
+    {{ stat_card("ti-currency-dollar", "Total Revenue", "$" ~ (stats.revenue_total or 0), sublabel="gross", tone="primary") }}
+</div>
+
+<!-- Management panels -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-6">
+    {% call section_card("Product Management", icon="ti-package") %}
+    <div class="p-4 sm:p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage store items, inventory, and product categories</p>
+        <div class="space-y-2">
+            <button type="button" data-action="add-new-product"
+                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
+                    <i class="ti ti-plus text-ecs-green" aria-hidden="true"></i>Add New Product
+                </span>
+                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+            </button>
+            <button type="button" data-action="view-all-products"
+                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
+                    <i class="ti ti-list text-blue-600 dark:text-blue-400" aria-hidden="true"></i>View All Products
+                </span>
+                <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400">{{ stats.total_items or 0 }}</span>
+            </button>
+            <button type="button" data-action="manage-categories"
+                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
+                    <i class="ti ti-category text-ecs-green" aria-hidden="true"></i>Product Categories
+                </span>
+                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+    {% endcall %}
+
+    {% call section_card("Order Management", icon="ti-clipboard-list") %}
+    <div class="p-4 sm:p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Process orders, manage fulfillment, and track deliveries</p>
+        <div class="space-y-2">
+            <button type="button" data-action="view-pending-orders"
+                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
+                    <i class="ti ti-clock text-amber-600 dark:text-amber-400" aria-hidden="true"></i>Pending Orders
+                </span>
+                <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">{{ stats.pending_orders or 0 }}</span>
+            </button>
+            <button type="button" data-action="view-completed-orders"
+                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
+                    <i class="ti ti-check text-green-600 dark:text-green-400" aria-hidden="true"></i>Completed Orders
+                </span>
+                <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400">{{ stats.completed_orders or 0 }}</span>
+            </button>
+            <button type="button" data-action="search-orders"
+                    class="w-full flex items-center justify-between min-h-[44px] px-3 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white">
+                    <i class="ti ti-search text-gray-500 dark:text-gray-400" aria-hidden="true"></i>Search Orders
+                </span>
+                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+            </button>
+        </div>
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Recent orders -->
+{% if recent_orders %}
+{% call data_table("Recent Orders", icon="ti-history", count=recent_orders|length, filters=False) %}
+    <table class="hidden md:table w-full text-sm text-left">
+        <thead class="bg-gray-50 dark:bg-gray-700/50">
+            <tr>
+                {{ data_table_th("Order ID", key="id", sortable=False) }}
+                {{ data_table_th("Customer", key="customer", sortable=False, hide="sm") }}
+                {{ data_table_th("Items", key="items", sortable=False, hide="sm") }}
+                {{ data_table_th("Total", key="total", sortable=False, hide="sm") }}
+                {{ data_table_th("Status", key="status", sortable=False, hide="sm") }}
+                {{ data_table_th("Date", key="date", sortable=False, hide="sm") }}
+                {{ data_table_th("Actions", sortable=False, align="right") }}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for order in recent_orders %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <td class="px-3 py-3 font-mono font-semibold text-gray-900 dark:text-white">#{{ order.id }}</td>
+                <td class="px-3 py-3 text-gray-700 dark:text-gray-300 hidden md:table-cell">{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</td>
+                <td class="px-3 py-3 text-gray-700 dark:text-gray-300 hidden md:table-cell">{{ order.quantity or 1 }} × {{ order.item.name if order.item else 'Unknown Item' }}</td>
+                <td class="px-3 py-3 text-gray-500 dark:text-gray-400 font-mono hidden md:table-cell">N/A</td>
+                <td class="px-3 py-3 hidden md:table-cell">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {% if order.status == 'completed' %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% elif order.status == 'pending' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                        <i class="ti {% if order.status == 'completed' %}ti-circle-check{% elif order.status == 'pending' %}ti-clock{% else %}ti-circle{% endif %} text-[12px]" aria-hidden="true"></i>
+                        {{ order.status.title() if order.status else 'Unknown' }}
+                    </span>
+                </td>
+                <td class="px-3 py-3 text-gray-500 dark:text-gray-400 font-mono hidden md:table-cell">{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</td>
+                <td class="px-3 py-3 text-right">
+                    <button type="button" onclick="viewOrder('{{ order.id }}')" title="View Order"
+                            class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                            aria-label="View order #{{ order.id }}">
+                        <i class="ti ti-eye" aria-hidden="true"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for order in recent_orders %}
+        <div class="px-4 py-3.5">
+            <div class="flex items-center justify-between gap-2">
+                <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">#{{ order.id }}</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {% if order.status == 'completed' %}bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400{% elif order.status == 'pending' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                    <i class="ti {% if order.status == 'completed' %}ti-circle-check{% elif order.status == 'pending' %}ti-clock{% else %}ti-circle{% endif %} text-[12px]" aria-hidden="true"></i>
+                    {{ order.status.title() if order.status else 'Unknown' }}
+                </span>
+            </div>
+            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                <p>{{ order.orderer.name or order.orderer.username if order.orderer else 'N/A' }}</p>
+                <p>{{ order.quantity or 1 }} × {{ order.item.name if order.item else 'Unknown Item' }}</p>
+                <p class="font-mono">{{ order.order_date.strftime('%Y-%m-%d') if order.order_date else 'N/A' }}</p>
+            </div>
+            <div class="mt-2">
+                <button type="button" onclick="viewOrder('{{ order.id }}')"
+                        class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-sm font-semibold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                        aria-label="View order #{{ order.id }}">
+                    <i class="ti ti-eye" aria-hidden="true"></i>View
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% endcall %}
+{% else %}
+{{ empty_state("ti-package-off", "No orders yet", "Start by adding products to your store, then orders will appear here.") }}
+{% endif %}
+{% else %}
 <!-- Stats Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-600 rounded-lg shadow p-5">
@@ -186,6 +330,7 @@
     <i class="ti ti-info-circle flex-shrink-0 mr-3 mt-0.5 text-lg"></i>
     <p>No orders found. Start by adding products to your store!</p>
 </div>
+{% endif %}
 {% endif %}
 
 {% endblock %}

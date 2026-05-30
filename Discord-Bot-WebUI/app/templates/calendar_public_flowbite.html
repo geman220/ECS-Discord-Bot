@@ -1,5 +1,6 @@
 {% extends "base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_info %}
+{% from "macros/_modern_kit.html" import page_header, section_card %}
 
 {% block title %}ECS Pub League Calendar{% endblock %}
 
@@ -69,6 +70,152 @@
 {% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+<div class="max-w-7xl mx-auto space-y-6">
+    {{ page_header("ECS Pub League Calendar", subtitle="Public schedule") }}
+
+    <!-- Modern hero / quick actions -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div class="flex items-start gap-3 min-w-0">
+                <span class="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-xl bg-ecs-green/10 dark:bg-green-900/30">
+                    <i class="ti ti-calendar-event text-2xl text-ecs-green dark:text-green-400" aria-hidden="true"></i>
+                </span>
+                <div class="min-w-0">
+                    <h2 class="text-base font-bold text-gray-900 dark:text-white">Upcoming Pub League events</h2>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 max-w-xl">
+                        PLOP nights, parties, tournaments, and social gatherings — all in one place.
+                    </p>
+                </div>
+            </div>
+            <div class="flex flex-wrap gap-2 sm:gap-3 shrink-0">
+                {% if not is_authenticated %}
+                <a href="https://discord.gg/weareecs" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-[#5865F2] hover:bg-[#4752c4] focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                    Discord
+                </a>
+                <a href="{{ url_for('auth.discord_register') }}" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
+                    <i class="ti ti-user-plus" aria-hidden="true"></i>
+                    Register
+                </a>
+                <a href="{{ url_for('auth.waitlist_register') }}" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-ecs-green bg-white dark:bg-gray-700 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green transition-colors">
+                    <i class="ti ti-list-check" aria-hidden="true"></i>
+                    Waitlist
+                </a>
+                <a href="{{ url_for('auth.discord_login') }}" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-gray-700 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-colors">
+                    <i class="ti ti-login" aria-hidden="true"></i>
+                    Login
+                </a>
+                {% else %}
+                <a href="{{ url_for('main.index') }}" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
+                    <i class="ti ti-home" aria-hidden="true"></i>
+                    Go to Dashboard
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Main Calendar -->
+        <div class="lg:col-span-3">
+            {% call section_card("Upcoming Events", icon="ti-calendar") %}
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+                <div class="inline-flex rounded-lg shadow-sm" role="group" aria-label="Calendar view">
+                    <button type="button" data-view="month" id="viewMonthBtn" class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:py-2 px-3 text-sm font-semibold text-white bg-ecs-green border border-ecs-green rounded-l-lg hover:bg-ecs-green-700 focus:z-10 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        <i class="ti ti-calendar-month mr-1" aria-hidden="true"></i> Month
+                    </button>
+                    <button type="button" data-view="list" id="viewListBtn" class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:py-2 px-3 text-sm font-semibold text-gray-900 bg-white border border-gray-200 rounded-r-lg hover:bg-gray-100 hover:text-ecs-green focus:z-10 focus:outline-none focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:text-white dark:hover:bg-gray-600">
+                        <i class="ti ti-list mr-1" aria-hidden="true"></i> List
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="calendar-prevBtn" title="Previous" aria-label="Previous" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-2 text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600">
+                        <i class="ti ti-chevron-left" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" id="todayBtn" title="Go to today" class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:py-2 px-3 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600">
+                        Today
+                    </button>
+                    <button type="button" id="calendar-nextBtn" title="Next" aria-label="Next" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-2 text-gray-500 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600">
+                        <i class="ti ti-chevron-right" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="px-4 sm:px-5 py-4">
+                <div class="flex items-center justify-center mb-4">
+                    <h5 id="currentDateDisplay" class="text-lg font-bold text-gray-900 dark:text-white"></h5>
+                </div>
+                <div id="calendarContent">
+                    <div class="flex flex-col items-center justify-center py-12">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-ecs-green mb-4"></div>
+                        <h6 class="text-ecs-green dark:text-green-400 font-medium mb-1">Loading events...</h6>
+                        <p class="text-gray-500 dark:text-gray-400 text-sm">Please wait while we fetch the calendar</p>
+                    </div>
+                </div>
+            </div>
+            {% endcall %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-6">
+            {% call section_card("Event Types", icon="ti-palette") %}
+            <div class="p-4 sm:p-5 space-y-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-green-500" aria-hidden="true"></span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">PLOP Night</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-purple-600" aria-hidden="true"></span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Party</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-amber-400" aria-hidden="true"></span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Tournament</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-pink-500" aria-hidden="true"></span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Social</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-blue-500" aria-hidden="true"></span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Meeting</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 rounded-full bg-orange-600" aria-hidden="true"></span>
+                    <span class="text-sm text-gray-700 dark:text-gray-300">Fundraiser</span>
+                </div>
+            </div>
+            {% endcall %}
+
+            {% call section_card("About Pub League", icon="ti-info-circle") %}
+            <div class="p-4 sm:p-5">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    ECS Pub League is a recreational soccer league based in Seattle. We host regular PLOP (Pub League Open Play) nights, tournaments, and social events.
+                </p>
+                <div class="space-y-2">
+                    <a href="https://discord.gg/ecsfc" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-[#5865F2] hover:underline">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>
+                        Join our Discord
+                    </a>
+                    <a href="https://weareecs.com" target="_blank" rel="noopener noreferrer" class="flex items-center gap-2 text-sm text-ecs-green hover:underline dark:text-green-400">
+                        <i class="ti ti-world" aria-hidden="true"></i>
+                        Visit weareecs.com
+                    </a>
+                </div>
+            </div>
+            {% endcall %}
+
+            {% call section_card("Coming Up", icon="ti-clock") %}
+            <div id="upcomingEventsList" class="p-4 sm:p-5">
+                <div class="text-center text-gray-500 dark:text-gray-400 text-sm py-4">
+                    <i class="ti ti-loader animate-spin" aria-hidden="true"></i> Loading...
+                </div>
+            </div>
+            {% endcall %}
+        </div>
+    </div>
+</div>
+{% else %}
 <div class="space-y-6">
     <!-- Hero Banner -->
     <div class="hero-gradient rounded-xl p-6 md:p-8 text-white shadow-lg">
@@ -242,8 +389,9 @@
         </div>
     </div>
 </div>
+{% endif %}
 
-<!-- Event Detail Modal -->
+<!-- Event Detail Modal (shared by both shells; JS targets eventDetailModal / eventDetailModal-title) -->
 {% call modal_info('eventDetailModal', 'Event Details', footer=false) %}
 <div id="eventDetailContent">
     <!-- Content populated by JS -->

@@ -387,7 +387,7 @@ def certificates():
         google_complete = WalletCertificate.has_complete_google_config()
 
         return render_template(
-            'admin/wallet_config/certificates_flowbite.html',
+            'admin/wallet_config/certificates.html',
             certificates=certificates,
             cert_types=CERT_TYPES,
             apple_complete=apple_complete,
@@ -536,7 +536,7 @@ def assets():
             pub_assets = {a.asset_type: a for a in WalletAsset.get_assets_by_pass_type(pub_type.id)}
 
         return render_template(
-            'admin/wallet_config/assets_flowbite.html',
+            'admin/wallet_config/assets.html',
             asset_types=ASSET_TYPES,
             ecs_type=ecs_type,
             pub_type=pub_type,
@@ -670,7 +670,7 @@ def templates():
         pub_templates = WalletTemplate.query.filter_by(pass_type_id=pub_type.id).all() if pub_type else []
 
         return render_template(
-            'admin/wallet_config/templates_flowbite.html',
+            'admin/wallet_config/templates.html',
             ecs_type=ecs_type,
             pub_type=pub_type,
             ecs_templates=ecs_templates,
@@ -947,7 +947,7 @@ def test_config():
             })
 
         return render_template(
-            'admin/wallet_config/test_results_flowbite.html',
+            'admin/wallet_config/test_results.html',
             test_results=test_results,
             now=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         )

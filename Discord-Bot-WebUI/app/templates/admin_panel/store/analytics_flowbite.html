@@ -20,6 +20,152 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card as kit_stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% set total_orders = (analytics.status_stats.values() | sum) if analytics.status_stats else 0 %}
+{% set delivered = analytics.status_stats.get('DELIVERED', 0) %}
+{% set in_progress = analytics.status_stats.get('PENDING', 0) + analytics.status_stats.get('PROCESSING', 0) %}
+
+{% call page_header('Store Analytics', subtitle='Store Management') %}
+<form method="GET" class="flex flex-wrap items-end gap-2">
+    <div class="flex flex-col gap-1">
+        <label for="m-start-date" class="text-xs font-medium text-gray-500 dark:text-gray-400">From</label>
+        <input type="date" id="m-start-date" name="start_date" value="{{ analytics.date_range.start }}" class="input-ecs h-9 text-sm">
+    </div>
+    <div class="flex flex-col gap-1">
+        <label for="m-end-date" class="text-xs font-medium text-gray-500 dark:text-gray-400">To</label>
+        <input type="date" id="m-end-date" name="end_date" value="{{ analytics.date_range.end }}" class="input-ecs h-9 text-sm">
+    </div>
+    <button type="submit"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-refresh" aria-hidden="true"></i> Update
+    </button>
+</form>
+{% endcall %}
+
+<!-- KPI band -->
+<div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+    {{ kit_stat_card('ti-shopping-cart', 'Total Orders', total_orders, sublabel='in period', tone='primary') }}
+    {{ kit_stat_card('ti-truck-delivery', 'Delivered', delivered, sublabel='completed', tone='success') }}
+    {{ kit_stat_card('ti-clock', 'In Progress', in_progress, sublabel='pending + processing', tone='warning') }}
+    {{ kit_stat_card('ti-users', 'Active Customers', analytics.top_customers | length, sublabel='in period', tone='info') }}
+</div>
+
+<!-- Charts Row -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-5 sm:mb-6">
+    <div class="lg:col-span-2">
+        {% call section_card('Orders Over Time', icon='ti-chart-line') %}
+        <div class="p-4 sm:p-5">
+            <canvas id="ordersChart" height="120"></canvas>
+        </div>
+        {% endcall %}
+    </div>
+    <div>
+        {% call section_card('Order Status Distribution', icon='ti-chart-pie') %}
+        <div class="p-4 sm:p-5">
+            <canvas id="statusChart" height="200"></canvas>
+        </div>
+        {% endcall %}
+    </div>
+</div>
+
+<!-- Popular Items & Categories -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-5 sm:mb-6">
+    {% call section_card('Popular Items', icon='ti-star') %}
+    {% if analytics.popular_items %}
+    <div class="p-4 sm:p-5 space-y-4">
+        {% for item in analytics.popular_items %}
+        <div>
+            <div class="flex items-center justify-between mb-1.5">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ item.name }}</p>
+                <p class="text-xs font-mono text-gray-500 dark:text-gray-400 shrink-0 ml-2">{{ item.orders }} orders · {{ item.quantity }} items</p>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700" role="progressbar" aria-valuenow="{{ (item.orders / analytics.popular_items[0].orders * 100)|int }}" aria-valuemin="0" aria-valuemax="100">
+                <div class="bg-ecs-green h-2 rounded-full" style="width: {{ (item.orders / analytics.popular_items[0].orders * 100)|int }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state('ti-package', 'No items yet', 'No orders in the selected period.') }}
+    {% endif %}
+    {% endcall %}
+
+    {% call section_card('Category Performance', icon='ti-category') %}
+    {% if analytics.category_stats %}
+    <div class="p-4 sm:p-5 space-y-4">
+        {% for category in analytics.category_stats %}
+        <div>
+            <div class="flex items-center justify-between mb-1.5">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ category.category }}</p>
+                <p class="text-xs font-mono text-gray-500 dark:text-gray-400 shrink-0 ml-2">{{ category.orders }} orders · {{ category.quantity }} items</p>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700" role="progressbar" aria-valuenow="{{ (category.orders / analytics.category_stats[0].orders * 100)|int }}" aria-valuemin="0" aria-valuemax="100">
+                <div class="bg-blue-500 h-2 rounded-full" style="width: {{ (category.orders / analytics.category_stats[0].orders * 100)|int }}%"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state('ti-category', 'No category data', 'No category data available for the selected period.') }}
+    {% endif %}
+    {% endcall %}
+</div>
+
+<!-- Top Customers -->
+{% if analytics.top_customers %}
+{% call data_table('Top Customers', icon='ti-trophy', count=(analytics.top_customers | length), filters=false) %}
+<table class="hidden md:table w-full text-sm text-left">
+    <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+        <tr>
+            {{ data_table_th('Rank', sortable=false) }}
+            {{ data_table_th('Customer', sortable=false) }}
+            {{ data_table_th('Orders', sortable=false, align='left') }}
+            {{ data_table_th('Total Items', sortable=false) }}
+            {{ data_table_th('Activity', sortable=false) }}
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for customer in analytics.top_customers %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-3 py-3">
+                <div class="flex items-center gap-1">
+                    {% if loop.index == 1 %}<i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+                    {% elif loop.index == 2 %}<i class="ti ti-medal text-gray-400" aria-hidden="true"></i>
+                    {% elif loop.index == 3 %}<i class="ti ti-award text-amber-600 dark:text-amber-500" aria-hidden="true"></i>{% endif %}
+                    <span class="font-mono font-semibold text-gray-900 dark:text-white">#{{ loop.index }}</span>
+                </div>
+            </td>
+            <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">{{ customer.username }}</td>
+            <td class="px-3 py-3 font-mono text-gray-600 dark:text-gray-300">{{ customer.orders }}</td>
+            <td class="px-3 py-3 font-mono text-gray-600 dark:text-gray-300">{{ customer.items }}</td>
+            <td class="px-3 py-3">
+                <div class="w-24 bg-gray-200 rounded-full h-2 dark:bg-gray-700" role="progressbar" aria-valuenow="{{ (customer.orders / analytics.top_customers[0].orders * 100)|int }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="h-2 rounded-full {{ 'bg-ecs-gold-500' if loop.index == 1 else 'bg-blue-500' if loop.index <= 3 else 'bg-ecs-green' }}" style="width: {{ (customer.orders / analytics.top_customers[0].orders * 100)|int }}%"></div>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {% for customer in analytics.top_customers %}
+    {% call data_table_row_card(('#' ~ loop.index ~ '  ' ~ customer.username)) %}
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span class="font-mono">{{ customer.orders }} orders</span>
+            <span class="font-mono">{{ customer.items }} items</span>
+        </div>
+    {% endcall %}
+    {% endfor %}
+</div>
+{% endcall %}
+{% else %}
+{{ empty_state('ti-users', 'No Customer Data', 'No customer data available for the selected period.') }}
+{% endif %}
+{% else %}
 <!-- Page Header with Date Filter -->
 <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
     <h4 class="text-xl font-semibold text-gray-900 dark:text-white">Store Analytics</h4>
@@ -240,6 +386,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

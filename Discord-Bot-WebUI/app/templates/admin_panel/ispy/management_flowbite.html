@@ -14,6 +14,199 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+
+{{ page_header("I-Spy Management", subtitle="Game seasons, categories, shots & players") }}
+
+<!-- KPI band -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {{ stat_card("ti-users", "Total Players", stats.total_players, tone='info') }}
+  {{ stat_card("ti-check", "Approved Shots", stats.approved_shots, tone='success') }}
+  {{ stat_card("ti-camera", "Total Shots", stats.total_shots, tone='primary') }}
+  {{ stat_card("ti-lock", "Players in Jail", stats.players_in_jail, tone='warning') }}
+</div>
+
+<!-- Quick Actions & Game Health -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+  <div class="lg:col-span-2">
+    {% call section_card("Quick Actions", icon="ti-rocket") %}
+    <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <a href="{{ url_for('admin_panel.ispy_seasons') }}" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-calendar" aria-hidden="true"></i>Manage Seasons
+      </a>
+      <a href="{{ url_for('admin_panel.ispy_categories') }}" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-category" aria-hidden="true"></i>Manage Categories
+      </a>
+      <a href="{{ url_for('admin_panel.ispy_shots') }}" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-camera" aria-hidden="true"></i>Manage Shots
+      </a>
+      <a href="{{ url_for('admin_panel.ispy_players') }}" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-users" aria-hidden="true"></i>Player Management
+      </a>
+    </div>
+    {% endcall %}
+  </div>
+
+  {% call section_card("Game Health", icon="ti-gauge") %}
+  <div class="p-4 sm:p-5">
+    <div class="mb-4">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sm text-gray-600 dark:text-gray-400">Active Seasons</span>
+        <span class="text-sm font-bold font-mono text-gray-900 dark:text-white">{{ stats.active_seasons }}/{{ stats.total_seasons }}</span>
+      </div>
+      {% set _season_w = ['w-0','w-1/12','w-2/12','w-3/12','w-4/12','w-5/12','w-6/12','w-7/12','w-8/12','w-9/12','w-10/12','w-11/12','w-full'] %}
+      {% set _season_pct = (stats.active_seasons / stats.total_seasons * 12)|round|int if stats.total_seasons > 0 else 0 %}
+      <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+        <div class="bg-ecs-green h-2 rounded-full {{ _season_w[_season_pct] }}"></div>
+      </div>
+    </div>
+    <div class="mb-4">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-sm text-gray-600 dark:text-gray-400">Approval Rate</span>
+        <span class="text-sm font-bold font-mono text-gray-900 dark:text-white">{% if stats.total_shots > 0 %}{{ ((stats.approved_shots / stats.total_shots) * 100)|round(1) }}%{% else %}0%{% endif %}</span>
+      </div>
+      {% set _appr_w = ['w-0','w-1/12','w-2/12','w-3/12','w-4/12','w-5/12','w-6/12','w-7/12','w-8/12','w-9/12','w-10/12','w-11/12','w-full'] %}
+      {% set _appr_pct = (stats.approved_shots / stats.total_shots * 12)|round|int if stats.total_shots > 0 else 0 %}
+      <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+        <div class="bg-green-500 h-2 rounded-full {{ _appr_w[_appr_pct] }}"></div>
+      </div>
+    </div>
+    <div class="text-center">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium {% if stats.recent_activity > 10 %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% elif stats.recent_activity > 5 %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+        <i class="ti ti-clock-bolt" aria-hidden="true"></i><span class="font-mono">{{ stats.recent_activity }}</span> shots in last 24h
+      </span>
+    </div>
+  </div>
+  {% endcall %}
+</div>
+
+<!-- Active Seasons and Categories -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  {% call section_card("Active Seasons", icon="ti-calendar") %}
+  <div class="px-4 sm:px-5 -mt-12 mb-3 flex justify-end">
+    <button type="button" class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-xs font-semibold text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-modal-target="createSeasonModal" data-modal-toggle="createSeasonModal">
+      <i class="ti ti-plus" aria-hidden="true"></i>New Season
+    </button>
+  </div>
+  <div class="p-4 sm:p-5 pt-0">
+    {% if seasons %}
+    <div class="space-y-3">
+      {% for season in seasons %}
+      <div class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+        <div>
+          <p class="font-medium text-gray-900 dark:text-white">{{ season.name }}</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400 font-mono">{{ season.start_date.strftime('%b %d') }} - {{ season.end_date.strftime('%b %d, %Y') }}</p>
+        </div>
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {% if season.is_active %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+          {% if season.is_active %}<i class="ti ti-circle-check" aria-hidden="true"></i>Active{% else %}<i class="ti ti-circle" aria-hidden="true"></i>Inactive{% endif %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state("ti-calendar-off", "No active seasons", "Create your first season to get the game running.") }}
+    <div class="flex justify-center -mt-6 mb-4">
+      <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="createSeasonModal" data-modal-toggle="createSeasonModal">
+        <i class="ti ti-plus" aria-hidden="true"></i>Create First Season
+      </button>
+    </div>
+    {% endif %}
+  </div>
+  {% endcall %}
+
+  {% call section_card("Categories", icon="ti-category") %}
+  <div class="px-4 sm:px-5 -mt-12 mb-3 flex justify-end">
+    <button type="button" class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-xs font-semibold text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-modal-target="createCategoryModal" data-modal-toggle="createCategoryModal">
+      <i class="ti ti-plus" aria-hidden="true"></i>New Category
+    </button>
+  </div>
+  <div class="p-4 sm:p-5 pt-0">
+    {% if categories %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {% for category in categories[:8] %}
+      <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+        <div class="w-3 h-3 rounded-full bg-ecs-green shrink-0"></div>
+        <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ category.display_name }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% if categories|length > 8 %}
+    <p class="text-center text-sm text-gray-500 dark:text-gray-400 mt-3">... and <span class="font-mono">{{ categories|length - 8 }}</span> more</p>
+    {% endif %}
+    {% else %}
+    {{ empty_state("ti-category-2", "No categories", "Create your first category to organize shots.") }}
+    <div class="flex justify-center -mt-6 mb-4">
+      <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-modal-target="createCategoryModal" data-modal-toggle="createCategoryModal">
+        <i class="ti ti-plus" aria-hidden="true"></i>Create First Category
+      </button>
+    </div>
+    {% endif %}
+  </div>
+  {% endcall %}
+</div>
+
+<!-- Game Statistics -->
+<div class="mb-6">
+  {% call section_card("Game Statistics", icon="ti-chart-bar") %}
+  <div class="p-4 sm:p-5 grid grid-cols-2 lg:grid-cols-4 gap-6 text-center">
+    <div class="p-4">
+      <p class="font-mono text-3xl sm:text-4xl font-bold text-ecs-green">{{ stats.total_seasons }}</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Total Seasons</p>
+    </div>
+    <div class="p-4">
+      <p class="font-mono text-3xl sm:text-4xl font-bold text-green-600 dark:text-green-400">{{ stats.total_categories }}</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Categories</p>
+    </div>
+    <div class="p-4">
+      <p class="font-mono text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400">{{ stats.approved_shots }}</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Approved Shots</p>
+    </div>
+    <div class="p-4">
+      <p class="text-2xl sm:text-3xl font-bold text-ecs-gold-500 dark:text-ecs-gold-400 truncate">{{ stats.active_season_name }}</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Current Season</p>
+    </div>
+  </div>
+  {% endcall %}
+</div>
+
+<!-- Recent Activity -->
+<div class="mb-6">
+  {% call section_card("Recent Activity", icon="ti-activity") %}
+  <div class="px-4 sm:px-5 -mt-12 mb-3 flex justify-end">
+    <a href="{{ url_for('admin_panel.ispy_analytics') }}" class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-xs font-semibold text-ecs-green border border-ecs-green rounded-lg hover:bg-ecs-green/10 dark:hover:bg-ecs-green/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-chart-line" aria-hidden="true"></i>View Analytics
+    </a>
+  </div>
+  <div class="p-4 sm:p-5 pt-0">
+    {% if recent_activity %}
+    <div class="space-y-4">
+      {% for activity in recent_activity %}
+      <div class="flex items-start gap-4">
+        <div class="shrink-0 w-2 h-2 mt-2 rounded-full bg-ecs-green"></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p class="text-sm text-gray-900 dark:text-white">{{ activity.new_value or activity.action|title }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">{{ activity.user.username if activity.user else 'System' }} - <span class="font-mono">{{ activity.timestamp.strftime('%H:%M') }}</span></p>
+            </div>
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+              {{ activity.resource_type|title }}
+            </span>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state("ti-clock", "No recent activity", "Game activity will appear here as players take shots.") }}
+    {% endif %}
+  </div>
+  {% endcall %}
+</div>
+
+{% else %}
 <!-- I-Spy Overview Stats -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-500 text-white rounded-lg shadow p-5">
@@ -266,6 +459,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 
 <!-- Create Season Modal -->
 {% call modal_form('createSeasonModal', 'Create New I-Spy Season', form_id='createSeasonForm', submit_text='Create Season', loading_text='Creating...') %}

@@ -5,6 +5,82 @@
 {% block panel_description %}Operational overview and quick access{% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import stat_card, attention_list, attention_item, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% set _sev_icon = {'danger': 'ti-alert-octagon', 'warning': 'ti-alert-triangle', 'info': 'ti-info-circle'} %}
+<div class="space-y-6">
+
+  <!-- KPI band (real data from build_attention_queue) -->
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+    {{ stat_card('ti-tournament', 'Season', attention.kpis.season or '—') }}
+    {{ stat_card('ti-shield', 'Teams', attention.kpis.teams or 0) }}
+    {{ stat_card('ti-users', 'Active players', attention.kpis.active_players or 0) }}
+    {{ stat_card('ti-calendar-event', 'Matches this week', attention.kpis.matches_this_week or 0) }}
+    {{ stat_card('ti-broadcast', 'Live now', attention.live_count or 0) }}
+  </div>
+
+  <!-- Needs your attention -->
+  {% call attention_list('Needs your attention', count=attention.attention|length) %}
+    {% if attention.attention %}
+      {% for a in attention.attention %}
+        {{ attention_item(_sev_icon.get(a.severity, 'ti-info-circle'), a.label, a.count, a.severity, a.url) }}
+      {% endfor %}
+    {% else %}
+      {{ empty_state('ti-circle-check', 'All clear', 'Nothing needs your attention right now.') }}
+    {% endif %}
+  {% endcall %}
+
+  <!-- Upcoming matches (kit data_table: sort + filter + responsive cards) -->
+  {% call data_table('Upcoming matches', icon='ti-calendar', count=upcoming_matches|length, search_placeholder='Filter matches…', search_id='admUpcoming') %}
+    <table class="hidden md:table w-full text-sm">
+      <thead><tr>
+        {{ data_table_th('Date', key='date') }}
+        {{ data_table_th('Home', key='home') }}
+        {{ data_table_th('Away', key='away') }}
+        {{ data_table_th('Time', key='time', hide='sm') }}
+      </tr></thead>
+      <tbody>
+        {% for m in upcoming_matches %}
+        <tr class="border-t border-gray-100 dark:border-gray-700">
+          <td class="px-3 py-2.5 whitespace-nowrap font-mono" data-sort-value="{{ m.date.isoformat() if m.date else '' }}">{{ m.date.strftime('%b %d') if m.date else 'TBD' }}</td>
+          <td class="px-3 py-2.5 text-gray-900 dark:text-white">{{ m.home_team.name if m.home_team else 'TBD' }}</td>
+          <td class="px-3 py-2.5 text-gray-900 dark:text-white">{{ m.away_team.name if m.away_team else 'TBD' }}</td>
+          <td class="px-3 py-2.5 hidden md:table-cell font-mono text-gray-500 dark:text-gray-400">{{ m.time.strftime('%I:%M %p') if m.time else 'TBD' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+      {% for m in upcoming_matches %}
+        {% call data_table_row_card((m.home_team.name if m.home_team else 'TBD') ~ ' vs ' ~ (m.away_team.name if m.away_team else 'TBD')) %}
+          {{ m.date.strftime('%b %d') if m.date else 'TBD' }} · {{ m.time.strftime('%I:%M %p') if m.time else 'TBD' }}
+        {% endcall %}
+      {% endfor %}
+    </div>
+    {% if not upcoming_matches %}{{ empty_state('ti-calendar-off', 'No upcoming matches', 'Nothing scheduled in the next 7 days.') }}{% endif %}
+  {% endcall %}
+
+  <!-- Quick actions -->
+  {% call section_card('Quick actions', icon='ti-bolt') %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {% for label, icon, endpoint in [
+          ('Season Builder', 'ti-wand', 'auto_schedule.schedule_manager'),
+          ('Match Dashboard', 'ti-trophy', 'admin_panel.match_operations'),
+          ('Users', 'ti-users', 'admin_panel.users_comprehensive'),
+          ('Approvals', 'ti-user-check', 'admin_panel.user_approvals'),
+          ('Communication', 'ti-message-circle', 'admin_panel.communication_hub'),
+          ('Audit Logs', 'ti-history', 'admin_panel.audit_logs') ] %}
+      <a href="{{ url_for(endpoint) }}" class="flex items-center gap-2 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors text-sm text-gray-700 dark:text-gray-300">
+        <i class="ti {{ icon }} text-ecs-green"></i>{{ label }}
+      </a>
+      {% endfor %}
+    </div>
+  {% endcall %}
+
+</div>
+{% else %}
+{# ===================== Classic admin dashboard (UNCHANGED) ===================== #}
 <div class="space-y-6">
     <!-- Row 1: Operational Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -286,4 +362,5 @@
     {% endif %}
     {% endcall %}
 </div>
+{% endif %}
 {% endblock %}

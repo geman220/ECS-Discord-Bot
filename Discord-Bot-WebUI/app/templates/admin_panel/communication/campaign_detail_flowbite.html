@@ -26,6 +26,97 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+{% set status_tone = {'sent': 'success', 'scheduled': 'warning', 'draft': 'neutral', 'cancelled': 'danger'} %}
+{% set status_icon = {'sent': 'ti-circle-check', 'scheduled': 'ti-clock', 'draft': 'ti-pencil', 'cancelled': 'ti-ban'} %}
+<div class="max-w-7xl mx-auto space-y-6">
+  {% call page_header(campaign.name, subtitle='Push Campaign') %}
+    <a href="{{ url_for('admin_panel.campaigns_list') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+              bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
+              text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Back</span>
+    </a>
+    {% if campaign.status == 'draft' %}
+    <button type="button"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                   bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
+                   text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-edit" aria-hidden="true"></i><span>Edit Campaign</span>
+    </button>
+    <button type="button"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-send" aria-hidden="true"></i><span>Send Now</span>
+    </button>
+    {% endif %}
+  {% endcall %}
+
+  {# Status + meta strip #}
+  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {% set s_tone = status_tone.get(campaign.status, 'neutral') %}
+    {% set s_icon = status_icon.get(campaign.status, 'ti-broadcast') %}
+    {{ stat_card(s_icon, 'Status', campaign.status|title, tone=s_tone) }}
+    {{ stat_card('ti-target', 'Audience', campaign.target_audience or 'All users', tone='neutral') }}
+    {{ stat_card('ti-calendar-time', 'Scheduled', campaign.scheduled_at.strftime('%Y-%m-%d %H:%M') if campaign.scheduled_at else 'Not scheduled', tone='neutral') }}
+    {{ stat_card('ti-send', 'Sent', campaign.sent_at.strftime('%Y-%m-%d %H:%M') if campaign.sent_at else 'Not sent', tone='neutral') }}
+  </div>
+
+  {# Overview #}
+  {% call section_card('Overview', icon='ti-info-circle') %}
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
+      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Title</dt>
+        <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ campaign.title or 'No title' }}</dd>
+      </div>
+      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created</dt>
+        <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ campaign.created_at.strftime('%B %d, %Y at %H:%M') if campaign.created_at else 'Unknown' }}</dd>
+      </div>
+    </dl>
+  {% endcall %}
+
+  {# Message content #}
+  {% call section_card('Message Content', icon='ti-message') %}
+    <div class="p-4 sm:p-5">
+      {% if campaign.message %}
+      <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ campaign.message }}</p>
+      {% else %}
+      <p class="text-sm text-gray-500 dark:text-gray-400 italic">No message content</p>
+      {% endif %}
+    </div>
+  {% endcall %}
+
+  {# Delivery analytics (sent only) #}
+  {% if campaign.status == 'sent' %}
+  {% call section_card('Delivery Analytics', icon='ti-chart-bar') %}
+    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200 dark:bg-gray-700">
+      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
+        <div class="font-mono text-3xl font-bold text-blue-600 dark:text-blue-400">{{ campaign.total_recipients or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Recipients</div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
+        <div class="font-mono text-3xl font-bold text-green-600 dark:text-green-400">{{ campaign.delivered_count or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Delivered</div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
+        <div class="font-mono text-3xl font-bold text-red-600 dark:text-red-400">{{ campaign.failed_count or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Failed</div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
+        <div class="font-mono text-3xl font-bold text-ecs-gold-500 dark:text-ecs-gold-400">{{ campaign.opened_count or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Opened</div>
+      </div>
+    </div>
+  {% endcall %}
+  {% endif %}
+</div>
+{% else %}
 <!-- Campaign Header -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
@@ -137,4 +228,5 @@
     </button>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}

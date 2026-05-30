@@ -20,6 +20,207 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state, alert %}
+{% from 'macros/flowbite.html' import badge %}
+{% set versions = stats.versions or [
+  {'version': '2.1.0', 'platform': 'iOS', 'date': 'Jan 5, 2026', 'status': 'live', 'adoption': '75%'},
+  {'version': '2.1.0', 'platform': 'Android', 'date': 'Jan 5, 2026', 'status': 'live', 'adoption': '68%'},
+  {'version': '2.0.5', 'platform': 'iOS', 'date': 'Dec 15, 2025', 'status': 'deprecated', 'adoption': '20%'}
+] %}
+<div class="space-y-6">
+
+  {% call page_header('App Distribution', subtitle='Mobile Features') %}
+    <button type="button" data-action="create-release"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-plus" aria-hidden="true"></i> New Release
+    </button>
+  {% endcall %}
+
+  {{ alert('info', 'Manage app releases, distribution channels, and version tracking for the ECS FC mobile application.', title='App Distribution.', dismissible=False) }}
+
+  {# KPI band — 2-up mobile -> 4-up lg #}
+  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-brand-apple', 'iOS Version', stats.ios_version or '2.1.0', tone='info') }}
+    {{ stat_card('ti-brand-android', 'Android Version', stats.android_version or '2.1.0', tone='success') }}
+    {{ stat_card('ti-download', 'Total Installs', stats.total_installs or 0, sublabel='lifetime', tone='neutral') }}
+    {{ stat_card('ti-refresh', 'Update Rate', stats.update_rate or '85%', tone='primary') }}
+  </div>
+
+  {# Distribution channels #}
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+    {# iOS Distribution #}
+    {% call section_card('iOS Distribution', icon='ti-brand-apple') %}
+    <div class="p-4 sm:p-5 space-y-3">
+      <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <i class="ti ti-app-window" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="font-semibold text-gray-900 dark:text-white truncate">App Store</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Production Release</p>
+          </div>
+        </div>
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+          <i class="ti ti-check" aria-hidden="true"></i> Live
+        </span>
+      </div>
+      <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <i class="ti ti-test-pipe" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="font-semibold text-gray-900 dark:text-white truncate">TestFlight</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Beta Testing</p>
+          </div>
+        </div>
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
+          <span class="font-mono">{{ stats.testflight_testers or 25 }}</span> testers
+        </span>
+      </div>
+      <button type="button" data-action="manage-ios"
+              class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-settings" aria-hidden="true"></i> Manage iOS Distribution
+      </button>
+    </div>
+    {% endcall %}
+
+    {# Android Distribution #}
+    {% call section_card('Android Distribution', icon='ti-brand-android') %}
+    <div class="p-4 sm:p-5 space-y-3">
+      <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">
+            <i class="ti ti-brand-google-play" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="font-semibold text-gray-900 dark:text-white truncate">Google Play Store</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Production Release</p>
+          </div>
+        </div>
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+          <i class="ti ti-check" aria-hidden="true"></i> Live
+        </span>
+      </div>
+      <div class="flex items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+            <i class="ti ti-beta" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="font-semibold text-gray-900 dark:text-white truncate">Internal Testing</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Beta Channel</p>
+          </div>
+        </div>
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">
+          <span class="font-mono">{{ stats.android_beta_testers or 15 }}</span> testers
+        </span>
+      </div>
+      <button type="button" data-action="manage-android"
+              class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-settings" aria-hidden="true"></i> Manage Android Distribution
+      </button>
+    </div>
+    {% endcall %}
+  </div>
+
+  {# Version History — kit data_table (responsive -> cards) #}
+  {% call data_table('Version History', icon='ti-history', count=versions|length, search_placeholder='Filter versions…', search_id='versionFilter') %}
+    {% if versions %}
+    <table class="hidden md:table w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th('Version', key='version') }}
+          {{ data_table_th('Platform', key='platform') }}
+          {{ data_table_th('Release Date', key='date', hide='sm') }}
+          {{ data_table_th('Status', key='status') }}
+          {{ data_table_th('Adoption', key='adoption', align='right') }}
+          {{ data_table_th('Actions', sortable=False, align='right') }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for version in versions %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-2.5 font-mono font-semibold text-gray-900 dark:text-white">v{{ version.version }}</td>
+          <td class="px-3 py-2.5">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold {{ 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400' if version.platform == 'iOS' else 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' }}">
+              <i class="ti ti-{{ 'brand-apple' if version.platform == 'iOS' else 'brand-android' }}" aria-hidden="true"></i>
+              {{ version.platform }}
+            </span>
+          </td>
+          <td class="px-3 py-2.5 text-gray-600 dark:text-gray-400 hidden md:table-cell">{{ version.date }}</td>
+          <td class="px-3 py-2.5">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if version.status == 'live' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">
+              {% if version.status == 'live' %}<i class="ti ti-circle-check" aria-hidden="true"></i>{% else %}<i class="ti ti-archive" aria-hidden="true"></i>{% endif %}
+              {{ version.status|title }}
+            </span>
+          </td>
+          <td class="px-3 py-2.5 text-right font-mono font-semibold text-gray-900 dark:text-white">{{ version.adoption }}</td>
+          <td class="px-3 py-2.5 text-right">
+            <button type="button" title="View Details" aria-label="View details for v{{ version.version }} {{ version.platform }}"
+                    class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-eye" aria-hidden="true"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Mobile cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for version in versions %}
+      {% call data_table_row_card('v' ~ version.version) %}
+        <div class="flex flex-wrap items-center gap-2 mt-1">
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold {{ 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400' if version.platform == 'iOS' else 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' }}">
+            <i class="ti ti-{{ 'brand-apple' if version.platform == 'iOS' else 'brand-android' }}" aria-hidden="true"></i>{{ version.platform }}
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if version.status == 'live' else 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' }}">
+            {{ version.status|title }}
+          </span>
+        </div>
+        <p>Released {{ version.date }} · Adoption <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ version.adoption }}</span></p>
+      {% endcall %}
+      {% endfor %}
+    </div>
+    {% else %}
+      {{ empty_state('ti-history', 'No releases yet', 'Published app versions will appear here once you create a release.') }}
+    {% endif %}
+  {% endcall %}
+
+  {# Quick Actions #}
+  {% call section_card('Quick Actions', icon='ti-bolt') %}
+  <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <button type="button" data-action="force-update"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-refresh text-blue-600 dark:text-blue-400" aria-hidden="true"></i> Force Update
+    </button>
+    <button type="button" data-action="deprecate-version"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-archive text-amber-600 dark:text-amber-400" aria-hidden="true"></i> Deprecate Version
+    </button>
+    <button type="button" data-action="send-update-notice"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-send text-green-600 dark:text-green-400" aria-hidden="true"></i> Send Update Notice
+    </button>
+    <a href="{{ url_for('admin_panel.mobile_features') }}"
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Mobile
+    </a>
+  </div>
+  {% endcall %}
+
+</div>
+{% else %}
 <!-- Distribution Overview -->
 <div class="flex items-center p-4 mb-6 text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400" role="alert">
     <i class="ti ti-package mr-3 text-xl"></i>
@@ -238,4 +439,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

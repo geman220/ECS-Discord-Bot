@@ -3,6 +3,108 @@
 {% block title %}Manage Roles and Permissions{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+  {{ page_header("Manage Roles and Permissions", subtitle="Role-based access control") }}
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+    {{ stat_card("ti-shield-half", "Roles", roles|length, sublabel="defined", tone="primary") }}
+    {{ stat_card("ti-key", "Permissions", permissions|length, sublabel="available", tone="info") }}
+  </div>
+
+  {% call section_card("Role Permissions", icon="ti-shield-lock") %}
+  <div class="p-4 sm:p-6">
+    <form method="GET" action="{{ url_for('admin_panel.roles_comprehensive') }}" class="space-y-6">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {# Role Selection #}
+      <div>
+        <label for="role_id" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          Select Role
+        </label>
+        {% if roles %}
+        <select name="role_id" id="role_id" required class="input-ecs w-full md:w-1/2">
+          <option value="" disabled selected>Select a role...</option>
+          {% for role in roles %}
+          <option value="{{ role.id }}">{{ role.name }}</option>
+          {% endfor %}
+        </select>
+        {% else %}
+        {{ empty_state("ti-shield-off", "No roles", "There are no roles defined yet.") }}
+        {% endif %}
+      </div>
+
+      {# Permissions Selection #}
+      <div>
+        <label for="permissions" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          Select Permissions
+        </label>
+        <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+          <div class="max-h-64 overflow-y-auto p-2 space-y-1">
+            {% for permission in permissions %}
+            <label class="flex items-center gap-3 min-h-[44px] px-2 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer">
+              <input type="checkbox" name="permissions" value="{{ permission.id }}"
+                     class="permission-checkbox rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+              <span class="text-sm text-gray-700 dark:text-gray-300">{{ permission.name }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+          Select a role above to see its current permissions
+        </p>
+      </div>
+
+      {# Quick Actions #}
+      <div class="flex items-center gap-4 pt-2 border-t border-gray-200 dark:border-gray-700">
+        <button type="button" id="select-all-btn"
+                class="inline-flex items-center min-h-[44px] text-sm font-semibold text-ecs-green hover:text-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+          Select All
+        </button>
+        <button type="button" id="clear-all-btn"
+                class="inline-flex items-center min-h-[44px] text-sm font-semibold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+          Clear All
+        </button>
+      </div>
+
+      {# Submit #}
+      <button type="submit"
+              class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-check" aria-hidden="true"></i>
+        Update Permissions
+      </button>
+    </form>
+  </div>
+  {% endcall %}
+
+  <div class="mt-6">
+  {% call section_card("Roles Overview", icon="ti-list-details") %}
+  <div class="p-4">
+    {% if roles %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for role in roles %}
+      <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 rounded-full bg-ecs-green/10 flex items-center justify-center shrink-0">
+            <i class="ti ti-shield text-ecs-green" aria-hidden="true"></i>
+          </div>
+          <h3 class="font-semibold text-gray-900 dark:text-white truncate">{{ role.name }}</h3>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+          {{ role.permissions|length if role.permissions else 0 }} permission(s)
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state("ti-shield-off", "No roles", "There are no roles defined yet.") }}
+    {% endif %}
+  </div>
+  {% endcall %}
+  </div>
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8 max-w-4xl">
     <!-- Page Header -->
     <div class="mb-6">
@@ -100,6 +202,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

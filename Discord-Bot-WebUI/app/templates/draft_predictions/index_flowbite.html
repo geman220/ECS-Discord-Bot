@@ -5,6 +5,112 @@
 {% block page_title %}Draft Predictions{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, alert %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+
+    {% call page_header("Draft Round Predictions", subtitle="Predict which round you think players will be drafted in") %}
+        {% if is_admin %}
+        <a href="{{ url_for('draft_predictions.admin_dashboard') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                  border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-sm font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-chart-bar text-sm" aria-hidden="true"></i> Admin Dashboard
+        </a>
+        {% endif %}
+    {% endcall %}
+
+    {% if current_season %}
+    <div class="mb-6">
+        {{ alert('info', 'Make predictions for the upcoming draft', title=current_season.name, dismissible=False) }}
+    </div>
+
+    <!-- League Options -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        {% if leagues %}
+            {% for league in leagues %}
+            {% set is_premier = league.type == 'Premier' %}
+            {% set accent = 'text-green-600 dark:text-green-400' if is_premier else 'text-blue-600 dark:text-blue-400' %}
+            {% set badge_cls = 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if is_premier else 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400' %}
+            {% set btn_cls = 'bg-green-600 hover:bg-green-700 focus:ring-green-600' if is_premier else 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-600' %}
+            <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 flex flex-col h-full">
+                <div class="flex justify-between items-start gap-3 mb-4">
+                    <div class="min-w-0">
+                        <h3 class="text-base font-bold text-gray-900 dark:text-white mb-0.5 flex items-center gap-2">
+                            <i class="ti ti-shield {{ accent }}" aria-hidden="true"></i>{{ league.type }} League
+                        </h3>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ league.name }}</p>
+                    </div>
+                    <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ badge_cls }}">
+                        {{ league.team_count }} Teams
+                    </span>
+                </div>
+
+                <div class="flex-grow mb-5">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Your Predictions</span>
+                        <span class="font-mono text-2xl font-bold {{ accent }}">{{ league.my_predictions }}</span>
+                    </div>
+                    {% if league.my_predictions > 0 %}
+                        <p class="text-sm text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
+                            <i class="ti ti-check text-green-600 dark:text-green-400" aria-hidden="true"></i>{{ league.my_predictions }} player predictions made
+                        </p>
+                    {% else %}
+                        <p class="text-sm text-gray-500 dark:text-gray-400 inline-flex items-center gap-1">
+                            <i class="ti ti-info-circle" aria-hidden="true"></i>No predictions yet - get started!
+                        </p>
+                    {% endif %}
+                </div>
+
+                <a href="{{ url_for('draft_predictions.predict', league_type=league.type) }}"
+                   class="w-full inline-flex justify-center items-center gap-2 min-h-[44px] px-4 rounded-lg font-semibold text-white transition-colors
+                          focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-800 {{ btn_cls }}">
+                    <i class="ti ti-edit" aria-hidden="true"></i>
+                    {% if league.my_predictions > 0 %}View &amp; Edit Predictions{% else %}Make Predictions{% endif %}
+                </a>
+            </section>
+            {% endfor %}
+        {% else %}
+            <div class="sm:col-span-2">
+                {{ empty_state("ti-trophy", "No Leagues Available", "No Premier or Classic leagues are set up for the current season yet.") }}
+            </div>
+        {% endif %}
+    </div>
+    {% else %}
+    {{ empty_state("ti-calendar-off", "No Active Season", message if message else 'There is no active season at this time.') }}
+    {% endif %}
+
+    <!-- Help Section -->
+    <div class="mt-6">
+        {% call section_card("How Draft Predictions Work", icon="ti-help-circle") %}
+        <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-6">
+            <div class="flex items-start gap-3">
+                <span class="shrink-0 w-8 h-8 bg-ecs-green text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">1</span>
+                <div>
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Choose Your League</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Select Premier or Classic league based on your team assignment.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="shrink-0 w-8 h-8 bg-ecs-green text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">2</span>
+                <div>
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Predict Draft Rounds</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">For each player, predict which round you think they'll be drafted in.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="shrink-0 w-8 h-8 bg-ecs-green text-white rounded-full flex items-center justify-center text-sm font-bold mt-0.5">3</span>
+                <div>
+                    <h4 class="font-semibold text-gray-900 dark:text-white mb-1">Auto-Save</h4>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Your predictions are saved automatically. Come back anytime to update them.</p>
+                </div>
+            </div>
+        </div>
+        {% endcall %}
+    </div>
+
+</div>
+{% else %}
 <div class="max-w-7xl mx-auto">
 
     <!-- Header Section -->
@@ -169,4 +275,5 @@
     </div>
 
 </div>
+{% endif %}
 {% endblock %}

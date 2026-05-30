@@ -1,0 +1,111 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Error Data Cleanup{% endblock %}
+{% block panel_description %}Manage retention and cleanup of mobile error analytics data{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mobile_features') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Mobile Features</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mobile_error_analytics') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Error Analytics</a>
+    </div>
+</li>
+<li aria-current="page">
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Cleanup</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, alert as kit_alert %}
+<div class="space-y-5 sm:space-y-6">
+    {{ page_header("Error Data Cleanup", subtitle="Mobile Features") }}
+
+    {{ kit_alert('warning', 'Review what will be removed before confirming a cleanup operation.', title='Data cleanup.', dismissible=false) }}
+
+    {% call section_card("Storage Statistics", icon="ti-database") %}
+        {% if storage_stats %}
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
+            {% for key, value in storage_stats.items() %}
+            <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+                <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ key|replace('_', ' ')|title }}</dt>
+                <dd class="mt-1 text-base font-mono font-semibold text-gray-900 dark:text-white">{{ value }}</dd>
+            </div>
+            {% endfor %}
+        </dl>
+        {% else %}
+        {{ empty_state("ti-database-off", "No storage statistics", "There are no storage statistics available right now.") }}
+        {% endif %}
+    {% endcall %}
+
+    {% call section_card("Cleanup Preview", icon="ti-eye") %}
+        {% if preview %}
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
+            {% for key, value in preview.items() %}
+            <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+                <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ key|replace('_', ' ')|title }}</dt>
+                <dd class="mt-1 text-base font-mono font-semibold text-gray-900 dark:text-white">{{ value }}</dd>
+            </div>
+            {% endfor %}
+        </dl>
+        {% else %}
+        {{ empty_state("ti-circle-check", "Nothing to clean up", "There is no error analytics data eligible for removal.") }}
+        {% endif %}
+    {% endcall %}
+</div>
+{% else %}
+<div class="p-4 space-y-6">
+    <div class="flex items-center p-4 text-yellow-800 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 dark:text-yellow-300" role="alert">
+        <i class="ti ti-trash mr-3 text-xl"></i>
+        <div>
+            <span class="font-medium">Data cleanup.</span>
+            Review what will be removed before confirming a cleanup operation.
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-database text-theme-primary"></i>
+            <span>Storage Statistics</span>
+        </h5>
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% for key, value in (storage_stats or {}).items() %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ key|replace('_', ' ')|title }}</dt>
+                <dd class="text-base text-gray-900 dark:text-white">{{ value }}</dd>
+            </div>
+            {% else %}
+            <div class="sm:col-span-2 text-sm text-gray-500 dark:text-gray-400">No storage statistics available.</div>
+            {% endfor %}
+        </dl>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-eye text-theme-primary"></i>
+            <span>Cleanup Preview</span>
+        </h5>
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {% for key, value in (preview or {}).items() %}
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ key|replace('_', ' ')|title }}</dt>
+                <dd class="text-base text-gray-900 dark:text-white">{{ value }}</dd>
+            </div>
+            {% else %}
+            <div class="sm:col-span-2 text-sm text-gray-500 dark:text-gray-400">Nothing to clean up.</div>
+            {% endfor %}
+        </dl>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

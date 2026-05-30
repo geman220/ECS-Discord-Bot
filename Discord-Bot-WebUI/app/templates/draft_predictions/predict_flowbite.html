@@ -1,11 +1,249 @@
 {% extends "base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_info %}
+{% from "macros/_modern_kit.html" import page_header, stat_card, data_table, data_table_th, empty_state %}
 
 {% block title %}{{ league_type }} Draft Predictions{% endblock %}
 
 {% block page_title %}{{ league_type }} League Predictions{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% set completion = ((predictions_map|length / players|length) * 100) if players|length > 0 else 0 %}
+<div class="max-w-7xl mx-auto">
+
+  {{ page_header(league_type ~ " League Predictions", subtitle=current_season.name ~ " · Predict which round each player will be drafted") }}
+
+  <nav class="flex mb-5" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center gap-1 text-sm">
+      <li>
+        <a href="{{ url_for('draft_predictions.index') }}" class="inline-flex items-center font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-white">
+          <i class="ti ti-arrow-left mr-1.5" aria-hidden="true"></i>Draft Predictions
+        </a>
+      </li>
+      <li class="flex items-center text-gray-400">
+        <i class="ti ti-chevron-right mx-1" aria-hidden="true"></i>
+        <span class="font-medium text-gray-500 dark:text-gray-400">{{ league_type }}</span>
+      </li>
+    </ol>
+  </nav>
+
+  <div id="saveStatus" class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-5">
+    <i class="ti ti-device-floppy" aria-hidden="true"></i>
+    <span class="status-text">Changes save automatically</span>
+  </div>
+
+  <!-- Progress Stats -->
+  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+    {% call stat_card("ti-users", "Total Players", players|length, sublabel="in this league", tone="info") %}
+      <span id="totalPlayers" class="hidden">{{ players|length }}</span>
+    {% endcall %}
+    {% call stat_card("ti-check", "Your Predictions", predictions_map|length, sublabel="rounds set", tone="primary") %}
+      <span id="predictionCount" class="hidden">{{ predictions_map|length }}</span>
+    {% endcall %}
+    {% call stat_card("ti-percentage", "Completion", '%.0f'|format(completion) ~ '%', sublabel="of roster", tone="gold") %}
+      <span id="completionPercent" class="hidden">{{ "%.0f"|format(completion) }}%</span>
+    {% endcall %}
+  </div>
+
+  <!-- Players Table -->
+  {% if players %}
+  {% call data_table("Players", icon="ti-users", count=players|length, search_placeholder="Search players…", search_id="playerSearch") %}
+    <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <label for="positionFilter" class="sr-only">Filter by position</label>
+      <div class="relative w-full sm:w-auto sm:min-w-[200px]">
+        <select id="positionFilter" class="input-ecs h-9 text-sm w-full">
+          <option value="">All Positions</option>
+          <option value="Forward">Forward</option>
+          <option value="Midfielder">Midfielder</option>
+          <option value="Defender">Defender</option>
+          <option value="Goalkeeper">Goalkeeper</option>
+        </select>
+      </div>
+    </div>
+
+    {# md+ table #}
+    <table class="hidden md:table w-full text-sm text-left" id="playersTable">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th("#", key="index", sortable=False) }}
+          {{ data_table_th("Player", key="player", sortable=False) }}
+          {{ data_table_th("Position", key="position", sortable=False, hide="sm") }}
+          {{ data_table_th("Predicted Round", key="round", sortable=False) }}
+          {{ data_table_th("Confidence", key="confidence", sortable=False, hide="md") }}
+          {{ data_table_th("Notes", key="notes", sortable=False, hide="md") }}
+          {{ data_table_th("Avg Prediction", key="avg", sortable=False, hide="md") }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for player in players %}
+        {% set prediction = predictions_map.get(player.id) %}
+        {% set stats = aggregate_stats.get(player.id, {}) %}
+        <tr class="prediction-row hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if prediction %}has-prediction{% endif %}"
+            data-player-id="{{ player.id }}"
+            data-player-name="{{ player.name|lower }}"
+            data-position="{{ player.favorite_position or '' }}">
+          <td class="px-3 py-2.5 font-mono text-gray-500 dark:text-gray-400">{{ loop.index }}</td>
+          <td class="px-3 py-2.5">
+            <div class="flex items-center gap-3">
+              <div class="shrink-0 w-8 h-8">
+                {% if player.profile_picture_url or (player.image_cache and player.image_cache.thumbnail_url) %}
+                  <img src="{{ player.image_cache.thumbnail_url if player.image_cache and player.image_cache.thumbnail_url else player.profile_picture_url }}"
+                       alt="{{ player.name }}"
+                       class="w-8 h-8 rounded-full object-cover cursor-pointer player-avatar-clickable"
+                       data-player-name="{{ player.name }}"
+                       data-full-image="{{ (player.image_cache.original_url or player.image_cache.cached_url) if player.image_cache else player.profile_picture_url }}">
+                {% else %}
+                  <div class="w-8 h-8 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-semibold">
+                    {{ player.name[:2]|upper }}
+                  </div>
+                {% endif %}
+              </div>
+              <div class="min-w-0">
+                <div class="font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</div>
+                {% if player.league %}
+                  <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ player.league.name }}</div>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-2.5 hidden md:table-cell">
+            {% if player.favorite_position %}
+              <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+                {{ player.favorite_position }}
+              </span>
+            {% else %}
+              <span class="text-gray-400 dark:text-gray-500">-</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2.5">
+            <select class="prediction-input input-ecs h-9 text-sm w-full min-w-[120px]"
+                    data-field="predicted_round"
+                    data-player-id="{{ player.id }}"
+                    aria-label="Predicted round for {{ player.name }}">
+              <option value="">-</option>
+              {% for round_num in range(1, 21) %}
+                <option value="{{ round_num }}" {% if prediction and prediction.predicted_round == round_num %}selected{% endif %}>Round {{ round_num }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="px-3 py-2.5 hidden lg:table-cell">
+            <select class="prediction-input input-ecs h-9 text-sm w-full min-w-[90px]"
+                    data-field="confidence_level"
+                    data-player-id="{{ player.id }}"
+                    aria-label="Confidence for {{ player.name }}">
+              <option value="">-</option>
+              {% for conf in range(1, 6) %}
+                <option value="{{ conf }}" {% if prediction and prediction.confidence_level == conf %}selected{% endif %}>{{ conf }}/5</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td class="px-3 py-2.5 hidden lg:table-cell">
+            <input type="text"
+                   class="prediction-input input-ecs h-9 text-sm w-full min-w-[140px]"
+                   data-field="notes"
+                   data-player-id="{{ player.id }}"
+                   value="{{ prediction.notes if prediction else '' }}"
+                   placeholder="Optional notes…"
+                   aria-label="Optional notes for {{ player.name }}">
+          </td>
+          <td class="px-3 py-2.5 hidden lg:table-cell">
+            {% if stats.get('prediction_count', 0) > 0 %}
+              <div class="text-sm">
+                <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ "%.1f"|format(stats.avg_round) }}</span>
+                <span class="text-gray-500 dark:text-gray-400 text-xs">({{ stats.prediction_count }} votes)</span>
+              </div>
+            {% else %}
+              <span class="text-gray-400 dark:text-gray-500 text-sm">No predictions yet</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# mobile stacked cards (filter bar above is shared) #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for player in players %}
+      {% set prediction = predictions_map.get(player.id) %}
+      {% set stats = aggregate_stats.get(player.id, {}) %}
+      <div class="prediction-row px-4 py-3.5 {% if prediction %}has-prediction{% endif %}"
+           data-player-id="{{ player.id }}"
+           data-player-name="{{ player.name|lower }}"
+           data-position="{{ player.favorite_position or '' }}">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="shrink-0 w-9 h-9">
+            {% if player.profile_picture_url or (player.image_cache and player.image_cache.thumbnail_url) %}
+              <img src="{{ player.image_cache.thumbnail_url if player.image_cache and player.image_cache.thumbnail_url else player.profile_picture_url }}"
+                   alt="{{ player.name }}"
+                   class="w-9 h-9 rounded-full object-cover cursor-pointer player-avatar-clickable"
+                   data-player-name="{{ player.name }}"
+                   data-full-image="{{ (player.image_cache.original_url or player.image_cache.cached_url) if player.image_cache else player.profile_picture_url }}">
+            {% else %}
+              <div class="w-9 h-9 rounded-full bg-ecs-green flex items-center justify-center text-white text-xs font-semibold">
+                {{ player.name[:2]|upper }}
+              </div>
+            {% endif %}
+          </div>
+          <div class="min-w-0 flex-1">
+            <div class="font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {% if player.favorite_position %}{{ player.favorite_position }}{% else %}No position{% endif %}
+              {% if player.league %} · {{ player.league.name }}{% endif %}
+            </div>
+          </div>
+          {% if stats.get('prediction_count', 0) > 0 %}
+          <div class="shrink-0 text-right">
+            <div class="font-mono font-semibold text-gray-900 dark:text-white text-sm">{{ "%.1f"|format(stats.avg_round) }}</div>
+            <div class="text-[11px] text-gray-500 dark:text-gray-400">{{ stats.prediction_count }} votes</div>
+          </div>
+          {% endif %}
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Predicted Round</label>
+            <select class="prediction-input input-ecs h-9 text-sm w-full"
+                    data-field="predicted_round"
+                    data-player-id="{{ player.id }}"
+                    aria-label="Predicted round for {{ player.name }}">
+              <option value="">-</option>
+              {% for round_num in range(1, 21) %}
+                <option value="{{ round_num }}" {% if prediction and prediction.predicted_round == round_num %}selected{% endif %}>Round {{ round_num }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Confidence</label>
+            <select class="prediction-input input-ecs h-9 text-sm w-full"
+                    data-field="confidence_level"
+                    data-player-id="{{ player.id }}"
+                    aria-label="Confidence for {{ player.name }}">
+              <option value="">-</option>
+              {% for conf in range(1, 6) %}
+                <option value="{{ conf }}" {% if prediction and prediction.confidence_level == conf %}selected{% endif %}>{{ conf }}/5</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-[11px] font-medium text-gray-500 dark:text-gray-400 mb-1">Notes</label>
+            <input type="text"
+                   class="prediction-input input-ecs h-9 text-sm w-full"
+                   data-field="notes"
+                   data-player-id="{{ player.id }}"
+                   value="{{ prediction.notes if prediction else '' }}"
+                   placeholder="Optional notes…"
+                   aria-label="Optional notes for {{ player.name }}">
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+    {{ empty_state("ti-users-off", "No Players Found", "No players are currently registered in this league.") }}
+  {% endif %}
+
+</div>
+{% else %}
 <div class="max-w-7xl mx-auto">
 
     <!-- Header Section -->
@@ -234,6 +472,7 @@
     </div>
 
 </div>
+{% endif %}
 {% endblock %}
 
 {% block modals %}

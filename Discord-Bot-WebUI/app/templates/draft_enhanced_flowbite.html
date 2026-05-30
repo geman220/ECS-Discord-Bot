@@ -1,9 +1,366 @@
 {% extends "base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_form %}
+{% from "macros/_modern_kit.html" import page_header, stat_card, section_card, empty_state %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{# ============================ MODERN (console) ============================ #}
+{#
+  DEEP REDESIGN — Draft Board.
+  Intent: fill every team's roster from the available pool. The page leads with
+  draft PROGRESS (the live signal a drafter cares about), keeps search always
+  visible, tucks advanced filters behind progressive disclosure to give the
+  board its vertical real estate, and surfaces per-team capacity in the sidebar.
+  All JS hooks (ids / data-action / data-on-input|change / data-drop-target /
+  js-draggable-player / js-draft-drop-zone) are preserved verbatim.
+#}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+    <!-- Connection Status -->
+    <div id="connectionStatus" class="fixed top-16 right-4 z-[60] hidden">
+        <div class="flex items-center gap-2 rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 px-4 py-2.5 text-sm text-red-700 dark:text-red-300 shadow-lg">
+            <i class="ti ti-wifi-off" aria-hidden="true"></i>
+            <span>Connecting...</span>
+        </div>
+    </div>
+
+    {% call page_header(title, subtitle="Live Draft Board") %}
+        <a href="{{ url_for('draft_enhanced.draft_league_pitch_view', league_name=league_name) }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-layout-dashboard" aria-hidden="true"></i>
+            Pitch View
+        </a>
+    {% endcall %}
+
+    <!-- KPI band — lead with draft progress (the live decision signal) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+        {% call stat_card("ti-progress", "Draft Progress", "%.0f"|format(analytics.draft_progress|default(0)) ~ "%", tone="primary") %}
+            <div class="h-1.5 w-full rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden" role="progressbar"
+                 aria-valuenow="{{ "%.0f"|format(analytics.draft_progress|default(0)) }}" aria-valuemin="0" aria-valuemax="100" aria-label="Draft progress">
+                <span class="block h-full rounded-full bg-ecs-green" data-bar-fill data-pct="{{ "%.0f"|format(analytics.draft_progress|default(0)) }}"></span>
+            </div>
+        {% endcall %}
+        {{ stat_card("ti-user-check", "Drafted", analytics.total_players_drafted, sublabel="players", tone="success") }}
+        {{ stat_card("ti-users", "Available", available_players|length, sublabel="in pool", tone="info") }}
+        {{ stat_card("ti-shield-half", "Teams", analytics.total_teams, sublabel="rosters", tone="neutral") }}
+    </div>
+
+    <!-- Toolbar: always-visible search + progressive-disclosure advanced filters -->
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 mb-5 sm:mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4">
+            <label for="playerSearch" class="sr-only">Search players</label>
+            <div class="relative flex-1 min-w-0">
+                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 pointer-events-none">
+                    <i class="ti ti-search" aria-hidden="true"></i>
+                </span>
+                <input type="text" id="playerSearch" placeholder="Search available players by name..."
+                       data-on-input="draft-filter-players"
+                       class="w-full h-11 pl-10 pr-3 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <label for="sortBy" class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide hidden sm:inline">Sort</label>
+                <select id="sortBy" data-on-change="draft-filter-players" class="h-11 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                    <option value="name">Name</option>
+                    <option value="experience">Experience</option>
+                    <option value="attendance">Attendance</option>
+                    <option value="goals">Goals</option>
+                    <option value="prev_draft">Prev Draft #</option>
+                </select>
+            </div>
+        </div>
+        <details class="group border-t border-gray-200 dark:border-gray-700">
+            <summary class="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 cursor-pointer list-none select-none min-h-[44px] text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green rounded-b-xl">
+                <span class="inline-flex items-center gap-2">
+                    <i class="ti ti-adjustments-horizontal text-ecs-green" aria-hidden="true"></i>
+                    Advanced filters
+                </span>
+                <i class="ti ti-chevron-down transform group-open:rotate-180 transition-transform text-gray-400" aria-hidden="true"></i>
+            </summary>
+            <div class="px-3 sm:px-4 pb-4 pt-1">
+                <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div>
+                        <label for="positionFilter" class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Position</label>
+                        <select id="positionFilter" data-on-change="draft-filter-players" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">All Positions</option>
+                            <option value="goalkeeper">Goalkeeper</option>
+                            <option value="defender">Defender</option>
+                            <option value="midfielder">Midfielder</option>
+                            <option value="forward">Forward</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="attendanceFilter" class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Attendance</label>
+                        <select id="attendanceFilter" data-on-change="draft-filter-players" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">All</option>
+                            <option value="80-100">80%+ (High)</option>
+                            <option value="60-79">60-79% (Medium)</option>
+                            <option value="0-59">Below 60% (Low)</option>
+                            <option value="unknown">No Data</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="goalsFilter" class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Career Goals</label>
+                        <select id="goalsFilter" data-on-change="draft-filter-players" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">All</option>
+                            <option value="10+">10+ Goals</option>
+                            <option value="5-9">5-9 Goals</option>
+                            <option value="1-4">1-4 Goals</option>
+                            <option value="0">No Goals</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="prevDraftFilter" class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Previous Draft</label>
+                        <select id="prevDraftFilter" data-on-change="draft-filter-players" class="w-full h-10 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+                            <option value="">All</option>
+                            <option value="1-20">Top 20 Pick</option>
+                            <option value="21-50">Pick 21-50</option>
+                            <option value="51+">Pick 51+</option>
+                            <option value="new">New Player</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-3 flex justify-end">
+                    <button data-action="draft-clear-filters" class="inline-flex items-center min-h-[44px] sm:min-h-0 text-sm text-gray-500 dark:text-gray-400 hover:text-ecs-green dark:hover:text-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green rounded px-1">
+                        <i class="ti ti-x mr-1" aria-hidden="true"></i>Clear Filters
+                    </button>
+                </div>
+            </div>
+        </details>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <!-- Available Players -->
+        <div class="lg:col-span-8">
+            {% call section_card('Available Players', icon="ti-users") %}
+                <div class="px-4 sm:px-5 py-2 border-b border-gray-200 dark:border-gray-700 text-xs font-mono text-gray-500 dark:text-gray-400">
+                    <span id="available-players-count">{{ available_players|length }}</span> shown
+                </div>
+                <div class="p-4">
+                    <div id="available-players" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 js-draft-drop-zone" data-drop-target="available">
+                        {% for player in available_players %}
+                        <div id="player-{{ player.id }}" class="bg-white dark:bg-gray-700 rounded-xl shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden js-draggable-player"
+                             data-player-id="{{ player.id }}"
+                             data-player-name="{{ player.name|lower }}"
+                             data-position="{{ (player.favorite_position or '')|lower }}"
+                             data-experience="{{ player.league_experience_seasons }}"
+                             data-attendance="{{ player.attendance_estimate if player.attendance_estimate is not none else '' }}"
+                             data-goals="{{ player.career_goals }}"
+                             data-prev-draft="{{ player.prev_draft_position or 999 }}"
+                             draggable="true">
+                            <!-- Player Image -->
+                            <div class="relative h-32 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-700">
+                                <img src="{{ player.profile_picture_medium or player.profile_picture_webp or player.profile_picture_url or '/static/img/default_player.png' }}"
+                                     alt="{{ player.name }}"
+                                     class="w-full h-full object-cover object-top"
+                                     loading="lazy">
+                                <!-- Experience Badge -->
+                                <div class="absolute top-2 right-2">
+                                    <span class="inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold text-white
+                                                {{ 'bg-green-500' if player.experience_level == 'Veteran' else 'bg-yellow-500' if player.experience_level == 'Experienced' else 'bg-gray-400' }}">
+                                        {{ player.experience_level[0] if player.experience_level else 'N' }}
+                                    </span>
+                                </div>
+                                <!-- Previous Draft Position Badge -->
+                                <div class="absolute top-2 left-2 flex flex-col gap-1">
+                                    {% if player.prev_draft_position %}
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-blue-600 text-white" title="Last season draft pick #{{ player.prev_draft_position }}">
+                                        #{{ player.prev_draft_position }}
+                                    </span>
+                                    {% endif %}
+                                    {% if player.is_ref %}
+                                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-bold bg-red-500 text-white">REF</span>
+                                    {% endif %}
+                                </div>
+                                <!-- Name Overlay -->
+                                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+                                    <h3 class="text-white font-bold text-sm truncate">{{ player.name }}</h3>
+                                </div>
+                            </div>
+
+                            <!-- Player Info -->
+                            <div class="p-3">
+                                <!-- Position with color coding -->
+                                <div class="text-center mb-2 flex flex-wrap justify-center gap-1">
+                                    <!-- Primary Position (GREEN) -->
+                                    {% if player.favorite_position and player.favorite_position != 'Any' %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-700">
+                                        <i class="ti ti-star-filled mr-1 text-green-500 text-[10px]" aria-hidden="true"></i>
+                                        {{ format_position(player.favorite_position) }}
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300">
+                                        Any Position
+                                    </span>
+                                    {% endif %}
+                                    <!-- Secondary Positions (ORANGE) - clean up {} braces from legacy data -->
+                                    {% if player.other_positions %}
+                                    {% set clean_positions = player.other_positions|replace('{', '')|replace('}', '') %}
+                                    {% for pos in clean_positions.split(',') %}
+                                    {% set clean_pos = pos.strip() %}
+                                    {% if clean_pos and clean_pos != player.favorite_position %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400">
+                                        {{ format_position(clean_pos) }}
+                                    </span>
+                                    {% endif %}
+                                    {% endfor %}
+                                    {% endif %}
+                                    <!-- Positions NOT to play (RED) -->
+                                    {% if player.positions_not_to_play %}
+                                    {% set clean_not_positions = player.positions_not_to_play|replace('{', '')|replace('}', '') %}
+                                    {% for pos in clean_not_positions.split(',') %}
+                                    {% set clean_pos = pos.strip() %}
+                                    {% if clean_pos %}
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-300 dark:border-red-700">
+                                        <i class="ti ti-x mr-1 text-red-500 text-[10px]" aria-hidden="true"></i>
+                                        {{ format_position(clean_pos) }}
+                                    </span>
+                                    {% endif %}
+                                    {% endfor %}
+                                    {% endif %}
+                                </div>
+
+                                <!-- Stats -->
+                                <div class="grid grid-cols-2 gap-2 text-center text-xs mb-2">
+                                    <div>
+                                        <div class="font-mono font-bold text-green-500">{{ player.career_goals }}</div>
+                                        <div class="text-gray-500 dark:text-gray-400">Goals</div>
+                                    </div>
+                                    <div>
+                                        <div class="font-mono font-bold text-blue-500">{{ player.career_assists }}</div>
+                                        <div class="text-gray-500 dark:text-gray-400">Assists</div>
+                                    </div>
+                                </div>
+
+                                <!-- Cards & Attendance -->
+                                <div class="grid grid-cols-2 gap-2 text-center text-xs mb-3">
+                                    <div>
+                                        <div class="font-mono font-bold">
+                                            <span class="text-yellow-500">{{ player.career_yellow_cards }}</span>/<span class="text-red-500">{{ player.career_red_cards }}</span>
+                                        </div>
+                                        <div class="text-gray-500 dark:text-gray-400">Cards</div>
+                                    </div>
+                                    <div>
+                                        {% if player.attendance_estimate is not none %}
+                                        <div class="font-mono font-bold {{ 'text-green-500' if player.attendance_estimate >= 80 else 'text-yellow-500' if player.attendance_estimate >= 60 else 'text-red-500' }}">
+                                            {{ "%.0f"|format(player.attendance_estimate) }}%
+                                        </div>
+                                        {% else %}
+                                        <div class="font-mono font-bold text-gray-400">N/A</div>
+                                        {% endif %}
+                                        <div class="text-gray-500 dark:text-gray-400">Attend</div>
+                                    </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="space-y-1">
+                                    <button class="w-full min-h-[44px] sm:min-h-0 px-3 py-1.5 rounded-lg bg-ecs-green text-white text-sm font-medium hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-700"
+                                            data-action="draft-player"
+                                            data-target-player-id="{{ player.id }}"
+                                            data-player-name="{{ player.name|escape }}">
+                                        <i class="ti ti-user-plus mr-1" aria-hidden="true"></i>Draft
+                                    </button>
+                                    <button class="w-full min-h-[44px] sm:min-h-0 px-3 py-1.5 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                            data-action="view-player-profile"
+                                            data-target-player-id="{{ player.id }}">
+                                        <i class="ti ti-info-circle mr-1" aria-hidden="true"></i>More Info
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div id="paginationControls" class="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center gap-2">
+                            <label for="pageSizeSelect" class="text-sm text-gray-500 dark:text-gray-400">Show:</label>
+                            <select id="pageSizeSelect" data-on-change="draft-change-page-size" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm py-1 focus:border-ecs-green focus:ring-ecs-green">
+                                <option value="12">12</option>
+                                <option value="24" selected>24</option>
+                                <option value="48">48</option>
+                                <option value="all">All</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button data-action="draft-prev-page" aria-label="Previous page" class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                <i class="ti ti-chevron-left" aria-hidden="true"></i>
+                            </button>
+                            <span id="pageInfo" class="text-sm font-mono text-gray-600 dark:text-gray-400 min-w-[100px] text-center">Page 1 of 1</span>
+                            <button data-action="draft-next-page" aria-label="Next page" class="min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center px-3 py-1 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                <i class="ti ti-chevron-right" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endcall %}
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden mt-6">
+                {{ empty_state("ti-search", "No players found", "Try adjusting your search or filters") }}
+            </div>
+        </div>
+
+        <!-- Teams Sidebar -->
+        <div class="lg:col-span-4">
+            <div class="sticky top-20">
+            {% call section_card('Rosters', icon="ti-clipboard-list") %}
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for team in teams %}
+                    <details class="group js-draft-drop-zone" data-team-id="{{ team.id }}" data-drop-target="team">
+                        <summary class="flex items-center gap-3 p-4 cursor-pointer list-none select-none min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                            <span class="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green" aria-hidden="true">
+                                <i class="ti ti-shield-half text-lg"></i>
+                            </span>
+                            <span class="flex-1 min-w-0">
+                                <span class="block font-semibold text-gray-900 dark:text-white truncate">{{ team.name }}</span>
+                                <span class="block text-xs text-gray-500 dark:text-gray-400">
+                                    <span class="font-mono font-bold text-ecs-green" id="teamCount{{ team.id }}">{{ drafted_players_by_team[team.id]|length if drafted_players_by_team[team.id] else 0 }}</span>
+                                    drafted
+                                </span>
+                            </span>
+                            <i class="ti ti-chevron-down transform group-open:rotate-180 transition-transform text-gray-400 shrink-0" aria-hidden="true"></i>
+                        </summary>
+                        <div class="p-4 pt-0">
+                            <div id="teamPlayers{{ team.id }}" class="space-y-2 js-draft-drop-zone" data-team-id="{{ team.id }}" data-drop-target="team">
+                                {% for player in drafted_players_by_team[team.id] %}
+                                <div class="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700 rounded-lg js-draggable-player" draggable="true" data-player-id="{{ player.id }}">
+                                    <img src="{{ player.profile_picture_url or '/static/img/default_player.png' }}"
+                                         alt="{{ player.name }}"
+                                         class="w-8 h-8 rounded-full object-cover">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</div>
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">{{ format_position(player.favorite_position) if player.favorite_position else 'Any' }}</div>
+                                    </div>
+                                    <button class="p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+                                            data-action="remove-player"
+                                            data-target-player-id="{{ player.id }}"
+                                            data-team-id="{{ team.id }}"
+                                            data-player-name="{{ player.name|escape }}"
+                                            data-team-name="{{ team.name|escape }}"
+                                            aria-label="Remove {{ player.name|escape }}">
+                                        <i class="ti ti-x" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                                {% endfor %}
+                                {% if not drafted_players_by_team[team.id] %}
+                                <div class="text-center py-4 text-gray-500 dark:text-gray-400">
+                                    <i class="ti ti-user-plus text-xl mb-1 block" aria-hidden="true"></i>
+                                    <div class="text-sm">Drag players here</div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </details>
+                    {% endfor %}
+                </div>
+            {% endcall %}
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+{# ============================ CLASSIC (unchanged) ============================ #}
 <div class="container mx-auto px-4 py-8">
     <!-- Connection Status -->
     <div id="connectionStatus" class="fixed top-4 right-4 z-50 hidden">
@@ -351,6 +708,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Draft Confirmation Modal -->
 {% call modal_form('draftConfirmModal', 'Draft Player', form_id='draftConfirmForm', submit_text='Draft Player', loading_text='Drafting...') %}

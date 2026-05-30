@@ -1401,16 +1401,15 @@ def set_theme_variant():
     return jsonify({"success": True, "message": f"Theme variant set to {variant}"})
 
 
-# Valid UI shell layouts. 'classic' is the default sidebar shell available to
-# everyone; 'console' and 'matchday' are alternate shells gated to admins during
-# the evaluation trial.
-UI_SHELLS = ('classic', 'console', 'matchday')
+# Valid UI shell layouts. 'classic' is the default shell available to everyone;
+# 'console' (Modern) is the alternate shell gated to admins during the A/B trial.
+UI_SHELLS = ('classic', 'console')
 
 
 @main.route('/set-ui-shell', methods=['POST'])
 def set_ui_shell():
     """
-    Set the user's UI shell (layout) preference: classic | console | matchday.
+    Set the user's UI shell (layout) preference: classic | console.
 
     Admin-only during the trial: only Global/Pub League Admins may select a
     non-default shell. Non-admins are always served the 'classic' shell, so a

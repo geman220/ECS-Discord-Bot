@@ -20,6 +20,157 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+
+{{ page_header("System Performance", subtitle="System Monitoring") }}
+
+{# --- KPI band --- #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {{ stat_card("ti-clock", "Avg Response Time", performance_metrics.response_time_avg ~ "ms", tone='primary') }}
+  {{ stat_card("ti-activity", "Requests / Min", performance_metrics.requests_per_minute, tone='success') }}
+  {{ stat_card("ti-alert-circle", "Error Rate", performance_metrics.error_rate_percent ~ "%", tone='info') }}
+  {{ stat_card("ti-users", "Active Sessions", performance_metrics.active_sessions, tone='warning') }}
+</div>
+
+{# --- Charts row --- #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+  <div class="lg:col-span-2">
+    {% call section_card("Response Time Trends", icon="ti-chart-line") %}
+    <div class="p-4 sm:p-5">
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Average response time over time</p>
+      <div class="h-72"><canvas id="responseTimeChart"></canvas></div>
+    </div>
+    {% endcall %}
+  </div>
+
+  {% call section_card("Request Distribution", icon="ti-chart-pie") %}
+  <div class="p-4 sm:p-5">
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Requests by endpoint type</p>
+    <div class="h-72"><canvas id="requestDistributionChart"></canvas></div>
+  </div>
+  {% endcall %}
+</div>
+
+{# --- Resource utilization + top endpoints --- #}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+  {% call section_card("Resource Utilization", icon="ti-server-cog") %}
+  <div class="p-4 sm:p-5">
+    <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Server resource usage</p>
+    <div class="grid grid-cols-2 gap-6 mb-4">
+      <div class="text-center">
+        <h6 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">CPU Usage</h6>
+        <div class="relative w-24 h-24 mx-auto">
+          <svg class="w-24 h-24 -rotate-90">
+            <circle cx="48" cy="48" r="40" stroke-width="8" class="fill-none stroke-gray-200 dark:stroke-gray-700"></circle>
+            <circle cx="48" cy="48" r="40" stroke-width="8" pathLength="100"
+                    stroke-dasharray="100" stroke-dashoffset="{{ 100 - performance_metrics.cpu_usage }}"
+                    class="fill-none stroke-ecs-green transition-all duration-500"></circle>
+          </svg>
+          <span class="absolute inset-0 flex items-center justify-center font-mono text-lg font-bold text-gray-900 dark:text-white">{{ performance_metrics.cpu_usage }}%</span>
+        </div>
+      </div>
+      <div class="text-center">
+        <h6 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Memory Usage</h6>
+        <div class="relative w-24 h-24 mx-auto">
+          <svg class="w-24 h-24 -rotate-90">
+            <circle cx="48" cy="48" r="40" stroke-width="8" class="fill-none stroke-gray-200 dark:stroke-gray-700"></circle>
+            <circle cx="48" cy="48" r="40" stroke-width="8" pathLength="100"
+                    stroke-dasharray="100" stroke-dashoffset="{{ 100 - performance_metrics.memory_usage }}"
+                    class="fill-none stroke-blue-500 transition-all duration-500"></circle>
+          </svg>
+          <span class="absolute inset-0 flex items-center justify-center font-mono text-lg font-bold text-gray-900 dark:text-white">{{ performance_metrics.memory_usage }}%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm text-gray-700 dark:text-gray-300">Database Connections</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-ecs-green/10 text-ecs-green">
+            {{ performance_metrics.db_connections_active }}/{{ performance_metrics.db_connections_max }}
+          </span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+          <div class="bg-ecs-green h-2 rounded-full" style="width: {{ (performance_metrics.db_connections_active / performance_metrics.db_connections_max * 100) if performance_metrics.db_connections_max else 0 }}%"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-sm text-gray-700 dark:text-gray-300">Cache Hit Rate</span>
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+            {{ performance_metrics.cache_hit_rate }}%
+          </span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+          <div class="bg-green-500 h-2 rounded-full" style="width: {{ performance_metrics.cache_hit_rate }}%"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endcall %}
+
+  {% if performance_metrics.top_endpoints %}
+  {% call data_table("Top Endpoints", icon="ti-route", count=performance_metrics.top_endpoints|length, filters=False) %}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead class="border-b border-gray-200 dark:border-gray-700">
+        <tr>
+          {{ data_table_th("Endpoint", key="endpoint", sortable=False) }}
+          {{ data_table_th("Requests", key="requests", sortable=False) }}
+          {{ data_table_th("Avg Time", key="avgtime", sortable=False) }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for endpoint in performance_metrics.top_endpoints %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-2.5">
+            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300">{{ endpoint.path }}</code>
+          </td>
+          <td class="px-3 py-2.5">
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ endpoint.requests }}</span>
+          </td>
+          <td class="px-3 py-2.5 font-mono text-xs text-gray-500 dark:text-gray-400">{{ endpoint.avg_time }}ms</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for endpoint in performance_metrics.top_endpoints %}
+      <div class="px-4 py-3.5">
+        <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-700 dark:text-gray-300 break-all">{{ endpoint.path }}</code>
+        <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+          <span class="inline-flex items-center gap-1"><i class="ti ti-activity" aria-hidden="true"></i><span class="font-mono">{{ endpoint.requests }}</span> req</span>
+          <span class="inline-flex items-center gap-1"><i class="ti ti-clock" aria-hidden="true"></i><span class="font-mono">{{ endpoint.avg_time }}ms</span></span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  {% call section_card("Top Endpoints", icon="ti-route") %}
+    {{ empty_state("ti-route-off", "No endpoint data", "There is no endpoint traffic to display yet.") }}
+  {% endcall %}
+  {% endif %}
+</div>
+
+{# --- Historical performance --- #}
+{% call section_card("Historical Performance Data", icon="ti-chart-histogram") %}
+<div class="p-4 sm:p-5">
+  <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Performance metrics over time</p>
+  <div class="flex flex-wrap gap-2 mb-4">
+    <button type="button" class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 inline-flex items-center text-sm font-semibold text-white bg-ecs-green rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="load-historical" data-period="1h">1 Hour</button>
+    <button type="button" class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 inline-flex items-center text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="load-historical" data-period="6h">6 Hours</button>
+    <button type="button" class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 inline-flex items-center text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="load-historical" data-period="24h">24 Hours</button>
+    <button type="button" class="min-h-[44px] sm:min-h-0 sm:h-9 px-3 inline-flex items-center text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="load-historical" data-period="7d">7 Days</button>
+  </div>
+  <div class="h-96"><canvas id="historicalChart"></canvas></div>
+</div>
+{% endcall %}
+
+{% else %}
 <!-- Performance Overview -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="rounded-lg p-5 bg-ecs-green text-white">
@@ -179,6 +330,7 @@
     <canvas id="historicalChart"></canvas>
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

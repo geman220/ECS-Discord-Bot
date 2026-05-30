@@ -20,6 +20,137 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+
+{{ page_header("MLS Settings", subtitle="MLS Management") }}
+
+<form id="mls-settings-form" class="space-y-5 sm:space-y-6 max-w-3xl">
+
+  {% call section_card("Scheduling Settings", icon="ti-calendar-event") %}
+  <div class="p-4 sm:p-5 space-y-6">
+    <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Configure when match threads and live reporting are scheduled.</p>
+
+    <div>
+      <label for="thread_creation_hours" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+        Thread Creation (hours before match)
+      </label>
+      <div class="flex flex-wrap items-center gap-3">
+        <input type="number" id="thread_creation_hours" name="mls_thread_creation_hours_before"
+               value="{{ settings.thread_creation_hours_before }}" min="1" max="168"
+               class="w-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <span class="text-sm text-gray-500 dark:text-gray-400">hours before kickoff (1-168)</span>
+      </div>
+      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>Discord match thread will be created this many hours before the match starts
+      </p>
+    </div>
+
+    <div>
+      <label for="live_reporting_minutes" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+        Live Reporting Start (minutes before match)
+      </label>
+      <div class="flex flex-wrap items-center gap-3">
+        <input type="number" id="live_reporting_minutes" name="mls_live_reporting_minutes_before"
+               value="{{ settings.live_reporting_minutes_before }}" min="0" max="60"
+               class="w-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <span class="text-sm text-gray-500 dark:text-gray-400">minutes before kickoff (0-60)</span>
+      </div>
+      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>Live reporting will begin this many minutes before the scheduled kickoff
+      </p>
+    </div>
+  </div>
+  {% endcall %}
+
+  {% call section_card("Live Reporting Settings", icon="ti-broadcast") %}
+  <div class="p-4 sm:p-5 space-y-6">
+    <p class="text-sm text-gray-500 dark:text-gray-400 -mt-1">Configure live reporting behavior and timeouts.</p>
+
+    <div>
+      <label for="reporting_timeout" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+        Match Timeout (hours)
+      </label>
+      <div class="flex flex-wrap items-center gap-3">
+        <input type="number" id="reporting_timeout" name="mls_live_reporting_timeout_hours"
+               value="{{ settings.live_reporting_timeout_hours }}" min="1" max="6"
+               class="w-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <span class="text-sm text-gray-500 dark:text-gray-400">hours (1-6)</span>
+      </div>
+      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>Fallback timeout if ESPN doesn't report match as final (matches typically last 2 hours)
+      </p>
+    </div>
+
+    <div>
+      <label for="max_session_duration" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+        Maximum Session Duration (hours)
+      </label>
+      <div class="flex flex-wrap items-center gap-3">
+        <input type="number" id="max_session_duration" name="mls_max_session_duration_hours"
+               value="{{ settings.max_session_duration_hours }}" min="2" max="8"
+               class="w-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <span class="text-sm text-gray-500 dark:text-gray-400">hours (2-8)</span>
+      </div>
+      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>Maximum time a live reporting session can run before being marked as stale
+      </p>
+    </div>
+
+    <div>
+      <label for="no_update_timeout" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+        No Update Timeout (minutes)
+      </label>
+      <div class="flex flex-wrap items-center gap-3">
+        <input type="number" id="no_update_timeout" name="mls_no_update_timeout_minutes"
+               value="{{ settings.no_update_timeout_minutes }}" min="10" max="120"
+               class="w-32 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <span class="text-sm text-gray-500 dark:text-gray-400">minutes (10-120)</span>
+      </div>
+      <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+        <i class="ti ti-info-circle" aria-hidden="true"></i>Session will be marked stale if no updates received within this time
+      </p>
+    </div>
+  </div>
+  {% endcall %}
+
+  {% call section_card("Supported Competitions", icon="ti-trophy") %}
+  <div class="p-4 sm:p-5">
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">ESPN competition codes currently supported.</p>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+      {% for code, name in competition_mappings.items() %}
+      <div class="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-500/15 shrink-0">
+          <i class="ti ti-tournament text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+        </span>
+        <div class="min-w-0">
+          <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ name }}</p>
+          <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ code }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endcall %}
+
+  <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+    <a href="{{ url_for('admin_panel.mls_overview') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
+              border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium
+              hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Overview
+    </a>
+    <button type="submit" id="save-settings-btn"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-5 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900
+                   disabled:opacity-50 disabled:cursor-not-allowed">
+      <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Settings
+    </button>
+  </div>
+</form>
+{% else %}
 <form id="mls-settings-form">
     <!-- Scheduling Settings -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
@@ -158,6 +289,7 @@
         </button>
     </div>
 </form>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

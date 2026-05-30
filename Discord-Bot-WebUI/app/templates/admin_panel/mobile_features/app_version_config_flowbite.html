@@ -19,6 +19,140 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+<div class="space-y-6 max-w-3xl">
+
+  {{ page_header('App Version Config', subtitle='Mobile build numbers, update URLs and force-update settings') }}
+
+  {# --- App Version & Update Settings --- #}
+  {% call section_card('App Version & Update Settings', icon='ti-device-mobile-up') %}
+    <div class="px-4 sm:px-5 py-3 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+      Controls what the mobile app sees at
+      <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded">GET /api/v1/app_config</code>
+    </div>
+    <div class="p-4 sm:p-5 space-y-6" id="app-version-form">
+      {% for s in settings %}
+      <div>
+        <label for="{{ s.key }}" class="block text-sm font-medium text-gray-900 dark:text-white mb-1">{{ s.label }}</label>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ s.description }}</p>
+
+        {% if s.data_type == 'boolean' %}
+        {% set _on = s.value and s.value|lower in ('true', '1', 'yes', 'on') %}
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="{{ s.key }}" data-key="{{ s.key }}" class="sr-only peer app-config-input"
+                 {{ 'checked' if _on else '' }}>
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 dark:peer-focus:ring-ecs-green/40 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+          <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+            {{ 'Enabled' if _on else 'Disabled' }}
+          </span>
+        </label>
+        {% elif s.data_type == 'integer' %}
+        <input type="number" id="{{ s.key }}" data-key="{{ s.key }}"
+               value="{{ s.value or '' }}" min="0"
+               class="input-ecs w-full max-w-xs h-10 px-3 text-sm font-mono app-config-input">
+        {% else %}
+        <input type="text" id="{{ s.key }}" data-key="{{ s.key }}"
+               value="{{ s.value or '' }}"
+               class="input-ecs w-full h-10 px-3 text-sm app-config-input">
+        {% endif %}
+
+        {% if s.updated_at %}
+        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5 font-mono">
+          Last updated {{ s.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC
+          {% if s.updated_by_user %} by {{ s.updated_by_user.username }}{% endif %}
+        </p>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button type="button" id="save-app-config"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-5 rounded-lg
+                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Configuration
+        </button>
+      </div>
+    </div>
+  {% endcall %}
+
+  {# --- Quick Reference --- #}
+  {% call section_card('Quick Reference', icon='ti-info-circle') %}
+    <div class="p-4 sm:p-5 text-sm text-gray-600 dark:text-gray-400 space-y-2">
+      <p><strong class="text-gray-900 dark:text-white">Normal update:</strong> Set <em>Latest Build Number</em> to the new build. Keep <em>Force Update</em> off. Users see a soft prompt.</p>
+      <p><strong class="text-gray-900 dark:text-white">Breaking change:</strong> Set <em>Min Build Number</em> to the new build number. Turn on <em>Force Update</em>. Users on older builds are blocked until they update.</p>
+      <p><strong class="text-gray-900 dark:text-white">After rollout stabilizes:</strong> Turn <em>Force Update</em> back off.</p>
+    </div>
+  {% endcall %}
+
+  {# --- Device Version Distribution --- #}
+  {% call section_card('Device Version Distribution', icon='ti-device-analytics') %}
+    {% if version_dist %}
+    <div class="md:overflow-x-auto">
+      {# Mobile: stacked cards #}
+      <ul class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        {% for v in version_dist %}
+        <li class="px-4 py-3.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold font-mono text-gray-900 dark:text-white truncate">{{ v.version }}</span>
+            <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if v.platform == 'iOS' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' }}">
+              <i class="ti ti-{{ 'brand-apple' if v.platform == 'iOS' else 'brand-android' }}" aria-hidden="true"></i>{{ v.platform }}
+            </span>
+          </div>
+          <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+            <span class="font-mono">{{ v.count }} devices</span>
+            <div class="flex items-center gap-2 flex-1">
+              <div class="flex-1 max-w-[120px] bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="bg-ecs-green h-2 rounded-full" style="width: {{ v.pct }}%"></div>
+              </div>
+              <span class="font-mono">{{ v.pct }}%</span>
+            </div>
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+      {# md+: table #}
+      <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50">
+          <tr>
+            <th scope="col" class="px-4 py-3 font-semibold">App Version</th>
+            <th scope="col" class="px-4 py-3 font-semibold">Platform</th>
+            <th scope="col" class="px-4 py-3 font-semibold">Devices</th>
+            <th scope="col" class="px-4 py-3 font-semibold">Adoption</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for v in version_dist %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-4 py-3 font-medium font-mono text-gray-900 dark:text-white">{{ v.version }}</td>
+            <td class="px-4 py-3">
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if v.platform == 'iOS' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' }}">
+                <i class="ti ti-{{ 'brand-apple' if v.platform == 'iOS' else 'brand-android' }}" aria-hidden="true"></i>{{ v.platform }}
+              </span>
+            </td>
+            <td class="px-4 py-3 font-mono">{{ v.count }}</td>
+            <td class="px-4 py-3">
+              <div class="flex items-center">
+                <div class="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700 mr-2">
+                  <div class="bg-ecs-green h-2 rounded-full" style="width: {{ v.pct }}%"></div>
+                </div>
+                <span class="font-mono">{{ v.pct }}%</span>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    {{ empty_state('ti-device-mobile-off', 'No device version data', 'Data appears when the mobile app registers push tokens with app_version.') }}
+    {% endif %}
+  {% endcall %}
+
+</div>
+{% else %}
 <div class="max-w-3xl">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -134,6 +268,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

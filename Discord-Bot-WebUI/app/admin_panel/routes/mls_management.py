@@ -2214,7 +2214,7 @@ def mls_sessions():
 
     except Exception as e:
         logger.error(f"Error loading sessions: {e}", exc_info=True)
-        return render_template('admin_panel/500_flowbite.html', error=str(e)), 500
+        return render_template('500_flowbite.html', error=str(e)), 500
 
 
 @admin_panel_bp.route('/mls/api/session/<int:session_id>/stop', methods=['POST'])

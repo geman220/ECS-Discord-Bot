@@ -20,6 +20,219 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state, modal %}
+{% from 'macros/flowbite.html' import button, badge %}
+<div class="space-y-6">
+
+  {% call page_header('Message Templates', subtitle='Communication') %}
+    <a href="{{ url_for('admin_panel.league_settings') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-trophy" aria-hidden="true"></i><span>League Settings</span>
+    </a>
+    <a href="{{ url_for('admin_panel.announcements') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-speakerphone" aria-hidden="true"></i><span>Announcements</span>
+    </a>
+    <button type="button" data-modal-target="createCategoryModal" data-modal-toggle="createCategoryModal"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-plus" aria-hidden="true"></i><span>Add Category</span>
+    </button>
+  {% endcall %}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-folder', 'Categories', categories|length, tone='info') }}
+    {{ stat_card('ti-template', 'Templates', total_templates, tone='primary') }}
+    {{ stat_card('ti-circle-check', 'Active', active_templates, tone='success') }}
+    {{ stat_card('ti-speakerphone', 'Announcements', recent_announcements|length if recent_announcements else 0, tone='gold') }}
+  </div>
+
+  <!-- Message Categories table -->
+  {% call data_table('Message categories', icon='ti-folder', count=categories|length, search_placeholder='Search templates, categories, or variables…', search_id='templateSearch') %}
+    {% if categories %}
+    <table class="hidden md:table w-full text-sm">
+      <thead><tr>
+        {{ data_table_th('Category', key='category') }}
+        {{ data_table_th('Description', key='description', hide='sm') }}
+        {{ data_table_th('Templates', key='templates', align='center', hide='sm') }}
+        {{ data_table_th('Last Updated', key='updated', hide='sm') }}
+        {{ data_table_th('Actions', sortable=False, align='right') }}
+      </tr></thead>
+      <tbody>
+        {% for category in categories %}
+        {% set template_count = category.templates|length %}
+        {% set active_count = category.templates|selectattr('is_active', 'equalto', true)|list|length %}
+        <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 category-row" data-category-name="{{ category.name }}" data-category-desc="{{ category.description or '' }}">
+          <td class="px-3 py-3">
+            <a href="{{ url_for('admin_panel.message_category', category_id=category.id) }}" class="inline-flex items-center gap-2 font-semibold text-ecs-green hover:underline">
+              <i class="ti ti-folder-filled" aria-hidden="true"></i>{{ category.name }}
+            </a>
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell text-gray-500 dark:text-gray-400">{{ category.description or 'No description' }}</td>
+          <td class="px-3 py-3 text-center hidden md:table-cell">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono
+              {% if template_count == 0 %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300
+              {% elif active_count == template_count %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400
+              {% else %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400{% endif %}">
+              {{ template_count }}{% if template_count > 0 %} <span class="ml-1 opacity-75">({{ active_count }} active)</span>{% endif %}
+            </span>
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell text-gray-500 dark:text-gray-400 font-mono text-xs">{{ category.updated_at.strftime('%Y-%m-%d %H:%M') if category.updated_at else 'Never' }}</td>
+          <td class="px-3 py-3">
+            <div class="flex items-center justify-end gap-1">
+              <a href="{{ url_for('admin_panel.message_category', category_id=category.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View Templates" aria-label="View Templates">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </a>
+              <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-category" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}" data-category-description="{{ category.description or '' }}" title="Edit Category" aria-label="Edit Category">
+                <i class="ti ti-edit" aria-hidden="true"></i>
+              </button>
+              {% if category.templates|length == 0 %}
+              <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="delete-category" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}" title="Delete Category" aria-label="Delete Category">
+                <i class="ti ti-trash" aria-hidden="true"></i>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- Mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for category in categories %}
+      {% set template_count = category.templates|length %}
+      {% set active_count = category.templates|selectattr('is_active', 'equalto', true)|list|length %}
+      <div class="px-4 py-3.5 category-row" data-category-name="{{ category.name }}" data-category-desc="{{ category.description or '' }}">
+        <div class="flex items-center justify-between gap-2">
+          <a href="{{ url_for('admin_panel.message_category', category_id=category.id) }}" class="inline-flex items-center gap-2 text-sm font-semibold text-ecs-green truncate">
+            <i class="ti ti-folder-filled shrink-0" aria-hidden="true"></i>{{ category.name }}
+          </a>
+          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium font-mono
+            {% if template_count == 0 %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300
+            {% elif active_count == template_count %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400
+            {% else %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400{% endif %}">
+            {{ template_count }}{% if template_count > 0 %} ({{ active_count }}){% endif %}
+          </span>
+        </div>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ category.description or 'No description' }}</p>
+        <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500 font-mono">{{ category.updated_at.strftime('%Y-%m-%d %H:%M') if category.updated_at else 'Never' }}</p>
+        <div class="mt-2 flex items-center gap-1">
+          <a href="{{ url_for('admin_panel.message_category', category_id=category.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View Templates" aria-label="View Templates">
+            <i class="ti ti-eye" aria-hidden="true"></i>
+          </a>
+          <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-category" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}" data-category-description="{{ category.description or '' }}" title="Edit Category" aria-label="Edit Category">
+            <i class="ti ti-edit" aria-hidden="true"></i>
+          </button>
+          {% if category.templates|length == 0 %}
+          <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="delete-category" data-category-id="{{ category.id }}" data-category-name="{{ category.name }}" title="Delete Category" aria-label="Delete Category">
+            <i class="ti ti-trash" aria-hidden="true"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state('ti-folder-x', 'No message categories found', 'Create your first message category to get started.', action={'label': 'Create Category', 'url': '#', 'icon': 'ti-plus'}) }}
+    {% endif %}
+  {% endcall %}
+
+  <!-- Recent Announcements -->
+  {% if recent_announcements %}
+  {% call data_table('Recent announcements', icon='ti-speakerphone', count=recent_announcements|length, filters=False) %}
+    <table class="hidden md:table w-full text-sm">
+      <thead><tr>
+        {{ data_table_th('Title', sortable=False) }}
+        {{ data_table_th('Type', sortable=False, hide='sm') }}
+        {{ data_table_th('Created', sortable=False, hide='sm') }}
+        {{ data_table_th('Status', sortable=False, align='right') }}
+      </tr></thead>
+      <tbody>
+        {% for announcement in recent_announcements %}
+        <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <td class="px-3 py-3">
+            <div class="font-medium text-gray-900 dark:text-white">{{ announcement.title }}</div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ announcement.content[:50] }}...</p>
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ announcement.announcement_type or 'General' }}</span>
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell text-gray-500 dark:text-gray-400 font-mono text-xs">{{ announcement.created_at.strftime('%m/%d %H:%M') }}</td>
+          <td class="px-3 py-3 text-right">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for announcement in recent_announcements %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ announcement.title }}</span>
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
+        </div>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ announcement.content[:50] }}...</p>
+        <p class="mt-0.5 text-xs text-gray-400 dark:text-gray-500 font-mono">{{ announcement.announcement_type or 'General' }} · {{ announcement.created_at.strftime('%m/%d %H:%M') }}</p>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% endif %}
+
+  <!-- Create Category Modal -->
+  {% call modal('createCategoryModal', 'Create Message Category', icon='ti-folder-plus') %}
+    <form action="{{ url_for('admin_panel.create_message_category') }}" method="POST" class="p-5 space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label for="category_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Category Name</label>
+        <input type="text" name="name" id="category_name" required
+               class="input-ecs w-full text-sm">
+      </div>
+      <div>
+        <label for="category_description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+        <textarea name="description" id="category_description" rows="3"
+                  class="input-ecs w-full text-sm"></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" data-modal-hide="createCategoryModal"
+                class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">Cancel</button>
+        <button type="submit"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-plus" aria-hidden="true"></i>Create Category</button>
+      </div>
+    </form>
+  {% endcall %}
+
+  <!-- Edit Category Modal -->
+  {% call modal('editCategoryModal', 'Edit Message Category', icon='ti-edit') %}
+    <form action="{{ url_for('admin_panel.update_message_category') }}" method="POST" class="p-5 space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="category_id" id="edit_category_id">
+      <div>
+        <label for="edit_category_name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Category Name</label>
+        <input type="text" name="name" id="edit_category_name" required
+               class="input-ecs w-full text-sm">
+      </div>
+      <div>
+        <label for="edit_category_description" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+        <textarea name="description" id="edit_category_description" rows="3"
+                  class="input-ecs w-full text-sm"></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" data-modal-hide="editCategoryModal"
+                class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">Cancel</button>
+        <button type="submit"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-device-floppy" aria-hidden="true"></i>Update Category</button>
+      </div>
+    </form>
+  {% endcall %}
+
+</div>
+{% else %}
 <!-- Quick Actions -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="p-5">
@@ -209,6 +422,7 @@
     <textarea name="description" id="edit_category_description" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"></textarea>
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, alert as kit_alert %}
 
 {% block admin_title %}Mobile App Configuration{% endblock %}
 {% block panel_description %}Feature toggles, version management, and update settings{% endblock %}
@@ -20,6 +21,217 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== MODERN (console) ===================== #}
+{{ page_header("Mobile App Configuration", subtitle="Feature toggles, version management & update settings") }}
+
+<!-- Tabs -->
+<div class="mb-5 sm:mb-6 border-b border-gray-200 dark:border-gray-700">
+    <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="configTabs" role="tablist">
+        <li class="mr-2" role="presentation">
+            <button class="inline-flex items-center gap-2 min-h-[44px] px-4 border-b-2 rounded-t-lg border-ecs-green text-ecs-green dark:text-ecs-green"
+                    id="toggles-tab" data-tab-target="#toggles-panel" type="button" role="tab" aria-selected="true">
+                <i class="ti ti-toggle-left" aria-hidden="true"></i>Feature Toggles
+            </button>
+        </li>
+        <li class="mr-2" role="presentation">
+            <button class="inline-flex items-center gap-2 min-h-[44px] px-4 border-b-2 rounded-t-lg border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300 dark:text-gray-400 dark:hover:text-white"
+                    id="version-tab" data-tab-target="#version-panel" type="button" role="tab" aria-selected="false">
+                <i class="ti ti-device-mobile-up" aria-hidden="true"></i>Version &amp; Updates
+            </button>
+        </li>
+    </ul>
+</div>
+
+<!-- Tab 1: Feature Toggles -->
+<div id="toggles-panel" role="tabpanel" aria-labelledby="toggles-tab" class="space-y-6">
+    {{ kit_alert("info", "Changes take effect immediately when the app fetches its configuration via GET /api/v1/app_config.", title="Feature Toggle Management", dismissible=false) }}
+
+    <!-- Core Mobile Features & Privacy -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% call section_card("Core Mobile Features", icon="ti-device-mobile") %}
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% if grouped.get('core') %}
+            {% for f in grouped.get('core', []) %}
+            <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5">
+                <div class="min-w-0">
+                    <h6 class="font-semibold text-sm text-gray-900 dark:text-white">{{ f.label }}</h6>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ f.description }}</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                </label>
+            </div>
+            {% endfor %}
+            {% else %}
+            {{ empty_state("ti-toggle-left", "No core features", "No core mobile feature toggles are configured.") }}
+            {% endif %}
+        </div>
+        {% endcall %}
+
+        {% call section_card("Privacy & Data", icon="ti-shield-lock") %}
+        <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% if grouped.get('privacy') %}
+            {% for f in grouped.get('privacy', []) %}
+            <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5">
+                <div class="min-w-0">
+                    <h6 class="font-semibold text-sm text-gray-900 dark:text-white">{{ f.label }}</h6>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ f.description }}</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                </label>
+            </div>
+            {% endfor %}
+            {% else %}
+            {{ empty_state("ti-shield-lock", "No privacy settings", "No privacy & data toggles are configured.") }}
+            {% endif %}
+        </div>
+        {% endcall %}
+    </div>
+
+    <!-- Experimental Features -->
+    {% if grouped.get('experimental') %}
+    {% call section_card("Experimental Features", icon="ti-flask") %}
+        <div class="px-4 sm:px-5 pt-4">
+            {{ kit_alert("warning", "These features are in beta and may not be stable.", dismissible=false) }}
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-4 sm:p-5">
+            {% for f in grouped.get('experimental', []) %}
+            <div class="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                <div class="min-w-0">
+                    <h6 class="font-semibold text-sm text-gray-900 dark:text-white">{{ f.label }}</h6>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ f.description }}</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-500/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-amber-500"></div>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+    {% endcall %}
+    {% endif %}
+
+    <!-- Actions -->
+    {% call section_card("Actions", icon="ti-bolt") %}
+    <div class="flex flex-col sm:flex-row justify-between gap-3 p-4 sm:p-5">
+        <button type="button" id="emergency-kill-switch"
+                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-red-600 bg-white border border-red-600 hover:bg-red-600 hover:text-white transition-colors dark:bg-gray-800 dark:border-red-500 dark:text-red-400 dark:hover:bg-red-600 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>Emergency Kill Switch
+        </button>
+        <a href="{{ url_for('admin_panel.export_feature_config') }}"
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-download" aria-hidden="true"></i>Export Config
+        </a>
+    </div>
+    {% endcall %}
+</div>
+
+<!-- Tab 2: Version & Updates -->
+<div id="version-panel" class="hidden space-y-6" role="tabpanel" aria-labelledby="version-tab">
+    <div class="max-w-3xl space-y-6">
+        {% call section_card("App Version & Update Settings", icon="ti-device-mobile-up") %}
+        <div class="px-4 sm:px-5 pt-4 text-sm text-gray-500 dark:text-gray-400">
+            Controls what the mobile app sees at <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">GET /api/v1/app_config</code>
+        </div>
+        <div class="p-4 sm:p-5 space-y-6" id="app-version-form">
+            {% for s in settings %}
+            <div>
+                <label for="{{ s.key }}" class="block text-sm font-semibold text-gray-900 dark:text-white mb-1">{{ s.label }}</label>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">{{ s.description }}</p>
+
+                {% if s.data_type == 'boolean' %}
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="{{ s.key }}" data-key="{{ s.key }}" class="sr-only peer app-config-input"
+                           {{ 'checked' if s.value and s.value|lower in ('true', '1', 'yes', 'on') else '' }}>
+                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+                    <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">
+                        {{ 'Enabled' if s.value and s.value|lower in ('true', '1', 'yes', 'on') else 'Disabled' }}
+                    </span>
+                </label>
+                {% elif s.data_type == 'integer' %}
+                <input type="number" id="{{ s.key }}" data-key="{{ s.key }}"
+                       value="{{ s.value or '' }}" min="0"
+                       class="w-full max-w-xs px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white app-config-input">
+                {% else %}
+                <input type="text" id="{{ s.key }}" data-key="{{ s.key }}"
+                       value="{{ s.value or '' }}"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white app-config-input">
+                {% endif %}
+
+                {% if s.updated_at %}
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">
+                    Last updated {{ s.updated_at.strftime('%Y-%m-%d %H:%M') }} UTC
+                    {% if s.updated_by_user %} by {{ s.updated_by_user.username }}{% endif %}
+                </p>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button type="button" id="save-app-config"
+                        class="inline-flex items-center gap-1.5 min-h-[44px] px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Configuration
+                </button>
+            </div>
+        </div>
+        {% endcall %}
+
+        <!-- Quick Reference -->
+        {% call section_card("Quick Reference", icon="ti-info-circle") %}
+        <div class="p-4 sm:p-5 text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p><strong class="text-gray-900 dark:text-white">Normal update:</strong> Set <em>Latest Build Number</em> to the new build. Keep <em>Force Update</em> off. Users see a soft prompt.</p>
+            <p><strong class="text-gray-900 dark:text-white">Breaking change:</strong> Set <em>Min Build Number</em> to the new build number. Turn on <em>Force Update</em>. Users on older builds are blocked until they update.</p>
+            <p><strong class="text-gray-900 dark:text-white">After rollout stabilizes:</strong> Turn <em>Force Update</em> back off.</p>
+        </div>
+        {% endcall %}
+
+        <!-- Device Version Distribution -->
+        {% call section_card("Device Version Distribution", icon="ti-device-analytics") %}
+        {% if version_dist %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50">
+                    <tr>
+                        <th scope="col" class="px-4 py-3 font-semibold">App Version</th>
+                        <th scope="col" class="px-4 py-3 font-semibold">Platform</th>
+                        <th scope="col" class="px-4 py-3 font-semibold">Devices</th>
+                        <th scope="col" class="px-4 py-3 font-semibold">Adoption</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for v in version_dist %}
+                    <tr class="bg-white dark:bg-gray-800">
+                        <td class="px-4 py-3 font-mono font-medium text-gray-900 dark:text-white">{{ v.version }}</td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if v.platform == 'iOS' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' }}">
+                                <i class="ti ti-{{ 'brand-apple' if v.platform == 'iOS' else 'brand-android' }}" aria-hidden="true"></i>{{ v.platform }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 font-mono">{{ v.count }}</td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-2">
+                                <div class="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                                    <div class="bg-ecs-green h-2 rounded-full" data-bar-fill data-pct="{{ v.pct }}"></div>
+                                </div>
+                                <span class="font-mono">{{ v.pct }}%</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        {{ empty_state("ti-device-mobile-off", "No device version data", "Data appears when the mobile app registers push tokens with app_version.") }}
+        {% endif %}
+        {% endcall %}
+    </div>
+</div>
+{% else %}
 <!-- Tabs -->
 <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
     <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="configTabs" role="tablist">
@@ -240,6 +452,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

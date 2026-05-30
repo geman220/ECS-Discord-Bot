@@ -20,6 +20,155 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_filter_bar, data_table_row_card, empty_state %}
+{% set current_count = seasons | selectattr('is_current') | list | length %}
+<div class="space-y-6">
+
+  {% call page_header('Seasons', subtitle='Pub League and ECS FC') %}
+    <select id="leagueTypeFilter" onchange="applyFilters()" aria-label="Filter by league type"
+            class="input-ecs h-10 px-3 text-sm">
+      <option value="">All League Types</option>
+      <option value="Pub League" {% if current_league_type == 'Pub League' %}selected{% endif %}>Pub League</option>
+      <option value="ECS FC" {% if current_league_type == 'ECS FC' %}selected{% endif %}>ECS FC</option>
+    </select>
+    <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+      <input type="checkbox" id="currentOnlyFilter" class="sr-only peer" {% if show_current_only %}checked{% endif %} onchange="applyFilters()">
+      <span class="relative w-11 h-6 bg-gray-200 dark:bg-gray-700 rounded-full peer peer-checked:bg-ecs-green peer-focus:ring-2 peer-focus:ring-ecs-green/40 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border after:border-gray-300 after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:after:border-white"></span>
+      <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Current only</span>
+    </label>
+    <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg
+              bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-plus" aria-hidden="true"></i> New Season
+    </a>
+  {% endcall %}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+    {{ stat_card('ti-calendar', 'Seasons', seasons | length) }}
+    {{ stat_card('ti-circle-check', 'Current', current_count, tone='success') }}
+    {{ stat_card('ti-archive', 'Inactive', (seasons | length) - current_count, tone='neutral') }}
+  </div>
+
+  {% if seasons %}
+  {% call data_table('All seasons', icon='ti-calendar', count=seasons|length, search_placeholder='Filter seasons…', search_id='seasonFilter') %}
+    <table class="hidden md:table w-full text-sm">
+      <thead><tr>
+        {{ data_table_th('Season', key='name') }}
+        {{ data_table_th('League type', key='league_type') }}
+        {{ data_table_th('Status', key='status') }}
+        {{ data_table_th('Leagues', key='leagues', align='right', hide='sm') }}
+        {{ data_table_th('Teams', key='teams', align='right', hide='sm') }}
+        {{ data_table_th('Created', key='created', hide='md') }}
+        {{ data_table_th('Actions', sortable=false, align='right') }}
+      </tr></thead>
+      <tbody>
+        {% for season in seasons %}
+        <tr class="border-t border-gray-100 dark:border-gray-700">
+          <td class="px-3 py-2.5 font-semibold text-gray-900 dark:text-white">{{ season.name }}</td>
+          <td class="px-3 py-2.5">
+            <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">{{ season.league_type }}</span>
+          </td>
+          <td class="px-3 py-2.5">
+            {% if season.is_current %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+              <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Current
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-circle text-[12px]" aria-hidden="true"></i>Inactive
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2.5 text-right font-mono text-gray-900 dark:text-white hidden md:table-cell">{{ season.league_count }}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-gray-900 dark:text-white hidden md:table-cell">{{ season.team_count }}</td>
+          <td class="px-3 py-2.5 font-mono text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ season.created_at.strftime('%Y-%m-%d') if season.created_at else '—' }}</td>
+          <td class="px-3 py-2.5">
+            <div class="flex items-center justify-end gap-2">
+              <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}"
+                 class="inline-flex items-center justify-center gap-1 h-9 px-3 rounded-lg text-xs font-semibold
+                        bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
+                        focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                 aria-label="View {{ season.name }}">
+                <i class="ti ti-eye" aria-hidden="true"></i><span>View</span>
+              </a>
+              {% if not season.is_current %}
+              <button data-action="set-current-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
+                      class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-500/15 dark:text-green-300 dark:hover:bg-green-500/25
+                             focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                      aria-label="Set {{ season.name }} as current">
+                <i class="ti ti-check" aria-hidden="true"></i>
+              </button>
+              <button data-action="delete-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
+                      class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-red-700 bg-red-100 hover:bg-red-200 dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500/25
+                             focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                      aria-label="Delete {{ season.name }}">
+                <i class="ti ti-trash" aria-hidden="true"></i>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+      {% for season in seasons %}
+      <div data-row-card class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ season.name }}</span>
+          {% if season.is_current %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+            <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Current
+          </span>
+          {% else %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+            <i class="ti ti-circle text-[12px]" aria-hidden="true"></i>Inactive
+          </span>
+          {% endif %}
+        </div>
+        <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+          <span class="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 font-medium">{{ season.league_type }}</span>
+          <span>Leagues <span class="font-mono text-gray-900 dark:text-white">{{ season.league_count }}</span></span>
+          <span>Teams <span class="font-mono text-gray-900 dark:text-white">{{ season.team_count }}</span></span>
+          {% if season.created_at %}<span class="font-mono">{{ season.created_at.strftime('%Y-%m-%d') }}</span>{% endif %}
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <a href="{{ url_for('admin_panel.league_management_season_detail', season_id=season.id) }}"
+             class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] px-3 rounded-lg text-sm font-semibold
+                    bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-eye" aria-hidden="true"></i><span>View</span>
+          </a>
+          {% if not season.is_current %}
+          <button data-action="set-current-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-500/15 dark:text-green-300 dark:hover:bg-green-500/25
+                         focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  aria-label="Set {{ season.name }} as current">
+            <i class="ti ti-check" aria-hidden="true"></i>
+          </button>
+          <button data-action="delete-season" data-season-id="{{ season.id }}" data-season-name="{{ season.name }}"
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-red-700 bg-red-100 hover:bg-red-200 dark:bg-red-500/15 dark:text-red-300 dark:hover:bg-red-500/25
+                         focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  aria-label="Delete {{ season.name }}">
+            <i class="ti ti-trash" aria-hidden="true"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+    {{ empty_state('ti-calendar-off', 'No seasons found', 'Get started by creating your first season.', action={'label': 'Create First Season', 'url': url_for('auto_schedule.schedule_manager'), 'icon': 'ti-plus'}) }}
+  {% endif %}
+</div>
+{% else %}
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
@@ -105,6 +254,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 
 <!-- Set Current Season Modal -->
 {% call modal('setCurrentModal', 'Set as Current Season', size='md', static_backdrop=true) %}

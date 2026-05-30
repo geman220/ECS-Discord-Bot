@@ -1,9 +1,101 @@
 {% extends "base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_form %}
+{% from "macros/_modern_kit.html" import page_header, section_card, empty_state %}
 
 {% block title %}Manage Teams{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{# ===================== MODERN (console) ===================== #}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    {{ page_header("Manage Teams", subtitle="Seasons & Leagues") }}
+
+    {% if seasons %}
+    <div class="space-y-6">
+        {% for season in seasons %}
+        {% call section_card(season.name, icon="ti-calendar-event") %}
+            {% if season.leagues %}
+            {# League Tabs — hooks preserved verbatim #}
+            <div class="border-b border-gray-200 dark:border-gray-700">
+                <div class="flex flex-wrap gap-1 p-2">
+                    {% for league in season.leagues %}
+                    <button type="button"
+                            class="league-tab-{{ season.id }} inline-flex items-center min-h-[44px] sm:min-h-0 sm:py-2 px-4 text-sm font-semibold rounded-lg transition-colors
+                                   focus:outline-none focus:ring-2 focus:ring-ecs-green
+                                   {% if league.is_first %}bg-ecs-green text-white{% else %}text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %}"
+                            data-tab="league-{{ league.name|replace(' ', '-')|lower }}-{{ season.id }}">
+                        {{ league.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {# League Content #}
+            {% for league in season.leagues %}
+            <div class="league-content-{{ season.id }} {% if not league.is_first %}hidden{% endif %} p-4 sm:p-5"
+                 id="league-{{ league.name|replace(' ', '-')|lower }}-{{ season.id }}-content">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">
+                        {{ league.name }} Teams
+                        <span class="font-mono font-normal normal-case text-gray-500 dark:text-gray-400">({{ league.teams|length if league.teams else 0 }})</span>
+                    </h3>
+                    <button type="button"
+                            class="add-team-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                            data-league-name="{{ league.name }}"
+                            data-season-id="{{ season.id }}"
+                            data-season-name="{{ season.name }}">
+                        <i class="ti ti-plus" aria-hidden="true"></i>
+                        Add Team
+                    </button>
+                </div>
+
+                {% if league.teams and league.teams|length > 0 %}
+                <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    {% for team in league.teams %}
+                    <li class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                        <span class="font-semibold text-gray-900 dark:text-white truncate">
+                            <i class="ti ti-shield-half text-ecs-green mr-1.5" aria-hidden="true"></i>{{ team.name }}
+                        </span>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button type="button"
+                                    class="edit-team-btn inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                                    data-team-id="{{ team.id }}"
+                                    data-team-name="{{ team.name }}"
+                                    data-league-name="{{ league.name }}"
+                                    data-season-id="{{ season.id }}">
+                                <i class="ti ti-edit" aria-hidden="true"></i>
+                                Edit
+                            </button>
+                            <button type="button"
+                                    class="delete-team-btn inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                    data-team-id="{{ team.id }}"
+                                    data-team-name="{{ team.name }}">
+                                <i class="ti ti-trash" aria-hidden="true"></i>
+                                Delete
+                            </button>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                {{ empty_state("ti-users-off", "No teams yet", "Click 'Add Team' to create one for this league.") }}
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            {{ empty_state("ti-trophy-off", "No leagues yet", "This season has no leagues configured.") }}
+            {% endif %}
+        {% endcall %}
+        {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state("ti-calendar-off", "No Active Leagues Found", "Create a season and league to get started with team management.") }}
+    {% endif %}
+</div>
+{% else %}
+{# ===================== CLASSIC (unchanged) ===================== #}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -113,6 +205,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 
 <!-- Add Team Modal -->
 {% call modal_form('addTeamModal', 'Add Team', form_id='addTeamForm', action=url_for('publeague.add_team'), size='sm', submit_text='Add Team', loading_text='Adding...', cancel_text='Close') %}

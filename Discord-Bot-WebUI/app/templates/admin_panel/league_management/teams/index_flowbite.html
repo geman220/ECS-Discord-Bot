@@ -20,6 +20,197 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table_th %}
+
+{% call page_header('Teams', subtitle='League Management') %}
+  <a href="{{ url_for('admin_panel.team_rosters') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+            border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium
+            hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-list-details" aria-hidden="true"></i><span>Manage Rosters</span>
+  </a>
+  <button type="button" onclick="openCreateModal()"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                 bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-plus" aria-hidden="true"></i><span>Add Team</span>
+  </button>
+{% endcall %}
+
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  {{ stat_card('ti-users-group', 'Total Teams', stats.total_teams, tone='primary') }}
+  {{ stat_card('ti-brand-discord', 'With Discord', stats.teams_with_discord, tone='info') }}
+  {{ stat_card('ti-trophy', 'League Types', stats.teams_by_league_type|length, tone='gold') }}
+</div>
+
+<section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="flex flex-col gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between">
+    <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+      <i class="ti ti-users-group text-ecs-green" aria-hidden="true"></i> Teams
+      <span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ teams|length }}</span>
+    </h2>
+    <div class="flex flex-wrap items-center gap-2">
+      <select id="seasonFilter" onchange="applyFilters()" aria-label="Filter by season" class="input-ecs h-9 text-sm w-auto">
+        <option value="">All Seasons</option>
+        {% for season in seasons %}
+        <option value="{{ season.id }}" {% if current_season_id == season.id %}selected{% endif %}>
+          {{ season.name }} {% if season.is_current %}(Current){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+      <select id="leagueTypeFilter" onchange="applyFilters()" aria-label="Filter by league type" class="input-ecs h-9 text-sm w-auto">
+        <option value="">All League Types</option>
+        <option value="Pub League" {% if current_league_type == 'Pub League' %}selected{% endif %}>Pub League</option>
+        <option value="ECS FC" {% if current_league_type == 'ECS FC' %}selected{% endif %}>ECS FC</option>
+      </select>
+    </div>
+  </div>
+
+  {% if teams %}
+  <div class="relative flex-1 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+    <i class="ti ti-search absolute left-7 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+    <input type="search" id="dtFilter" placeholder="Filter teams…" class="input-ecs h-9 pl-9 pr-3 text-sm w-full" aria-label="Filter teams">
+  </div>
+
+  {# Desktop table (md+) #}
+  <div class="md:overflow-x-auto">
+    <table class="hidden md:table w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th('Team Name', key='name', active=True, dir='asc') }}
+          {{ data_table_th('League', key='league', hide='sm') }}
+          {{ data_table_th('Season', key='season', hide='sm') }}
+          {{ data_table_th('Discord', key='discord', hide='sm') }}
+          {{ data_table_th('Actions', sortable=False, align='right') }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
+        {% for team in teams %}
+        <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3" data-cell="name">
+            <a href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}"
+               class="font-semibold text-ecs-green hover:underline">{{ team.name }}</a>
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell" data-cell="league">
+            {% if team.league %}
+            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">{{ team.league.name }}</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">N/A</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell" data-cell="season">
+            {% if team.league and team.league.season %}
+            <span class="text-gray-700 dark:text-gray-300">{{ team.league.season.name }}</span>
+            {% if team.league.season.is_current %}
+            <span class="ml-1 inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">Current</span>
+            {% endif %}
+            {% else %}
+            <span class="text-gray-400 dark:text-gray-500">N/A</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell" data-cell="discord">
+            {% if team.discord_channel_id %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-check" aria-hidden="true"></i>Connected
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-x" aria-hidden="true"></i>Not Set
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-right">
+            <button id="dropdownBtn{{ team.id }}" data-dropdown-toggle="dropdown{{ team.id }}"
+                    class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center
+                           text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    aria-label="Team actions">
+              <i class="ti ti-dots-vertical" aria-hidden="true"></i>
+            </button>
+            <div id="dropdown{{ team.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600 text-left">
+              <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                <li>
+                  <a href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <i class="ti ti-eye mr-2" aria-hidden="true"></i>View Details
+                  </a>
+                </li>
+                <li>
+                  <a href="#" data-action="rename-league-team" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <i class="ti ti-edit mr-2" aria-hidden="true"></i>Rename
+                  </a>
+                </li>
+                <li>
+                  <a href="#" data-action="sync-league-team-discord" data-team-id="{{ team.id }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600">
+                    <i class="ti ti-refresh mr-2" aria-hidden="true"></i>Sync Discord
+                  </a>
+                </li>
+              </ul>
+              <div class="py-2">
+                <a href="#" data-action="delete-league-team" data-team-id="{{ team.id }}" data-team-name="{{ team.name }}" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600">
+                  <i class="ti ti-trash mr-2" aria-hidden="true"></i>Delete
+                </a>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Mobile stacked cards (<md) #}
+    <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+      {% for team in teams %}
+      <div data-row-card class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <a href="{{ url_for('admin_panel.league_management_team_detail', team_id=team.id) }}"
+             class="text-sm font-semibold text-ecs-green hover:underline truncate" data-cell="name">{{ team.name }}</a>
+          <button id="dropdownBtnM{{ team.id }}" data-dropdown-toggle="dropdown{{ team.id }}"
+                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center shrink-0
+                         text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg
+                         focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  aria-label="Team actions">
+            <i class="ti ti-dots-vertical" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs">
+          {% if team.league %}
+          <span class="inline-flex items-center px-2 py-0.5 font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300" data-cell="league">{{ team.league.name }}</span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300" data-cell="league">N/A</span>
+          {% endif %}
+          {% if team.league and team.league.season %}
+          <span class="inline-flex items-center px-2 py-0.5 font-medium rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300" data-cell="season">{{ team.league.season.name }}{% if team.league.season.is_current %} · Current{% endif %}</span>
+          {% endif %}
+          {% if team.discord_channel_id %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400" data-cell="discord"><i class="ti ti-check" aria-hidden="true"></i>Discord</span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300" data-cell="discord"><i class="ti ti-x" aria-hidden="true"></i>No Discord</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
+    <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+      <i class="ti ti-users-group text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+    </div>
+    <h3 class="text-base font-semibold text-gray-900 dark:text-white">No teams found</h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">No teams match the current filters. Create your first team to get started.</p>
+    <button type="button" onclick="openCreateModal()"
+            class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-plus" aria-hidden="true"></i>Create First Team
+    </button>
+  </div>
+  {% endif %}
+</section>
+{% else %}
 <!-- Stats Cards -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 flex items-center">
@@ -176,6 +367,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 
 <!-- Create Team Modal -->
 {% call modal_form('createTeamModal', 'Create Team', form_id='createTeamForm', submit_text='Create Team', loading_text='Creating...') %}

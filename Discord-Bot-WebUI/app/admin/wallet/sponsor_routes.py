@@ -36,7 +36,7 @@ def sponsors():
         ).all()
 
         return render_template(
-            'admin/wallet_config/sponsors_flowbite.html',
+            'admin/wallet_config/sponsors.html',
             sponsors=all_sponsors
         )
 

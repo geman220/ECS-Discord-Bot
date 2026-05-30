@@ -25,6 +25,200 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+{% set skipped = campaign.total_recipients - campaign.sent_count - campaign.failed_count %}
+{% set status_meta = {
+  'draft':          {'tone': 'neutral', 'i': 'ti-pencil',        'word': 'Draft',          'cls': 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'},
+  'sending':        {'tone': 'info',    'i': 'ti-loader',        'word': 'Sending',        'cls': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300'},
+  'sent':           {'tone': 'success', 'i': 'ti-circle-check',  'word': 'Sent',           'cls': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'},
+  'partially_sent': {'tone': 'warning', 'i': 'ti-alert-triangle','word': 'Partially Sent', 'cls': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300'},
+  'failed':         {'tone': 'danger',  'i': 'ti-alert-octagon', 'word': 'Failed',         'cls': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'},
+  'cancelled':      {'tone': 'neutral', 'i': 'ti-ban',           'word': 'Cancelled',      'cls': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'}
+} %}
+{% set sm = status_meta.get(campaign.status, status_meta['draft']) %}
+
+<div data-page="email-broadcast-detail" data-campaign-id="{{ campaign.id }}" class="space-y-5 sm:space-y-6">
+
+  {% call page_header(campaign.name, subtitle="Email Broadcast") %}
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium {{ sm.cls }}">
+      <i class="ti {{ sm.i }} {% if campaign.status == 'sending' %}animate-spin {% endif %}text-xs" aria-hidden="true"></i>{{ sm.word }}
+    </span>
+  {% endcall %}
+
+  {# Campaign meta #}
+  {% call section_card("Campaign Details", icon="ti-info-circle") %}
+  <div class="p-4 sm:p-5 space-y-3">
+    <p class="text-sm text-gray-600 dark:text-gray-400"><span class="font-semibold text-gray-900 dark:text-white">Subject:</span> {{ campaign.subject }}</p>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 dark:text-gray-400">
+      <span class="inline-flex items-center gap-1.5"><i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i><span class="font-mono">{{ campaign.created_at.strftime('%b %d, %Y %I:%M %p') if campaign.created_at else '-' }}</span></span>
+      <span class="inline-flex items-center gap-1.5"><i class="ti ti-user text-ecs-green" aria-hidden="true"></i>{{ campaign.created_by.username if campaign.created_by else 'Unknown' }}</span>
+      <span class="inline-flex items-center gap-1.5"><i class="ti ti-mail text-ecs-green" aria-hidden="true"></i>{% if campaign.send_mode == 'bcc_batch' %}BCC Batch ({{ campaign.bcc_batch_size }}){% else %}Individual{% endif %}</span>
+      {% if campaign.force_send %}
+      <span class="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Force Send</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endcall %}
+
+  {# Progress (visible during sending) #}
+  {% if campaign.status == 'sending' %}
+  <section id="progressSection" class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white mb-3">Send Progress</h3>
+    <div class="w-full bg-gray-200 rounded-full h-4 dark:bg-gray-700 mb-2 overflow-hidden">
+      <div id="progressBar" class="bg-ecs-green h-4 rounded-full transition-all duration-500"
+           style="width: {{ ((campaign.sent_count + campaign.failed_count) / campaign.total_recipients * 100) if campaign.total_recipients > 0 else 0 }}%"></div>
+    </div>
+    <p id="progressText" class="text-sm text-gray-500 dark:text-gray-400 font-mono">
+      {{ campaign.sent_count + campaign.failed_count }} / {{ campaign.total_recipients }} processed
+    </p>
+  </section>
+  {% endif %}
+
+  {# KPI band — custom tiles (stat ids are JS hooks for live progress updates) #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Total</span>
+        <i class="ti ti-users text-lg text-gray-900 dark:text-white shrink-0" aria-hidden="true"></i>
+      </div>
+      <div id="statTotal" class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-900 dark:text-white">{{ campaign.total_recipients }}</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Sent</span>
+        <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div id="statSent" class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ campaign.sent_count }}</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Failed</span>
+        <i class="ti ti-alert-octagon text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div id="statFailed" class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-red-600 dark:text-red-400">{{ campaign.failed_count }}</div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ 'Pending' if campaign.status == 'sending' else 'Skipped' }}</span>
+        <i class="ti ti-clock text-lg text-gray-600 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div id="statPending" class="mt-3 font-mono text-3xl sm:text-4xl font-bold leading-none text-gray-600 dark:text-gray-400">{{ skipped if skipped > 0 else 0 }}</div>
+    </div>
+  </div>
+
+  {# Actions #}
+  <div class="flex flex-wrap items-center gap-3">
+    {% if campaign.status == 'draft' %}
+    <a href="{{ url_for('admin_panel.email_broadcast_edit', campaign_id=campaign.id) }}"
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-edit" aria-hidden="true"></i> Edit
+    </a>
+    <button type="button" data-action="email-send-campaign" data-campaign-id="{{ campaign.id }}"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-ecs-green text-white hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-send" aria-hidden="true"></i> Send Now
+    </button>
+    {% endif %}
+    {% if campaign.status == 'sending' %}
+    <button type="button" data-action="email-cancel-campaign" data-campaign-id="{{ campaign.id }}"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-player-stop" aria-hidden="true"></i> Cancel Send
+    </button>
+    {% endif %}
+    {% if campaign.status in ('sending', 'failed', 'cancelled', 'partially_sent') %}
+    <button type="button" data-action="email-reset-to-draft" data-campaign-id="{{ campaign.id }}"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold bg-amber-500 text-white hover:bg-amber-600 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-arrow-back-up" aria-hidden="true"></i> Reset to Draft
+    </button>
+    {% endif %}
+    <button type="button" data-action="email-duplicate-campaign" data-campaign-id="{{ campaign.id }}"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-copy" aria-hidden="true"></i> Duplicate
+    </button>
+    {% if campaign.status in ('draft', 'cancelled', 'failed') %}
+    <button type="button" data-action="email-delete-campaign" data-campaign-id="{{ campaign.id }}"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg text-sm font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+      <i class="ti ti-trash" aria-hidden="true"></i> Delete
+    </button>
+    {% endif %}
+  </div>
+
+  {# Email preview #}
+  {% call section_card("Email Preview", icon="ti-mail-opened") %}
+  <div class="p-4 sm:p-5">
+    <iframe id="emailPreviewFrame" class="w-full min-h-[300px] border border-gray-200 dark:border-gray-700 rounded-lg bg-white"
+            sandbox="allow-same-origin" title="Email preview"></iframe>
+  </div>
+  {% endcall %}
+
+  {# Recipients #}
+  {% call section_card("Recipients (" ~ recipients|length ~ ")", icon="ti-users-group") %}
+  {% if recipients %}
+  <div class="max-h-[500px] overflow-y-auto md:overflow-x-auto">
+    {# md+ table #}
+    <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+      <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400 sticky top-0">
+        <tr>
+          <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">Name</th>
+          <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">Status</th>
+          <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">Error</th>
+          <th scope="col" class="px-4 py-2.5 font-semibold tracking-wide">Sent At</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for r in recipients %}
+        <tr class="bg-white dark:bg-gray-800">
+          <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ r.recipient_name or '-' }}</td>
+          <td class="px-4 py-3">
+            {% if r.status == 'sent' %}
+            <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400"><i class="ti ti-check" aria-hidden="true"></i> Sent</span>
+            {% elif r.status == 'failed' %}
+            <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400"><i class="ti ti-x" aria-hidden="true"></i> Failed</span>
+            {% elif r.status == 'skipped' %}
+            <span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400"><i class="ti ti-minus" aria-hidden="true"></i> Skipped</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 text-gray-400 dark:text-gray-500"><i class="ti ti-clock" aria-hidden="true"></i> Pending</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-xs text-red-500">{{ r.error_message or '' }}</td>
+          <td class="px-4 py-3 whitespace-nowrap text-xs font-mono">{{ r.sent_at.strftime('%b %d %I:%M %p') if r.sent_at else '-' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {# mobile stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for r in recipients %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ r.recipient_name or '-' }}</span>
+          {% if r.status == 'sent' %}
+          <span class="shrink-0 inline-flex items-center gap-1 text-xs text-green-600 dark:text-green-400"><i class="ti ti-check" aria-hidden="true"></i> Sent</span>
+          {% elif r.status == 'failed' %}
+          <span class="shrink-0 inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400"><i class="ti ti-x" aria-hidden="true"></i> Failed</span>
+          {% elif r.status == 'skipped' %}
+          <span class="shrink-0 inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-minus" aria-hidden="true"></i> Skipped</span>
+          {% else %}
+          <span class="shrink-0 inline-flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500"><i class="ti ti-clock" aria-hidden="true"></i> Pending</span>
+          {% endif %}
+        </div>
+        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+          {% if r.error_message %}<p class="text-red-500">{{ r.error_message }}</p>{% endif %}
+          <p class="font-mono">{{ r.sent_at.strftime('%b %d %I:%M %p') if r.sent_at else 'Not sent' }}</p>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  {{ empty_state("ti-users-off", "No recipients", "This campaign has no recipients yet.") }}
+  {% endif %}
+  {% endcall %}
+
+</div>
+{% else %}
+{# ===================== Classic (unchanged) ===================== #}
 <div data-page="email-broadcast-detail" data-campaign-id="{{ campaign.id }}">
 
 <!-- Campaign Info Card -->
@@ -188,6 +382,7 @@
 </div>
 
 </div>
+{% endif %}
 
 <script>
 // Inject email body into preview iframe

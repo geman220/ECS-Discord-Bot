@@ -3,6 +3,164 @@
 {% block title %}Admin Reports{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, empty_state %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+  {{ page_header("All Feedback", subtitle="Reports") }}
+
+  {# Filters — server-side: each select reloads with its query param.
+     IDs filterStatus / filterPriority + option values copied VERBATIM (admin-reports.js binds change -> updateFilter). #}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+    <div>
+      <label for="filterStatus" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Status</label>
+      <select id="filterStatus" class="input-ecs h-10 text-sm" aria-label="Filter by status">
+        <option value="">All Statuses</option>
+        <option value="Open" {% if request.args.get('status') == 'Open' %}selected{% endif %}>Open</option>
+        <option value="In Progress" {% if request.args.get('status') == 'In Progress' %}selected{% endif %}>In Progress</option>
+        <option value="Closed" {% if request.args.get('status') == 'Closed' %}selected{% endif %}>Closed</option>
+      </select>
+    </div>
+    <div>
+      <label for="filterPriority" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Priority</label>
+      <select id="filterPriority" class="input-ecs h-10 text-sm" aria-label="Filter by priority">
+        <option value="">All Priorities</option>
+        <option value="Low" {% if request.args.get('priority') == 'Low' %}selected{% endif %}>Low</option>
+        <option value="Medium" {% if request.args.get('priority') == 'Medium' %}selected{% endif %}>Medium</option>
+        <option value="High" {% if request.args.get('priority') == 'High' %}selected{% endif %}>High</option>
+      </select>
+    </div>
+  </div>
+
+  {% call data_table("Feedback Reports", icon="ti-message-report", count=feedbacks|length, filters=False) %}
+    {# Desktop / md+ table #}
+    <table class="hidden md:table w-full text-sm">
+      <thead class="bg-gray-50 dark:bg-gray-700/40">
+        <tr>
+          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">ID</th>
+          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Category</th>
+          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Title</th>
+          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">
+            <a href="{{ url_for('admin.admin_reports', sort_by='priority', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+              Priority
+              {% if request.args.get('sort_by') == 'priority' %}
+              <i class="ti ti-arrow-{% if request.args.get('order') == 'asc' %}up{% else %}down{% endif %} text-xs text-ecs-green" aria-hidden="true"></i>
+              {% else %}<i class="ti ti-arrows-sort text-xs opacity-60" aria-hidden="true"></i>{% endif %}
+            </a>
+          </th>
+          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">
+            <a href="{{ url_for('admin.admin_reports', sort_by='status', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+              Status
+              {% if request.args.get('sort_by') == 'status' %}
+              <i class="ti ti-arrow-{% if request.args.get('order') == 'asc' %}up{% else %}down{% endif %} text-xs text-ecs-green" aria-hidden="true"></i>
+              {% else %}<i class="ti ti-arrows-sort text-xs opacity-60" aria-hidden="true"></i>{% endif %}
+            </a>
+          </th>
+          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Submitted By</th>
+          <th scope="col" class="px-3 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">
+            <a href="{{ url_for('admin.admin_reports', sort_by='created_at', order='asc' if request.args.get('order') != 'asc' else 'desc') }}" class="inline-flex items-center gap-1 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+              Date
+              {% if request.args.get('sort_by') == 'created_at' %}
+              <i class="ti ti-arrow-{% if request.args.get('order') == 'asc' %}up{% else %}down{% endif %} text-xs text-ecs-green" aria-hidden="true"></i>
+              {% else %}<i class="ti ti-arrows-sort text-xs opacity-60" aria-hidden="true"></i>{% endif %}
+            </a>
+          </th>
+          <th scope="col" class="px-3 py-2.5 text-right font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for feedback in feedbacks %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3 font-mono font-medium text-gray-900 dark:text-white">#{{ feedback.id }}</td>
+          <td class="px-3 py-3 text-gray-600 dark:text-gray-300 hidden lg:table-cell">{{ feedback.category }}</td>
+          <td class="px-3 py-3 text-gray-900 dark:text-white">
+            <div class="max-w-xs truncate">{{ feedback.title }}</div>
+          </td>
+          <td class="px-3 py-3">
+            {% if feedback.priority == 'Low' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300"><i class="ti ti-arrow-down text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+            {% elif feedback.priority == 'Medium' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"><i class="ti ti-equal text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+            {% elif feedback.priority == 'High' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"><i class="ti ti-arrow-up text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+            {% else %}
+            {{ feedback.priority }}
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            {% if feedback.status == 'Open' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"><i class="ti ti-circle-dot text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+            {% elif feedback.status == 'In Progress' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300"><i class="ti ti-progress text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+            {% elif feedback.status == 'Closed' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300"><i class="ti ti-circle-check text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+            {% else %}
+            {{ feedback.status }}
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-gray-600 dark:text-gray-300 hidden lg:table-cell">
+            {% if feedback.user %}
+            {{ feedback.user.username }}
+            {% else %}
+            <span class="text-gray-400 dark:text-gray-500 italic">Anonymous</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-gray-600 dark:text-gray-300 hidden lg:table-cell font-mono text-xs">
+            {{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}
+          </td>
+          <td class="px-3 py-3 text-right">
+            <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}"
+               class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-edit text-sm" aria-hidden="true"></i>
+              View
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Mobile / stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for feedback in feedbacks %}
+      <a href="{{ url_for('admin.view_feedback', feedback_id=feedback.id) }}"
+         class="block px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ feedback.title }}</span>
+          <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+        </div>
+        <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+          <span class="font-mono text-xs text-gray-500 dark:text-gray-400">#{{ feedback.id }}</span>
+          {% if feedback.priority == 'Low' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300"><i class="ti ti-arrow-down text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+          {% elif feedback.priority == 'Medium' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"><i class="ti ti-equal text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+          {% elif feedback.priority == 'High' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"><i class="ti ti-arrow-up text-xs" aria-hidden="true"></i>{{ feedback.priority }}</span>
+          {% endif %}
+          {% if feedback.status == 'Open' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"><i class="ti ti-circle-dot text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+          {% elif feedback.status == 'In Progress' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 dark:bg-cyan-900/50 text-cyan-700 dark:text-cyan-300"><i class="ti ti-progress text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+          {% elif feedback.status == 'Closed' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-300"><i class="ti ti-circle-check text-xs" aria-hidden="true"></i>{{ feedback.status }}</span>
+          {% endif %}
+        </div>
+        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+          <p>{{ feedback.category }}{% if feedback.user %} · {{ feedback.user.username }}{% else %} · Anonymous{% endif %}</p>
+          <p class="font-mono">{{ feedback.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+
+    {% if not feedbacks %}
+      {{ empty_state("ti-message-off", "No feedback reports found", "There are no feedback reports matching the current filters.") }}
+    {% endif %}
+  {% endcall %}
+
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -137,6 +295,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

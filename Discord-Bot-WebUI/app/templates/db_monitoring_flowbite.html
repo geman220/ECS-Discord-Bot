@@ -1,8 +1,143 @@
 {% extends "base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_info %}
+{% from "macros/_modern_kit.html" import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
 {% block title %}Database Monitor{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+  {% call page_header("Database Monitoring", subtitle="System health") %}
+    <button type="button" id="refreshBtn"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh</span>
+    </button>
+    <a href="{{ url_for('monitoring.monitor_dashboard') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Task Monitor</span>
+    </a>
+  {% endcall %}
+
+  <div id="alertContainer" class="mb-6" aria-live="polite"></div>
+
+  {# KPI band — value ids + progress ids preserved verbatim for db-monitoring.js #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    {% call stat_card("ti-database", "Pool Size", "", sublabel=None, tone="info") %}
+      <div class="flex items-center justify-between gap-2 -mt-2">
+        <span class="font-mono text-3xl font-bold leading-none text-blue-600 dark:text-blue-400" id="poolSize">-</span>
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-blue-700 dark:text-blue-300">
+          <i class="ti ti-maximize" aria-hidden="true"></i>Max <span id="maxPoolSize" class="font-mono">-</span>
+        </span>
+      </div>
+      <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+        <div id="poolSizeProgress" class="bg-blue-600 dark:bg-blue-500 h-2 rounded-full transition-all w-0"></div>
+      </div>
+    {% endcall %}
+
+    {% call stat_card("ti-activity", "Active Connections", "", sublabel=None, tone="info") %}
+      <div class="flex items-center justify-between gap-2 -mt-2">
+        <span class="font-mono text-3xl font-bold leading-none text-cyan-600 dark:text-cyan-400" id="activeConnections">-</span>
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-cyan-700 dark:text-cyan-300">
+          <i class="ti ti-exchange" aria-hidden="true"></i>Checkouts <span id="totalCheckouts" class="font-mono">-</span>
+        </span>
+      </div>
+      <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+        <div id="activeConnectionsProgress" class="bg-cyan-600 dark:bg-cyan-500 h-2 rounded-full transition-all w-0"></div>
+      </div>
+    {% endcall %}
+
+    {% call stat_card("ti-droplet", "Leaked Connections", "", sublabel=None, tone="warning") %}
+      <div class="flex items-center justify-between gap-2 -mt-2">
+        <span class="font-mono text-3xl font-bold leading-none text-amber-600 dark:text-amber-400" id="leakedConnections">-</span>
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+          <i class="ti ti-coffee" aria-hidden="true"></i>Idle <span id="idleConnections" class="font-mono">-</span>
+        </span>
+      </div>
+      <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+        <div id="leakedConnectionsProgress" class="bg-amber-500 dark:bg-amber-500 h-2 rounded-full transition-all w-0"></div>
+      </div>
+    {% endcall %}
+
+    {% call stat_card("ti-alert-triangle", "Idle Transactions", "", sublabel=None, tone="danger") %}
+      <div class="flex items-center justify-between gap-2 -mt-2">
+        <span class="font-mono text-3xl font-bold leading-none text-red-600 dark:text-red-400" id="idleTransactions">-</span>
+        <span class="inline-flex items-center gap-1 text-xs font-medium text-red-700 dark:text-red-300">
+          <i class="ti ti-clock" aria-hidden="true"></i>Oldest <span id="oldestConnectionAge" class="font-mono">-</span>
+        </span>
+      </div>
+      <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+        <div id="idleTransactionsProgress" class="bg-red-600 dark:bg-red-500 h-2 rounded-full transition-all w-0"></div>
+      </div>
+    {% endcall %}
+  </div>
+
+  {# Admin actions — id hooks (forceCleanup, refreshDashboardBtn) preserved verbatim #}
+  <div class="mb-6">
+    {% call section_card("Admin Actions", icon="ti-tool") %}
+      <div class="flex flex-wrap gap-3 p-4 sm:p-5">
+        <button type="button" id="forceCleanup"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-clear-all" aria-hidden="true"></i>Force Connection Cleanup
+        </button>
+        <button type="button" id="refreshDashboardBtn"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Statistics
+        </button>
+      </div>
+    {% endcall %}
+  </div>
+
+  {# Active Connections — tbody#activeConnectionsTable populated by db-monitoring.js #}
+  <div class="mb-6">
+    {% call data_table("Active Connections", icon="ti-plug-connected", filters=False) %}
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/50">
+          <tr>
+            {{ data_table_th("PID", sortable=False) }}
+            {{ data_table_th("Age", sortable=False) }}
+            {{ data_table_th("State", sortable=False) }}
+            {{ data_table_th("Source", sortable=False, hide="md") }}
+            {{ data_table_th("Tx Age", sortable=False, hide="sm") }}
+            {{ data_table_th("Query", sortable=False, hide="md") }}
+            {{ data_table_th("Actions", sortable=False, align="right") }}
+          </tr>
+        </thead>
+        <tbody id="activeConnectionsTable" class="divide-y divide-gray-200 dark:divide-gray-700">
+          <tr>
+            <td colspan="7" class="px-4 py-10 text-center">
+              <div class="animate-spin rounded-full h-8 w-8 border-4 border-ecs-green border-t-transparent mx-auto mb-2"></div>
+              <p class="text-gray-500 dark:text-gray-400">Loading connections...</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    {% endcall %}
+  </div>
+
+  {# Leaked Connections — tbody#leakedConnectionsTable populated by db-monitoring.js #}
+  <div>
+    {% call data_table("Leaked Connections", icon="ti-plug-connected-x", filters=False) %}
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/50">
+          <tr>
+            {{ data_table_th("PID", sortable=False) }}
+            {{ data_table_th("Transaction Name", sortable=False) }}
+            {{ data_table_th("Leaked Duration", sortable=False) }}
+            {{ data_table_th("Actions", sortable=False, align="right") }}
+          </tr>
+        </thead>
+        <tbody id="leakedConnectionsTable" class="divide-y divide-gray-200 dark:divide-gray-700">
+          <tr>
+            <td colspan="4" class="px-4 py-10 text-center">
+              <div class="animate-spin rounded-full h-8 w-8 border-4 border-ecs-green border-t-transparent mx-auto mb-2"></div>
+              <p class="text-gray-500 dark:text-gray-400">Loading connections...</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    {% endcall %}
+  </div>
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
@@ -189,6 +324,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Stack Trace Modal -->
 {% call modal_info('stackTraceModal', 'Stack Trace', size='lg') %}

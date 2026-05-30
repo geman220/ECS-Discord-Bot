@@ -26,6 +26,91 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, alert as kit_alert %}
+{% from 'macros/flowbite.html' import input %}
+<div class="max-w-3xl mx-auto space-y-6">
+
+  {{ page_header(
+      ('Edit Season: ' ~ season.name) if season else 'Create New Season',
+      subtitle='I-Spy / Seasons') }}
+
+  <!-- Season Form -->
+  <form id="seasonForm" novalidate class="space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <!-- Basic Information -->
+    {% call section_card('Basic Information', icon='ti-info-circle') %}
+      <div class="p-4 sm:p-5">
+        {{ input('name', label='Season Name', required=true,
+                 value=(season.name if season else ''),
+                 placeholder='e.g., Spring 2024 Season') }}
+      </div>
+    {% endcall %}
+
+    <!-- Date Range -->
+    {% call section_card('Date Range', icon='ti-calendar-event') %}
+      <div class="p-4 sm:p-5 space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {{ input('start_date', label='Start Date', type='date', required=true,
+                   value=(season.start_date.strftime('%Y-%m-%d') if season and season.start_date else '')) }}
+          {{ input('end_date', label='End Date', type='date', required=true,
+                   value=(season.end_date.strftime('%Y-%m-%d') if season and season.end_date else '')) }}
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
+          <i class="ti ti-info-circle mt-0.5 shrink-0" aria-hidden="true"></i>
+          <span>The season will automatically activate on the start date and deactivate on the end date.</span>
+        </p>
+      </div>
+    {% endcall %}
+
+    <!-- Season Status -->
+    {% call section_card('Season Status', icon='ti-settings') %}
+      <div class="p-4 sm:p-5 space-y-3">
+        <div class="flex items-center">
+          <input type="checkbox" id="is_active" name="is_active"
+            {{ 'checked' if season and season.is_active else '' }}
+            class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+          <label for="is_active" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            Set as Active Season
+          </label>
+        </div>
+        {{ kit_alert('warning', 'Activating this season will deactivate any other currently active season. Only one season can be active at a time.', dismissible=false) }}
+      </div>
+    {% endcall %}
+
+    <!-- Form Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <a href="{{ url_for('admin_panel.ispy_seasons') }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                text-gray-700 bg-white border border-gray-300 hover:bg-gray-50
+                dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600
+                focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Seasons
+      </a>
+      <div class="flex items-center gap-3">
+        {% if season %}
+        <button type="button" id="deleteSeason"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                 text-red-600 bg-white border border-red-300 hover:bg-red-50
+                 dark:bg-gray-700 dark:text-red-400 dark:border-red-600 dark:hover:bg-red-900/20
+                 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-trash" aria-hidden="true"></i>Delete Season
+        </button>
+        {% endif %}
+        <button type="submit" id="submitBtn"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-6 rounded-lg text-sm font-semibold
+                 text-white bg-ecs-green hover:bg-ecs-green-700
+                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-{% if season %}check{% else %}plus{% endif %}" aria-hidden="true"></i>
+          {% if season %}Save Changes{% else %}Create Season{% endif %}
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+{% else %}
 <div class="max-w-3xl mx-auto">
     <!-- Form Header -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6 border border-gray-200 dark:border-gray-700">
@@ -145,6 +230,7 @@
         </div>
     </form>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -14,6 +14,233 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state, alert as kit_alert %}
+
+{{ page_header("MLS Match Management", subtitle="MLS match scheduling and live reporting") }}
+
+{# KPI band — 2-up on mobile, 4-up on lg #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  {{ stat_card("ti-calendar", "Total Matches", stats.total_matches, tone='info') }}
+  {{ stat_card("ti-clock", "Upcoming", stats.upcoming_matches, tone='info') }}
+  {{ stat_card("ti-broadcast", "Live Now", stats.live_matches, tone='warning') }}
+  {{ stat_card("ti-check", "Finished", stats.finished_matches, tone='success') }}
+</div>
+
+{# Failed tasks alert #}
+{% if stats.failed_tasks > 0 %}
+<div class="mb-5 sm:mb-6">
+  {% set _failed_id = 'mls-failed-tasks-alert' %}
+  <div id="{{ _failed_id }}" role="alert"
+       class="rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 p-4 sm:p-5">
+    <div class="flex items-start gap-3">
+      <i class="ti ti-alert-octagon text-lg shrink-0 mt-0.5 text-red-600 dark:text-red-400" aria-hidden="true"></i>
+      <div class="flex-1 min-w-0 text-sm text-red-800 dark:text-red-300">
+        <p class="font-semibold">{{ stats.failed_tasks }} Failed Task{{ 's' if stats.failed_tasks != 1 else '' }} Require{{ '' if stats.failed_tasks != 1 else 's' }} Attention</p>
+        {% if failed_tasks %}
+        <ul class="mt-2 list-disc list-inside space-y-1">
+          {% for task in failed_tasks %}
+          <li>
+            <span class="font-semibold">{{ task.task_type }}</span> for match
+            <span class="font-mono">#{{ task.match_id }}</span>
+            {% if task.last_error %} — {{ task.last_error[:80] }}{% if task.last_error|length > 80 %}…{% endif %}{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p class="mt-1">Tasks have failed and may need to be retried or investigated.</p>
+        {% endif %}
+        <div class="mt-3 flex flex-wrap gap-2">
+          <a href="{{ url_for('admin_panel.mls_task_monitoring') }}?state=failed"
+             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                    bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-eye" aria-hidden="true"></i>View Failed Tasks
+          </a>
+        </div>
+      </div>
+      <button type="button" data-dismiss-target="#{{ _failed_id }}"
+              class="shrink-0 -mr-1 -mt-1 p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center
+                     rounded hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-ecs-green text-red-600 dark:text-red-400"
+              aria-label="Dismiss">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{# Quick actions #}
+{% call section_card("Quick Actions", icon="ti-bolt") %}
+<div class="p-4 sm:p-5">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <a href="{{ url_for('admin_panel.mls_matches') }}"
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg
+              bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-list" aria-hidden="true"></i>All Matches
+    </a>
+    <button type="button" data-action="fetch-espn"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-download" aria-hidden="true"></i>Fetch from ESPN
+    </button>
+    <button type="button" data-action="mls-schedule-all-matches"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg
+                   bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-calendar-event" aria-hidden="true"></i>Schedule All
+    </button>
+    <a href="{{ url_for('admin_panel.mls_task_monitoring') }}"
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg
+              bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold
+              border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-list-check" aria-hidden="true"></i>Task Monitor
+    </a>
+  </div>
+</div>
+{% endcall %}
+
+<div class="mt-5 sm:mt-6"></div>
+
+{# Upcoming matches #}
+{% if matches %}
+{% set _footer %}
+<span>Showing <span class="font-mono">{{ matches|length }}</span> upcoming</span>
+<a href="{{ url_for('admin_panel.mls_matches') }}" class="text-ecs-green hover:underline font-semibold">View all matches</a>
+{% endset %}
+{% call data_table("Upcoming Matches", icon="ti-calendar", count=matches|length, filters=False, footer=_footer) %}
+<table class="hidden md:table w-full text-sm">
+  <thead>
+    <tr class="border-b border-gray-200 dark:border-gray-700">
+      {{ data_table_th("Match", sortable=False) }}
+      {{ data_table_th("Date / Time", sortable=False) }}
+      {{ data_table_th("Competition", sortable=False) }}
+      {{ data_table_th("Status", sortable=False) }}
+      {{ data_table_th("Actions", sortable=False, align='right') }}
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+    {% for match in matches %}
+    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+      <td class="px-3 py-2.5 align-top">
+        <div class="text-gray-900 dark:text-white">
+          {% if match.is_home_game %}
+          <span class="font-bold">Seattle Sounders FC</span> vs {{ match.opponent }}
+          {% else %}
+          {{ match.opponent }} vs <span class="font-bold">Seattle Sounders FC</span>
+          {% endif %}
+        </div>
+        {% if match.venue %}
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ match.venue }}</p>
+        {% endif %}
+      </td>
+      <td class="px-3 py-2.5 align-top mls-match-time" data-utc="{{ match.date_time.isoformat() }}">
+        <p class="font-medium text-gray-900 dark:text-white mls-date font-mono">{{ match.date_time.strftime('%b %d, %Y') }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mls-time font-mono">{{ match.date_time.strftime('%I:%M %p') }} UTC</p>
+      </td>
+      <td class="px-3 py-2.5 align-top">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+          {{ match.competition or 'MLS' }}
+        </span>
+      </td>
+      <td class="px-3 py-2.5 align-top">
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if match.status_color == 'success' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if match.status_color == 'warning' else 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if match.status_color == 'info' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
+          <i class="ti {{ match.status_icon }} mr-1" aria-hidden="true"></i>{{ match.status_display }}
+        </span>
+      </td>
+      <td class="px-3 py-2.5 align-top">
+        <div class="flex items-center justify-end gap-1">
+          {% if not match.thread_created %}
+          <button type="button" class="inline-flex items-center justify-center w-9 h-9 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="create-thread" data-match-id="{{ match.id }}" title="Create Thread" aria-label="Create Thread">
+            <i class="ti ti-message-plus" aria-hidden="true"></i>
+          </button>
+          {% endif %}
+          {% if match.live_reporting_status != 'running' %}
+          <button type="button" class="inline-flex items-center justify-center w-9 h-9 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Reporting" aria-label="Start Reporting">
+            <i class="ti ti-player-play" aria-hidden="true"></i>
+          </button>
+          {% else %}
+          <button type="button" class="inline-flex items-center justify-center w-9 h-9 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Reporting" aria-label="Stop Reporting">
+            <i class="ti ti-player-stop" aria-hidden="true"></i>
+          </button>
+          {% endif %}
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{# Mobile stacked cards #}
+<div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+  {% for match in matches %}
+  <div class="px-4 py-3.5">
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0">
+        <p class="text-sm font-semibold text-gray-900 dark:text-white">
+          {% if match.is_home_game %}
+          Seattle Sounders FC <span class="text-gray-500 dark:text-gray-400 font-normal">vs {{ match.opponent }}</span>
+          {% else %}
+          {{ match.opponent }} <span class="text-gray-500 dark:text-gray-400 font-normal">vs</span> Seattle Sounders FC
+          {% endif %}
+        </p>
+        {% if match.venue %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ match.venue }}</p>{% endif %}
+      </div>
+      <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if match.status_color == 'success' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' if match.status_color == 'warning' else 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300' if match.status_color == 'info' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
+        <i class="ti {{ match.status_icon }} mr-1" aria-hidden="true"></i>{{ match.status_display }}
+      </span>
+    </div>
+    <div class="mt-2 flex items-center justify-between gap-2">
+      <div class="mls-match-time text-xs text-gray-500 dark:text-gray-400" data-utc="{{ match.date_time.isoformat() }}">
+        <span class="mls-date font-mono text-gray-700 dark:text-gray-300">{{ match.date_time.strftime('%b %d, %Y') }}</span>
+        <span class="mls-time font-mono"> · {{ match.date_time.strftime('%I:%M %p') }} UTC</span>
+        <span class="ml-1">· {{ match.competition or 'MLS' }}</span>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        {% if not match.thread_created %}
+        <button type="button" class="inline-flex items-center justify-center w-11 h-11 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="create-thread" data-match-id="{{ match.id }}" title="Create Thread" aria-label="Create Thread">
+          <i class="ti ti-message-plus" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+        {% if match.live_reporting_status != 'running' %}
+        <button type="button" class="inline-flex items-center justify-center w-11 h-11 text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="start-reporting" data-match-id="{{ match.id }}" title="Start Reporting" aria-label="Start Reporting">
+          <i class="ti ti-player-play" aria-hidden="true"></i>
+        </button>
+        {% else %}
+        <button type="button" class="inline-flex items-center justify-center w-11 h-11 text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" data-action="stop-reporting" data-match-id="{{ match.id }}" title="Stop Reporting" aria-label="Stop Reporting">
+          <i class="ti ti-player-stop" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endcall %}
+{% else %}
+{# Empty state with a fetch-espn ACTION button (kit empty_state only supports link CTAs) #}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
+    <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+      <i class="ti ti-calendar-off text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+    </div>
+    <h3 class="text-base font-semibold text-gray-900 dark:text-white">No Upcoming Matches</h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">No upcoming matches found.</p>
+    <button type="button" data-action="fetch-espn"
+            class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-download" aria-hidden="true"></i>Fetch Matches from ESPN
+    </button>
+  </div>
+</section>
+{% endif %}
+
+{% else %}
 <!-- Stats Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -201,6 +428,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -20,6 +20,188 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state as kit_empty_state %}
+
+{% call page_header("Draft History", subtitle="Draft Management") %}
+  <a href="{{ url_for('draft_predictions.admin_dashboard') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-chart-bar" aria-hidden="true"></i>Draft Predictions
+  </a>
+{% endcall %}
+
+<div class="space-y-5 sm:space-y-6">
+  {# KPI band #}
+  {% if stats %}
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+    {{ stat_card("ti-list-numbers", "Total All-Time Picks", stats.total_picks, tone='info') }}
+    {{ stat_card("ti-calendar", "Current Season Picks", stats.current_season_picks, tone='primary') }}
+    {{ stat_card("ti-filter", "Showing (Filtered)", stats.filtered_picks, tone='neutral') }}
+  </div>
+  {% endif %}
+
+  {# Filters #}
+  {% call section_card("Filters", icon="ti-filter") %}
+  <form method="get" class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end p-4 sm:p-5">
+    <div>
+      <label for="season" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Season</label>
+      <select name="season" id="season"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+              onchange="this.form.submit()">
+        <option value="">All Seasons</option>
+        {% for season in seasons %}
+        <option value="{{ season.id }}" {{ 'selected' if current_season_filter == season.id }}>
+          {{ season.name }} {% if season.is_current %}(Current){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="league" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">League</label>
+      <select name="league" id="league"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+              onchange="this.form.submit()">
+        <option value="">All Leagues</option>
+        {% for league in leagues %}
+        <option value="{{ league.id }}" {{ 'selected' if current_league_filter|string == league.id|string }}>
+          {{ league.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="sm:text-right">
+      <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+        <i class="ti ti-list-numbers" aria-hidden="true"></i>
+        <span class="font-mono">{{ total_picks }}</span> picks showing
+      </span>
+    </div>
+  </form>
+  {% endcall %}
+
+  {# Draft History #}
+  {% if draft_history %}
+    {% for season_name, leagues_data in draft_history.items() %}
+      {% call section_card(season_name, icon="ti-calendar") %}
+      <div class="p-4 sm:p-5 space-y-6">
+        {% for league_name, picks in leagues_data.items() %}
+        <div class="last:mb-0">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+            <h4 class="text-sm font-bold text-gray-900 dark:text-white inline-flex items-center gap-1.5">
+              <i class="ti ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>{{ league_name }}
+            </h4>
+            <button type="button"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    data-action="normalize-positions" data-season-id="{{ picks[0].season_id }}" data-league-id="{{ picks[0].league_id }}">
+              <i class="ti ti-sort-ascending-numbers" aria-hidden="true"></i>Normalize
+            </button>
+          </div>
+
+          {# Desktop table #}
+          <div class="hidden md:block overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+            <table class="w-full text-sm text-left">
+              <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                  {{ data_table_th("Pick #", sortable=false) }}
+                  {{ data_table_th("Player", sortable=false) }}
+                  {{ data_table_th("Team", sortable=false) }}
+                  {{ data_table_th("Drafted By", sortable=false) }}
+                  {{ data_table_th("Notes", sortable=false) }}
+                  {{ data_table_th("Actions", sortable=false, align="right") }}
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for pick in picks %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" id="pick-row-{{ pick.id }}">
+                  <td class="px-3 py-2.5">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ pick.draft_position }}</span>
+                  </td>
+                  <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ pick.player.name if pick.player else 'Unknown' }}</td>
+                  <td class="px-3 py-2.5 text-gray-700 dark:text-gray-300">{{ pick.team.name if pick.team else 'Unknown' }}</td>
+                  <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{{ pick.drafter.username if pick.drafter else 'System' }}</td>
+                  <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400">{{ pick.notes|truncate(30) if pick.notes else '-' }}</td>
+                  <td class="px-3 py-2.5">
+                    <div class="flex items-center justify-end gap-1">
+                      <button type="button"
+                              class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                              data-action="edit-pick" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}" title="Edit" aria-label="Edit pick">
+                        <i class="ti ti-edit" aria-hidden="true"></i>
+                      </button>
+                      <button type="button"
+                              class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                              data-action="delete-pick" data-pick-id="{{ pick.id }}" title="Delete" aria-label="Delete pick">
+                        <i class="ti ti-trash" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+          {# Mobile stacked cards #}
+          <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">
+            {% for pick in picks %}
+            <div class="px-4 py-3" id="pick-row-{{ pick.id }}-m">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400 shrink-0">{{ pick.draft_position }}</span>
+                  <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ pick.player.name if pick.player else 'Unknown' }}</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button type="button"
+                          class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          data-action="edit-pick" data-pick-id="{{ pick.id }}" data-position="{{ pick.draft_position }}" title="Edit" aria-label="Edit pick">
+                    <i class="ti ti-edit" aria-hidden="true"></i>
+                  </button>
+                  <button type="button"
+                          class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/15 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                          data-action="delete-pick" data-pick-id="{{ pick.id }}" title="Delete" aria-label="Delete pick">
+                    <i class="ti ti-trash" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                <p><span class="font-medium text-gray-700 dark:text-gray-300">Team:</span> {{ pick.team.name if pick.team else 'Unknown' }}</p>
+                <p><span class="font-medium text-gray-700 dark:text-gray-300">Drafted by:</span> {{ pick.drafter.username if pick.drafter else 'System' }}</p>
+                {% if pick.notes %}<p><span class="font-medium text-gray-700 dark:text-gray-300">Notes:</span> {{ pick.notes|truncate(30) }}</p>{% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endcall %}
+    {% endfor %}
+  {% else %}
+    {{ kit_empty_state("ti-list-search", "No Draft History Found", "Select a season or league to view draft picks.") }}
+  {% endif %}
+</div>
+
+{# Edit Pick Modal — kept via modal_form so the existing inline extra_js (showModal/hideModal/savePick) keeps working unchanged #}
+{% call modal_form('editPickModal', 'Edit Draft Pick', form_id='editPickForm', submit_text='Save Changes', loading_text='Saving...') %}
+    <input type="hidden" id="edit-pick-id">
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New Position</label>
+        <input type="number" id="edit-position" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+    </div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Position Mode</label>
+        <select id="edit-mode" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-ecs-green focus:border-ecs-green">
+            <option value="cascading">Cascading (shift others down)</option>
+            <option value="smart">Smart (automatic)</option>
+            <option value="absolute">Absolute (no shift)</option>
+            <option value="insert">Insert (shift at position)</option>
+        </select>
+    </div>
+    <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes</label>
+        <textarea id="edit-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-ecs-green focus:border-ecs-green"></textarea>
+    </div>
+{% endcall %}
+{% else %}
 <!-- Stats Cards -->
 {% if stats %}
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -185,6 +367,7 @@
         <textarea id="edit-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-blue-500 focus:border-blue-500"></textarea>
     </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

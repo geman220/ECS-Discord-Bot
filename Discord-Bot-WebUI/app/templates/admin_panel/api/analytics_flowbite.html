@@ -20,6 +20,223 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+{% set _err_tone = 'success' if analytics.error_rate < 2 else 'warning' if analytics.error_rate < 5 else 'danger' %}
+<div class="space-y-6">
+
+  <!-- Page header + date range filter (real GET form, hooks preserved) -->
+  {% call page_header('API Analytics', subtitle='API Management') %}
+    <form method="GET" class="flex flex-wrap items-center gap-2">
+      <input type="date" name="date_from" value="{{ date_range.start }}" aria-label="From date"
+             class="input-ecs h-9 px-3 text-sm">
+      <span class="text-sm text-gray-500 dark:text-gray-400">to</span>
+      <input type="date" name="date_to" value="{{ date_range.end }}" aria-label="To date"
+             class="input-ecs h-9 px-3 text-sm">
+      <button type="submit"
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-refresh" aria-hidden="true"></i> Update
+      </button>
+    </form>
+  {% endcall %}
+
+  <!-- KPI band -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-activity', 'Total Requests', "{:,}".format(analytics.total_requests), tone='info') }}
+    {{ stat_card('ti-alert-triangle', 'Error Rate', "%.1f"|format(analytics.error_rate) ~ '%', tone=_err_tone) }}
+    {{ stat_card('ti-clock', 'Avg Response Time', "%.3f"|format(analytics.avg_response_time) ~ 's', tone='info') }}
+    {{ stat_card('ti-x-circle', 'Total Errors', "{:,}".format(analytics.total_errors), tone='neutral') }}
+  </div>
+
+  <!-- Charts row -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+    <div class="lg:col-span-2">
+      {% call section_card('API Requests Over Time', icon='ti-chart-line') %}
+        <div class="p-4 sm:p-5">
+          <canvas id="requestsChart" height="100"></canvas>
+        </div>
+      {% endcall %}
+    </div>
+    <div>
+      {% call section_card('Error Distribution', icon='ti-chart-pie') %}
+        <div class="p-4 sm:p-5">
+          <canvas id="errorChart" height="200"></canvas>
+        </div>
+      {% endcall %}
+    </div>
+  </div>
+
+  <!-- Performance analysis -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+    <!-- Top performing endpoints -->
+    {% call section_card('Top Performing Endpoints', icon='ti-trending-up') %}
+      {% if endpoint_performance %}
+      <div class="md:overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+              {{ data_table_th('Endpoint', sortable=False) }}
+              {{ data_table_th('Requests', sortable=False, align='right') }}
+              {{ data_table_th('Avg Time', sortable=False, align='right') }}
+              {{ data_table_th('Success', sortable=False) }}
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for endpoint in endpoint_performance %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <td class="px-3 py-2.5">
+                <code class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ endpoint.endpoint }}</code>
+              </td>
+              <td class="px-3 py-2.5 text-right font-mono text-gray-900 dark:text-white">{{ "{:,}".format(endpoint.requests) }}</td>
+              <td class="px-3 py-2.5 text-right">
+                <span class="font-mono {{ 'text-red-600 dark:text-red-400' if endpoint.avg_response_time > 0.3 else 'text-amber-600 dark:text-amber-400' if endpoint.avg_response_time > 0.15 else 'text-green-600 dark:text-green-400' }}">
+                  {{ "%.3f"|format(endpoint.avg_response_time) }}s
+                </span>
+              </td>
+              <td class="px-3 py-2.5">
+                <div class="flex items-center gap-2">
+                  <div class="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                    <div class="h-2 rounded-full w-[var(--bar)] {{ 'bg-green-600' if endpoint.success_rate > 95 else 'bg-amber-500' if endpoint.success_rate > 90 else 'bg-red-600' }}" style="--bar: {{ endpoint.success_rate }}%"></div>
+                  </div>
+                  <span class="font-mono text-xs text-gray-600 dark:text-gray-400">{{ "%.1f"|format(endpoint.success_rate) }}%</span>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      {{ empty_state('ti-chart-bar-off', 'No performance data', 'No endpoint performance data is available for this range.') }}
+      {% endif %}
+    {% endcall %}
+
+    <!-- Error analysis -->
+    {% call section_card('Error Analysis', icon='ti-alert-triangle') %}
+      <div class="p-4 sm:p-5">
+        {% if error_analysis.error_types %}
+        <h6 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Error Types</h6>
+        <div class="space-y-3 mb-6">
+          {% for error in error_analysis.error_types %}
+          <div class="flex justify-between items-center gap-3">
+            <span class="text-sm text-gray-600 dark:text-gray-400 truncate">{{ error.type }}</span>
+            <div class="flex items-center gap-2 shrink-0">
+              <div class="w-20 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="bg-red-600 h-2 rounded-full w-[var(--bar)]" style="--bar: {{ (error.count / error_analysis.total_errors * 100) if error_analysis.total_errors > 0 else 0 }}%"></div>
+              </div>
+              <span class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ error.count }}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if error_analysis.top_error_endpoints %}
+        <h6 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Top Error Endpoints</h6>
+        <div class="space-y-2">
+          {% for endpoint in error_analysis.top_error_endpoints %}
+          <div class="flex justify-between items-center gap-3">
+            <code class="font-mono text-xs text-gray-700 dark:text-gray-300 truncate">{{ endpoint.endpoint }}</code>
+            <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-mono font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ endpoint.errors }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% else %}
+        {{ empty_state('ti-circle-check', 'No errors', 'No error data is available for this range.') }}
+        {% endif %}
+      </div>
+    {% endcall %}
+  </div>
+
+  <!-- Daily analytics breakdown -->
+  {% call data_table('Daily Analytics Breakdown', icon='ti-table', count=analytics.daily_requests|length, filters=False) %}
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap items-center justify-end gap-2">
+      <button type="button"
+              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-xs font-semibold
+                     text-ecs-green border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green"
+              data-action="export-analytics" data-format="csv">
+        <i class="ti ti-download" aria-hidden="true"></i> CSV
+      </button>
+      <button type="button"
+              class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-xs font-semibold
+                     text-ecs-green border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green"
+              data-action="export-analytics" data-format="json">
+        <i class="ti ti-download" aria-hidden="true"></i> JSON
+      </button>
+    </div>
+    {% if analytics.daily_requests %}
+    <table class="hidden md:table w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th('Date', sortable=False) }}
+          {{ data_table_th('Requests', sortable=False, align='right') }}
+          {{ data_table_th('Errors', sortable=False, align='right') }}
+          {{ data_table_th('Error Rate', sortable=False, align='right') }}
+          {{ data_table_th('Avg Response', sortable=False, align='right') }}
+          {{ data_table_th('Health Score', sortable=False) }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for day in analytics.daily_requests %}
+        {% set error_rate = (day.errors / day.requests * 100) if day.requests > 0 else 0 %}
+        {% set health_score = 100 - error_rate - (day.avg_response_time * 100) %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ day.date }}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-gray-900 dark:text-white">{{ "{:,}".format(day.requests) }}</td>
+          <td class="px-3 py-2.5 text-right font-mono text-gray-600 dark:text-gray-400">{{ day.errors }}</td>
+          <td class="px-3 py-2.5 text-right">
+            <span class="font-mono {{ 'text-green-600 dark:text-green-400' if error_rate < 2 else 'text-amber-600 dark:text-amber-400' if error_rate < 5 else 'text-red-600 dark:text-red-400' }}">
+              {{ "%.1f"|format(error_rate) }}%
+            </span>
+          </td>
+          <td class="px-3 py-2.5 text-right">
+            <span class="font-mono {{ 'text-green-600 dark:text-green-400' if day.avg_response_time < 0.2 else 'text-amber-600 dark:text-amber-400' if day.avg_response_time < 0.4 else 'text-red-600 dark:text-red-400' }}">
+              {{ "%.3f"|format(day.avg_response_time) }}s
+            </span>
+          </td>
+          <td class="px-3 py-2.5">
+            <div class="flex items-center gap-2">
+              <div class="w-16 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
+                <div class="h-2 rounded-full w-[var(--bar)] {{ 'bg-green-600' if health_score > 80 else 'bg-amber-500' if health_score > 60 else 'bg-red-600' }}" style="--bar: {{ [health_score, 100] | min }}%"></div>
+              </div>
+              <span class="font-mono text-xs text-gray-600 dark:text-gray-400">{{ "%.0f"|format([health_score, 100] | min) }}%</span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- Mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for day in analytics.daily_requests %}
+      {% set error_rate = (day.errors / day.requests * 100) if day.requests > 0 else 0 %}
+      {% set health_score = 100 - error_rate - (day.avg_response_time * 100) %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ day.date }}</span>
+          <span class="font-mono text-xs {{ 'text-green-600 dark:text-green-400' if health_score > 80 else 'text-amber-600 dark:text-amber-400' if health_score > 60 else 'text-red-600 dark:text-red-400' }}">{{ "%.0f"|format([health_score, 100] | min) }}% health</span>
+        </div>
+        <div class="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+          <span><span class="font-mono text-gray-900 dark:text-white">{{ "{:,}".format(day.requests) }}</span> requests</span>
+          <span><span class="font-mono text-gray-900 dark:text-white">{{ day.errors }}</span> errors</span>
+          <span class="font-mono {{ 'text-green-600 dark:text-green-400' if error_rate < 2 else 'text-amber-600 dark:text-amber-400' if error_rate < 5 else 'text-red-600 dark:text-red-400' }}">{{ "%.1f"|format(error_rate) }}% rate</span>
+          <span class="font-mono {{ 'text-green-600 dark:text-green-400' if day.avg_response_time < 0.2 else 'text-amber-600 dark:text-amber-400' if day.avg_response_time < 0.4 else 'text-red-600 dark:text-red-400' }}">{{ "%.3f"|format(day.avg_response_time) }}s</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state('ti-table-off', 'No daily analytics', 'No daily analytics data is available for this range.') }}
+    {% endif %}
+  {% endcall %}
+
+</div>
+{% else %}
 <!-- Page Header with Date Filter -->
 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
     <h4 class="text-xl font-semibold text-gray-900 dark:text-white">API Analytics</h4>
@@ -265,6 +482,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

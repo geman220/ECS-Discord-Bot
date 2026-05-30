@@ -20,6 +20,144 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+
+{{ page_header("Match Results", subtitle="Match Operations") }}
+
+<div class="space-y-5 sm:space-y-6">
+  {# KPI band #}
+  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+    {{ stat_card("ti-check", "Completed", stats.completed_matches, sublabel="matches", tone="info") }}
+    {{ stat_card("ti-clock", "Pending", stats.pending_results, sublabel="results", tone="warning") }}
+    {{ stat_card("ti-history", "Recent", stats.recent_results|length, sublabel="results", tone="primary") }}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+    {# Matches Awaiting Results #}
+    {% if pending_results %}
+    {% call data_table("Matches Awaiting Results", icon="ti-clock", count=pending_results|length, search_placeholder="Filter matches…", search_id="pendingFilter", filters=true) %}
+      <table class="hidden md:table w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-700">
+            {{ data_table_th("Date", key="date") }}
+            {{ data_table_th("Home Team", key="home") }}
+            {{ data_table_th("Away Team", key="away") }}
+            {{ data_table_th("Actions", sortable=false, align="right") }}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for match in pending_results %}
+          <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-3 py-2.5 font-mono text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</td>
+            <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</td>
+            <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</td>
+            <td class="px-3 py-2.5 text-right">
+              <button type="button"
+                      class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                      data-action="enter-result" data-match-id="{{ match.id }}">
+                <i class="ti ti-edit text-sm" aria-hidden="true"></i>Enter Result
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {# Mobile cards #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for match in pending_results %}
+        <div data-row class="px-4 py-3.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+              {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
+            </span>
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ match.date.strftime('%Y-%m-%d') if match.date else 'TBD' }}</p>
+          <button type="button"
+                  class="mt-2 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  data-action="enter-result" data-match-id="{{ match.id }}">
+            <i class="ti ti-edit text-sm" aria-hidden="true"></i>Enter Result
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    {% endcall %}
+    {% else %}
+    {% call section_card("Matches Awaiting Results", icon="ti-clock") %}
+      {{ empty_state("ti-circle-check", "All caught up", "No matches awaiting results.") }}
+    {% endcall %}
+    {% endif %}
+
+    {# Recent Results #}
+    {% if completed_matches %}
+    {% call data_table("Recent Results", icon="ti-history", count=completed_matches[:10]|length, search_placeholder="Filter results…", search_id="recentFilter", filters=true) %}
+      <table class="hidden md:table w-full text-sm">
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-700">
+            {{ data_table_th("Date", key="date") }}
+            {{ data_table_th("Teams", key="teams") }}
+            {{ data_table_th("Score", key="score", align="right") }}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for match in completed_matches[:10] %}
+          <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-3 py-2.5 font-mono text-gray-700 dark:text-gray-300 whitespace-nowrap">{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</td>
+            <td class="px-3 py-2.5">
+              <span class="font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</span>
+              <span class="text-gray-400 mx-1">vs</span>
+              <span class="font-medium text-gray-900 dark:text-white">{{ match.away_team.name if match.away_team else 'TBD' }}</span>
+            </td>
+            <td class="px-3 py-2.5 text-right">
+              <span class="inline-flex items-center gap-1 font-mono text-xs font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+                {{ match.home_team_score }}&ndash;{{ match.away_team_score }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {# Mobile cards #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for match in completed_matches[:10] %}
+        <div data-row class="px-4 py-3.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+              {{ match.home_team.name if match.home_team else 'TBD' }} vs {{ match.away_team.name if match.away_team else 'TBD' }}
+            </span>
+            <span class="shrink-0 inline-flex items-center font-mono text-xs font-bold px-2 py-0.5 rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+              {{ match.home_team_score }}&ndash;{{ match.away_team_score }}
+            </span>
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ match.date.strftime('%Y-%m-%d') if match.date else 'N/A' }}</p>
+        </div>
+        {% endfor %}
+      </div>
+    {% endcall %}
+    {% else %}
+    {% call section_card("Recent Results", icon="ti-history") %}
+      {{ empty_state("ti-trophy", "No results yet", "No completed matches found.") }}
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+
+{# Enter Result Modal — same hooks as Classic so the shared script wires it #}
+{% call modal_form('enterResultModal', 'Enter Match Result', form_id='enterResultForm', submit_text='Submit Result', submit_color='primary', loading_text='Submitting...') %}
+    <input type="hidden" id="result_match_id" name="match_id">
+    <div class="grid grid-cols-2 gap-4">
+        <div>
+            <label for="home_score" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Home Score</label>
+            <input type="number" min="0" name="home_score" id="home_score" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" required>
+        </div>
+        <div>
+            <label for="away_score" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Away Score</label>
+            <input type="number" min="0" name="away_score" id="away_score" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green" required>
+        </div>
+    </div>
+{% endcall %}
+{% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -162,6 +300,7 @@
         </div>
     </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

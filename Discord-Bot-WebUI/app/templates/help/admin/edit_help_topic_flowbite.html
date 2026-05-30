@@ -1,5 +1,6 @@
 {% extends "base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button %}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
 
 {% block title %}Edit Help Topic{% endblock %}
 {% block page_title %}Edit Help Topic{% endblock %}
@@ -10,6 +11,67 @@
 {% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+<div class="max-w-3xl mx-auto space-y-5 sm:space-y-6">
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center gap-1 sm:gap-2">
+            <li class="inline-flex items-center">
+                <a href="{{ url_for('help.admin_help_topics') }}" class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+                    <i class="ti ti-settings" aria-hidden="true"></i>
+                    Help Topics
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right text-gray-400 mx-1.5" aria-hidden="true"></i>
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">Edit Topic</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    {% call page_header("Edit Help Topic", subtitle="Help Center Administration") %}
+        {{ button("Cancel", variant="outline", href=url_for('help.admin_help_topics'), icon="x") }}
+    {% endcall %}
+
+    {% call section_card("Topic Content", icon="ti-edit") %}
+    <form method="POST" class="space-y-6 p-4 sm:p-5">
+        {{ form.hidden_tag() }}
+
+        <div>
+            <label for="title" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.title.label.text }}
+                <span class="text-red-500" aria-hidden="true">*</span>
+            </label>
+            {{ form.title(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", placeholder="Enter help topic title") }}
+        </div>
+
+        <div>
+            <label for="markdown_editor" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.markdown_content.label.text }}
+                <span class="text-red-500" aria-hidden="true">*</span>
+            </label>
+            {{ form.markdown_content(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", id="markdown_editor", rows="10", placeholder="Enter help content in Markdown") }}
+        </div>
+
+        <div>
+            <label for="roles" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.roles.label.text }}
+            </label>
+            {{ form.roles(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", multiple="multiple", size="5") }}
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Hold Ctrl/Cmd to select multiple roles. Leave empty or select "Public" for all users.
+            </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            {{ button(form.submit.label.text, variant="primary", type="submit", icon="device-floppy") }}
+            {{ button("Cancel", variant="outline", href=url_for('help.admin_help_topics'), icon="x") }}
+        </div>
+    </form>
+    {% endcall %}
+</div>
+{% else %}
 <div class="space-y-6">
     <!-- Breadcrumb -->
     <nav class="flex" aria-label="Breadcrumb">
@@ -79,6 +141,7 @@
     </form>
     {% endcall %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

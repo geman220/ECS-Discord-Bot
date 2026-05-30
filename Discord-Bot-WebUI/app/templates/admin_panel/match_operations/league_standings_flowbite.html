@@ -20,6 +20,116 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state, alert as kit_alert %}
+{{ page_header("League Standings", subtitle="Match Operations") }}
+
+{# Season summary KPIs #}
+{% if standings_data.current_season %}
+<div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  {{ stat_card("ti-shield-half", "Total Teams", standings_data.total_teams or 0, sublabel="active rosters", tone="primary") }}
+  {{ stat_card("ti-calendar-event", "Start Date", standings_data.current_season.start_date.strftime('%Y-%m-%d') if standings_data.current_season.start_date else 'TBD', tone="info") }}
+  {{ stat_card("ti-calendar-check", "End Date", standings_data.current_season.end_date.strftime('%Y-%m-%d') if standings_data.current_season.end_date else 'TBD', tone="neutral") }}
+  {{ stat_card("ti-circle-check", "Season", standings_data.current_season.name, sublabel="active", tone="success") }}
+</div>
+{% else %}
+<div class="mb-5 sm:mb-6">
+  {{ kit_alert('warning', 'Please create a season to view standings.', title='No active season found.', dismissible=False) }}
+</div>
+{% endif %}
+
+{# League table #}
+{% if standings_data.standings %}
+{% set table_footer %}
+  <span><strong class="text-gray-700 dark:text-gray-300">Legend:</strong> MP = Matches Played, W = Wins, D = Draws, L = Losses, GF = Goals For, GA = Goals Against, GD = Goal Difference, Pts = Points</span>
+{% endset %}
+<div class="mb-5 sm:mb-6">
+{% call data_table("League Table", icon="ti-list-numbers", count=standings_data.standings|length, search_placeholder="Filter teams…", search_id="standingsFilter", footer=table_footer) %}
+  {# md+ table #}
+  <table class="hidden md:table w-full text-sm">
+    <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+      <tr>
+        {{ data_table_th("#", key="pos", align="center") }}
+        {{ data_table_th("Team", key="team") }}
+        {{ data_table_th("MP", key="mp", align="center") }}
+        {{ data_table_th("W", key="w", align="center") }}
+        {{ data_table_th("D", key="d", align="center") }}
+        {{ data_table_th("L", key="l", align="center") }}
+        {{ data_table_th("GF", key="gf", align="center", hide="sm") }}
+        {{ data_table_th("GA", key="ga", align="center", hide="sm") }}
+        {{ data_table_th("GD", key="gd", align="center") }}
+        {{ data_table_th("Pts", key="pts", align="center") }}
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+      {% for standing in standings_data.standings %}
+      <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        <td class="px-3 py-2.5 text-center font-mono font-bold text-gray-900 dark:text-white">{{ standing.position }}</td>
+        <td class="px-3 py-2.5">
+          <div class="flex items-center gap-3">
+            <span class="flex items-center justify-center w-8 h-8 rounded-full bg-ecs-green text-white font-bold text-sm shrink-0" aria-hidden="true">{{ standing.team.name[0] if standing.team.name else 'T' }}</span>
+            <span class="font-medium text-gray-900 dark:text-white" data-cell="team">{{ standing.team.name or 'Unknown Team' }}</span>
+          </div>
+        </td>
+        <td class="px-3 py-2.5 text-center font-mono text-gray-700 dark:text-gray-300">{{ standing.matches_played }}</td>
+        <td class="px-3 py-2.5 text-center font-mono text-gray-700 dark:text-gray-300">{{ standing.wins }}</td>
+        <td class="px-3 py-2.5 text-center font-mono text-gray-700 dark:text-gray-300">{{ standing.draws }}</td>
+        <td class="px-3 py-2.5 text-center font-mono text-gray-700 dark:text-gray-300">{{ standing.losses }}</td>
+        <td class="px-3 py-2.5 text-center font-mono text-gray-700 dark:text-gray-300 hidden md:table-cell">{{ standing.goals_for }}</td>
+        <td class="px-3 py-2.5 text-center font-mono text-gray-700 dark:text-gray-300 hidden md:table-cell">{{ standing.goals_against }}</td>
+        <td class="px-3 py-2.5 text-center font-mono">
+          {% if standing.goal_difference > 0 %}
+            <span class="text-green-600 dark:text-green-400">+{{ standing.goal_difference }}</span>
+          {% elif standing.goal_difference < 0 %}
+            <span class="text-red-600 dark:text-red-400">{{ standing.goal_difference }}</span>
+          {% else %}
+            <span class="text-gray-500 dark:text-gray-400">0</span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-2.5 text-center"><span class="font-mono font-bold text-ecs-green">{{ standing.points }}</span></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {# mobile stacked cards #}
+  <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {% for standing in standings_data.standings %}
+    <div data-row class="px-4 py-3.5">
+      <div class="flex items-center gap-3">
+        <span class="font-mono font-bold text-gray-500 dark:text-gray-400 w-6 text-center shrink-0">{{ standing.position }}</span>
+        <span class="flex items-center justify-center w-8 h-8 rounded-full bg-ecs-green text-white font-bold text-sm shrink-0" aria-hidden="true">{{ standing.team.name[0] if standing.team.name else 'T' }}</span>
+        <span class="flex-1 min-w-0 truncate text-sm font-semibold text-gray-900 dark:text-white" data-cell="team">{{ standing.team.name or 'Unknown Team' }}</span>
+        <span class="font-mono font-bold text-ecs-green shrink-0">{{ standing.points }} <span class="text-xs font-normal text-gray-500 dark:text-gray-400">pts</span></span>
+      </div>
+      <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400 font-mono pl-9">
+        <span>MP {{ standing.matches_played }}</span>
+        <span>W {{ standing.wins }}</span>
+        <span>D {{ standing.draws }}</span>
+        <span>L {{ standing.losses }}</span>
+        <span>GF {{ standing.goals_for }}</span>
+        <span>GA {{ standing.goals_against }}</span>
+        <span>GD
+          {% if standing.goal_difference > 0 %}<span class="text-green-600 dark:text-green-400">+{{ standing.goal_difference }}</span>
+          {% elif standing.goal_difference < 0 %}<span class="text-red-600 dark:text-red-400">{{ standing.goal_difference }}</span>
+          {% else %}0{% endif %}
+        </span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% endcall %}
+</div>
+{% else %}
+<div class="mb-5 sm:mb-6">
+{% call data_table("League Table", icon="ti-list-numbers", filters=False) %}
+  {{ empty_state("ti-list-numbers", "No Standings Available", "Standings will appear once teams are assigned to leagues and matches are played.", action={'label': 'Manage Teams', 'url': url_for('admin_panel.league_management_teams'), 'icon': 'ti-users'}) }}
+{% endcall %}
+</div>
+{% endif %}
+
+{{ kit_alert('info', 'View current season standings. Points are calculated as: Win = 3 points, Draw = 1 point, Loss = 0 points. Note: this view reflects demo data until standings are calculated from real match results.', title='League Standings.', dismissible=False) }}
+{% else %}
 <!-- Current Season Info -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
@@ -155,4 +265,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

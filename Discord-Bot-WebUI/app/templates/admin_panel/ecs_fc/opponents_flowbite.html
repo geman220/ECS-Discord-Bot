@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, modal_form %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th %}
 
 {% block admin_title %}Opponents Library{% endblock %}
 {% block panel_description %}Manage external opponent teams{% endblock %}
@@ -20,6 +21,141 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ============================ MODERN (console) ============================ #}
+{% set active_count = opponents | selectattr('is_active') | list | length %}
+{{ page_header('Opponents Library', subtitle='ECS FC Hub') }}
+
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  {{ stat_card('ti-users-group', 'Opponents', opponents|length, sublabel='in library', tone='primary') }}
+  {{ stat_card('ti-circle-check', 'Active', active_count, sublabel='available', tone='success') }}
+  {{ stat_card('ti-circle-off', 'Inactive', opponents|length - active_count, sublabel='hidden by default', tone='neutral') }}
+</div>
+
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5 sm:mb-6">
+  <form method="get">
+    <label class="inline-flex items-center cursor-pointer min-h-[44px]">
+      <input type="checkbox" class="sr-only peer" name="show_inactive" value="true"
+             {% if show_inactive %}checked{% endif %} onchange="this.form.submit()">
+      <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+      <span class="ms-3 text-sm font-medium text-gray-900 dark:text-gray-300">Show inactive</span>
+    </label>
+  </form>
+  <button type="button"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          data-modal-target="addOpponentModal" data-modal-toggle="addOpponentModal">
+    <i class="ti ti-plus" aria-hidden="true"></i>Add Opponent
+  </button>
+</div>
+
+{% if opponents %}
+{% call data_table('External Opponents', icon='ti-users-group', count=opponents|length, search_placeholder='Filter opponents…', search_id='opponentFilter', filters=True) %}
+  <table class="hidden md:table w-full text-sm text-left text-gray-700 dark:text-gray-300">
+    <thead>
+      <tr class="border-b border-gray-200 dark:border-gray-700">
+        {{ data_table_th('Name', key='name') }}
+        {{ data_table_th('Short Name', key='short', hide='sm') }}
+        {{ data_table_th('Home Venue', key='venue', hide='sm') }}
+        {{ data_table_th('City', key='city', hide='sm') }}
+        {{ data_table_th('League', key='league', hide='sm') }}
+        {{ data_table_th('Matches', key='matches', align='center', hide='sm') }}
+        {{ data_table_th('Status', key='status', hide='sm') }}
+        {{ data_table_th('Actions', sortable=False, align='right') }}
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+      {% for opp in opponents %}
+      <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        <td class="px-3 py-3 font-semibold text-gray-900 dark:text-white" data-filter-text>{{ opp.name }}</td>
+        <td class="px-3 py-3 hidden md:table-cell">{{ opp.short_name or '—' }}</td>
+        <td class="px-3 py-3 hidden md:table-cell">{{ opp.home_venue or '—' }}</td>
+        <td class="px-3 py-3 hidden md:table-cell">{{ opp.city or '—' }}</td>
+        <td class="px-3 py-3 hidden md:table-cell">{{ opp.league_affiliation or '—' }}</td>
+        <td class="px-3 py-3 hidden md:table-cell text-center">
+          <span class="font-mono text-xs font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ opp.matches|length }}</span>
+        </td>
+        <td class="px-3 py-3 hidden md:table-cell">
+          {% if opp.is_active %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-circle-off" aria-hidden="true"></i>Inactive</span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 text-right">
+          <div class="inline-flex gap-1">
+            <button type="button" aria-label="Edit {{ opp.name }}"
+                    class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    onclick="editOpponent({{ opp.id }}, '{{ opp.name }}', '{{ opp.short_name or '' }}', '{{ opp.home_venue or '' }}', '{{ opp.city or '' }}', '{{ opp.league_affiliation or '' }}', '{{ opp.contact_info or '' }}', '{{ opp.notes or '' }}', {{ 'true' if opp.is_active else 'false' }})">
+              <i class="ti ti-edit" aria-hidden="true"></i>
+            </button>
+            {% if opp.is_active %}
+            <button type="button" aria-label="Deactivate {{ opp.name }}"
+                    class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    onclick="deactivateOpponent({{ opp.id }})">
+              <i class="ti ti-trash" aria-hidden="true"></i>
+            </button>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {% for opp in opponents %}
+    {% set status_badge %}
+      {% if opp.is_active %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>{% else %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-circle-off" aria-hidden="true"></i>Inactive</span>{% endif %}
+    {% endset %}
+    <div data-row class="px-4 py-3.5">
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-filter-text>{{ opp.name }}</span>
+        {{ status_badge }}
+      </div>
+      <div class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+        {% if opp.short_name %}<div><span class="font-medium text-gray-600 dark:text-gray-300">Short:</span> {{ opp.short_name }}</div>{% endif %}
+        {% if opp.home_venue %}<div><span class="font-medium text-gray-600 dark:text-gray-300">Venue:</span> {{ opp.home_venue }}</div>{% endif %}
+        {% if opp.city %}<div><span class="font-medium text-gray-600 dark:text-gray-300">City:</span> {{ opp.city }}</div>{% endif %}
+        {% if opp.league_affiliation %}<div><span class="font-medium text-gray-600 dark:text-gray-300">League:</span> {{ opp.league_affiliation }}</div>{% endif %}
+        <div><span class="font-medium text-gray-600 dark:text-gray-300">Matches:</span> <span class="font-mono">{{ opp.matches|length }}</span></div>
+      </div>
+      <div class="mt-2.5 flex gap-2">
+        <button type="button" aria-label="Edit {{ opp.name }}"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] flex-1 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                onclick="editOpponent({{ opp.id }}, '{{ opp.name }}', '{{ opp.short_name or '' }}', '{{ opp.home_venue or '' }}', '{{ opp.city or '' }}', '{{ opp.league_affiliation or '' }}', '{{ opp.contact_info or '' }}', '{{ opp.notes or '' }}', {{ 'true' if opp.is_active else 'false' }})">
+          <i class="ti ti-edit" aria-hidden="true"></i>Edit
+        </button>
+        {% if opp.is_active %}
+        <button type="button" aria-label="Deactivate {{ opp.name }}"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-500/10 focus:outline-none focus:ring-2 focus:ring-red-500"
+                onclick="deactivateOpponent({{ opp.id }})">
+          <i class="ti ti-trash" aria-hidden="true"></i>
+        </button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% endcall %}
+{% else %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+  <div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
+    <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+      <i class="ti ti-users-group text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+    </div>
+    <h3 class="text-base font-semibold text-gray-900 dark:text-white">No opponents in library</h3>
+    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Add an external opponent to start scheduling matches against them.</p>
+    <button type="button"
+            class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            data-modal-target="addOpponentModal" data-modal-toggle="addOpponentModal">
+      <i class="ti ti-plus" aria-hidden="true"></i>Add Opponent
+    </button>
+  </div>
+</div>
+{% endif %}
+
+{% else %}
+{# ============================ CLASSIC (untouched) ============================ #}
 <!-- Header -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="p-4 flex flex-wrap items-center justify-between gap-4">
@@ -110,6 +246,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 
 <!-- Add Opponent Modal -->
 {% call modal_form('addOpponentModal', 'Add Opponent', form_id='addOpponentForm', submit_text='Add Opponent', loading_text='Adding...') %}

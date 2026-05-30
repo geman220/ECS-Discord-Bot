@@ -14,6 +14,262 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+<div class="space-y-6">
+
+  {{ page_header('Scheduled Messages', subtitle='Availability messages for upcoming matches') }}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-calendar-event', 'Total Messages', stats.total if stats else 0, sublabel=((stats.filtered_count if stats else 0)|string ~ ' shown'), tone='info') }}
+    {{ stat_card('ti-clock', 'Pending', stats.pending if stats else 0, sublabel=((stats.queued|string ~ ' queued') if stats and stats.queued > 0 else None), tone='warning') }}
+    {{ stat_card('ti-check', 'Sent', stats.sent if stats else 0, sublabel=((stats.failed|string ~ ' failed') if stats and stats.failed > 0 else None), tone='success') }}
+    {{ stat_card('ti-soccer-field', 'Pub League', stats.pub_league if stats else 0, sublabel=((stats.ecs_fc if stats else 0)|string ~ ' ECS FC'), tone='primary') }}
+  </div>
+
+  <!-- Action card -->
+  {% call section_card('Schedule RSVP Messages', icon='ti-calendar-plus') %}
+    <div class="p-4 sm:p-5">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Create availability messages for players to respond to upcoming matches.</p>
+      <div class="flex flex-wrap gap-2">
+        <form action="{{ url_for('admin.schedule_next_week') }}" method="post" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-calendar-plus" aria-hidden="true"></i>Schedule This Sunday
+          </button>
+        </form>
+        <form action="{{ url_for('admin.process_scheduled_messages') }}" method="post" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-send" aria-hidden="true"></i>Send Pending
+          </button>
+        </form>
+        <a href="{{ url_for('admin.validate_scheduled_messages') }}" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-white dark:bg-gray-700 border border-blue-500 text-blue-700 dark:text-blue-400 text-sm font-semibold hover:bg-blue-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-checklist" aria-hidden="true"></i>Validate System
+        </a>
+        <form action="{{ url_for('admin.schedule_season') }}" method="post" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-white text-sm font-semibold hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-calendar" aria-hidden="true"></i>Schedule Future
+          </button>
+        </form>
+        <form action="{{ url_for('admin.cleanup_old_messages_route') }}" method="post" class="inline">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="days_old" value="7">
+          <button type="submit" data-action="cleanup-old-messages" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-white dark:bg-gray-700 border border-red-500 text-red-700 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-trash" aria-hidden="true"></i>Clean Up Old
+          </button>
+        </form>
+      </div>
+    </div>
+  {% endcall %}
+
+  <!-- Messages table -->
+  {% call data_table('Scheduled Messages', icon='ti-message-2', count=(stats.filtered_count if stats else None), filters=false) %}
+    <!-- filter + export controls (hooks preserved verbatim) -->
+    <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <div class="flex items-center gap-2">
+        <button id="leagueFilterBtn" data-dropdown-toggle="leagueFilterMenu" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-700 border border-ecs-green text-ecs-green text-sm font-medium hover:bg-ecs-green/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-filter" aria-hidden="true"></i>
+          <span id="filterText">All Leagues</span>
+          <i class="ti ti-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div id="leagueFilterMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow border border-gray-200 dark:border-gray-600 dark:bg-gray-700">
+          <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="filter-by-league" data-filter="all"><i class="ti ti-list mr-2" aria-hidden="true"></i>All Leagues</button></li>
+            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="filter-by-league" data-filter="pub_league"><i class="ti ti-soccer-field mr-2" aria-hidden="true"></i>Pub League</button></li>
+            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="filter-by-league" data-filter="ecs_fc"><i class="ti ti-trophy mr-2" aria-hidden="true"></i>ECS FC</button></li>
+          </ul>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="exportBtn" data-dropdown-toggle="exportMenu" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-9 sm:h-9 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Export options">
+          <i class="ti ti-dots-vertical" aria-hidden="true"></i>
+        </button>
+        <div id="exportMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow border border-gray-200 dark:border-gray-600 dark:bg-gray-700">
+          <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-copy"><i class="ti ti-copy mr-2" aria-hidden="true"></i>Copy</button></li>
+            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-excel"><i class="ti ti-file-spreadsheet mr-2" aria-hidden="true"></i>Excel</button></li>
+            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-csv"><i class="ti ti-file-text mr-2" aria-hidden="true"></i>CSV</button></li>
+            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-pdf"><i class="ti ti-file-description mr-2" aria-hidden="true"></i>PDF</button></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    {% if messages %}
+    <!-- md+ table -->
+    <table class="hidden md:table w-full text-sm" id="scheduledMessagesTable">
+      <thead class="border-b border-gray-200 dark:border-gray-700">
+        <tr>
+          {{ data_table_th('League', sortable=false) }}
+          {{ data_table_th('Match', sortable=false) }}
+          {{ data_table_th('Match Date', sortable=false) }}
+          {{ data_table_th('Scheduled Send', sortable=false) }}
+          {{ data_table_th('Status', sortable=false) }}
+          {{ data_table_th('Actions', sortable=false, align='right') }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for message in messages %}
+        {% set _is_pub = (not message.message_type or message.message_type == 'standard') %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-league="{{ 'pub_league' if _is_pub else 'ecs_fc' }}">
+          <td class="px-3 py-3">
+            {% if _is_pub %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green">
+              <i class="ti ti-soccer-field" aria-hidden="true"></i>Pub League
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+              <i class="ti ti-trophy" aria-hidden="true"></i>ECS FC
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            <div class="flex items-center gap-2">
+              <div class="flex items-center justify-center w-8 h-8 rounded-full shrink-0 {{ 'bg-ecs-green/10' if _is_pub else 'bg-green-100 dark:bg-green-900/30' }}">
+                <i class="ti {{ 'ti-soccer-field text-ecs-green' if _is_pub else 'ti-trophy text-green-600 dark:text-green-400' }}" aria-hidden="true"></i>
+              </div>
+              <div class="min-w-0">
+                {% if _is_pub %}
+                <p class="font-medium text-gray-900 dark:text-white truncate">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ message.match.location }}</p>
+                {% else %}
+                <p class="font-medium text-gray-900 dark:text-white truncate">ECS FC Match</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ message.message_type }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-3">
+            {% if _is_pub %}
+            <p class="font-medium text-gray-900 dark:text-white">{{ message.match.date.strftime('%a, %b %d, %Y') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.match.time.strftime('%I:%M %p') }}</p>
+            {% else %}
+            <p class="font-medium text-gray-900 dark:text-white">{{ message.scheduled_send_time_pst.strftime('%a, %b %d, %Y') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.scheduled_send_time_pst.strftime('%I:%M %p') }} PST</p>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            <p class="font-medium text-gray-900 dark:text-white">{{ message.scheduled_send_time_pst.strftime('%a, %b %d, %Y') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.scheduled_send_time_pst.strftime('%I:%M %p') }} PST</p>
+          </td>
+          <td class="px-3 py-3">
+            {% if message.status == 'SENT' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-check" aria-hidden="true"></i>SENT</span>
+            {% elif message.status == 'PENDING' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"><i class="ti ti-clock" aria-hidden="true"></i>PENDING</span>
+            {% elif message.status == 'QUEUED' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-hourglass" aria-hidden="true"></i>QUEUED</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-alert-triangle" aria-hidden="true"></i>{{ message.status }}</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            <div class="flex items-center justify-end gap-1">
+              <form action="{{ url_for('admin.force_send_message', message_id=message.id) }}" method="post" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-9 sm:h-9 rounded-lg text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Force Send Now" aria-label="Force Send Now">
+                  <i class="ti ti-send" aria-hidden="true"></i>
+                </button>
+              </form>
+              {% if _is_pub %}
+              <a href="{{ url_for('admin.rsvp_status', match_id=message.match.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-9 sm:h-9 rounded-lg text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View RSVPs" aria-label="View RSVPs">
+                <i class="ti ti-list-check" aria-hidden="true"></i>
+              </a>
+              {% elif message.message_metadata and message.message_metadata.get('match_id') %}
+              <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=message.message_metadata.match_id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-9 sm:h-9 rounded-lg text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View ECS FC RSVPs" aria-label="View ECS FC RSVPs">
+                <i class="ti ti-list-check" aria-hidden="true"></i>
+              </a>
+              {% endif %}
+              <form action="{{ url_for('admin.delete_message', message_id=message.id) }}" method="post" class="inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" data-action="delete-scheduled-message" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:w-9 sm:h-9 rounded-lg text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Delete Message" aria-label="Delete Message">
+                  <i class="ti ti-trash" aria-hidden="true"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- mobile cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for message in messages %}
+      {% set _is_pub = (not message.message_type or message.message_type == 'standard') %}
+      <div class="px-4 py-3.5" data-league="{{ 'pub_league' if _is_pub else 'ecs_fc' }}">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            {% if _is_pub %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green mb-1"><i class="ti ti-soccer-field" aria-hidden="true"></i>Pub League</span>
+            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ message.match.location }}</p>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300 mb-1"><i class="ti ti-trophy" aria-hidden="true"></i>ECS FC</span>
+            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">ECS FC Match</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ message.message_type }}</p>
+            {% endif %}
+          </div>
+          <div class="shrink-0">
+            {% if message.status == 'SENT' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-check" aria-hidden="true"></i>SENT</span>
+            {% elif message.status == 'PENDING' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"><i class="ti ti-clock" aria-hidden="true"></i>PENDING</span>
+            {% elif message.status == 'QUEUED' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-hourglass" aria-hidden="true"></i>QUEUED</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-alert-triangle" aria-hidden="true"></i>{{ message.status }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 font-mono">
+          <i class="ti ti-send mr-1" aria-hidden="true"></i>{{ message.scheduled_send_time_pst.strftime('%a, %b %d, %Y %I:%M %p') }} PST
+        </p>
+        <div class="flex items-center gap-1 mt-2">
+          <form action="{{ url_for('admin.force_send_message', message_id=message.id) }}" method="post" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-yellow-600 hover:bg-yellow-100 dark:hover:bg-yellow-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Force Send Now" aria-label="Force Send Now">
+              <i class="ti ti-send" aria-hidden="true"></i>
+            </button>
+          </form>
+          {% if _is_pub %}
+          <a href="{{ url_for('admin.rsvp_status', match_id=message.match.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View RSVPs" aria-label="View RSVPs">
+            <i class="ti ti-list-check" aria-hidden="true"></i>
+          </a>
+          {% elif message.message_metadata and message.message_metadata.get('match_id') %}
+          <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=message.message_metadata.match_id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View ECS FC RSVPs" aria-label="View ECS FC RSVPs">
+            <i class="ti ti-list-check" aria-hidden="true"></i>
+          </a>
+          {% endif %}
+          <form action="{{ url_for('admin.delete_message', message_id=message.id) }}" method="post" class="inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" data-action="delete-scheduled-message" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Delete Message" aria-label="Delete Message">
+              <i class="ti ti-trash" aria-hidden="true"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state('ti-calendar-off', 'No Scheduled Messages', 'No messages are currently scheduled.') }}
+    <div class="flex justify-center pb-8 -mt-4">
+      <form action="{{ url_for('admin.schedule_next_week') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-calendar-plus" aria-hidden="true"></i>Schedule This Sunday
+        </button>
+      </form>
+    </div>
+    {% endif %}
+  {% endcall %}
+
+</div>
+{% else %}
 <!-- Status Overview Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5">
@@ -264,6 +520,7 @@
     </table>
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -19,6 +19,175 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state %}
+<div data-page="email-broadcasts">
+
+{% call page_header("Email Broadcasts", subtitle="Communication") %}
+  <a href="{{ url_for('admin_panel.email_broadcast_compose') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <i class="ti ti-plus" aria-hidden="true"></i>New Broadcast
+  </a>
+{% endcall %}
+
+<div class="space-y-5 sm:space-y-6">
+  {# KPI band #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    {{ stat_card("ti-mail", "Total Campaigns", status_counts.all, tone='info') }}
+    {{ stat_card("ti-check", "Sent", status_counts.sent, tone='success') }}
+    {{ stat_card("ti-file-text", "Drafts", status_counts.draft, tone='warning') }}
+    {{ stat_card("ti-send", "Total Emails Sent", total_emails_sent, tone='primary') }}
+  </div>
+
+  {# Status filter chips #}
+  <div class="flex flex-wrap items-center gap-2">
+    <a href="{{ url_for('admin_panel.email_broadcasts_list') }}"
+       class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'bg-ecs-green text-white' if not status_filter else 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
+      All <span class="ml-1.5 font-mono text-xs">({{ status_counts.all }})</span>
+    </a>
+    {% for s in ['draft', 'sending', 'sent', 'failed'] %}
+    <a href="{{ url_for('admin_panel.email_broadcasts_list', status=s) }}"
+       class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'bg-ecs-green text-white' if status_filter == s else 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600' }}">
+      {{ s|capitalize }} <span class="ml-1.5 font-mono text-xs">({{ status_counts.get(s, 0) }})</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  {# Campaigns table #}
+  {% if campaigns %}
+  {% call data_table("Campaigns", icon="ti-mail", count=status_counts.all, search_placeholder="Filter campaigns…", search_id="broadcastFilter") %}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead class="bg-gray-50 dark:bg-gray-900/40">
+        <tr>
+          {{ data_table_th("Campaign", key="name") }}
+          {{ data_table_th("Subject", key="subject", hide='sm') }}
+          {{ data_table_th("Recipients", key="recipients", align='right', hide='sm') }}
+          {{ data_table_th("Status", key="status", hide='sm') }}
+          {{ data_table_th("Sent / Failed", key="sent", sortable=false, align='right', hide='sm') }}
+          {{ data_table_th("Created", key="created", hide='md') }}
+          {{ data_table_th("Actions", key="actions", sortable=false, align='right') }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for campaign in campaigns %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3 align-top font-medium text-gray-900 dark:text-white">{{ campaign.name }}</td>
+          <td class="px-3 py-3 align-top max-w-xs truncate text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ campaign.subject }}</td>
+          <td class="px-3 py-3 align-top text-right font-mono text-gray-900 dark:text-white hidden md:table-cell">{{ campaign.total_recipients }}</td>
+          <td class="px-3 py-3 align-top hidden md:table-cell">
+            {% if campaign.status == 'draft' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-file-text mr-1" aria-hidden="true"></i>Draft</span>
+            {% elif campaign.status == 'sending' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-loader animate-spin mr-1" aria-hidden="true"></i>Sending</span>
+            {% elif campaign.status == 'sent' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-check mr-1" aria-hidden="true"></i>Sent</span>
+            {% elif campaign.status == 'partially_sent' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"><i class="ti ti-alert-triangle mr-1" aria-hidden="true"></i>Partially Sent</span>
+            {% elif campaign.status == 'failed' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-alert-octagon mr-1" aria-hidden="true"></i>Failed</span>
+            {% elif campaign.status == 'cancelled' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"><i class="ti ti-ban mr-1" aria-hidden="true"></i>Cancelled</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 align-top text-right whitespace-nowrap hidden md:table-cell">
+            <span class="font-mono text-green-600 dark:text-green-400">{{ campaign.sent_count }}</span>
+            <span class="text-gray-400">/</span>
+            <span class="font-mono text-red-600 dark:text-red-400">{{ campaign.failed_count }}</span>
+          </td>
+          <td class="px-3 py-3 align-top whitespace-nowrap font-mono text-gray-500 dark:text-gray-400 hidden lg:table-cell">
+            {{ campaign.created_at.strftime('%b %d, %Y') if campaign.created_at else '-' }}
+          </td>
+          <td class="px-3 py-3 align-top text-right">
+            <div class="flex items-center justify-end gap-1">
+              <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) }}"
+                 class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                 aria-label="View campaign">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </a>
+              <button type="button"
+                      data-action="email-duplicate-campaign"
+                      data-campaign-id="{{ campaign.id }}"
+                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      aria-label="Duplicate campaign">
+                <i class="ti ti-copy" aria-hidden="true"></i>
+              </button>
+              {% if campaign.status in ('draft', 'cancelled', 'failed') %}
+              <button type="button"
+                      data-action="email-delete-campaign"
+                      data-campaign-id="{{ campaign.id }}"
+                      class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                      aria-label="Delete campaign">
+                <i class="ti ti-trash" aria-hidden="true"></i>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Mobile stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for campaign in campaigns %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-start justify-between gap-2">
+          <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) }}" class="min-w-0 flex-1 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+            <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ campaign.name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ campaign.subject }}</p>
+          </a>
+          <div class="shrink-0">
+            {% if campaign.status == 'draft' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Draft</span>
+            {% elif campaign.status == 'sending' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">Sending</span>
+            {% elif campaign.status == 'sent' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Sent</span>
+            {% elif campaign.status == 'partially_sent' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">Partially Sent</span>
+            {% elif campaign.status == 'failed' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">Failed</span>
+            {% elif campaign.status == 'cancelled' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">Cancelled</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="mt-2 flex items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <span class="font-mono">{{ campaign.total_recipients }} recipients · <span class="text-green-600 dark:text-green-400">{{ campaign.sent_count }}</span>/<span class="text-red-600 dark:text-red-400">{{ campaign.failed_count }}</span></span>
+          <span class="font-mono">{{ campaign.created_at.strftime('%b %d, %Y') if campaign.created_at else '-' }}</span>
+        </div>
+        <div class="mt-2 flex items-center gap-1">
+          <button type="button"
+                  data-action="email-duplicate-campaign"
+                  data-campaign-id="{{ campaign.id }}"
+                  class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-gray-600 hover:bg-gray-100 rounded-lg dark:text-gray-400 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  aria-label="Duplicate campaign">
+            <i class="ti ti-copy" aria-hidden="true"></i>
+          </button>
+          {% if campaign.status in ('draft', 'cancelled', 'failed') %}
+          <button type="button"
+                  data-action="email-delete-campaign"
+                  data-campaign-id="{{ campaign.id }}"
+                  class="inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-red-600 hover:bg-red-100 rounded-lg dark:text-red-400 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  aria-label="Delete campaign">
+            <i class="ti ti-trash" aria-hidden="true"></i>
+          </button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  {% call data_table("Campaigns", icon="ti-mail", count=0, filters=false) %}
+    {{ empty_state("ti-mail-off", "No campaigns found", "Create your first email broadcast to reach filtered member groups.", action={'label': 'New Broadcast', 'url': url_for('admin_panel.email_broadcast_compose'), 'icon': 'ti-plus'}) }}
+  {% endcall %}
+  {% endif %}
+</div>
+
+</div>
+{% else %}
 <div data-page="email-broadcasts">
 
 <!-- Stats Row -->
@@ -178,4 +347,5 @@
 </div>
 
 </div>
+{% endif %}
 {% endblock %}

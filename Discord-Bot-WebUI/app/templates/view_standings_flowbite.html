@@ -1,6 +1,103 @@
 {% extends "base_flowbite.html" %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, empty_state %}
 
 {% block title %}League Standings{% endblock %}
+
+{# ===== MODERN helpers (console shell only) ===== #}
+{% macro modern_standings_table(title, icon, standings, search_id, accent) %}
+{% call data_table(title, icon=icon, count=(standings|length if standings else None), search_placeholder='Filter teams…', search_id=search_id) %}
+  {% if standings %}
+  <table class="hidden md:table w-full text-sm">
+    <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+      <tr>
+        {{ data_table_th('#', key='rank', sortable=False, align='center') }}
+        {{ data_table_th('Team', key='team', align='left') }}
+        {{ data_table_th('P', key='played', align='center') }}
+        {{ data_table_th('W', key='wins', align='center') }}
+        {{ data_table_th('D', key='draws', align='center') }}
+        {{ data_table_th('L', key='losses', align='center') }}
+        {{ data_table_th('GF', key='gf', align='center', hide='sm') }}
+        {{ data_table_th('GA', key='ga', align='center', hide='sm') }}
+        {{ data_table_th('GD', key='gd', align='center') }}
+        {{ data_table_th('Pts', key='points', active=True, dir='desc', align='center') }}
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+      {% for standing in standings %}
+      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        <td class="px-3 py-3 text-center font-mono font-bold text-gray-900 dark:text-white">{{ loop.index }}</td>
+        <td class="px-3 py-3">
+          <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+             class="flex items-center gap-2 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold">
+            <div class="flex-shrink-0 w-8 h-8 rounded-full {{ accent }} flex items-center justify-center">
+              <span class="text-sm font-bold">{{ standing.team.name[0] }}</span>
+            </div>
+            <span class="font-medium truncate">{{ standing.team.name }}</span>
+          </a>
+        </td>
+        <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300">{{ standing.played }}</td>
+        <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300">{{ standing.wins }}</td>
+        <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300">{{ standing.draws }}</td>
+        <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300">{{ standing.losses }}</td>
+        <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300 hidden md:table-cell">{{ standing.goals_for }}</td>
+        <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300 hidden md:table-cell">{{ standing.goals_against }}</td>
+        <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300">{{ standing.goal_difference }}</td>
+        <td class="px-3 py-3 text-center font-mono font-bold text-ecs-green">{{ standing.points }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {# Mobile stacked cards #}
+  <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {% for standing in standings %}
+    <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}"
+       class="block px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+      <div class="flex items-center gap-3">
+        <span class="font-mono font-bold text-gray-500 dark:text-gray-400 w-5 text-center">{{ loop.index }}</span>
+        <div class="flex-shrink-0 w-8 h-8 rounded-full {{ accent }} flex items-center justify-center">
+          <span class="text-sm font-bold">{{ standing.team.name[0] }}</span>
+        </div>
+        <span class="flex-1 min-w-0 text-sm font-semibold text-gray-900 dark:text-white truncate">{{ standing.team.name }}</span>
+        <span class="font-mono font-bold text-ecs-green">{{ standing.points }} <span class="text-xs font-normal text-gray-400">pts</span></span>
+      </div>
+      <div class="mt-1.5 pl-8 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400 font-mono">
+        <span>P {{ standing.played }}</span>
+        <span class="text-green-600 dark:text-green-400">W {{ standing.wins }}</span>
+        <span class="text-amber-600 dark:text-amber-400">D {{ standing.draws }}</span>
+        <span class="text-red-600 dark:text-red-400">L {{ standing.losses }}</span>
+        <span>GD {{ standing.goal_difference }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  {{ empty_state(icon, 'No standings yet', 'No standings data available for this division.') }}
+  {% endif %}
+{% endcall %}
+{% endmacro %}
+
+{% macro modern_leaderboard(title, icon, rows, stat_label, color_class, empty_msg) %}
+{% call section_card(title, icon='ti-' ~ icon) %}
+  {% if rows %}
+  <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+    {% for player, total in rows %}
+    <li class="flex items-center gap-3 px-4 py-2.5">
+      <span class="w-6 text-center font-mono font-bold {% if loop.index == 1 %}{{ color_class }}{% else %}text-gray-400 dark:text-gray-500{% endif %}">
+        {% if loop.index == 1 %}<i class="ti ti-{{ icon }}" aria-hidden="true"></i>{% else %}{{ loop.index }}{% endif %}
+      </span>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ player.name }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ player.teams[0].name if player.teams else 'N/A' }}</p>
+      </div>
+      <span class="font-mono font-bold text-gray-900 dark:text-white shrink-0">{{ total }} <span class="text-xs font-normal text-gray-400">{{ stat_label|lower }}</span></span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">{{ empty_msg }}</div>
+  {% endif %}
+{% endcall %}
+{% endmacro %}
 
 {% macro leaderboard_table(title, icon, rows, stat_label, color_class, empty_msg) %}
 <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
@@ -40,6 +137,82 @@
 {% endmacro %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+<div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    {% call page_header('League Standings', subtitle='Current team rankings and statistics') %}
+      <select id="seasonSelector" class="input-ecs h-9 text-sm" aria-label="Select season">
+        <option selected>Current Season</option>
+      </select>
+    {% endcall %}
+
+    <!-- League Tabs (JS hooks preserved verbatim) -->
+    <div class="border-b border-gray-200 dark:border-gray-700">
+        <nav class="flex flex-wrap gap-2" role="tablist">
+            <button type="button" class="league-tab inline-flex items-center gap-2 px-4 py-2 border-b-2 border-ecs-green text-ecs-green dark:text-ecs-gold dark:border-ecs-gold font-medium"
+                    data-tab="premier" aria-selected="true">
+                <i class="ti ti-trophy"></i>Premier Division
+            </button>
+            <button type="button" class="league-tab inline-flex items-center gap-2 px-4 py-2 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium"
+                    data-tab="classic" aria-selected="false">
+                <i class="ti ti-ball-football"></i>Classic Division
+            </button>
+            {% if ecsfc_standings %}
+            <button type="button" class="league-tab inline-flex items-center gap-2 px-4 py-2 border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-medium"
+                    data-tab="ecsfc" aria-selected="false">
+                <i class="ti ti-shield"></i>ECS FC Division
+            </button>
+            {% endif %}
+        </nav>
+    </div>
+
+    <!-- Premier Division -->
+    <div id="premier-content" class="league-content space-y-4">
+        {{ modern_standings_table('Premier Division', 'ti-trophy', premier_standings, 'premierFilter', 'bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400') }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {{ modern_leaderboard('Golden Boot', 'shoe', premier_top_scorers, 'Goals', 'text-amber-500', 'No goals scored yet.') }}
+            {{ modern_leaderboard('Silver Boot', 'arrows-exchange', premier_top_assisters, 'Assists', 'text-gray-400', 'No assists recorded yet.') }}
+            {{ modern_leaderboard('Yellow Cards', 'rectangle-filled', premier_yellow_cards, 'Cards', 'text-yellow-400', 'No yellow cards yet.') }}
+            {{ modern_leaderboard('Red Cards', 'rectangle-filled', premier_red_cards, 'Cards', 'text-red-500', 'No red cards yet.') }}
+        </div>
+    </div>
+
+    <!-- Classic Division -->
+    <div id="classic-content" class="league-content space-y-4 hidden">
+        {{ modern_standings_table('Classic Division', 'ti-ball-football', classic_standings, 'classicFilter', 'bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400') }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {{ modern_leaderboard('Golden Boot', 'shoe', classic_top_scorers, 'Goals', 'text-amber-500', 'No goals scored yet.') }}
+            {{ modern_leaderboard('Silver Boot', 'arrows-exchange', classic_top_assisters, 'Assists', 'text-gray-400', 'No assists recorded yet.') }}
+            {{ modern_leaderboard('Yellow Cards', 'rectangle-filled', classic_yellow_cards, 'Cards', 'text-yellow-400', 'No yellow cards yet.') }}
+            {{ modern_leaderboard('Red Cards', 'rectangle-filled', classic_red_cards, 'Cards', 'text-red-500', 'No red cards yet.') }}
+        </div>
+    </div>
+
+    {% if ecsfc_standings %}
+    <!-- ECS FC Division -->
+    <div id="ecsfc-content" class="league-content space-y-4 hidden">
+        {{ modern_standings_table('ECS FC Division', 'ti-shield', ecsfc_standings, 'ecsfcFilter', 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400') }}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {{ modern_leaderboard('Golden Boot', 'shoe', ecs_fc_top_scorers, 'Goals', 'text-amber-500', 'No goals scored yet.') }}
+            {{ modern_leaderboard('Silver Boot', 'arrows-exchange', ecs_fc_top_assisters, 'Assists', 'text-gray-400', 'No assists recorded yet.') }}
+            {{ modern_leaderboard('Yellow Cards', 'rectangle-filled', ecs_fc_yellow_cards, 'Cards', 'text-yellow-400', 'No yellow cards yet.') }}
+            {{ modern_leaderboard('Red Cards', 'rectangle-filled', ecs_fc_red_cards, 'Cards', 'text-red-500', 'No red cards yet.') }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Legend -->
+    {% call section_card('Legend', icon='ti-help-circle') %}
+      <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm p-4">
+        {% for abbr, full in [('P','Played'),('W','Won'),('D','Drawn'),('L','Lost'),('GF','Goals For'),('GA','Goals Against'),('GD','Goal Difference'),('Pts','Points')] %}
+        <div class="flex items-center gap-1">
+          <span class="font-mono font-bold text-gray-900 dark:text-white">{{ abbr }}:</span>
+          <span class="text-gray-500 dark:text-gray-400">{{ full }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    {% endcall %}
+</div>
+{% else %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -335,6 +508,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

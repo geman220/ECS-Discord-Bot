@@ -41,6 +41,276 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+<div data-page="email-broadcasts-compose"{% if is_edit %} data-campaign-id="{{ campaign.id }}"{% endif %} class="space-y-6">
+
+  {{ page_header(('Edit' if is_edit else 'Compose') ~ ' Email Broadcast', subtitle='Communication / Email Broadcasts') }}
+
+  <form id="emailBroadcastForm" class="space-y-6">
+
+    <!-- Section 1: Campaign Info -->
+    {% call section_card('Campaign Details', icon='ti-mail') %}
+    <div class="p-4 sm:p-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="campaignName" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Campaign Name <span class="text-red-500">*</span></label>
+          <input type="text" id="campaignName" name="name"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                 placeholder="e.g. Spring Season Kickoff"
+                 value="{{ campaign.name if is_edit else '' }}" required>
+        </div>
+        <div>
+          <label for="campaignSubject" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Email Subject <span class="text-red-500">*</span></label>
+          <input type="text" id="campaignSubject" name="subject"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                 placeholder="e.g. Important Update from ECS FC"
+                 value="{{ campaign.subject if is_edit else '' }}" required>
+        </div>
+      </div>
+    </div>
+    {% endcall %}
+
+    <!-- Section 2: Recipient Filters -->
+    {% call section_card('Recipients', icon='ti-users') %}
+    <div class="p-4 sm:p-5">
+      <div class="flex items-center justify-end mb-4">
+        <span id="recipientCount" class="inline-flex items-center px-3 py-1 rounded-full text-sm font-mono font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+          {% if is_edit %}{{ campaign.total_recipients }} recipient{{ 's' if campaign.total_recipients != 1 else '' }}{% else %}0 recipients{% endif %}
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label for="filterType" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Filter Type</label>
+          <select id="filterType" name="filter_type" data-on-change="email-filter-change"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            {% set fc = campaign.filter_criteria if is_edit else {} %}
+            {% set ft = fc.get('type', 'all_active') if fc else 'all_active' %}
+            <option value="all_active" {{ 'selected' if ft == 'all_active' }}>All Active Users</option>
+            <option value="current_season_players" {{ 'selected' if ft == 'current_season_players' }}>Current Season Players</option>
+            <option value="ecs_members" {{ 'selected' if ft == 'ecs_members' }}>ECS Members (Active Membership)</option>
+            <option value="by_team" {{ 'selected' if ft == 'by_team' }}>By Team</option>
+            <option value="by_league" {{ 'selected' if ft == 'by_league' }}>By League</option>
+            <option value="by_role" {{ 'selected' if ft == 'by_role' }}>By System Role</option>
+            <option value="by_discord_role" {{ 'selected' if ft == 'by_discord_role' }}>By Discord Role</option>
+            <option value="specific_users" {{ 'selected' if ft == 'specific_users' }}>Specific Users</option>
+          </select>
+        </div>
+
+        <!-- Sub-filters (shown/hidden by JS) -->
+        <div id="subFilterTeam" class="hidden sm:col-span-2">
+          <label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Teams <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">(select one or more)</span></label>
+          <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/40 space-y-1">
+            {% set selected_teams = (fc.get('team_ids', []) if fc else [])|map('string')|list %}
+            {% for team in teams %}
+            <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" name="team_ids" value="{{ team.id }}" data-on-change="email-subfilter-change"
+                     {{ 'checked' if team.id|string in selected_teams }}
+                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+              {{ team.name }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div id="subFilterLeague" class="hidden sm:col-span-2">
+          <label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Leagues <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">(select one or more)</span></label>
+          <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/40 space-y-1">
+            {% set selected_leagues = (fc.get('league_ids', []) if fc else [])|map('string')|list %}
+            {% for league in leagues %}
+            <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" name="league_ids" value="{{ league.id }}" data-on-change="email-subfilter-change"
+                     {{ 'checked' if league.id|string in selected_leagues }}
+                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+              {{ league.name }}
+            </label>
+            {% endfor %}
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer mt-2 text-sm text-gray-700 dark:text-gray-300">
+            <input type="checkbox" id="leagueActiveOnly" data-on-change="email-subfilter-change"
+                   {{ 'checked' if fc and fc.get('active_only') }}
+                   class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+            Active players only <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">(current season)</span>
+          </label>
+        </div>
+
+        <div id="subFilterRole" class="hidden sm:col-span-2">
+          <label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Roles <span class="text-xs text-gray-500 dark:text-gray-400 font-normal">(select one or more)</span></label>
+          <div class="max-h-48 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700/40 space-y-1">
+            {% set selected_roles = (fc.get('role_names', []) if fc else []) %}
+            {% for role in roles %}
+            <label class="flex items-center gap-2 cursor-pointer px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-600 rounded text-sm text-gray-700 dark:text-gray-300">
+              <input type="checkbox" name="role_names" value="{{ role.name }}" data-on-change="email-subfilter-change"
+                     {{ 'checked' if role.name in selected_roles }}
+                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded border-gray-300 dark:border-gray-500">
+              {{ role.name }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div id="subFilterDiscordRole" class="hidden">
+          <label for="filterDiscordRole" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Discord Role Name</label>
+          <input type="text" id="filterDiscordRole" name="discord_role"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                 placeholder="e.g. ECS Member"
+                 value="{{ fc.get('discord_role', '') if fc else '' }}">
+        </div>
+
+        <div id="subFilterSpecificUsers" class="hidden sm:col-span-2">
+          <label class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Search Users</label>
+          <div class="relative">
+            <input type="text" id="userSearchInput"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                   placeholder="Type a name to search (min 2 characters)..." autocomplete="off">
+            <div id="userSearchResults" class="hidden absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto"></div>
+          </div>
+          <div id="selectedUsersContainer" class="flex flex-wrap gap-2 mt-3"></div>
+        </div>
+      </div>
+
+      <div class="flex gap-2">
+        <button type="button" data-action="email-preview-recipients"
+                class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-eye" aria-hidden="true"></i> Preview Recipients
+        </button>
+      </div>
+    </div>
+    {% endcall %}
+
+    <!-- Section: Email Template -->
+    {% call section_card('Email Template', icon='ti-template') %}
+    <div class="p-4 sm:p-5">
+      <div class="flex items-center justify-end mb-4">
+        <a href="{{ url_for('admin_panel.email_templates_list') }}"
+           class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green transition-colors">
+          Manage templates <i class="ti ti-external-link" aria-hidden="true"></i>
+        </a>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+        <div>
+          <label for="templateSelect" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Wrapper Template</label>
+          <select id="templateSelect" name="template_id"
+                  data-selected-template="{{ campaign.template_id if is_edit and campaign.template_id else '' }}"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">No wrapper (raw HTML)</option>
+            <!-- Populated by JS from /api/email-templates/list -->
+          </select>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Templates wrap your content in a styled HTML layout with header and footer.
+          </p>
+        </div>
+        <div>
+          <button type="button" data-action="email-preview-template"
+                  class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-eye" aria-hidden="true"></i> Preview with Template
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endcall %}
+
+    <!-- Section 3: Send Options -->
+    {% call section_card('Send Options', icon='ti-settings') %}
+    <div class="p-4 sm:p-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Send Mode</label>
+          <div class="space-y-2">
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="send_mode" value="bcc_batch"
+                     {{ 'checked' if not is_edit or campaign.send_mode == 'bcc_batch' }}
+                     data-on-change="email-send-mode-toggle"
+                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green">
+              <span class="text-sm text-gray-700 dark:text-gray-300">BCC Batch (faster, non-personalized)</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="send_mode" value="individual"
+                     {{ 'checked' if is_edit and campaign.send_mode == 'individual' }}
+                     data-on-change="email-send-mode-toggle"
+                     class="w-4 h-4 text-ecs-green focus:ring-ecs-green">
+              <span class="text-sm text-gray-700 dark:text-gray-300">Individual (personalized with tokens)</span>
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <label class="flex items-center gap-2 cursor-pointer mb-2">
+            <input type="checkbox" id="forceSend" name="force_send" value="1"
+                   {{ 'checked' if is_edit and campaign.force_send }}
+                   data-on-change="email-force-send-toggle"
+                   class="w-4 h-4 text-ecs-green focus:ring-ecs-green rounded">
+            <span class="text-sm font-medium text-gray-900 dark:text-white">Force Send</span>
+          </label>
+          <p class="text-xs text-gray-500 dark:text-gray-400">
+            Bypasses email notification preferences. Use sparingly.
+          </p>
+        </div>
+
+        <div>
+          <label for="bccBatchSize" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">BCC Batch Size</label>
+          <input type="number" id="bccBatchSize" name="bcc_batch_size"
+                 value="{{ campaign.bcc_batch_size if is_edit else 100 }}" min="1" max="100"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm font-mono text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Max 100 per batch (Gmail limit)</p>
+        </div>
+      </div>
+
+      <!-- Recipient count warning -->
+      <div id="recipientWarning" class="hidden mt-4 p-3 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10">
+        <div class="flex items-center gap-2 text-sm text-amber-800 dark:text-amber-300">
+          <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+          <span id="recipientWarningText">Warning: Large recipient count. Gmail allows ~500 sends/day.</span>
+        </div>
+      </div>
+    </div>
+    {% endcall %}
+
+    <!-- Section 4: Email Body -->
+    {% call section_card('Email Content', icon='ti-file-text') %}
+    <div class="p-4 sm:p-5">
+      <!-- Token help (shown only for individual mode) -->
+      <div id="tokenHelp" class="{{ '' if is_edit and campaign.send_mode == 'individual' else 'hidden' }} mb-4 p-3 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10">
+        <p class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-1">Available Personalization Tokens:</p>
+        <div class="flex flex-wrap gap-2 text-xs">
+          <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{name}</code>
+          <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{first_name}</code>
+          <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{team}</code>
+          <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{league}</code>
+          <code class="px-2 py-1 rounded font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">{season}</code>
+        </div>
+      </div>
+
+      <textarea id="emailBody" name="body_html">{{ campaign.body_html if is_edit else '' }}</textarea>
+    </div>
+    {% endcall %}
+
+    <!-- Section 5: Actions -->
+    <div class="flex flex-wrap items-center gap-3">
+      <button type="button" data-action="email-send-test"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-test-pipe" aria-hidden="true"></i> Send Test to Me
+      </button>
+      <button type="button" data-action="email-save-draft"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-device-floppy" aria-hidden="true"></i> {{ 'Update Draft' if is_edit else 'Save as Draft' }}
+      </button>
+      <button type="button" data-action="email-send-campaign"{% if is_edit %} data-campaign-id="{{ campaign.id }}"{% endif %}
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-send" aria-hidden="true"></i> {{ 'Save & Send Now' if is_edit else 'Create &amp; Send Now' }}
+      </button>
+      <a href="{{ url_for('admin_panel.email_broadcast_detail', campaign_id=campaign.id) if is_edit else url_for('admin_panel.email_broadcasts_list') }}"
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        Cancel
+      </a>
+    </div>
+
+  </form>
+
+</div>
+{% else %}
 <div data-page="email-broadcasts-compose"{% if is_edit %} data-campaign-id="{{ campaign.id }}"{% endif %}>
 
 <form id="emailBroadcastForm" class="space-y-6">
@@ -314,6 +584,7 @@
 </form>
 
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

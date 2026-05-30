@@ -20,6 +20,203 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+{{ page_header("Send Push Notification", subtitle="Communication") }}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Form -->
+    <div class="lg:col-span-2">
+        {% call section_card("Compose Push Notification", icon="ti-send") %}
+            <form id="pushNotificationForm" method="POST" action="{{ url_for('admin_panel.send_push_notification_form') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="p-4 sm:p-5 space-y-6">
+
+                    <!-- Title -->
+                    <div>
+                        <label for="title" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Notification Title <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="title" name="title" required maxlength="65" placeholder="Enter notification title..." class="input-ecs block w-full p-2.5 text-sm">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            <span id="titleCount" class="font-mono">0</span>/65 characters
+                        </p>
+                    </div>
+
+                    <!-- Message Body -->
+                    <div>
+                        <label for="body" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Message Body <span class="text-red-500">*</span>
+                        </label>
+                        <textarea id="body" name="body" rows="4" required maxlength="240" placeholder="Enter your message..." class="input-ecs block w-full p-2.5 text-sm"></textarea>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            <span id="bodyCount" class="font-mono">0</span>/240 characters
+                        </p>
+                    </div>
+
+                    <!-- Recipients -->
+                    <div>
+                        <label class="block mb-3 text-sm font-medium text-gray-900 dark:text-white">Recipients</label>
+                        <div class="space-y-3">
+                            <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <input type="radio" name="target_type" value="all" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" checked>
+                                <div class="ml-3">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">All Users</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Send to all registered mobile app users</p>
+                                </div>
+                                <span class="ml-auto inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ total_subscribers or 0 }}</span>
+                            </label>
+
+                            <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <input type="radio" name="target_type" value="users" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <div class="ml-3">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">Specific Users</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Search and select individual users</p>
+                                </div>
+                            </label>
+
+                            <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <input type="radio" name="target_type" value="team" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <div class="ml-3">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">Specific Team</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Send to players on a specific team</p>
+                                </div>
+                            </label>
+
+                            <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <input type="radio" name="target_type" value="league" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <div class="ml-3">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">Specific League</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Send to all players in a league</p>
+                                </div>
+                            </label>
+
+                            <label class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                                <input type="radio" name="target_type" value="role" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+                                <div class="ml-3">
+                                    <span class="text-sm font-medium text-gray-900 dark:text-white">By Role</span>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400">Send to captains, coaches, or admins</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- User Search (conditional) -->
+                    <div id="user-search-container" class="hidden">
+                        <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Users</label>
+                        <div class="relative">
+                            <input type="text" id="user-search-input" placeholder="Type a username or email..." autocomplete="off"
+                                   class="input-ecs block w-full p-2.5 text-sm">
+                            <div id="user-search-results" class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg hidden max-h-60 overflow-y-auto"></div>
+                        </div>
+                        <div id="selected-users" class="flex flex-wrap gap-2 mt-3"></div>
+                        <input type="hidden" name="user_ids" id="user-ids-hidden" value="">
+                    </div>
+
+                    <!-- Team Selection (conditional) -->
+                    <div id="team-select-container" class="hidden">
+                        <label for="team_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Team</label>
+                        <select id="team_id" name="team_id" class="input-ecs block w-full p-2.5 text-sm">
+                            <option value="">Choose a team...</option>
+                            {% for team in teams %}
+                            <option value="{{ team.id }}">{{ team.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- League Selection (conditional) -->
+                    <div id="league-select-container" class="hidden">
+                        <label for="league_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select League</label>
+                        <select id="league_id" name="league_id" class="input-ecs block w-full p-2.5 text-sm">
+                            <option value="">Choose a league...</option>
+                            {% for league in leagues %}
+                            <option value="{{ league.id }}">{{ league.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Role Selection (conditional) -->
+                    <div id="role-select-container" class="hidden">
+                        <label for="role" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Select Role</label>
+                        <select id="role" name="role" class="input-ecs block w-full p-2.5 text-sm">
+                            <option value="">Choose a role...</option>
+                            <option value="captain">Team Captains</option>
+                            <option value="coach">Coaches</option>
+                            <option value="admin">Administrators</option>
+                        </select>
+                    </div>
+
+                    <!-- Action URL (Optional) -->
+                    <div>
+                        <label for="action_url" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                            Action URL (Optional)
+                        </label>
+                        <input type="url" id="action_url" name="action_url" placeholder="https://..." class="input-ecs block w-full p-2.5 text-sm">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Deep link or web URL to open when user taps notification</p>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center sm:justify-end gap-3 p-4 sm:p-5 border-t border-gray-200 dark:border-gray-700">
+                    <a href="{{ url_for('admin_panel.push_notifications_dashboard') }}" class="inline-flex items-center justify-center min-h-[44px] px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        Cancel
+                    </a>
+                    <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 py-2 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-send" aria-hidden="true"></i>Send Notification
+                    </button>
+                </div>
+            </form>
+        {% endcall %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- Preview Card -->
+        {% call section_card("Live Preview", icon="ti-device-mobile") %}
+            <div class="p-4 sm:p-5">
+                <div class="bg-gray-900 rounded-2xl p-2 mx-auto max-w-[280px]">
+                    <div class="bg-gray-800 rounded-xl overflow-hidden">
+                        <div class="flex items-center justify-between px-4 py-1 bg-gray-900 text-white text-xs">
+                            <span class="font-mono">9:41</span>
+                            <div class="flex items-center gap-1">
+                                <i class="ti ti-wifi text-xs" aria-hidden="true"></i>
+                                <i class="ti ti-battery text-xs" aria-hidden="true"></i>
+                            </div>
+                        </div>
+                        <div class="p-3 bg-gray-700/50 m-2 rounded-xl">
+                            <div class="flex items-start gap-2">
+                                <div class="flex-shrink-0 w-8 h-8 bg-ecs-green rounded-lg flex items-center justify-center">
+                                    <i class="ti ti-ball-football text-white text-sm" aria-hidden="true"></i>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <p id="preview-title" class="text-white text-sm font-semibold truncate">Notification Title</p>
+                                    <p id="preview-body" class="text-gray-400 text-xs line-clamp-2">Message body will appear here...</p>
+                                    <p class="text-gray-500 text-xs mt-1">now</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endcall %}
+
+        <!-- Templates -->
+        {% call section_card("Quick Templates", icon="ti-template") %}
+            <div class="p-4 sm:p-5 space-y-2">
+                <button type="button" class="w-full min-h-[44px] px-3 py-2 text-sm text-left text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-template="match-reminder">
+                    <i class="ti ti-calendar-event mr-2 text-blue-500" aria-hidden="true"></i>Match Reminder
+                </button>
+                <button type="button" class="w-full min-h-[44px] px-3 py-2 text-sm text-left text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-template="rsvp-reminder">
+                    <i class="ti ti-clipboard-check mr-2 text-green-500" aria-hidden="true"></i>RSVP Reminder
+                </button>
+                <button type="button" class="w-full min-h-[44px] px-3 py-2 text-sm text-left text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-template="field-change">
+                    <i class="ti ti-map-pin mr-2 text-red-500" aria-hidden="true"></i>Field/Time Change
+                </button>
+            </div>
+        {% endcall %}
+    </div>
+</div>
+{% else %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Main Form -->
     <div class="lg:col-span-2">
@@ -227,6 +424,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

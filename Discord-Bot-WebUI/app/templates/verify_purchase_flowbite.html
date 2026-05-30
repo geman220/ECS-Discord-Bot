@@ -3,6 +3,51 @@
 {% block title %}Discord Account Not Linked{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, alert %}
+<div class="max-w-2xl mx-auto">
+  {{ page_header("Discord Account Not Linked", subtitle="Account access") }}
+
+  {% call section_card("What happened", icon="ti-link-off") %}
+  <div class="p-4 sm:p-5 space-y-4">
+    {{ alert('warning', 'is not linked to any account in our system.'|safe,
+             title='Your Discord account ' ~ discord_username ~ ' with email ' ~ discord_email,
+             dismissible=False) }}
+
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      Please contact your coach on Discord (or any other method) and ask them to update your account with your correct Discord email.
+    </p>
+
+    <p class="text-sm text-gray-600 dark:text-gray-300">
+      If you haven't joined our Discord server yet, please use the button below to join.
+    </p>
+
+    <div>
+      <a href="https://discord.com/invite/weareecs" target="_blank" rel="noopener noreferrer"
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg
+                bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors
+                focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-brand-discord" aria-hidden="true"></i>
+        Join Our Discord
+      </a>
+    </div>
+
+    <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
+      <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+        Once your coach has updated your email, use the button below to try logging in again.
+      </p>
+      <a href="{{ url_for('auth.discord_login') }}"
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-5 rounded-lg
+                bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-brand-discord" aria-hidden="true"></i>
+        My coach updated my email
+      </a>
+    </div>
+  </div>
+  {% endcall %}
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto">
         <!-- Notice Card -->
@@ -55,4 +100,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

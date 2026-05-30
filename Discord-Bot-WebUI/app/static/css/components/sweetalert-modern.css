@@ -318,21 +318,24 @@
   min-width: 100px !important;
 }
 
-/* Confirm button - Primary */
+/* Confirm button - Primary (ECS green, token-driven so it follows theme presets) */
 .swal2-confirm {
-  background: linear-gradient(135deg, var(--color-info, var(--color-info)) 0%, var(--color-info-600, var(--color-info-600)) 100%) !important;
-  color: white !important;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark, var(--color-primary)) 100%) !important;
+  color: #fff !important;
   box-shadow:
-    0 1px 3px rgba(14, 165, 233, 0.3),
-    0 4px 8px rgba(14, 165, 233, 0.2) !important;
+    0 1px 3px rgb(var(--color-primary-rgb, 26 71 42) / 0.3),
+    0 4px 8px rgb(var(--color-primary-rgb, 26 71 42) / 0.2) !important;
 }
 
+/* Dark mode: primary is a bright green — use dark text for AA contrast */
+[data-style="dark"] .swal2-confirm { color: #06140c !important; }
+
 .swal2-confirm:hover {
-  background: linear-gradient(135deg, var(--color-info-600, var(--color-info-600)) 0%, var(--color-info-700, #0369A1) 100%) !important;
+  background: linear-gradient(135deg, var(--color-primary-dark, var(--color-primary)) 0%, var(--color-primary) 100%) !important;
   transform: translateY(-2px) !important;
   box-shadow:
-    0 4px 8px rgba(14, 165, 233, 0.4),
-    0 8px 16px rgba(14, 165, 233, 0.3) !important;
+    0 4px 8px rgb(var(--color-primary-rgb, 26 71 42) / 0.4),
+    0 8px 16px rgb(var(--color-primary-rgb, 26 71 42) / 0.3) !important;
 }
 
 .swal2-confirm:active {
@@ -341,8 +344,8 @@
 
 .swal2-confirm:focus {
   box-shadow:
-    0 0 0 4px rgba(14, 165, 233, 0.2),
-    0 4px 8px rgba(14, 165, 233, 0.3) !important;
+    0 0 0 4px rgb(var(--color-primary-rgb, 26 71 42) / 0.25),
+    0 4px 8px rgb(var(--color-primary-rgb, 26 71 42) / 0.3) !important;
 }
 
 /* Cancel button - Secondary */

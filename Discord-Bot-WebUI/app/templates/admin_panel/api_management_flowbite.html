@@ -14,6 +14,273 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert %}
+{% from 'macros/flowbite.html' import input, select %}
+{% set _int_sev = {'healthy': 'success', 'warning': 'warning'} %}
+<div class="space-y-6">
+
+  {{ page_header('API Management', subtitle='Integrations, security and configuration') }}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-api', 'Active Integrations', stats.active_integrations or 0, tone='success') }}
+    {{ stat_card('ti-chart-line', 'API Calls Today', stats.api_calls_today or 0, tone='info') }}
+    {{ stat_card('ti-alert-triangle', 'Failed Requests', stats.failed_requests or 0, tone='warning') }}
+    {{ stat_card('ti-clock', 'Avg Response Time', stats.response_time_avg or '0ms', tone='primary') }}
+  </div>
+
+  <!-- External Integrations -->
+  {% call section_card('External Integrations', icon='ti-plug') %}
+    <div class="p-4 sm:p-5">
+      {% if integrations %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for integration in integrations %}
+        {% set _slug = integration.name.lower().replace(' ', '-') %}
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4">
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <h4 class="font-semibold text-gray-900 dark:text-white truncate">{{ integration.name }}</h4>
+            {% set _v = _int_sev.get(integration.status, 'danger') %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium
+              {% if _v == 'success' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+              {% elif _v == 'warning' %}bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300
+              {% else %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300{% endif %}">
+              <i class="ti ti-{{ 'circle-check' if integration.status == 'healthy' else 'alert-triangle' if integration.status == 'warning' else 'circle-x' }}" aria-hidden="true"></i>
+              {{ integration.status.title() }}
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-3 mb-4 text-center">
+            <div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Last Check</div>
+              <div class="font-mono text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{{ integration.last_check.strftime('%H:%M') if integration.last_check else 'Never' }}</div>
+            </div>
+            <div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Status</div>
+              <div class="text-sm font-semibold text-gray-900 dark:text-white mt-0.5">{{ integration.status.title() }}</div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button type="button" data-action="test-integration" data-integration="{{ _slug }}"
+                    class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                           bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50
+                           text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <i class="ti ti-refresh" aria-hidden="true"></i>Test
+            </button>
+            <button type="button" data-action="configure-integration" data-integration="{{ _slug }}"
+                    class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                           bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500
+                           text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-settings" aria-hidden="true"></i>Config
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      {% from 'macros/_modern_kit.html' import empty_state %}
+      {{ empty_state('ti-plug-off', 'No integrations', 'No external integrations are currently configured.') }}
+      {% endif %}
+    </div>
+  {% endcall %}
+
+  <!-- API Management Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- API Keys & Security -->
+    {% call section_card('API Keys & Security', icon='ti-key') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage API keys, tokens, and security settings</p>
+        <div class="space-y-2">
+          <button type="button" data-action="manage-api-keys"
+                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-key text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-gray-900 dark:text-white font-medium">API Keys</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </button>
+          <button type="button" data-action="rate-limiting"
+                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-shield text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-gray-900 dark:text-white font-medium">Rate Limiting</span>
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ stats.rate_limit_status.title() }}</span>
+          </button>
+          <button type="button" data-action="access-logs"
+                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-file-text text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-gray-900 dark:text-white font-medium">Access Logs</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </button>
+          <button type="button" data-action="security-settings"
+                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-lock text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-gray-900 dark:text-white font-medium">Security Settings</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    {% endcall %}
+
+    <!-- API Analytics -->
+    {% call section_card('API Analytics', icon='ti-chart-dots') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Monitor API usage, performance, and analytics</p>
+        <div class="space-y-2">
+          <button type="button" data-action="usage-stats"
+                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-chart-bar text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-gray-900 dark:text-white font-medium">Usage Statistics</span>
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ stats.api_calls_today or 0 }}</span>
+          </button>
+          <button type="button" data-action="performance-metrics"
+                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-activity text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-gray-900 dark:text-white font-medium">Performance Metrics</span>
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ stats.response_time_avg }}</span>
+          </button>
+          <button type="button" data-action="error-reports"
+                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-alert-circle text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-gray-900 dark:text-white font-medium">Error Reports</span>
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ stats.failed_requests or 0 }}</span>
+          </button>
+          <button type="button" data-action="generate-api-report"
+                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-file-report text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-gray-900 dark:text-white font-medium">Generate Report</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+    {% endcall %}
+  </div>
+
+  <!-- Global API Configuration -->
+  {% call section_card('Global API Configuration', icon='ti-settings') %}
+    <div class="p-4 sm:p-5">
+      <form id="apiConfigForm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">
+          {{ select('apiVersion', label='API Version',
+              options=[('v1', 'Version 1.0'), ('v1.1', 'Version 1.1'), ('v2', 'Version 2.0 (Beta)')],
+              selected='v1.1') }}
+          {{ input('rateLimit', label='Default Rate Limit (per minute)', type='number', value='1000') }}
+          {{ input('apiTimeout', label='Timeout (seconds)', type='number', value='30') }}
+          {{ input('maxPayload', label='Max Payload Size (MB)', type='number', value='10') }}
+        </div>
+
+        <div class="space-y-3 mb-6">
+          <label class="flex items-center gap-2 min-h-[44px] sm:min-h-0 cursor-pointer">
+            <input type="checkbox" id="enableCors" checked
+                   class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+            <span class="text-sm text-gray-900 dark:text-gray-300">Enable CORS</span>
+          </label>
+          <label class="flex items-center gap-2 min-h-[44px] sm:min-h-0 cursor-pointer">
+            <input type="checkbox" id="enableLogging" checked
+                   class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+            <span class="text-sm text-gray-900 dark:text-gray-300">Enable Request Logging</span>
+          </label>
+          <label class="flex items-center gap-2 min-h-[44px] sm:min-h-0 cursor-pointer">
+            <input type="checkbox" id="enableCompression" checked
+                   class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+            <span class="text-sm text-gray-900 dark:text-gray-300">Enable Response Compression</span>
+          </label>
+        </div>
+
+        <div class="flex flex-wrap gap-3">
+          <button type="button" data-action="save-api-config"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
+                         bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Configuration
+          </button>
+          <button type="button" data-action="reset-api-config"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600
+                         bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-refresh" aria-hidden="true"></i>Reset Defaults
+          </button>
+          <button type="button" data-action="test-api-config"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
+                         bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <i class="ti ti-test-pipe" aria-hidden="true"></i>Test Configuration
+          </button>
+        </div>
+      </form>
+    </div>
+  {% endcall %}
+
+  <!-- Documentation & Tools -->
+  {% call section_card('API Documentation & Tools', icon='ti-book') %}
+    <div class="p-4 sm:p-5">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4 text-center">
+          <i class="ti ti-book text-3xl text-blue-500 dark:text-blue-400" aria-hidden="true"></i>
+          <h4 class="font-semibold text-gray-900 dark:text-white mt-2 mb-3">API Docs</h4>
+          <button type="button" data-action="view-api-docs"
+                  class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg w-full
+                         bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-blue-500">View Docs</button>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4 text-center">
+          <i class="ti ti-test-pipe text-3xl text-green-500 dark:text-green-400" aria-hidden="true"></i>
+          <h4 class="font-semibold text-gray-900 dark:text-white mt-2 mb-3">API Tester</h4>
+          <button type="button" data-action="open-api-tester"
+                  class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg w-full
+                         bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-green-500">Test APIs</button>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4 text-center">
+          <i class="ti ti-code text-3xl text-blue-500 dark:text-blue-400" aria-hidden="true"></i>
+          <h4 class="font-semibold text-gray-900 dark:text-white mt-2 mb-3">Code Samples</h4>
+          <button type="button" data-action="view-code-samples"
+                  class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg w-full
+                         bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50 text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-blue-500">View Samples</button>
+        </div>
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4 text-center">
+          <i class="ti ti-download text-3xl text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+          <h4 class="font-semibold text-gray-900 dark:text-white mt-2 mb-3">SDK Downloads</h4>
+          <button type="button" data-action="download-sdk"
+                  class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg w-full
+                         bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-amber-500">Download</button>
+        </div>
+      </div>
+    </div>
+  {% endcall %}
+
+  <!-- Status Alert -->
+  {% if stats.rate_limit_status == 'healthy' %}
+    {{ alert('success', 'All API integrations are operational and within rate limits.', title='API Status:', dismissible=False) }}
+  {% else %}
+    {{ alert('warning', 'Some API endpoints are experiencing high traffic. Monitor usage closely.', title='API Status:', dismissible=False) }}
+  {% endif %}
+
+</div>
+{% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
@@ -302,6 +569,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

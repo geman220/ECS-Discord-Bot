@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
-{% from 'macros/flowbite.html' import modal %}
+{% from 'macros/flowbite.html' import modal, badge %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert, empty_state %}
 
 {% block admin_title %}Order #{{ order.woo_order_id }}{% endblock %}
 {% block panel_description %}{{ order.customer_name }} - {{ order.customer_email }}{% endblock %}
@@ -20,6 +21,361 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== MODERN (console) ===================== #}
+{% set status_map = {
+  'fully_linked':     {'kind': 'success', 'title': 'Fully Linked',     'msg': 'All ' ~ order.total_passes ~ ' passes have been assigned.'},
+  'not_started':      {'kind': 'info',    'title': 'Not Started',      'msg': "The customer hasn't clicked the linking wizard yet."},
+  'pending':          {'kind': 'warning', 'title': 'Pending',          'msg': 'Customer has accessed the wizard but no passes assigned yet.'},
+  'partially_linked': {'kind': 'warning', 'title': 'Partially Linked', 'msg': order.linked_passes ~ ' of ' ~ order.total_passes ~ ' passes assigned.'},
+  'cancelled':        {'kind': 'danger',  'title': 'Cancelled',        'msg': 'This order has been cancelled.'}
+} %}
+{{ page_header('Order #' ~ order.woo_order_id, subtitle=(order.customer_name or order.customer_email or 'Pub League Order')) }}
+
+<div class="flex flex-wrap items-center gap-2 mb-6">
+  <button type="button" id="refreshOrderBtn"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-refresh text-base" aria-hidden="true"></i> Refresh from WooCommerce
+  </button>
+  <button type="button" id="deleteOrderBtn"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+    <i class="ti ti-trash text-base" aria-hidden="true"></i> Delete Order
+  </button>
+  <a href="{{ url_for('pub_league_orders_admin.orders_list') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-arrow-left text-base" aria-hidden="true"></i> Back to Orders
+  </a>
+</div>
+
+{% if order.status in status_map %}
+{% set st = status_map[order.status] %}
+<div class="mb-6">{{ alert(st.kind, st.msg, title=st.title, dismissible=False) }}</div>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="lg:col-span-2 space-y-6">
+    {# Order Information #}
+    {% call section_card('Order Information', icon='ti-info-circle') %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 p-4 sm:p-5">
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between gap-3">
+          <dt class="text-gray-500 dark:text-gray-400">WooCommerce Order</dt>
+          <dd class="font-mono font-medium text-gray-900 dark:text-white">#{{ order.woo_order_id }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt class="text-gray-500 dark:text-gray-400">Customer Name</dt>
+          <dd class="font-medium text-gray-900 dark:text-white text-right">{{ order.customer_name or '-' }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt class="text-gray-500 dark:text-gray-400">Customer Email</dt>
+          <dd class="text-gray-900 dark:text-white text-right break-all">{{ order.customer_email or '-' }}</dd>
+        </div>
+        <div class="flex justify-between gap-3 items-center">
+          <dt class="text-gray-500 dark:text-gray-400">Season</dt>
+          <dd>
+            {% if order.season_name %}{{ badge(order.season_name, variant='warning') }}
+            {% else %}<span class="text-gray-400 dark:text-gray-500">-</span>{% endif %}
+          </dd>
+        </div>
+      </dl>
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between gap-3">
+          <dt class="text-gray-500 dark:text-gray-400">Passes</dt>
+          <dd class="font-mono font-medium {{ 'text-green-600 dark:text-green-400' if order.linked_passes == order.total_passes else 'text-gray-900 dark:text-white' }}">{{ order.linked_passes }}/{{ order.total_passes }} linked</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt class="text-gray-500 dark:text-gray-400">Created</dt>
+          <dd class="text-gray-900 dark:text-white font-mono text-right">{{ order.created_at.strftime('%b %d, %Y %H:%M') if order.created_at else '-' }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt class="text-gray-500 dark:text-gray-400">Updated</dt>
+          <dd class="text-gray-900 dark:text-white font-mono text-right">{{ order.updated_at.strftime('%b %d, %Y %H:%M') if order.updated_at else '-' }}</dd>
+        </div>
+        <div class="flex justify-between gap-3">
+          <dt class="text-gray-500 dark:text-gray-400">Expires</dt>
+          <dd class="text-gray-900 dark:text-white font-mono text-right">{{ order.expires_at.strftime('%b %d, %Y') if order.expires_at else '-' }}</dd>
+        </div>
+      </dl>
+    </div>
+    {% endcall %}
+
+    {# Line Items #}
+    {% call section_card('Line Items (Passes) · ' ~ order.total_passes ~ ' total', icon='ti-ticket') %}
+    {# md+ table #}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+        <tr>
+          <th class="px-4 py-2.5 font-semibold">Product</th>
+          <th class="px-4 py-2.5 font-semibold">Division</th>
+          <th class="px-4 py-2.5 font-semibold">Size</th>
+          <th class="px-4 py-2.5 font-semibold">Status</th>
+          <th class="px-4 py-2.5 font-semibold">Assigned To</th>
+          <th class="px-4 py-2.5 font-semibold text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for item in line_items %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-4 py-3"><span class="font-medium text-gray-900 dark:text-white text-xs">{{ item.product_name[:50] }}{% if item.product_name|length > 50 %}...{% endif %}</span></td>
+          <td class="px-4 py-3">
+            {% if item.division %}{{ badge(item.division, variant=('warning' if item.division == 'Classic' else 'primary')) }}
+            {% else %}<span class="text-gray-400 dark:text-gray-500">-</span>{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if item.jersey_size %}<span class="font-medium text-gray-900 dark:text-white">{{ item.jersey_size }}</span>
+            {% else %}<span class="text-gray-400 dark:text-gray-500">-</span>{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if item.status == 'unassigned' %}{{ badge('Unassigned', variant='default') }}
+            {% elif item.status == 'assigned' %}{{ badge('Assigned', variant='info') }}
+            {% elif item.status == 'claimed' %}{{ badge('Claimed', variant='info') }}
+            {% elif item.status == 'pass_created' %}{{ badge('Pass Created', variant='success') }}
+            {% else %}{{ badge(item.status, variant='default') }}{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if item.assigned_player %}
+            <span class="font-medium text-gray-900 dark:text-white">{{ item.assigned_player.name }}</span>
+            {% if item.assigned_at %}<br><span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ item.assigned_at.strftime('%b %d, %Y') }}</span>{% endif %}
+            {% else %}<span class="text-gray-400 dark:text-gray-500">-</span>{% endif %}
+          </td>
+          <td class="px-4 py-3 text-right">
+            <div class="flex justify-end gap-2">
+              <button type="button" class="text-xs font-medium text-gray-600 dark:text-gray-400 hover:underline edit-line-item-btn" data-line-item-id="{{ item.id }}" data-division="{{ item.division or '' }}" data-jersey-size="{{ item.jersey_size or '' }}" title="Edit">Edit</button>
+              {% if item.status == 'unassigned' %}
+              <button type="button" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline manual-link-btn" data-line-item-id="{{ item.id }}">Assign</button>
+              {% else %}
+              <button type="button" class="text-xs font-medium text-orange-600 dark:text-orange-400 hover:underline unassign-btn" data-line-item-id="{{ item.id }}" data-player-name="{{ item.assigned_player.name if item.assigned_player else '' }}">Unassign</button>
+              {% if item.wallet_pass_id %}<a href="{{ url_for('wallet_admin.pass_detail', pass_id=item.wallet_pass_id) }}" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">View Pass</a>{% endif %}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {# mobile cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for item in line_items %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-start justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ item.product_name[:50] }}{% if item.product_name|length > 50 %}...{% endif %}</span>
+          {% if item.status == 'unassigned' %}{{ badge('Unassigned', variant='default') }}
+          {% elif item.status == 'assigned' %}{{ badge('Assigned', variant='info') }}
+          {% elif item.status == 'claimed' %}{{ badge('Claimed', variant='info') }}
+          {% elif item.status == 'pass_created' %}{{ badge('Pass Created', variant='success') }}
+          {% else %}{{ badge(item.status, variant='default') }}{% endif %}
+        </div>
+        <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+          {% if item.division %}<span>Division: {{ item.division }}</span>{% endif %}
+          {% if item.jersey_size %}<span>Size: {{ item.jersey_size }}</span>{% endif %}
+          {% if item.assigned_player %}<span class="text-gray-900 dark:text-white font-medium">{{ item.assigned_player.name }}</span>{% endif %}
+        </div>
+        <div class="mt-2 flex flex-wrap gap-3">
+          <button type="button" class="text-xs font-medium text-gray-600 dark:text-gray-400 hover:underline edit-line-item-btn" data-line-item-id="{{ item.id }}" data-division="{{ item.division or '' }}" data-jersey-size="{{ item.jersey_size or '' }}" title="Edit">Edit</button>
+          {% if item.status == 'unassigned' %}
+          <button type="button" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline manual-link-btn" data-line-item-id="{{ item.id }}">Assign</button>
+          {% else %}
+          <button type="button" class="text-xs font-medium text-orange-600 dark:text-orange-400 hover:underline unassign-btn" data-line-item-id="{{ item.id }}" data-player-name="{{ item.assigned_player.name if item.assigned_player else '' }}">Unassign</button>
+          {% if item.wallet_pass_id %}<a href="{{ url_for('wallet_admin.pass_detail', pass_id=item.wallet_pass_id) }}" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline">View Pass</a>{% endif %}
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      {{ empty_state('ti-ticket-off', 'No line items', 'No line items found for this order.') }}
+      {% endfor %}
+    </div>
+    {% endcall %}
+
+    {# Claims #}
+    {% if claims %}
+    {% call section_card('Claim Links · ' ~ (claims|length) ~ ' claim(s)', icon='ti-link') %}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+        <tr>
+          <th class="px-4 py-2.5 font-semibold">Recipient</th>
+          <th class="px-4 py-2.5 font-semibold">Status</th>
+          <th class="px-4 py-2.5 font-semibold">Created</th>
+          <th class="px-4 py-2.5 font-semibold">Expires</th>
+          <th class="px-4 py-2.5 font-semibold text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for claim in claims %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-4 py-3">
+            <span class="font-medium text-gray-900 dark:text-white">{{ claim.recipient_name or 'Unknown' }}</span>
+            {% if claim.recipient_email %}<br><span class="text-xs text-gray-500 dark:text-gray-400">{{ claim.recipient_email }}</span>{% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if claim.status == 'pending' %}{{ badge('Pending', variant='warning') }}
+            {% elif claim.status == 'claimed' %}{{ badge('Claimed', variant='success') }}
+            {% elif claim.status == 'expired' %}{{ badge('Expired', variant='default') }}
+            {% elif claim.status == 'cancelled' %}{{ badge('Cancelled', variant='danger') }}
+            {% else %}{{ badge(claim.status, variant='default') }}{% endif %}
+          </td>
+          <td class="px-4 py-3"><span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ claim.created_at.strftime('%b %d, %Y') if claim.created_at else '-' }}</span></td>
+          <td class="px-4 py-3"><span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ claim.expires_at.strftime('%b %d, %Y') if claim.expires_at else '-' }}</span></td>
+          <td class="px-4 py-3 text-right">
+            <div class="flex justify-end gap-2">
+              {% if claim.status == 'pending' %}
+              <button type="button" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline copy-claim-btn" data-claim-token="{{ claim.claim_token }}" title="Copy claim link">Copy Link</button>
+              {% if claim.recipient_email %}<button type="button" class="text-xs font-medium text-green-600 dark:text-green-400 hover:underline resend-claim-btn" data-claim-id="{{ claim.id }}" title="Resend email">Resend</button>{% endif %}
+              <button type="button" class="text-xs font-medium text-red-600 dark:text-red-400 hover:underline cancel-claim-btn" data-claim-id="{{ claim.id }}" title="Cancel claim">Cancel</button>
+              {% elif claim.status == 'claimed' and claim.claimed_by_player %}
+              <span class="text-xs text-gray-500 dark:text-gray-400">Claimed by {{ claim.claimed_by_player.name }}</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for claim in claims %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ claim.recipient_name or 'Unknown' }}</span>
+            {% if claim.recipient_email %}<br><span class="text-xs text-gray-500 dark:text-gray-400 break-all">{{ claim.recipient_email }}</span>{% endif %}
+          </div>
+          {% if claim.status == 'pending' %}{{ badge('Pending', variant='warning') }}
+          {% elif claim.status == 'claimed' %}{{ badge('Claimed', variant='success') }}
+          {% elif claim.status == 'expired' %}{{ badge('Expired', variant='default') }}
+          {% elif claim.status == 'cancelled' %}{{ badge('Cancelled', variant='danger') }}
+          {% else %}{{ badge(claim.status, variant='default') }}{% endif %}
+        </div>
+        <div class="mt-1.5 flex flex-wrap gap-x-3 text-xs text-gray-500 dark:text-gray-400 font-mono">
+          <span>Created {{ claim.created_at.strftime('%b %d, %Y') if claim.created_at else '-' }}</span>
+          <span>Expires {{ claim.expires_at.strftime('%b %d, %Y') if claim.expires_at else '-' }}</span>
+        </div>
+        <div class="mt-2 flex flex-wrap gap-3">
+          {% if claim.status == 'pending' %}
+          <button type="button" class="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline copy-claim-btn" data-claim-token="{{ claim.claim_token }}" title="Copy claim link">Copy Link</button>
+          {% if claim.recipient_email %}<button type="button" class="text-xs font-medium text-green-600 dark:text-green-400 hover:underline resend-claim-btn" data-claim-id="{{ claim.id }}" title="Resend email">Resend</button>{% endif %}
+          <button type="button" class="text-xs font-medium text-red-600 dark:text-red-400 hover:underline cancel-claim-btn" data-claim-id="{{ claim.id }}" title="Cancel claim">Cancel</button>
+          {% elif claim.status == 'claimed' and claim.claimed_by_player %}
+          <span class="text-xs text-gray-500 dark:text-gray-400">Claimed by {{ claim.claimed_by_player.name }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endcall %}
+    {% endif %}
+  </div>
+
+  {# Sidebar #}
+  <div class="space-y-6">
+    <div class="grid grid-cols-2 gap-4">
+      {{ stat_card('ti-ticket', 'Total Passes', order.total_passes, tone='neutral') }}
+      {{ stat_card('ti-link', 'Linked', order.linked_passes, tone='success') }}
+      {{ stat_card('ti-unlink', 'Unlinked', order.total_passes - order.linked_passes, tone='warning') }}
+      {% if claims %}
+      {{ stat_card('ti-clock', 'Pending Claims', claims|selectattr('status', 'equalto', 'pending')|list|length, tone='info') }}
+      {% endif %}
+    </div>
+
+    {% if order.primary_user %}
+    {% call section_card('Primary Claimant', icon='ti-user') %}
+    <div class="flex items-center gap-3 p-4 sm:p-5">
+      <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center shrink-0">
+        <span class="text-blue-600 dark:text-blue-400 font-semibold">{{ order.primary_user.username[0].upper() if order.primary_user.username else '?' }}</span>
+      </div>
+      <div class="min-w-0">
+        <p class="font-medium text-gray-900 dark:text-white truncate">{{ order.primary_user.username }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ order.primary_user.email if order.primary_user.email else '-' }}</p>
+      </div>
+    </div>
+    {% endcall %}
+    {% endif %}
+
+    {% call section_card('System Info', icon='ti-key') %}
+    <div class="space-y-3 text-sm p-4 sm:p-5">
+      <div><span class="text-gray-500 dark:text-gray-400">Order ID:</span> <code class="ml-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{{ order.id }}</code></div>
+      <div><span class="text-gray-500 dark:text-gray-400">Token:</span> <code class="ml-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded break-all">{{ order.verification_token[:16] }}...</code></div>
+    </div>
+    {% endcall %}
+  </div>
+</div>
+
+{# Manual Link Modal — ids/markup kept verbatim for the page JS #}
+{% call modal('manualLinkModal', 'Manually Assign Pass', size='sm') %}
+<input type="hidden" id="manualLinkLineItemId">
+<div id="suggestionBanner" class="hidden">
+    <div class="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-sm text-yellow-800 dark:text-yellow-300 flex items-center gap-1">
+                <i class="ti ti-info-circle" aria-hidden="true"></i>
+                Suggested match for "<span id="suggestionCustomerName" class="font-medium"></span>":
+            </p>
+            <button type="button" id="dismissSuggestion" class="text-yellow-600 hover:text-yellow-800 dark:text-yellow-400 dark:hover:text-yellow-200" aria-label="Dismiss suggestion">
+                <i class="ti ti-x" aria-hidden="true"></i>
+            </button>
+        </div>
+        <div id="suggestionList" class="space-y-1"></div>
+    </div>
+</div>
+<div>
+    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Player</label>
+    <input type="text" id="playerSearchInput" placeholder="Type to search by name..." class="input-ecs w-full p-2.5 text-sm">
+</div>
+<div id="playerSearchResults" class="max-h-48 overflow-y-auto hidden"></div>
+<div id="selectedPlayer" class="hidden p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+    <div class="flex items-center justify-between">
+        <div>
+            <span class="font-medium text-gray-900 dark:text-white" id="selectedPlayerName"></span>
+            <span class="text-xs text-gray-500 dark:text-gray-400 ml-2" id="selectedPlayerInfo"></span>
+        </div>
+        <button type="button" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" id="clearSelectedPlayer" aria-label="Clear selected player">
+            <i class="ti ti-x" aria-hidden="true"></i>
+        </button>
+    </div>
+</div>
+<div class="flex items-center pt-4 border-t border-gray-200 dark:border-gray-700 -mx-4 md:-mx-5 px-4 md:px-5 -mb-4 md:-mb-5 pb-4 md:pb-5">
+    <button type="button" id="confirmManualLink" disabled
+            class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-10 px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed">
+        Assign Pass
+    </button>
+    <button type="button" data-modal-hide="manualLinkModal"
+            class="modal-close-btn ms-3 inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-10 px-5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">Cancel</button>
+</div>
+{% endcall %}
+
+{# Edit Line Item Modal — ids/markup kept verbatim for the page JS #}
+{% call modal('editLineItemModal', 'Edit Line Item', size='sm') %}
+<input type="hidden" id="editLineItemId">
+<div>
+    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Division</label>
+    <select id="editDivision" class="input-ecs w-full p-2.5 text-sm">
+        <option value="">None</option>
+        <option value="Classic">Classic</option>
+        <option value="Premier">Premier</option>
+    </select>
+</div>
+<div>
+    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Jersey Size</label>
+    <select id="editJerseySize" class="input-ecs w-full p-2.5 text-sm">
+        <option value="">None</option>
+        <option value="XS">XS</option>
+        <option value="SM">SM</option>
+        <option value="MD">MD</option>
+        <option value="LG">LG</option>
+        <option value="XL">XL</option>
+        <option value="XXL">XXL</option>
+        <option value="XXXL">XXXL</option>
+    </select>
+</div>
+<div class="flex items-center pt-4 border-t border-gray-200 dark:border-gray-700 -mx-4 md:-mx-5 px-4 md:px-5 -mb-4 md:-mb-5 pb-4 md:pb-5">
+    <button type="button" id="confirmEditLineItem"
+            class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-10 px-5 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        Save Changes
+    </button>
+    <button type="button" data-modal-hide="editLineItemModal"
+            class="modal-close-btn ms-3 inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-10 px-5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">Cancel</button>
+</div>
+{% endcall %}
+{% else %}
+{# ===================== CLASSIC (unchanged) ===================== #}
 <!-- Action Buttons -->
 <div class="flex gap-2 flex-wrap mb-6">
     <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50 rounded-lg transition-colors" id="refreshOrderBtn">
@@ -461,6 +817,7 @@
     <button type="button" data-modal-hide="editLineItemModal" class="ms-3 text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-gray-200 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600 modal-close-btn">Cancel</button>
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

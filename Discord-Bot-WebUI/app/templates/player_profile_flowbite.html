@@ -1,9 +1,907 @@
 {% extends "base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, avatar, stat_card, alert, modal_form %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card as kit_stat_card, section_card, empty_state %}
 
 {% block title %}{{ player.name }} - Player Profile{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{# ======================= MODERN (console) ======================= #}
+<div class="max-w-7xl mx-auto">
+  {# --- Identity header --- #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+    <div class="h-20 sm:h-24 bg-gradient-to-r from-ecs-green to-ecs-green-700"></div>
+    <div class="px-4 sm:px-6 pb-5">
+      <div class="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 sm:-mt-14">
+        <div class="relative shrink-0 mx-auto sm:mx-0">
+          <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl ring-4 ring-white dark:ring-gray-800 overflow-hidden bg-gray-100 dark:bg-gray-700">
+            {% if player.profile_picture_url %}
+            <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() if player.updated_at else '0' }}"
+                 class="w-full h-full object-cover" alt="Profile Picture">
+            {% else %}
+            <img src="{{ url_for('static', filename='img/default_player.png') }}"
+                 class="w-full h-full object-cover" alt="Default Profile Picture">
+            {% endif %}
+          </div>
+          <div class="absolute -bottom-1 -right-1 flex gap-1">
+            {% if player.is_coach %}
+            <span class="w-7 h-7 rounded-full bg-ecs-gold-500 dark:bg-ecs-gold-400 flex items-center justify-center text-white shadow" title="Coach">
+              <i class="ti ti-whistle text-sm" aria-hidden="true"></i>
+            </span>
+            {% endif %}
+            {% if player.is_ref %}
+            <span class="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white shadow" title="Referee">
+              <i class="ti ti-flag text-sm" aria-hidden="true"></i>
+            </span>
+            {% endif %}
+          </div>
+          <span class="absolute top-1 right-1 w-3.5 h-3.5 rounded-full {{ 'bg-green-500' if player_is_online else 'bg-gray-400' }} ring-2 ring-white dark:ring-gray-800"
+                data-online-status="{{ player.user_id }}" title="{{ 'Online' if player_is_online else 'Offline' }}"></span>
+        </div>
+        <div class="flex-1 min-w-0 text-center sm:text-left pt-2 sm:pt-0 sm:pb-1">
+          <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ player.name }}</h1>
+          {% if can_view_detailed_profile or is_own_profile or is_admin %}
+          <div class="flex flex-wrap justify-center sm:justify-start gap-2 mt-2">
+            {% if current_season_teams and current_season_teams|length > 0 %}
+            {% for t in current_season_teams %}
+            <a href="{{ url_for('teams.team_details', team_id=t.id) }}" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ecs-green/10 text-ecs-green dark:text-ecs-green text-xs font-semibold hover:bg-ecs-green/20 transition-colors">
+              <i class="ti ti-users text-sm" aria-hidden="true"></i>{{ t.name }}
+            </a>
+            {% endfor %}
+            {% else %}
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-medium">
+              <i class="ti ti-users-off text-sm" aria-hidden="true"></i>No Team
+            </span>
+            {% endif %}
+          </div>
+          {% elif profile_is_restricted %}
+          <div class="mt-2 flex justify-center sm:justify-start">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-medium">
+              <i class="ti ti-lock text-sm" aria-hidden="true"></i>Profile is Private
+            </span>
+          </div>
+          {% endif %}
+        </div>
+        <div class="flex flex-wrap justify-center sm:justify-end gap-2 shrink-0 pb-1">
+          {% if safe_current_user.is_authenticated and player.user_id and player.user_id != safe_current_user.id %}
+          <a href="{{ url_for('messages_pages.messages_inbox', user=player.user_id) }}"
+             class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-message-circle" aria-hidden="true"></i>Message
+          </a>
+          {% endif %}
+          {% if is_admin or is_player %}
+          <button type="button" data-modal-target="profileImageModal" data-modal-toggle="profileImageModal"
+                  class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-camera" aria-hidden="true"></i>Upload Photo
+          </button>
+          {% endif %}
+          {% if is_admin or 'Pub League Coach' in user_roles %}
+          {% set has_email = user.email and user.email_notifications %}
+          {% set has_sms = player.phone and user.sms_notifications %}
+          {% set has_discord = player.discord_id and user.discord_notifications %}
+          {% if has_email or has_sms or has_discord %}
+          <button type="button" data-modal-target="contactPlayerModal" data-modal-toggle="contactPlayerModal"
+                  class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-send" aria-hidden="true"></i>Contact
+          </button>
+          {% endif %}
+          {% endif %}
+          {% if not player.discord_id and safe_current_user.is_authenticated and safe_current_user.id == player.user.id %}
+          <a href="{{ url_for('auth.discord_login') }}"
+             class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-400">
+            <i class="ti ti-brand-discord" aria-hidden="true"></i>Link Discord
+          </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# --- KPI stat strip --- #}
+  {% if has_permission('view_player_goals_assists') or has_permission('view_player_cards') %}
+  <div class="mb-6">
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Season Stats &middot; {{ season.name }}</p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
+      {{ kit_stat_card('ti-ball-football', 'Goals', player.season_goals(season.id), tone='primary') }}
+      {{ kit_stat_card('ti-shoe', 'Assists', player.season_assists(season.id), tone='info') }}
+      {{ kit_stat_card('ti-square-rounded', 'Yellow', player.season_yellow_cards(season.id), tone='warning') }}
+      {{ kit_stat_card('ti-square-rounded-filled', 'Red', player.season_red_cards(season.id), tone='danger') }}
+    </div>
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Career Stats</p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      {{ kit_stat_card('ti-ball-football', 'Goals', player.get_career_goals(), tone='primary') }}
+      {{ kit_stat_card('ti-shoe', 'Assists', player.get_career_assists(), tone='info') }}
+      {{ kit_stat_card('ti-square-rounded', 'Yellow', player.get_career_yellow_cards(), tone='warning') }}
+      {{ kit_stat_card('ti-square-rounded-filled', 'Red', player.get_career_red_cards(), tone='danger') }}
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    {# --- Left column --- #}
+    <div class="lg:col-span-1 space-y-6">
+      {% if can_view_contact_info or is_own_profile %}
+      {% call section_card('Contact Information', icon='ti-address-book') %}
+      <div class="p-4 space-y-4">
+        {% if can_view_contact_info %}
+        <div class="flex items-center gap-3">
+          <span class="shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-mail" aria-hidden="true"></i></span>
+          <div><p class="text-xs text-gray-500 dark:text-gray-400">Email</p><p class="text-sm font-medium text-gray-900 dark:text-white">{{ user.email }}</p></div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="shrink-0 w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 text-cyan-600 dark:text-cyan-400 flex items-center justify-center"><i class="ti ti-phone" aria-hidden="true"></i></span>
+          <div><p class="text-xs text-gray-500 dark:text-gray-400">Phone</p><p class="text-sm font-medium text-gray-900 dark:text-white">{{ player.phone or 'Not provided' }}</p></div>
+        </div>
+        {% endif %}
+        <div class="flex items-center gap-3">
+          <span class="shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="ti ti-shirt-sport" aria-hidden="true"></i></span>
+          <div><p class="text-xs text-gray-500 dark:text-gray-400">Jersey Size</p><p class="text-sm font-medium text-gray-900 dark:text-white">{{ player.jersey_size or 'Not set' }}</p></div>
+        </div>
+      </div>
+      {% endcall %}
+      {% endif %}
+
+      {% if is_own_profile or 'Pub League Admin' in user_roles or 'Global Admin' in user_roles or 'Pub League Coach' in user_roles %}
+      {% call section_card('Profile Status', icon='ti-shield-check') %}
+      <div class="p-4">
+        {% if player.profile_last_updated %}
+        <div class="flex items-center gap-3 mb-4">
+          <span class="shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="ti ti-check" aria-hidden="true"></i></span>
+          <div><p class="text-xs text-gray-500 dark:text-gray-400">Last Updated</p><p class="text-sm font-medium text-green-600 dark:text-green-400">{{ format_pacific_time(player.profile_last_updated) }}</p></div>
+        </div>
+        {% else %}
+        <div class="flex items-center gap-3 mb-4">
+          <span class="shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-alert-triangle" aria-hidden="true"></i></span>
+          <div><p class="text-xs text-gray-500 dark:text-gray-400">Profile Status</p><p class="text-sm font-medium text-amber-600 dark:text-amber-400">{% if is_own_profile %}Please verify your profile{% else %}Not verified{% endif %}</p></div>
+        </div>
+        {% endif %}
+        {% if is_own_profile %}
+        <button type="button" data-action="verify-profile" data-player-id="{{ player.id }}"
+                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-shield-check" aria-hidden="true"></i>{% if player.profile_last_updated %}Confirm Profile is Accurate{% else %}Verify My Profile{% endif %}
+        </button>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">Click to confirm your profile information is current</p>
+        {% endif %}
+        {% if not player.profile_last_updated %}
+        <div class="mt-4 flex items-start gap-2 rounded-lg border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-500/10 p-3 text-sm text-red-800 dark:text-red-300">
+          <i class="ti ti-alert-octagon shrink-0 mt-0.5" aria-hidden="true"></i><span>{% if is_own_profile %}Your profile needs verification{% else %}Player needs to verify their profile{% endif %}</span>
+        </div>
+        {% elif profile_expired %}
+        <div class="mt-4 flex items-start gap-2 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+          <i class="ti ti-alert-triangle shrink-0 mt-0.5" aria-hidden="true"></i><span>Profile verification expired</span>
+        </div>
+        {% endif %}
+      </div>
+      {% endcall %}
+      {% endif %}
+
+      {% if can_view_team_history or is_own_profile or is_admin %}
+      {% call section_card('Team History', icon='ti-history') %}
+      <div class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% if team_history %}
+        {% for pts in team_history %}
+        <div class="p-4 flex items-center justify-between gap-2">
+          <div class="min-w-0">
+            <a href="{{ url_for('teams.team_details', team_id=pts.team.id) }}" class="font-medium text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-green">{{ pts.team.name }}</a>
+            {% if can_view_draft_history %}
+            {% set draft_key = pts.season.name + '_league_' + pts.team.league_id|string %}
+            {% if draft_history and draft_history.get(draft_key) %}
+            <span class="ml-2 px-2 py-0.5 text-xs font-medium text-blue-800 bg-blue-100 rounded dark:bg-blue-900/50 dark:text-blue-300 font-mono">#{{ draft_history[draft_key] }}</span>
+            {% endif %}
+            {% endif %}
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ pts.season.name }}</p>
+          </div>
+          {% if pts.season.is_current %}
+          <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium text-green-800 bg-green-100 rounded dark:bg-green-900/50 dark:text-green-300">Current</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        {{ empty_state('ti-users-off', 'No team history', 'This player has no recorded team history yet.') }}
+        {% endif %}
+      </div>
+      {% endcall %}
+      {% endif %}
+
+      {% if profile_is_restricted and not is_own_profile and not is_admin %}
+      {{ empty_state('ti-lock', 'Private Profile', 'This player has set their profile to private. Only their name and photo are visible.') }}
+      {% endif %}
+
+      {% if can_edit_stats %}
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <button type="button" class="w-full px-4 sm:px-5 py-3 flex items-center justify-between text-left" data-collapse-toggle="adminActionsCollapse">
+          <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Admin Actions</h3>
+          <i class="ti ti-chevron-down text-gray-500 transform transition-transform" id="adminCollapseIcon" aria-hidden="true"></i>
+        </button>
+        <div class="hidden border-t border-gray-200 dark:border-gray-700" id="adminActionsCollapse">
+          <div class="p-4 space-y-4">
+            <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}">
+              {{ form.csrf_token }}
+              <label class="flex items-center cursor-pointer">
+                <input type="checkbox" name="is_coach" {% if player.is_coach %}checked{% endif %} class="sr-only peer" onchange="this.form.submit()">
+                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/50 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Mark as Coach</span>
+              </label>
+              <input type="hidden" name="update_coach_status" value="1">
+            </form>
+            <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}">
+              {{ form.csrf_token }}
+              <label class="flex items-center cursor-pointer">
+                <input type="checkbox" name="is_ref" {% if player.is_ref %}checked{% endif %} class="sr-only peer" onchange="this.form.submit()">
+                <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/50 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                <span class="ml-3 text-sm font-medium text-gray-900 dark:text-gray-300">Mark as Referee</span>
+              </label>
+              <input type="hidden" name="update_ref_status" value="1">
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {# --- Right column --- #}
+    <div class="lg:col-span-2">
+      {% if can_view_detailed_profile or can_edit_profile or can_view_contact_info or is_own_profile or is_admin %}
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="border-b border-gray-200 dark:border-gray-700">
+          <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="profileTabs" role="tablist">
+            <li class="mr-2" role="presentation">
+              <button class="inline-flex items-center gap-2 p-4 border-b-2 border-ecs-green text-ecs-green" id="details-tab" data-tabs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true">
+                <i class="ti ti-user" aria-hidden="true"></i>Player Details
+              </button>
+            </li>
+            {% if can_edit_stats %}
+            <li class="mr-2" role="presentation">
+              <button class="inline-flex items-center gap-2 p-4 border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300" id="admin-tab" data-tabs-target="#admin" type="button" role="tab" aria-controls="admin" aria-selected="false">
+                <i class="ti ti-settings" aria-hidden="true"></i>Admin Settings
+              </button>
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+        <div id="profileTabContent">
+          <div class="p-6" id="details" role="tabpanel" aria-labelledby="details-tab">
+            {% if safe_current_user.id == player.user.id or is_admin %}
+            <!-- Editable Contact Section -->
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white">Contact Information</h4>
+                    <button type="button" class="text-sm text-ecs-green hover:text-ecs-green/80 inline-flex items-center gap-1" data-action="edit-toggle" data-section="contact-info">
+                        <i class="ti ti-pencil" aria-hidden="true"></i>Edit
+                    </button>
+                </div>
+                <form method="POST" enctype="multipart/form-data" id="contact-info-form">
+                    {{ form.hidden_tag() }}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                            <div class="view-mode text-gray-900 dark:text-white py-2">{{ player.name }}</div>
+                            <div class="edit-mode hidden">
+                                {{ form.name(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white", required=True) }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                            <div class="view-mode text-gray-900 dark:text-white py-2">{{ user.email }}</div>
+                            <div class="edit-mode hidden">
+                                {{ form.email(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white", required=True) }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone</label>
+                            <div class="view-mode text-gray-900 dark:text-white py-2">{{ player.phone or 'Not provided' }}</div>
+                            <div class="edit-mode hidden">
+                                {{ form.phone(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white") }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Jersey Size</label>
+                            <div class="view-mode text-gray-900 dark:text-white py-2">{{ player.jersey_size or 'Not set' }}</div>
+                            <div class="edit-mode hidden">
+                                {{ form.jersey_size(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white") }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date of Birth</label>
+                            <div class="view-mode text-gray-900 dark:text-white py-2">{{ player.date_of_birth.strftime('%B %d, %Y') if player.date_of_birth else 'Not set' }}</div>
+                            <div class="edit-mode hidden">
+                                {{ form.date_of_birth(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white", type="date") }}
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional &mdash; only used so we can wish you a happy birthday.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="edit-mode hidden mt-4 flex gap-2">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-action="cancel-edit" data-section="contact-info">Cancel</button>
+                        <button type="submit" name="update_profile" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Player Preferences Section -->
+            <div class="mb-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-lg font-semibold text-gray-900 dark:text-white">Player Preferences</h4>
+                    <button type="button" class="text-sm text-ecs-green hover:text-ecs-green/80 inline-flex items-center gap-1" data-action="edit-toggle" data-section="player-prefs">
+                        <i class="ti ti-pencil" aria-hidden="true"></i>Edit
+                    </button>
+                </div>
+                <form method="POST" enctype="multipart/form-data" id="player-prefs-form">
+                    {{ form.hidden_tag() }}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pronouns</label>
+                            <div class="view-mode text-gray-900 dark:text-white py-2">{{ player.pronouns or 'Not set' }}</div>
+                            <div class="edit-mode hidden">
+                                {{ form.pronouns(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white") }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Expected Availability</label>
+                            <div class="view-mode text-gray-900 dark:text-white py-2">{{ player.expected_weeks_available or 'Not set' }}</div>
+                            <div class="edit-mode hidden">
+                                {{ form.expected_weeks_available(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white") }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Favorite Position</label>
+                            <div class="view-mode text-gray-900 dark:text-white py-2">{{ format_position(player.favorite_position) if player.favorite_position else 'Not set' }}</div>
+                            <div class="edit-mode hidden">
+                                {{ form.favorite_position(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white") }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Goalkeeper Frequency</label>
+                            {% set goal_frequency_map = {
+                            '0': 'Never',
+                            '1': 'Only if needed',
+                            '2': 'Fill in as needed',
+                            '3': 'Half the time',
+                            '4': 'Every game'
+                            } %}
+                            <div class="view-mode text-gray-900 dark:text-white py-2">{{ goal_frequency_map.get(player.frequency_play_goal|string, 'Not set') }}</div>
+                            <div class="edit-mode hidden">
+                                {{ form.frequency_play_goal(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white") }}
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Other Positions Enjoyed</label>
+                            {% set other_pos_list = player.other_positions.strip('{}').split(',') if player.other_positions else [] %}
+                            <div class="view-mode text-gray-900 dark:text-white py-2">
+                                {% if other_pos_list and other_pos_list[0] %}
+                                    {% for pos in other_pos_list %}
+                                        <span class="inline-block px-2 py-1 mr-1 mb-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 rounded">{{ format_position(pos) }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    Not set
+                                {% endif %}
+                            </div>
+                            <div class="edit-mode hidden">
+                                {{ form.other_positions(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white", multiple="multiple", size="4") }}
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Positions to Avoid</label>
+                            {% set avoid_pos_list = player.positions_not_to_play.strip('{}').split(',') if player.positions_not_to_play else [] %}
+                            <div class="view-mode text-gray-900 dark:text-white py-2">
+                                {% if avoid_pos_list and avoid_pos_list[0] %}
+                                    {% for pos in avoid_pos_list %}
+                                        <span class="inline-block px-2 py-1 mr-1 mb-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 rounded">{{ format_position(pos) }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    Not set
+                                {% endif %}
+                            </div>
+                            <div class="edit-mode hidden">
+                                {{ form.positions_not_to_play(class_="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white", multiple="multiple", size="4") }}
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Hold Ctrl/Cmd to select multiple</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="edit-mode hidden mt-4 flex gap-2">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-action="cancel-edit" data-section="player-prefs">Cancel</button>
+                        <button type="submit" name="update_profile" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+
+            {% if can_view_admin_notes or is_own_profile %}
+            <!-- Player Notes Section -->
+            <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-white">Player Notes</h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{% if is_own_profile %}Notes to share with coaches/admins{% else %}Notes from the player{% endif %}</p>
+                    </div>
+                    <button type="button" class="text-sm text-ecs-green hover:text-ecs-green/80 inline-flex items-center gap-1" data-action="edit-toggle" data-section="player-notes">
+                        <i class="ti ti-pencil" aria-hidden="true"></i>Edit
+                    </button>
+                </div>
+                <form method="POST" enctype="multipart/form-data" id="player-notes-form">
+                    {{ form.hidden_tag() }}
+                    <div class="view-mode p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-900 dark:text-white">
+                        {{ player.player_notes or 'No notes available' }}
+                    </div>
+                    <div class="edit-mode hidden">
+                        {{ form.player_notes(class_="block w-full p-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white", rows=3) }}
+                        <div class="mt-4 flex gap-2">
+                            <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-action="cancel-edit" data-section="player-notes">Cancel</button>
+                            <button type="submit" name="update_profile" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">Save Notes</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Read-only view for non-owners -->
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Pronouns</p>
+                        <p class="text-gray-900 dark:text-white">{{ player.pronouns or 'Not set' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Favorite Position</p>
+                        <p class="text-gray-900 dark:text-white">{{ format_position(player.favorite_position) if player.favorite_position else 'Not set' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Expected Availability</p>
+                        <p class="text-gray-900 dark:text-white">{{ player.expected_weeks_available or 'Not set' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Goalkeeper Frequency</p>
+                        {% set goal_frequency_map = {
+                        '0': 'Never',
+                        '1': 'Only if needed',
+                        '2': 'Fill in as needed',
+                        '3': 'Half the time',
+                        '4': 'Every game'
+                        } %}
+                        <p class="text-gray-900 dark:text-white">{{ goal_frequency_map.get(player.frequency_play_goal|string, 'Not set') }}</p>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Other Positions Enjoyed</p>
+                        {% set other_pos_list = player.other_positions.strip('{}').split(',') if player.other_positions else [] %}
+                        {% if other_pos_list and other_pos_list[0] %}
+                            {% for pos in other_pos_list %}
+                                <span class="inline-block px-2 py-1 mr-1 mb-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 rounded">{{ format_position(pos) }}</span>
+                            {% endfor %}
+                        {% else %}
+                        <p class="text-gray-900 dark:text-white">Not set</p>
+                        {% endif %}
+                    </div>
+                    <div class="sm:col-span-2">
+                        <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">Positions to Avoid</p>
+                        {% set avoid_pos_list = player.positions_not_to_play.strip('{}').split(',') if player.positions_not_to_play else [] %}
+                        {% if avoid_pos_list and avoid_pos_list[0] %}
+                            {% for pos in avoid_pos_list %}
+                                <span class="inline-block px-2 py-1 mr-1 mb-1 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300 rounded">{{ format_position(pos) }}</span>
+                            {% endfor %}
+                        {% else %}
+                        <p class="text-gray-900 dark:text-white">Not set</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+          </div>
+          {% if can_edit_stats %}
+          <div class="hidden p-6" id="admin" role="tabpanel" aria-labelledby="admin-tab">
+            <!-- Discord Integration Section -->
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <i class="ti ti-brand-discord text-indigo-500" aria-hidden="true"></i>Discord Integration
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Discord ID</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white font-mono">{{ player.discord_id or 'Not linked' }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Discord Username</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ player.discord_username or 'Not available' }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Server Status</p>
+                        {% if player.discord_id %}
+                            {% if player.discord_in_server %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">
+                                <span class="w-2 h-2 mr-1.5 bg-green-500 rounded-full"></span>In Server
+                            </span>
+                            {% elif player.discord_in_server == False %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
+                                <span class="w-2 h-2 mr-1.5 bg-red-500 rounded-full"></span>Left Server
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">
+                                <span class="w-2 h-2 mr-1.5 bg-gray-500 rounded-full"></span>Unknown
+                            </span>
+                            {% endif %}
+                        {% else %}
+                        <span class="text-sm text-gray-500 dark:text-gray-400">Not linked</span>
+                        {% endif %}
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Last Checked</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ format_pacific_time(player.discord_last_checked) if player.discord_last_checked else 'Never' }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notification Settings Section -->
+            <div class="mb-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <i class="ti ti-bell text-blue-500" aria-hidden="true"></i>Notification Settings
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">Email</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ user.email if user.email else 'Not set' }}</p>
+                        </div>
+                        {% if user.email_notifications %}
+                        <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 rounded">Enabled</span>
+                        {% else %}
+                        <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300 rounded">Disabled</span>
+                        {% endif %}
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">SMS</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ player.phone if player.phone else 'Not set' }}</p>
+                        </div>
+                        {% if user.sms_notifications %}
+                        <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 rounded">Enabled</span>
+                        {% else %}
+                        <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300 rounded">Disabled</span>
+                        {% endif %}
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-900 dark:text-white">Discord</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">{{ player.discord_username if player.discord_username else 'Not linked' }}</p>
+                        </div>
+                        {% if user.discord_notifications %}
+                        <span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300 rounded">Enabled</span>
+                        {% else %}
+                        <span class="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300 rounded">Disabled</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Notes Section -->
+            {% if can_view_admin_notes %}
+            <div class="pt-6 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <i class="ti ti-notes text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>Admin Notes
+                        </h4>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Internal notes visible only to coaches and admins</p>
+                    </div>
+                    {% if can_edit_admin_notes %}
+                    <button type="button" class="text-sm text-ecs-green hover:text-ecs-green/80 inline-flex items-center gap-1" data-action="edit-toggle" data-section="admin-notes">
+                        <i class="ti ti-plus" aria-hidden="true"></i>Add Note
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Existing Notes List -->
+                <div class="space-y-3 mb-4 max-h-96 overflow-y-auto" id="admin-notes-list">
+                    {% if player.admin_notes %}
+                        {% for note in player.admin_notes %}
+                        <div class="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                            <div class="flex items-start justify-between gap-2 mb-2">
+                                <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                    <i class="ti ti-user text-base" aria-hidden="true"></i>
+                                    <span class="font-medium">{{ note.author.player.name if note.author and note.author.player else (note.author.username if note.author else 'Unknown') }}</span>
+                                    <span class="text-gray-400 dark:text-gray-500">|</span>
+                                    <span>{{ note.created_at.strftime('%b %d, %Y at %I:%M %p') if note.created_at else 'Unknown date' }}</span>
+                                    {% if note.updated_at and note.updated_at != note.created_at %}
+                                    <span class="text-gray-400 dark:text-gray-500">(edited)</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <p class="text-gray-900 dark:text-white whitespace-pre-wrap">{{ note.content }}</p>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-gray-500 dark:text-gray-400 text-center">
+                            No admin notes yet
+                        </div>
+                    {% endif %}
+
+                    <!-- Legacy notes migration notice (if old notes field has content) -->
+                    {% if player.notes %}
+                    <div class="p-4 bg-gray-100 dark:bg-gray-700/30 rounded-lg border border-gray-300 dark:border-gray-600">
+                        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
+                            <i class="ti ti-clock-hour-4 text-base" aria-hidden="true"></i>
+                            <span class="font-medium">Legacy Note</span>
+                            <span class="text-gray-400 dark:text-gray-500">|</span>
+                            <span>Imported from previous system</span>
+                        </div>
+                        <p class="text-gray-900 dark:text-white whitespace-pre-wrap">{{ player.notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Add New Note Form -->
+                {% if can_edit_admin_notes %}
+                <form method="POST" enctype="multipart/form-data" id="admin-notes-form">
+                    {{ form.hidden_tag() }}
+                    <div class="edit-mode hidden">
+                        {{ form.notes(class_="block w-full p-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white", rows=3, placeholder="Add a new note about this player...") }}
+                        <div class="mt-3 flex gap-2">
+                            <button type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600" data-action="cancel-edit" data-section="admin-notes">Cancel</button>
+                            <button type="submit" name="update_admin_notes" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90 inline-flex items-center gap-1">
+                                <i class="ti ti-plus" aria-hidden="true"></i>Add Note
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Stats Management Section -->
+            <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <i class="ti ti-chart-bar text-orange-500" aria-hidden="true"></i>Stats Management
+                </h4>
+
+                <!-- Season Stats Edit -->
+                {% if season_stats_form %}
+                <div class="mb-6">
+                    <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Season Stats ({{ season.name }})</h5>
+                    <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                        {{ season_stats_form.hidden_tag() }}
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Goals</label>
+                                {{ season_stats_form.season_goals(class_="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green", value=player.season_goals(season.id)) }}
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Assists</label>
+                                {{ season_stats_form.season_assists(class_="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green", value=player.season_assists(season.id)) }}
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Yellow Cards</label>
+                                {{ season_stats_form.season_yellow_cards(class_="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green", value=player.season_yellow_cards(season.id)) }}
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Red Cards</label>
+                                {{ season_stats_form.season_red_cards(class_="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green", value=player.season_red_cards(season.id)) }}
+                            </div>
+                        </div>
+                        <button type="submit" name="update_season_stats" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
+                            Update Season Stats
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Career Stats Edit -->
+                {% if career_stats_form %}
+                <div class="mb-6">
+                    <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Career Stats</h5>
+                    <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                        {{ career_stats_form.hidden_tag() }}
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Goals</label>
+                                {{ career_stats_form.career_goals(class_="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green", value=player.get_career_goals()) }}
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Assists</label>
+                                {{ career_stats_form.career_assists(class_="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green", value=player.get_career_assists()) }}
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Yellow Cards</label>
+                                {{ career_stats_form.career_yellow_cards(class_="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green", value=player.get_career_yellow_cards()) }}
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Red Cards</label>
+                                {{ career_stats_form.career_red_cards(class_="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green", value=player.get_career_red_cards()) }}
+                            </div>
+                        </div>
+                        <button type="submit" name="update_career_stats" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green/90">
+                            Update Career Stats
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Add Stat to Match -->
+                {% if participated_matches %}
+                <div class="mb-6">
+                    <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Add Stat to Match</h5>
+                    <form method="POST" action="{{ url_for('players.player_profile', player_id=player.id) }}" class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+                        {{ form.hidden_tag() }}
+                        <div class="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-4">
+                            <div class="sm:col-span-1">
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Match</label>
+                                <select name="match_id" required class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+                                    <option value="">Select match...</option>
+                                    {% for match in participated_matches %}
+                                    <option value="{{ match.id }}">
+                                        {{ match.date.strftime('%m/%d') if match.date else 'TBD' }} -
+                                        {{ match.home_team.name if match.home_team else 'TBD' }} vs
+                                        {{ match.away_team.name if match.away_team else 'TBD' }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Goals</label>
+                                <input type="number" name="goals" value="0" min="0" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Assists</label>
+                                <input type="number" name="assists" value="0" min="0" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Yellow</label>
+                                <input type="number" name="yellow_cards" value="0" min="0" max="2" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Red</label>
+                                <input type="number" name="red_cards" value="0" min="0" max="1" class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm focus:ring-ecs-green focus:border-ecs-green">
+                            </div>
+                        </div>
+                        <button type="submit" name="add_stat_manually" class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 inline-flex items-center gap-1">
+                            <i class="ti ti-plus" aria-hidden="true"></i>Add Stat
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+
+                <!-- Match Events History -->
+                {% if events and events|length > 0 %}
+                <div class="mb-6">
+                    <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Match Events History</h5>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
+                                <tr>
+                                    <th scope="col" class="px-4 py-2 rounded-l-lg">Date</th>
+                                    <th scope="col" class="px-4 py-2">Match</th>
+                                    <th scope="col" class="px-4 py-2">Event</th>
+                                    <th scope="col" class="px-4 py-2 rounded-r-lg">Minute</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for event in events[:20] %}
+                                <tr class="bg-white dark:bg-gray-800">
+                                    <td class="px-4 py-2 whitespace-nowrap font-mono">
+                                        {{ event.match.date.strftime('%m/%d/%y') if event.match and event.match.date else 'N/A' }}
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        {% if event.match %}
+                                        {{ event.match.home_team.name if event.match.home_team else '?' }} vs {{ event.match.away_team.name if event.match.away_team else '?' }}
+                                        {% else %}
+                                        Unknown
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-2">
+                                        {% if event.event_type == 'goal' %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">
+                                            <i class="ti ti-ball-football" aria-hidden="true"></i>Goal
+                                        </span>
+                                        {% elif event.event_type == 'assist' %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300">
+                                            <i class="ti ti-shoe" aria-hidden="true"></i>Assist
+                                        </span>
+                                        {% elif event.event_type == 'yellow_card' %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">
+                                            <i class="ti ti-square-rounded-filled" aria-hidden="true"></i>Yellow{% if event.card_reason %} <span class="ml-1 opacity-70">· {{ event.card_reason | replace('_', ' ') | title }}</span>{% endif %}
+                                        </span>
+                                        {% elif event.event_type == 'red_card' %}
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">
+                                            <i class="ti ti-square-rounded-filled" aria-hidden="true"></i>Red{% if event.card_reason %} <span class="ml-1 opacity-70">· {{ event.card_reason | replace('_', ' ') | title }}</span>{% endif %}
+                                        </span>
+                                        {% else %}
+                                        <span class="text-gray-500">{{ event.event_type }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-2 font-mono">{{ event.minute if event.minute else '-' }}'</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if events|length > 20 %}
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Showing 20 of {{ events|length }} events</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Audit Log -->
+                {% if audit_logs and audit_logs|length > 0 %}
+                <div>
+                    <h5 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Stat Change Audit Log</h5>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                            <thead class="text-xs text-gray-700 uppercase bg-gray-100 dark:bg-gray-700 dark:text-gray-300">
+                                <tr>
+                                    <th scope="col" class="px-4 py-2 rounded-l-lg">Date</th>
+                                    <th scope="col" class="px-4 py-2">Stat</th>
+                                    <th scope="col" class="px-4 py-2">Change</th>
+                                    <th scope="col" class="px-4 py-2 rounded-r-lg">By</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for log in audit_logs[:10] %}
+                                <tr class="bg-white dark:bg-gray-800">
+                                    <td class="px-4 py-2 whitespace-nowrap font-mono">{{ log.timestamp.strftime('%m/%d/%y %H:%M') if log.timestamp else 'N/A' }}</td>
+                                    <td class="px-4 py-2 capitalize">{{ log.stat_type.replace('_', ' ') if log.stat_type else 'N/A' }}</td>
+                                    <td class="px-4 py-2 font-mono">
+                                        <span class="text-red-500">{{ log.old_value }}</span> → <span class="text-green-500">{{ log.new_value }}</span>
+                                    </td>
+                                    <td class="px-4 py-2">{{ log.changed_by.username if log.changed_by else 'System' }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if audit_logs|length > 10 %}
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Showing 10 of {{ audit_logs|length }} changes</p>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Additional Player Info Section -->
+            <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <h4 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <i class="ti ti-info-circle text-ecs-green" aria-hidden="true"></i>Additional Information
+                </h4>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">User ID</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white font-mono">{{ player.user_id }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Player ID</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white font-mono">{{ player.id }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Current Player Status</p>
+                        {% if player.is_current_player %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">Active</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-gray-300">Inactive</span>
+                        {% endif %}
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">League</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ player.league.name if player.league else 'Not assigned' }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Profile Last Updated</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ format_pacific_time(player.profile_last_updated) if player.profile_last_updated else 'Never' }}</p>
+                    </div>
+                    <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Phone Verified</p>
+                        {% if player.is_phone_verified %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">Verified</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">Not Verified</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% else %}
+{# ======================= CLASSIC (unchanged) ======================= #}
 <!-- Player Header -->
 <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 rounded-xl mb-6 overflow-hidden">
     <div class="p-6 md:p-8">
@@ -1021,6 +1919,8 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
+{# ======================= SHARED OVERLAYS (both shells) ======================= #}
 
 <!-- Profile Image Modal - Drag to Position -->
 <div id="profileImageModal" tabindex="-1" aria-hidden="true" class="hidden overflow-y-auto overflow-x-hidden fixed top-0 right-0 left-0 z-50 justify-center items-center w-full md:inset-0 h-[calc(100%-1rem)] max-h-full">

@@ -20,6 +20,97 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+{% from 'macros/flowbite.html' import button, badge %}
+
+{% call page_header("I-Spy Analytics", subtitle="Comprehensive game statistics and insights") %}
+  {{ badge(analytics_data.active_season, variant="primary") }}
+{% endcall %}
+
+{# Key Metrics #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {{ stat_card("ti-camera", "Total Shots", analytics_data.overview.total_shots, tone='info') }}
+  {{ stat_card("ti-users", "Total Players", analytics_data.overview.total_players, tone='info') }}
+  {{ stat_card("ti-check", "Approved Shots", analytics_data.overview.approved_shots, tone='success') }}
+  {{ stat_card("ti-percentage", "Approval Rate", analytics_data.overview.approval_rate ~ '%', tone='primary') }}
+</div>
+
+{# Trends & Category Performance #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+  {% call section_card("Daily Shot Trends · Last 14 days", icon="ti-chart-bar") %}
+    <div class="p-4 sm:p-5">
+      {% if analytics_data.trends %}
+      {% set max_shots = analytics_data.trends|map(attribute='shots')|max or 1 %}
+      <div class="space-y-2">
+        {% for day in analytics_data.trends %}
+        <div class="flex items-center gap-3">
+          <span class="text-xs font-mono text-gray-500 dark:text-gray-400 w-10 flex-shrink-0">{{ day.date }}</span>
+          <div class="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-5 overflow-hidden">
+            <div class="bg-ecs-green h-5 rounded-full flex items-center justify-end pr-2 transition-all" style="width: {{ (day.shots / max_shots * 100)|round(1) }}%; min-width: {% if day.shots > 0 %}1.5rem{% else %}0{% endif %};">
+              {% if day.shots > 0 %}
+              <span class="text-xs font-medium text-white">{{ day.shots }}</span>
+              {% endif %}
+            </div>
+          </div>
+          {% if day.shots == 0 %}
+          <span class="text-xs text-gray-400 dark:text-gray-500 w-6 flex-shrink-0">0</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      {{ empty_state("ti-chart-bar", "No trend data", "No shot activity has been recorded in the last 14 days.") }}
+      {% endif %}
+    </div>
+  {% endcall %}
+
+  {% call section_card("Category Performance · Shots and approval by category", icon="ti-category") %}
+    <div class="p-4 sm:p-5">
+      {% if analytics_data.category_performance %}
+      <div class="space-y-5">
+        {% for cat in analytics_data.category_performance %}
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ cat.display_name }}</span>
+            <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+              <span class="font-mono">{{ cat.approved_shots }}/{{ cat.total_shots }} approved</span>
+              <span class="font-medium font-mono text-gray-700 dark:text-gray-300">{{ cat.avg_points }} avg pts</span>
+            </div>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+            <div class="bg-ecs-green h-2.5 rounded-full transition-all" style="width: {% if cat.total_shots > 0 %}{{ (cat.approved_shots / cat.total_shots * 100)|round(1) }}%{% else %}0%{% endif %};"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      {{ empty_state("ti-category", "No category data", "No category performance data is available yet.") }}
+      {% endif %}
+    </div>
+  {% endcall %}
+</div>
+
+{# Engagement Metrics #}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  {{ stat_card("ti-activity", "Daily Active Players", analytics_data.player_engagement.daily_active, tone='primary') }}
+  {{ stat_card("ti-calendar-stats", "Weekly Active Players", analytics_data.player_engagement.weekly_active, tone='info') }}
+  {{ stat_card("ti-lock", "Players in Jail", analytics_data.player_engagement.players_in_jail, tone='danger') }}
+</div>
+
+{# Quick Links #}
+{% call section_card("Quick Links", icon="ti-link") %}
+  <div class="p-4 sm:p-5">
+    <div class="flex flex-wrap gap-3">
+      {{ button("View Players", variant="primary", icon="users", href=url_for('admin_panel.ispy_players')) }}
+      {{ button("View Shots", variant="outline", icon="camera", href=url_for('admin_panel.ispy_shots')) }}
+      {{ button("Back to I-Spy Hub", variant="ghost", icon="arrow-left", href=url_for('admin_panel.ispy_management')) }}
+    </div>
+  </div>
+{% endcall %}
+
+{% else %}
 <!-- Analytics Header -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-5 mb-6 border border-gray-200 dark:border-gray-700">
     <div class="flex flex-wrap items-center justify-between gap-4">
@@ -220,4 +311,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

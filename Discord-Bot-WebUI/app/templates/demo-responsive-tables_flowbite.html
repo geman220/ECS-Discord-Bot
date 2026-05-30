@@ -1,9 +1,208 @@
 {% extends "base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, data_table_row_card, alert %}
 
 {% block title %}Responsive Tables Demo{% endblock %}
 
 {% block content %}
+{% if shell == 'console' %}
+<div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-5 sm:space-y-6">
+    {{ page_header("Responsive Tables Demo", subtitle="Pattern library") }}
+
+    {# Instructions #}
+    {{ alert('info', 'Wrap your table in an overflow-x-auto wrapper, use Tailwind responsive utilities (hidden sm:table-cell) for column visibility, and provide mobile stacked-card rows for narrow screens.', title='How to use responsive tables', dismissible=False) }}
+
+    {# Basic Example #}
+    {% call data_table('Basic Example', icon='ti-table', count='3', search_placeholder='Filter people…', search_id='demoBasicFilter') %}
+        <table class="hidden md:table w-full text-sm text-left">
+            <thead class="border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                    {{ data_table_th('Name', key='name') }}
+                    {{ data_table_th('Email', key='email') }}
+                    {{ data_table_th('Phone', key='phone', hide='sm') }}
+                    {{ data_table_th('Jersey Size', key='jersey', hide='sm') }}
+                    {{ data_table_th('League', key='league', sortable=False) }}
+                    {{ data_table_th('Actions', sortable=False, align='right') }}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">David Hollingsworth</td>
+                    <td class="px-3 py-2.5 text-gray-500 dark:text-gray-400 font-mono text-xs">david@example.com</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">206-555-1234</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell">XL</td>
+                    <td class="px-3 py-2.5">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+                            <i class="ti ti-trophy text-[11px]" aria-hidden="true"></i> Premier
+                        </span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                        <div class="flex items-center justify-end gap-2">
+                            <button type="button" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">View</button>
+                            <button type="button" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">Jane Smith</td>
+                    <td class="px-3 py-2.5 text-gray-500 dark:text-gray-400 font-mono text-xs">jane@example.com</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">425-555-5678</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell">S</td>
+                    <td class="px-3 py-2.5">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">
+                            <i class="ti ti-ball-football text-[11px]" aria-hidden="true"></i> Classic
+                        </span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                        <div class="flex items-center justify-end gap-2">
+                            <button type="button" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">View</button>
+                            <button type="button" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">Mike Johnson</td>
+                    <td class="px-3 py-2.5 text-gray-500 dark:text-gray-400 font-mono text-xs">mike@example.com</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">206-555-9876</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell">L</td>
+                    <td class="px-3 py-2.5">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+                            <i class="ti ti-trophy text-[11px]" aria-hidden="true"></i> Premier
+                        </span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                        <div class="flex items-center justify-end gap-2">
+                            <button type="button" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">View</button>
+                            <button type="button" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {% call data_table_row_card('David Hollingsworth') %}
+                <p class="font-mono">david@example.com · 206-555-1234</p>
+                <p class="flex items-center gap-2 mt-1">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-trophy text-[10px]" aria-hidden="true"></i> Premier</span>
+                    <span>Jersey XL</span>
+                </p>
+            {% endcall %}
+            {% call data_table_row_card('Jane Smith') %}
+                <p class="font-mono">jane@example.com · 425-555-5678</p>
+                <p class="flex items-center gap-2 mt-1">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-ball-football text-[10px]" aria-hidden="true"></i> Classic</span>
+                    <span>Jersey S</span>
+                </p>
+            {% endcall %}
+            {% call data_table_row_card('Mike Johnson') %}
+                <p class="font-mono">mike@example.com · 206-555-9876</p>
+                <p class="flex items-center gap-2 mt-1">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-trophy text-[10px]" aria-hidden="true"></i> Premier</span>
+                    <span>Jersey L</span>
+                </p>
+            {% endcall %}
+        </div>
+    {% endcall %}
+
+    {# Table with Status Colors #}
+    {% call data_table('Table with Status Colors', icon='ti-calendar-event', count='3', search_placeholder='Filter matches…', search_id='demoStatusFilter') %}
+        <table class="hidden md:table w-full text-sm text-left">
+            <thead class="border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                    {{ data_table_th('Match', key='match') }}
+                    {{ data_table_th('Date', key='date', hide='sm') }}
+                    {{ data_table_th('Location', key='location', hide='sm') }}
+                    {{ data_table_th('Status', key='status') }}
+                    {{ data_table_th('Actions', sortable=False, align='right') }}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">ECS FC vs. Seattle United</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">May 15, 2025</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell text-gray-500 dark:text-gray-400">Memorial Stadium</td>
+                    <td class="px-3 py-2.5">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i> Confirmed</span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                        <div class="flex justify-end">
+                            <button type="button" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">Details</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">ECS FC vs. FC Seattle</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">May 22, 2025</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell text-gray-500 dark:text-gray-400">Starfire Complex</td>
+                    <td class="px-3 py-2.5">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-clock text-[11px]" aria-hidden="true"></i> Pending</span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                        <div class="flex justify-end">
+                            <button type="button" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">Details</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">ECS FC vs. Tacoma Stars</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">May 29, 2025</td>
+                    <td class="px-3 py-2.5 hidden md:table-cell text-gray-500 dark:text-gray-400">Tacoma Soccer Center</td>
+                    <td class="px-3 py-2.5">
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-circle-x text-[11px]" aria-hidden="true"></i> Cancelled</span>
+                    </td>
+                    <td class="px-3 py-2.5">
+                        <div class="flex justify-end">
+                            <button type="button" class="inline-flex items-center justify-center h-8 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 dark:focus:ring-offset-gray-800">Details</button>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {% call data_table_row_card('ECS FC vs. Seattle United') %}
+                <p class="font-mono">May 15, 2025 · Memorial Stadium</p>
+                <p class="mt-1"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check text-[10px]" aria-hidden="true"></i> Confirmed</span></p>
+            {% endcall %}
+            {% call data_table_row_card('ECS FC vs. FC Seattle') %}
+                <p class="font-mono">May 22, 2025 · Starfire Complex</p>
+                <p class="mt-1"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-clock text-[10px]" aria-hidden="true"></i> Pending</span></p>
+            {% endcall %}
+            {% call data_table_row_card('ECS FC vs. Tacoma Stars') %}
+                <p class="font-mono">May 29, 2025 · Tacoma Soccer Center</p>
+                <p class="mt-1"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-circle-x text-[10px]" aria-hidden="true"></i> Cancelled</span></p>
+            {% endcall %}
+        </div>
+    {% endcall %}
+
+    {# Implementation Guide #}
+    {% call section_card('Implementation Guide', icon='ti-code') %}
+        <div class="p-4 sm:p-5 space-y-5">
+            <div>
+                <h4 class="font-semibold text-gray-900 dark:text-white mb-3 text-sm">Tailwind responsive table pattern</h4>
+                <pre class="p-4 bg-gray-100 dark:bg-gray-900 rounded-lg overflow-x-auto text-xs"><code class="font-mono text-gray-800 dark:text-gray-300">&lt;div class="overflow-x-auto"&gt;
+  &lt;table class="w-full text-sm text-left"&gt;
+    &lt;thead class="text-xs uppercase bg-gray-50"&gt;
+      &lt;tr&gt;
+        &lt;th class="px-4 py-3"&gt;Always Visible&lt;/th&gt;
+        &lt;th class="px-4 py-3 hidden sm:table-cell"&gt;Hidden on Mobile&lt;/th&gt;
+        &lt;th class="px-4 py-3 hidden md:table-cell"&gt;Tablet and Up&lt;/th&gt;
+      &lt;/tr&gt;
+    &lt;/thead&gt;
+    &lt;tbody&gt;
+      &lt;tr class="border-b hover:bg-gray-50"&gt;
+        &lt;td class="px-4 py-3"&gt;Data&lt;/td&gt;
+        &lt;td class="px-4 py-3 hidden sm:table-cell"&gt;Data&lt;/td&gt;
+        &lt;td class="px-4 py-3 hidden md:table-cell"&gt;Data&lt;/td&gt;
+      &lt;/tr&gt;
+    &lt;/tbody&gt;
+  &lt;/table&gt;
+&lt;/div&gt;</code></pre>
+            </div>
+            {{ alert('success', 'Horizontal scrolling on small screens when needed; hide less important columns on mobile with hidden sm:table-cell; native Tailwind classes with no extra JavaScript; works with dark mode out of the box; maintains accessibility with proper table semantics.', title='Benefits of this approach', dismissible=False) }}
+        </div>
+    {% endcall %}
+</div>
+{% else %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
     <div class="mb-6">
@@ -184,4 +383,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

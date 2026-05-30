@@ -26,6 +26,222 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+<div class="space-y-6">
+
+  {% call page_header('Message Queue', subtitle='Scheduled Messages') %}
+    <button type="button" onclick="location.reload()"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh</span>
+    </button>
+    <button type="button" data-action="pause-queue"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-500">
+      <i class="ti ti-player-pause" aria-hidden="true"></i><span>Pause Queue</span>
+    </button>
+    <button type="button" data-action="process-queue"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-player-play" aria-hidden="true"></i><span>Process Queue</span>
+    </button>
+  {% endcall %}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div id="queue-total-card">{{ stat_card('ti-list-numbers', 'Total Queued', queue_stats.total if queue_stats else 0, tone='info') }}</div>
+    <div id="queue-processing-card">{{ stat_card('ti-loader', 'Processing', queue_stats.processing if queue_stats else 0, tone='primary') }}</div>
+    <div id="queue-waiting-card">{{ stat_card('ti-clock-pause', 'Waiting', queue_stats.waiting if queue_stats else 0, tone='warning') }}</div>
+    <div id="queue-completed-card">{{ stat_card('ti-check', 'Completed Today', queue_stats.completed_today if queue_stats else 0, tone='success') }}</div>
+  </div>
+  {# Hidden spans preserving the original JS id targets for live stat updates #}
+  <div class="sr-only" aria-hidden="true">
+    <span id="queue-total">{{ queue_stats.total if queue_stats else 0 }}</span>
+    <span id="queue-processing">{{ queue_stats.processing if queue_stats else 0 }}</span>
+    <span id="queue-waiting">{{ queue_stats.waiting if queue_stats else 0 }}</span>
+    <span id="queue-completed">{{ queue_stats.completed_today if queue_stats else 0 }}</span>
+  </div>
+
+  <!-- Queue status indicator (mutated by JS via #queue-status-bar) -->
+  <div id="queue-status-bar">
+    <div class="flex items-start gap-3 rounded-xl border p-3 sm:p-4 bg-green-50 dark:bg-green-500/10 border-green-300 dark:border-green-500/40">
+      <i class="ti ti-circle-check text-lg shrink-0 mt-0.5 text-green-600 dark:text-green-400" aria-hidden="true"></i>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-green-800 dark:text-green-300">Queue Active</p>
+        <p class="text-sm text-green-700 dark:text-green-400">Messages are being processed automatically</p>
+      </div>
+      <span class="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>Running
+      </span>
+    </div>
+  </div>
+
+  <!-- Queued messages table -->
+  {% call data_table('Queued Messages', icon='ti-list-numbers', count=(queued_messages|length if queued_messages else 0), search_placeholder='Filter messages…', search_id='admQueueFilter', filters=false) %}
+    <div class="flex flex-wrap items-center justify-end gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <select id="priorityFilter" class="input-ecs h-9 text-sm w-auto">
+        <option value="">All Priorities</option>
+        <option value="urgent">Urgent</option>
+        <option value="high">High</option>
+        <option value="normal">Normal</option>
+      </select>
+      <div class="relative">
+        <button id="bulkActionsBtn" data-dropdown-toggle="bulkMenu" disabled
+                class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-list" aria-hidden="true"></i><span>Bulk Actions</span><i class="ti ti-chevron-down" aria-hidden="true"></i>
+        </button>
+        <div id="bulkMenu" class="hidden z-10 w-44 bg-white rounded-lg shadow border border-gray-200 dark:bg-gray-700 dark:border-gray-600">
+          <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="bulk-send"><i class="ti ti-send mr-2" aria-hidden="true"></i>Send Selected</button></li>
+            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600" data-action="bulk-cancel"><i class="ti ti-ban mr-2" aria-hidden="true"></i>Cancel Selected</button></li>
+            <li><button class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 text-red-600 dark:text-red-400" data-action="bulk-delete"><i class="ti ti-trash mr-2" aria-hidden="true"></i>Delete Selected</button></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    {% if queued_messages %}
+    <table class="hidden md:table w-full text-sm" id="queueTable">
+      <thead><tr>
+        <th scope="col" class="px-3 py-2.5">
+          <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all messages">
+        </th>
+        {{ data_table_th('Position', key='position', sortable=False) }}
+        {{ data_table_th('Message', key='message', sortable=False) }}
+        {{ data_table_th('Scheduled Send', key='scheduled', sortable=False, hide='sm') }}
+        {{ data_table_th('Priority', key='priority', sortable=False, hide='sm') }}
+        {{ data_table_th('Status', key='status', sortable=False, hide='sm') }}
+        {{ data_table_th('Actions', sortable=False, align='right') }}
+      </tr></thead>
+      <tbody>
+        {% for idx, message in queued_messages %}
+        <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 queue-row"
+            data-id="{{ message.id }}" data-priority="{{ message.priority or 'normal' }}">
+          <td class="px-3 py-3">
+            <input type="checkbox" class="row-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" data-id="{{ message.id }}" aria-label="Select message">
+          </td>
+          <td class="px-3 py-3">
+            <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-mono font-bold text-sm">{{ idx + 1 }}</span>
+          </td>
+          <td class="px-3 py-3">
+            <div class="flex items-center gap-3">
+              <span class="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
+                <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400' }}" aria-hidden="true"></i>
+              </span>
+              <div class="min-w-0">
+                {% if message.match %}
+                <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">Match: {{ message.match.date.strftime('%b %d') }}</p>
+                {% else %}
+                <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.message_type or 'Scheduled Message' }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            <p class="text-gray-900 dark:text-white font-mono">{{ message.scheduled_send_time_pst.strftime('%b %d, %Y') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.scheduled_send_time_pst.strftime('%I:%M %p') }} PST</p>
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            {% if message.priority == 'urgent' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Urgent</span>
+            {% elif message.priority == 'high' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-arrow-up" aria-hidden="true"></i>High</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Normal</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            {% if message.status == 'QUEUED' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Queued</span>
+            {% elif message.status == 'PROCESSING' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-loader animate-spin" aria-hidden="true"></i>Processing</span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ message.status }}</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            <div class="flex items-center justify-end gap-1">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send now" data-action="send-now" data-id="{{ message.id }}"><i class="ti ti-send" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Up" aria-label="Move up" data-action="move-up" data-id="{{ message.id }}"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Down" aria-label="Move down" data-action="move-down" data-id="{{ message.id }}"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel" data-action="cancel-queued" data-id="{{ message.id }}"><i class="ti ti-x" aria-hidden="true"></i></button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for idx, message in queued_messages %}
+      <div class="px-4 py-3.5 queue-row" data-id="{{ message.id }}" data-priority="{{ message.priority or 'normal' }}">
+        <div class="flex items-start gap-3">
+          <input type="checkbox" class="row-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" data-id="{{ message.id }}" aria-label="Select message">
+          <span class="flex items-center justify-center w-9 h-9 rounded-lg shrink-0 {{ 'bg-ecs-green/10' if not message.message_type or message.message_type == 'standard' else 'bg-ecs-gold/10' }}">
+            <i class="ti {{ 'ti-soccer-field text-ecs-green' if not message.message_type or message.message_type == 'standard' else 'ti-trophy text-ecs-gold-500 dark:text-ecs-gold-400' }}" aria-hidden="true"></i>
+          </span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white font-mono font-bold text-xs shrink-0">{{ idx + 1 }}</span>
+              {% if message.match %}
+              <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.match.home_team.name }} vs {{ message.match.away_team.name }}</p>
+              {% else %}
+              <p class="font-semibold text-gray-900 dark:text-white truncate">{{ message.message_type or 'Scheduled Message' }}</p>
+              {% endif %}
+            </div>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ message.scheduled_send_time_pst.strftime('%b %d, %Y %I:%M %p') }} PST</p>
+            <div class="mt-2 flex flex-wrap items-center gap-2">
+              {% if message.priority == 'urgent' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-alert-triangle" aria-hidden="true"></i>Urgent</span>
+              {% elif message.priority == 'high' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-arrow-up" aria-hidden="true"></i>High</span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">Normal</span>
+              {% endif %}
+              {% if message.status == 'QUEUED' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Queued</span>
+              {% elif message.status == 'PROCESSING' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-loader animate-spin" aria-hidden="true"></i>Processing</span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ message.status }}</span>
+              {% endif %}
+            </div>
+            <div class="mt-2 flex items-center gap-1">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send now" data-action="send-now" data-id="{{ message.id }}"><i class="ti ti-send" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Up" aria-label="Move up" data-action="move-up" data-id="{{ message.id }}"><i class="ti ti-arrow-up" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Move Down" aria-label="Move down" data-action="move-down" data-id="{{ message.id }}"><i class="ti ti-arrow-down" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel" data-action="cancel-queued" data-id="{{ message.id }}"><i class="ti ti-x" aria-hidden="true"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state('ti-inbox', 'Queue Empty', 'No messages are currently queued for delivery.', action={'label': 'Schedule New Message', 'url': url_for('admin_panel.schedule_new_message'), 'icon': 'ti-plus'}) }}
+    {% endif %}
+  {% endcall %}
+
+  <!-- Processing log -->
+  {% call section_card('Processing Log', icon='ti-terminal') %}
+    <div class="flex items-center justify-end px-4 sm:px-5 pt-3">
+      <button type="button" data-action="clear-log"
+              class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-trash" aria-hidden="true"></i><span>Clear Log</span>
+      </button>
+    </div>
+    <div class="p-4 sm:p-5 pt-3">
+      <div id="processing-log" class="bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-300 max-h-64 overflow-y-auto">
+        <div class="log-entry text-gray-500">[{{ now().strftime('%H:%M:%S') }}] Queue manager initialized</div>
+        <div class="log-entry text-green-400">[{{ now().strftime('%H:%M:%S') }}] Queue status: Active</div>
+        <div class="log-entry text-cyan-400">[{{ now().strftime('%H:%M:%S') }}] Waiting for scheduled messages...</div>
+      </div>
+    </div>
+  {% endcall %}
+
+</div>
+{% else %}
+{# ===================== Classic (unchanged) ===================== #}
 <!-- Queue Status Overview -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-cyan-50 dark:bg-cyan-900/30 rounded-lg shadow p-5">
@@ -292,6 +508,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

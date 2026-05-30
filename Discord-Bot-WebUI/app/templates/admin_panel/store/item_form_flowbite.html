@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, input, textarea %}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
 
 {% block admin_title %}{{ 'Edit Item' if action == 'edit' else 'Add New Item' }}{% endblock %}
 {% block panel_description %}{{ 'Update store item details' if action == 'edit' else 'Create a new store item' }}{% endblock %}
@@ -26,6 +27,150 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+<div class="max-w-3xl mx-auto">
+    {{ page_header(('Edit Item' if action == 'edit' else 'Add New Item'),
+                   subtitle=('Update store item details' if action == 'edit' else 'Create a new store item')) }}
+
+    <form method="POST" id="itemForm" class="space-y-5 sm:space-y-6">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% call section_card('Basic Information', icon='ti-info-circle') %}
+        <div class="p-4 sm:p-5 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="store-item-name" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Item Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="store-item-name" name="name" value="{{ item.name if item else '' }}" required
+                        class="input-ecs">
+                </div>
+                <div>
+                    <label for="category" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Category
+                    </label>
+                    <input type="text" id="category" name="category" value="{{ item.category if item else '' }}" placeholder="e.g., Jerseys, Merchandise"
+                        class="input-ecs">
+                </div>
+            </div>
+            <div>
+                <label for="store-item-description" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    Description
+                </label>
+                <textarea id="store-item-description" name="description" rows="3" placeholder="Describe the item..."
+                    class="input-ecs">{{ item.description if item else '' }}</textarea>
+            </div>
+        </div>
+        {% endcall %}
+
+        {% call section_card('Pricing & Media', icon='ti-currency-dollar') %}
+        <div class="p-4 sm:p-5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="price" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Price ($)
+                    </label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">$</span>
+                        <input type="number" id="price" name="price" value="{{ item.price if item and item.price else '' }}" step="0.01" min="0" placeholder="0.00"
+                            class="input-ecs pl-8">
+                    </div>
+                </div>
+                <div>
+                    <label for="image_url" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                        Image URL
+                    </label>
+                    <input type="url" id="image_url" name="image_url" value="{{ item.image_url if item else '' }}" placeholder="https://example.com/image.jpg"
+                        class="input-ecs">
+                </div>
+            </div>
+        </div>
+        {% endcall %}
+
+        {% call section_card('Available Colors', icon='ti-palette') %}
+        <div class="p-4 sm:p-5">
+            <div id="colorsContainer" class="space-y-2">
+                {% if item and item.available_colors %}
+                    {% set colors = item.available_colors | fromjson %}
+                    {% for color in colors %}
+                    <div class="flex items-center gap-2 color-input">
+                        <input type="text" name="color_{{ loop.index0 }}" value="{{ color }}" placeholder="Color name"
+                            class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg remove-color" aria-label="Remove color">
+                            <i class="ti ti-x" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="flex items-center gap-2 color-input">
+                        <input type="text" name="color_0" placeholder="Color name"
+                            class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg remove-color" aria-label="Remove color">
+                            <i class="ti ti-x" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" id="addColorBtn" class="mt-3 inline-flex items-center min-h-[44px] sm:min-h-0 px-3 py-1.5 text-sm font-semibold text-ecs-green bg-transparent border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-plus mr-1" aria-hidden="true"></i>Add Color
+            </button>
+        </div>
+        {% endcall %}
+
+        {% call section_card('Available Sizes', icon='ti-ruler') %}
+        <div class="p-4 sm:p-5">
+            <div id="sizesContainer" class="space-y-2">
+                {% if item and item.available_sizes %}
+                    {% set sizes = item.available_sizes | fromjson %}
+                    {% for size in sizes %}
+                    <div class="flex items-center gap-2 size-input">
+                        <input type="text" name="size_{{ loop.index0 }}" value="{{ size }}" placeholder="Size (e.g., S, M, L, XL)"
+                            class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg remove-size" aria-label="Remove size">
+                            <i class="ti ti-x" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="flex items-center gap-2 size-input">
+                        <input type="text" name="size_0" placeholder="Size (e.g., S, M, L, XL)"
+                            class="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                        <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg remove-size" aria-label="Remove size">
+                            <i class="ti ti-x" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+            <button type="button" id="addSizeBtn" class="mt-3 inline-flex items-center min-h-[44px] sm:min-h-0 px-3 py-1.5 text-sm font-semibold text-ecs-green bg-transparent border border-ecs-green rounded-lg hover:bg-ecs-green hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-plus mr-1" aria-hidden="true"></i>Add Size
+            </button>
+        </div>
+        {% endcall %}
+
+        {% if action == 'edit' %}
+        {% call section_card('Status', icon='ti-toggle-left') %}
+        <div class="p-4 sm:p-5">
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="store-item-is_active" name="is_active" class="sr-only peer" {% if item and item.is_active %}checked{% endif %}>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/50 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                <span class="ms-3 text-sm font-medium text-gray-700 dark:text-gray-300">Item is active and available for purchase</span>
+            </label>
+        </div>
+        {% endcall %}
+        {% endif %}
+
+        <div class="flex items-center justify-between gap-3">
+            <a href="{{ url_for('admin_panel.store_items') }}" class="inline-flex items-center min-h-[44px] px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <i class="ti ti-arrow-left mr-2" aria-hidden="true"></i>Cancel
+            </a>
+            <button type="submit" id="submitBtn" class="inline-flex items-center min-h-[44px] px-4 py-2 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <i class="ti ti-device-floppy mr-2" aria-hidden="true"></i>
+                {{ 'Update Item' if action == 'edit' else 'Create Item' }}
+            </button>
+        </div>
+    </form>
+</div>
+{% else %}
 <div class="max-w-3xl mx-auto">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
         <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -192,6 +337,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

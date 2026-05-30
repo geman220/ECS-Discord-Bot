@@ -3,6 +3,99 @@
 {% block title %}Edit Match{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% import "macros/_modern_kit.html" as kit %}
+<div class="max-w-2xl mx-auto px-4 py-6 sm:py-8">
+    {% call kit.page_header("Edit Match", subtitle=season.name ~ " · " ~ league_name ~ " League") %}
+        <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            <span>Back to Schedule</span>
+        </a>
+    {% endcall %}
+
+    {% call kit.section_card("Match Details", icon="ti-calendar-event") %}
+        <form method="POST" action="{{ url_for('publeague.schedule.edit_match', match_id=match.id) }}" class="p-4 sm:p-6 space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="edit-match-date" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Date <span class="text-red-500">*</span>
+                    </label>
+                    <input type="date" id="edit-match-date" name="date" value="{{ match.date }}" required class="input-ecs">
+                </div>
+                <div>
+                    <label for="edit-match-time" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Time <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" id="edit-match-time" name="time" value="{{ match.time }}" required class="input-ecs">
+                </div>
+            </div>
+
+            <div>
+                <label for="teamA" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Team A <span class="text-red-500">*</span>
+                </label>
+                <select id="teamA" name="teamA" class="select-ecs">
+                    {% for team in teams %}
+                    <option value="{{ team.id }}" {% if team.id == match.team_id %}selected{% endif %}>{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="teamB" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Team B <span class="text-red-500">*</span>
+                </label>
+                <select id="teamB" name="teamB" class="select-ecs">
+                    {% for team in teams %}
+                    <option value="{{ team.id }}" {% if team.id == match.opponent %}selected{% endif %}>{{ team.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="edit-match-location" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    Location <span class="text-red-500">*</span>
+                </label>
+                <select id="edit-match-location" name="location" class="select-ecs">
+                    <option value="North" {% if match.location == 'North' %}selected{% endif %}>North</option>
+                    <option value="South" {% if match.location == 'South' %}selected{% endif %}>South</option>
+                </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="edit-match-latitude" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Latitude</label>
+                    <input type="number" id="edit-match-latitude" name="latitude" step="any"
+                           value="{% if match.latitude is not none %}{{ match.latitude }}{% endif %}"
+                           placeholder="e.g., 47.6062" class="input-ecs">
+                </div>
+                <div>
+                    <label for="edit-match-longitude" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Longitude</label>
+                    <input type="number" id="edit-match-longitude" name="longitude" step="any"
+                           value="{% if match.longitude is not none %}{{ match.longitude }}{% endif %}"
+                           placeholder="e.g., -122.3321" class="input-ecs">
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"
+                   class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <i class="ti ti-arrow-left" aria-hidden="true"></i>
+                    Back
+                </a>
+                <button type="submit"
+                        class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-check" aria-hidden="true"></i>
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    {% endcall %}
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto">
         <!-- Page Header -->
@@ -137,4 +230,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

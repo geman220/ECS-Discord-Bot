@@ -3,6 +3,152 @@
 {% block title %}Season Configuration - {{ league.name }}{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% import "macros/_modern_kit.html" as kit %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    {% call kit.page_header("Season Configuration", subtitle=league.name) %}
+        <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+           class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Schedule Manager
+        </a>
+    {% endcall %}
+
+    <form method="POST" action="{{ url_for('auto_schedule.season_config', league_id=league.id) }}" class="space-y-5 sm:space-y-6">
+        {{ csrf_token() }}
+
+        {% call kit.section_card("Season Length", icon="ti-calendar") %}
+        <div class="p-4 sm:p-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+                <div>
+                    <label for="regular_season_weeks" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Regular Season Weeks <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" id="regular_season_weeks" name="regular_season_weeks"
+                           value="{{ season_config.regular_season_weeks }}"
+                           min="1" max="20" required class="input-ecs font-mono">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Number of regular season weeks</p>
+                </div>
+                <div>
+                    <label for="playoff_weeks" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Playoff Weeks <span class="text-red-500">*</span>
+                    </label>
+                    <input type="number" id="playoff_weeks" name="playoff_weeks"
+                           value="{{ season_config.playoff_weeks }}"
+                           min="0" max="5" required class="input-ecs font-mono">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Number of playoff weeks</p>
+                </div>
+            </div>
+        </div>
+        {% endcall %}
+
+        {% call kit.section_card("Special Weeks", icon="ti-star") %}
+        <div class="p-4 sm:p-6 space-y-4">
+            <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <input type="checkbox" id="has_fun_week" name="has_fun_week"
+                       {{ 'checked' if season_config.has_fun_week else '' }}
+                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                <div>
+                    <p class="font-medium text-gray-900 dark:text-white">Fun Week</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Include a fun week in the schedule</p>
+                </div>
+            </label>
+            <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <input type="checkbox" id="has_tst_week" name="has_tst_week"
+                       {{ 'checked' if season_config.has_tst_week else '' }}
+                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                <div>
+                    <p class="font-medium text-gray-900 dark:text-white">TST Week</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Include a TST (Tournament) week</p>
+                </div>
+            </label>
+            <label class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                <input type="checkbox" id="has_bonus_week" name="has_bonus_week"
+                       {{ 'checked' if season_config.has_bonus_week else '' }}
+                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                <div>
+                    <p class="font-medium text-gray-900 dark:text-white">Bonus Week</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Include a bonus week at the end of the season</p>
+                </div>
+            </label>
+        </div>
+        {% endcall %}
+
+        {% call kit.section_card("Practice Sessions", icon="ti-ball-football") %}
+        <div class="p-4 sm:p-6 space-y-4">
+            <label class="flex items-center gap-3 cursor-pointer">
+                <input type="checkbox" id="has_practice_sessions" name="has_practice_sessions"
+                       {{ 'checked' if season_config.has_practice_sessions else '' }}
+                       class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+                <div>
+                    <p class="font-medium text-gray-900 dark:text-white">Enable Practice Sessions</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Enable practice sessions for specific weeks</p>
+                </div>
+            </label>
+
+            <div id="practice-config" class="{{ 'hidden' if not season_config.has_practice_sessions else '' }} pt-4 border-t border-gray-200 dark:border-gray-700 mt-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label for="practice_weeks" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Practice Weeks
+                        </label>
+                        <input type="text" id="practice_weeks" name="practice_weeks"
+                               value="{{ season_config.practice_weeks or '' }}"
+                               placeholder="e.g., 1,3" class="input-ecs">
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Comma-separated week numbers (e.g., 1,3)</p>
+                    </div>
+                    <div>
+                        <label for="practice_game_number" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Practice Game Number
+                        </label>
+                        <select id="practice_game_number" name="practice_game_number" class="select-ecs">
+                            <option value="1" {{ 'selected' if season_config.practice_game_number == 1 else '' }}>Game 1</option>
+                            <option value="2" {{ 'selected' if season_config.practice_game_number == 2 else '' }}>Game 2</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Which game number should be practice</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endcall %}
+
+        {% call kit.section_card("Season Structure Preview", icon="ti-info-circle") %}
+        <div class="p-4 sm:p-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div class="space-y-1">
+                    <p class="text-gray-700 dark:text-gray-300"><strong class="font-semibold text-gray-900 dark:text-white">League Type:</strong> {{ season_config.league_type }}</p>
+                    <p class="text-gray-700 dark:text-gray-300"><strong class="font-semibold text-gray-900 dark:text-white">Total Season Length:</strong> <span id="total-weeks" class="font-mono font-bold text-ecs-green">{{ season_config.regular_season_weeks + season_config.playoff_weeks + (1 if season_config.has_fun_week else 0) + (1 if season_config.has_tst_week else 0) + (1 if season_config.has_bonus_week else 0) }}</span> weeks</p>
+                </div>
+                <div>
+                    <ul class="text-gray-600 dark:text-gray-400 space-y-1">
+                        <li><i class="ti ti-check mr-1 text-ecs-green" aria-hidden="true"></i> Regular Season: <span id="preview-regular" class="font-mono">{{ season_config.regular_season_weeks }}</span> weeks</li>
+                        <li id="preview-fun" class="{{ '' if season_config.has_fun_week else 'hidden' }}"><i class="ti ti-check mr-1 text-ecs-green" aria-hidden="true"></i> Fun Week: 1 week</li>
+                        <li id="preview-tst" class="{{ '' if season_config.has_tst_week else 'hidden' }}"><i class="ti ti-check mr-1 text-ecs-green" aria-hidden="true"></i> TST Week: 1 week</li>
+                        <li><i class="ti ti-check mr-1 text-ecs-green" aria-hidden="true"></i> Playoffs: <span id="preview-playoffs" class="font-mono">{{ season_config.playoff_weeks }}</span> weeks</li>
+                        <li id="preview-bonus" class="{{ '' if season_config.has_bonus_week else 'hidden' }}"><i class="ti ti-check mr-1 text-ecs-green" aria-hidden="true"></i> Bonus Week: 1 week</li>
+                    </ul>
+                </div>
+            </div>
+            <div id="preview-practice" class="{{ '' if season_config.has_practice_sessions else 'hidden' }} mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p class="text-gray-700 dark:text-gray-300">
+                    <strong class="font-semibold text-gray-900 dark:text-white">Practice Sessions:</strong> Game <span id="preview-practice-game" class="font-mono">{{ season_config.practice_game_number or 1 }}</span> of weeks <span id="preview-practice-weeks" class="font-mono">{{ season_config.practice_weeks or 'Not specified' }}</span>
+                </p>
+            </div>
+        </div>
+        {% endcall %}
+
+        <div class="flex flex-wrap gap-3">
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Configuration
+            </button>
+            <a href="{{ url_for('auto_schedule.schedule_manager') }}"
+               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <i class="ti ti-x" aria-hidden="true"></i> Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -178,6 +324,7 @@
         </div>
     </form>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

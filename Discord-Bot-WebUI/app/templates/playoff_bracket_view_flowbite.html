@@ -1,10 +1,91 @@
 {% extends "base_flowbite.html" %}
 {% from 'playoff_bracket_macro.html' import render_playoff_bracket %}
 {% from 'macros/flowbite.html' import render_report_match_modal_flowbite %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, stat_card, empty_state %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{# ---- Tournament-state figures computed from real playoff_matches ---- #}
+{% set _matches = playoff_matches or [] %}
+{% set _total = _matches | length %}
+{% set _reported = _matches | selectattr('reported') | list | length %}
+{% set _remaining = _total - _reported %}
+{% set _team_ids = [] %}
+{% for m in _matches %}
+  {% if m.home_team_id and m.home_team_id not in _team_ids %}{% set _ = _team_ids.append(m.home_team_id) %}{% endif %}
+  {% if m.away_team_id and m.away_team_id not in _team_ids %}{% set _ = _team_ids.append(m.away_team_id) %}{% endif %}
+{% endfor %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    {% call page_header(league.name ~ ' Playoffs', subtitle=season.name ~ ' · Interactive bracket & match reporting') %}
+        <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green/10 text-ecs-green text-xs font-semibold">
+            <i class="ti ti-trophy" aria-hidden="true"></i> Playoffs
+        </span>
+    {% endcall %}
+
+    {# ---- At-a-glance tournament state (real counts) ---- #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+        {{ stat_card('ti-list-numbers', 'Matches', _total, sublabel='in bracket', tone='neutral') }}
+        {{ stat_card('ti-circle-check', 'Reported', _reported, sublabel='scores in', tone='success') }}
+        {{ stat_card('ti-clock-play', 'Remaining', _remaining, sublabel='to report', tone=('warning' if _remaining else 'neutral')) }}
+        {{ stat_card('ti-users-group', 'Teams', _team_ids | length, sublabel='competing', tone='info') }}
+    </div>
+
+    <div class="mb-5 sm:mb-6">
+        {% call section_card('Playoff Bracket', icon='ti-tournament') %}
+            <div class="p-4 sm:p-6">
+                {% if _total > 0 %}
+                    {{ render_playoff_bracket(league.id, season.id) }}
+                {% else %}
+                    {{ empty_state('ti-trophy-off', 'No playoff matches yet',
+                        'Once group-stage results are in, the bracket and placement finals will appear here automatically.') }}
+                {% endif %}
+            </div>
+        {% endcall %}
+    </div>
+
+    {# ---- Help, demoted to progressive disclosure (collapsed by default) ---- #}
+    <details class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <summary class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 cursor-pointer select-none list-none
+                        text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white
+                        hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+            <span class="flex items-center gap-2">
+                <i class="ti ti-info-circle text-ecs-green" aria-hidden="true"></i> How to report matches
+            </span>
+            <i class="ti ti-chevron-down text-gray-400 transition-transform motion-safe:duration-200 group-open:rotate-180" aria-hidden="true"></i>
+        </summary>
+        <div class="px-4 sm:px-5 pb-5 pt-1 grid grid-cols-1 sm:grid-cols-2 gap-6 border-t border-gray-200 dark:border-gray-700">
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3 mt-4">From mobile (on the field)</p>
+                <ol class="space-y-2 text-sm text-gray-600 dark:text-gray-300 list-decimal list-inside">
+                    <li>Tap any match card in the bracket above</li>
+                    <li>Enter final scores</li>
+                    <li>Add goals, assists, and cards</li>
+                    <li>Tap "Submit" to save</li>
+                </ol>
+            </div>
+            <div>
+                <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3 mt-4">Group stage updates</p>
+                <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+                    <li class="flex items-start gap-2">
+                        <i class="ti ti-check text-green-600 dark:text-green-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                        <span>Standings update automatically</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="ti ti-check text-green-600 dark:text-green-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                        <span>Placement finals generate after Week 2 morning</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <i class="ti ti-check text-green-600 dark:text-green-400 mt-0.5 shrink-0" aria-hidden="true"></i>
+                        <span>Bracket refreshes every 30 seconds</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </details>
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 rounded-xl p-6 mb-6">
@@ -66,6 +147,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Match Reporting Modals -->
 {% if playoff_matches %}

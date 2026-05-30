@@ -1,0 +1,222 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Mobile Error List{% endblock %}
+{% block panel_description %}Browse individual mobile app error reports{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mobile_features') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Mobile Features</a>
+    </div>
+</li>
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <a href="{{ url_for('admin_panel.mobile_error_analytics') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">Error Analytics</a>
+    </div>
+</li>
+<li aria-current="page">
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Error List</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_filter_bar, empty_state, alert as kit_alert %}
+
+<div class="space-y-5 sm:space-y-6">
+  {% call page_header("Mobile Error List", subtitle="Mobile Features · Error Analytics") %}
+    <a href="{{ url_for('admin_panel.mobile_error_analytics') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+              border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
+              text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-chart-bar" aria-hidden="true"></i> Analytics
+    </a>
+  {% endcall %}
+
+  {{ kit_alert("info", "Showing reports from the last " ~ current_filters.days ~ " day(s)." ~ (" Severity: " ~ current_filters.severity if current_filters.severity else "") ~ (" Type: " ~ current_filters.error_type if current_filters.error_type else ""), title="Mobile error list.", dismissible=false) }}
+
+  {# Filter form — preserves the route's query params (days / severity / error_type) #}
+  {% call section_card("Filters", icon="ti-filter") %}
+    <form method="get" action="{{ url_for('admin_panel.mobile_error_list') }}"
+          class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 p-4 sm:p-5 items-end">
+      <div>
+        <label for="days" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Time window</label>
+        <select name="days" id="days" class="input-ecs h-10 w-full text-sm">
+          {% for d in [1, 7, 14, 30, 90] %}
+          <option value="{{ d }}" {% if current_filters.days == d %}selected{% endif %}>Last {{ d }} day(s)</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="severity" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Severity</label>
+        <select name="severity" id="severity" class="input-ecs h-10 w-full text-sm">
+          <option value="">All severities</option>
+          {% for s in severity_options %}
+          <option value="{{ s }}" {% if current_filters.severity == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="error_type" class="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">Error type</label>
+        <select name="error_type" id="error_type" class="input-ecs h-10 w-full text-sm">
+          <option value="">All types</option>
+          {% for t in error_type_options %}
+          <option value="{{ t }}" {% if current_filters.error_type == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="flex items-center gap-2">
+        <button type="submit"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
+                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-filter" aria-hidden="true"></i> Apply
+        </button>
+        <a href="{{ url_for('admin_panel.mobile_error_list') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-3 rounded-lg
+                  border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300
+                  text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          Reset
+        </a>
+      </div>
+    </form>
+  {% endcall %}
+
+  {% set sev_tone = {
+    'critical': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+    'error':    'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+    'high':     'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+    'warning':  'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+    'medium':   'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+    'info':     'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+    'low':      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+  } %}
+
+  {% set table_footer %}
+    {% if errors.pages > 1 %}
+    <nav class="flex items-center justify-between w-full" aria-label="Pagination">
+      <p class="hidden sm:block text-xs text-gray-500 dark:text-gray-400">
+        Page <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ errors.page }}</span>
+        of <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ errors.pages }}</span>
+        · <span class="font-mono">{{ errors.total }}</span> total
+      </p>
+      <div class="flex flex-1 sm:flex-none items-center justify-between sm:justify-end gap-2">
+        {% if errors.has_prev %}
+        <a href="{{ url_for('admin_panel.mobile_error_list', page=errors.prev_num, **current_filters) }}"
+           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-chevron-left" aria-hidden="true"></i> Previous
+        </a>
+        {% endif %}
+        {% if errors.has_next %}
+        <a href="{{ url_for('admin_panel.mobile_error_list', page=errors.next_num, **current_filters) }}"
+           class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          Next <i class="ti ti-chevron-right" aria-hidden="true"></i>
+        </a>
+        {% endif %}
+      </div>
+    </nav>
+    {% endif %}
+  {% endset %}
+
+  {% if errors.items %}
+  {% call data_table("Error Reports", icon="ti-list-details", count=errors.total, search_placeholder="Filter reports…", search_id="errorFilter", footer=table_footer) %}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead class="bg-gray-50 dark:bg-gray-900/40">
+        <tr>
+          {{ data_table_th("When", key="when") }}
+          {{ data_table_th("Type", key="type", hide='sm') }}
+          {{ data_table_th("Severity", key="severity", hide='sm') }}
+          {{ data_table_th("Message", key="message", sortable=false) }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for error in errors.items %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3 align-top whitespace-nowrap font-mono text-gray-900 dark:text-white">{{ error.created_at }}</td>
+          <td class="px-3 py-3 align-top hidden md:table-cell">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ error.error_type or '—' }}</span>
+          </td>
+          <td class="px-3 py-3 align-top hidden md:table-cell">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ sev_tone.get(error.severity|lower, sev_tone['low']) if error.severity else sev_tone['low'] }}">{{ error.severity or '—' }}</span>
+          </td>
+          <td class="px-3 py-3 align-top text-gray-700 dark:text-gray-300">{{ error.error_message or error.message or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Mobile stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for error in errors.items %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-start justify-between gap-2">
+          <p class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ error.created_at }}</p>
+          {% if error.severity %}
+          <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ sev_tone.get(error.severity|lower, sev_tone['low']) }}">{{ error.severity }}</span>
+          {% endif %}
+        </div>
+        <p class="mt-1.5 text-sm font-medium text-gray-900 dark:text-white break-words">{{ error.error_message or error.message or '—' }}</p>
+        {% if error.error_type %}
+        <span class="mt-1.5 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ error.error_type }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  {% call data_table("Error Reports", icon="ti-list-details", count=0, filters=false) %}
+    {{ empty_state("ti-bug-off", "No errors found", "No mobile error reports match the selected filters. Try widening the time window or clearing filters.") }}
+  {% endcall %}
+  {% endif %}
+</div>
+{% else %}
+<div class="p-4 space-y-6">
+    <div class="flex items-center p-4 text-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400" role="alert">
+        <i class="ti ti-list-details mr-3 text-xl"></i>
+        <div>
+            <span class="font-medium">Mobile error list.</span>
+            Showing reports from the last {{ current_filters.days }} day(s).
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">When</th>
+                        <th scope="col" class="px-6 py-3 hidden md:table-cell">Type</th>
+                        <th scope="col" class="px-6 py-3 hidden md:table-cell">Severity</th>
+                        <th scope="col" class="px-6 py-3">Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for error in errors.items %}
+                    <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                        <td class="px-6 py-4 whitespace-nowrap">{{ error.created_at }}</td>
+                        <td class="px-6 py-4 hidden md:table-cell">{{ error.error_type }}</td>
+                        <td class="px-6 py-4 hidden md:table-cell">{{ error.severity }}</td>
+                        <td class="px-6 py-4">{{ error.error_message or error.message or '—' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr class="bg-white dark:bg-gray-800">
+                        <td colspan="4" class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                            No errors found for the selected filters.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

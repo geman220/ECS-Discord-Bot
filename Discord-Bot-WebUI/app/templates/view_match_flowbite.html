@@ -9,6 +9,318 @@
 {% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+{% from 'macros/flowbite.html' import avatar %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 space-y-5 sm:space-y-6">
+
+  {% if is_ecs_fc_match %}
+    {% call page_header(team.name ~ ' vs ' ~ ecs_match.opponent_name, subtitle='ECS FC Match · ' ~ ecs_match.match_date.strftime('%a, %b %d')) %}
+      {% if safe_current_user.has_permission('view_rsvps') %}
+      <a href="{{ url_for('admin.rsvp_status', match_id='ecs_' + ecs_match.id|string) }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-users" aria-hidden="true"></i><span class="hidden sm:inline">Manage RSVPs</span><span class="sm:hidden">RSVPs</span>
+      </a>
+      {% endif %}
+      {% if safe_current_user.has_permission('view_match_reporting') %}
+      <button type="button"
+              class="edit-match-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              data-action="edit-match-report" data-match-id="ecs_{{ ecs_match.id }}" data-is-ecs-fc="true">
+        <i class="ti ti-report" aria-hidden="true"></i>Report Match
+      </button>
+      {% endif %}
+    {% endcall %}
+  {% else %}
+    {% call page_header(match.home_team.name ~ ' vs ' ~ match.away_team.name, subtitle='Match · ' ~ match.date.strftime('%a, %b %d')) %}
+      {% if safe_current_user.has_permission('view_rsvps') %}
+      <a href="{{ url_for('admin.rsvp_status', match_id=match.id) }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-users" aria-hidden="true"></i><span class="hidden sm:inline">Manage RSVPs</span><span class="sm:hidden">RSVPs</span>
+      </a>
+      {% endif %}
+      {% if safe_current_user.has_permission('view_match_reporting') %}
+      <button type="button"
+              class="edit-match-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              data-action="edit-match-report" data-match-id="{{ match.id }}">
+        <i class="ti ti-{% if match.reported %}edit{% else %}report{% endif %}" aria-hidden="true"></i>{% if match.reported %}Edit Report{% else %}Submit Report{% endif %}
+      </button>
+      {% endif %}
+    {% endcall %}
+  {% endif %}
+
+  {# --- INTENT-FIRST hero: scoreboard if reported, else the report prompt --- #}
+  {% if not is_ecs_fc_match and safe_current_user.has_permission('view_game_results') and match.reported %}
+  {% set home_won = match.home_team_score > match.away_team_score %}
+  {% set away_won = match.home_team_score < match.away_team_score %}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-6">
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex-1 min-w-0 text-center">
+        <p class="text-sm sm:text-base font-bold truncate {{ 'text-ecs-green' if home_won else 'text-gray-900 dark:text-white' }}">{{ match.home_team.name }}</p>
+        <p class="text-[11px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">Home</p>
+      </div>
+      <div class="shrink-0 flex items-center gap-2 sm:gap-3">
+        <span class="font-mono text-4xl sm:text-5xl font-extrabold leading-none {{ 'text-ecs-green' if home_won else 'text-gray-900 dark:text-white' }}">{{ match.home_team_score }}</span>
+        <span class="font-mono text-2xl sm:text-3xl font-bold text-gray-300 dark:text-gray-600">-</span>
+        <span class="font-mono text-4xl sm:text-5xl font-extrabold leading-none {{ 'text-ecs-green' if away_won else 'text-gray-900 dark:text-white' }}">{{ match.away_team_score }}</span>
+      </div>
+      <div class="flex-1 min-w-0 text-center">
+        <p class="text-sm sm:text-base font-bold truncate {{ 'text-ecs-green' if away_won else 'text-gray-900 dark:text-white' }}">{{ match.away_team.name }}</p>
+        <p class="text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Away</p>
+      </div>
+    </div>
+    <div class="mt-4 flex justify-center">
+      {% if home_won %}
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-trophy" aria-hidden="true"></i>{{ match.home_team.name }} Won</span>
+      {% elif away_won %}
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-trophy" aria-hidden="true"></i>{{ match.away_team.name }} Won</span>
+      {% else %}
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-equal" aria-hidden="true"></i>Draw</span>
+      {% endif %}
+    </div>
+  </div>
+  {% elif not is_ecs_fc_match and safe_current_user.has_permission('view_match_reporting') and not match.reported %}
+  {# Not-yet-reported: surface the primary job front-and-center #}
+  <div class="rounded-xl border border-dashed border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+    <i class="ti ti-clipboard-off text-2xl text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-bold text-gray-900 dark:text-white">No result reported yet</p>
+      <p class="text-sm text-amber-800 dark:text-amber-300">Submit the score and goal/card events once the match is played.</p>
+    </div>
+    <button type="button"
+            class="edit-match-btn inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-amber-50 shrink-0"
+            data-action="edit-match-report" data-match-id="{{ match.id }}">
+      <i class="ti ti-report" aria-hidden="true"></i>Submit Report
+    </button>
+  </div>
+  {% endif %}
+
+  {% call section_card('Match Details', icon='ti-info-circle') %}
+    <div class="p-4 sm:p-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="flex items-center gap-3">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center"><i class="ti ti-map-pin text-blue-600 dark:text-blue-400" aria-hidden="true"></i></div>
+          <div class="min-w-0"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Location</p><p class="font-medium text-gray-900 dark:text-white truncate">{{ ecs_match.location if is_ecs_fc_match else match.location }}</p></div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center"><i class="ti ti-calendar text-blue-600 dark:text-blue-400" aria-hidden="true"></i></div>
+          <div class="min-w-0"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Date</p><p class="font-medium text-gray-900 dark:text-white font-mono">{{ ecs_match.match_date.strftime('%a, %b %d, %Y') if is_ecs_fc_match else match.date.strftime('%a, %b %d, %Y') }}</p></div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/40 flex items-center justify-center"><i class="ti ti-clock text-green-600 dark:text-green-400" aria-hidden="true"></i></div>
+          <div class="min-w-0"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Time</p><p class="font-medium text-gray-900 dark:text-white font-mono">{{ ecs_match.match_time.strftime('%I:%M %p') if is_ecs_fc_match else match.time.strftime('%I:%M %p') }}</p></div>
+        </div>
+        {% if is_ecs_fc_match and ecs_match.field_name %}
+        <div class="flex items-center gap-3">
+          <div class="shrink-0 w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center"><i class="ti ti-world text-amber-600 dark:text-amber-400" aria-hidden="true"></i></div>
+          <div class="min-w-0"><p class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Field/Pitch</p><p class="font-medium text-gray-900 dark:text-white truncate">{{ ecs_match.field_name }}</p></div>
+        </div>
+        {% endif %}
+      </div>
+      {% if safe_current_user.has_permission('view_game_results') and ((is_ecs_fc_match and ecs_match.notes) or (not is_ecs_fc_match and match.notes)) %}
+      <div class="mt-4 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-500/30 flex items-start gap-3">
+        <i class="ti ti-notes text-blue-600 dark:text-blue-400 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+        <div class="min-w-0"><p class="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">Match Notes</p><p class="text-sm text-gray-600 dark:text-gray-300">{{ ecs_match.notes if is_ecs_fc_match else match.notes }}</p></div>
+      </div>
+      {% endif %}
+    </div>
+  {% endcall %}
+
+  {% if is_ecs_fc_match %}
+  {# --- ECS FC single-team squad --- #}
+  {% if safe_current_user.has_permission('view_rsvps') %}
+  <div>
+    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Availability</p>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      {{ stat_card('ti-circle-check', 'Yes', home_rsvp_data['available'] | length, tone='success') }}
+      {{ stat_card('ti-help-circle', 'Maybe', home_rsvp_data['maybe'] | length, tone='gold') }}
+      {{ stat_card('ti-circle-x', 'No', home_rsvp_data['not_available'] | length, tone='danger') }}
+      {{ stat_card('ti-circle-minus', 'No Response', home_rsvp_data['no_response'] | length, tone='neutral') }}
+    </div>
+  </div>
+  {% endif %}
+
+  {% call section_card(team.name ~ ' Squad', icon='ti-ball-football') %}
+    {% if not team.players and not home_rsvp_data['available'] %}
+    {{ empty_state('ti-users-off', 'No squad members', 'This team has no players assigned and no RSVPs yet.') }}
+    {% else %}
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+      {% for player in team.players %}
+      <li class="flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="flex items-center gap-3 min-w-0 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold-400">
+          {{ avatar(src=player.profile_picture_url, alt=player.name, size='sm', fallback=player.name) }}
+          <span class="font-medium truncate">{{ player.name }}</span>
+          {% if player.is_coach %}<i class="ti ti-crown text-ecs-gold-500 dark:text-ecs-gold-400 text-sm shrink-0" title="Coach" aria-label="Coach"></i>{% endif %}
+        </a>
+        {% if safe_current_user.has_permission('view_rsvps') %}
+        <span class="shrink-0">
+          {% if player in home_rsvp_data['available'] %}
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400"><i class="ti ti-check text-sm" aria-hidden="true"></i></span>
+          {% elif player in home_rsvp_data['not_available'] %}
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400"><i class="ti ti-x text-sm" aria-hidden="true"></i></span>
+          {% elif player in home_rsvp_data['maybe'] %}
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400"><i class="ti ti-question-mark text-sm" aria-hidden="true"></i></span>
+          {% else %}
+          <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400"><i class="ti ti-minus text-sm" aria-hidden="true"></i></span>
+          {% endif %}
+        </span>
+        {% endif %}
+      </li>
+      {% endfor %}
+      {% for player in home_rsvp_data['available'] %}
+      {% if player not in team.players %}
+      <li class="flex items-center justify-between gap-3 px-4 py-2.5 bg-gray-50 dark:bg-gray-700/40">
+        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="flex items-center gap-3 min-w-0 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold-400">
+          {{ avatar(src=player.profile_picture_url, alt=player.name, size='sm', fallback=player.name) }}
+          <span class="font-medium truncate">{{ player.name }}</span>
+          <span class="text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 shrink-0">Sub</span>
+        </a>
+        <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-green-100 dark:bg-green-900/40 text-green-600 dark:text-green-400 shrink-0"><i class="ti ti-check text-sm" aria-hidden="true"></i></span>
+      </li>
+      {% endif %}
+      {% endfor %}
+    </ul>
+    {% endif %}
+  {% endcall %}
+
+  {% else %}
+  {# --- Regular match: two teams via tabs --- #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="border-b border-gray-200 dark:border-gray-700">
+      <nav class="flex -mb-px" role="tablist">
+        <button type="button" class="team-tab flex-1 min-h-[44px] py-3 px-4 text-center border-b-2 border-ecs-green text-ecs-green dark:text-ecs-gold-400 dark:border-ecs-gold-400 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green"
+                data-tab="home" aria-selected="true">
+          {{ match.home_team.name }}
+          <span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">Home</span>
+        </button>
+        <button type="button" class="team-tab flex-1 min-h-[44px] py-3 px-4 text-center border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 font-semibold text-sm focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green"
+                data-tab="away" aria-selected="false">
+          {{ match.away_team.name }}
+          <span class="ml-1 text-xs px-1.5 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400">Away</span>
+        </button>
+      </nav>
+    </div>
+
+    {# Home team #}
+    <div id="home-content" class="team-content p-4 sm:p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h6 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">RSVP Summary</h6>
+        {% if safe_current_user.has_permission('view_team_record') %}
+        <span class="text-xs font-mono px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">Record {{ match.home_team.wins }}-{{ match.home_team.losses }}-{{ match.home_team.ties }}</span>
+        {% endif %}
+      </div>
+      {% if safe_current_user.has_permission('view_rsvps') %}
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        {{ stat_card('ti-circle-check', 'Yes', home_rsvp_data['available'] | length, tone='success') }}
+        {{ stat_card('ti-help-circle', 'Maybe', home_rsvp_data['maybe'] | length, tone='gold') }}
+        {{ stat_card('ti-circle-x', 'No', home_rsvp_data['not_available'] | length, tone='danger') }}
+        {{ stat_card('ti-circle-minus', 'No Response', home_rsvp_data['no_response'] | length, tone='neutral') }}
+      </div>
+      {% endif %}
+      {% if not match.home_team.players and not home_rsvp_data['available'] %}
+      {{ empty_state('ti-users-off', 'No roster', match.home_team.name ~ ' has no players assigned yet.') }}
+      {% else %}
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" role="list">
+        {% for player in match.home_team.players %}
+        <li class="flex items-center justify-between gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="flex items-center gap-2.5 min-w-0 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold-400">
+            {{ avatar(src=player.profile_picture_url, alt=player.name, size='sm', fallback=player.name) }}
+            <span class="text-sm truncate">{{ player.name }}</span>
+          </a>
+          {% if safe_current_user.has_permission('view_rsvps') %}
+          {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+          {% if availability and availability.response == 'yes' %}<i class="ti ti-check text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+          {% elif availability and availability.response == 'no' %}<i class="ti ti-x text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+          {% elif availability and availability.response == 'maybe' %}<i class="ti ti-question-mark text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+          {% else %}<i class="ti ti-minus text-gray-400 shrink-0" aria-hidden="true"></i>{% endif %}
+          {% endif %}
+        </li>
+        {% endfor %}
+        {% for player in home_rsvp_data['available'] %}
+        {% if player not in match.home_team.players %}
+        <li class="flex items-center justify-between gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-700/40">
+          <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="flex items-center gap-2.5 min-w-0 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold-400">
+            {{ avatar(src=player.profile_picture_url, alt=player.name, size='sm', fallback=player.name) }}
+            <span class="text-sm truncate">{{ player.name }}</span>
+            <span class="text-xs px-1 py-0.5 rounded bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-300 shrink-0">Sub</span>
+          </a>
+          <i class="ti ti-check text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+        </li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+
+    {# Away team #}
+    <div id="away-content" class="team-content p-4 sm:p-5 hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h6 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">RSVP Summary</h6>
+        {% if safe_current_user.has_permission('view_team_record') %}
+        <span class="text-xs font-mono px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">Record {{ match.away_team.wins }}-{{ match.away_team.losses }}-{{ match.away_team.ties }}</span>
+        {% endif %}
+      </div>
+      {% if safe_current_user.has_permission('view_rsvps') %}
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        {{ stat_card('ti-circle-check', 'Yes', away_rsvp_data['available'] | length, tone='success') }}
+        {{ stat_card('ti-help-circle', 'Maybe', away_rsvp_data['maybe'] | length, tone='gold') }}
+        {{ stat_card('ti-circle-x', 'No', away_rsvp_data['not_available'] | length, tone='danger') }}
+        {{ stat_card('ti-circle-minus', 'No Response', away_rsvp_data['no_response'] | length, tone='neutral') }}
+      </div>
+      {% endif %}
+      {% if not match.away_team.players and not away_rsvp_data['available'] %}
+      {{ empty_state('ti-users-off', 'No roster', match.away_team.name ~ ' has no players assigned yet.') }}
+      {% else %}
+      <ul class="divide-y divide-gray-200 dark:divide-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden" role="list">
+        {% for player in match.away_team.players %}
+        <li class="flex items-center justify-between gap-3 px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="flex items-center gap-2.5 min-w-0 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold-400">
+            {{ avatar(src=player.profile_picture_url, alt=player.name, size='sm', fallback=player.name) }}
+            <span class="text-sm truncate">{{ player.name }}</span>
+          </a>
+          {% if safe_current_user.has_permission('view_rsvps') %}
+          {% set availability = player.availability | selectattr('match_id', 'equalto', match.id) | first %}
+          {% if availability and availability.response == 'yes' %}<i class="ti ti-check text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+          {% elif availability and availability.response == 'no' %}<i class="ti ti-x text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+          {% elif availability and availability.response == 'maybe' %}<i class="ti ti-question-mark text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+          {% else %}<i class="ti ti-minus text-gray-400 shrink-0" aria-hidden="true"></i>{% endif %}
+          {% endif %}
+        </li>
+        {% endfor %}
+        {% for player in away_rsvp_data['available'] %}
+        {% if player not in match.away_team.players %}
+        <li class="flex items-center justify-between gap-3 px-3 py-2 bg-gray-50 dark:bg-gray-700/40">
+          <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="flex items-center gap-2.5 min-w-0 text-gray-900 dark:text-white hover:text-ecs-green dark:hover:text-ecs-gold-400">
+            {{ avatar(src=player.profile_picture_url, alt=player.name, size='sm', fallback=player.name) }}
+            <span class="text-sm truncate">{{ player.name }}</span>
+            <span class="text-xs px-1 py-0.5 rounded bg-gray-200 dark:bg-gray-600 text-gray-500 dark:text-gray-300 shrink-0">Sub</span>
+          </a>
+          <i class="ti ti-check text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+        </li>
+        {% endif %}
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if not is_ecs_fc_match and safe_current_user.has_permission('view_rsvps') %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <a href="{{ url_for('match_pages.match_lineup', match_id=match.id, team_id=match.home_team_id) }}"
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+       title="Edit {{ match.home_team.name }} lineup">
+      <i class="ti ti-layout-grid" aria-hidden="true"></i>{{ match.home_team.name }} Lineup
+    </a>
+    <a href="{{ url_for('match_pages.match_lineup', match_id=match.id, team_id=match.away_team_id) }}"
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+       title="Edit {{ match.away_team.name }} lineup">
+      <i class="ti ti-layout-grid" aria-hidden="true"></i>{{ match.away_team.name }} Lineup
+    </a>
+  </div>
+  {% endif %}
+  {% endif %}
+
+</div>
+{% else %}
 <div class="p-4 space-y-6">
     <!-- Match Header Card -->
     <div class="bg-gradient-to-r from-ecs-green to-ecs-green/80 dark:from-ecs-green/90 dark:to-ecs-green/70 rounded-xl p-6 text-white">
@@ -482,6 +794,7 @@
     <!-- Add padding for fixed bottom bar on mobile -->
     <div class="h-20 lg:hidden"></div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

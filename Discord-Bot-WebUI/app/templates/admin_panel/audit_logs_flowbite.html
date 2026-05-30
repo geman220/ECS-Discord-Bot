@@ -14,6 +14,242 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state, alert as kit_alert %}
+
+{% call page_header("Audit Logs", subtitle="Administration") %}
+  <button type="button"
+          class="js-export-logs inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+          data-action="export-logs" data-format="csv">
+    <i class="ti ti-download" aria-hidden="true"></i>Export CSV
+  </button>
+{% endcall %}
+
+<div class="space-y-5 sm:space-y-6">
+  {{ kit_alert("info", "Track all administrative actions performed in the system. Use filters to find specific activities.", title="Admin Audit Logs", dismissible=false) }}
+
+  {# Filters #}
+  {% call section_card("Filters", icon="ti-filter") %}
+  <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 p-4 sm:p-5">
+    <div>
+      <label for="user_id" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">User</label>
+      <select name="user_id" id="user_id"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <option value="">All Users</option>
+        {% for user in users %}
+        <option value="{{ user.id }}" {% if current_filters.user_id == user.id %}selected{% endif %}>
+          {{ user.name or user.username or user.email }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="resource_type" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Resource Type</label>
+      <select name="resource_type" id="resource_type"
+              class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+        <option value="">All Types</option>
+        {% for rt in resource_types %}
+        <option value="{{ rt }}" {% if current_filters.resource_type == rt %}selected{% endif %}>
+          {{ rt.replace('_', ' ').title() }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <label for="date_from" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Date From</label>
+      <input type="date" name="date_from" id="date_from" value="{{ current_filters.date_from or '' }}"
+             class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+
+    <div>
+      <label for="date_to" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">Date To</label>
+      <input type="date" name="date_to" id="date_to" value="{{ current_filters.date_to or '' }}"
+             class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+
+    <div class="flex items-end gap-2">
+      <button type="submit"
+              class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-search" aria-hidden="true"></i>Filter
+      </button>
+      <a href="{{ url_for('admin_panel.audit_logs') }}"
+         class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-10 sm:w-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+         aria-label="Clear filters">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </a>
+    </div>
+  </form>
+  {% endcall %}
+
+  {# Statistics #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    {{ stat_card("ti-list", "Total Entries", logs.total, tone='primary') }}
+    {{ stat_card("ti-file", "Current Page", (logs.page ~ ' / ' ~ (logs.pages or 1)), tone='info') }}
+    {{ stat_card("ti-users", "Active Users", users|length, tone='success') }}
+    {{ stat_card("ti-category", "Resource Types", resource_types|length, tone='gold') }}
+  </div>
+
+  {# Audit log entries #}
+  {% set table_footer %}
+    {% if logs.pages > 1 %}
+    <nav aria-label="Audit logs pagination" class="w-full flex justify-center">
+      <ul class="inline-flex items-center -space-x-px">
+        {% if logs.has_prev %}
+        <li>
+          <a href="{{ url_for('admin_panel.audit_logs', page=logs.prev_num, **current_filters) }}"
+             class="block px-3 py-2 ml-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+            <i class="ti ti-chevron-left" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% endif %}
+        {% for page_num in logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+          {% if page_num %}
+            {% if page_num == logs.page %}
+            <li><span class="z-10 px-3 py-2 leading-tight text-white bg-ecs-green border border-ecs-green dark:bg-ecs-green dark:border-ecs-green">{{ page_num }}</span></li>
+            {% else %}
+            <li><a href="{{ url_for('admin_panel.audit_logs', page=page_num, **current_filters) }}" class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">{{ page_num }}</a></li>
+            {% endif %}
+          {% else %}
+          <li><span class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">...</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if logs.has_next %}
+        <li>
+          <a href="{{ url_for('admin_panel.audit_logs', page=logs.next_num, **current_filters) }}"
+             class="block px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">
+            <i class="ti ti-chevron-right" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  {% endset %}
+
+  {% if logs.items %}
+  {% call data_table("Audit Log Entries", icon="ti-list", count=logs.total, search_placeholder="Filter entries…", search_id="auditFilter", footer=table_footer) %}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead class="bg-gray-50 dark:bg-gray-900/40">
+        <tr>
+          {{ data_table_th("Timestamp", key="timestamp") }}
+          {{ data_table_th("User", key="user", hide='sm') }}
+          {{ data_table_th("Action", key="action") }}
+          {{ data_table_th("Resource Type", key="resource_type", hide='md') }}
+          {{ data_table_th("Resource ID", key="resource_id", sortable=false) }}
+          {{ data_table_th("Details", key="details", sortable=false, align='right') }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for log in logs.items %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3 align-top">
+            <span class="block whitespace-nowrap font-mono text-gray-900 dark:text-white">{{ log.timestamp.strftime('%Y-%m-%d') }}</span>
+            <span class="block text-xs font-mono text-gray-500 dark:text-gray-400">{{ log.timestamp.strftime('%H:%M:%S') }}</span>
+          </td>
+          <td class="px-3 py-3 align-top hidden md:table-cell">
+            {% if log.user %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+              {{ log.user.name or log.user.username or log.user.email }}
+            </span>
+            {% else %}
+            <span class="text-gray-400 dark:text-gray-500">System</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 align-top">
+            {% if log.action == 'create' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-plus mr-1" aria-hidden="true"></i>{{ log.action }}</span>
+            {% elif log.action == 'update' or log.action == 'toggle' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-edit mr-1" aria-hidden="true"></i>{{ log.action }}</span>
+            {% elif log.action == 'delete' %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-trash mr-1" aria-hidden="true"></i>{{ log.action }}</span>
+            {% elif log.action == 'access' or 'access' in log.action %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-eye mr-1" aria-hidden="true"></i>{{ log.action }}</span>
+            {% elif log.action == 'verify' or 'verify' in log.action %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20"><i class="ti ti-check mr-1" aria-hidden="true"></i>{{ log.action }}</span>
+            {% else %}
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ log.action }}</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 align-top hidden lg:table-cell">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+              {{ log.resource_type.replace('_', ' ').title() if log.resource_type else 'N/A' }}
+            </span>
+          </td>
+          <td class="px-3 py-3 align-top">
+            <code class="px-2 py-1 text-xs font-mono bg-gray-100 dark:bg-gray-700 rounded">{{ log.resource_id or '-' }}</code>
+          </td>
+          <td class="px-3 py-3 align-top text-right">
+            <button type="button"
+                    class="js-show-log-details inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    data-action="show-log-details"
+                    data-log-id="{{ log.id }}"
+                    data-old-value="{{ log.old_value|e if log.old_value else '' }}"
+                    data-new-value="{{ log.new_value|e if log.new_value else '' }}"
+                    data-ip-address="{{ log.ip_address or '' }}"
+                    aria-label="View details">
+              <i class="ti ti-info-circle" aria-hidden="true"></i>
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Mobile stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for log in logs.items %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-start justify-between gap-2">
+          <div class="min-w-0">
+            <p class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ log.timestamp.strftime('%Y-%m-%d') }}</p>
+            <p class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ log.timestamp.strftime('%H:%M:%S') }}</p>
+          </div>
+          <button type="button"
+                  class="js-show-log-details shrink-0 inline-flex items-center justify-center p-2 min-h-[44px] min-w-[44px] text-blue-600 hover:bg-blue-100 rounded-lg dark:text-blue-400 dark:hover:bg-blue-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  data-action="show-log-details"
+                  data-log-id="{{ log.id }}"
+                  data-old-value="{{ log.old_value|e if log.old_value else '' }}"
+                  data-new-value="{{ log.new_value|e if log.new_value else '' }}"
+                  data-ip-address="{{ log.ip_address or '' }}"
+                  aria-label="View details">
+            <i class="ti ti-info-circle" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+          {% if log.action == 'create' %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-plus mr-1" aria-hidden="true"></i>{{ log.action }}</span>
+          {% elif log.action == 'update' or log.action == 'toggle' %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"><i class="ti ti-edit mr-1" aria-hidden="true"></i>{{ log.action }}</span>
+          {% elif log.action == 'delete' %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"><i class="ti ti-trash mr-1" aria-hidden="true"></i>{{ log.action }}</span>
+          {% elif log.action == 'access' or 'access' in log.action %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-eye mr-1" aria-hidden="true"></i>{{ log.action }}</span>
+          {% elif log.action == 'verify' or 'verify' in log.action %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20"><i class="ti ti-check mr-1" aria-hidden="true"></i>{{ log.action }}</span>
+          {% else %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ log.action }}</span>
+          {% endif %}
+          {% if log.resource_type %}
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">{{ log.resource_type.replace('_', ' ').title() }}{% if log.resource_id %} #{{ log.resource_id }}{% endif %}</span>
+          {% endif %}
+        </div>
+        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          {% if log.user %}{{ log.user.name or log.user.username or log.user.email }}{% else %}System{% endif %}
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  {% call data_table("Audit Log Entries", icon="ti-list", count=0, filters=false) %}
+    {{ empty_state("ti-history", "No audit log entries found", "Try adjusting your filters or check back later.") }}
+  {% endcall %}
+  {% endif %}
+</div>
+{% else %}
 <!-- Info Alert -->
 {{ alert("Track all administrative actions performed in the system. Use filters to find specific activities.", variant="info", title="Admin Audit Logs", dismissible=false) }}
 
@@ -278,6 +514,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

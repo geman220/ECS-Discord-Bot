@@ -4,10 +4,8 @@
   Each macro here is presentation-only; none of them re-decide visibility.
 
   Macros:
-    sidebar_nav(nav_sections)     — Classic shell (A): vertical sidebar.
-    console_rail(nav_sections)    — Console shell (B): expand-on-hover icon rail.
-    matchday_topnav(nav_sections) — Matchday shell (C): desktop horizontal nav.
-    matchday_bottomnav(nav_sections) — Matchday shell (C): mobile bottom tab bar.
+    sidebar_nav(nav_sections)   — Classic shell: vertical sidebar.
+    console_rail(nav_sections)  — Console (Modern) shell: expand-on-hover icon rail.
 #}
 
 {# ============================================================================
@@ -126,77 +124,4 @@
       </a>
     </li>
   {% endif %}
-{% endmacro %}
-
-
-{# ============================================================================
-   Shell C — Matchday: desktop horizontal nav (Admin tucked into an overflow
-   dropdown to avoid crowding) + mobile bottom tab bar.
-   ============================================================================ #}
-{% macro matchday_topnav(nav_sections) %}
-<nav class="hidden lg:flex items-center gap-1 flex-1 min-w-0" aria-label="Primary">
-  {% for section in nav_sections if section.title != 'Administration' %}
-    {% for item in section['items'] %}
-      {% if item.children %}
-        {{ _matchday_dropdown(item, 'md-dd-' ~ item.label|lower|replace(' ', '-')) }}
-      {% else %}
-        <a href="{{ item.url }}" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap {{ 'bg-white/15 text-white' if item.active else 'text-white/90 hover:bg-white/10' }}">
-          <i class="ti {{ item.icon }} w-4 h-4"></i>{{ item.label }}
-        </a>
-      {% endif %}
-    {% endfor %}
-  {% endfor %}
-  {% for section in nav_sections if section.title == 'Administration' %}
-    <button type="button" data-dropdown-toggle="md-dd-admin" class="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap text-white/90 hover:bg-white/10">
-      <i class="ti ti-shield-cog w-4 h-4"></i>Admin<i class="ti ti-chevron-down w-3.5 h-3.5"></i>
-    </button>
-    <div id="md-dd-admin" class="z-50 hidden w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
-      <ul>
-        {% for item in section['items'] %}
-          {% if item.children %}
-            <li class="px-4 pt-2 pb-1 text-[11px] font-semibold uppercase text-gray-400">{{ item.label }}</li>
-            {% for child in item.children %}
-              <li><a href="{{ child.url }}" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'text-ecs-green font-medium' if child.active else 'text-gray-700 dark:text-gray-200' }}">{{ child.label }}</a></li>
-            {% endfor %}
-          {% else %}
-            <li><a href="{{ item.url }}" class="flex items-center gap-2 px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'text-ecs-green font-medium' if item.active else 'text-gray-700 dark:text-gray-200' }}"><i class="ti {{ item.icon }} w-4 h-4"></i><span class="flex-1">{{ item.label }}</span>{% if item.badge %}<span class="px-1.5 py-0.5 text-[10px] font-semibold bg-ecs-gold text-ecs-green-950 rounded">{{ item.badge }}</span>{% endif %}</a></li>
-          {% endif %}
-        {% endfor %}
-      </ul>
-    </div>
-  {% endfor %}
-</nav>
-{% endmacro %}
-
-{# Flowbite click dropdown — keyboard- and touch-accessible (no hover-only). #}
-{% macro _matchday_dropdown(item, ddid) %}
-  <button type="button" data-dropdown-toggle="{{ ddid }}" class="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap {{ 'bg-white/15 text-white' if item.active else 'text-white/90 hover:bg-white/10' }}">
-    <i class="ti {{ item.icon }} w-4 h-4"></i>{{ item.label }}<i class="ti ti-chevron-down w-3.5 h-3.5"></i>
-  </button>
-  <div id="{{ ddid }}" class="z-50 hidden w-52 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
-    <ul>
-      {% for child in item.children %}
-      <li><a href="{{ child.url }}" class="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 {{ 'text-ecs-green font-medium' if child.active else 'text-gray-700 dark:text-gray-200' }}">{{ child.label }}</a></li>
-      {% endfor %}
-    </ul>
-  </div>
-{% endmacro %}
-
-{# Mobile bottom tabs — up to 5, curated by endpoint priority (RBAC-respecting:
-   only items already present in nav_sections can appear). #}
-{% macro matchday_bottomnav(nav_sections) %}
-{% set ns = namespace(items=[]) %}
-{% for s in nav_sections %}{% for it in s['items'] %}{% if it.children %}{% for c in it.children %}{% set ns.items = ns.items + [c] %}{% endfor %}{% else %}{% set ns.items = ns.items + [it] %}{% endif %}{% endfor %}{% endfor %}
-{% set priority = ['main.index', 'teams.teams_overview', 'teams.view_standings', 'calendar.calendar_view', 'store.index', 'teams.coach_dashboard'] %}
-{% set tabs = namespace(items=[]) %}
-{% for ep in priority %}{% for it in ns.items if it.endpoint == ep and tabs.items|length < 5 %}{% set tabs.items = tabs.items + [it] %}{% endfor %}{% endfor %}
-{% for it in ns.items if it not in tabs.items and tabs.items|length < 5 %}{% set tabs.items = tabs.items + [it] %}{% endfor %}
-<nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex" aria-label="Primary">
-  {% for item in tabs.items %}
-  <a href="{{ item.url }}" class="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 min-h-[3.5rem] {{ 'text-ecs-green' if item.active else 'text-gray-500 dark:text-gray-400' }}">
-    <i class="ti {{ item.icon }} w-5 h-5"></i>
-    <span class="text-[10px] font-medium truncate max-w-[4.5rem]">{{ item.label }}</span>
-  </a>
-  {% endfor %}
-</nav>
 {% endmacro %}

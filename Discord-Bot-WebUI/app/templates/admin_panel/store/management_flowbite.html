@@ -14,6 +14,128 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+<div class="space-y-6">
+
+  {{ page_header('Store Management', subtitle='Manage store items, orders, and inventory') }}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-package', 'Total Items', stats.total_items, tone='info') }}
+    {{ stat_card('ti-circle-check', 'Active Items', stats.active_items, tone='success') }}
+    {{ stat_card('ti-clock', 'Pending Orders', stats.pending_orders, tone='warning') }}
+    {{ stat_card('ti-shopping-cart', 'Total Orders', stats.total_orders, tone='primary') }}
+  </div>
+
+  <!-- Quick Actions & Order Status -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Quick Actions -->
+    <div class="lg:col-span-2">
+      {% call section_card('Quick Actions', icon='ti-rocket') %}
+        <div class="p-4 sm:p-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <a href="{{ url_for('admin_panel.create_store_item') }}"
+               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-plus" aria-hidden="true"></i>Add New Item
+            </a>
+            <a href="{{ url_for('admin_panel.store_orders') }}?status=PENDING"
+               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-clock" aria-hidden="true"></i>Process Pending Orders
+            </a>
+            <a href="{{ url_for('admin_panel.store_items') }}"
+               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-list" aria-hidden="true"></i>Manage Items
+            </a>
+            <a href="{{ url_for('admin_panel.store_analytics') }}"
+               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-chart-line" aria-hidden="true"></i>View Analytics
+            </a>
+          </div>
+        </div>
+      {% endcall %}
+    </div>
+
+    <!-- Order Status Breakdown -->
+    {% call section_card('Order Status', icon='ti-chart-pie') %}
+      <div class="p-4 sm:p-5">
+        {% if stats.order_status_breakdown %}
+        <ul class="space-y-3" role="list">
+          {% for status, count in stats.order_status_breakdown.items() %}
+          <li class="flex justify-between items-center">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400' if status == 'PENDING' else 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400' if status == 'PROCESSING' else 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400' if status == 'ORDERED' else 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if status == 'DELIVERED' else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
+              {{ status }}
+            </span>
+            <span class="font-mono font-bold text-gray-900 dark:text-white">{{ count }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        {{ empty_state('ti-shopping-cart-off', 'No orders yet', 'Order status will appear here once customers place orders.') }}
+        {% endif %}
+      </div>
+    {% endcall %}
+  </div>
+
+  <!-- Recent Activity & Popular Items -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Recent Activity -->
+    {% call section_card('Recent Activity', icon='ti-activity') %}
+      <div class="p-4 sm:p-5">
+        {% if recent_activity %}
+        <ul class="space-y-4" role="list">
+          {% for activity in recent_activity %}
+          <li class="flex items-start gap-3">
+            <span class="shrink-0 w-2.5 h-2.5 mt-1.5 rounded-full {{ 'bg-blue-500' if activity.type == 'order' else 'bg-ecs-green' }}" aria-hidden="true"></span>
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-start gap-2">
+                <div class="min-w-0">
+                  <p class="text-sm text-gray-900 dark:text-white">{{ activity.description }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">{{ activity.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+                </div>
+                <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400' if activity.status == 'PENDING' else 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if activity.status in ['active', 'DELIVERED'] else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">
+                  {{ activity.status }}
+                </span>
+              </div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        {{ empty_state('ti-history-off', 'No recent activity', 'Store activity will show up here as orders and items change.') }}
+        {% endif %}
+      </div>
+    {% endcall %}
+
+    <!-- Popular Items -->
+    {% call section_card('Popular Items', icon='ti-star') %}
+      <div class="p-4 sm:p-5">
+        {% if stats.popular_items %}
+        <ul class="space-y-4" role="list">
+          {% for item in stats.popular_items %}
+          <li class="flex justify-between items-center gap-4">
+            <div class="min-w-0">
+              <p class="font-medium text-gray-900 dark:text-white truncate">{{ item.name }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ item.count }} orders</p>
+            </div>
+            <div class="w-24 shrink-0">
+              <div class="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700" role="progressbar" aria-valuenow="{{ item.count }}" aria-valuemin="0" aria-valuemax="{{ stats.popular_items[0].count }}">
+                <div class="bg-ecs-green h-2 rounded-full" style="width: {{ (item.count / stats.popular_items[0].count * 100) }}%"></div>
+              </div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        {{ empty_state('ti-star-off', 'No orders yet', 'Your most-ordered items will be highlighted here.') }}
+        {% endif %}
+      </div>
+    {% endcall %}
+  </div>
+
+</div>
+{% else %}
 <!-- Store Overview Stats -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-500 text-white rounded-lg shadow p-5">
@@ -176,4 +298,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

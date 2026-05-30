@@ -20,6 +20,219 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+<div class="space-y-5 sm:space-y-6" data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% elif match %}{{ match.id }}{% endif %}">
+
+  {% set match_title = ('ECS FC: ' ~ ecs_match.opponent) if (is_ecs_fc_match and ecs_match) else ((match.home_team.name if match.home_team else 'TBD') ~ ' vs ' ~ (match.away_team.name if match.away_team else 'TBD') if match else 'Match RSVP Status') %}
+  {{ page_header(match_title, subtitle='RSVP Status') }}
+
+  {# ---- Match meta ---- #}
+  {% call section_card('Match Details', icon='ti-calendar-event') %}
+  <div class="px-4 sm:px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+    <div>
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</p>
+      <p class="mt-1 font-mono text-gray-900 dark:text-white">
+        {% if is_ecs_fc_match and ecs_match %}{{ ecs_match.match_date.strftime('%b %d, %Y') if ecs_match.match_date else 'TBD' }}
+        {% elif match %}{{ match.date.strftime('%b %d, %Y') if match.date else 'TBD' }}{% else %}TBD{% endif %}
+      </p>
+    </div>
+    <div>
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Time</p>
+      <p class="mt-1 font-mono text-gray-900 dark:text-white">
+        {% if is_ecs_fc_match and ecs_match %}{{ ecs_match.match_time.strftime('%I:%M %p') if ecs_match.match_time else 'TBD' }}
+        {% elif match %}{{ match.time.strftime('%I:%M %p') if match.time else 'TBD' }}{% else %}TBD{% endif %}
+      </p>
+    </div>
+    <div>
+      <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Location</p>
+      <p class="mt-1 text-gray-900 dark:text-white">
+        {% if is_ecs_fc_match and ecs_match %}{{ ecs_match.location or 'TBD' }}
+        {% elif match %}{{ match.location or match.field or 'TBD' }}{% else %}TBD{% endif %}
+      </p>
+    </div>
+  </div>
+  {% endcall %}
+
+  {# ---- KPI band (RSVP yes=green / maybe=gold / no=red / no-response=neutral) ---- #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-check', 'Yes / In', rsvps.yes|length if rsvps.yes else 0, tone='success') }}
+    {{ stat_card('ti-x', 'No / Out', rsvps.no|length if rsvps.no else 0, tone='danger') }}
+    {{ stat_card('ti-help', 'Maybe / Tentative', rsvps.maybe|length if rsvps.maybe else 0, tone='gold') }}
+    {{ stat_card('ti-minus', 'No Response', rsvps.no_response|length if rsvps.no_response else 0, tone='neutral') }}
+  </div>
+
+  {# ---- RSVP responses (Flowbite-style tabs; hooks shared with classic + extra_js) ---- #}
+  {% call section_card('RSVP Responses', icon='ti-list') %}
+  <div class="border-b border-gray-200 dark:border-gray-700 px-2 sm:px-4">
+    <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="rsvpTabs" role="tablist">
+      <li class="mr-2" role="presentation">
+        <button class="inline-flex items-center min-h-[44px] p-4 border-b-2 border-green-500 text-green-600 dark:text-green-400 rounded-t-lg" id="yes-tab" data-tabs-target="#yes-panel" type="button" role="tab" aria-controls="yes-panel" aria-selected="true">
+          <i class="ti ti-check mr-1" aria-hidden="true"></i>Yes (<span class="font-mono">{{ rsvps.yes|length if rsvps.yes else 0 }}</span>)
+        </button>
+      </li>
+      <li class="mr-2" role="presentation">
+        <button class="inline-flex items-center min-h-[44px] p-4 border-b-2 border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 rounded-t-lg" id="no-tab" data-tabs-target="#no-panel" type="button" role="tab" aria-controls="no-panel" aria-selected="false">
+          <i class="ti ti-x mr-1" aria-hidden="true"></i>No (<span class="font-mono">{{ rsvps.no|length if rsvps.no else 0 }}</span>)
+        </button>
+      </li>
+      <li class="mr-2" role="presentation">
+        <button class="inline-flex items-center min-h-[44px] p-4 border-b-2 border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 rounded-t-lg" id="maybe-tab" data-tabs-target="#maybe-panel" type="button" role="tab" aria-controls="maybe-panel" aria-selected="false">
+          <i class="ti ti-help mr-1" aria-hidden="true"></i>Maybe (<span class="font-mono">{{ rsvps.maybe|length if rsvps.maybe else 0 }}</span>)
+        </button>
+      </li>
+      <li role="presentation">
+        <button class="inline-flex items-center min-h-[44px] p-4 border-b-2 border-transparent text-gray-500 hover:text-gray-600 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300 rounded-t-lg" id="no-response-tab" data-tabs-target="#no-response-panel" type="button" role="tab" aria-controls="no-response-panel" aria-selected="false">
+          <i class="ti ti-minus mr-1" aria-hidden="true"></i>No Response (<span class="font-mono">{{ rsvps.no_response|length if rsvps.no_response else 0 }}</span>)
+        </button>
+      </li>
+    </ul>
+  </div>
+
+  <div id="rsvpTabContent">
+    {# ---- Yes ---- #}
+    <div class="p-3 sm:p-4" id="yes-panel" role="tabpanel" aria-labelledby="yes-tab">
+      {% if rsvps.yes %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+          <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-200 dark:border-gray-700">
+            <tr>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Player</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Responded</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for rsvp in rsvps.yes %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
+              <td class="px-4 py-3 text-xs font-mono text-gray-500 dark:text-gray-400">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</td>
+              <td class="px-4 py-3 text-right">
+                <button type="button" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-8 px-3 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="no">
+                  Change to No
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      {{ empty_state('ti-check', 'No "Yes" responses yet', 'Players who confirm will appear here.') }}
+      {% endif %}
+    </div>
+
+    {# ---- No ---- #}
+    <div class="hidden p-3 sm:p-4" id="no-panel" role="tabpanel" aria-labelledby="no-tab">
+      {% if rsvps.no %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+          <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-200 dark:border-gray-700">
+            <tr>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Player</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Responded</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for rsvp in rsvps.no %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
+              <td class="px-4 py-3 text-xs font-mono text-gray-500 dark:text-gray-400">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</td>
+              <td class="px-4 py-3 text-right">
+                <button type="button" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-8 px-3 text-xs font-semibold rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="yes">
+                  Change to Yes
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      {{ empty_state('ti-x', 'No "No" responses', 'Players who decline will appear here.') }}
+      {% endif %}
+    </div>
+
+    {# ---- Maybe ---- #}
+    <div class="hidden p-3 sm:p-4" id="maybe-panel" role="tabpanel" aria-labelledby="maybe-tab">
+      {% if rsvps.maybe %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+          <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-200 dark:border-gray-700">
+            <tr>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Player</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Responded</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for rsvp in rsvps.maybe %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ rsvp.player.name if rsvp.player else 'Unknown' }}</td>
+              <td class="px-4 py-3 text-xs font-mono text-gray-500 dark:text-gray-400">{{ rsvp.responded_at.strftime('%b %d, %I:%M %p') if rsvp.responded_at else '-' }}</td>
+              <td class="px-4 py-3">
+                <div class="flex justify-end gap-1.5">
+                  <button type="button" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-8 px-3 text-xs font-semibold rounded-lg border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="yes">
+                    Yes
+                  </button>
+                  <button type="button" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-8 px-3 text-xs font-semibold rounded-lg border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500" data-action="update-rsvp" data-player-id="{{ rsvp.player.id }}" data-response="no">
+                    No
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      {{ empty_state('ti-help', 'No "Maybe" responses', 'Tentative players will appear here.') }}
+      {% endif %}
+    </div>
+
+    {# ---- No Response ---- #}
+    <div class="hidden p-3 sm:p-4" id="no-response-panel" role="tabpanel" aria-labelledby="no-response-tab">
+      {% if rsvps.no_response %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+          <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide border-b border-gray-200 dark:border-gray-700">
+            <tr>
+              <th scope="col" class="px-4 py-2.5 font-semibold">Player</th>
+              <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for player in rsvps.no_response %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+              <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ player.name if player else 'Unknown' }}</td>
+              <td class="px-4 py-3">
+                <div class="flex justify-end gap-1.5">
+                  <button type="button" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-8 px-3 text-xs font-semibold rounded-lg border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="update-rsvp" data-player-id="{{ player.id }}" data-response="yes">
+                    Yes
+                  </button>
+                  <button type="button" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-8 px-3 text-xs font-semibold rounded-lg border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 focus:outline-none focus:ring-2 focus:ring-red-500" data-action="update-rsvp" data-player-id="{{ player.id }}" data-response="no">
+                    No
+                  </button>
+                  <button type="button" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-8 px-3 text-xs font-semibold rounded-lg border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 hover:bg-amber-100 dark:hover:bg-amber-900/50 focus:outline-none focus:ring-2 focus:ring-amber-500" data-action="update-rsvp" data-player-id="{{ player.id }}" data-response="maybe">
+                    Maybe
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      {{ empty_state('ti-circle-check', 'All Responded!', 'All players have submitted their RSVP responses.') }}
+      {% endif %}
+    </div>
+  </div>
+  {% endcall %}
+</div>
+{% else %}
 <div data-match-id="{% if is_ecs_fc_match %}ecs_{{ ecs_match.id }}{% elif match %}{{ match.id }}{% endif %}">
     <!-- Match Info Card -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
@@ -294,6 +507,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

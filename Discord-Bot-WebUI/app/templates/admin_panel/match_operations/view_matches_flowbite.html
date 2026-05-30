@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, empty_state %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, data_table_row_card, empty_state as modern_empty_state %}
 
 {% block admin_title %}View Matches{% endblock %}
 {% block panel_description %}Browse and manage all scheduled matches{% endblock %}
@@ -20,6 +21,217 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{{ page_header("View Matches", subtitle="Match Operations") }}
+
+{# Filter panel #}
+{% call section_card("Filter Matches", icon="ti-filter") %}
+<form method="GET" class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+    <div>
+        <label for="league_id" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">League / Division</label>
+        <select id="league_id" name="league_id" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">All Leagues</option>
+            {% for league in leagues %}
+            <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>{{ league.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="week" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Week</label>
+        <select id="week" name="week" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">All Weeks</option>
+            {% for week in weeks %}
+            <option value="{{ week }}" {% if current_week == week %}selected{% endif %}>Week {{ week }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="status" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+        <select id="status" name="status" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">All Statuses</option>
+            <option value="upcoming" {% if current_status == 'upcoming' %}selected{% endif %}>Upcoming</option>
+            <option value="past" {% if current_status == 'past' %}selected{% endif %}>Past</option>
+            <option value="verified" {% if current_status == 'verified' %}selected{% endif %}>Verified</option>
+            <option value="unverified" {% if current_status == 'unverified' %}selected{% endif %}>Unverified</option>
+        </select>
+    </div>
+    <div>
+        <label for="date_from" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">From Date</label>
+        <input type="date" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+    <div>
+        <label for="date_to" class="block mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">To Date</label>
+        <input type="date" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+    </div>
+    <div class="flex items-end gap-2">
+        <button type="submit" class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-[42px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-search" aria-hidden="true"></i>Filter
+        </button>
+        <a href="{{ url_for('admin_panel.view_matches') }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-[42px] sm:w-[42px] rounded-lg text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-400 dark:hover:bg-gray-600" aria-label="Clear filters">
+            <i class="ti ti-x" aria-hidden="true"></i>
+        </a>
+    </div>
+    {% if current_season %}
+    <div class="sm:col-span-2 lg:col-span-6 pt-3 border-t border-gray-200 dark:border-gray-700">
+        <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">
+            <i class="ti ti-calendar" aria-hidden="true"></i>{{ current_season.name }}
+        </span>
+    </div>
+    {% endif %}
+</form>
+{% endcall %}
+
+<div class="mt-5 sm:mt-6">
+{% if matches.items %}
+{% call data_table("All Matches", icon="ti-soccer-field", count=matches.total, filters=False) %}
+    {# md+ table #}
+    <table class="hidden md:table w-full text-sm text-left">
+        <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+            <tr>
+                {{ data_table_th("Date", key="date", sortable=False) }}
+                {{ data_table_th("Time", key="time", sortable=False, hide="md") }}
+                {{ data_table_th("Home Team", key="home", sortable=False) }}
+                {{ data_table_th("Away Team", key="away", sortable=False) }}
+                {{ data_table_th("Score", key="score", sortable=False) }}
+                {{ data_table_th("Status", key="status", sortable=False) }}
+                {{ data_table_th("Actions", key="actions", sortable=False, align="right") }}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for match in matches.items %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <td class="px-3 py-3 font-mono text-gray-900 dark:text-white">
+                    {% if match.date %}{{ match.date.strftime('%Y-%m-%d') }}{% else %}<span class="text-gray-400 dark:text-gray-500">TBD</span>{% endif %}
+                </td>
+                <td class="px-3 py-3 font-mono text-gray-500 dark:text-gray-400 hidden lg:table-cell">
+                    {% if match.time %}{{ match.time.strftime('%H:%M') }}{% else %}<span class="text-gray-400 dark:text-gray-500">TBD</span>{% endif %}
+                </td>
+                <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">{{ match.home_team.name if match.home_team else 'TBD' }}</td>
+                <td class="px-3 py-3 text-gray-700 dark:text-gray-300">{{ match.away_team.name if match.away_team else 'TBD' }}</td>
+                <td class="px-3 py-3">
+                    {% if match.home_team_score is not none and match.away_team_score is not none %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                    {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">-</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-3">
+                    {% if match.date %}
+                        {% if match.home_team_score is not none and match.away_team_score is not none %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check" aria-hidden="true"></i>Completed</span>
+                        {% elif match.date >= today_date %}
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Upcoming</span>
+                        {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Past</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">Unscheduled</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-3">
+                    <div class="flex items-center justify-end gap-1">
+                        <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-match-details" data-match-id="{{ match.id }}" title="View Details" aria-label="View match details">
+                            <i class="ti ti-eye" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit" aria-label="Edit match">
+                            <i class="ti ti-edit" aria-hidden="true"></i>
+                        </button>
+                        <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='pub_league', match_id=match.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Check-In" aria-label="Match check-in">
+                            <i class="ti ti-qrcode" aria-hidden="true"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {# mobile cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for match in matches.items %}
+        <div class="px-4 py-3.5">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ match.home_team.name if match.home_team else 'TBD' }} <span class="text-gray-400 dark:text-gray-500 font-normal">vs</span> {{ match.away_team.name if match.away_team else 'TBD' }}</span>
+                {% if match.home_team_score is not none and match.away_team_score is not none %}
+                    <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">{{ match.home_team_score }} - {{ match.away_team_score }}</span>
+                {% endif %}
+            </div>
+            <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                <span class="font-mono">{% if match.date %}{{ match.date.strftime('%Y-%m-%d') }}{% else %}TBD{% endif %}{% if match.time %} · {{ match.time.strftime('%H:%M') }}{% endif %}</span>
+                {% if match.date %}
+                    {% if match.home_team_score is not none and match.away_team_score is not none %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check" aria-hidden="true"></i>Completed</span>
+                    {% elif match.date >= today_date %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300"><i class="ti ti-clock" aria-hidden="true"></i>Upcoming</span>
+                    {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">Past</span>
+                    {% endif %}
+                {% else %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300">Unscheduled</span>
+                {% endif %}
+            </div>
+            <div class="mt-2.5 flex items-center gap-1">
+                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-match-details" data-match-id="{{ match.id }}" title="View Details" aria-label="View match details">
+                    <i class="ti ti-eye" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-match-report" data-match-id="{{ match.id }}" title="Edit" aria-label="Edit match">
+                    <i class="ti ti-edit" aria-hidden="true"></i>
+                </button>
+                <a href="{{ url_for('admin_panel.match_check_in_detail', league_type='pub_league', match_id=match.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Check-In" aria-label="Match check-in">
+                    <i class="ti ti-qrcode" aria-hidden="true"></i>
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% endcall %}
+
+{% if matches.pages > 1 %}
+<nav class="flex items-center justify-between pt-4 mt-4 border-t border-gray-200 dark:border-gray-700" aria-label="Table navigation">
+    <span class="text-sm font-normal text-gray-500 dark:text-gray-400">
+        Showing <span class="font-semibold text-gray-900 dark:text-white font-mono">{{ matches.page }}</span> of <span class="font-semibold text-gray-900 dark:text-white font-mono">{{ matches.pages }}</span> pages
+    </span>
+    <ul class="inline-flex items-center -space-x-px">
+        {% if matches.has_prev %}
+        <li>
+            <a href="{{ url_for('admin_panel.view_matches', page=matches.prev_num, **request.args) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" aria-label="Previous page">
+                <i class="ti ti-chevron-left" aria-hidden="true"></i>
+            </a>
+        </li>
+        {% endif %}
+        {% for page_num in matches.iter_pages() %}
+            {% if page_num %}
+                {% if page_num != matches.page %}
+                <li>
+                    <a href="{{ url_for('admin_panel.view_matches', page=page_num, **request.args) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight font-mono text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">{{ page_num }}</a>
+                </li>
+                {% else %}
+                <li>
+                    <span class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight font-mono text-white bg-ecs-green border border-ecs-green">{{ page_num }}</span>
+                </li>
+                {% endif %}
+            {% else %}
+            <li>
+                <span class="inline-flex items-center justify-center px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">...</span>
+            </li>
+            {% endif %}
+        {% endfor %}
+        {% if matches.has_next %}
+        <li>
+            <a href="{{ url_for('admin_panel.view_matches', page=matches.next_num, **request.args) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white" aria-label="Next page">
+                <i class="ti ti-chevron-right" aria-hidden="true"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+{{ modern_empty_state("ti-calendar-off", "No Matches Found", "No matches match the current filter criteria.", action={'label': 'Clear Filters', 'url': url_for('admin_panel.view_matches'), 'icon': 'ti-refresh'}) }}
+{% endif %}
+</div>
+{% else %}
 <!-- Filter Card -->
 {% call card(title="Filter Matches", subtitle="Filter matches by league, week, status, or date range") %}
 <form method="GET" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
@@ -230,6 +442,7 @@
 </div>
 {% endif %}
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

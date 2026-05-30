@@ -5,6 +5,132 @@
 {% block chat_widgets %}{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, alert %}
+<div class="max-w-3xl mx-auto px-4 py-6 sm:py-8">
+    {{ page_header("Waitlist Registration Confirmed", subtitle="ECS FC Pub League") }}
+
+    {{ alert('success', 'You have been successfully added to the ECS FC Pub League waitlist.', title='Registration complete.', dismissible=False) }}
+
+    <div class="mt-5 sm:mt-6">
+    {% call section_card("What Happens Next", icon="ti-route") %}
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 sm:p-5">
+            <div class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                    <i class="ti ti-bell text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-900 dark:text-white">We'll Notify You</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">When spots become available, we'll reach out immediately</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                    <i class="ti ti-clock text-purple-600 dark:text-purple-400" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-900 dark:text-white">Priority Access</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">You'll get first dibs on any openings that come up</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                    <i class="ti ti-user-plus text-green-600 dark:text-green-400" aria-hidden="true"></i>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-900 dark:text-white">Sub Opportunities</h4>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">You may be contacted for substitute opportunities</p>
+                </div>
+            </div>
+        </div>
+    {% endcall %}
+    </div>
+
+    <!-- Discord CTA (hook ids consumed by DiscordMembershipChecker) -->
+    <div id="discord-info-card" class="mt-5 sm:mt-6 rounded-xl border border-[#5865F2]/30 bg-[#5865F2]/10 dark:bg-[#5865F2]/20 p-5 sm:p-6">
+        <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-[#5865F2] flex items-center justify-center">
+                <i class="ti ti-brand-discord text-2xl text-white" aria-hidden="true"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 id="discord-status-title" class="text-lg font-bold text-gray-900 dark:text-white mb-2">
+                    Important: Join Our Discord Server
+                </h3>
+                <p id="discord-status-message" class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                    If you haven't already, please join our Discord server! This is where we:
+                </p>
+                <ul id="discord-benefits" class="text-sm text-gray-600 dark:text-gray-300 space-y-1 mb-4">
+                    <li class="flex items-center gap-2">
+                        <i class="ti ti-check text-green-500" aria-hidden="true"></i>
+                        Send waitlist notifications when spots open up
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="ti ti-check text-green-500" aria-hidden="true"></i>
+                        Post match announcements and schedule updates
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="ti ti-check text-green-500" aria-hidden="true"></i>
+                        Coordinate substitution requests
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="ti ti-check text-green-500" aria-hidden="true"></i>
+                        Share important league information
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <i class="ti ti-check text-green-500" aria-hidden="true"></i>
+                        Connect with other players in the community
+                    </li>
+                </ul>
+                <p id="discord-status-footer" class="text-sm font-semibold text-gray-900 dark:text-white">
+                    Don't miss out on opportunities!
+                </p>
+            </div>
+        </div>
+        <div class="mt-4">
+            <a href="https://discord.gg/weareecs"
+               target="_blank"
+               rel="noopener noreferrer"
+               id="discord-join-btn"
+               class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-[#5865F2] text-white font-semibold hover:bg-[#4752c4] transition-colors focus:outline-none focus:ring-2 focus:ring-[#5865F2] focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <i class="ti ti-brand-discord text-xl" aria-hidden="true"></i>
+                Join Discord Server
+            </a>
+        </div>
+    </div>
+
+    <div class="mt-5 sm:mt-6">
+    {% call section_card("Need Help", icon="ti-lifebuoy") %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 sm:p-5">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-[#5865F2]/20 flex items-center justify-center flex-shrink-0">
+                    <i class="ti ti-brand-discord text-[#5865F2]" aria-hidden="true"></i>
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-300">Reach out on Discord for questions</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center flex-shrink-0">
+                    <i class="ti ti-mail text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-300">Check your email for updates</p>
+            </div>
+        </div>
+    {% endcall %}
+    </div>
+
+    <div class="mt-5 sm:mt-6 flex flex-col sm:flex-row gap-3">
+        <a href="{{ url_for('main.index') }}"
+           class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg bg-ecs-green text-white font-semibold hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-home" aria-hidden="true"></i>
+            Go to Dashboard
+        </a>
+        <a href="{{ url_for('players.player_profile', player_id=safe_current_user.player.id) }}"
+           class="flex-1 inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-user" aria-hidden="true"></i>
+            View Profile
+        </a>
+    </div>
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8 max-w-3xl">
     <!-- Confirmation Card -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -155,6 +281,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <script>
 {% if discord_membership_status %}

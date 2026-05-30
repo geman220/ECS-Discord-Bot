@@ -20,6 +20,249 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% import "macros/_modern_kit.html" as kit %}
+
+{{ kit.page_header("Discord Role Mapping", subtitle="Discord") }}
+
+{# --- Bot status + global actions --- #}
+{% set _online = (bot_status == 'online') %}
+{% call kit.section_card("Discord Bot Status", icon="ti-robot") %}
+<div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div class="flex items-center gap-4 min-w-0">
+        <div class="flex items-center justify-center w-12 h-12 rounded-full shrink-0 {{ 'bg-green-100 dark:bg-green-500/10' if _online else 'bg-red-100 dark:bg-red-500/10' }}">
+            <i class="ti ti-robot text-2xl {{ 'text-green-600 dark:text-green-400' if _online else 'text-red-600 dark:text-red-400' }}" aria-hidden="true"></i>
+        </div>
+        <div class="min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if _online else 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400' }}">
+                    <i class="ti {{ 'ti-circle-check' if _online else 'ti-circle-x' }}" aria-hidden="true"></i>{{ bot_status|capitalize }}
+                </span>
+                {% if guild_name %}
+                <span class="text-sm text-gray-500 dark:text-gray-400 truncate">Connected to: {{ guild_name }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="flex flex-col sm:flex-row gap-2 shrink-0">
+        <button type="button" data-action="create-discord-role"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-plus" aria-hidden="true"></i>Create Discord Role
+        </button>
+        <button type="button" data-action="refresh-roles"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Roles
+        </button>
+    </div>
+</div>
+{% endcall %}
+
+{# --- Role mappings table --- #}
+<div class="mt-5 sm:mt-6">
+{% call kit.data_table("Role Mappings", icon="ti-link", count=(flask_roles|length if flask_roles else None), filters=False) %}
+    {# md+ table #}
+    <table class="hidden md:table w-full text-sm text-left">
+        <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+                {{ kit.data_table_th("Flask Role", key="role", sortable=False) }}
+                {{ kit.data_table_th("Discord Role", key="discord", sortable=False, hide='sm') }}
+                {{ kit.data_table_th("Users", key="users", sortable=False, hide='sm') }}
+                {{ kit.data_table_th("Sync Status", key="status", sortable=False, hide='sm') }}
+                {{ kit.data_table_th("Actions", key="actions", sortable=False, align='right') }}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for role in flask_roles %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-role-id="{{ role.id }}">
+                <td class="px-3 py-3">
+                    <div class="flex items-center gap-2">
+                        <i class="ti ti-shield text-ecs-green shrink-0" aria-hidden="true"></i>
+                        <div class="min-w-0">
+                            <div class="font-medium text-gray-900 dark:text-white truncate">{{ role.name }}</div>
+                            {% if role.description %}
+                            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ role.description }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </td>
+                <td class="px-3 py-3 hidden md:table-cell">
+                    <select class="discord-role-select input-ecs h-9 text-sm w-full"
+                            data-role-id="{{ role.id }}"
+                            data-current="{{ role.discord_role_id or '' }}"
+                            aria-label="Discord role for {{ role.name }}">
+                        <option value="">-- Not Mapped --</option>
+                        {% for dr in discord_roles %}
+                        <option value="{{ dr.id }}"
+                                data-name="{{ dr.name }}"
+                                data-color="{{ dr.color }}"
+                                data-members="{{ dr.member_count }}"
+                                {% if role.discord_role_id == dr.id %}selected{% endif %}>
+                            {{ dr.name }} ({{ dr.member_count }} members)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td class="px-3 py-3 hidden md:table-cell">
+                    <button type="button" data-action="preview-users" data-role-id="{{ role.id }}"
+                            class="inline-flex items-center gap-1.5 min-h-[36px] px-3 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        <i class="ti ti-users" aria-hidden="true"></i>
+                        <span class="user-count font-mono">{{ role.users|length }}</span>
+                    </button>
+                </td>
+                <td class="px-3 py-3 hidden md:table-cell">
+                    {% if role.discord_role_id %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+                        <i class="ti ti-check" aria-hidden="true"></i>Mapped
+                    </span>
+                    {% if role.last_synced_at %}
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">
+                        Last sync: {{ role.last_synced_at.strftime('%Y-%m-%d %H:%M') if role.last_synced_at else 'Never' }}
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                        <i class="ti ti-minus" aria-hidden="true"></i>Not Mapped
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-3">
+                    <div class="flex items-center justify-end gap-2">
+                        <button type="button" data-action="save-mapping" data-role-id="{{ role.id }}" title="Save Mapping" aria-label="Save mapping for {{ role.name }}"
+                                class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                            <i class="ti ti-device-floppy" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" data-action="sync-role" data-role-id="{{ role.id }}" title="Sync to Discord" aria-label="Sync {{ role.name }} to Discord"
+                                {% if not role.discord_role_id %}disabled{% endif %}
+                                class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'opacity-50 cursor-not-allowed' if not role.discord_role_id else '' }}">
+                            <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">
+                {{ kit.empty_state("ti-mood-empty", "No Flask roles found", "There are no Flask roles to map yet.") }}
+            </td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {# mobile stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for role in flask_roles %}
+        <div class="px-4 py-4 space-y-3" data-role-id="{{ role.id }}">
+            <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                    <i class="ti ti-shield text-ecs-green shrink-0" aria-hidden="true"></i>
+                    <div class="min-w-0">
+                        <div class="font-semibold text-gray-900 dark:text-white truncate">{{ role.name }}</div>
+                        {% if role.description %}
+                        <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ role.description }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if role.discord_role_id %}
+                <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+                    <i class="ti ti-check" aria-hidden="true"></i>Mapped
+                </span>
+                {% else %}
+                <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                    <i class="ti ti-minus" aria-hidden="true"></i>Not Mapped
+                </span>
+                {% endif %}
+            </div>
+            <select class="discord-role-select input-ecs h-10 text-sm w-full"
+                    data-role-id="{{ role.id }}"
+                    data-current="{{ role.discord_role_id or '' }}"
+                    aria-label="Discord role for {{ role.name }}">
+                <option value="">-- Not Mapped --</option>
+                {% for dr in discord_roles %}
+                <option value="{{ dr.id }}"
+                        data-name="{{ dr.name }}"
+                        data-color="{{ dr.color }}"
+                        data-members="{{ dr.member_count }}"
+                        {% if role.discord_role_id == dr.id %}selected{% endif %}>
+                    {{ dr.name }} ({{ dr.member_count }} members)
+                </option>
+                {% endfor %}
+            </select>
+            {% if role.discord_role_id and role.last_synced_at %}
+            <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">Last sync: {{ role.last_synced_at.strftime('%Y-%m-%d %H:%M') }}</div>
+            {% endif %}
+            <div class="flex items-center gap-2">
+                <button type="button" data-action="preview-users" data-role-id="{{ role.id }}"
+                        class="inline-flex items-center gap-1.5 min-h-[44px] px-3 rounded-lg text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <i class="ti ti-users" aria-hidden="true"></i><span class="user-count font-mono">{{ role.users|length }}</span> users
+                </button>
+                <button type="button" data-action="save-mapping" data-role-id="{{ role.id }}" aria-label="Save mapping for {{ role.name }}"
+                        class="inline-flex items-center justify-center min-h-[44px] w-11 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <i class="ti ti-device-floppy" aria-hidden="true"></i>
+                </button>
+                <button type="button" data-action="sync-role" data-role-id="{{ role.id }}" aria-label="Sync {{ role.name }} to Discord"
+                        {% if not role.discord_role_id %}disabled{% endif %}
+                        class="inline-flex items-center justify-center min-h-[44px] w-11 rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'opacity-50 cursor-not-allowed' if not role.discord_role_id else '' }}">
+                    <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+        {% else %}
+        {{ kit.empty_state("ti-mood-empty", "No Flask roles found", "There are no Flask roles to map yet.") }}
+        {% endfor %}
+    </div>
+{% endcall %}
+</div>
+
+{# Sync All action bar (kept outside the table; data-action preserved verbatim) #}
+<div class="mt-3 flex justify-end">
+    <button type="button" data-action="sync-all-roles"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-cloud-upload" aria-hidden="true"></i>Sync All to Discord
+    </button>
+</div>
+
+{# --- Available Discord roles reference --- #}
+<div class="mt-5 sm:mt-6">
+{% call kit.section_card("Available Discord Roles", icon="ti-brand-discord") %}
+<div class="p-4 sm:p-5">
+    {% if discord_roles %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        {% for dr in discord_roles %}
+        <div class="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700">
+            <span class="w-4 h-4 rounded shrink-0" style="background-color: {{ dr.color }}"></span>
+            <div class="flex-grow min-w-0">
+                <div class="font-medium text-gray-900 dark:text-white truncate">{{ dr.name }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ dr.member_count }} members</div>
+            </div>
+            {% if dr.managed %}
+            <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400" title="Managed by integration">Bot</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    {{ kit.empty_state("ti-cloud-off", "No Discord roles available",
+        ("Discord bot is offline. Start the bot to fetch roles." if bot_status == 'offline' else "No Discord roles available.")) }}
+    {% endif %}
+</div>
+{% endcall %}
+</div>
+
+{# User Preview Modal (kit modal; hooks preserved: id userPreviewModal, #userPreviewContent, data-modal-hide) #}
+{% call kit.modal('userPreviewModal', 'Users with Role', icon='ti-users', size='lg') %}
+    <div id="userPreviewContent" class="p-4 sm:p-5">
+        <div class="flex items-center justify-center py-8">
+            <i class="ti ti-loader animate-spin text-3xl text-gray-400" aria-hidden="true"></i>
+        </div>
+    </div>
+    <div class="flex justify-end px-5 py-3 border-t border-gray-200 dark:border-gray-700">
+        <button type="button" data-modal-hide="userPreviewModal"
+                class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            Close
+        </button>
+    </div>
+{% endcall %}
+{% else %}
 <!-- Bot Status Card -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="p-5">
@@ -206,6 +449,7 @@
         </div>
     </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

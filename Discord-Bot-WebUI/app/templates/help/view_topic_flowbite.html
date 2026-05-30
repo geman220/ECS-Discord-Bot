@@ -1,5 +1,6 @@
 {% extends "base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button %}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
 
 {% block title %}{{ topic.title }}{% endblock %}
 {% block page_title %}{{ topic.title }}{% endblock %}
@@ -66,6 +67,48 @@
 {% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+<div class="space-y-5 sm:space-y-6">
+    <!-- Breadcrumb -->
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center flex-wrap gap-y-1 space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{{ url_for('help.index') }}" class="inline-flex items-center text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green">
+                    <i class="ti ti-help mr-2" aria-hidden="true"></i>
+                    Help Topics
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right text-gray-400 mx-2" aria-hidden="true"></i>
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">{{ topic.title }}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    {{ page_header(topic.title, subtitle="Help Topic") }}
+
+    {% call section_card(topic.title, icon="ti-book-2") %}
+    <div class="p-4 sm:p-5">
+        <div class="help-content prose dark:prose-invert max-w-none">
+            {{ content|safe }}
+        </div>
+    </div>
+    {% endcall %}
+
+    <div>
+        <a href="{{ url_for('help.index') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border
+                  border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
+                  hover:bg-gray-50 dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i>
+            Back to Help Topics
+        </a>
+    </div>
+</div>
+{% else %}
 <div class="space-y-6">
     <!-- Breadcrumb -->
     <nav class="flex" aria-label="Breadcrumb">
@@ -102,4 +145,5 @@
         {{ button("Back to Help Topics", variant="outline", href=url_for('help.index'), icon="arrow-left") }}
     </div>
 </div>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,81 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Animation Settings{% endblock %}
+{% block panel_description %}Configure motion and transition speed for the application{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400 mx-1"></i>
+        <a href="{{ url_for('admin_panel.appearance') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">Appearance</a>
+    </div>
+</li>
+<li aria-current="page">
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400 mx-1"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Animations</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert %}
+<div class="space-y-6">
+
+  {{ page_header('Animation Settings', subtitle='Appearance') }}
+
+  {{ alert('info', 'Toggle motion and adjust transition speed across the application.', title='Animation settings.', dismissible=False) }}
+
+  <div class="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4">
+    {% if animations.enabled %}
+      {{ stat_card('ti-wand', 'Animations', 'On', sublabel='enabled', tone='success') }}
+    {% else %}
+      {{ stat_card('ti-wand-off', 'Animations', 'Off', sublabel='disabled', tone='neutral') }}
+    {% endif %}
+    {{ stat_card('ti-gauge', 'Speed', animations.speed, tone='primary') }}
+  </div>
+
+  {% call section_card('Defaults', icon='ti-restore') %}
+  <div class="px-4 sm:px-5 py-4">
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      Default: <span class="font-semibold text-gray-900 dark:text-white">{{ 'enabled' if default_animations.enabled else 'disabled' }}</span>
+      at <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ default_animations.speed }}</span> speed.
+    </p>
+  </div>
+  {% endcall %}
+
+</div>
+{% else %}
+<div class="p-4 space-y-6">
+    <div class="flex items-center p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:border-blue-800" role="alert">
+        <i class="ti ti-info-circle text-lg mr-3"></i>
+        <div>
+            <span class="font-medium">Animation settings.</span>
+            Toggle motion and adjust transition speed across the application.
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-wand text-theme-primary"></i>
+            <span>Current Animations</span>
+        </h5>
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Enabled</dt>
+                <dd class="text-base text-gray-900 dark:text-white">{{ 'Yes' if animations.enabled else 'No' }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Speed</dt>
+                <dd class="text-base text-gray-900 dark:text-white">{{ animations.speed }}</dd>
+            </div>
+        </dl>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            Default: {{ 'enabled' if default_animations.enabled else 'disabled' }} at {{ default_animations.speed }} speed.
+        </p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

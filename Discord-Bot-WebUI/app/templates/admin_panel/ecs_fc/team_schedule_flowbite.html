@@ -20,6 +20,233 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% set home_count = matches | selectattr('is_home_match') | list | length %}
+<div class="space-y-6">
+
+  {{ page_header(team.name ~ ' Schedule', subtitle='ECS FC Team Schedule') }}
+
+  <!-- Actions -->
+  <div class="flex flex-wrap items-center gap-2">
+    <button type="button"
+            data-modal-target="addMatchModal" data-modal-toggle="addMatchModal"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-plus" aria-hidden="true"></i>Add Match
+    </button>
+    <a href="{{ url_for('admin_panel.ecs_fc_import', team_id=team.id) }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg
+              bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold
+              hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-file-import" aria-hidden="true"></i>Import
+    </a>
+  </div>
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+    {{ stat_card('ti-calendar', show_past and 'Total Matches' or 'Upcoming', matches | length, tone='primary') }}
+    {{ stat_card('ti-home', 'Home', home_count, tone='info') }}
+    {{ stat_card('ti-plane-departure', 'Away', matches | length - home_count, tone='neutral') }}
+  </div>
+
+  <!-- Filter -->
+  {% call section_card('Filters', icon='ti-filter') %}
+    <div class="p-4 sm:p-5">
+      <form method="get">
+        <label class="inline-flex items-center cursor-pointer gap-3 min-h-[44px]">
+          <input type="checkbox" class="sr-only peer" name="show_past" value="true"
+                 {% if show_past %}checked{% endif %} onchange="this.form.submit()">
+          <div class="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+          <span class="text-sm font-medium text-gray-900 dark:text-gray-300">Show past matches</span>
+        </label>
+      </form>
+    </div>
+  {% endcall %}
+
+  <!-- Matches -->
+  {% if matches %}
+    {% call data_table(show_past and 'All Matches' or 'Upcoming Matches', icon='ti-calendar', count=matches | length, search_placeholder='Filter matches…', search_id='matchFilter', filters=true) %}
+      {# Desktop table (md+) #}
+      <table class="hidden md:table w-full text-sm text-left">
+        <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+          <tr>
+            {{ data_table_th('Date', key='date', active=true, dir='asc') }}
+            {{ data_table_th('Time', key='time', hide='sm') }}
+            {{ data_table_th('Opponent', key='opponent') }}
+            {{ data_table_th('Location', key='location', hide='sm') }}
+            {{ data_table_th('RSVP', key='rsvp', sortable=false) }}
+            {{ data_table_th('Status', key='status') }}
+            {{ data_table_th('Actions', sortable=false, align='right') }}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for match in matches %}
+          <tr data-row class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-3 py-3 font-medium text-gray-900 dark:text-white whitespace-nowrap" data-cell="date">{{ match.match_date.strftime('%a, %b %d, %Y') }}</td>
+            <td class="px-3 py-3 text-gray-600 dark:text-gray-400 font-mono whitespace-nowrap hidden md:table-cell" data-cell="time">{{ match.match_time.strftime('%I:%M %p') }}</td>
+            <td class="px-3 py-3 text-gray-700 dark:text-gray-300" data-cell="opponent">
+              {% if match.is_home_match %}
+              <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 mr-1">H</span>
+              {% else %}
+              <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mr-1">A</span>
+              {% endif %}
+              {{ match.opponent_name }}
+              {% if match.external_opponent_id %}
+              <i class="ti ti-link text-gray-400 ml-1" title="From Library" aria-label="From Library"></i>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 text-gray-700 dark:text-gray-300 hidden md:table-cell" data-cell="location">
+              <div>{{ match.location }}</div>
+              {% if match.field_name %}<div class="text-xs text-gray-400 dark:text-gray-500">{{ match.field_name }}</div>{% endif %}
+            </td>
+            <td class="px-3 py-3">
+              <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="inline-flex gap-1 font-mono">
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
+              </a>
+            </td>
+            <td class="px-3 py-3" data-cell="status">
+              <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded
+                  {% if match.status_color == 'success' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                  {% elif match.status_color == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                  {% elif match.status_color == 'danger' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                  {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                <i class="{{ match.status_icon }} mr-1" aria-hidden="true"></i>{{ match.status }}
+              </span>
+            </td>
+            <td class="px-3 py-3">
+              <div class="flex items-center justify-end gap-1">
+                <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
+                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View RSVP" aria-label="View RSVP">
+                  <i class="ti ti-users" aria-hidden="true"></i>
+                </a>
+                <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
+                   class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit match">
+                  <i class="ti ti-edit" aria-hidden="true"></i>
+                </a>
+                <button type="button"
+                        class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        title="Delete" aria-label="Delete match" onclick="deleteMatch({{ match.id }})">
+                  <i class="ti ti-trash" aria-hidden="true"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {# Mobile stacked cards (<md) #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for match in matches %}
+        <div data-row-card class="px-4 py-3.5">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">
+                {% if match.is_home_match %}
+                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 mr-1">H</span>
+                {% else %}
+                <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 mr-1">A</span>
+                {% endif %}
+                {{ match.opponent_name }}
+                {% if match.external_opponent_id %}<i class="ti ti-link text-gray-400 ml-1" aria-label="From Library"></i>{% endif %}
+              </p>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ match.match_date.strftime('%a, %b %d, %Y') }} · {{ match.match_time.strftime('%I:%M %p') }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">{{ match.location }}{% if match.field_name %} — {{ match.field_name }}{% endif %}</p>
+            </div>
+            <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded
+                {% if match.status_color == 'success' %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300
+                {% elif match.status_color == 'warning' %}bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300
+                {% elif match.status_color == 'danger' %}bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300
+                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+              <i class="{{ match.status_icon }} mr-1" aria-hidden="true"></i>{{ match.status }}
+            </span>
+          </div>
+          <div class="mt-2 flex items-center justify-between gap-2">
+            <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}" class="inline-flex gap-1 font-mono">
+              <span class="px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ match.rsvp_counts.yes }}</span>
+              <span class="px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ match.rsvp_counts.no }}</span>
+              <span class="px-2 py-0.5 text-xs font-medium rounded bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ match.rsvp_counts.maybe }}</span>
+            </a>
+            <div class="flex items-center gap-1">
+              <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
+                 class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="View RSVP">
+                <i class="ti ti-users" aria-hidden="true"></i>
+              </a>
+              <a href="{{ url_for('admin_panel.ecs_fc_match_edit', match_id=match.id) }}"
+                 class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Edit match">
+                <i class="ti ti-edit" aria-hidden="true"></i>
+              </a>
+              <button type="button"
+                      class="inline-flex items-center justify-center w-11 h-11 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+                      aria-label="Delete match" onclick="deleteMatch({{ match.id }})">
+                <i class="ti ti-trash" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% endcall %}
+  {% else %}
+    {{ empty_state('ti-calendar-off',
+        show_past and 'No matches found' or 'No upcoming matches',
+        'Schedule a match to start tracking RSVPs and details for ' ~ team.name ~ '.',
+        action={'label': 'Add Match', 'url': url_for('admin_panel.ecs_fc_match_create', team_id=team.id), 'icon': 'ti-plus'}) }}
+  {% endif %}
+
+  {# Add Match modal — shared shell-agnostic form (hooks: addMatchModal) #}
+  {% call modal_form('addMatchModal', 'Schedule New Match', form_id='quickMatchForm', action=url_for('admin_panel.ecs_fc_match_create'), size='lg', submit_text='Create Match', loading_text='Creating...') %}
+      <input type="hidden" name="team_id" value="{{ team.id }}">
+      <div>
+          <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Opponent</label>
+          <select name="external_opponent_id" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+              <option value="">Select Opponent...</option>
+              {% for opp in opponents %}
+              <option value="{{ opp.id }}">{{ opp.name }}{% if opp.league_affiliation %} ({{ opp.league_affiliation }}){% endif %}</option>
+              {% endfor %}
+          </select>
+      </div>
+      <div>
+          <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Home/Away</label>
+          <div class="flex gap-4">
+              <label class="inline-flex items-center min-h-[44px] sm:min-h-0">
+                  <input type="radio" name="is_home_match" value="true" checked class="w-4 h-4 text-ecs-green focus:ring-ecs-green">
+                  <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Home</span>
+              </label>
+              <label class="inline-flex items-center min-h-[44px] sm:min-h-0">
+                  <input type="radio" name="is_home_match" value="false" class="w-4 h-4 text-ecs-green focus:ring-ecs-green">
+                  <span class="ml-2 text-sm text-gray-900 dark:text-gray-300">Away</span>
+              </label>
+          </div>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+              <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date</label>
+              <input type="date" name="match_date" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+          </div>
+          <div>
+              <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Time</label>
+              <input type="time" name="match_time" required value="19:00" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+          </div>
+      </div>
+      <div>
+          <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Location</label>
+          <input type="text" name="location" required placeholder="e.g., Memorial Stadium" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+      </div>
+      <div>
+          <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Field Name (optional)</label>
+          <input type="text" name="field_name" placeholder="e.g., Field A" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
+      </div>
+  {% endcall %}
+
+</div>
+{% else %}
+{# ===================== Classic (unchanged, byte-for-byte) ===================== #}
 <!-- Team Header -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
@@ -212,6 +439,7 @@
         <input type="text" name="field_name" placeholder="e.g., Field A" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:text-white">
     </div>
 {% endcall %}
+{% endif %}
 
 <script>
 function deleteMatch(matchId) {

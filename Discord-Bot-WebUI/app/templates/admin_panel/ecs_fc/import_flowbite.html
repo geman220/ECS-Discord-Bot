@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
 
 {% block admin_title %}Import Schedule{% endblock %}
 {% block panel_description %}Import matches from CSV file{% endblock %}
@@ -20,6 +21,164 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+<div class="max-w-4xl mx-auto">
+    {{ page_header("Import Schedule", subtitle="ECS FC Hub") }}
+
+    <form method="post" enctype="multipart/form-data" class="space-y-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% call section_card("Upload Schedule", icon="ti-file-import") %}
+        <div class="p-4 sm:p-5 space-y-5">
+            {# Team Selection #}
+            <div>
+                <label for="team_id" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Team <span class="text-red-500">*</span>
+                </label>
+                <select name="team_id" id="team_id" required
+                        class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                    <option value="">Select Team...</option>
+                    {% for team in teams %}
+                    <option value="{{ team.id }}" {% if preselect_team_id == team.id %}selected{% endif %}>
+                        {{ team.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# File Upload #}
+            <div>
+                <label for="csv_file" class="block mb-1.5 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    CSV File <span class="text-red-500">*</span>
+                </label>
+                <input type="file" name="csv_file" id="csv_file" accept=".csv" required
+                       class="block w-full text-sm text-gray-900 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green file:mr-3 file:border-0 file:bg-gray-100 dark:file:bg-gray-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-gray-700 dark:file:text-gray-200">
+                <p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">Upload a CSV file with match schedule</p>
+            </div>
+        </div>
+        {% endcall %}
+
+        {% call section_card("Expected CSV Format", icon="ti-info-circle") %}
+        <div class="p-4 sm:p-5">
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">Your CSV should have the following columns (header row required). Multiple date/time formats are supported:</p>
+
+            {# Desktop table #}
+            <div class="hidden md:block overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+                    <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/50">
+                        <tr>
+                            <th scope="col" class="px-4 py-2.5 font-semibold">Column</th>
+                            <th scope="col" class="px-4 py-2.5 font-semibold">Required</th>
+                            <th scope="col" class="px-4 py-2.5 font-semibold">Format</th>
+                            <th scope="col" class="px-4 py-2.5 font-semibold">Example</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr class="bg-white dark:bg-gray-800">
+                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Opponent</code></td>
+                            <td class="px-4 py-2">{{ badge("Yes", variant="danger", size="sm") }}</td>
+                            <td class="px-4 py-2">Text or "Bye"</td>
+                            <td class="px-4 py-2">Ice Crushers</td>
+                        </tr>
+                        <tr class="bg-white dark:bg-gray-800">
+                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Date</code></td>
+                            <td class="px-4 py-2">{{ badge("Yes", variant="danger", size="sm") }}</td>
+                            <td class="px-4 py-2">M/D/YYYY, MM/DD/YYYY, or YYYY-MM-DD</td>
+                            <td class="px-4 py-2">1/7/2026</td>
+                        </tr>
+                        <tr class="bg-white dark:bg-gray-800">
+                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Time</code></td>
+                            <td class="px-4 py-2">{{ badge("Required*", variant="warning", size="sm") }}</td>
+                            <td class="px-4 py-2">H:MM AM/PM or HH:MM</td>
+                            <td class="px-4 py-2">8:00 PM</td>
+                        </tr>
+                        <tr class="bg-white dark:bg-gray-800">
+                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Location</code></td>
+                            <td class="px-4 py-2">{{ badge("Optional", variant="default", size="sm") }}</td>
+                            <td class="px-4 py-2">Text</td>
+                            <td class="px-4 py-2">Miller Playfield</td>
+                        </tr>
+                        <tr class="bg-white dark:bg-gray-800">
+                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Home or away</code></td>
+                            <td class="px-4 py-2">{{ badge("Optional", variant="default", size="sm") }}</td>
+                            <td class="px-4 py-2">Home/Away or Y/N</td>
+                            <td class="px-4 py-2">Away</td>
+                        </tr>
+                        <tr class="bg-white dark:bg-gray-800">
+                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Shirt color</code></td>
+                            <td class="px-4 py-2">{{ badge("Optional", variant="default", size="sm") }}</td>
+                            <td class="px-4 py-2">Text (your team's color)</td>
+                            <td class="px-4 py-2">Black</td>
+                        </tr>
+                        <tr class="bg-white dark:bg-gray-800">
+                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Opponent shirt color</code></td>
+                            <td class="px-4 py-2">{{ badge("Optional", variant="default", size="sm") }}</td>
+                            <td class="px-4 py-2">Text (opponent's color)</td>
+                            <td class="px-4 py-2">White</td>
+                        </tr>
+                        <tr class="bg-white dark:bg-gray-800">
+                            <td class="px-4 py-2"><code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">Notes</code></td>
+                            <td class="px-4 py-2">{{ badge("Optional", variant="default", size="sm") }}</td>
+                            <td class="px-4 py-2">Text</td>
+                            <td class="px-4 py-2">60/40 Koed for this match</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            {# Mobile cards #}
+            <div class="md:hidden space-y-2">
+                {% set cols = [
+                    ('Opponent', 'danger', 'Yes', 'Text or "Bye"', 'Ice Crushers'),
+                    ('Date', 'danger', 'Yes', 'M/D/YYYY, MM/DD/YYYY, or YYYY-MM-DD', '1/7/2026'),
+                    ('Time', 'warning', 'Required*', 'H:MM AM/PM or HH:MM', '8:00 PM'),
+                    ('Location', 'default', 'Optional', 'Text', 'Miller Playfield'),
+                    ('Home or away', 'default', 'Optional', 'Home/Away or Y/N', 'Away'),
+                    ('Shirt color', 'default', 'Optional', "Text (your team's color)", 'Black'),
+                    ('Opponent shirt color', 'default', 'Optional', "Text (opponent's color)", 'White'),
+                    ('Notes', 'default', 'Optional', 'Text', '60/40 Koed for this match')
+                ] %}
+                {% for name, variant, req, fmt, example in cols %}
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-gray-900 dark:text-gray-100">{{ name }}</code>
+                        {{ badge(req, variant=variant, size="sm") }}
+                    </div>
+                    <dl class="mt-2 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                        <div><span class="font-medium text-gray-700 dark:text-gray-300">Format:</span> {{ fmt }}</div>
+                        <div><span class="font-medium text-gray-700 dark:text-gray-300">Example:</span> {{ example }}</div>
+                    </dl>
+                </div>
+                {% endfor %}
+            </div>
+
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-4 mb-4">* Time is optional for Bye weeks only</p>
+
+            {{ alert("info", "Set opponent to \"Bye\" to create a bye week entry (time and location not required).", title="Bye Weeks:", dismissible=false) }}
+
+            <p class="text-sm font-medium text-gray-900 dark:text-white mt-4 mb-2">Example CSV (your league's format):</p>
+            <pre class="bg-gray-900 dark:bg-gray-950 text-gray-100 p-3 rounded-lg font-mono text-xs overflow-x-auto">Date,Time,Location,Home or away,Opponent,Shirt color,Opponent shirt color,Notes
+1/7/2026,8:00 PM,Miller Playfield,Away,Ice Crushers,Black,White,
+1/14/2026,8:00 PM,Loyal Heights Playfield,Home,Midfield Crisis,White,Black,60/40 Koed for this match
+1/21/2026,7:15 PM,Marymoor Park #3,Away,Landsharks,Black,White,
+3/4/2026,,,Bye,,,</pre>
+        </div>
+        {% endcall %}
+
+        {# Submit #}
+        <div class="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+            <a href="{{ url_for('admin_panel.ecs_fc_dashboard') }}"
+               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-medium text-gray-900 dark:text-white bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <i class="ti ti-arrow-left" aria-hidden="true"></i>Cancel
+            </a>
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <i class="ti ti-upload" aria-hidden="true"></i>Import Matches
+            </button>
+        </div>
+    </form>
+</div>
+{% else %}
 <div class="max-w-4xl mx-auto">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div class="p-5 border-b border-gray-200 dark:border-gray-700">
@@ -161,4 +320,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

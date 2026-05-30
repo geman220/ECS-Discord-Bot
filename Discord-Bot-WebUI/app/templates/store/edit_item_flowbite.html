@@ -3,6 +3,126 @@
 {% block title %}Edit Store Item{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% import "macros/_modern_kit.html" as kit %}
+{% from "macros/flowbite.html" import input, textarea %}
+<div class="max-w-3xl mx-auto p-4 sm:p-6">
+    {% call kit.page_header("Edit Store Item", subtitle="Store administration") %}
+        <a href="{{ url_for('store.admin') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                  border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800
+                  text-sm font-medium text-gray-700 dark:text-gray-300
+                  hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Store Admin
+        </a>
+    {% endcall %}
+
+    {% call kit.section_card("Item Details", icon="ti-edit") %}
+    <div class="p-4 sm:p-6">
+        <form method="POST" action="{{ url_for('store.edit_item', item_id=item.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                {{ input("name", label="Item Name", required=true, value=item.name, placeholder="e.g. Team Jersey, Training Bag", class_="sm:col-span-2") }}
+                <div>
+                    <label for="price" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price (Admin Only)</label>
+                    <div class="flex">
+                        <span class="inline-flex items-center px-3 text-sm text-gray-900 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg dark:bg-gray-600 dark:text-gray-300 dark:border-gray-600">$</span>
+                        <input type="number" id="price" name="price" step="0.01" min="0" value="{{ item.price or '' }}" placeholder="15.00"
+                               class="rounded-none rounded-r-lg w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                {{ textarea("description", label="Description", value=item.description or '', rows=3, placeholder="Describe the item, materials, features, etc.") }}
+            </div>
+
+            <div class="mb-4">
+                {{ input("category", label="Category", value=item.category or '', placeholder="e.g. Apparel, Equipment, Accessories") }}
+            </div>
+
+            <div class="mb-4">
+                {{ input("image_url", label="Image URL", type="url", value=item.image_url or '', placeholder="https://example.com/image.jpg", help_text="Provide a direct link to an image of the item") }}
+            </div>
+
+            <div class="mb-6">
+                <div class="flex items-center">
+                    <input id="is_active" name="is_active" type="checkbox" {% if item.is_active %}checked{% endif %} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="is_active" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300">Item is active and available for ordering</label>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Colors</label>
+                    <div id="colors-container" class="space-y-2">
+                        {% if item.available_colors %}
+                        {% set colors = item.available_colors | replace("'", '"') | fromjson %}
+                        {% for color in colors %}
+                        <div class="flex">
+                            <input type="text" name="colors[]" value="{{ color }}" placeholder="e.g. Red, Blue, Green" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <button type="button" class="remove-color px-3 py-2.5 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-r-lg hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-800 {% if loop.first and loop.last %}hidden{% endif %}"><i class="ti ti-x"></i></button>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="flex">
+                            <input type="text" name="colors[]" placeholder="e.g. Red, Blue, Green" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <button type="button" class="remove-color hidden px-3 py-2.5 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-r-lg hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-800"><i class="ti ti-x"></i></button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <button type="button" id="add-color" class="mt-2 inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-700 dark:hover:bg-green-800">
+                        <i class="ti ti-plus mr-1"></i>Add Color
+                    </button>
+                </div>
+
+                <div>
+                    <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Available Sizes</label>
+                    <div id="sizes-container" class="space-y-2">
+                        {% if item.available_sizes %}
+                        {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
+                        {% for size in sizes %}
+                        <div class="flex">
+                            <input type="text" name="sizes[]" value="{{ size }}" placeholder="e.g. S, M, L, XL" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <button type="button" class="remove-size px-3 py-2.5 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-r-lg hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-800 {% if loop.first and loop.last %}hidden{% endif %}"><i class="ti ti-x"></i></button>
+                        </div>
+                        {% endfor %}
+                        {% else %}
+                        <div class="flex">
+                            <input type="text" name="sizes[]" placeholder="e.g. S, M, L, XL" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-l-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+                            <button type="button" class="remove-size hidden px-3 py-2.5 text-sm font-medium text-red-700 bg-red-100 border border-red-300 rounded-r-lg hover:bg-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-700 dark:hover:bg-red-800"><i class="ti ti-x"></i></button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <button type="button" id="add-size" class="mt-2 inline-flex items-center px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 border border-green-300 rounded-lg hover:bg-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-700 dark:hover:bg-green-800">
+                        <i class="ti ti-plus mr-1"></i>Add Size
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <a href="{{ url_for('store.admin') }}"
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                          border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800
+                          text-sm font-medium text-gray-700 dark:text-gray-300
+                          hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                          focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <i class="ti ti-x" aria-hidden="true"></i>Cancel
+                </a>
+                <button type="submit"
+                        class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <i class="ti ti-device-floppy" aria-hidden="true"></i>Update Item
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endcall %}
+</div>
+{% else %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -126,6 +246,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

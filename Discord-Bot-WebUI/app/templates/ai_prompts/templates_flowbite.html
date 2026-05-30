@@ -20,6 +20,198 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state as kit_empty_state %}
+{% set _tpl_count = templates|length if templates else 0 %}
+{% set _default_count = (templates|selectattr('is_default')|list|length) if templates else 0 %}
+{% set _category_count = (templates|map(attribute='category')|select|unique|list|length) if templates else 0 %}
+<div class="space-y-6">
+
+  {{ page_header('Prompt Templates', subtitle='Manage reusable AI prompt templates for quick configuration') }}
+
+  <!-- Header actions -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <p class="text-sm text-gray-500 dark:text-gray-400">Save and reuse your favorite prompt configurations.</p>
+    <div class="flex items-center gap-2">
+      <a href="{{ url_for('ai_prompts.list_prompts') }}"
+         class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
+                bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
+                text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Prompts
+      </a>
+      <button type="button" id="createTemplateBtn"
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
+                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-plus" aria-hidden="true"></i> Create Template
+      </button>
+    </div>
+  </div>
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+    {{ stat_card('ti-template', 'Templates', _tpl_count, tone='primary') }}
+    {{ stat_card('ti-star-filled', 'Defaults', _default_count, tone='gold') }}
+    {{ stat_card('ti-category', 'Categories', _category_count, tone='info') }}
+  </div>
+
+  <!-- Templates Grid -->
+  {% if templates %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+    {% for template in templates %}
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+      <!-- Template Header -->
+      <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-10 h-10 rounded-lg bg-ecs-green/10 flex items-center justify-center shrink-0">
+              <i class="ti ti-brain text-ecs-green text-xl" aria-hidden="true"></i>
+            </div>
+            <div class="min-w-0">
+              <h3 class="font-semibold text-gray-900 dark:text-white truncate">{{ template.name }}</h3>
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                {{ template.category }}
+              </span>
+            </div>
+          </div>
+          {% if template.is_default %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-gold/20 text-ecs-gold-600 dark:text-ecs-gold-400">
+            <i class="ti ti-star-filled" aria-hidden="true"></i> Default
+          </span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Template Body -->
+      <div class="p-4 flex flex-col flex-1">
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+          {{ template.description or 'No description available' }}
+        </p>
+
+        <!-- Template Stats -->
+        <div class="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-4">
+          {% if template.template_data %}
+          <span class="flex items-center gap-1">
+            <i class="ti ti-code" aria-hidden="true"></i>
+            <span class="font-mono">{{ template.template_data|length if template.template_data is string else 'Custom' }}</span> chars
+          </span>
+          {% endif %}
+          <span class="flex items-center gap-1">
+            <i class="ti ti-calendar" aria-hidden="true"></i>
+            <span class="font-mono">{{ template.created_at.strftime('%b %d, %Y') if template.created_at else 'N/A' }}</span>
+          </span>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2 mb-2 mt-auto">
+          <button type="button"
+                  class="flex-1 inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                         bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                  data-action="use-template" data-template-id="{{ template.id }}">
+            <i class="ti ti-plus" aria-hidden="true"></i> New Prompt
+          </button>
+          <button type="button"
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
+                         text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300
+                         border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                  data-action="view-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}" data-template-desc="{{ template.description }}" data-template-data="{{ template.template_data }}"
+                  aria-label="View template details">
+            <i class="ti ti-eye" aria-hidden="true"></i>
+          </button>
+          <button type="button"
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-9 sm:w-9 rounded-lg
+                         text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400
+                         border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700
+                         focus:outline-none focus:ring-2 focus:ring-red-500"
+                  data-action="delete-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}"
+                  aria-label="Delete template">
+            <i class="ti ti-trash" aria-hidden="true"></i>
+          </button>
+        </div>
+        <!-- Apply to Prompt Type -->
+        <div class="flex items-center gap-2">
+          <select class="flex-1 text-xs bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-ecs-green focus:border-ecs-green p-1.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  data-apply-select="{{ template.id }}" aria-label="Apply template to prompt type">
+            <option value="">Apply to active...</option>
+            <option value="match_thread_context">Match Thread Context</option>
+            <option value="pre_match_hype">Pre-Match Hype</option>
+            <option value="half_time_message">Half Time Message</option>
+            <option value="full_time_message">Full Time Message</option>
+            <option value="match_commentary">Match Commentary</option>
+            <option value="goal">Goal Event</option>
+            <option value="sounders_goal">Sounders Goal</option>
+            <option value="opponent_goal">Opponent Goal</option>
+            <option value="card">Card Event</option>
+            <option value="sounders_red_card">Sounders Red Card</option>
+            <option value="opponent_red_card">Opponent Red Card</option>
+            <option value="substitution">Substitution</option>
+            <option value="rivalry">Rivalry Match</option>
+          </select>
+          <button type="button"
+                  class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg text-xs font-semibold
+                         text-blue-700 bg-blue-50 border border-blue-300 hover:bg-blue-100
+                         dark:text-blue-300 dark:bg-blue-900/30 dark:border-blue-700 dark:hover:bg-blue-900/50 transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  data-action="apply-template" data-template-id="{{ template.id }}" data-template-name="{{ template.name }}">
+            <i class="ti ti-plug" aria-hidden="true"></i> Apply
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  {% call section_card('Templates', icon='ti-template') %}
+    {{ kit_empty_state('ti-template', 'No Templates Available', 'Create your first prompt template to save time when configuring AI prompts.') }}
+    <div class="px-6 pb-8 -mt-4 flex justify-center">
+      <button type="button" id="createFirstTemplateBtn"
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-plus" aria-hidden="true"></i> Create First Template
+      </button>
+    </div>
+  {% endcall %}
+  {% endif %}
+
+  <!-- Quick Tips Card -->
+  {% call section_card('Template Tips', icon='ti-bulb') %}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 p-4 sm:p-5">
+      <div class="flex items-start gap-4">
+        <div class="p-3 bg-ecs-green/10 rounded-lg flex-shrink-0">
+          <i class="ti ti-bulb text-xl text-ecs-green" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h4 class="font-medium text-gray-900 dark:text-white">Reusable Configurations</h4>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Templates save your favorite prompt settings for quick reuse across different matches.</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-4">
+        <div class="p-3 bg-blue-500/10 rounded-lg flex-shrink-0">
+          <i class="ti ti-trophy text-xl text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h4 class="font-medium text-gray-900 dark:text-white">Competition-Specific</h4>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Create templates for different competitions like MLS, NWSL, or international matches.</p>
+        </div>
+      </div>
+      <div class="flex items-start gap-4">
+        <div class="p-3 bg-ecs-gold/10 rounded-lg flex-shrink-0">
+          <i class="ti ti-star text-xl text-ecs-gold-600 dark:text-ecs-gold-400" aria-hidden="true"></i>
+        </div>
+        <div>
+          <h4 class="font-medium text-gray-900 dark:text-white">Default Templates</h4>
+          <p class="text-sm text-gray-500 dark:text-gray-400">Mark templates as default to auto-apply them for specific prompt types.</p>
+        </div>
+      </div>
+    </div>
+  {% endcall %}
+</div>
+{% else %}
     <!-- Page Header -->
     {% call card() %}
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -183,6 +375,7 @@
         </div>
     </div>
     {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block modals %}

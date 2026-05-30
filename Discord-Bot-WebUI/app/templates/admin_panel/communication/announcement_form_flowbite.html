@@ -26,6 +26,112 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+<div class="space-y-6">
+
+  {{ page_header(title, subtitle='Communication / Announcements') }}
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Announcement Form -->
+    <div class="lg:col-span-2">
+      {% call section_card(title, icon='ti-speakerphone') %}
+      <form method="POST" class="p-4 sm:p-5 space-y-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <div class="sm:col-span-3">
+            <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Announcement Title <span class="text-red-500">*</span></label>
+            <input type="text" id="title" name="title"
+                   value="{{ announcement.title if announcement else '' }}"
+                   required maxlength="255"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Clear, concise title for the announcement</p>
+          </div>
+          <div>
+            <label for="priority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Priority</label>
+            <select id="priority" name="priority"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+              <option value="low" {% if announcement and announcement.priority == 'low' %}selected{% endif %}>Low</option>
+              <option value="normal" {% if not announcement or announcement.priority == 'normal' %}selected{% endif %}>Normal</option>
+              <option value="medium" {% if announcement and announcement.priority == 'medium' %}selected{% endif %}>Medium</option>
+              <option value="high" {% if announcement and announcement.priority == 'high' %}selected{% endif %}>High</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="announcement_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+            <select id="announcement_type" name="announcement_type"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+              <option value="general" {% if not announcement or announcement.announcement_type == 'general' %}selected{% endif %}>General</option>
+              <option value="league" {% if announcement and announcement.announcement_type == 'league' %}selected{% endif %}>League</option>
+              <option value="match" {% if announcement and announcement.announcement_type == 'match' %}selected{% endif %}>Match</option>
+              <option value="system" {% if announcement and announcement.announcement_type == 'system' %}selected{% endif %}>System</option>
+              <option value="urgent" {% if announcement and announcement.announcement_type == 'urgent' %}selected{% endif %}>Urgent</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label for="content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Content <span class="text-red-500">*</span></label>
+          <textarea id="content" name="content" rows="8" required
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">{{ announcement.content if announcement else '' }}</textarea>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Detailed announcement content. Supports basic HTML formatting.</p>
+        </div>
+
+        <div class="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div>
+            {% if announcement %}
+            <button type="button" id="delete-btn"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-trash" aria-hidden="true"></i>Delete Announcement
+            </button>
+            {% endif %}
+          </div>
+          <div class="flex items-center gap-3">
+            <a href="{{ url_for('admin_panel.announcements') }}"
+               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-x" aria-hidden="true"></i>Cancel
+            </a>
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-device-floppy" aria-hidden="true"></i>{% if announcement %}Update{% else %}Create{% endif %} Announcement
+            </button>
+          </div>
+        </div>
+      </form>
+      {% endcall %}
+    </div>
+
+    <!-- Preview Card -->
+    <div class="lg:col-span-1">
+      {% call section_card('Preview', icon='ti-eye') %}
+      <div class="p-4 sm:p-5">
+        <div id="preview-content" class="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40">
+          <div class="flex justify-between items-start gap-3">
+            <div class="flex-1 min-w-0">
+              <h6 id="preview-title" class="text-base font-semibold text-gray-900 dark:text-white mb-2 break-words">{{ announcement.title if announcement else 'Announcement Title' }}</h6>
+              <div id="preview-body" class="text-sm text-gray-700 dark:text-gray-300 break-words">{{ announcement.content if announcement else 'Announcement content will appear here...' }}</div>
+            </div>
+            <span id="preview-priority" class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ (announcement.priority if announcement else 'normal').title() }}</span>
+          </div>
+          <hr class="my-3 border-gray-200 dark:border-gray-700">
+          <div class="text-xs text-gray-500 dark:text-gray-400">
+            <span class="font-semibold text-gray-700 dark:text-gray-300">Type:</span> <span id="preview-type">{{ (announcement.announcement_type if announcement else 'general').title() }}</span>
+            <span class="font-semibold text-gray-700 dark:text-gray-300 ml-4">Created:</span> <span class="font-mono">{{ moment().format('YYYY-MM-DD HH:mm') if moment else 'Now' }}</span>
+          </div>
+        </div>
+      </div>
+      {% endcall %}
+    </div>
+
+  </div>
+</div>
+{% else %}
 <!-- Announcement Form -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
@@ -127,6 +233,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

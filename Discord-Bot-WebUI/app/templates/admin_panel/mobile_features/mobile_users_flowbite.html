@@ -20,6 +20,196 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/flowbite.html' import input, select, button, pagination_nav %}
+<div class="space-y-6">
+
+  {{ page_header('Mobile Users', subtitle='Mobile app user management and device tracking') }}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-device-mobile', 'Total Mobile Users', stats.total_mobile_users or 0, tone='info') }}
+    {{ stat_card('ti-activity', 'Active This Week', stats.active_last_week or 0, tone='success') }}
+    {{ stat_card('ti-calendar', 'Active This Month', stats.active_last_month or 0, sublabel='30 days', tone='primary') }}
+    {{ stat_card('ti-chart-line', 'Retention Rate', stats.retention_rate or '0%', tone='gold') }}
+  </div>
+
+  <!-- Filters -->
+  {% call section_card('Filter Mobile Users', icon='ti-filter') %}
+    <div class="p-4 sm:p-5">
+      <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {{ select('activity', label='Activity Status', selected=request.args.get('activity'), placeholder='All Users', options=[
+          ('active_week', 'Active This Week'),
+          ('active_month', 'Active This Month'),
+          ('inactive', 'Inactive Users')
+        ]) }}
+        {{ select('platform', label='Platform', selected=request.args.get('platform'), placeholder='All Platforms', options=[
+          ('iOS', 'iOS'),
+          ('Android', 'Android')
+        ]) }}
+        {{ input('search', label='Search User', placeholder='Username or email…', value=request.args.get('search', '')) }}
+        <div class="flex items-end">
+          <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-search" aria-hidden="true"></i> Filter
+          </button>
+        </div>
+      </form>
+    </div>
+  {% endcall %}
+
+  <!-- Bulk actions -->
+  {% call section_card('Mobile User Management', icon='ti-tools') %}
+    <div class="p-4 sm:p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ mobile_users.items|length if mobile_users.items else 0 }}</span> users shown
+      </p>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" data-action="send-bulk-notification"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-send" aria-hidden="true"></i> Send Notification
+        </button>
+        <button type="button" data-action="export-user-data"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-download" aria-hidden="true"></i> Export Data
+        </button>
+        <button type="button" data-action="bulk-device-management"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-device-mobile" aria-hidden="true"></i> Manage Devices
+        </button>
+      </div>
+    </div>
+  {% endcall %}
+
+  <!-- Mobile users table -->
+  {% if mobile_users and mobile_users.items %}
+  {% call data_table('Mobile Users', icon='ti-users', count=(mobile_users.items|length), filters=False, footer=true) %}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead class="text-xs bg-gray-50 dark:bg-gray-700/50">
+        <tr>
+          <th scope="col" class="px-3 py-2.5 w-px">
+            <input id="mobile-users-selectAll" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" aria-label="Select all users">
+          </th>
+          {{ data_table_th('User', key='user', sortable=False) }}
+          {{ data_table_th('Platform', key='platform', sortable=False) }}
+          {{ data_table_th('Last Active', key='last_active', sortable=False) }}
+          {{ data_table_th('Device Tokens', key='tokens', sortable=False) }}
+          {{ data_table_th('Push Status', key='push', sortable=False) }}
+          {{ data_table_th('Actions', key='actions', sortable=False, align='right') }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for user in mobile_users.items %}
+        {% set platform = 'iOS' if user.fcm_tokens and user.fcm_tokens[0].platform == 'ios' else 'Android' %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <td class="px-3 py-3">
+            <input type="checkbox" class="user-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}" aria-label="Select user">
+          </td>
+          <td class="px-3 py-3">
+            <div class="flex items-center gap-3">
+              <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
+                <span class="text-sm font-bold text-ecs-green">{{ user.username[0].upper() if user.username else 'U' }}</span>
+              </div>
+              <div class="min-w-0">
+                <p class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username or 'Unknown User' }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email or 'No email' }}</p>
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-3">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if platform == 'iOS' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' }}">
+              <i class="ti ti-{{ 'brand-apple' if platform == 'iOS' else 'brand-android' }}" aria-hidden="true"></i>
+              {{ platform }}
+            </span>
+          </td>
+          <td class="px-3 py-3 text-gray-600 dark:text-gray-400 font-mono text-xs">
+            {% if user.fcm_tokens and user.fcm_tokens[0].updated_at %}
+              {{ user.fcm_tokens[0].updated_at.strftime('%Y-%m-%d %H:%M') }}
+            {% else %}
+              <span class="text-gray-400 dark:text-gray-500">Unknown</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <span class="font-mono mr-1">{{ user.fcm_tokens|length or 0 }}</span> devices
+            </span>
+          </td>
+          <td class="px-3 py-3">
+            {% if user.fcm_tokens and user.fcm_tokens[0].is_active %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+              <i class="ti ti-check" aria-hidden="true"></i> Enabled
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-x" aria-hidden="true"></i> Disabled
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            <div class="flex items-center justify-end gap-1">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-user-details" data-user-id="{{ user.id }}" aria-label="View user details">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="send-notification" data-user-id="{{ user.id }}" aria-label="Send notification">
+                <i class="ti ti-send" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="manage-devices" data-user-id="{{ user.id }}" aria-label="Manage devices">
+                <i class="ti ti-device-mobile" aria-hidden="true"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- Mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for user in mobile_users.items %}
+      {% set platform = 'iOS' if user.fcm_tokens and user.fcm_tokens[0].platform == 'ios' else 'Android' %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-start gap-3">
+          <input type="checkbox" class="user-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}" aria-label="Select user">
+          <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center">
+            <span class="text-sm font-bold text-ecs-green">{{ user.username[0].upper() if user.username else 'U' }}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username or 'Unknown User' }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email or 'No email' }}</p>
+            <div class="mt-2 flex flex-wrap items-center gap-1.5">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {{ 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300' if platform == 'iOS' else 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' }}">
+                <i class="ti ti-{{ 'brand-apple' if platform == 'iOS' else 'brand-android' }}" aria-hidden="true"></i>{{ platform }}
+              </span>
+              <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                <span class="font-mono mr-1">{{ user.fcm_tokens|length or 0 }}</span> devices
+              </span>
+              {% if user.fcm_tokens and user.fcm_tokens[0].is_active %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-check" aria-hidden="true"></i>Enabled</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-x" aria-hidden="true"></i>Disabled</span>
+              {% endif %}
+            </div>
+            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 font-mono">
+              {% if user.fcm_tokens and user.fcm_tokens[0].updated_at %}{{ user.fcm_tokens[0].updated_at.strftime('%Y-%m-%d %H:%M') }}{% else %}Last active: Unknown{% endif %}
+            </p>
+            <div class="mt-2 flex items-center gap-1">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-user-details" data-user-id="{{ user.id }}" aria-label="View user details"><i class="ti ti-eye" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="send-notification" data-user-id="{{ user.id }}" aria-label="Send notification"><i class="ti ti-send" aria-hidden="true"></i></button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="manage-devices" data-user-id="{{ user.id }}" aria-label="Manage devices"><i class="ti ti-device-mobile" aria-hidden="true"></i></button>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {{ pagination_nav(mobile_users, endpoint='admin_panel.mobile_users', extra_params={'activity': request.args.get('activity', ''), 'platform': request.args.get('platform', ''), 'search': request.args.get('search', '')}) }}
+  {% endcall %}
+  {% else %}
+  {{ empty_state('ti-device-mobile-off', 'No Mobile Users Found', 'No users match the current filter criteria.', action={'label': 'Clear Filters', 'url': url_for('admin_panel.mobile_users'), 'icon': 'ti-refresh'}) }}
+  {% endif %}
+
+</div>
+{% else %}
 <!-- Mobile User Statistics -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -227,6 +417,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -2,6 +2,59 @@
 {% block title %}Manual Review Required{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, data_table_row_card, empty_state %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    {{ page_header("Manual Review Required", subtitle="Players that need manual verification or review") }}
+
+    {% if players %}
+    {% call data_table("Players Needing Review", icon="ti-alert-circle", count=players|length, search_placeholder="Filter players…", search_id="reviewFilter") %}
+        <table class="hidden md:table w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                    {{ data_table_th("Name", key="name", active=True, dir="asc") }}
+                    {{ data_table_th("Email", key="email") }}
+                    {{ data_table_th("Action", sortable=False, align="right") }}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for player in players %}
+                <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-3 py-3" data-cell="name">
+                        <div class="flex items-center gap-3">
+                            <span class="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center shrink-0">
+                                <i class="ti ti-user-question text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+                            </span>
+                            <span class="font-semibold text-gray-900 dark:text-white">{{ player.name }}</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs" data-cell="email">{{ player.user.email if player.user else 'No email' }}</td>
+                    <td class="px-3 py-3 text-right">
+                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}"
+                           class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg
+                                  bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
+                                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <i class="ti ti-eye text-sm" aria-hidden="true"></i> Review
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {% for player in players %}
+            {% call data_table_row_card(player.name, url=url_for('players.player_profile', player_id=player.id)) %}
+                <p class="font-mono"><i class="ti ti-mail mr-1" aria-hidden="true"></i>{{ player.user.email if player.user else 'No email' }}</p>
+                <p class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 font-semibold"><i class="ti ti-user-question" aria-hidden="true"></i>Needs review</p>
+            {% endcall %}
+            {% endfor %}
+        </div>
+    {% endcall %}
+    {% else %}
+    {{ empty_state("ti-circle-check", "All Clear!", "No accounts need manual review at this time.") }}
+    {% endif %}
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -69,4 +122,5 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}

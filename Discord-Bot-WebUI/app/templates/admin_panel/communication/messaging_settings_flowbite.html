@@ -20,6 +20,227 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, modal as kit_modal, empty_state %}
+
+{{ page_header('In-App Messaging Settings', subtitle='Communication') }}
+
+{# KPI band — real data from stats #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+    {{ stat_card('ti-message-2', 'Total Messages', stats.total_messages, tone='info') }}
+    {{ stat_card('ti-calendar-event', 'Messages Today', stats.messages_today, tone='success') }}
+    {{ stat_card('ti-messages', 'Conversations', stats.total_conversations, tone='primary') }}
+    {{ stat_card('ti-mail-opened', 'Unread', stats.unread_messages, tone='warning') }}
+</div>
+
+<div class="space-y-5 sm:space-y-6">
+    {# Global Settings #}
+    {% call section_card('Global Settings', icon='ti-adjustments') %}
+    <div class="p-4 sm:p-5">
+        <form action="{{ url_for('admin_panel.update_messaging_settings') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="divide-y divide-gray-100 dark:divide-gray-700">
+                {# Enable/Disable Toggle #}
+                <div class="flex items-center justify-between gap-4 py-3">
+                    <div class="min-w-0">
+                        <p class="font-medium text-gray-900 dark:text-white">Enable Messaging System</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Allow users to send direct messages to each other</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input type="checkbox" name="enabled" class="sr-only peer" {{ 'checked' if settings.enabled else '' }}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                    </label>
+                </div>
+
+                {# Typing Indicators #}
+                <div class="flex items-center justify-between gap-4 py-3">
+                    <div class="min-w-0">
+                        <p class="font-medium text-gray-900 dark:text-white">Typing Indicators</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Show when someone is typing a message</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input type="checkbox" name="typing_indicators" class="sr-only peer" {{ 'checked' if settings.typing_indicators else '' }}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                    </label>
+                </div>
+
+                {# Read Receipts #}
+                <div class="flex items-center justify-between gap-4 py-3">
+                    <div class="min-w-0">
+                        <p class="font-medium text-gray-900 dark:text-white">Read Receipts</p>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Show when messages have been read</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                        <input type="checkbox" name="read_receipts" class="sr-only peer" {{ 'checked' if settings.read_receipts else '' }}>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/30 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                    </label>
+                </div>
+            </div>
+
+            <hr class="my-6 border-gray-200 dark:border-gray-700">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+                <div>
+                    <label for="max_message_length" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Max Message Length</label>
+                    <input type="number" id="max_message_length" name="max_message_length" value="{{ settings.max_message_length }}" min="100" max="10000" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Maximum characters per message (100-10,000)</p>
+                </div>
+                <div>
+                    <label for="message_retention_days" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message Retention</label>
+                    <input type="number" id="message_retention_days" name="message_retention_days" value="{{ settings.message_retention_days }}" min="7" max="365" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Days to keep messages before cleanup (7-365)</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end mt-6">
+                <button type="submit" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Settings
+                </button>
+            </div>
+        </form>
+    </div>
+    {% endcall %}
+
+    {# Role Permissions #}
+    {% call section_card('Role Messaging Permissions', icon='ti-shield-check') %}
+    <div class="p-4 sm:p-5">
+        <div class="flex items-center justify-between gap-2 mb-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Configure which roles can send messages to which other roles. Click "Edit" to modify a role's permissions.
+            </p>
+            <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ roles|length }} roles</span>
+        </div>
+
+        {% if roles %}
+        <form action="{{ url_for('admin_panel.bulk_update_messaging_permissions') }}" method="POST" id="permissionsForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                {% for sender_role in roles %}
+                {% set allowed_roles = [] %}
+                {% for recipient_role in roles %}
+                  {% set perm_key = sender_role.id|string + '_' + recipient_role.id|string %}
+                  {% if permissions.get(perm_key, False) %}
+                    {% set _ = allowed_roles.append(recipient_role) %}
+                  {% endif %}
+                {% endfor %}
+
+                <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-4" data-role-id="{{ sender_role.id }}">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center min-w-0">
+                            <i class="ti ti-shield text-ecs-green mr-2 shrink-0" aria-hidden="true"></i>
+                            <span class="font-medium text-gray-900 dark:text-white truncate">{{ sender_role.name }}</span>
+                        </div>
+                        <button type="button" class="inline-flex items-center gap-1 text-sm font-medium text-ecs-green hover:text-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green rounded px-1" data-action="edit-permissions" data-role-id="{{ sender_role.id }}" data-role-name="{{ sender_role.name }}">
+                            <i class="ti ti-edit" aria-hidden="true"></i>Edit
+                        </button>
+                    </div>
+
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">Can message:</div>
+                    <div class="flex flex-wrap gap-1" id="recipients-{{ sender_role.id }}">
+                        {% if allowed_roles %}
+                            {% for recipient in allowed_roles %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                                {{ recipient.name }}
+                            </span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-gray-400 dark:text-gray-500 text-xs italic">No roles selected</span>
+                        {% endif %}
+                    </div>
+
+                    {# Hidden checkboxes for form submission #}
+                    <div class="hidden">
+                        {% for recipient_role in roles %}
+                        {% set perm_key = sender_role.id|string + '_' + recipient_role.id|string %}
+                        {% set is_allowed = permissions.get(perm_key, False) %}
+                        <input type="checkbox" name="perm_{{ sender_role.id }}_{{ recipient_role.id }}"
+                               id="perm_{{ sender_role.id }}_{{ recipient_role.id }}"
+                               {{ 'checked' if is_allowed else '' }}
+                               data-recipient-name="{{ recipient_role.name }}">
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {# Quick Actions #}
+            <div class="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-sm text-gray-500 dark:text-gray-400">Quick Presets:</span>
+                    <button type="button" id="presetAllToAll" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        <i class="ti ti-arrows-exchange" aria-hidden="true"></i>Everyone &rarr; Everyone
+                    </button>
+                    <button type="button" id="presetAdminToAll" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                        <i class="ti ti-crown" aria-hidden="true"></i>Admins &rarr; Everyone
+                    </button>
+                    <button type="button" id="presetClearAll" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400 focus:outline-none focus:ring-2 focus:ring-red-500">
+                        <i class="ti ti-x" aria-hidden="true"></i>Clear All
+                    </button>
+                </div>
+                <button type="submit" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-device-floppy" aria-hidden="true"></i>Save All Permissions
+                </button>
+            </div>
+        </form>
+        {% else %}
+        {{ empty_state('ti-shield-off', 'No roles configured', 'There are no roles available to configure messaging permissions for.') }}
+        {% endif %}
+    </div>
+    {% endcall %}
+
+    {# Quick Actions #}
+    {% call section_card('Quick Actions', icon='ti-bolt') %}
+    <div class="p-4 sm:p-5 flex flex-wrap gap-3">
+        <a href="{{ url_for('messages_pages.messages_inbox') }}" target="_blank" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-medium text-ecs-green bg-ecs-green/10 rounded-lg hover:bg-ecs-green/20 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-inbox" aria-hidden="true"></i>View Messages Inbox
+        </a>
+        <button type="button" data-modal-target="messageStatsModal" data-modal-toggle="messageStatsModal" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-chart-bar" aria-hidden="true"></i>View Statistics
+        </button>
+    </div>
+    {% endcall %}
+</div>
+
+{# Edit Permissions Modal #}
+{% call kit_modal('editPermissionsModal', 'Edit Permissions', icon='ti-shield-check') %}
+<div class="p-4 sm:p-5">
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Select which roles <strong id="modalRoleNameText" class="text-gray-900 dark:text-white">this role</strong> can send messages to:</p>
+    <span id="modalRoleName" class="hidden"></span>
+
+    <div id="permissionChecklist" class="space-y-2 max-h-64 overflow-y-auto"></div>
+
+    <div class="flex gap-2 mt-4">
+        <button type="button" id="modalSelectAll" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-checkbox" aria-hidden="true"></i>Select All
+        </button>
+        <button type="button" id="modalDeselectAll" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 dark:bg-gray-600 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-square" aria-hidden="true"></i>Deselect All
+        </button>
+    </div>
+
+    <div class="flex items-center justify-end gap-3 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <button type="button" data-modal-hide="editPermissionsModal" class="min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">Cancel</button>
+        <button type="button" id="savePermissions" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-check" aria-hidden="true"></i>Apply Changes
+        </button>
+    </div>
+</div>
+{% endcall %}
+
+{# Statistics Modal #}
+{% call kit_modal('messageStatsModal', 'Messaging Statistics', icon='ti-chart-bar', size='lg') %}
+<div id="statsContent" class="p-4 sm:p-5">
+    <div class="text-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green mx-auto"></div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Loading statistics...</p>
+    </div>
+</div>
+{% endcall %}
+
+{% else %}
 <!-- Page Header -->
 <div class="flex flex-wrap items-center justify-between mb-6">
     <div>
@@ -264,6 +485,7 @@
     </div>
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

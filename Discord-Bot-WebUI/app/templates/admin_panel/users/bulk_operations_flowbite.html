@@ -20,6 +20,217 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state as kit_empty_state, modal as kit_modal %}
+
+{{ page_header("Bulk Operations", subtitle="User Management") }}
+
+<div class="space-y-5 sm:space-y-6">
+  {# KPI band #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    {{ stat_card("ti-clock", "Pending Approvals", bulk_stats.pending_users, sublabel="awaiting review", tone="warning") }}
+    {{ stat_card("ti-users", "Waitlist Users", bulk_stats.waitlist_users, sublabel="in queue", tone="info") }}
+    {{ stat_card("ti-shield", "Available Roles", bulk_stats.total_roles, sublabel="assignable", tone="primary") }}
+    {{ stat_card("ti-activity", "Recent Operations", bulk_stats.recent_operations, sublabel="logged", tone="neutral") }}
+  </div>
+
+  {# Action cards #}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+    {# Bulk Approvals #}
+    {% call section_card("Bulk Approvals", icon="ti-user-check") %}
+    <div class="p-4 sm:p-5">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Approve multiple pending users at once with league assignments.</p>
+      <div class="space-y-3">
+        <button type="button"
+                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                data-action="show-bulk-approval-modal">
+          <i class="ti ti-users" aria-hidden="true"></i>Bulk Approve Users
+        </button>
+        <button type="button"
+                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                data-action="load-pending-users">
+          <i class="ti ti-list" aria-hidden="true"></i>View Pending Users
+        </button>
+      </div>
+    </div>
+    {% endcall %}
+
+    {# Role Management #}
+    {% call section_card("Role Management", icon="ti-shield") %}
+    <div class="p-4 sm:p-5">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Assign, remove, or replace roles for multiple users simultaneously.</p>
+      <div class="space-y-3">
+        <button type="button"
+                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                data-action="show-bulk-role-modal">
+          <i class="ti ti-shield-plus" aria-hidden="true"></i>Bulk Role Assignment
+        </button>
+        <button type="button"
+                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                data-action="view-role-distribution">
+          <i class="ti ti-chart-pie" aria-hidden="true"></i>Role Distribution
+        </button>
+      </div>
+    </div>
+    {% endcall %}
+
+    {# Waitlist Management #}
+    {% call section_card("Waitlist Management", icon="ti-list-check") %}
+    <div class="p-4 sm:p-5">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Process waitlist users in bulk to move them to pending approval.</p>
+      <div class="space-y-3">
+        <button type="button"
+                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                data-action="show-bulk-waitlist-modal">
+          <i class="ti ti-arrow-right" aria-hidden="true"></i>Process Waitlist
+        </button>
+        <button type="button"
+                class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                data-action="load-waitlist-users">
+          <i class="ti ti-eye" aria-hidden="true"></i>View Waitlist
+        </button>
+      </div>
+    </div>
+    {% endcall %}
+  </div>
+
+  {# Recent Bulk Operations #}
+  {% if recent_bulk_ops %}
+  {% call data_table("Recent Bulk Operations", icon="ti-history", count=recent_bulk_ops|length, filters=false) %}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+        <tr>
+          {{ data_table_th("Operation", sortable=false) }}
+          {{ data_table_th("Admin", sortable=false) }}
+          {{ data_table_th("Details", sortable=false, hide="sm") }}
+          {{ data_table_th("Date", sortable=false, hide="sm") }}
+          {{ data_table_th("Status", sortable=false) }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for op in recent_bulk_ops %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ op.action|title }}</span>
+          </td>
+          <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">{{ op.user.username if op.user else 'System' }}</td>
+          <td class="px-3 py-3 text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ op.new_value or op.details or 'No details' }}</td>
+          <td class="px-3 py-3 text-xs font-mono text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ op.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td class="px-3 py-3">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-circle-check" aria-hidden="true"></i>Completed
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for op in recent_bulk_ops %}
+      {% set op_badge %}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ op.action|title }}</span>{% endset %}
+      {% call data_table_row_card(op.user.username if op.user else 'System', badge=op_badge) %}
+        <p>{{ op.new_value or op.details or 'No details' }}</p>
+        <p class="font-mono">{{ op.timestamp.strftime('%Y-%m-%d %H:%M') }}</p>
+        <p class="inline-flex items-center gap-1 text-green-600 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>Completed</p>
+      {% endcall %}
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  {% call section_card("Recent Bulk Operations", icon="ti-history") %}
+    {{ kit_empty_state("ti-inbox", "No recent operations", "No recent bulk operations have been recorded yet.") }}
+  {% endcall %}
+  {% endif %}
+
+  {# Role Distribution #}
+  {% call section_card("Role Distribution", icon="ti-chart-donut") %}
+  <div class="p-4 sm:p-5">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2">
+        <canvas id="roleDistributionChart" height="200"></canvas>
+      </div>
+      <div class="space-y-2">
+        {% for role, count in role_stats.items() %}
+        <div class="flex justify-between items-center px-3 py-2.5 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+          <span class="font-medium text-gray-900 dark:text-white">{{ role }}</span>
+          <span class="font-mono inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endcall %}
+</div>
+
+{# Bulk Approval Modal #}
+{% call kit_modal('bulkApprovalModal', 'Bulk User Approval', icon="ti-user-check", size='lg') %}
+<div class="p-5">
+  <div id="bulkApprovalContent">
+    <div class="text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">Loading pending users...</p>
+    </div>
+  </div>
+  <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+    <button type="button"
+            class="modal-close-btn min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            data-modal-hide="bulkApprovalModal">Cancel</button>
+    <button type="button" id="bulkApprovalBtn" disabled
+            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            data-action="process-bulk-approval">
+      <i class="ti ti-check" aria-hidden="true"></i>Approve Selected
+    </button>
+  </div>
+</div>
+{% endcall %}
+
+{# Bulk Role Assignment Modal #}
+{% call kit_modal('bulkRoleModal', 'Bulk Role Assignment', icon="ti-shield-plus", size='lg') %}
+<div class="p-5">
+  <div id="bulkRoleContent">
+    <div class="text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">Loading role assignment interface...</p>
+    </div>
+  </div>
+  <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+    <button type="button"
+            class="modal-close-btn min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            data-modal-hide="bulkRoleModal">Cancel</button>
+    <button type="button" id="bulkRoleBtn" disabled
+            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            data-action="process-bulk-role-assignment">
+      <i class="ti ti-shield-plus" aria-hidden="true"></i>Assign Roles
+    </button>
+  </div>
+</div>
+{% endcall %}
+
+{# Bulk Waitlist Processing Modal #}
+{% call kit_modal('bulkWaitlistModal', 'Bulk Waitlist Processing', icon="ti-arrow-right", size='lg') %}
+<div class="p-5">
+  <div id="bulkWaitlistContent">
+    <div class="text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-ecs-green"></div>
+      <p class="text-gray-500 dark:text-gray-400 mt-2">Loading waitlist users...</p>
+    </div>
+  </div>
+  <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+    <button type="button"
+            class="modal-close-btn min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+            data-modal-hide="bulkWaitlistModal">Cancel</button>
+    <button type="button" id="bulkWaitlistBtn" disabled
+            class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+            data-action="process-bulk-waitlist">
+      <i class="ti ti-arrow-right" aria-hidden="true"></i>Process Selected
+    </button>
+  </div>
+</div>
+{% endcall %}
+
+{% else %}
+{# ===================== Classic (unchanged) ===================== #}
 <!-- Bulk Operations Overview Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <!-- Pending Users -->
@@ -272,6 +483,7 @@
     </button>
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

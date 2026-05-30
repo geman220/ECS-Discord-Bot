@@ -3,6 +3,265 @@
 {% block title %}Schedule Wizard{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{# ===================== MODERN (console) ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, stat_card, data_table, data_table_th, empty_state, alert %}
+{% from 'macros/flowbite.html' import input %}
+
+{# Wizard is 2 backend steps (step1=configure, step2=assign). Derive current step
+   from whether placeholders exist so the stepper reflects real progress. #}
+{% set current_step = 2 if placeholders else 1 %}
+{% set steps = [
+  {'n': 1, 'label': 'Configure',     'sub': 'Dates & timeslots', 'icon': 'ti-settings'},
+  {'n': 2, 'label': 'Assign teams',  'sub': 'Match-ups',         'icon': 'ti-clipboard-list'}
+] %}
+
+<div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+  {% call page_header("Schedule Wizard", subtitle="Season: " ~ season.name) %}
+    <span class="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-gray-100 dark:bg-gray-700/60 text-xs font-semibold text-gray-600 dark:text-gray-300">
+      <i class="ti ti-flag-3" aria-hidden="true"></i>
+      Step <span class="font-mono">{{ current_step }}</span> of <span class="font-mono">{{ steps|length }}</span>
+    </span>
+  {% endcall %}
+
+  {# ---- Stepper (wizard demands a progress indicator; tokenized, no kit macro exists) ---- #}
+  <ol class="flex items-center gap-2 sm:gap-4 mb-6" aria-label="Progress">
+    {% for s in steps %}
+    {% set is_done = s.n < current_step %}
+    {% set is_active = s.n == current_step %}
+    <li class="flex items-center gap-2 sm:gap-3 {% if not loop.last %}flex-1{% endif %} min-w-0"
+        {% if is_active %}aria-current="step"{% endif %}>
+      <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-full font-mono text-sm font-bold border-2 transition-colors
+        {% if is_done %}bg-ecs-green border-ecs-green text-white
+        {% elif is_active %}border-ecs-green text-ecs-green bg-ecs-green/10
+        {% else %}border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500{% endif %}">
+        {% if is_done %}<i class="ti ti-check text-base" aria-hidden="true"></i>{% else %}{{ s.n }}{% endif %}
+      </span>
+      <span class="min-w-0 hidden sm:block">
+        <span class="block text-sm font-semibold truncate
+          {% if is_active %}text-gray-900 dark:text-white{% elif is_done %}text-ecs-green{% else %}text-gray-400 dark:text-gray-500{% endif %}">{{ s.label }}</span>
+        <span class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ s.sub }}</span>
+      </span>
+      {% if not loop.last %}
+      <span class="flex-1 h-0.5 rounded-full {% if is_done %}bg-ecs-green{% else %}bg-gray-200 dark:bg-gray-700{% endif %}" aria-hidden="true"></span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+
+  {% if not placeholders %}
+  {# ============ STEP 1: Generate placeholders ============ #}
+  <form method="POST" class="space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="wizard_step" value="step1">
+    <input type="hidden" name="season_id" value="{{ season.id }}">
+
+    {% call section_card("Schedule basics", icon="ti-calendar-cog") %}
+    <div class="p-4 sm:p-6 space-y-6">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+        {{ input("start_date", label="Start Date (First Sunday)", type="date", required=true) }}
+        {{ input("num_weeks", label="Number of Weeks", type="number", required=true) }}
+      </div>
+      {{ input("timeslots", label="Timeslots (comma separated)", placeholder="e.g. 09:00 North,09:00 South",
+               required=true, help_text='Format: "HH:MM FieldName" — one entry per field/time you play.') }}
+    </div>
+    {% endcall %}
+
+    {# Advanced / special-week options — progressive disclosure (collapsed by default) #}
+    <details class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+      <summary class="flex items-center justify-between gap-2 px-4 sm:px-5 py-3 cursor-pointer select-none min-h-[44px]
+                      hover:bg-gray-50 dark:hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+        <span class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">
+          <i class="ti ti-confetti text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+          Special week options
+        </span>
+        <i class="ti ti-chevron-down text-gray-400 transition-transform group-open:rotate-180" aria-hidden="true"></i>
+      </summary>
+      <fieldset class="px-4 sm:px-5 pb-4 pt-1 space-y-1 border-t border-gray-200 dark:border-gray-700">
+        <legend class="sr-only">Week type options</legend>
+        <p class="text-xs text-gray-500 dark:text-gray-400 py-3">Optionally flag the whole day as a non-standard week.</p>
+        <label class="flex items-center gap-3 cursor-pointer min-h-[44px] rounded-lg px-2 -mx-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <input type="checkbox" name="fun_week" value="1"
+                 class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+          <span class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <i class="ti ti-mood-smile text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i>
+            Mark entire day as <span class="font-semibold">FUN WEEK</span>
+          </span>
+        </label>
+        <label class="flex items-center gap-3 cursor-pointer min-h-[44px] rounded-lg px-2 -mx-2 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <input type="checkbox" name="bye_week" value="1"
+                 class="rounded border-gray-300 dark:border-gray-600 text-ecs-green focus:ring-ecs-green">
+          <span class="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+            <i class="ti ti-zzz text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+            Mark entire day as <span class="font-semibold">BYE WEEK</span>
+          </span>
+        </label>
+      </fieldset>
+    </details>
+
+    {# Primary action — sticky on mobile so it's reachable, one clear CTA #}
+    <div class="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur sm:bg-transparent sm:dark:bg-transparent sm:backdrop-blur-none border-t border-gray-200 dark:border-gray-700 sm:border-0 flex justify-end">
+      <button type="submit"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] w-full sm:w-auto px-6 rounded-lg
+                     bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-calendar-plus" aria-hidden="true"></i>
+        Generate Placeholders
+        <i class="ti ti-arrow-right" aria-hidden="true"></i>
+      </button>
+    </div>
+  </form>
+
+  {% else %}
+  {# ============ STEP 2: Show placeholders + assign teams ============ #}
+  <form method="POST" class="space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="wizard_step" value="step2">
+
+    {# Context band: how many slots to fill, across how many dates #}
+    {% set distinct_dates = placeholders | map(attribute='date') | list | unique | list %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+      {{ stat_card("ti-clipboard-list", "Match slots", placeholders|length, sublabel="to assign", tone="primary") }}
+      {{ stat_card("ti-calendar-week", "Match dates", distinct_dates|length, sublabel="weeks", tone="info") }}
+      <div class="col-span-2 sm:col-span-1">
+        {{ stat_card("ti-users-group", "Teams available",
+                     leagues | map(attribute='teams') | map('length') | sum,
+                     sublabel="across " ~ (leagues|length) ~ " league" ~ ("s" if leagues|length != 1 else ""),
+                     tone="neutral") }}
+      </div>
+    </div>
+
+    {% if not placeholders %}
+    {{ empty_state("ti-calendar-off", "No placeholders generated",
+                   "Go back to Step 1 and configure your schedule parameters to generate match slots.") }}
+    {% else %}
+    {% call data_table("Assign teams to matches", icon="ti-clipboard-list",
+                       count=placeholders|length, filters=False) %}
+      <p class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+        Pick Team A and Team B for each match slot, then create the matches.
+      </p>
+
+      {# md+ : real table #}
+      <table class="hidden md:table w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+          <tr>
+            {{ data_table_th("Date", key="date", sortable=False) }}
+            {{ data_table_th("Time", key="time", sortable=False) }}
+            {{ data_table_th("Field", key="field", sortable=False) }}
+            {{ data_table_th("Team A", key="team_a", sortable=False) }}
+            {{ data_table_th("Team B", key="team_b", sortable=False) }}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for row in placeholders %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-3 py-2.5 font-mono font-semibold text-gray-900 dark:text-white whitespace-nowrap">
+              {{ row.date }}
+              <input type="hidden" name="date_{{ loop.index0 }}" value="{{ row.date }}">
+            </td>
+            <td class="px-3 py-2.5 font-mono text-gray-600 dark:text-gray-300 whitespace-nowrap">
+              {{ row.time }}
+              <input type="hidden" name="time_{{ loop.index0 }}" value="{{ row.time }}">
+            </td>
+            <td class="px-3 py-2.5 text-gray-600 dark:text-gray-300">
+              <span class="inline-flex items-center gap-1"><i class="ti ti-map-pin text-gray-400" aria-hidden="true"></i>{{ row.location }}</span>
+              <input type="hidden" name="location_{{ loop.index0 }}" value="{{ row.location }}">
+            </td>
+            <td class="px-3 py-2.5">
+              <select name="team_a_{{ loop.index0 }}" aria-label="Team A for {{ row.date }} {{ row.time }}"
+                      class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                <option value="">-- Select --</option>
+                {% for league in leagues %}
+                <optgroup label="{{ league.name }}">
+                {% for t in league.teams %}
+                <option value="{{ t.id }}">{{ t.name }}</option>
+                {% endfor %}
+                </optgroup>
+                {% endfor %}
+              </select>
+            </td>
+            <td class="px-3 py-2.5">
+              <select name="team_b_{{ loop.index0 }}" aria-label="Team B for {{ row.date }} {{ row.time }}"
+                      class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+                <option value="">-- Select --</option>
+                {% for league in leagues %}
+                <optgroup label="{{ league.name }}">
+                {% for t in league.teams %}
+                <option value="{{ t.id }}">{{ t.name }}</option>
+                {% endfor %}
+                </optgroup>
+                {% endfor %}
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {# mobile : stacked cards #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for row in placeholders %}
+        <div class="px-4 py-4 space-y-3">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-mono text-sm font-semibold text-gray-900 dark:text-white">{{ row.date }}</span>
+            <span class="font-mono text-xs text-gray-500 dark:text-gray-400">{{ row.time }}</span>
+          </div>
+          <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+            <i class="ti ti-map-pin" aria-hidden="true"></i>{{ row.location }}
+          </p>
+          <input type="hidden" name="date_{{ loop.index0 }}" value="{{ row.date }}">
+          <input type="hidden" name="time_{{ loop.index0 }}" value="{{ row.time }}">
+          <input type="hidden" name="location_{{ loop.index0 }}" value="{{ row.location }}">
+          <div>
+            <label for="m_team_a_{{ loop.index0 }}" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Team A</label>
+            <select id="m_team_a_{{ loop.index0 }}" name="team_a_{{ loop.index0 }}"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+              <option value="">-- Select --</option>
+              {% for league in leagues %}
+              <optgroup label="{{ league.name }}">
+              {% for t in league.teams %}
+              <option value="{{ t.id }}">{{ t.name }}</option>
+              {% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label for="m_team_b_{{ loop.index0 }}" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Team B</label>
+            <select id="m_team_b_{{ loop.index0 }}" name="team_b_{{ loop.index0 }}"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+              <option value="">-- Select --</option>
+              {% for league in leagues %}
+              <optgroup label="{{ league.name }}">
+              {% for t in league.teams %}
+              <option value="{{ t.id }}">{{ t.name }}</option>
+              {% endfor %}
+              </optgroup>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    {% endcall %}
+
+    {# Primary action — sticky on mobile, one clear CTA #}
+    <div class="sticky bottom-0 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 sm:py-0 bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur sm:bg-transparent sm:dark:bg-transparent sm:backdrop-blur-none border-t border-gray-200 dark:border-gray-700 sm:border-0 flex justify-end">
+      <button type="submit"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] w-full sm:w-auto px-6 rounded-lg
+                     bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-check" aria-hidden="true"></i>
+        Create Matches
+      </button>
+    </div>
+    {% endif %}
+  </form>
+  {% endif %}
+
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -161,4 +420,5 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}

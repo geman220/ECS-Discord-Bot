@@ -1,11 +1,105 @@
 {% extends "base_flowbite.html" %}
-{% from "macros/flowbite.html" import modal_info %}
+{% from "macros/flowbite.html" import modal_info, button as fb_button, avatar as fb_avatar %}
+{% from "macros/_modern_kit.html" import page_header, section_card, alert %}
 
 {% block title %}Join the Waitlist - ECS Soccer League{% endblock %}
 
 {% block chat_widgets %}{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+<div class="container mx-auto px-4 py-6 sm:py-8 max-w-2xl">
+  {{ page_header("Join the Waitlist", subtitle="ECS FC Pub League") }}
+
+  {% if already_on_waitlist %}
+  {% call section_card("Waitlist Status", icon="ti-list-check") %}
+  <div class="p-4 sm:p-5 space-y-5">
+    {{ alert('success', "You're already on our waitlist for the current season. We'll notify you as soon as spots become available.", title="You're already on the waitlist.", dismissible=False) }}
+    <div>
+      {{ fb_button("Back to Dashboard", variant="primary", icon="ti-arrow-left", href=url_for('main.index')) }}
+    </div>
+  </div>
+  {% endcall %}
+
+  {% else %}
+  {% call section_card("Welcome back, " ~ user.username, icon="ti-clock-hour-4") %}
+  <div class="p-4 sm:p-5 space-y-5">
+    {{ alert('warning', 'All spots for the current season have been filled. Join our waitlist to be first in line for future openings.', title='Season full.', dismissible=False) }}
+
+    <form method="POST" action="{{ url_for('auth.waitlist_register') }}" class="space-y-5">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <!-- Profile summary -->
+      <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+          {% if player and player.profile_picture_url %}
+          {{ fb_avatar(src=player.profile_picture_url, alt=user.username, size="lg") }}
+          {% else %}
+          <div class="w-16 h-16 shrink-0 rounded-full bg-ecs-green flex items-center justify-center">
+            <span class="text-2xl font-bold text-white">{{ user.username[0].upper() }}</span>
+          </div>
+          {% endif %}
+          <div class="flex-1 min-w-0">
+            <h6 class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username }}</h6>
+            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
+            {% if user.preferred_league %}
+            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+              Preferred League:
+              {% if user.preferred_league == 'pub_league_classic' %}Pub League Classic
+              {% elif user.preferred_league == 'pub_league_premier' %}Pub League Premier
+              {% elif user.preferred_league == 'ecs_fc' %}ECS FC
+              {% else %}{{ user.preferred_league }}{% endif %}
+            </p>
+            {% endif %}
+          </div>
+          <button type="button" id="review-profile-btn"
+                  class="shrink-0 inline-flex items-center justify-center gap-2 min-h-[44px] px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-edit" aria-hidden="true"></i>
+            Review Profile
+          </button>
+        </div>
+      </div>
+
+      {{ alert('info', 'Before joining the waitlist, we encourage you to review and update your profile information to ensure we have your current details.', title='Welcome back.', dismissible=False) }}
+
+      {{ fb_button("Join the Waitlist", variant="primary", type="submit", icon="ti-clock", class_="w-full justify-center") }}
+    </form>
+  </div>
+  {% endcall %}
+
+  <!-- Benefits -->
+  {% call section_card("Benefits of Joining", icon="ti-sparkles") %}
+  <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="text-center">
+      <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+        <i class="ti ti-bell text-ecs-green" aria-hidden="true"></i>
+      </div>
+      <p class="text-xs text-gray-600 dark:text-gray-300">Priority notifications when spots open</p>
+    </div>
+    <div class="text-center">
+      <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+        <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i>
+      </div>
+      <p class="text-xs text-gray-600 dark:text-gray-300">Early access to more information</p>
+    </div>
+    <div class="text-center">
+      <div class="w-10 h-10 mx-auto rounded-full bg-ecs-green/10 dark:bg-ecs-green/20 flex items-center justify-center mb-2">
+        <i class="ti ti-users text-ecs-green" aria-hidden="true"></i>
+      </div>
+      <p class="text-xs text-gray-600 dark:text-gray-300">Stay connected with ECS community</p>
+    </div>
+  </div>
+  {% endcall %}
+  {% endif %}
+
+  <div class="text-center mt-6">
+    <a href="{{ url_for('main.index') }}" class="text-sm text-ecs-green dark:text-ecs-gold-400 hover:underline inline-flex items-center gap-1">
+      <i class="ti ti-chevron-left" aria-hidden="true"></i>
+      Back to Dashboard
+    </a>
+  </div>
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8 max-w-2xl">
     <!-- Waitlist Card -->
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -138,6 +232,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Profile Review Modal -->
 {% call modal_info('profileModal', 'Review Your Profile', size='xl', footer=false) %}

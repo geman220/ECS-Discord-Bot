@@ -1,6 +1,6 @@
 {# Shared top-bar utility actions: search, AI, layout switcher, dark-mode
    toggle, role impersonation, user menu. Used by the Classic/Console white
-   bar (actions_dark=false) and the Matchday green header (actions_dark=true).
+   bar (actions_dark=false). actions_dark styling kept for any future dark header.
    Rendered for exactly one shell per request, so the control IDs are unique. #}
 {% set _ab_idle = 'text-white/90 hover:bg-white/10' if actions_dark else 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700' %}
 {% set _ab = _ab_idle ~ (' focus:ring-white/30' if actions_dark else ' focus:ring-gray-200 dark:focus:ring-gray-700') %}
@@ -45,7 +45,7 @@
                             <div id="shell-switch-menu" class="z-50 hidden w-56 bg-white rounded-lg shadow-lg dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
                                 <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400 border-b border-gray-100 dark:border-gray-600">Layout (admin preview)</div>
                                 <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
-                                    {% for opt in [('classic','Classic','ti-layout-sidebar'), ('console','Modern Console','ti-layout-navbar'), ('matchday','Matchday','ti-layout-grid')] %}
+                                    {% for opt in [('classic','Classic','ti-layout-sidebar'), ('console','Modern','ti-layout-dashboard')] %}
                                     <li>
                                         <button type="button" data-set-shell="{{ opt[0] }}"
                                                 class="w-full flex items-center gap-3 px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-600 {{ 'text-ecs-green font-medium' if shell == opt[0] else '' }}">
@@ -56,7 +56,7 @@
                                     </li>
                                     {% endfor %}
                                 </ul>
-                                <div class="px-4 py-2 text-xs text-gray-400 border-t border-gray-100 dark:border-gray-600">Only you see this preview. Admin panel always uses Console.</div>
+                                <div class="px-4 py-2 text-xs text-gray-400 border-t border-gray-100 dark:border-gray-600">Only you see this preview while we A/B test.</div>
                             </div>
                         </div>
                         <script>

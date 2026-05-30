@@ -3,6 +3,122 @@
 {% block title %}Manage Week {{ week_number }} - {{ league.name }}{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% import "macros/_modern_kit.html" as kit %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    {{ kit.page_header("Manage Week " ~ week_number, subtitle=league.name ~ " · " ~ season.name) }}
+
+    <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"
+       class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-ecs-green mb-5 min-h-[44px] sm:min-h-0">
+        <i class="ti ti-arrow-left" aria-hidden="true"></i>
+        Back to Schedule
+    </a>
+
+    <form method="POST" action="{{ url_for('publeague.manage_week', season_id=season.id, week_number=week_number, league_name=league.name) }}" class="space-y-5">
+        {{ csrf_token() }}
+
+        {% call kit.section_card(league.name ~ " League", icon="ti-calendar-event") %}
+        <div class="p-4 sm:p-5 space-y-6">
+            <!-- Date and Matches per Week -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="date_week{{ week_number }}" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        {{ league.name }} League Date <span class="text-red-500" aria-hidden="true">*</span>
+                    </label>
+                    <input type="date"
+                           id="date_week{{ week_number }}"
+                           name="date_week{{ week_number }}"
+                           value="{{ schedule[league.name][0]['date'] if schedule.get(league.name) and schedule[league.name] else '' }}"
+                           required
+                           class="input-ecs">
+                </div>
+                <div>
+                    <label for="matches_per_week" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Matches per Week <span class="text-red-500" aria-hidden="true">*</span>
+                    </label>
+                    <input type="number"
+                           id="matches_per_week"
+                           name="matches_per_week"
+                           value="{{ schedule[league.name]|length if schedule.get(league.name) else 8 }}"
+                           required
+                           class="input-ecs">
+                </div>
+            </div>
+
+            <!-- Matches -->
+            <div class="space-y-4">
+                <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Match Schedule</h3>
+
+                {% for match in range(1, 9) %}
+                <div class="p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
+                    <div class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                        <i class="ti ti-ball-football text-ecs-green" aria-hidden="true"></i>
+                        Match <span class="font-mono">{{ match }}</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <div>
+                            <label for="teamA_week{{ week_number }}_match{{ match }}" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Team A</label>
+                            <select id="teamA_week{{ week_number }}_match{{ match }}" name="teamA_week{{ week_number }}_match{{ match }}"
+                                    class="input-ecs text-sm">
+                                {% for team in league.teams %}
+                                <option value="{{ team.id }}"
+                                        {% if schedule.get(league.name) and schedule[league.name]|length >= match and schedule[league.name][match - 1]['team_a'] == team.id %}selected{% endif %}>
+                                    {{ team.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="teamB_week{{ week_number }}_match{{ match }}" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Team B</label>
+                            <select id="teamB_week{{ week_number }}_match{{ match }}" name="teamB_week{{ week_number }}_match{{ match }}"
+                                    class="input-ecs text-sm">
+                                {% for team in league.teams %}
+                                <option value="{{ team.id }}"
+                                        {% if schedule.get(league.name) and schedule[league.name]|length >= match and schedule[league.name][match - 1]['team_b'] == team.id %}selected{% endif %}>
+                                    {{ team.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div>
+                            <label for="time_week{{ week_number }}_match{{ match }}" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Time</label>
+                            <input type="time"
+                                   id="time_week{{ week_number }}_match{{ match }}"
+                                   name="time_week{{ week_number }}_match{{ match }}"
+                                   value="{{ schedule[league.name][match - 1]['time'] if schedule.get(league.name) and schedule[league.name]|length >= match else '' }}"
+                                   required
+                                   class="input-ecs text-sm">
+                        </div>
+                        <div>
+                            <label for="location_week{{ week_number }}_match{{ match }}" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Location</label>
+                            <select id="location_week{{ week_number }}_match{{ match }}" name="location_week{{ week_number }}_match{{ match }}"
+                                    class="input-ecs text-sm">
+                                <option value="North" {% if schedule.get(league.name) and schedule[league.name]|length >= match and schedule[league.name][match - 1]['location'] == 'North' %}selected{% endif %}>North</option>
+                                <option value="South" {% if schedule.get(league.name) and schedule[league.name]|length >= match and schedule[league.name][match - 1]['location'] == 'South' %}selected{% endif %}>South</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endcall %}
+
+        <!-- Actions -->
+        <div class="flex flex-wrap gap-3">
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i>
+                Save Week
+            </button>
+            <a href="{{ url_for('publeague.manage_schedule', season_id=season.id) }}"
+               class="inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -119,4 +235,5 @@
         </div>
     </form>
 </div>
+{% endif %}
 {% endblock %}

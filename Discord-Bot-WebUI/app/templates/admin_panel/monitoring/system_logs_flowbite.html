@@ -20,6 +20,185 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+
+{{ page_header("System Logs", subtitle="System Monitoring") }}
+
+<!-- Log Level Statistics -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    {{ stat_card("ti-alert-circle", "Error Logs", current_filters.error_count or 0, tone="danger") }}
+    {{ stat_card("ti-alert-triangle", "Warning Logs", current_filters.warning_count or 0, tone="warning") }}
+    {{ stat_card("ti-info-circle", "Info Logs", current_filters.info_count or 0, tone="info") }}
+    {{ stat_card("ti-bug", "Debug Logs", current_filters.debug_count or 0, tone="neutral") }}
+</div>
+
+<!-- Log Filters -->
+<div class="mb-6">
+{% call section_card("Log Filters", icon="ti-filter") %}
+<form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 p-4 sm:p-5">
+    <div>
+        <label for="level" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Log Level</label>
+        <select id="level" name="level" class="input-ecs h-10 text-sm">
+            <option value="">All Levels</option>
+            <option value="ERROR" {{ 'selected' if request.args.get('level') == 'ERROR' }}>Error</option>
+            <option value="WARNING" {{ 'selected' if request.args.get('level') == 'WARNING' }}>Warning</option>
+            <option value="INFO" {{ 'selected' if request.args.get('level') == 'INFO' }}>Info</option>
+            <option value="DEBUG" {{ 'selected' if request.args.get('level') == 'DEBUG' }}>Debug</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="component" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Component</label>
+        <select id="component" name="component" class="input-ecs h-10 text-sm">
+            <option value="">All Components</option>
+            <option value="app" {{ 'selected' if request.args.get('component') == 'app' }}>Application</option>
+            <option value="discord" {{ 'selected' if request.args.get('component') == 'discord' }}>Discord Bot</option>
+            <option value="database" {{ 'selected' if request.args.get('component') == 'database' }}>Database</option>
+            <option value="cache" {{ 'selected' if request.args.get('component') == 'cache' }}>Cache</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="search" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Text</label>
+        <input type="text" id="search" name="search" value="{{ request.args.get('search', '') }}" placeholder="Search logs..." class="input-ecs h-10 text-sm">
+    </div>
+
+    <div>
+        <label for="date_from" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">From Date</label>
+        <input type="datetime-local" id="date_from" name="date_from" value="{{ request.args.get('date_from', '') }}" class="input-ecs h-10 text-sm">
+    </div>
+
+    <div>
+        <label for="date_to" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">To Date</label>
+        <input type="datetime-local" id="date_to" name="date_to" value="{{ request.args.get('date_to', '') }}" class="input-ecs h-10 text-sm">
+    </div>
+
+    <div class="flex items-end">
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-search" aria-hidden="true"></i>Filter
+        </button>
+    </div>
+</form>
+{% endcall %}
+</div>
+
+<!-- Quick Actions -->
+<div class="mb-6">
+{% call section_card("Log Management", icon="ti-tool") %}
+<div class="flex flex-wrap items-center justify-between gap-4 p-4 sm:p-5">
+    <p class="text-sm text-gray-500 dark:text-gray-400">Showing <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ logs|length }}</span> log entries</p>
+    <div class="flex flex-wrap gap-2">
+        <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-ecs-green text-ecs-green bg-white dark:bg-gray-700 text-sm font-semibold hover:bg-ecs-green/10 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="refresh-logs">
+            <i class="ti ti-refresh" aria-hidden="true"></i>Refresh
+        </button>
+        <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-blue-500 text-blue-700 dark:text-blue-400 bg-white dark:bg-gray-700 text-sm font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="export-logs">
+            <i class="ti ti-download" aria-hidden="true"></i>Export
+        </button>
+        <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-amber-500 text-amber-700 dark:text-amber-400 bg-white dark:bg-gray-700 text-sm font-semibold hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500" data-action="clear-old-logs">
+            <i class="ti ti-trash" aria-hidden="true"></i>Clear Old
+        </button>
+        <button type="button" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-green-500 text-green-700 dark:text-green-400 bg-white dark:bg-gray-700 text-sm font-semibold hover:bg-green-50 dark:hover:bg-green-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500" data-action="start-tail">
+            <i class="ti ti-eye" aria-hidden="true"></i>Live Tail
+        </button>
+    </div>
+</div>
+{% endcall %}
+</div>
+
+<!-- Log Entries Table -->
+{% if logs %}
+{% call data_table("Log Entries", icon="ti-list-details", count=logs|length, search_placeholder="Filter shown entries…", search_id="logFilter") %}
+    <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+        <thead class="bg-gray-50 dark:bg-gray-700/50">
+            <tr>
+                {{ data_table_th("Timestamp", key="timestamp") }}
+                {{ data_table_th("Level", key="level") }}
+                {{ data_table_th("Component", key="component", hide="sm") }}
+                {{ data_table_th("Message", key="message", sortable=false) }}
+                {{ data_table_th("Actions", sortable=false, align="right") }}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for log in logs %}
+            <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if log.level == 'ERROR' %}bg-red-50/60 dark:bg-red-900/10{% elif log.level == 'WARNING' %}bg-amber-50/60 dark:bg-amber-900/10{% endif %}">
+                <td class="px-3 py-2.5 font-mono text-xs text-gray-700 dark:text-gray-300 align-top w-36">
+                    {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                </td>
+                <td class="px-3 py-2.5 align-top w-20">
+                    {% if log.level == 'ERROR' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon text-[11px]" aria-hidden="true"></i>ERROR</span>
+                    {% elif log.level == 'WARNING' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i>WARN</span>
+                    {% elif log.level == 'INFO' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-info-circle text-[11px]" aria-hidden="true"></i>INFO</span>
+                    {% else %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-bug text-[11px]" aria-hidden="true"></i>DEBUG</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-2.5 text-xs text-gray-500 dark:text-gray-400 align-top w-28 hidden md:table-cell">
+                    {{ log.component or 'app' }}
+                </td>
+                <td class="px-3 py-2.5 align-top">
+                    <p class="text-gray-700 dark:text-gray-300">{{ log.message[:100] }}{% if log.message|length > 100 %}...{% endif %}</p>
+                    {% if log.stack_trace %}
+                    <p class="text-xs text-red-600 dark:text-red-400 mt-1"><i class="ti ti-alert-triangle mr-1" aria-hidden="true"></i>Stack trace available</p>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-2.5 align-top text-right w-20">
+                    <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:h-8 sm:w-8 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="view-log-details" data-log-id="{{ log.id }}" title="View" aria-label="View log details">
+                        <i class="ti ti-eye" aria-hidden="true"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for log in logs %}
+        <div data-row class="px-4 py-3.5 {% if log.level == 'ERROR' %}bg-red-50/60 dark:bg-red-900/10{% elif log.level == 'WARNING' %}bg-amber-50/60 dark:bg-amber-900/10{% endif %}">
+            <div class="flex items-center justify-between gap-2">
+                {% if log.level == 'ERROR' %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-alert-octagon text-[11px]" aria-hidden="true"></i>ERROR</span>
+                {% elif log.level == 'WARNING' %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-alert-triangle text-[11px]" aria-hidden="true"></i>WARN</span>
+                {% elif log.level == 'INFO' %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400"><i class="ti ti-info-circle text-[11px]" aria-hidden="true"></i>INFO</span>
+                {% else %}
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-bug text-[11px]" aria-hidden="true"></i>DEBUG</span>
+                {% endif %}
+                <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="view-log-details" data-log-id="{{ log.id }}" title="View" aria-label="View log details">
+                    <i class="ti ti-eye" aria-hidden="true"></i>
+                </button>
+            </div>
+            <p class="mt-1.5 text-sm text-gray-700 dark:text-gray-300">{{ log.message[:100] }}{% if log.message|length > 100 %}...{% endif %}</p>
+            {% if log.stack_trace %}
+            <p class="text-xs text-red-600 dark:text-red-400 mt-1"><i class="ti ti-alert-triangle mr-1" aria-hidden="true"></i>Stack trace available</p>
+            {% endif %}
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} · {{ log.component or 'app' }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Live Tail Area (hidden by default) -->
+    <div id="liveTailArea" class="hidden p-4 bg-gray-900 text-green-400 font-mono text-sm max-h-80 overflow-y-auto border-t border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between mb-2">
+            <span class="flex items-center"><span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>Live tail active</span>
+            <button type="button" class="px-2 py-1 text-xs text-gray-300 border border-gray-600 rounded hover:bg-gray-800" data-action="stop-tail">Stop</button>
+        </div>
+        <div id="liveTailContent"></div>
+    </div>
+{% endcall %}
+{% else %}
+{% call section_card("Log Entries", icon="ti-list-details") %}
+    {{ empty_state("ti-file-x", "No Log Entries", "No log entries match the current filter criteria.", action={'label': 'Clear Filters', 'url': url_for('admin_panel.system_logs'), 'icon': 'ti-refresh'}) }}
+{% endcall %}
+{% endif %}
+
+{% else %}
 <!-- Log Level Statistics -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="rounded-lg p-5 bg-red-500 text-white">
@@ -207,6 +386,7 @@
 </div>
 {% endif %}
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

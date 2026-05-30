@@ -3,6 +3,21 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    {{ page_header(title, subtitle="Team and league role management") }}
+
+    {% call section_card("Roles Management", icon="ti-shield-check") %}
+        {{ empty_state(
+            "ti-shield-check",
+            "Roles Management",
+            "This page is under construction. Use the admin panel to manage roles.",
+            action={'label': 'Go to Admin Panel', 'url': url_for('admin_panel.roles_comprehensive'), 'icon': 'ti-settings'}
+        ) }}
+    {% endcall %}
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -24,4 +39,5 @@
         </a>
     </div>
 </div>
+{% endif %}
 {% endblock %}

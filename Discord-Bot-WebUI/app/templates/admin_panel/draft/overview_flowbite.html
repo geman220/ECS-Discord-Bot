@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
 
 {% block admin_title %}Draft Management{% endblock %}
 {% block panel_description %}Manage draft history and positions{% endblock %}
@@ -14,6 +15,124 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== MODERN (console) ===================== #}
+{{ page_header("Draft Management", subtitle="Manage draft history and positions") }}
+
+{# KPI band — real data from stats #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    {{ stat_card("ti-list-numbers", "Total Draft Picks", stats.total_picks, tone='info') }}
+    {{ stat_card("ti-calendar", "Current Season Picks", stats.current_season_picks, tone='primary') }}
+    {{ stat_card("ti-trophy", "Seasons", stats.seasons_count, tone='gold') }}
+    {{ stat_card("ti-users", "Leagues", stats.leagues_count, tone='neutral') }}
+</div>
+
+{# Quick Actions #}
+{% call section_card("Quick Actions", icon="ti-bolt") %}
+<div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <a href="{{ url_for('admin_panel.draft_history') }}"
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-history" aria-hidden="true"></i>View Draft History
+    </a>
+    <a href="{{ url_for('admin_panel.draft_history', season=current_season.id if current_season else '') }}"
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-ecs-green text-ecs-green hover:bg-ecs-green/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-calendar" aria-hidden="true"></i>Current Season Draft
+    </a>
+    <button type="button" id="export-btn"
+            class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-download" aria-hidden="true"></i>Export Draft Data
+    </button>
+</div>
+{% endcall %}
+
+{# Season / League selection #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6 mb-6">
+    {% call section_card("Seasons", icon="ti-calendar") %}
+    {% if seasons %}
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        {% for season in seasons[:5] %}
+        <li>
+            <a href="{{ url_for('admin_panel.draft_history', season=season.id) }}"
+               class="flex items-center justify-between gap-2 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                <span class="flex items-center gap-2 min-w-0">
+                    <span class="font-medium text-gray-900 dark:text-white truncate">{{ season.name }}</span>
+                    {% if season.is_current %}
+                    <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+                        <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Current
+                    </span>
+                    {% endif %}
+                </span>
+                <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+            </a>
+        </li>
+        {% endfor %}
+        {% if seasons|length > 5 %}
+        <li>
+            <a href="{{ url_for('admin_panel.draft_history') }}"
+               class="block px-4 py-3.5 min-h-[44px] text-center text-sm text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                View all {{ seasons|length }} seasons...
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+    {% else %}
+    {{ empty_state("ti-calendar-off", "No seasons", "Draft data will appear here once seasons are configured.") }}
+    {% endif %}
+    {% endcall %}
+
+    {% call section_card("Leagues", icon="ti-trophy") %}
+    {% if leagues %}
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+        {% for league in leagues[:5] %}
+        <li>
+            <a href="{{ url_for('admin_panel.draft_history', league=league.id) }}"
+               class="flex items-center justify-between gap-2 px-4 py-3.5 min-h-[44px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                <span class="font-medium text-gray-900 dark:text-white truncate">{{ league.name }}</span>
+                <i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>
+            </a>
+        </li>
+        {% endfor %}
+        {% if leagues|length > 5 %}
+        <li>
+            <a href="{{ url_for('admin_panel.draft_history') }}"
+               class="block px-4 py-3.5 min-h-[44px] text-center text-sm text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+                View all {{ leagues|length }} leagues...
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+    {% else %}
+    {{ empty_state("ti-trophy-off", "No leagues", "Draft data will appear here once leagues are configured.") }}
+    {% endif %}
+    {% endcall %}
+</div>
+
+{# Information #}
+{% call section_card("Draft Management Information", icon="ti-info-circle") %}
+<div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
+    <div>
+        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Features</h6>
+        <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+            <li class="flex items-start"><i class="ti ti-check text-ecs-green mr-2 mt-0.5" aria-hidden="true"></i>View draft history by season and league</li>
+            <li class="flex items-start"><i class="ti ti-check text-ecs-green mr-2 mt-0.5" aria-hidden="true"></i>Edit draft pick positions with cascading updates</li>
+            <li class="flex items-start"><i class="ti ti-check text-ecs-green mr-2 mt-0.5" aria-hidden="true"></i>Normalize position gaps automatically</li>
+            <li class="flex items-start"><i class="ti ti-check text-ecs-green mr-2 mt-0.5" aria-hidden="true"></i>Delete and reorder draft picks</li>
+            <li class="flex items-start"><i class="ti ti-check text-ecs-green mr-2 mt-0.5" aria-hidden="true"></i>Export draft data for analysis</li>
+        </ul>
+    </div>
+    <div>
+        <h6 class="font-semibold text-gray-900 dark:text-white mb-3">Position Editing Modes</h6>
+        <ul class="space-y-2 text-sm text-gray-500 dark:text-gray-400">
+            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Cascading:</span> Shifts all subsequent picks down</li>
+            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Absolute:</span> Sets exact position without shifting</li>
+            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Smart:</span> Automatically determines best approach</li>
+            <li><span class="font-semibold text-gray-700 dark:text-gray-300">Insert:</span> Inserts at position, shifting others</li>
+        </ul>
+    </div>
+</div>
+{% endcall %}
+{% else %}
+{# ===================== CLASSIC (unchanged) ===================== #}
 <!-- Stats Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -167,6 +286,7 @@
     </div>
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

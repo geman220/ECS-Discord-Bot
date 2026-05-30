@@ -3,6 +3,178 @@
 {% block title %}Edit Player - {{ player.name }}{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, stat_card %}
+<div class="max-w-3xl mx-auto px-4 py-6 sm:py-8">
+    {% call page_header("Edit Player", subtitle=player.name) %}
+        <a href="{{ url_for('players.view_players') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Players
+        </a>
+    {% endcall %}
+
+    <div class="space-y-5 sm:space-y-6">
+        <!-- Player identity -->
+        {% call section_card("Player", icon="ti-user") %}
+        <div class="p-4 sm:p-5 flex items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-ecs-green/10 flex items-center justify-center text-ecs-green font-bold text-xl shrink-0">
+                {% if player.profile_picture_url %}
+                <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-16 h-16 rounded-full object-cover">
+                {% else %}
+                {{ player.name[0].upper() if player.name else 'P' }}
+                {% endif %}
+            </div>
+            <div class="min-w-0">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</h2>
+                {% if player.team %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ player.team.name }}</p>
+                {% endif %}
+                {% if player.discord_id %}
+                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 font-mono">
+                    <i class="ti ti-brand-discord mr-1" aria-hidden="true"></i>{{ player.discord_id }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        {% endcall %}
+
+        <!-- Edit form -->
+        {% call section_card("Player Details", icon="ti-edit") %}
+        <form method="POST" action="{{ url_for('players.edit_player', player_id=player.id) }}" class="p-4 sm:p-5">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="space-y-5">
+                <!-- Name -->
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="name" name="name"
+                           value="{{ form.name.data or player.name }}" required maxlength="100"
+                           class="w-full rounded-lg border {{ 'border-red-500 focus:border-red-500 focus:ring-red-500' if form.name.errors else 'border-gray-300 dark:border-gray-600 focus:border-ecs-green focus:ring-ecs-green' }} bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1"
+                           placeholder="Enter player name">
+                    {% if form.name.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.name.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Phone Number -->
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Phone Number <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ti ti-phone text-gray-400" aria-hidden="true"></i>
+                        </div>
+                        <input type="tel" id="phone" name="phone"
+                               value="{{ form.phone.data or player.phone }}" required maxlength="20"
+                               class="w-full pl-10 rounded-lg border {{ 'border-red-500 focus:border-red-500 focus:ring-red-500' if form.phone.errors else 'border-gray-300 dark:border-gray-600 focus:border-ecs-green focus:ring-ecs-green' }} bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1"
+                               placeholder="(555) 123-4567">
+                    </div>
+                    {% if form.phone.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.phone.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Jersey Size -->
+                <div>
+                    <label for="jersey_size" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Jersey Size <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ti ti-shirt text-gray-400" aria-hidden="true"></i>
+                        </div>
+                        <select id="jersey_size" name="jersey_size" required
+                                class="w-full pl-10 rounded-lg border {{ 'border-red-500 focus:border-red-500 focus:ring-red-500' if form.jersey_size.errors else 'border-gray-300 dark:border-gray-600 focus:border-ecs-green focus:ring-ecs-green' }} bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:ring-1">
+                            <option value="">Select a size...</option>
+                            {% for value, label in form.jersey_size.choices %}
+                            <option value="{{ value }}" {% if form.jersey_size.data == value or player.jersey_size == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if form.jersey_size.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.jersey_size.errors[0] }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- League -->
+                <div>
+                    <label for="league_id" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        League <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="ti ti-trophy text-gray-400" aria-hidden="true"></i>
+                        </div>
+                        <select id="league_id" name="league_id" required
+                                class="w-full pl-10 rounded-lg border {{ 'border-red-500 focus:border-red-500 focus:ring-red-500' if form.league_id.errors else 'border-gray-300 dark:border-gray-600 focus:border-ecs-green focus:ring-ecs-green' }} bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:ring-1">
+                            <option value="">Select a league...</option>
+                            {% for value, label in form.league_id.choices %}
+                            <option value="{{ value }}" {% if form.league_id.data == value or (player.league_id and player.league_id|string == value|string) %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% if form.league_id.errors %}
+                    <p class="mt-1 text-sm text-red-500">{{ form.league_id.errors[0] }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex flex-col sm:flex-row gap-3 mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="{{ url_for('players.view_players') }}"
+                   class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <i class="ti ti-arrow-left" aria-hidden="true"></i> Cancel
+                </a>
+                <button type="submit"
+                        class="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+                    <i class="ti ti-check" aria-hidden="true"></i> Save Changes
+                </button>
+            </div>
+        </form>
+        {% endcall %}
+
+        <!-- Player Stats (read only) -->
+        {% if player.goals is defined or player.assists is defined %}
+        {% call section_card("Player Statistics", icon="ti-chart-bar") %}
+        <div class="p-4 sm:p-5">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                {{ stat_card("ti-ball-football", "Goals", player.goals or 0, tone='primary') }}
+                {{ stat_card("ti-shoe", "Assists", player.assists or 0, tone='gold') }}
+                {{ stat_card("ti-square", "Yellow Cards", player.yellow_cards or 0, tone='warning') }}
+                {{ stat_card("ti-square-filled", "Red Cards", player.red_cards or 0, tone='danger') }}
+            </div>
+            <p class="text-xs text-gray-400 dark:text-gray-500 text-center mt-4">
+                <i class="ti ti-info-circle mr-1" aria-hidden="true"></i>
+                Statistics are managed through match reporting and cannot be edited directly.
+            </p>
+        </div>
+        {% endcall %}
+        {% endif %}
+
+        <!-- Danger Zone -->
+        <section class="rounded-xl border border-red-200 dark:border-red-900/50 bg-white dark:bg-gray-800 overflow-hidden">
+            <div class="px-4 sm:px-5 py-3 border-b border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/20 flex items-center gap-2">
+                <i class="ti ti-alert-triangle text-red-600 dark:text-red-400" aria-hidden="true"></i>
+                <h3 class="text-sm font-bold uppercase tracking-wide text-red-600 dark:text-red-400">Danger Zone</h3>
+            </div>
+            <div class="p-4 sm:p-5">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    These actions are irreversible. Please proceed with caution.
+                </p>
+                <button type="button"
+                        class="inline-flex items-center gap-1.5 min-h-[44px] px-4 text-sm font-semibold text-red-600 dark:text-red-400 bg-white border border-red-500 rounded-lg hover:bg-red-50 dark:bg-gray-700 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                        data-action="delete-player"
+                        data-player-id="{{ player.id }}">
+                    <i class="ti ti-trash" aria-hidden="true"></i> Delete Player
+                </button>
+            </div>
+        </section>
+    </div>
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto">
         <!-- Page Header -->
@@ -218,6 +390,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

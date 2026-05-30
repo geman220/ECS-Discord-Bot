@@ -30,6 +30,130 @@ from ..performance import (cache_admin_data, optimize_admin_queries, admin_stats
 logger = logging.getLogger(__name__)
 
 
+def build_attention_queue(user):
+    """
+    Real-data "Needs your attention" queue + KPI band for the Modern admin console.
+
+    RBAC-scoped: Global/Pub League Admins see everything (incl. approvals);
+    ECS FC Coaches see the non-sensitive aggregate items (no approvals). Each
+    metric is independently guarded — a single failing query yields 0/[] rather
+    than breaking the dashboard. NO mock/placeholder data (returns real values or
+    nothing). url_for is wrapped so a wrong endpoint degrades to '#', never an error.
+
+    Returns: {kpis: {...}, attention: [{key,label,count,severity,url}], live_count, generated_at}
+    """
+    from flask import g
+    today = datetime.utcnow().date()
+    week_ahead = today + timedelta(days=7)
+
+    try:
+        roles = set(getattr(g, '_cached_user_roles', None) or [])
+    except Exception:
+        roles = set()
+    is_full_admin = bool({'Global Admin', 'Pub League Admin'} & roles)
+
+    def safe_url(endpoint, **kw):
+        try:
+            return url_for(endpoint, **kw)
+        except Exception:
+            return '#'
+
+    attention = []
+
+    def add(key, label, count, severity, url):
+        # Only surface a row when there's actually something to act on.
+        if count:
+            attention.append({'key': key, 'label': label, 'count': int(count),
+                              'severity': severity, 'url': url})
+
+    # 1) Pending approvals (admins only — sensitive)
+    if is_full_admin:
+        try:
+            n = User.query.filter_by(approval_status='pending').count()
+            add('approvals', 'Pending approvals', n, 'warning', safe_url('admin_panel.manage_users'))
+        except Exception as e:
+            logger.warning(f"attention/approvals: {e}")
+
+    # 2) Unreported matches (played, no score, not a special week)
+    try:
+        from app.models.matches import Match
+        n = Match.query.filter(
+            Match.date <= today,
+            Match.home_team_score.is_(None),
+            Match.away_team_score.is_(None),
+            Match.is_special_week.is_(False),
+        ).count()
+        add('unreported', 'Matches awaiting a result', n, 'danger', safe_url('admin_panel.match_verification'))
+    except Exception as e:
+        logger.warning(f"attention/unreported: {e}")
+
+    # 3) Verification backlog (score entered, not fully verified)
+    try:
+        from app.models.matches import Match
+        n = Match.query.filter(
+            Match.home_team_score.isnot(None),
+            ~(Match.home_team_verified & Match.away_team_verified),
+        ).count()
+        add('verification', 'Results awaiting verification', n, 'info', safe_url('admin_panel.match_verification'))
+    except Exception as e:
+        logger.warning(f"attention/verification: {e}")
+
+    # 4) Open substitute requests (pub league + ECS FC)
+    try:
+        from app.models.substitutes import SubstituteRequest, EcsFcSubRequest
+        n = (SubstituteRequest.query.filter_by(status='OPEN').count()
+             + EcsFcSubRequest.query.filter_by(status='OPEN').count())
+        add('subs', 'Open substitute requests', n, 'warning', safe_url('admin_panel.substitute_management'))
+    except Exception as e:
+        logger.warning(f"attention/subs: {e}")
+
+    # 5) Live matches in progress
+    live_count = 0
+    try:
+        from app.models.live_reporting_session import LiveReportingSession
+        from app.models.ecs_fc import EcsFcLiveMatch
+        live_count = (LiveReportingSession.query.filter_by(is_active=True).count()
+                      + EcsFcLiveMatch.query.filter_by(status='in_progress').count())
+        add('live', 'Live matches in progress', live_count, 'info', safe_url('admin_panel.live_reporting_dashboard'))
+    except Exception as e:
+        logger.warning(f"attention/live: {e}")
+
+    # KPI band — reuse the established Season/League/Team patterns (real counts)
+    kpis = {}
+    try:
+        from app.models import Season, League, Team
+        from app.models.players import PlayerTeamSeason
+        from app.models.matches import Match, Schedule
+        cur = Season.query.filter_by(is_current=True, league_type='Pub League').first()
+        if cur:
+            kpis['leagues'] = League.query.filter_by(season_id=cur.id).count()
+            kpis['teams'] = Team.query.join(League).filter(League.season_id == cur.id).count()
+            kpis['active_players'] = (PlayerTeamSeason.query.join(Team, PlayerTeamSeason.team_id == Team.id)
+                                      .join(League, Team.league_id == League.id)
+                                      .filter(League.season_id == cur.id).count())
+            kpis['matches_this_week'] = (db.session.query(Match).join(Schedule).filter(
+                Schedule.season_id == cur.id, Match.date >= today, Match.date <= week_ahead).count())
+            kpis['season'] = cur.name
+    except Exception as e:
+        logger.warning(f"attention/kpis: {e}")
+
+    return {'kpis': kpis, 'attention': attention, 'live_count': live_count,
+            'generated_at': datetime.utcnow().isoformat()}
+
+
+@admin_panel_bp.route('/api/attention')
+@login_required
+@role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
+@optimize_admin_queries()
+def api_attention():
+    """JSON attention queue + KPIs for the Modern admin console (refresh polling).
+
+    Not cached — the payload is RBAC-scoped per caller, so a shared cache could
+    leak an admin's view to a coach. Queries are light + individually guarded.
+    """
+    return jsonify({'success': True, **build_attention_queue(current_user)})
+
+
 @admin_panel_bp.route('/')
 @login_required
 @role_required(['Global Admin', 'Pub League Admin', 'ECS FC Coach'])
@@ -126,6 +250,14 @@ def dashboard():
             logger.warning(f"Error getting recent actions: {e}")
             recent_actions = []
 
+        # Real-data attention queue + KPIs for the Modern admin console (shell=='console').
+        # Guarded internally; falls back to empty structure so Classic is unaffected.
+        try:
+            attention_data = build_attention_queue(current_user)
+        except Exception as e:
+            logger.warning(f"attention queue unavailable: {e}")
+            attention_data = {'kpis': {}, 'attention': [], 'live_count': 0, 'generated_at': None}
+
         return render_template(
             'admin_panel/dashboard_flowbite.html',
             current_pub_league=current_pub_league,
@@ -136,7 +268,8 @@ def dashboard():
             active_players=active_players,
             total_users=total_users,
             pending_approvals=pending_approvals,
-            recent_actions=recent_actions
+            recent_actions=recent_actions,
+            attention=attention_data
         )
     except Exception as e:
         logger.error(f"Error loading admin panel dashboard: {e}")

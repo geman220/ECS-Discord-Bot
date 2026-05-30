@@ -14,6 +14,103 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, skeleton %}
+<div class="space-y-6">
+    {{ page_header('AI Assistant', subtitle='Usage metrics, budget tracking, and configuration') }}
+
+    {# Stats Cards (loaded via JS — IDs/structure preserved for extra_js) #}
+    <div id="ai-metrics-stats" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {% for i in range(5) %}
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 animate-pulse">
+            <div class="h-8 bg-gray-200 dark:bg-gray-700 rounded w-16 mb-2"></div>
+            <div class="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24"></div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% call section_card('Provider Usage', icon='ti-server-cog') %}
+        <div id="ai-metrics-providers" class="space-y-3 p-4 sm:p-5">
+            {{ skeleton(3) }}
+        </div>
+        {% endcall %}
+
+        {% call section_card('Top Questions', icon='ti-message-question') %}
+        <div id="ai-metrics-questions" class="space-y-2 p-4 sm:p-5">
+            {{ skeleton(3) }}
+        </div>
+        {% endcall %}
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% call section_card('Top Users', icon='ti-users') %}
+        <div id="ai-metrics-users" class="space-y-2 p-4 sm:p-5">
+            {{ skeleton(3) }}
+        </div>
+        {% endcall %}
+
+        {% call section_card('Provider Health', icon='ti-heartbeat') %}
+        <div id="ai-metrics-circuit" class="space-y-3 p-4 sm:p-5">
+            {{ skeleton(2) }}
+        </div>
+        {% endcall %}
+    </div>
+
+    {% call section_card('Poorly Rated Responses', icon='ti-thumb-down') %}
+    <div id="ai-metrics-poorly-rated" class="space-y-2 p-4 sm:p-5">
+        {{ skeleton(3) }}
+    </div>
+    {% endcall %}
+
+    {% call section_card('Configuration', icon='ti-settings') %}
+    <div class="space-y-6 p-4 sm:p-5">
+        {# Admin Controls #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">AI Assistant</label>
+                <button type="button" id="ai-toggle-btn" data-action="ai-config-toggle-enabled"
+                        class="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 text-sm font-medium rounded-lg border transition-colors
+                               focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <i class="ti ti-power" aria-hidden="true"></i><span>Loading...</span>
+                </button>
+            </div>
+            <div>
+                <label for="ai-provider-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Provider</label>
+                <select id="ai-provider-select" data-action="ai-config-change-provider"
+                        class="input-ecs h-11 w-full text-sm">
+                    <option value="claude">Claude (Anthropic)</option>
+                    <option value="openai">GPT (OpenAI)</option>
+                </select>
+            </div>
+            <div>
+                <label for="ai-budget-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Monthly Budget (USD)</label>
+                <input type="number" id="ai-budget-input" step="0.01" min="0" value="50.00"
+                       class="input-ecs h-11 w-full text-sm">
+            </div>
+            <div>
+                <label for="ai-rate-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Rate Limit (per user/day)</label>
+                <input type="number" id="ai-rate-input" min="1" max="1000" value="100"
+                       class="input-ecs h-11 w-full text-sm">
+            </div>
+        </div>
+        <div class="flex justify-end">
+            <button type="button" id="ai-save-config-btn" data-action="ai-config-save"
+                    class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 transition-colors
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Settings
+            </button>
+        </div>
+
+        {# Read-only Stats (loaded via JS) #}
+        <div id="ai-metrics-config" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <p class="text-sm text-gray-500 dark:text-gray-400">Loading metrics...</p>
+        </div>
+    </div>
+    {% endcall %}
+</div>
+{% else %}
 <div class="space-y-6">
     <!-- Stats Cards (loaded via JS) -->
     <div id="ai-metrics-stats" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -123,6 +220,7 @@
     </div>
     {% endcall %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

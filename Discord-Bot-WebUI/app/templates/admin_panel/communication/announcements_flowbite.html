@@ -20,6 +20,133 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state, modal %}
+<div class="space-y-6">
+
+  {% call page_header('Announcements', subtitle='Communication') %}
+    <button type="button" onclick="history.back()"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Back</span>
+    </button>
+    <a href="{{ url_for('admin_panel.create_announcement') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-plus" aria-hidden="true"></i><span>New Announcement</span>
+    </a>
+  {% endcall %}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-speakerphone', 'Total', announcements|length, tone='info') }}
+    {{ stat_card('ti-circle-check', 'Active', active_announcements, tone='success') }}
+    {{ stat_card('ti-calendar-week', 'This week', recent_announcements, tone='primary') }}
+    {{ stat_card('ti-tags', 'Categories', announcement_types|length, tone='gold') }}
+  </div>
+
+  <!-- All announcements table -->
+  {% call data_table('All announcements', icon='ti-speakerphone', count=announcements|length, search_placeholder='Filter announcements…', search_id='admAnnouncements') %}
+    {% if announcements %}
+    <table class="hidden md:table w-full text-sm">
+      <thead><tr>
+        {{ data_table_th('Announcement', key='title') }}
+        {{ data_table_th('Type', key='type', hide='sm') }}
+        {{ data_table_th('Priority', key='priority', hide='sm') }}
+        {{ data_table_th('Created', key='created', hide='sm') }}
+        {{ data_table_th('Status', key='status', hide='sm') }}
+        {{ data_table_th('Actions', sortable=False, align='right') }}
+      </tr></thead>
+      <tbody>
+        {% for announcement in announcements %}
+        <tr class="border-t border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-2.5">
+            <div class="font-semibold text-gray-900 dark:text-white">{{ announcement.title }}</div>
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ announcement.content[:100] }}{% if announcement.content|length > 100 %}...{% endif %}</p>
+          </td>
+          <td class="px-3 py-2.5 hidden md:table-cell">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ announcement.announcement_type or 'General' }}</span>
+          </td>
+          <td class="px-3 py-2.5 hidden md:table-cell">
+            {% set priority = announcement.priority or 'normal' %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {% if priority == 'high' %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400{% elif priority == 'medium' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400{% endif %}">
+              <i class="ti {% if priority == 'high' %}ti-alert-octagon{% elif priority == 'medium' %}ti-alert-triangle{% else %}ti-circle{% endif %} text-[11px]" aria-hidden="true"></i>{{ priority|title }}
+            </span>
+          </td>
+          <td class="px-3 py-2.5 hidden md:table-cell font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td class="px-3 py-2.5 hidden md:table-cell">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i>Active
+            </span>
+          </td>
+          <td class="px-3 py-2.5">
+            <div class="flex items-center justify-end gap-1">
+              <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-announcement" data-id="{{ announcement.id }}" data-title="{{ announcement.title }}" data-content="{{ announcement.content }}" title="View" aria-label="View announcement">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+              <a href="{{ url_for('admin_panel.edit_announcement', announcement_id=announcement.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit announcement">
+                <i class="ti ti-edit" aria-hidden="true"></i>
+              </a>
+              <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="delete-announcement" data-id="{{ announcement.id }}" data-title="{{ announcement.title }}" title="Delete" aria-label="Delete announcement">
+                <i class="ti ti-trash" aria-hidden="true"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
+      {% for announcement in announcements %}
+        {% set priority = announcement.priority or 'normal' %}
+        <div data-row-card class="px-4 py-3.5">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ announcement.title }}</p>
+              <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ announcement.content[:100] }}{% if announcement.content|length > 100 %}...{% endif %}</p>
+              <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ announcement.announcement_type or 'General' }}</span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {% if priority == 'high' %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400{% elif priority == 'medium' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400{% endif %}">
+                  <i class="ti {% if priority == 'high' %}ti-alert-octagon{% elif priority == 'medium' %}ti-alert-triangle{% else %}ti-circle{% endif %} text-[11px]" aria-hidden="true"></i>{{ priority|title }}
+                </span>
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+                  <i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i>Active
+                </span>
+              </div>
+              <p class="mt-1.5 text-xs font-mono text-gray-500 dark:text-gray-400">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+            </div>
+          </div>
+          <div class="mt-3 flex items-center gap-1">
+            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-announcement" data-id="{{ announcement.id }}" data-title="{{ announcement.title }}" data-content="{{ announcement.content }}" title="View" aria-label="View announcement">
+              <i class="ti ti-eye" aria-hidden="true"></i>
+            </button>
+            <a href="{{ url_for('admin_panel.edit_announcement', announcement_id=announcement.id) }}" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] p-2 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit announcement">
+              <i class="ti ti-edit" aria-hidden="true"></i>
+            </a>
+            <button type="button" class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="delete-announcement" data-id="{{ announcement.id }}" data-title="{{ announcement.title }}" title="Delete" aria-label="Delete announcement">
+              <i class="ti ti-trash" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state('ti-speakerphone-off', 'No announcements found', 'Create your first announcement to get started.', action={'label': 'Create Announcement', 'url': url_for('admin_panel.create_announcement'), 'icon': 'ti-plus'}) }}
+    {% endif %}
+  {% endcall %}
+
+  <!-- View Announcement Modal (kit) -->
+  {% call modal('viewAnnouncementModal', 'Announcement Details', icon='ti-speakerphone', size='lg') %}
+  <div class="p-5">
+    <h4 id="view_announcement_title" class="text-lg font-semibold text-gray-900 dark:text-white mb-4"></h4>
+    <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+      <pre id="view_announcement_content" class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300 font-sans"></pre>
+    </div>
+  </div>
+  {% endcall %}
+
+</div>
+{% else %}
+{# ===================== Classic (UNCHANGED) ===================== #}
 <!-- Announcements Overview -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -147,6 +274,7 @@
     <pre id="view_announcement_content" class="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300"></pre>
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -26,6 +26,263 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+
+{% set status_tone = {'Open': 'warning', 'In Progress': 'info', 'Closed': 'success'} %}
+{% set priority_tone = {'High': 'danger', 'Medium': 'warning', 'Low': 'neutral'} %}
+
+{% call page_header("Feedback #" ~ feedback.id, subtitle="Reports / Feedback") %}
+  <a href="{{ url_for('admin_panel.feedback_list') }}"
+     class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Feedback
+  </a>
+{% endcall %}
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+  <!-- Main Content Column -->
+  <div class="lg:col-span-2 space-y-5 sm:space-y-6">
+
+    <!-- Feedback Details -->
+    {% call section_card(feedback.title, icon="ti-message-circle") %}
+    <div class="p-4 sm:p-5 space-y-5">
+      <div class="flex flex-wrap gap-2">
+        {% if feedback.status == 'Open' %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
+          <i class="ti ti-circle-dot text-xs" aria-hidden="true"></i>Open
+        </span>
+        {% elif feedback.status == 'In Progress' %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">
+          <i class="ti ti-progress text-xs" aria-hidden="true"></i>In Progress
+        </span>
+        {% elif feedback.status == 'Closed' %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+          <i class="ti ti-circle-check text-xs" aria-hidden="true"></i>Closed
+        </span>
+        {% endif %}
+        {% if feedback.priority == 'High' %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">
+          <i class="ti ti-flag-filled text-xs" aria-hidden="true"></i>High Priority
+        </span>
+        {% elif feedback.priority == 'Medium' %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
+          <i class="ti ti-flag text-xs" aria-hidden="true"></i>Medium Priority
+        </span>
+        {% endif %}
+        {% if feedback.source == 'app' %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+          <i class="ti ti-device-mobile text-xs" aria-hidden="true"></i>Mobile App
+        </span>
+        {% else %}
+        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+          <i class="ti ti-world text-xs" aria-hidden="true"></i>Web
+        </span>
+        {% endif %}
+      </div>
+
+      <div>
+        <h6 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Description</h6>
+        <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{{ feedback.description or feedback.content or 'No description provided.' }}</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 text-sm">
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 block">Submitted by</span>
+          <span class="text-gray-900 dark:text-white">{{ feedback.user.username if feedback.user else 'Anonymous' }}</span>
+        </div>
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 block">Created</span>
+          <span class="text-gray-900 dark:text-white font-mono">{{ feedback.created_at.strftime('%b %d, %Y at %I:%M %p') if feedback.created_at else 'N/A' }}</span>
+        </div>
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 block mb-1">Category</span>
+          {% if feedback.category == 'Bug' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400">
+            <i class="ti ti-bug text-xs" aria-hidden="true"></i>Bug
+          </span>
+          {% elif feedback.category == 'Feature' %}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">
+            <i class="ti ti-bulb text-xs" aria-hidden="true"></i>Feature Request
+          </span>
+          {% else %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+            {{ feedback.category }}
+          </span>
+          {% endif %}
+        </div>
+        {% if feedback.closed_at %}
+        <div>
+          <span class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 block">Closed</span>
+          <span class="text-gray-900 dark:text-white font-mono">{{ feedback.closed_at.strftime('%b %d, %Y at %I:%M %p') }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endcall %}
+
+    <!-- Replies -->
+    {% call section_card("Replies (" ~ feedback.replies|length ~ ")", icon="ti-messages") %}
+    <div class="p-4 sm:p-5">
+      {% if feedback.replies %}
+        <div class="space-y-4">
+        {% for reply in feedback.replies %}
+        <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="text-sm font-semibold {{ 'text-ecs-green' if reply.is_admin_reply else 'text-gray-900 dark:text-white' }}">
+              {{ reply.user.username if reply.user else 'System' }}
+            </span>
+            {% if reply.is_admin_reply %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">Admin</span>
+            {% endif %}
+            <span class="text-xs text-gray-500 dark:text-gray-400 font-mono ml-auto">
+              {{ reply.created_at.strftime('%b %d, %Y at %I:%M %p') if reply.created_at else '' }}
+            </span>
+          </div>
+          <p class="mt-2 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ reply.content }}</p>
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        {{ empty_state("ti-messages-off", "No replies yet", "Be the first to respond to this feedback.") }}
+      {% endif %}
+
+      {% if feedback.status != 'Closed' %}
+      <form method="post" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <input type="hidden" name="submit_reply" value="1">
+        {{ reply_form.hidden_tag() if reply_form }}
+        <div class="mb-4">
+          <label for="reply-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Add Reply</label>
+          <textarea
+            name="content"
+            id="reply-content"
+            rows="3"
+            placeholder="Type your reply..."
+            required
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+          ></textarea>
+        </div>
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-send" aria-hidden="true"></i>Send Reply
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% endcall %}
+
+    <!-- Internal Notes (Admin Only) -->
+    {% call section_card("Internal Notes (" ~ feedback.notes|length ~ ")", icon="ti-note") %}
+    <div class="p-4 sm:p-5">
+      <p class="text-xs text-amber-700 dark:text-amber-400 mb-4 flex items-center gap-1.5">
+        <i class="ti ti-eye-off" aria-hidden="true"></i>Admin only — not visible to submitter
+      </p>
+      {% if feedback.notes %}
+        <div class="space-y-3 mb-5">
+        {% for note in feedback.notes %}
+        <div class="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/5 p-4">
+          <div class="flex flex-wrap justify-between items-start gap-2">
+            <span class="text-sm font-semibold text-gray-900 dark:text-white">{{ note.author.username if note.author else 'Unknown' }}</span>
+            <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ note.created_at.strftime('%b %d, %Y at %I:%M %p') if note.created_at else '' }}</span>
+          </div>
+          <p class="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ note.content }}</p>
+        </div>
+        {% endfor %}
+        </div>
+      {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-5">No internal notes yet.</p>
+      {% endif %}
+
+      <form method="post">
+        <input type="hidden" name="add_note" value="1">
+        {{ note_form.hidden_tag() if note_form }}
+        <div class="mb-3">
+          <label for="note-content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Add Internal Note</label>
+          <textarea
+            name="content"
+            id="note-content"
+            rows="2"
+            required
+            placeholder="Add internal note..."
+            class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+          ></textarea>
+        </div>
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/40 dark:hover:bg-amber-500/20 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+          <i class="ti ti-note" aria-hidden="true"></i>Add Note
+        </button>
+      </form>
+    </div>
+    {% endcall %}
+  </div>
+
+  <!-- Sidebar Column -->
+  <div class="space-y-5 sm:space-y-6">
+
+    <!-- Update Status -->
+    {% call section_card("Update Status", icon="ti-settings") %}
+    <div class="p-4 sm:p-5">
+      <form method="post">
+        <input type="hidden" name="update_feedback" value="1">
+        {{ form.hidden_tag() if form }}
+        <div class="mb-4">
+          <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+          <select name="status" id="status"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="Open" {{ 'selected' if feedback.status == 'Open' }}>Open</option>
+            <option value="In Progress" {{ 'selected' if feedback.status == 'In Progress' }}>In Progress</option>
+            <option value="Closed" {{ 'selected' if feedback.status == 'Closed' }}>Closed</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label for="priority" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Priority</label>
+          <select name="priority" id="priority"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="Low" {{ 'selected' if feedback.priority == 'Low' }}>Low</option>
+            <option value="Medium" {{ 'selected' if feedback.priority == 'Medium' }}>Medium</option>
+            <option value="High" {{ 'selected' if feedback.priority == 'High' }}>High</option>
+          </select>
+        </div>
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-check" aria-hidden="true"></i>Update
+        </button>
+      </form>
+    </div>
+    {% endcall %}
+
+    <!-- Quick Actions -->
+    {% call section_card("Quick Actions", icon="ti-bolt") %}
+    <div class="p-4 sm:p-5 space-y-3">
+      {% if feedback.status != 'Closed' %}
+      <form action="{{ url_for('admin_panel.close_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Close this feedback?">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-check" aria-hidden="true"></i>Close Feedback
+        </button>
+      </form>
+      {% endif %}
+      <form action="{{ url_for('admin_panel.delete_feedback', feedback_id=feedback.id) }}" method="post" class="js-confirm-form" data-confirm="Delete this feedback? This cannot be undone.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-transparent border border-red-600 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-trash" aria-hidden="true"></i>Delete Feedback
+        </button>
+      </form>
+    </div>
+    {% endcall %}
+
+    <!-- User Info -->
+    {% if feedback.user %}
+    {% call section_card("Submitted By", icon="ti-user") %}
+    <div class="p-4 sm:p-5">
+      <p class="text-sm font-semibold text-gray-900 dark:text-white mb-1">{{ feedback.user.username }}</p>
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-1">{{ feedback.user.email }}</p>
+      {% if feedback.user.player %}
+      <p class="text-sm text-gray-500 dark:text-gray-400">Player: {{ feedback.user.player.name }}</p>
+      {% endif %}
+    </div>
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+{% else %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Main Content Column -->
     <div class="lg:col-span-2 space-y-6">
@@ -295,6 +552,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

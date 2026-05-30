@@ -26,6 +26,198 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, data_table, data_table_th, empty_state %}
+
+{% call page_header("Draft Cache Statistics", subtitle="System / Redis / Draft Cache") %}
+  <button id="draft-cache-stats-refresh-btn" type="button"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                 bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <i class="ti ti-refresh" aria-hidden="true"></i><span>Refresh</span>
+  </button>
+{% endcall %}
+
+{# ---- KPI band: 2-up mobile -> 4-up lg. id hooks preserved verbatim on the mono figures. ---- #}
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Cache Keys</span>
+      <i class="ti ti-database text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3"><span id="total-keys" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ cache_stats.total_keys|default(0) }}</span></div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Cache Hit Rate</span>
+      <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3"><span id="hit-rate" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ cache_stats.hit_rate|default(0) }}%</span></div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Player Data Keys</span>
+      <i class="ti ti-users text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3"><span id="player-keys" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ cache_stats.player_keys|default(0) }}</span></div>
+  </div>
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+    <div class="flex items-center justify-between">
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Team Data Keys</span>
+      <i class="ti ti-shield-half text-lg text-ecs-gold-500 dark:text-ecs-gold-400 shrink-0" aria-hidden="true"></i>
+    </div>
+    <div class="mt-3"><span id="team-keys" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-gold-500 dark:text-ecs-gold-400">{{ cache_stats.team_keys|default(0) }}</span></div>
+  </div>
+</div>
+
+{# ---- League cache status ---- #}
+<div class="mb-5 sm:mb-6">
+{% if leagues %}
+  {% call data_table("League Cache Status", icon="ti-trophy", count=leagues|length, filters=false) %}
+    <table class="hidden md:table w-full text-sm">
+      <thead class="border-b border-gray-200 dark:border-gray-700">
+        <tr>
+          {{ data_table_th("League", key="league", sortable=false) }}
+          {{ data_table_th("Cache Status", key="status", sortable=false) }}
+          {{ data_table_th("Last Warmed", key="warmed", sortable=false, hide="sm") }}
+          {{ data_table_th("Actions", key="actions", sortable=false, align="right") }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for league in leagues %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3">
+            <div class="flex items-center gap-2">
+              <i class="ti ti-trophy text-gray-400" aria-hidden="true"></i>
+              <span class="font-medium text-gray-900 dark:text-white">{{ league }}</span>
+            </div>
+          </td>
+          <td class="px-3 py-3">
+            {% if league_cache_status.get(league, {}).get('warmed', false) %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-circle-check" aria-hidden="true"></i>Warmed
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
+              <i class="ti ti-alert-triangle" aria-hidden="true"></i>Cold
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ league_cache_status.get(league, {}).get('last_warmed', 'Never') }}</td>
+          <td class="px-3 py-3 text-right">
+            <button type="button" data-league="{{ league }}"
+                    class="js-warm-cache inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                           border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-xs font-semibold transition-colors
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-flame" aria-hidden="true"></i>Warm Cache
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for league in leagues %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate flex items-center gap-2">
+            <i class="ti ti-trophy text-gray-400" aria-hidden="true"></i>{{ league }}
+          </span>
+          {% if league_cache_status.get(league, {}).get('warmed', false) %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+            <i class="ti ti-circle-check" aria-hidden="true"></i>Warmed
+          </span>
+          {% else %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
+            <i class="ti ti-alert-triangle" aria-hidden="true"></i>Cold
+          </span>
+          {% endif %}
+        </div>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">Last warmed: {{ league_cache_status.get(league, {}).get('last_warmed', 'Never') }}</p>
+        <button type="button" data-league="{{ league }}"
+                class="js-warm-cache mt-3 w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg
+                       border border-ecs-green text-ecs-green hover:bg-ecs-green hover:text-white text-sm font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-flame" aria-hidden="true"></i>Warm Cache
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+{% else %}
+  {{ empty_state("ti-trophy-off", "No Active Leagues Found", "No active leagues found to warm cache for.") }}
+{% endif %}
+</div>
+
+{# ---- TTL settings + performance ---- #}
+<div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 mb-5 sm:mb-6">
+  {% call section_card("TTL Settings", icon="ti-clock") %}
+    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+        <span class="text-sm font-medium text-gray-900 dark:text-white">Player Data TTL</span>
+        <span class="text-sm font-mono text-gray-500 dark:text-gray-400" id="player-ttl">Loading...</span>
+      </div>
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+        <span class="text-sm font-medium text-gray-900 dark:text-white">Analytics TTL</span>
+        <span class="text-sm font-mono text-gray-500 dark:text-gray-400" id="analytics-ttl">Loading...</span>
+      </div>
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+        <span class="text-sm font-medium text-gray-900 dark:text-white">Team Data TTL</span>
+        <span class="text-sm font-mono text-gray-500 dark:text-gray-400" id="team-ttl">Loading...</span>
+      </div>
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+        <span class="text-sm font-medium text-gray-900 dark:text-white">Availability TTL</span>
+        <span class="text-sm font-mono text-gray-500 dark:text-gray-400" id="availability-ttl">Loading...</span>
+      </div>
+    </div>
+  {% endcall %}
+
+  {% call section_card("Cache Performance", icon="ti-chart-line") %}
+    <div class="divide-y divide-gray-200 dark:divide-gray-700">
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-4">
+        <span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+          <i class="ti ti-circle-check text-green-600 dark:text-green-400" aria-hidden="true"></i>Hit Rate
+        </span>
+        <span class="text-2xl font-mono font-bold text-green-600 dark:text-green-400" id="hit-rate-percent">{{ cache_stats.hit_rate|default(0) }}%</span>
+      </div>
+      <div class="flex items-center justify-between gap-3 px-4 sm:px-5 py-4">
+        <span class="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+          <i class="ti ti-database text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Memory Usage
+        </span>
+        <span class="text-2xl font-mono font-bold text-blue-600 dark:text-blue-400" id="memory-percent">{{ cache_stats.memory_usage_percent|default(0) }}%</span>
+      </div>
+    </div>
+  {% endcall %}
+</div>
+
+{# ---- Related tools ---- #}
+{% call section_card("Related Tools", icon="ti-link") %}
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-5">
+    <a href="{{ url_for('admin_panel.redis_management') }}"
+       class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
+              border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
+              hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-database text-ecs-green" aria-hidden="true"></i>Redis Management
+    </a>
+    <a href="{{ url_for('admin_panel.cache_management') }}"
+       class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
+              border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
+              hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-database text-ecs-green" aria-hidden="true"></i>Cache Management
+    </a>
+    <a href="{{ url_for('admin_panel.system_monitoring') }}"
+       class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 text-sm font-semibold rounded-lg
+              border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white
+              hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-activity text-ecs-green" aria-hidden="true"></i>System Monitoring
+    </a>
+  </div>
+{% endcall %}
+{% else %}
 <!-- Header -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
@@ -222,6 +414,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

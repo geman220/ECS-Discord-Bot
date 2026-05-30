@@ -4,6 +4,273 @@
 {% block title %}{{ match.team.name }} vs {{ match.opponent_name }} - ECS FC Match{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import stat_card, section_card, data_table, data_table_th, empty_state %}
+{% from 'macros/flowbite.html' import badge %}
+{% set status_tone = 'success' if match.status == 'COMPLETED' else 'warning' if match.status == 'SCHEDULED' else 'danger' %}
+{% set roster_count = match.team.players|length %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6" data-page="ecs-fc-match-details">
+
+  <nav class="text-sm" aria-label="Breadcrumb">
+    <ol class="flex items-center flex-wrap gap-1 text-gray-500 dark:text-gray-400">
+      <li><a href="{{ url_for('main.index') }}" class="hover:text-ecs-green">Home</a></li>
+      <li><i class="ti ti-chevron-right text-xs" aria-hidden="true"></i></li>
+      <li><a href="{{ url_for('teams.team_details', team_id=match.team_id) }}" class="hover:text-ecs-green">{{ match.team.name }}</a></li>
+      <li><i class="ti ti-chevron-right text-xs" aria-hidden="true"></i></li>
+      <li class="text-gray-900 dark:text-white font-medium">vs {{ match.opponent_name }}</li>
+    </ol>
+  </nav>
+
+  {# ── Fixture hero: identity + status + the reference facts (date/time/venue),
+       consolidated so they read as ONE fixture, not eight competing KPI tiles. ── #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="p-4 sm:p-6">
+      <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div class="flex items-start gap-3 sm:gap-4 min-w-0">
+          <div class="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-2xl bg-ecs-green/10 flex items-center justify-center">
+            <i class="ti ti-soccer-field text-2xl text-ecs-green" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">ECS FC External Match</p>
+            <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+              {{ match.team.name }} <span class="text-gray-400 dark:text-gray-500 font-bold">vs</span> {{ match.opponent_name }}
+            </h1>
+            <div class="flex flex-wrap items-center gap-2 mt-2">
+              {% if match.is_home_match %}{{ badge('Home', variant='info', dot=true) }}{% else %}{{ badge('Away', variant='default', dot=true) }}{% endif %}
+              {{ badge(match.status, variant=status_tone, dot=true) }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Fixture facts — compact icon strip, not oversized stat tiles #}
+      <dl class="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 border-t border-gray-200 dark:border-gray-700 pt-5">
+        <div class="flex items-start gap-3">
+          <i class="ti ti-calendar text-ecs-green text-lg mt-0.5 shrink-0" aria-hidden="true"></i>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Date &amp; Time</dt>
+            <dd class="text-sm font-semibold text-gray-900 dark:text-white">{{ match.match_date.strftime('%A, %B %d, %Y') }}</dd>
+            <dd class="text-sm font-mono text-gray-500 dark:text-gray-400">{{ match.match_time.strftime('%I:%M %p') }}</dd>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i class="ti ti-map-pin text-ecs-green text-lg mt-0.5 shrink-0" aria-hidden="true"></i>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Location</dt>
+            <dd class="text-sm font-semibold text-gray-900 dark:text-white">{{ match.location }}</dd>
+            {% if match.field_name %}<dd class="text-sm text-gray-500 dark:text-gray-400">{{ match.field_name }}</dd>{% endif %}
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <i class="ti ti-users text-ecs-green text-lg mt-0.5 shrink-0" aria-hidden="true"></i>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Roster</dt>
+            <dd class="text-sm font-semibold text-gray-900 dark:text-white">{{ match.team.name }}</dd>
+            <dd class="text-sm text-gray-500 dark:text-gray-400"><span class="font-mono">{{ roster_count }}</span> players</dd>
+          </div>
+        </div>
+        {% if match.home_shirt_color or match.away_shirt_color %}
+        <div class="flex items-start gap-3">
+          <i class="ti ti-shirt text-ecs-green text-lg mt-0.5 shrink-0" aria-hidden="true"></i>
+          <div class="min-w-0">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Shirt Colors</dt>
+            <dd class="text-sm text-gray-900 dark:text-white space-x-2">
+              {% if match.home_shirt_color %}<span><span class="text-gray-500 dark:text-gray-400">Us</span> {{ match.home_shirt_color }}</span>{% endif %}
+              {% if match.away_shirt_color %}<span><span class="text-gray-500 dark:text-gray-400">Them</span> {{ match.away_shirt_color }}</span>{% endif %}
+            </dd>
+          </div>
+        </div>
+        {% endif %}
+      </dl>
+
+      {% if match.notes %}
+      <div class="mt-4 flex items-start gap-3 rounded-xl border border-blue-200 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 p-3 sm:p-4">
+        <i class="ti ti-note text-blue-600 dark:text-blue-400 text-lg shrink-0 mt-0.5" aria-hidden="true"></i>
+        <div class="min-w-0 text-sm text-blue-800 dark:text-blue-300">
+          <span class="font-semibold">Match notes</span> · {{ match.notes }}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if can_manage %}
+    {# Action bar: ONE primary (status-driven next step), the rest subordinate. #}
+    <div class="flex flex-wrap items-center gap-2 px-4 sm:px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60">
+      <button type="button" class="js-edit-match inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              data-match-id="{{ match.id }}">
+        <i class="ti ti-{% if match.status == 'COMPLETED' %}edit{% else %}report{% endif %}" aria-hidden="true"></i>
+        {% if match.status == 'COMPLETED' %}Edit Match Report{% else %}Report Results{% endif %}
+      </button>
+      <div class="hidden sm:block w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"></div>
+      <a href="{{ url_for('ecs_fc.lineup_picker', match_id=match.id) }}"
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-layout-grid" aria-hidden="true"></i> Lineup Picker
+      </a>
+      <button type="button" data-modal-target="subRequestModal" data-modal-toggle="subRequestModal" data-action="request-subs" data-match-id="{{ match.id }}"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-gray-700/50 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-hand-stop" aria-hidden="true"></i> Request Subs
+      </button>
+      <button type="button" class="js-send-reminder inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-amber-700 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+              data-match-id="{{ match.id }}">
+        <i class="ti ti-bell" aria-hidden="true"></i> Send Reminder
+      </button>
+    </div>
+    {% endif %}
+  </section>
+
+  {# ── RSVP readiness — the live heartbeat of the page (these ARE the metrics). ── #}
+  <section aria-label="RSVP readiness">
+    <div class="flex items-center justify-between gap-2 mb-3">
+      <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+        <i class="ti ti-chart-donut text-ecs-green" aria-hidden="true"></i> Availability
+      </h2>
+      <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
+        <span class="font-mono font-bold text-green-600 dark:text-green-400">{{ rsvp_summary.yes }}</span> of <span class="font-mono">{{ roster_count }}</span> available
+      </span>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {{ stat_card("ti-circle-check", "Available", rsvp_summary.yes, tone='success') }}
+      {{ stat_card("ti-help-circle", "Maybe", rsvp_summary.maybe, tone='gold') }}
+      {{ stat_card("ti-circle-x", "Unavailable", rsvp_summary.no, tone='danger') }}
+      {{ stat_card("ti-clock", "No Response", rsvp_summary.no_response, tone='neutral') }}
+    </div>
+  </section>
+
+  {% if can_manage %}
+  {# Sub Responses (collapsible) — manager workflow; JS hooks preserved verbatim. #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700">
+      <button type="button" data-action="toggle-sub-responses" class="w-full flex items-center justify-between min-h-[44px]" aria-controls="subResponsesContent">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+          <i class="ti ti-hand-stop text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+          Sub Responses
+          <span id="subResponsesCount" class="text-xs font-normal text-gray-500 dark:text-gray-400 normal-case"></span>
+        </h2>
+        <i class="ti ti-chevron-down text-gray-500 transition-transform" id="subResponsesChevron" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div id="subResponsesContent" class="hidden">
+      <div class="p-4 sm:p-5 space-y-6">
+        <div>
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <i class="ti ti-check-circle text-green-600 dark:text-green-400" aria-hidden="true"></i> Assigned Subs
+          </h3>
+          <div id="assignedSubsList" class="space-y-2">
+            <p class="text-sm text-gray-500 dark:text-gray-400 italic">No subs assigned yet</p>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <i class="ti ti-thumb-up text-green-600 dark:text-green-400" aria-hidden="true"></i> Accepted - Available to Assign
+          </h3>
+          <div id="acceptedSubsList" class="space-y-2">
+            <p class="text-sm text-gray-500 dark:text-gray-400 italic">No responses yet</p>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <i class="ti ti-thumb-down text-red-600 dark:text-red-400" aria-hidden="true"></i> Declined
+          </h3>
+          <div id="declinedSubsList" class="space-y-2">
+            <p class="text-sm text-gray-500 dark:text-gray-400 italic">No declines</p>
+          </div>
+        </div>
+        <div>
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+            <i class="ti ti-clock text-amber-600 dark:text-amber-400" aria-hidden="true"></i> Pending Response
+          </h3>
+          <div id="pendingSubsList" class="space-y-2">
+            <p class="text-sm text-gray-500 dark:text-gray-400 italic">No pending requests</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  {# ── Player availability roster table ── #}
+  {% set rsvp_footer %}
+    {% if can_manage %}
+    <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=match.id) }}"
+       class="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-settings" aria-hidden="true"></i> Manage RSVPs
+    </a>
+    {% endif %}
+  {% endset %}
+  {% call data_table("Player Availability", icon="ti-clipboard-check", count=roster_count, search_placeholder="Filter players…", search_id="rsvpFilter", footer=rsvp_footer if can_manage else None) %}
+    {% if roster_count == 0 %}
+      {{ empty_state("ti-users-off", "No players on this roster", "Add players to the team to start collecting match availability.") }}
+    {% else %}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th("Player", key="player") }}
+          {{ data_table_th("Response", key="response") }}
+          {{ data_table_th("Responded", key="time", align="right", hide="sm") }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for player in match.team.players %}
+        {% set availability = rsvp_responses.get(player.id) %}
+        <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <td class="px-3 py-2.5">
+            <div class="flex items-center gap-3">
+              {% if player.profile_picture_url %}
+              <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-8 h-8 rounded-full object-cover">
+              {% else %}
+              <div class="w-8 h-8 bg-ecs-green/10 rounded-full flex items-center justify-center">
+                <span class="text-sm font-medium text-ecs-green">{{ player.name[0] }}</span>
+              </div>
+              {% endif %}
+              <div>
+                <p class="font-medium text-gray-900 dark:text-white">{{ player.name }}</p>
+                {% if player.discord_id %}<p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1"><i class="ti ti-brand-discord" aria-hidden="true"></i> Discord</p>{% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-2.5">
+            {% if availability and availability.response == 'yes' %}{{ badge('Available', variant='success', dot=true) }}
+            {% elif availability and availability.response == 'no' %}{{ badge('Unavailable', variant='danger', dot=true) }}
+            {% elif availability and availability.response == 'maybe' %}{{ badge('Maybe', variant='warning', dot=true) }}
+            {% else %}{{ badge('No Response', variant='default', dot=true) }}{% endif %}
+          </td>
+          <td class="px-3 py-2.5 text-right font-mono text-gray-500 dark:text-gray-400 hidden md:table-cell">
+            {% if availability and availability.responded_at %}{{ availability.responded_at.strftime('%m/%d %I:%M %p') }}{% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for player in match.team.players %}
+      {% set availability = rsvp_responses.get(player.id) %}
+      <div data-row class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-3 min-w-0">
+            {% if player.profile_picture_url %}
+            <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-8 h-8 rounded-full object-cover shrink-0">
+            {% else %}
+            <div class="w-8 h-8 bg-ecs-green/10 rounded-full flex items-center justify-center shrink-0">
+              <span class="text-sm font-medium text-ecs-green">{{ player.name[0] }}</span>
+            </div>
+            {% endif %}
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ player.name }}</span>
+          </div>
+          {% if availability and availability.response == 'yes' %}{{ badge('Available', variant='success', dot=true) }}
+          {% elif availability and availability.response == 'no' %}{{ badge('Unavailable', variant='danger', dot=true) }}
+          {% elif availability and availability.response == 'maybe' %}{{ badge('Maybe', variant='warning', dot=true) }}
+          {% else %}{{ badge('No Response', variant='default', dot=true) }}{% endif %}
+        </div>
+        {% if availability and availability.responded_at %}
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">Responded {{ availability.responded_at.strftime('%m/%d %I:%M %p') }}</p>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endcall %}
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Breadcrumb -->
     <nav class="mb-4 text-sm">
@@ -293,6 +560,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 
 {% if can_manage %}
 <!-- Sub Request Modal -->

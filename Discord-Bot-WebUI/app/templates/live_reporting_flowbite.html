@@ -3,6 +3,208 @@
 {% block title %}Live Match Reporting{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, alert %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+  {{ page_header("Live Match Reporting", subtitle="Real-time score, events & player shifts") }}
+
+  <div id="notifications" class="mb-4"></div>
+
+  <!-- Report Complete Message (Hidden by default) -->
+  <div id="reportCompleteMessage" class="hidden mb-6">
+    <div class="flex items-start gap-3 rounded-xl border border-green-300 dark:border-green-500/40 bg-green-50 dark:bg-green-500/10 p-4 sm:p-5">
+      <span class="shrink-0 w-10 h-10 rounded-full bg-green-100 dark:bg-green-500/20 text-green-600 dark:text-green-400 flex items-center justify-center">
+        <i class="ti ti-circle-check text-xl" aria-hidden="true"></i>
+      </span>
+      <div class="min-w-0">
+        <h4 class="text-base font-bold text-green-800 dark:text-green-300">Match Report Submitted</h4>
+        <p class="mt-1 text-sm text-green-700 dark:text-green-400">This match has been reported and the data has been saved. Thank you for your contribution!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Match Details / Scoreboard -->
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+    <div class="p-5 sm:p-6">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 sm:gap-4 items-center">
+        <!-- Home Team -->
+        <div class="text-center order-1">
+          <h3 id="homeTeamName" class="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2 truncate">Home Team</h3>
+          <div id="homeScore" class="font-mono text-5xl sm:text-6xl font-bold leading-none text-ecs-green">0</div>
+        </div>
+
+        <!-- Match Status -->
+        <div class="text-center order-3 sm:order-2">
+          <div class="mb-2">
+            <span id="matchStatusBadge" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-500/15 text-green-800 dark:text-green-300">
+              <i class="ti ti-player-play-filled text-[11px]" aria-hidden="true"></i> In Progress
+            </span>
+          </div>
+          <div id="timerDisplay" class="font-mono text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white mb-3">00:00</div>
+          <div class="flex justify-center gap-2 mb-3">
+            <button id="startStopTimer" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-player-play" aria-hidden="true"></i> Start Timer
+            </button>
+            <button id="resetTimer" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-red-300 dark:border-red-500/40 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-refresh" aria-hidden="true"></i> Reset
+            </button>
+          </div>
+          <label for="periodSelector" class="sr-only">Match period</label>
+          <select id="periodSelector" class="input-ecs w-full text-sm">
+            <option value="first_half">First Half</option>
+            <option value="second_half">Second Half</option>
+            <option value="halftime">Halftime</option>
+            <option value="extra_time_1">Extra Time 1</option>
+            <option value="extra_time_2">Extra Time 2</option>
+            <option value="penalties">Penalties</option>
+            <option value="fulltime">Full Time</option>
+          </select>
+        </div>
+
+        <!-- Away Team -->
+        <div class="text-center order-2 sm:order-3">
+          <h3 id="awayTeamName" class="text-sm font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2 truncate">Away Team</h3>
+          <div id="awayScore" class="font-mono text-5xl sm:text-6xl font-bold leading-none text-ecs-green">0</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Score Control Panel -->
+    <div class="lg:col-span-3 space-y-6">
+      {% call section_card("Score Controls", icon="ti-adjustments") %}
+      <div class="p-4 space-y-4">
+        <!-- Home Score -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Home Score</label>
+          <div class="flex items-center gap-2">
+            <button id="decreaseHomeScore" aria-label="Decrease home score" class="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-minus" aria-hidden="true"></i>
+            </button>
+            <span id="homeScoreDisplay" class="flex-1 text-center font-mono text-2xl font-bold text-gray-900 dark:text-white">0</span>
+            <button id="increaseHomeScore" aria-label="Increase home score" class="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-plus" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <!-- Away Score -->
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Away Score</label>
+          <div class="flex items-center gap-2">
+            <button id="decreaseAwayScore" aria-label="Decrease away score" class="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-minus" aria-hidden="true"></i>
+            </button>
+            <span id="awayScoreDisplay" class="flex-1 text-center font-mono text-2xl font-bold text-gray-900 dark:text-white">0</span>
+            <button id="increaseAwayScore" aria-label="Increase away score" class="shrink-0 w-11 h-11 inline-flex items-center justify-center rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-plus" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      {% endcall %}
+
+      <!-- Active Reporters -->
+      {% call section_card("Active Reporters", icon="ti-users") %}
+      <div class="p-4">
+        <ul id="reportersList" class="space-y-2">
+          <li class="text-sm text-gray-500 dark:text-gray-400">Loading reporters...</li>
+        </ul>
+      </div>
+      {% endcall %}
+    </div>
+
+    <!-- Event Entry Panel -->
+    <div class="lg:col-span-5 space-y-6">
+      {% call section_card("Add Match Event", icon="ti-plus") %}
+      <div class="p-4">
+        <form id="addEventForm" class="space-y-4">
+          <div>
+            <label for="eventType" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Event Type</label>
+            <select id="eventType" required class="input-ecs w-full">
+              <option value="">Select Event Type</option>
+              <option value="GOAL">Goal</option>
+              <option value="YELLOW_CARD">Yellow Card</option>
+              <option value="RED_CARD">Red Card</option>
+              <option value="SUBSTITUTION">Substitution</option>
+              <option value="INJURY">Injury</option>
+              <option value="OTHER">Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="eventTeam" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Team</label>
+            <select id="eventTeam" required class="input-ecs w-full">
+              <option value="">Select Team</option>
+              {% if match %}
+              <option value="{{ match.home_team_id }}">{{ match.home_team.name }}</option>
+              <option value="{{ match.away_team_id }}">{{ match.away_team.name }}</option>
+              {% endif %}
+            </select>
+          </div>
+
+          <div id="playerSelectGroup" class="hidden">
+            <label for="eventPlayer" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Player</label>
+            <select id="eventPlayer" class="input-ecs w-full">
+              <option value="">Select Player</option>
+            </select>
+          </div>
+
+          <div id="substitutionFields" class="hidden">
+            <label for="playerOut" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Player Out</label>
+            <select id="playerOut" class="input-ecs w-full">
+              <option value="">Select Player Out</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="eventMinute" class="block text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Minute</label>
+            <input type="number" id="eventMinute" min="0" placeholder="Match minute" class="input-ecs w-full font-mono">
+          </div>
+
+          <button type="submit" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-plus" aria-hidden="true"></i> Add Event
+          </button>
+        </form>
+      </div>
+      {% endcall %}
+
+      <!-- Match Events -->
+      {% call section_card("Match Events", icon="ti-list-details") %}
+      <div class="p-4">
+        <div id="eventsList" class="space-y-2"></div>
+      </div>
+      {% endcall %}
+    </div>
+
+    <!-- Player Shifts & Notes Panel -->
+    <div class="lg:col-span-4 space-y-6">
+      {% call section_card("Player Shifts (Your Team Only)", icon="ti-clock") %}
+      <div class="p-4">
+        <div id="playerShiftsContainer">
+          <p class="text-sm text-gray-500 dark:text-gray-400">Loading player shifts...</p>
+        </div>
+      </div>
+      {% endcall %}
+
+      {% call section_card("Match Notes", icon="ti-notes") %}
+      <div class="p-4 space-y-4">
+        <label for="matchNotes" class="sr-only">Match notes</label>
+        <textarea id="matchNotes" rows="5" placeholder="Enter any additional notes about the match here..." class="input-ecs w-full"></textarea>
+        <button id="submitReportBtn" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-send" aria-hidden="true"></i> Submit Final Report
+        </button>
+      </div>
+      {% endcall %}
+    </div>
+  </div>
+</div>
+
+<!-- Hidden data for JavaScript -->
+<div id="homeTeamPlayers" data-players="{{ home_players|tojson }}" class="hidden"></div>
+<div id="awayTeamPlayers" data-players="{{ away_players|tojson }}" class="hidden"></div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -219,6 +421,7 @@
 <!-- Hidden data for JavaScript -->
 <div id="homeTeamPlayers" data-players="{{ home_players|tojson }}" class="hidden"></div>
 <div id="awayTeamPlayers" data-players="{{ away_players|tojson }}" class="hidden"></div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

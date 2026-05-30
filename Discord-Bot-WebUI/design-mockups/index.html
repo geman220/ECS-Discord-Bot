@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" class="">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ECS FC — Design Concepts</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            'ecs-green': { 50:'#f0f9f1',100:'#dcf0de',500:'#22c55e',600:'#16a34a',700:'#15803d',800:'#1a472a',900:'#0d3018',950:'#052e16' },
+            'ecs-gold':  { 50:'#fdf9ec',100:'#faf0cf',500:'#c9a227',600:'#a8851f',700:'#856719',800:'#6b5316' }
+          },
+          fontFamily: { sans: ['Inter','ui-sans-serif','system-ui','sans-serif'] }
+        }
+      }
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3/dist/tabler-icons.min.css">
+  <style> html { font-family: 'Inter', sans-serif; } </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 min-h-screen transition-colors">
+
+  <!-- Top bar -->
+  <header class="bg-gradient-to-r from-ecs-green-800 to-ecs-green-950 text-white">
+    <div class="max-w-6xl mx-auto px-5 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-ecs-gold/20 text-ecs-gold">
+          <i class="ti ti-ball-football text-2xl"></i>
+        </span>
+        <div>
+          <h1 class="text-lg font-extrabold tracking-tight leading-none">ECS FC</h1>
+          <p class="text-[11px] uppercase tracking-wide text-white/70">Design Concepts</p>
+        </div>
+      </div>
+      <button id="darkToggle" type="button"
+        class="inline-flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-2 text-sm font-medium transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecs-gold">
+        <i class="ti ti-moon dark:hidden"></i>
+        <i class="ti ti-sun hidden dark:inline"></i>
+        <span class="hidden sm:inline">Toggle theme</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-5 py-10">
+
+    <div class="mb-8">
+      <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight mb-3">Three swappable app designs</h2>
+      <p class="text-gray-600 dark:text-gray-400 max-w-3xl">
+        Pick a concept to preview. Each one is a complete, brand-themed look for the entire ECS FC app —
+        same data and features, three different design languages.
+      </p>
+      <div class="mt-4 flex items-start gap-2 rounded-lg border border-ecs-gold/40 bg-ecs-gold/10 px-4 py-3 text-sm text-ecs-gold-800 dark:text-ecs-gold-100">
+        <i class="ti ti-info-circle mt-0.5"></i>
+        <p>Switching changes the <strong>entire app UI/UX</strong> (navigation, chrome, and page content) for the logged-in user. An admin flips between all three to A/B test them on the same real pages.</p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- Classic -->
+      <div class="flex flex-col rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden">
+        <div class="h-28 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center">
+          <i class="ti ti-layout-sidebar text-4xl text-gray-400 dark:text-gray-500"></i>
+        </div>
+        <div class="flex flex-col flex-1 p-5">
+          <div class="flex items-center gap-2 mb-2">
+            <h3 class="text-lg font-bold">Classic</h3>
+            <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5">Current app — unchanged</span>
+          </div>
+          <p class="text-sm text-gray-600 dark:text-gray-400 flex-1">
+            The app exactly as it is today: full left sidebar, familiar cards and layouts. The default and the safety net — byte-identical to production.
+          </p>
+          <button type="button" disabled
+            class="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 font-medium px-4 py-2.5 cursor-not-allowed">
+            <i class="ti ti-check"></i> This is the live current app
+          </button>
+        </div>
+      </div>
+
+      <!-- Modern -->
+      <a href="concept-modern-dashboard.html"
+        class="group flex flex-col rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecs-green-600">
+        <div class="h-28 bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center relative">
+          <i class="ti ti-layout-dashboard text-4xl text-ecs-green-500"></i>
+          <span class="absolute top-3 left-3 text-[10px] font-semibold uppercase tracking-wide text-white/60">Console</span>
+        </div>
+        <div class="flex flex-col flex-1 p-5">
+          <h3 class="text-lg font-bold mb-2 group-hover:text-ecs-green-600 transition-colors">Modern</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 flex-1">
+            A data-dense operations console: KPI cards, compact tables, flat surfaces, icon rail. Green is the active accent, gold reserved for highlights. Information-first.
+          </p>
+          <span class="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-ecs-green-600 group-hover:bg-ecs-green-700 text-white font-semibold px-4 py-2.5 transition-colors">
+            Open <i class="ti ti-arrow-right"></i>
+          </span>
+        </div>
+      </a>
+
+    </div>
+
+    <!-- Admin panel (fixed layout, NOT part of the A/B test) -->
+    <div class="mt-10">
+      <h2 class="text-xl font-bold tracking-tight mb-1">Admin panel</h2>
+      <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 max-w-3xl">
+        A <strong>fixed</strong> layout — it keeps the standard full sidebar and is <strong>not</strong> part of the A/B test.
+        Its modern "console" feel comes from the page <em>content</em> (widgets), and it stays consistent whichever shell
+        the rest of the app is on.
+      </p>
+      <a href="concept-admin-dashboard.html"
+        class="group flex flex-col sm:flex-row rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecs-green-600">
+        <div class="sm:w-56 h-28 sm:h-auto bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 flex items-center justify-center shrink-0">
+          <i class="ti ti-layout-dashboard text-4xl text-ecs-green-600 dark:text-ecs-green-500"></i>
+        </div>
+        <div class="flex flex-col flex-1 p-5">
+          <div class="flex items-center gap-2 mb-2">
+            <h3 class="text-lg font-bold group-hover:text-ecs-green-600 transition-colors">Admin Console</h3>
+            <span class="inline-flex items-center rounded-full bg-ecs-green-100 dark:bg-ecs-green-900 text-ecs-green-800 dark:text-ecs-green-100 text-[11px] font-semibold uppercase tracking-wide px-2 py-0.5">Fixed · not A/B</span>
+          </div>
+          <p class="text-sm text-gray-600 dark:text-gray-400 flex-1">
+            Standard full sidebar + admin nav, with console-style widgets: stat cards, section quick-links, and data tables —
+            plus themed modals and alerts. Permission-gated like the rest of the app.
+          </p>
+          <span class="mt-5 inline-flex items-center gap-2 text-ecs-green-600 font-semibold">
+            Open admin mockup <i class="ti ti-arrow-right group-hover:translate-x-0.5 transition-transform"></i>
+          </span>
+        </div>
+      </a>
+    </div>
+
+  </main>
+
+  <footer class="max-w-6xl mx-auto px-5 py-8 text-center text-xs text-gray-400 dark:text-gray-600">
+    ECS FC — design concept previews. Classic remains the production default.
+  </footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var stored = localStorage.getItem('ecs-theme');
+      if (stored === 'dark' || (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        root.classList.add('dark');
+      }
+      document.getElementById('darkToggle').addEventListener('click', function () {
+        root.classList.toggle('dark');
+        localStorage.setItem('ecs-theme', root.classList.contains('dark') ? 'dark' : 'light');
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -3,6 +3,125 @@
 {% block title %}ECS FC Match RSVP{% endblock %}
 
 {% block content %}
+{% if shell == 'console' %}
+{% import "macros/_modern_kit.html" as kit %}
+{% from "macros/flowbite.html" import textarea, button %}
+<div class="max-w-2xl mx-auto">
+    {{ kit.page_header("Match RSVP", subtitle="ECS FC") }}
+
+    {# Match Info #}
+    {% call kit.section_card(
+        (match.team.name ~ ' vs ' ~ match.opponent.name) if match.opponent
+        else (match.team.name ~ ' - ' ~ (match.custom_opponent or 'TBD')),
+        icon="ti-calendar-event") %}
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
+        <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i> Date
+            </dt>
+            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ match.match_date.strftime('%A, %B %d, %Y') if match.match_date else 'TBD' }}</dd>
+        </div>
+        <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <i class="ti ti-clock text-ecs-green" aria-hidden="true"></i> Time
+            </dt>
+            <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ match.match_time.strftime('%I:%M %p') if match.match_time else 'TBD' }}</dd>
+        </div>
+        <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <i class="ti ti-map-pin text-ecs-green" aria-hidden="true"></i> Location
+            </dt>
+            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ match.location or 'TBD' }}</dd>
+        </div>
+        <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <i class="ti ti-home text-ecs-green" aria-hidden="true"></i> Venue
+            </dt>
+            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ 'Home' if match.is_home else 'Away' }}</dd>
+        </div>
+        {% if match.home_shirt_color or match.away_shirt_color %}
+        <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3 sm:col-span-2">
+            <dt class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                <i class="ti ti-shirt text-ecs-green" aria-hidden="true"></i> Shirt Colors
+            </dt>
+            <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">
+                {% if match.home_shirt_color %}Us: {{ match.home_shirt_color }}{% endif %}
+                {% if match.home_shirt_color and match.away_shirt_color %} | {% endif %}
+                {% if match.away_shirt_color %}Them: {{ match.away_shirt_color }}{% endif %}
+            </dd>
+        </div>
+        {% endif %}
+    </dl>
+    {% endcall %}
+
+    {% if existing_rsvp %}
+    <div class="mt-5">
+        {{ kit.alert('info', "Submitting again will update your response.", title="You've already submitted an RSVP.", dismissible=False) }}
+    </div>
+    {% endif %}
+
+    {# RSVP Form #}
+    <form method="POST" action="{{ url_for('ecs_fc.submit_rsvp', match_id=match.id) }}" class="space-y-5 mt-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% call kit.section_card("Will you attend?", icon="ti-help-circle") %}
+        <fieldset class="p-4 sm:p-5">
+            <legend class="sr-only">Match availability</legend>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <label class="block">
+                    <input type="radio" name="availability" value="yes"
+                           {% if existing_rsvp and existing_rsvp.availability == 'yes' %}checked{% endif %}
+                           class="peer sr-only">
+                    <div class="cursor-pointer text-center min-h-[44px] flex items-center justify-center gap-1.5 py-3 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
+                                peer-checked:border-green-500 peer-checked:bg-green-50 dark:peer-checked:bg-green-900/30
+                                peer-checked:text-green-600 dark:peer-checked:text-green-400
+                                peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
+                        <i class="ti ti-check" aria-hidden="true"></i> Yes
+                    </div>
+                </label>
+                <label class="block">
+                    <input type="radio" name="availability" value="maybe"
+                           {% if existing_rsvp and existing_rsvp.availability == 'maybe' %}checked{% endif %}
+                           class="peer sr-only">
+                    <div class="cursor-pointer text-center min-h-[44px] flex items-center justify-center gap-1.5 py-3 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
+                                peer-checked:border-yellow-500 peer-checked:bg-yellow-50 dark:peer-checked:bg-yellow-900/30
+                                peer-checked:text-yellow-600 dark:peer-checked:text-yellow-400
+                                peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
+                        <i class="ti ti-question-mark" aria-hidden="true"></i> Maybe
+                    </div>
+                </label>
+                <label class="block">
+                    <input type="radio" name="availability" value="no"
+                           {% if existing_rsvp and existing_rsvp.availability == 'no' %}checked{% endif %}
+                           class="peer sr-only">
+                    <div class="cursor-pointer text-center min-h-[44px] flex items-center justify-center gap-1.5 py-3 px-4 rounded-lg border-2 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300
+                                peer-checked:border-red-500 peer-checked:bg-red-50 dark:peer-checked:bg-red-900/30
+                                peer-checked:text-red-600 dark:peer-checked:text-red-400
+                                peer-focus-visible:ring-2 peer-focus-visible:ring-ecs-green transition-colors">
+                        <i class="ti ti-x" aria-hidden="true"></i> No
+                    </div>
+                </label>
+            </div>
+        </fieldset>
+        {% endcall %}
+
+        {% call kit.section_card("Notes", icon="ti-note") %}
+        <div class="p-4 sm:p-5">
+            {{ textarea('notes', placeholder="Any additional information…", rows=3, value=(existing_rsvp.notes if existing_rsvp else '')) }}
+        </div>
+        {% endcall %}
+
+        {{ button("Submit RSVP", variant="primary", type="submit", icon="send", size="lg", class_="w-full") }}
+    </form>
+
+    <div class="text-center mt-6">
+        <a href="{{ url_for('main.index') }}"
+           class="inline-flex items-center gap-1.5 text-sm font-medium text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Home
+        </a>
+    </div>
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8 max-w-2xl">
     <!-- Page Header -->
     <div class="text-center mb-8">
@@ -128,4 +247,5 @@
         </a>
     </div>
 </div>
+{% endif %}
 {% endblock %}

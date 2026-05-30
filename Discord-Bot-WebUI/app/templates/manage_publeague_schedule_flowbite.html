@@ -1,9 +1,204 @@
 {% extends "base_flowbite.html" %}
 {% from "macros/flowbite.html" import modal_form %}
+{% from "macros/_modern_kit.html" import page_header, section_card, empty_state %}
 
 {% block title %}Pub League Schedule Management{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    {% call page_header(season.name + ' — Schedule', subtitle='Pub League Schedule Management') %}
+    <a href="{{ url_for('publeague.schedule.schedule_wizard', season_id=season.id) }}"
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-calendar-plus" aria-hidden="true"></i> Generate Bulk Schedule
+    </a>
+    {% endcall %}
+
+    <!-- League Tabs (Modern) -->
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+            <ul class="flex flex-nowrap -mb-px text-sm font-medium px-2" role="tablist">
+                {% for league in leagues %}
+                <li class="mr-1" role="presentation">
+                    <button class="league-tab inline-flex items-center gap-2 px-4 py-3.5 min-h-[44px] border-b-2 rounded-t-lg whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-ecs-green {{ 'border-ecs-green text-ecs-green' if loop.first else 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300' }}"
+                            data-league-id="{{ league.id }}"
+                            type="button"
+                            role="tab">
+                        {{ league.name }}
+                        <span class="font-mono px-2 py-0.5 text-xs rounded-full {{ 'bg-ecs-green/10 text-ecs-green' if loop.first else 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400' }}">
+                            {{ schedule[league.name]|length if schedule[league.name] else 0 }} weeks
+                        </span>
+                    </button>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        {% for league in leagues %}
+        <div class="league-content {{ '' if loop.first else 'hidden' }}" data-league-id="{{ league.id }}">
+            <!-- Actions Bar -->
+            <div class="flex flex-wrap justify-between items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ league.teams|length }}</span> teams registered
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <a href="{{ url_for('publeague.schedule.schedule_wizard', season_id=season.id, league_id=league.id) }}"
+                       class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm bg-blue-600 hover:bg-blue-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-calendar-plus" aria-hidden="true"></i> Generate Schedule
+                    </a>
+                    <button type="button"
+                            class="js-add-single-week inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                            data-league-id="{{ league.id }}">
+                        <i class="ti ti-plus" aria-hidden="true"></i> Add Single Week
+                    </button>
+                </div>
+            </div>
+
+            <!-- Schedule Content -->
+            <div class="p-4">
+                {% if schedule[league.name] %}
+                <div class="space-y-4">
+                    {% for week, data in schedule[league.name].items() %}
+                    <div class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                        <!-- Week Header -->
+                        <div class="week-header flex justify-between items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 cursor-pointer"
+                             data-week-target="week-{{ league.id }}-{{ week }}">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <i class="ti ti-chevron-down week-chevron text-gray-500 transition-transform shrink-0" aria-hidden="true"></i>
+                                <div class="min-w-0">
+                                    <h3 class="font-semibold text-gray-900 dark:text-white">Week {{ week }}</h3>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400"><span class="font-mono">{{ data.date }}</span> &bull; <span class="font-mono">{{ data.matches|length }}</span> matches</p>
+                                </div>
+                            </div>
+                            <button type="button"
+                                    class="js-add-match inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-700"
+                                    data-week="{{ week }}"
+                                    data-date="{{ data.date }}"
+                                    data-league-id="{{ league.id }}"
+                                    onclick="event.stopPropagation();">
+                                <i class="ti ti-plus" aria-hidden="true"></i> Add Match
+                            </button>
+                        </div>
+
+                        <!-- Week Content -->
+                        <div id="week-{{ league.id }}-{{ week }}" class="week-content {{ 'hidden' if not loop.first else '' }}">
+                            <!-- md+ table -->
+                            <div class="hidden md:block md:overflow-x-auto">
+                                <table class="w-full text-sm text-left">
+                                    <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700/50">
+                                        <tr>
+                                            <th scope="col" class="px-4 py-2.5 font-semibold">Match</th>
+                                            <th scope="col" class="px-4 py-2.5 font-semibold">Time</th>
+                                            <th scope="col" class="px-4 py-2.5 font-semibold">Location</th>
+                                            <th scope="col" class="px-4 py-2.5 font-semibold text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                        {% for match in data.matches %}
+                                        <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                                            <td class="px-4 py-3">
+                                                <div class="font-medium text-gray-900 dark:text-white">
+                                                    {{ match.team_a }} <span class="text-gray-400">vs</span> {{ match.team_b }}
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 font-mono text-gray-600 dark:text-gray-400">
+                                                {{ match.time }}
+                                            </td>
+                                            <td class="px-4 py-3">
+                                                <span class="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full {{ 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' if match.location == 'North' else 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' }}">
+                                                    <i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ match.location }}
+                                                </span>
+                                            </td>
+                                            <td class="px-4 py-3 text-right">
+                                                <div class="flex justify-end gap-2">
+                                                    <button type="button"
+                                                            class="js-edit-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                            data-match-id="{{ match.id }}"
+                                                            data-date="{{ data.date }}"
+                                                            data-time="{{ match.time }}"
+                                                            data-team-a="{{ match.team_a }}"
+                                                            data-team-b="{{ match.team_b }}"
+                                                            data-team-a-id="{{ match.team_a_id }}"
+                                                            data-team-b-id="{{ match.team_b_id }}"
+                                                            data-location="{{ match.location }}"
+                                                            data-latitude="{{ match.latitude if match.latitude is not none else '' }}"
+                                                            data-longitude="{{ match.longitude if match.longitude is not none else '' }}"
+                                                            data-week="{{ week }}"
+                                                            data-league-id="{{ league.id }}"
+                                                            title="Edit Match" aria-label="Edit Match">
+                                                        <i class="ti ti-edit" aria-hidden="true"></i>
+                                                    </button>
+                                                    <button type="button"
+                                                            class="js-delete-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:p-1.5 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                            data-match-id="{{ match.id }}"
+                                                            title="Delete Match" aria-label="Delete Match">
+                                                        <i class="ti ti-trash" aria-hidden="true"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <!-- mobile stacked cards -->
+                            <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for match in data.matches %}
+                                <div class="px-4 py-3">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <div class="min-w-0">
+                                            <p class="font-medium text-gray-900 dark:text-white">
+                                                {{ match.team_a }} <span class="text-gray-400">vs</span> {{ match.team_b }}
+                                            </p>
+                                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-2">
+                                                <span class="font-mono inline-flex items-center gap-1"><i class="ti ti-clock text-[11px]" aria-hidden="true"></i>{{ match.time }}</span>
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full {{ 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' if match.location == 'North' else 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' }}">
+                                                    <i class="ti ti-map-pin text-[11px]" aria-hidden="true"></i>{{ match.location }}
+                                                </span>
+                                            </p>
+                                        </div>
+                                        <div class="flex gap-2 shrink-0">
+                                            <button type="button"
+                                                    class="js-edit-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    data-match-id="{{ match.id }}"
+                                                    data-date="{{ data.date }}"
+                                                    data-time="{{ match.time }}"
+                                                    data-team-a="{{ match.team_a }}"
+                                                    data-team-b="{{ match.team_b }}"
+                                                    data-team-a-id="{{ match.team_a_id }}"
+                                                    data-team-b-id="{{ match.team_b_id }}"
+                                                    data-location="{{ match.location }}"
+                                                    data-latitude="{{ match.latitude if match.latitude is not none else '' }}"
+                                                    data-longitude="{{ match.longitude if match.longitude is not none else '' }}"
+                                                    data-week="{{ week }}"
+                                                    data-league-id="{{ league.id }}"
+                                                    title="Edit Match" aria-label="Edit Match">
+                                                <i class="ti ti-edit" aria-hidden="true"></i>
+                                            </button>
+                                            <button type="button"
+                                                    class="js-delete-match inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
+                                                    data-match-id="{{ match.id }}"
+                                                    title="Delete Match" aria-label="Delete Match">
+                                                <i class="ti ti-trash" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                {{ empty_state('ti-calendar-off', 'No Schedule Yet', "This league doesn't have any matches scheduled.", action={'label': 'Generate Schedule', 'url': url_for('publeague.schedule.schedule_wizard', season_id=season.id, league_id=league.id), 'icon': 'ti-calendar-plus'}) }}
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </section>
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -171,6 +366,7 @@
         {% endfor %}
     </div>
 </div>
+{% endif %}
 
 <!-- Mobile Floating Action Button -->
 <div class="fixed bottom-6 right-6 lg:hidden z-50">

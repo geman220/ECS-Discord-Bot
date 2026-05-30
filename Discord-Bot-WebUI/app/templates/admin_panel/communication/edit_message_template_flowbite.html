@@ -26,6 +26,170 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, modal as kit_modal %}
+<div class="space-y-6">
+
+  {{ page_header('Edit: ' ~ template.name, subtitle='Communication / Message Templates') }}
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+    <!-- Edit Form (2/3 width) -->
+    <div class="lg:col-span-2 space-y-6">
+      {% call section_card('Edit: ' ~ template.name, icon='ti-message-cog') %}
+      <form method="POST" id="editTemplateForm" class="p-4 sm:p-5 space-y-5">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Template Name -->
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Template Name <span class="text-red-500">*</span></label>
+          <input type="text" id="name" name="name" value="{{ template.name }}" required
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">A descriptive name for this message template.</p>
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label for="description" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+          <textarea id="description" name="description" rows="2"
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">{{ template.description or '' }}</textarea>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Optional description of when this message is used.</p>
+        </div>
+
+        <!-- Message Content -->
+        <div>
+          <label for="message_content" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Message Content <span class="text-red-500">*</span></label>
+          <textarea id="message_content" name="message_content" rows="10" required placeholder="Enter your message content here..."
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green font-mono">{{ template.message_content }}</textarea>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            The actual message content. You can use variables like <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded text-ecs-green">{{'{'}}username{{'}'}}</code>, <code class="bg-gray-100 dark:bg-gray-700 px-1 rounded text-ecs-green">{{'{'}}league_display_name{{'}'}}</code>, etc.
+          </p>
+        </div>
+
+        <!-- Active Status -->
+        <div>
+          <div class="flex items-center">
+            <input type="checkbox" id="is_active" name="is_active" {% if template.is_active %}checked{% endif %} class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+            <label for="is_active" class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Active</label>
+          </div>
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 ml-6">Only active templates are used by the Discord bot.</p>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div class="flex flex-wrap gap-2">
+            <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-device-floppy" aria-hidden="true"></i> Save Changes
+            </button>
+            <button type="button" data-action="preview-message" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-eye" aria-hidden="true"></i> Preview
+            </button>
+          </div>
+          <a href="{{ url_for('admin_panel.message_category', category_id=template.category_id) }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-x" aria-hidden="true"></i> Cancel
+          </a>
+        </div>
+      </form>
+      {% endcall %}
+    </div>
+
+    <!-- Sidebar (1/3 width) -->
+    <div class="space-y-6">
+      <!-- Template Info -->
+      {% call section_card('Template Information', icon='ti-info-circle') %}
+      <dl class="space-y-3 text-sm p-4 sm:p-5">
+        <div>
+          <dt class="text-gray-500 dark:text-gray-400">Key</dt>
+          <dd class="font-medium text-gray-900 dark:text-white"><code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs font-mono">{{ template.key }}</code></dd>
+        </div>
+        <div>
+          <dt class="text-gray-500 dark:text-gray-400">Category</dt>
+          <dd class="font-medium text-gray-900 dark:text-white">{{ template.category.name }}</dd>
+        </div>
+        <div>
+          <dt class="text-gray-500 dark:text-gray-400">Created</dt>
+          <dd class="font-medium text-gray-900 dark:text-white font-mono">{{ template.created_at.strftime('%b %d, %Y') }}</dd>
+        </div>
+        <div>
+          <dt class="text-gray-500 dark:text-gray-400">Last Updated</dt>
+          <dd class="font-medium text-gray-900 dark:text-white font-mono">{{ template.updated_at.strftime('%b %d, %Y at %I:%M %p') }}</dd>
+        </div>
+        {% if template.updated_by %}
+        <div>
+          <dt class="text-gray-500 dark:text-gray-400">Updated By</dt>
+          <dd class="font-medium text-gray-900 dark:text-white">User ID <span class="font-mono">{{ template.updated_by }}</span></dd>
+        </div>
+        {% endif %}
+      </dl>
+      {% endcall %}
+
+      <!-- Available Variables -->
+      {% if template.variables %}
+      {% call section_card('Available Variables', icon='ti-variable') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">You can use these variables in your message:</p>
+        <div class="space-y-2">
+          {% for variable in template.variables %}
+          <div>
+            <code class="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs text-ecs-green font-mono">{{'{'}}{{ variable }}{{'}'}}</code>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endcall %}
+      {% endif %}
+
+      <!-- Common Variables -->
+      {% call section_card('Common Variables', icon='ti-list') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">These variables are commonly available:</p>
+        <div class="space-y-2 text-xs">
+          <div class="flex items-center justify-between gap-2">
+            <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono">{{'{'}}username{{'}'}}</code>
+            <span class="text-gray-500 dark:text-gray-400">User's Discord name</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono">{{'{'}}league_display_name{{'}'}}</code>
+            <span class="text-gray-500 dark:text-gray-400">League name</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono">{{'{'}}league_welcome_message{{'}'}}</code>
+            <span class="text-gray-500 dark:text-gray-400">Welcome text</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <code class="bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded font-mono">{{'{'}}league_contact_info{{'}'}}</code>
+            <span class="text-gray-500 dark:text-gray-400">Contact info</span>
+          </div>
+        </div>
+      </div>
+      {% endcall %}
+
+      <!-- Discord Formatting -->
+      {% call section_card('Discord Formatting', icon='ti-markdown') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Discord supports these formatting options:</p>
+        <div class="space-y-1 text-xs font-mono">
+          <div><code class="text-gray-700 dark:text-gray-300">**bold text**</code></div>
+          <div><code class="text-gray-700 dark:text-gray-300">*italic text*</code></div>
+          <div><code class="text-gray-700 dark:text-gray-300">`code text`</code></div>
+          <div><code class="text-gray-700 dark:text-gray-300">~~strikethrough~~</code></div>
+          <div><code class="text-gray-700 dark:text-gray-300">||spoiler||</code></div>
+          <div><code class="text-gray-700 dark:text-gray-300">&gt; quote</code></div>
+        </div>
+      </div>
+      {% endcall %}
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  {% call kit_modal('previewModal', 'Message Preview', icon='ti-eye', size='lg') %}
+  <div id="previewContent" class="p-4 sm:p-5">
+    <!-- Preview content loads here -->
+  </div>
+  {% endcall %}
+</div>
+{% else %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Edit Form (2/3 width) -->
     <div class="lg:col-span-2">
@@ -171,6 +335,7 @@
     <!-- Preview content loads here -->
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

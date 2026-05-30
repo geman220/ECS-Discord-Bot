@@ -26,6 +26,133 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% set accent = 'text-green-600 dark:text-green-400' if league_type == 'Premier' else 'text-blue-600 dark:text-blue-400' %}
+
+{% call page_header(league_type ~ ' League Predictions', subtitle=season.name) %}
+    <a href="{{ url_for('draft_predictions.admin_dashboard', season_id=season.id) }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+              border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-arrow-left text-sm" aria-hidden="true"></i> Back to Dashboard
+    </a>
+{% endcall %}
+
+<div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+    {{ stat_card('ti-shield', 'League', league_type, sublabel=season.name, tone='primary' if league_type == 'Premier' else 'info') }}
+    {{ stat_card('ti-users-group', 'Coaches Submitted', total_coaches, sublabel='predictions in', tone='neutral') }}
+    {{ stat_card('ti-users', 'Players Ranked', player_data|length, sublabel='in this league', tone='neutral') }}
+</div>
+
+{% if player_data %}
+{% call data_table('Player Predictions', icon='ti-users', count=player_data|length, search_placeholder='Search players...', search_id='playerSearch') %}
+    <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400" id="predictionsTable">
+        <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+            <tr>
+                {{ data_table_th('Rank', key='rank', align='left') }}
+                {{ data_table_th('Player', key='player', align='left') }}
+                {{ data_table_th('Position', key='position', align='left', hide='sm') }}
+                {{ data_table_th('Avg Round', key='avg', align='left') }}
+                {{ data_table_th('Range', key='range', align='left', hide='sm') }}
+                {{ data_table_th('Votes', key='votes', align='left') }}
+                {{ data_table_th('Actions', sortable=False, align='right') }}
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for item in player_data %}
+            <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-player-name="{{ item.player.name|lower }}">
+                <td class="px-3 py-3">
+                    {% if item.avg_round %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if loop.index <= 3 else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">{{ loop.index }}</span>
+                    {% else %}
+                    <span class="text-gray-400 dark:text-gray-500">-</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-3">
+                    <div class="flex items-center gap-3">
+                        <div class="flex-shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center overflow-hidden">
+                            {% if item.player.profile_picture_url %}
+                            <img src="{{ item.player.profile_picture_url }}" alt="{{ item.player.name }}" class="w-8 h-8 rounded-full object-cover">
+                            {% else %}
+                            <span class="text-xs font-medium text-ecs-green">{{ item.player.name[:2]|upper }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="min-w-0">
+                            <p class="font-medium text-gray-900 dark:text-white truncate">{{ item.player.name }}</p>
+                            {% if item.player.league %}
+                            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ item.player.league.name }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </td>
+                <td class="px-3 py-3 hidden md:table-cell">
+                    {% if item.player.favorite_position %}
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ item.player.favorite_position }}</span>
+                    {% else %}
+                    <span class="text-gray-400 dark:text-gray-500">-</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-3">
+                    {% if item.avg_round %}
+                    <span class="font-mono font-semibold {{ 'text-green-600 dark:text-green-400' if item.avg_round <= 5 else 'text-blue-600 dark:text-blue-400' if item.avg_round <= 10 else 'text-amber-600 dark:text-amber-400' }}">{{ "%.1f"|format(item.avg_round) }}</span>
+                    {% else %}
+                    <span class="text-gray-400 dark:text-gray-500">No predictions</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-3 hidden md:table-cell font-mono text-gray-500 dark:text-gray-400">
+                    {% if item.min_round and item.max_round %}
+                    {{ item.min_round }} - {{ item.max_round }}
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td class="px-3 py-3">
+                    {% if item.prediction_count > 0 %}
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400">{{ item.prediction_count }}</span>
+                    {% else %}
+                    <span class="text-gray-400 dark:text-gray-500 font-mono">0</span>
+                    {% endif %}
+                </td>
+                <td class="px-3 py-3 text-right">
+                    {% if item.prediction_count > 0 %}
+                    <a href="{{ url_for('draft_predictions.admin_player_detail', player_id=item.player.id, season_id=season.id, league_type=league_type) }}"
+                       class="inline-flex items-center justify-center w-8 h-8 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:border-blue-500/30 dark:hover:bg-blue-500/25 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                       aria-label="View predictions for {{ item.player.name }}">
+                        <i class="ti ti-eye" aria-hidden="true"></i>
+                    </a>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for item in player_data %}
+        {% set detail_url = url_for('draft_predictions.admin_player_detail', player_id=item.player.id, season_id=season.id, league_type=league_type) if item.prediction_count > 0 else None %}
+        {% set rank_badge %}
+            {% if item.avg_round %}<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold {{ 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400' if loop.index <= 3 else 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300' }}">#{{ loop.index }}</span>{% endif %}
+        {% endset %}
+        {% call data_table_row_card(item.player.name, url=detail_url, badge=rank_badge) %}
+            <div data-player-name="{{ item.player.name|lower }}" class="flex flex-wrap gap-x-4 gap-y-0.5">
+                <span>Avg Round:
+                    {% if item.avg_round %}<span class="font-mono font-semibold {{ 'text-green-600 dark:text-green-400' if item.avg_round <= 5 else 'text-blue-600 dark:text-blue-400' if item.avg_round <= 10 else 'text-amber-600 dark:text-amber-400' }}">{{ "%.1f"|format(item.avg_round) }}</span>{% else %}<span class="text-gray-400 dark:text-gray-500">No predictions</span>{% endif %}
+                </span>
+                {% if item.min_round and item.max_round %}<span>Range: <span class="font-mono">{{ item.min_round }} - {{ item.max_round }}</span></span>{% endif %}
+                <span>Votes: <span class="font-mono font-semibold text-blue-600 dark:text-blue-400">{{ item.prediction_count }}</span></span>
+                {% if item.player.favorite_position %}<span>Pos: {{ item.player.favorite_position }}</span>{% endif %}
+            </div>
+        {% endcall %}
+        {% endfor %}
+    </div>
+{% endcall %}
+{% else %}
+{{ empty_state('ti-users-off', 'No Players Found', 'No players are registered in this league.') }}
+{% endif %}
+
+{% else %}
 <!-- Header -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
     <div class="flex flex-wrap justify-between items-center gap-4">
@@ -150,6 +277,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -14,6 +14,174 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+{% from 'macros/flowbite.html' import select as fb_select, textarea as fb_textarea %}
+
+{% call page_header("Quick Actions", subtitle="System Administration") %}{% endcall %}
+
+<div class="space-y-5 sm:space-y-6">
+
+  {# System Operations #}
+  {% call section_card("System Operations", icon="ti-settings") %}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-5">
+    <button type="button" data-action="quick-clear-cache"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-refresh text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Clear All Cache</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Reset all cached data</span>
+    </button>
+    <button type="button" data-action="check-db-health"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-database text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">DB Health Check</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Check database status</span>
+    </button>
+    <button type="button" data-action="initialize-settings"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="ti ti-shield text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Initialize Settings</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Reset admin settings</span>
+    </button>
+    <button type="button" data-action="quick-restart-bot"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-indigo-100 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center"><i class="ti ti-brand-discord text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Restart Bot</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Restart Discord bot</span>
+    </button>
+  </div>
+  {% endcall %}
+
+  {# User Management #}
+  {% call section_card("User Management", icon="ti-users") %}
+  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-5">
+    <button type="button" data-action="approve-all-pending"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center"><i class="ti ti-user-check text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Approve All Pending</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Approve all pending user registrations</span>
+    </button>
+    <button type="button" data-action="process-waitlist"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-user-plus text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Process Waitlist</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Process all users from waitlist</span>
+    </button>
+    <button type="button" data-action="send-bulk-notifications"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-mail text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Send Notifications</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Send bulk notifications to users</span>
+    </button>
+  </div>
+  {% endcall %}
+
+  {# Content Management #}
+  {% call section_card("Content Management", icon="ti-file-text") %}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 p-4 sm:p-5">
+    <button type="button" data-action="sync-templates"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-ecs-green/10 text-ecs-green flex items-center justify-center"><i class="ti ti-template text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Sync Templates</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Synchronize message templates</span>
+    </button>
+    <button type="button" data-action="quick-test-notifications"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-bell text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Test Notifications</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Send test push notification</span>
+    </button>
+    <button type="button" data-action="send-emergency-alert"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center"><i class="ti ti-announcement text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Emergency Alert</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Send emergency system alert</span>
+    </button>
+    <button type="button" data-action="export-system-data"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 flex items-center justify-center"><i class="ti ti-file-export text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Export Data</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Export system data</span>
+    </button>
+  </div>
+  {% endcall %}
+
+  {# Maintenance & Troubleshooting #}
+  {% call section_card("Maintenance & Troubleshooting", icon="ti-tool") %}
+  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 p-4 sm:p-5">
+    <button type="button" data-action="toggle-maintenance-mode"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-red-100 dark:bg-red-500/10 text-red-600 dark:text-red-400 flex items-center justify-center"><i class="ti ti-power text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Maintenance Mode</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Toggle system maintenance mode</span>
+    </button>
+    <button type="button" data-action="clear-system-logs"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center"><i class="ti ti-file-text text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">Clear Logs</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Clear system and error logs</span>
+    </button>
+    <button type="button" data-action="generate-system-report"
+            class="flex flex-col items-center text-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors min-h-[44px] focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <span class="w-11 h-11 rounded-full bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center"><i class="ti ti-report text-xl" aria-hidden="true"></i></span>
+      <span class="text-sm font-semibold text-gray-900 dark:text-white">System Report</span>
+      <span class="text-xs text-gray-500 dark:text-gray-400">Generate full system report</span>
+    </button>
+  </div>
+  {% endcall %}
+
+  {# Custom Actions #}
+  {% call section_card("Custom Actions", icon="ti-code") %}
+  <div class="p-4 sm:p-5">
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Execute custom administrative commands and scripts.</p>
+    <form id="customActionForm">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        {{ fb_select("actionType", label="Action Type", options=[
+            ("database", "Database Query"),
+            ("cache", "Cache Operation"),
+            ("user", "User Management"),
+            ("system", "System Command"),
+            ("notification", "Send Notification")
+        ], placeholder="Select action type...") }}
+        <div>
+          <label for="actionTarget" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target</label>
+          <input type="text" id="actionTarget"
+                 class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                 placeholder="Target (optional)">
+        </div>
+      </div>
+      <div class="mb-4">
+        <label for="actionCommand" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Command/Parameters</label>
+        <textarea id="actionCommand" rows="3"
+                  class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green"
+                  placeholder="Enter command or parameters..."></textarea>
+      </div>
+      <div class="flex items-center mb-4">
+        <input type="checkbox" id="confirmBeforeExecution"
+               class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+        <label for="confirmBeforeExecution" class="ml-2 text-sm font-medium text-gray-900 dark:text-gray-300">Require confirmation before execution</label>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" data-action="execute-custom-action"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-play" aria-hidden="true"></i>Execute Action
+        </button>
+        <button type="button" data-action="validate-custom-action"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-check" aria-hidden="true"></i>Validate Only
+        </button>
+        <button type="button" data-action="save-custom-action"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 text-sm font-semibold hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-device-floppy" aria-hidden="true"></i>Save as Template
+        </button>
+      </div>
+    </form>
+  </div>
+  {% endcall %}
+
+</div>
+{% else %}
 <!-- Header -->
 <div class="flex items-start p-6 mb-6 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg shadow">
     <div class="p-3 bg-white/20 rounded-full mr-4">
@@ -212,6 +380,7 @@
         </form>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

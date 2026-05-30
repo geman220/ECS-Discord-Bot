@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state %}
 
 {% block admin_title %}{{ player.name }} - Predictions{% endblock %}
 {% block panel_description %}All coach predictions for {{ player.name }}{% endblock %}
@@ -32,6 +33,115 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{{ page_header(player.name, subtitle=league_type ~ " · " ~ season.name ~ " · Coach Draft Predictions") }}
+
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5 sm:mb-6">
+  {# Player identity card #}
+  <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 flex items-center gap-4">
+    <div class="shrink-0 w-14 h-14 rounded-full bg-ecs-green/10 flex items-center justify-center overflow-hidden">
+      {% if player.profile_picture_url %}
+      <img src="{{ player.profile_picture_url }}" alt="{{ player.name }}" class="w-14 h-14 rounded-full object-cover">
+      {% else %}
+      <span class="text-lg font-bold text-ecs-green">{{ player.name[:2]|upper }}</span>
+      {% endif %}
+    </div>
+    <div class="min-w-0">
+      <p class="text-sm font-bold text-gray-900 dark:text-white truncate">{{ player.name }}</p>
+      <div class="flex flex-wrap gap-1.5 mt-1.5">
+        {% if player.favorite_position %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ player.favorite_position }}</span>
+        {% endif %}
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if league_type == 'Premier' else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' }}">{{ league_type }}</span>
+      </div>
+    </div>
+  </div>
+  {% call stat_card("ti-chart-bar", "Average Round", ("%.1f"|format(stats.avg_round)) if stats.avg_round else "-", sublabel="across coaches", tone="info") %}{% endcall %}
+  {% call stat_card("ti-users", "Total Votes", stats.count, sublabel="coach predictions", tone="primary") %}{% endcall %}
+</div>
+
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 sm:mb-6">
+  {% call stat_card("ti-arrow-up", "Highest (Earliest)", stats.min_round or "-", sublabel="best-case round", tone="success") %}{% endcall %}
+  {% call stat_card("ti-arrow-down", "Lowest (Latest)", stats.max_round or "-", sublabel="worst-case round", tone="warning") %}{% endcall %}
+</div>
+
+{% if predictions %}
+{% call data_table("Coach Predictions", icon="ti-list", count=predictions|length, search_placeholder="Filter coaches…", search_id="coachPredFilter", filters=False) %}
+  <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+    <thead>
+      <tr class="border-b border-gray-200 dark:border-gray-700">
+        {{ data_table_th("Coach", key="coach", sortable=False) }}
+        {{ data_table_th("Predicted Round", key="round", sortable=False) }}
+        {{ data_table_th("Confidence", key="confidence", sortable=False, hide="sm") }}
+        {{ data_table_th("Notes", key="notes", sortable=False, hide="md") }}
+        {{ data_table_th("Submitted", key="submitted", sortable=False, hide="sm") }}
+        {{ data_table_th("Actions", key="actions", sortable=False, align="right") }}
+      </tr>
+    </thead>
+    <tbody>
+      {% for prediction, coach in predictions %}
+      <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        <td class="px-3 py-3">
+          <div class="flex items-center gap-3">
+            <div class="shrink-0 w-8 h-8 rounded-full bg-ecs-green/10 flex items-center justify-center">
+              <span class="text-xs font-medium text-ecs-green">{{ coach.username[:2]|upper }}</span>
+            </div>
+            <div class="min-w-0">
+              <p class="font-medium text-gray-900 dark:text-white truncate">{{ coach.username }}</p>
+              {% if coach.email %}
+              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ coach.email }}</p>
+              {% endif %}
+            </div>
+          </div>
+        </td>
+        <td class="px-3 py-3">
+          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if prediction.predicted_round <= 5 else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if prediction.predicted_round <= 10 else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' }}">
+            Round {{ prediction.predicted_round }}
+          </span>
+        </td>
+        <td class="px-3 py-3 hidden md:table-cell">
+          {% if prediction.confidence_level %}
+          <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium font-mono bg-ecs-green/10 text-ecs-green dark:text-ecs-green">{{ prediction.confidence_level }}/5</span>
+          {% else %}
+          <span class="text-gray-400">-</span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 hidden lg:table-cell text-gray-500 dark:text-gray-400 max-w-xs truncate">
+          {{ prediction.notes or '-' }}
+        </td>
+        <td class="px-3 py-3 hidden md:table-cell text-xs text-gray-500 dark:text-gray-400 font-mono">
+          {{ prediction.updated_at.strftime('%b %d, %Y %I:%M %p') }}
+        </td>
+        <td class="px-3 py-3 text-right">
+          <a href="{{ url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type) }}"
+             class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-600 bg-gray-50 border border-gray-200 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+             aria-label="View coach {{ coach.username }}">
+            <i class="ti ti-user" aria-hidden="true"></i>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {# Mobile stacked cards #}
+  <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {% for prediction, coach in predictions %}
+    {% set round_badge %}<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium font-mono {{ 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' if prediction.predicted_round <= 5 else 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300' if prediction.predicted_round <= 10 else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' }}">Round {{ prediction.predicted_round }}</span>{% endset %}
+    {% call data_table_row_card(coach.username, url=url_for('draft_predictions.admin_coach_detail', coach_id=coach.id, season_id=season.id, league_type=league_type), badge=round_badge) %}
+      {% if coach.email %}<p class="truncate">{{ coach.email }}</p>{% endif %}
+      <p>Confidence: {% if prediction.confidence_level %}<span class="font-mono">{{ prediction.confidence_level }}/5</span>{% else %}-{% endif %}</p>
+      <p class="font-mono">{{ prediction.updated_at.strftime('%b %d, %Y %I:%M %p') }}</p>
+      {% if prediction.notes %}<p class="truncate">Notes: {{ prediction.notes }}</p>{% endif %}
+    {% endcall %}
+    {% endfor %}
+  </div>
+{% endcall %}
+{% else %}
+{{ empty_state("ti-list-check", "No Predictions", "No coaches have predicted for this player yet.") }}
+{% endif %}
+
+{% else %}
 <!-- Player Header -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 mb-6">
     <div class="flex flex-wrap justify-between items-center gap-4">
@@ -187,4 +297,5 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}

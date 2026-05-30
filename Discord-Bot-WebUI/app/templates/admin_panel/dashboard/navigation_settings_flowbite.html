@@ -20,6 +20,129 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+<div class="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 sm:space-y-6">
+    {% call page_header("Navigation Settings", subtitle="Dashboard") %}
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">
+            <i class="ti ti-shield-lock text-sm" aria-hidden="true"></i> Global Admin Only
+        </span>
+    {% endcall %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+        <!-- Settings -->
+        <div class="lg:col-span-2 space-y-5 sm:space-y-6">
+            {% call section_card("Sidebar Navigation Settings", icon="ti-menu-2") %}
+            <div class="p-4 sm:p-5">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                    Control which navigation items appear in the sidebar for non-admin users.
+                    Disabled items will be hidden from the sidebar but the routes will still be accessible if users know the URL.
+                </p>
+
+                <form id="navSettingsForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    {% if nav_items %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {% for item in nav_items %}
+                        <div class="p-4 rounded-lg border transition-colors {{ 'border-green-300 dark:border-green-600 bg-green-50/50 dark:bg-green-900/20' if item.enabled else 'border-gray-300 dark:border-gray-600' }}">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="flex items-start min-w-0">
+                                    <i class="ti ti-{{ item.icon }} text-xl text-ecs-green mr-3 mt-0.5 shrink-0" aria-hidden="true"></i>
+                                    <div class="min-w-0">
+                                        <label class="font-semibold text-gray-900 dark:text-white cursor-pointer" for="{{ item.key }}">
+                                            {{ item.label }}
+                                        </label>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ item.description }}</p>
+                                    </div>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                                    <input type="checkbox" class="sr-only peer nav-toggle"
+                                           id="{{ item.key }}"
+                                           name="{{ item.key }}"
+                                           {% if item.enabled %}checked{% endif %}
+                                           data-setting="{{ item.key }}">
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-ecs-green"></div>
+                                </label>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    {{ empty_state('ti-menu-2', 'No navigation items', 'There are no configurable navigation items to display.') }}
+                    {% endif %}
+
+                    <div class="flex flex-wrap items-center justify-between gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                        <div class="flex items-center text-sm text-gray-500 dark:text-gray-400">
+                            <i class="ti ti-info-circle mr-1" aria-hidden="true"></i>
+                            Changes are saved automatically
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button type="button" id="resetDefaults"
+                                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
+                                <i class="ti ti-restore" aria-hidden="true"></i> Reset to Defaults
+                            </button>
+                            <button type="button" id="saveAll"
+                                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-colors">
+                                <i class="ti ti-device-floppy" aria-hidden="true"></i> Save All
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            {% endcall %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="space-y-5 sm:space-y-6">
+            {% call section_card("Preview", icon="ti-eye") %}
+            <div class="p-4">
+                <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                    Non-admin users will see these navigation items:
+                </p>
+                <ul id="previewList" class="space-y-1">
+                    {% for item in nav_items %}
+                    <li class="preview-item flex items-center p-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50 {{ 'hidden' if not item.enabled }}" data-key="{{ item.key }}">
+                        <i class="ti ti-{{ item.icon }} text-ecs-green mr-2" aria-hidden="true"></i>
+                        <span class="text-sm text-gray-900 dark:text-white">{{ item.label }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endcall %}
+
+            {% call section_card("Recent Changes", icon="ti-history") %}
+            {% if recent_changes %}
+            <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for change in recent_changes[:5] %}
+                <li class="px-4 py-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ change.setting }}</span>
+                        {% if change.new_value == 'true' %}
+                        <span class="inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+                            <i class="ti ti-check text-[11px]" aria-hidden="true"></i> Enabled
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 shrink-0 px-2 py-0.5 rounded text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                            <i class="ti ti-x text-[11px]" aria-hidden="true"></i> Disabled
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 font-mono">
+                        {{ change.created_at.strftime('%Y-%m-%d %H:%M') if change.created_at else 'N/A' }}
+                    </p>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            {{ empty_state('ti-history', 'No recent changes', 'Navigation visibility changes will appear here.') }}
+            {% endif %}
+            {% endcall %}
+        </div>
+    </div>
+</div>
+{% else %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Settings -->
     <div class="lg:col-span-2">
@@ -141,6 +264,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

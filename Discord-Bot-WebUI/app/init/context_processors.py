@@ -21,8 +21,8 @@ def build_nav_sections(user_roles, admin_settings):
     Single source of truth for the primary navigation.
 
     Returns a role-gated list of section dicts so that every shell (classic
-    sidebar, console icon-rail, matchday top-nav) renders the SAME, permission-
-    correct set of items. Presentation is left entirely to each shell template;
+    sidebar, console icon-rail) renders the SAME, permission-correct set of
+    items. Presentation is left entirely to each shell template;
     this function owns only *what* a user may see, never *how* it looks.
 
     Section shape: {'title': str, 'items': [item, ...]}  (omitted if it has no
@@ -271,22 +271,30 @@ def _register_utility_processor(app):
             return is_admin() or 'ECS FC Coach' in user_roles
 
         # Resolve the active UI shell (layout). 'classic' is the default for
-        # everyone; alternate shells are admin-only during the trial. The admin
-        # panel always uses the 'console' shell (built for power-users); every
-        # other page honors the admin's chosen shell. See main.set_ui_shell.
+        # everyone; alternate shells are admin-only during the trial.
+        #
+        # The admin panel is a FIXED layout: it renders the Modern ('console')
+        # page CONTENT but keeps the FULL standard sidebar + the Modern header
+        # (user name top-right) — it must NOT collapse to the console icon rail.
+        # The `console_full_sidebar` flag tells base_flowbite to use the full
+        # sidebar (not the rail) when shell=='console'. Every OTHER page honors
+        # the admin's chosen shell so the user-facing app A/B tests Classic vs Modern.
         shell = 'classic'
+        console_full_sidebar = False
         try:
             from flask import session, request
             if is_admin():
                 if has_request_context() and request.blueprint == 'admin_panel':
                     shell = 'console'
+                    console_full_sidebar = True   # full sidebar + Modern header, not the rail
                 else:
                     requested = session.get('ui_shell')
-                    if requested in ('classic', 'console', 'matchday'):
+                    if requested in ('classic', 'console'):
                         shell = requested
         except Exception as e:
             logger.error(f"Error resolving UI shell: {e}")
             shell = 'classic'
+            console_full_sidebar = False
 
         return {
             'safe_current_user': safe_current_user,
@@ -302,7 +310,8 @@ def _register_utility_processor(app):
             'admin_settings': admin_settings,
             'available_roles': available_roles,
             'nav_sections': build_nav_sections(user_roles, admin_settings),
-            'shell': shell
+            'shell': shell,
+            'console_full_sidebar': console_full_sidebar
         }
 
 

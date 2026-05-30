@@ -6,6 +6,323 @@
 {% block page_title %}Store Administration{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-6" data-component="store-admin">
+    {{ page_header("Store Administration", subtitle="Manage store items and orders") }}
+
+    <!-- Stat band -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {{ stat_card("ti-shirt", "Store Items", items|length, sublabel="total", tone="primary") }}
+        {{ stat_card("ti-circle-check", "Active Items", items|selectattr('is_active')|list|length, sublabel="visible", tone="success") }}
+        {{ stat_card("ti-shopping-cart", "Recent Orders", orders|length, sublabel="shown", tone="info") }}
+        {{ stat_card("ti-clock", "Pending", orders|selectattr('status', 'equalto', 'PENDING')|list|length, sublabel="awaiting", tone="warning") }}
+    </div>
+
+    <!-- Navigation / Action Bar -->
+    <div class="flex flex-wrap items-center gap-3" data-component="action-bar">
+        <a href="{{ url_for('store.index') }}" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ecs-green dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 transition-colors">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Store
+        </a>
+        <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors" data-modal-target="createItemModal" data-modal-toggle="createItemModal" data-action="create-item">
+            <i class="ti ti-plus" aria-hidden="true"></i> Add New Item
+        </button>
+        <button type="button" class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 text-sm font-semibold text-amber-700 bg-amber-100 border border-amber-300 rounded-lg hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/40 dark:hover:bg-amber-500/25 transition-colors" data-modal-target="resetOrderingModal" data-modal-toggle="resetOrderingModal" data-action="reset-season">
+            <i class="ti ti-refresh" aria-hidden="true"></i> Reset Season Ordering
+        </button>
+    </div>
+
+    <!-- Store Items Management -->
+    {% if items %}
+    {% call data_table("Store Items", icon="ti-shirt", count=items|length, search_placeholder="Filter items…", search_id="itemsFilter") %}
+        <div data-table-responsive>
+        <table class="hidden md:table w-full text-sm text-left" data-table data-mobile-table data-table-type="items">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                    {{ data_table_th("Item", key="item", active=True, dir="asc") }}
+                    {{ data_table_th("Category", key="category") }}
+                    {{ data_table_th("Price", key="price", align="left") }}
+                    {{ data_table_th("Options", sortable=False, hide="sm") }}
+                    {{ data_table_th("Status", key="status") }}
+                    {{ data_table_th("Created", key="created", hide="md") }}
+                    {{ data_table_th("Actions", sortable=False, align="right") }}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for item in items %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-item-id="{{ item.id }}">
+                    <td class="px-3 py-3" data-label="Item">
+                        <div class="flex items-center gap-3" data-component="store-item">
+                            {% if item.image_url %}
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700">
+                            {% else %}
+                            <div class="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-200 dark:border-gray-600">
+                                <i class="ti ti-photo text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                            </div>
+                            {% endif %}
+                            <div class="min-w-0">
+                                <h6 class="font-semibold text-gray-900 dark:text-white truncate">{{ item.name }}</h6>
+                                {% if item.description %}
+                                <p class="text-xs text-gray-500 dark:text-gray-400 max-w-xs truncate">{{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3" data-label="Category">
+                        {% if item.category %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400" data-badge>{{ item.category }}</span>
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3" data-label="Price">
+                        {% if item.price %}
+                        <span class="font-mono font-medium text-gray-900 dark:text-white">${{ "%.2f"|format(item.price) }}</span>
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3 hidden md:table-cell" data-label="Options">
+                        {% if item.available_colors %}
+                        {% set colors = item.available_colors | replace("'", '"') | fromjson %}
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Colors: {{ colors|length }}</span><br>
+                        {% endif %}
+                        {% if item.available_sizes %}
+                        {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
+                        <span class="text-xs text-gray-500 dark:text-gray-400">Sizes: {{ sizes|length }}</span>
+                        {% endif %}
+                        {% if not item.available_colors and not item.available_sizes %}
+                        <span class="text-gray-400 dark:text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3" data-label="Status">
+                        {% if item.is_active %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" data-badge><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" data-badge><i class="ti ti-circle-x" aria-hidden="true"></i>Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3 hidden lg:table-cell" data-label="Created">
+                        <span class="text-gray-900 dark:text-white">{{ format_pacific_time_short(item.created_at) if item.created_at else '' }}</span><br>
+                        <span class="text-xs text-gray-500 dark:text-gray-400">by {{ item.creator.username if item.creator else 'Unknown' }}</span>
+                    </td>
+                    <td class="px-3 py-3 text-right" data-label="Actions">
+                        <button id="dropdownItemBtn{{ item.id }}" data-dropdown-toggle="dropdownItem{{ item.id }}" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ecs-green dark:text-gray-400 dark:hover:bg-gray-700" type="button" aria-label="More options">
+                            <i class="ti ti-dots-vertical" aria-hidden="true"></i>
+                        </button>
+                        <div id="dropdownItem{{ item.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600">
+                            <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                                <li>
+                                    <a href="{{ url_for('store.edit_item', item_id=item.id) }}" class="flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-white" data-action="edit">
+                                        <i class="ti ti-edit" aria-hidden="true"></i>Edit
+                                    </a>
+                                </li>
+                            </ul>
+                            <div class="py-2">
+                                <a href="#" class="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-600" data-action="delete-item" data-item-id="{{ item.id }}" data-item-name="{{ item.name }}">
+                                    <i class="ti ti-trash" aria-hidden="true"></i>Delete
+                                </a>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" data-mobile-table data-table-type="items">
+            {% for item in items %}
+            <div class="px-4 py-3.5" data-item-id="{{ item.id }}">
+                <div class="flex items-start justify-between gap-2">
+                    <div class="flex items-center gap-3 min-w-0">
+                        {% if item.image_url %}
+                        <img src="{{ item.image_url }}" alt="{{ item.name }}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700 shrink-0">
+                        {% else %}
+                        <div class="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center border border-gray-200 dark:border-gray-600 shrink-0">
+                            <i class="ti ti-photo text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                        </div>
+                        {% endif %}
+                        <div class="min-w-0">
+                            <h6 class="font-semibold text-gray-900 dark:text-white truncate">{{ item.name }}</h6>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                {% if item.category %}<span class="mr-2">{{ item.category }}</span>{% endif %}
+                                {% if item.price %}<span class="font-mono">${{ "%.2f"|format(item.price) }}</span>{% endif %}
+                            </p>
+                            <div class="mt-1">
+                                {% if item.is_active %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" data-badge><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
+                                {% else %}
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400" data-badge><i class="ti ti-circle-x" aria-hidden="true"></i>Inactive</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="shrink-0">
+                        <button id="dropdownItemBtnM{{ item.id }}" data-dropdown-toggle="dropdownItem{{ item.id }}" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-ecs-green dark:text-gray-400 dark:hover:bg-gray-700" type="button" aria-label="More options">
+                            <i class="ti ti-dots-vertical" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        </div>
+    {% endcall %}
+    {% else %}
+    {{ empty_state("ti-shirt-off", "No Store Items", "Add your first store item to get started.", action={'label': 'Add New Item', 'url': '#', 'icon': 'ti-plus'}) }}
+    {% endif %}
+
+    <!-- Orders Management -->
+    {% if orders %}
+    {% call data_table("Recent Orders", icon="ti-shopping-cart", count=orders|length, filters=False) %}
+        <div class="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700" data-component="orders-header">
+            <select id="bulk-status-select" class="px-3 py-2 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-form-select data-action="bulk-status-select">
+                <option value="">Bulk Update Status</option>
+                <option value="PENDING">Mark as Pending</option>
+                <option value="PROCESSING">Mark as Processing</option>
+                <option value="ORDERED">Mark as Ordered</option>
+                <option value="DELIVERED">Mark as Delivered</option>
+                <option value="CANCELLED">Mark as Cancelled</option>
+            </select>
+            <button type="button" class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 px-3 py-2 text-sm font-semibold text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" id="bulk-update-btn" disabled data-action="bulk-update">
+                <i class="ti ti-check" aria-hidden="true"></i>Update Selected
+            </button>
+            <button type="button" class="inline-flex items-center gap-1 min-h-[44px] sm:min-h-0 px-3 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" id="bulk-delete-btn" disabled data-action="bulk-delete">
+                <i class="ti ti-trash" aria-hidden="true"></i>Delete Selected
+            </button>
+        </div>
+        <div data-table-responsive>
+        <table class="hidden md:table w-full text-sm text-left" data-table data-mobile-table data-table-type="orders">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                    <th scope="col" class="p-4">
+                        <div class="flex items-center">
+                            <input id="select-all-orders" type="checkbox" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                            <label for="select-all-orders" class="sr-only">Select all</label>
+                        </div>
+                    </th>
+                    {{ data_table_th("Order ID", key="orderid") }}
+                    {{ data_table_th("Customer", key="customer") }}
+                    {{ data_table_th("Item", key="item") }}
+                    {{ data_table_th("Details", sortable=False, hide="sm") }}
+                    {{ data_table_th("Status", key="status") }}
+                    {{ data_table_th("Order Date", key="date", hide="md") }}
+                    {{ data_table_th("Actions", sortable=False, align="right") }}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for order in orders %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-order-id="{{ order.id }}">
+                    <td class="w-4 p-4" data-label="Select">
+                        <div class="flex items-center">
+                            <input id="order-{{ order.id }}" type="checkbox" value="{{ order.id }}" class="order-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" data-action="select-order">
+                            <label for="order-{{ order.id }}" class="sr-only">Select order {{ order.id }}</label>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 font-mono font-medium text-gray-900 dark:text-white" data-label="Order ID">#{{ order.id }}</td>
+                    <td class="px-3 py-3 text-gray-600 dark:text-gray-300" data-label="Customer">{{ order.orderer.username if order.orderer else 'Unknown' }}</td>
+                    <td class="px-3 py-3" data-label="Item">
+                        <div>
+                            <span class="font-medium text-gray-900 dark:text-white">{{ order.item.name if order.item else 'Unknown Item' }}</span>
+                            <br><span class="text-xs text-gray-500 dark:text-gray-400 font-mono">Qty: {{ order.quantity }}</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 hidden md:table-cell" data-label="Details">
+                        <div class="flex flex-wrap gap-1">
+                            {% if order.selected_color %}
+                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400" data-badge>{{ order.selected_color }}</span>
+                            {% endif %}
+                            {% if order.selected_size %}
+                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" data-badge>{{ order.selected_size }}</span>
+                            {% endif %}
+                        </div>
+                        {% if order.notes %}
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{{ order.notes[:30] }}{% if order.notes|length > 30 %}...{% endif %}</p>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3" data-label="Status">
+                        <select class="px-3 py-1.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-action="update-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select>
+                            <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                            <option value="PROCESSING" {% if order.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                            <option value="ORDERED" {% if order.status == 'ORDERED' %}selected{% endif %}>Ordered</option>
+                            <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                            <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                        </select>
+                    </td>
+                    <td class="px-3 py-3 hidden lg:table-cell" data-label="Order Date">
+                        <span class="text-gray-900 dark:text-white">{{ format_pacific_time_short(order.order_date) if order.order_date else '' }}</span>
+                        {% if order.processed_by %}
+                        <br><span class="text-xs text-gray-500 dark:text-gray-400">Processed by {{ order.processor.username if order.processor else 'Unknown' }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3 text-right" data-label="Actions">
+                        <div class="flex items-center justify-end gap-2">
+                            <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-cyan-600 rounded-lg border border-cyan-300 hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-cyan-400 dark:text-cyan-400 dark:border-cyan-700 dark:hover:bg-cyan-900/30 transition-colors" data-action="view-order" data-order-id="{{ order.id }}" title="View Order" aria-label="View order {{ order.id }}">
+                                <i class="ti ti-eye" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 rounded-lg border border-red-300 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/30 transition-colors"
+                                    data-action="delete-order"
+                                    data-order-id="{{ order.id }}"
+                                    data-order-info="Order #{{ order.id }} for {{ order.item.name if order.item else 'Unknown Item' }}"
+                                    data-customer-name="{{ order.orderer.username if order.orderer else 'Unknown Customer' }}"
+                                    title="Delete Order" aria-label="Delete order {{ order.id }}">
+                                <i class="ti ti-trash" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700" data-mobile-table data-table-type="orders">
+            {% for order in orders %}
+            <div class="px-4 py-3.5" data-order-id="{{ order.id }}">
+                <div class="flex items-start gap-3">
+                    <div class="flex items-center pt-1">
+                        <input id="order-m-{{ order.id }}" type="checkbox" value="{{ order.id }}" class="order-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:focus:ring-ecs-green dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600" data-action="select-order">
+                        <label for="order-m-{{ order.id }}" class="sr-only">Select order {{ order.id }}</label>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-mono font-semibold text-gray-900 dark:text-white">#{{ order.id }}</span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">{{ order.orderer.username if order.orderer else 'Unknown' }}</span>
+                        </div>
+                        <p class="text-sm text-gray-900 dark:text-white mt-0.5">{{ order.item.name if order.item else 'Unknown Item' }} <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">Qty: {{ order.quantity }}</span></p>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            {% if order.selected_color %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400" data-badge>{{ order.selected_color }}</span>{% endif %}
+                            {% if order.selected_size %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" data-badge>{{ order.selected_size }}</span>{% endif %}
+                        </div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <select class="flex-1 px-3 py-1.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-ecs-green focus:border-ecs-green dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-ecs-green dark:focus:border-ecs-green" data-action="update-order-status" data-order-id="{{ order.id }}" data-current-status="{{ order.status }}" data-form-select aria-label="Order {{ order.id }} status">
+                                <option value="PENDING" {% if order.status == 'PENDING' %}selected{% endif %}>Pending</option>
+                                <option value="PROCESSING" {% if order.status == 'PROCESSING' %}selected{% endif %}>Processing</option>
+                                <option value="ORDERED" {% if order.status == 'ORDERED' %}selected{% endif %}>Ordered</option>
+                                <option value="DELIVERED" {% if order.status == 'DELIVERED' %}selected{% endif %}>Delivered</option>
+                                <option value="CANCELLED" {% if order.status == 'CANCELLED' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-cyan-600 rounded-lg border border-cyan-300 hover:bg-cyan-50 focus:outline-none focus:ring-2 focus:ring-cyan-400 dark:text-cyan-400 dark:border-cyan-700 dark:hover:bg-cyan-900/30 transition-colors" data-action="view-order" data-order-id="{{ order.id }}" title="View Order" aria-label="View order {{ order.id }}">
+                                <i class="ti ti-eye" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 rounded-lg border border-red-300 hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-400 dark:text-red-400 dark:border-red-700 dark:hover:bg-red-900/30 transition-colors"
+                                    data-action="delete-order"
+                                    data-order-id="{{ order.id }}"
+                                    data-order-info="Order #{{ order.id }} for {{ order.item.name if order.item else 'Unknown Item' }}"
+                                    data-customer-name="{{ order.orderer.username if order.orderer else 'Unknown Customer' }}"
+                                    title="Delete Order" aria-label="Delete order {{ order.id }}">
+                                <i class="ti ti-trash" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        </div>
+    {% endcall %}
+    {% else %}
+    {{ empty_state("ti-shopping-cart-off", "No Orders Yet", "Orders placed by coaches will appear here.") }}
+    {% endif %}
+</div>
+{% else %}
 <div class="space-y-6" data-component="store-admin">
     <!-- Page Header -->
     <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4" data-component="admin-header">
@@ -242,6 +559,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block modals %}

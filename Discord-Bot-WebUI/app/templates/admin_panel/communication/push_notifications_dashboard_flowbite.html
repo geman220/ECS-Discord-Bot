@@ -20,6 +20,159 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+<div class="space-y-6">
+
+  {{ page_header('Push Notifications', subtitle='Statistics and management') }}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-users', 'Total Subscribers', total_subscribers, tone='info') }}
+    {{ stat_card('ti-device-mobile', 'Active (30 days)', active_subscribers, tone='success') }}
+    {{ stat_card('ti-bell-ringing', 'Sent Today', notifications_sent_today, tone='primary') }}
+    {{ stat_card('ti-chart-bar', 'Sent This Week', notifications_sent_week, tone='warning') }}
+  </div>
+
+  <!-- Quick Actions, Platform Stats, Performance -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+
+    {# Quick Actions #}
+    {% call section_card('Quick Actions', icon='ti-send') %}
+      <div class="p-4 sm:p-5 space-y-3">
+        <a href="{{ url_for('admin_panel.send_push_notification_form') }}"
+           class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg
+                  bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-send" aria-hidden="true"></i>Send New Notification
+        </a>
+        <a href="{{ url_for('admin_panel.push_notifications') }}"
+           class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg
+                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                  text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-list" aria-hidden="true"></i>View All Subscribers
+        </a>
+      </div>
+    {% endcall %}
+
+    {# Platform Breakdown #}
+    {% call section_card('Platform Breakdown', icon='ti-device-mobile') %}
+      <div class="p-4 sm:p-5">
+        {% if platform_stats %}
+        <div class="space-y-3">
+          {% for platform, count in platform_stats.items() %}
+          <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <span class="flex items-center gap-2 text-gray-900 dark:text-white text-sm font-medium">
+              {% if platform == 'ios' %}
+              <i class="ti ti-brand-apple text-gray-500 dark:text-gray-400" aria-hidden="true"></i>iOS
+              {% elif platform == 'android' %}
+              <i class="ti ti-brand-android text-green-500 dark:text-green-400" aria-hidden="true"></i>Android
+              {% elif platform == 'web' %}
+              <i class="ti ti-world text-blue-500 dark:text-blue-400" aria-hidden="true"></i>Web
+              {% else %}
+              <i class="ti ti-device-mobile text-gray-500 dark:text-gray-400" aria-hidden="true"></i>{{ platform|capitalize }}
+              {% endif %}
+            </span>
+            <span class="font-mono text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ count }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No platform data available</p>
+        {% endif %}
+      </div>
+    {% endcall %}
+
+    {# Performance #}
+    {% call section_card('Performance', icon='ti-chart-pie') %}
+      <div class="p-4 sm:p-5 space-y-3">
+        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <span class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <i class="ti ti-truck-delivery text-green-600 dark:text-green-400" aria-hidden="true"></i>Delivery Rate
+          </span>
+          <span class="font-mono text-base font-bold text-green-600 dark:text-green-400">{{ delivery_rate }}</span>
+        </div>
+        <div class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+          <span class="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+            <i class="ti ti-activity-heartbeat text-cyan-600 dark:text-cyan-400" aria-hidden="true"></i>Avg Engagement
+          </span>
+          <span class="font-mono text-base font-bold text-cyan-600 dark:text-cyan-400">{{ avg_engagement }}</span>
+        </div>
+      </div>
+    {% endcall %}
+
+  </div>
+
+  <!-- Recent Notifications -->
+  {% if recent_notifications %}
+  {% call data_table('Recent Notifications', icon='ti-bell', count=recent_notifications|length, search_placeholder='Filter notifications…', search_id='pushFilter') %}
+    {# md+ table #}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead class="bg-gray-50 dark:bg-gray-700/50">
+        <tr>
+          {{ data_table_th('Title', key='title') }}
+          {{ data_table_th('Message', key='message', hide='sm') }}
+          {{ data_table_th('Type', key='type', hide='sm') }}
+          {{ data_table_th('Sent', key='sent') }}
+          {{ data_table_th('Status', key='status') }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for notification in recent_notifications %}
+        <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-2.5 font-medium text-gray-900 dark:text-white">{{ notification.title or 'No Title' }}</td>
+          <td class="px-3 py-2.5 text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ (notification.body or notification.message or 'No message')[:50] }}{% if (notification.body or notification.message or '')|length > 50 %}...{% endif %}</td>
+          <td class="px-3 py-2.5 hidden md:table-cell">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ notification.notification_type or 'push' }}</span>
+          </td>
+          <td class="px-3 py-2.5 font-mono text-xs text-gray-600 dark:text-gray-400">{{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else 'N/A' }}</td>
+          <td class="px-3 py-2.5">
+            {% if notification.is_read %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+              <i class="ti ti-circle-check" aria-hidden="true"></i>Read
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
+              <i class="ti ti-send" aria-hidden="true"></i>Delivered
+            </span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {# mobile stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for notification in recent_notifications %}
+      <div data-row class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ notification.title or 'No Title' }}</span>
+          {% if notification.is_read %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+            <i class="ti ti-circle-check" aria-hidden="true"></i>Read
+          </span>
+          {% else %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
+            <i class="ti ti-send" aria-hidden="true"></i>Delivered
+          </span>
+          {% endif %}
+        </div>
+        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ (notification.body or notification.message or 'No message')[:50] }}{% if (notification.body or notification.message or '')|length > 50 %}...{% endif %}</p>
+        <div class="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ notification.notification_type or 'push' }}</span>
+          <span class="font-mono">{{ notification.created_at.strftime('%Y-%m-%d %H:%M') if notification.created_at else 'N/A' }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  {{ empty_state('ti-bell-off', 'No recent notifications', 'Push notifications you send will appear here.', action={'label': 'Send First Notification', 'url': url_for('admin_panel.send_push_notification_form'), 'icon': 'ti-send'}) }}
+  {% endif %}
+
+</div>
+{% else %}
 <!-- Stats Overview -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -202,4 +355,5 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}

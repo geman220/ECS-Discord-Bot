@@ -20,6 +20,110 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state, alert as kit_alert %}
+<div class="space-y-6">
+
+  {% call page_header('League Management', subtitle='Match Operations') %}
+    <button type="button" data-action="create-league"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-plus" aria-hidden="true"></i>Create League
+    </button>
+  {% endcall %}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-flag', 'Total Leagues', stats.total_leagues or 0, tone='info') }}
+    {{ stat_card('ti-flag-check', 'Active Leagues', stats.active_leagues or 0, tone='success') }}
+    {{ stat_card('ti-users', 'With Teams', stats.leagues_with_teams or 0, tone='gold') }}
+    {{ stat_card('ti-calendar', 'With Matches', stats.leagues_with_matches or 0, tone='primary') }}
+  </div>
+
+  {% if leagues %}
+  {% call data_table('Leagues', icon='ti-flag', count=leagues|length, search_placeholder='Filter leagues…', search_id='leagueFilter', filters=True) %}
+    <!-- md+ table -->
+    <table class="hidden md:table w-full text-sm">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th('League Name', key='name') }}
+          {{ data_table_th('Season', key='season', hide='sm') }}
+          {{ data_table_th('Teams', key='teams', hide='sm') }}
+          {{ data_table_th('Matches', key='matches', hide='sm') }}
+          {{ data_table_th('Status', key='status', hide='sm') }}
+          {{ data_table_th('Actions', sortable=False, align='right') }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for league in leagues %}
+        <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3 font-semibold text-gray-900 dark:text-white">{{ league.name }}</td>
+          <td class="px-3 py-3 text-gray-500 dark:text-gray-400 hidden md:table-cell">{{ league.season.name if league.season else 'No Season' }}</td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300">{{ league.team_count or 0 }}</span>
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-500/15 dark:text-cyan-300">{{ league.match_count or 0 }}</span>
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+              <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>{{ league.status or 'Active' }}
+            </span>
+          </td>
+          <td class="px-3 py-3">
+            <div class="flex items-center justify-end gap-2">
+              <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-league" data-league-id="{{ league.id }}" title="View" aria-label="View league {{ league.name }}">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-league" data-league-id="{{ league.id }}" title="Edit" aria-label="Edit league {{ league.name }}">
+                <i class="ti ti-edit" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="toggle-league" data-league-id="{{ league.id }}" title="Toggle Status" aria-label="Toggle status for league {{ league.name }}">
+                <i class="ti ti-toggle-left" aria-hidden="true"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for league in leagues %}
+      <div data-row class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ league.name }}</span>
+          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300">
+            <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>{{ league.status or 'Active' }}
+          </span>
+        </div>
+        <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+          <span><i class="ti ti-calendar-event mr-1" aria-hidden="true"></i>{{ league.season.name if league.season else 'No Season' }}</span>
+          <span class="font-mono"><i class="ti ti-users mr-1" aria-hidden="true"></i>{{ league.team_count or 0 }} teams</span>
+          <span class="font-mono"><i class="ti ti-calendar mr-1" aria-hidden="true"></i>{{ league.match_count or 0 }} matches</span>
+        </div>
+        <div class="mt-3 flex items-center gap-2">
+          <button type="button" class="inline-flex items-center justify-center min-h-[44px] flex-1 gap-1.5 rounded-lg text-blue-600 bg-blue-50 border border-blue-200 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-500/30 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="view-league" data-league-id="{{ league.id }}" aria-label="View league {{ league.name }}">
+            <i class="ti ti-eye" aria-hidden="true"></i>View
+          </button>
+          <button type="button" class="inline-flex items-center justify-center min-h-[44px] flex-1 gap-1.5 rounded-lg text-amber-600 bg-amber-50 border border-amber-200 hover:bg-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/30 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="edit-league" data-league-id="{{ league.id }}" aria-label="Edit league {{ league.name }}">
+            <i class="ti ti-edit" aria-hidden="true"></i>Edit
+          </button>
+          <button type="button" class="inline-flex items-center justify-center min-h-[44px] flex-1 gap-1.5 rounded-lg text-green-600 bg-green-50 border border-green-200 hover:bg-green-100 dark:bg-green-500/10 dark:text-green-400 dark:border-green-500/30 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="toggle-league" data-league-id="{{ league.id }}" aria-label="Toggle status for league {{ league.name }}">
+            <i class="ti ti-toggle-left" aria-hidden="true"></i>Toggle
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  {{ empty_state('ti-flag-off', 'No Leagues Found', 'Create your first league to get started using the Create League button above.') }}
+  {% endif %}
+
+  {{ kit_alert('info', 'Create new leagues, edit existing ones, and manage team assignments.', title='League Management:', dismissible=False) }}
+</div>
+{% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -147,6 +251,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

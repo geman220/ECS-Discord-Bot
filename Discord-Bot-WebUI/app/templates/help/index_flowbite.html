@@ -5,6 +5,87 @@
 {% block page_title %}Help Topics{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+<div class="space-y-6">
+    {% call page_header("Help Topics", subtitle="Browse available help documentation") %}
+        {% if can_access_admin %}
+        <a href="{{ url_for('help.admin_help_topics') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                  border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200
+                  text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-settings" aria-hidden="true"></i>Admin Dashboard
+        </a>
+        {% endif %}
+    {% endcall %}
+
+    {% call section_card("Topics", icon="ti-book") %}
+    <div class="p-4 sm:p-5 space-y-6">
+        <!-- Search Input -->
+        <div class="relative">
+            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+            <input type="text"
+                   class="js-search-topics input-ecs h-10 pl-9 pr-3 text-sm w-full"
+                   placeholder="Search help topics..."
+                   data-action="search-topics"
+                   aria-label="Search help topics...">
+        </div>
+
+        <!-- Topics List -->
+        <ul class="js-help-topics-list divide-y divide-gray-200 dark:divide-gray-700" data-topics-list>
+            {% for topic in topics %}
+            <li class="group">
+                <a href="{{ url_for('help.view_topic', topic_id=topic.id) }}"
+                   class="flex items-center justify-between gap-3 min-h-[44px] py-3 px-2 -mx-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                   data-action="view-topic"
+                   data-topic-id="{{ topic.id }}">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <span class="shrink-0 p-2 bg-ecs-green/10 rounded-lg">
+                            <i class="ti ti-book text-ecs-green text-lg" aria-hidden="true"></i>
+                        </span>
+                        <span class="text-gray-900 dark:text-white font-medium truncate">{{ topic.title }}</span>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400 group-hover:text-ecs-green transition-colors shrink-0" aria-hidden="true"></i>
+                </a>
+            </li>
+            {% else %}
+            <li class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
+                <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+                    <i class="ti ti-book-off text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                </div>
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white">No help topics found</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">Can't find what you're looking for?</p>
+                <button type="button" data-action="ai-assistant-toggle"
+                        class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                               bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-sparkles" aria-hidden="true"></i>Ask the AI Assistant
+                </button>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <!-- Ask AI CTA -->
+        <div class="p-4 bg-ecs-green/5 border border-ecs-green/20 rounded-lg flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+                <i class="ti ti-sparkles text-2xl text-ecs-green shrink-0" aria-hidden="true"></i>
+                <div class="min-w-0">
+                    <p class="text-sm font-medium text-gray-900 dark:text-white">Need more help?</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Ask the AI assistant any question about using the portal</p>
+                </div>
+            </div>
+            <button type="button" data-action="ai-assistant-toggle"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+                           bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors flex-shrink-0
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                <i class="ti ti-sparkles" aria-hidden="true"></i>Ask AI
+            </button>
+        </div>
+    </div>
+    {% endcall %}
+</div>
+{% else %}
 <div class="space-y-6">
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -81,6 +162,7 @@
     </div>
     {% endcall %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

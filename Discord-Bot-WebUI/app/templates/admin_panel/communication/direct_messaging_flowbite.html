@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
 
 {% block admin_title %}Direct Messaging{% endblock %}
 {% block panel_description %}Send direct messages to players{% endblock %}
@@ -20,6 +21,189 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{{ page_header("Direct Messaging", subtitle="Communication") }}
+
+<!-- Statistics Cards -->
+<div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+    {{ stat_card("ti-users", "Total Players", stats.total_players, tone='info') }}
+    {{ stat_card("ti-phone", "SMS Reachable", stats.players_with_phone, tone='success') }}
+    {{ stat_card("ti-brand-discord", "Discord Linked", stats.players_with_discord, tone='info') }}
+    {{ stat_card("ti-message", "SMS Enabled", stats.sms_enabled_users, tone='gold') }}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Send Message Card -->
+    <div class="lg:col-span-2">
+        {% call section_card("Send Direct Message", icon="ti-send") %}
+        <div class="p-4 sm:p-5">
+            <!-- Player Search -->
+            <div class="mb-6">
+                <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Player</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                        <i class="ti ti-search text-gray-400" aria-hidden="true"></i>
+                    </div>
+                    <input type="text" id="playerSearch" placeholder="Type player name to search..." autocomplete="off" class="input-ecs block w-full pl-10 pr-3 py-2.5 text-sm">
+                </div>
+                <div id="searchResults" class="hidden mt-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto"></div>
+            </div>
+
+            <!-- Selected Player Info -->
+            <div id="selectedPlayerCard" class="hidden bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 mb-6">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h6 id="selectedPlayerName" class="font-semibold text-gray-900 dark:text-white mb-1"></h6>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 space-x-4">
+                            <span id="playerPhone"></span>
+                            <span id="playerDiscord"></span>
+                        </div>
+                        <div class="mt-2 flex items-center gap-2">
+                            <span id="smsStatus" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"></span>
+                            <span id="discordStatus" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"></span>
+                        </div>
+                    </div>
+                    <button type="button" id="clearSelection" class="p-1 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded-lg" aria-label="Clear selection">
+                        <i class="ti ti-x" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div id="noMessagingWarning" class="hidden mt-3 flex items-start gap-2 p-3 rounded-lg border border-amber-300 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 text-sm">
+                    <i class="ti ti-alert-triangle mt-0.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true"></i>
+                    <span><strong>Cannot message this player.</strong> Player has disabled all notification preferences.</span>
+                </div>
+            </div>
+
+            <!-- Message Tabs -->
+            <div class="mb-4 border-b border-gray-200 dark:border-gray-700">
+                <ul class="flex flex-wrap -mb-px text-sm font-medium text-center" id="messageTabs" role="tablist">
+                    <li class="mr-2" role="presentation" id="sms-tab-container">
+                        <button class="inline-flex items-center p-4 border-b-2 border-blue-600 text-blue-600 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" id="sms-tab" data-tabs-target="#sms-panel" type="button" role="tab" aria-controls="sms-panel" aria-selected="true">
+                            <i class="ti ti-phone mr-2" aria-hidden="true"></i>SMS
+                        </button>
+                    </li>
+                    <li class="mr-2" role="presentation" id="discord-tab-container">
+                        <button class="inline-flex items-center p-4 border-b-2 border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300 dark:text-gray-400 dark:hover:text-white rounded-t-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" id="discord-tab" data-tabs-target="#discord-panel" type="button" role="tab" aria-controls="discord-panel" aria-selected="false">
+                            <i class="ti ti-brand-discord mr-2" aria-hidden="true"></i>Discord DM
+                        </button>
+                    </li>
+                </ul>
+            </div>
+
+            <div id="messageTabContent">
+                <!-- SMS Panel -->
+                <div class="block" id="sms-panel" role="tabpanel" aria-labelledby="sms-tab">
+                    <form id="smsForm" method="POST" action="{{ url_for('admin_panel.send_sms') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="player_id" id="smsPlayerId">
+                        <input type="hidden" name="phone" id="smsPhone">
+
+                        <div class="mb-4">
+                            <label for="smsMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+                            <textarea id="smsMessage" name="message" rows="4" required placeholder="Enter your SMS message..." class="input-ecs block w-full p-2.5 text-sm"></textarea>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                <span id="smsCharCount" class="font-mono">0</span>/160 characters
+                                <span id="smsSegments" class="text-gray-400 font-mono">(1 segment)</span>
+                            </p>
+                        </div>
+
+                        <div class="flex items-start gap-2 p-3 mb-4 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 text-sm">
+                            <i class="ti ti-info-circle mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                            <span>SMS messages are subject to rate limiting. Player must have SMS notifications enabled.</span>
+                        </div>
+
+                        <button type="submit" id="sendSmsBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <i class="ti ti-send" aria-hidden="true"></i>Send SMS
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Discord Panel -->
+                <div class="hidden" id="discord-panel" role="tabpanel" aria-labelledby="discord-tab">
+                    <form id="discordForm" method="POST" action="{{ url_for('admin_panel.send_discord_dm') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="player_id" id="discordPlayerId">
+
+                        <div class="mb-4">
+                            <label for="discordMessage" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Message</label>
+                            <textarea id="discordMessage" name="message" rows="4" required placeholder="Enter your Discord DM message..." class="input-ecs block w-full p-2.5 text-sm"></textarea>
+                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Discord messages support markdown formatting.</p>
+                        </div>
+
+                        <div class="flex items-start gap-2 p-3 mb-4 rounded-lg border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 text-blue-800 dark:text-blue-300 text-sm">
+                            <i class="ti ti-info-circle mt-0.5 shrink-0 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                            <span>Discord DMs require the bot to share a server with the user. Player must have Discord notifications enabled.</span>
+                        </div>
+
+                        <button type="submit" id="sendDiscordBtn" disabled class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                            <i class="ti ti-send" aria-hidden="true"></i>Send Discord DM
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endcall %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+        <!-- SMS Rate Limit Status -->
+        {% if current_user.has_role('Global Admin') %}
+        {% call section_card("SMS Rate Limit Status", icon="ti-chart-bar") %}
+        <div class="p-4" id="smsRateStatus">
+            <div class="text-center py-4">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-ecs-green mx-auto"></div>
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Loading status...</p>
+            </div>
+        </div>
+        {% endcall %}
+        {% endif %}
+
+        <!-- Recent Players -->
+        {% call section_card("Recent Players", icon="ti-clock") %}
+        <div class="max-h-72 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
+            {% for player in recent_players[:10] %}
+            <a href="#" class="quick-select-player block px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green"
+               data-id="{{ player.id }}"
+               data-name="{{ player.name }}"
+               data-phone="{{ player.phone or '' }}"
+               data-discord="{{ player.discord_id or '' }}"
+               data-sms="{{ player.user.sms_notifications if player.user else false }}"
+               data-discord-enabled="{{ player.user.discord_notifications if player.user else false }}">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <div class="font-medium text-gray-900 dark:text-white">{{ player.name }}</div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 space-x-2">
+                            {% if player.phone %}
+                            <i class="ti ti-phone text-green-500" title="Has phone"></i>
+                            {% endif %}
+                            {% if player.discord_id %}
+                            <i class="ti ti-brand-discord text-indigo-500" title="Discord linked"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+                </div>
+            </a>
+            {% else %}
+            {{ empty_state("ti-clock-off", "No recent players", "Players you message will appear here for quick access.") }}
+            {% endfor %}
+        </div>
+        {% endcall %}
+
+        <!-- Help Card -->
+        {% call section_card("Help", icon="ti-help") %}
+        <div class="p-4">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">
+                <strong class="text-gray-700 dark:text-gray-300">SMS Messages:</strong> Standard SMS rates apply. Messages over 160 characters will be split into multiple segments.
+            </p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                <strong class="text-gray-700 dark:text-gray-300">Discord DMs:</strong> Sent via the Discord bot. Player must have DMs enabled from server members.
+            </p>
+        </div>
+        {% endcall %}
+    </div>
+</div>
+{% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -259,6 +443,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

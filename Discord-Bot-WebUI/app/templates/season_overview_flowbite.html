@@ -3,6 +3,284 @@
 {% block title %}Season Overview{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% import "macros/_modern_kit.html" as kit %}
+{# Season-wide aggregates derived from existing template vars (no new backend data). #}
+{% set total_goals_all = all_goal_scorers | sum(attribute=3) if all_goal_scorers else 0 %}
+{% set premier_leader = premier_standings[0] if premier_standings else None %}
+{% set classic_leader = classic_standings[0] if classic_standings else None %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    {% call kit.page_header("Season Overview", subtitle="Standings, leaderboards & discipline") %}
+        <select id="seasonSelector"
+                class="h-9 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:border-ecs-green focus:ring-ecs-green">
+            <option selected>{{ season.name }}</option>
+        </select>
+    {% endcall %}
+
+    {# At-a-glance KPI band — the headline state of the season, always visible above the tabs. #}
+    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {% call kit.stat_card("ti-trophy", "Premier Leader", premier_leader.team.name if premier_leader else "—", sublabel=(premier_leader.points ~ " pts") if premier_leader else "no matches", tone="primary") %}
+            <span class="font-mono">{{ premier_standings | length }}</span> teams competing
+        {% endcall %}
+        {% call kit.stat_card("ti-ball-football", "Classic Leader", classic_leader.team.name if classic_leader else "—", sublabel=(classic_leader.points ~ " pts") if classic_leader else "no matches", tone="primary") %}
+            <span class="font-mono">{{ classic_standings | length }}</span> teams competing
+        {% endcall %}
+        {{ kit.stat_card("ti-target-arrow", "Goals Scored", total_goals_all, sublabel="all leagues", tone="gold") }}
+        {{ kit.stat_card("ti-alert-triangle", "Own Goals", total_own_goals, sublabel="all leagues", tone="neutral") }}
+    </div>
+
+    {# Division Tabs — hooks (.division-tab / data-tab / #division-tabs) preserved verbatim for custom_js #}
+    <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+        <div class="flex flex-wrap gap-2 -mb-px" id="division-tabs" role="tablist" aria-label="Division">
+            <button type="button"
+                    class="division-tab inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-ecs-green text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                    data-tab="premier">
+                <i class="ti ti-trophy mr-1.5" aria-hidden="true"></i>Premier Division
+            </button>
+            <button type="button"
+                    class="division-tab inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                    data-tab="classic">
+                <i class="ti ti-ball-football mr-1.5" aria-hidden="true"></i>Classic Division
+            </button>
+            <button type="button"
+                    class="division-tab inline-flex items-center justify-center min-h-[44px] px-4 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+                    data-tab="all-stats">
+                <i class="ti ti-chart-bar mr-1.5" aria-hidden="true"></i>All League Leaderboards
+            </button>
+        </div>
+    </div>
+
+    <div class="tab-content">
+        {# ============ PREMIER ============ #}
+        <div class="division-pane space-y-6" id="premier">
+            {{ standings_table("Premier Division Standings", "ti-trophy", premier_standings) }}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {{ leaderboard("Golden Boot", "ti-award", "gold", "Premier Division", premier_top_scorers, "Goals", "goals") }}
+                {{ leaderboard("Silver Boot", "ti-award", "neutral", "Premier Division", premier_top_assisters, "Assists", "assists") }}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {{ leaderboard("Yellow Cards", "ti-cards", "warning", "Premier Division", premier_yellow_cards, "Cards", "yellow cards") }}
+                {{ leaderboard("Red Cards", "ti-cards", "danger", "Premier Division", premier_red_cards, "Cards", "red cards") }}
+            </div>
+        </div>
+
+        {# ============ CLASSIC ============ #}
+        <div class="division-pane hidden space-y-6" id="classic">
+            {{ standings_table("Classic Division Standings", "ti-ball-football", classic_standings) }}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {{ leaderboard("Golden Boot", "ti-award", "gold", "Classic Division", classic_top_scorers, "Goals", "goals") }}
+                {{ leaderboard("Silver Boot", "ti-award", "neutral", "Classic Division", classic_top_assisters, "Assists", "assists") }}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {{ leaderboard("Yellow Cards", "ti-cards", "warning", "Classic Division", classic_yellow_cards, "Cards", "yellow cards") }}
+                {{ leaderboard("Red Cards", "ti-cards", "danger", "Classic Division", classic_red_cards, "Cards", "red cards") }}
+            </div>
+        </div>
+
+        {# ============ ALL LEAGUE STATS ============ #}
+        <div class="division-pane hidden space-y-6" id="all-stats">
+            {% call kit.section_card("Own Goals", icon="ti-chart-bar") %}
+            <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {{ kit.stat_card("ti-target", "Total Own Goals", total_own_goals, sublabel="all leagues", tone="neutral") }}
+                {{ kit.stat_card("ti-trophy", "Premier", premier_own_goals, sublabel="own goals", tone="neutral") }}
+                {{ kit.stat_card("ti-ball-football", "Classic", classic_own_goals, sublabel="own goals", tone="neutral") }}
+            </div>
+            {% endcall %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {{ all_league_board("Top Goal Scorers (All Leagues)", "ti-ball-football", "allGoalScorersTable", all_goal_scorers, "Goals") }}
+                {{ all_league_board("Top Assist Providers (All Leagues)", "ti-hand-finger", "allAssistProvidersTable", all_assist_providers, "Assists") }}
+            </div>
+        </div>
+    </div>
+
+    {# Legend — demoted to a muted footnote strip so it never competes with real content. #}
+    <p class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+        <span class="inline-flex items-center gap-1 font-medium text-gray-600 dark:text-gray-300"><i class="ti ti-help-circle" aria-hidden="true"></i> Legend</span>
+        <span><strong class="font-mono text-gray-700 dark:text-gray-300">P</strong> Played</span>
+        <span><strong class="font-mono text-gray-700 dark:text-gray-300">W</strong> Won</span>
+        <span><strong class="font-mono text-gray-700 dark:text-gray-300">D</strong> Drawn</span>
+        <span><strong class="font-mono text-gray-700 dark:text-gray-300">L</strong> Lost</span>
+        <span><strong class="font-mono text-gray-700 dark:text-gray-300">GF</strong> Goals For</span>
+        <span><strong class="font-mono text-gray-700 dark:text-gray-300">GA</strong> Goals Against</span>
+        <span><strong class="font-mono text-gray-700 dark:text-gray-300">GD</strong> Goal Difference</span>
+        <span><strong class="font-mono text-gray-700 dark:text-gray-300">Pts</strong> Points</span>
+    </p>
+</div>
+
+{# --- Modern reusable leaderboard macros (page-local; data + hooks preserved) --- #}
+
+{# standings_table — league table that emphasizes the leader (gold trophy + accent on
+   row 1) and signs goal difference (+/-) per the universal table convention. Responsive:
+   GF/GA/GD hide <md (low-priority columns), primary + Pts always visible. #}
+{% macro standings_table(title, icon, standings) %}
+{% call kit.section_card(title, icon=icon) %}
+<div class="md:overflow-x-auto">
+    <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-gray-700/50">
+            <tr>
+                <th scope="col" class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">#</th>
+                <th scope="col" class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Team</th>
+                <th scope="col" class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">P</th>
+                <th scope="col" class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">W</th>
+                <th scope="col" class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">D</th>
+                <th scope="col" class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">L</th>
+                <th scope="col" class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hidden md:table-cell">GF</th>
+                <th scope="col" class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hidden md:table-cell">GA</th>
+                <th scope="col" class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hidden md:table-cell">GD</th>
+                <th scope="col" class="px-3 py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Pts</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for standing in standings %}
+            {% set is_leader = loop.first %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors {% if is_leader %}bg-ecs-gold-50 dark:bg-ecs-gold-500/5{% endif %}">
+                <td class="px-3 py-3 text-center font-mono font-bold {% if is_leader %}text-ecs-gold-600 dark:text-ecs-gold-400{% else %}text-gray-900 dark:text-white{% endif %}">
+                    {% if is_leader %}<i class="ti ti-trophy" aria-label="League leader"></i>{% else %}{{ loop.index }}{% endif %}
+                </td>
+                <td class="px-3 py-3">
+                    <a href="{{ url_for('teams.team_details', team_id=standing.team.id) }}" class="text-ecs-green hover:underline {% if is_leader %}font-bold{% else %}font-semibold{% endif %}">{{ standing.team.name }}</a>
+                </td>
+                <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300">{{ standing.played }}</td>
+                <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300">{{ standing.wins }}</td>
+                <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300">{{ standing.draws }}</td>
+                <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300">{{ standing.losses }}</td>
+                <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300 hidden md:table-cell">{{ standing.goals_for }}</td>
+                <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300 hidden md:table-cell">{{ standing.goals_against }}</td>
+                <td class="px-3 py-3 text-center font-mono text-gray-600 dark:text-gray-300 hidden md:table-cell">{% if standing.goal_difference > 0 %}+{% endif %}{{ standing.goal_difference }}</td>
+                <td class="px-3 py-3 text-center font-mono font-bold text-gray-900 dark:text-white">{{ standing.points }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="10">
+                    {{ kit.empty_state(icon, "No standings yet", "No standings data available for " + title|replace(" Standings", "") + ".") }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endcall %}
+{% endmacro %}
+
+{% macro leaderboard(title, icon, tone, badge, rows, value_label, value_word) %}
+{% set tone_badge = {
+    'gold':    'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+    'neutral': 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-300',
+    'warning': 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400',
+    'danger':  'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400'
+} %}
+{% set icon_tone = {
+    'gold':    'text-ecs-gold-500 dark:text-ecs-gold-400',
+    'neutral': 'text-gray-400',
+    'warning': 'text-amber-500 dark:text-amber-400',
+    'danger':  'text-red-500 dark:text-red-400'
+} %}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti {{ icon }} {{ icon_tone.get(tone, 'text-gray-400') }}" aria-hidden="true"></i> {{ title }}
+        </h3>
+        <span class="shrink-0 px-2 py-1 text-xs font-medium rounded-full {{ tone_badge.get(tone, tone_badge['neutral']) }}">{{ badge }}</span>
+    </div>
+    <div class="md:overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                    <th scope="col" class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">#</th>
+                    <th scope="col" class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Player</th>
+                    <th scope="col" class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Team</th>
+                    <th scope="col" class="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ value_label }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% set ns = namespace(prev=None, prev_rank=0, num_tied=0) %}
+                {% for player, value in rows %}
+                {% if value != ns.prev %}
+                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                    {% set ns.num_tied = 0 %}
+                {% else %}
+                    {% set ns.num_tied = ns.num_tied + 1 %}
+                {% endif %}
+                {% set ns.prev = value %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-4 py-2 font-mono text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                    <td class="px-4 py-2">
+                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-semibold">{{ player.name }}</a>
+                    </td>
+                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ player.primary_team.name if player.primary_team else "Unknown" }}</td>
+                    <td class="px-4 py-2 text-center font-mono font-bold text-gray-900 dark:text-white">{{ value }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">No {{ value_word }} data available</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endmacro %}
+
+{# all_league_board — keeps .table-search/data-table + table id hooks for custom_js #}
+{% macro all_league_board(title, icon, table_id, rows, value_label) %}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti {{ icon }} text-ecs-green" aria-hidden="true"></i> {{ title }}
+        </h3>
+        <div class="relative">
+            <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+            <input type="search" class="table-search input-ecs h-9 pl-9 pr-3 text-sm" data-table="{{ table_id }}" placeholder="Search..." aria-label="Search {{ title }}">
+        </div>
+    </div>
+    <div class="md:overflow-x-auto max-h-96 overflow-y-auto">
+        <table class="w-full text-sm" id="{{ table_id }}">
+            <thead class="bg-gray-50 dark:bg-gray-700/50 sticky top-0 z-10">
+                <tr>
+                    <th scope="col" class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">#</th>
+                    <th scope="col" class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Player</th>
+                    <th scope="col" class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Team</th>
+                    <th scope="col" class="px-4 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Division</th>
+                    <th scope="col" class="px-4 py-2 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ value_label }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% set ns = namespace(prev=None, prev_rank=0, num_tied=0) %}
+                {% for player, team, league_name, value in rows %}
+                {% if value != ns.prev %}
+                    {% set ns.prev_rank = loop.index - ns.num_tied %}
+                    {% set ns.num_tied = 0 %}
+                {% else %}
+                    {% set ns.num_tied = ns.num_tied + 1 %}
+                {% endif %}
+                {% set ns.prev = value %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-4 py-2 font-mono text-gray-600 dark:text-gray-300">{% if ns.num_tied > 0 %}T-{% endif %}{{ ns.prev_rank }}</td>
+                    <td class="px-4 py-2">
+                        <a href="{{ url_for('players.player_profile', player_id=player.id) }}" class="text-ecs-green hover:underline font-semibold">{{ player.name }}</a>
+                    </td>
+                    <td class="px-4 py-2">
+                        <a href="{{ url_for('teams.team_details', team_id=team.id) }}" class="text-gray-600 dark:text-gray-300 hover:text-ecs-green">{{ team.name }}</a>
+                    </td>
+                    <td class="px-4 py-2 text-gray-600 dark:text-gray-300">{{ league_name }}</td>
+                    <td class="px-4 py-2 text-center font-mono font-bold text-gray-900 dark:text-white">{{ value }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5">
+                        {{ kit.empty_state(icon, "Nothing here yet", "No " + value_label|lower + " data available.") }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endmacro %}
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
@@ -723,6 +1001,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

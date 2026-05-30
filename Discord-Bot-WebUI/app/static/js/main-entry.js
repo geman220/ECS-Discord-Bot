@@ -63,6 +63,7 @@ import './compat/window-exports.js';
 import './sidebar-interactions.js';
 import './navbar-modern.js';
 import './simple-theme-switcher.js';
+import './modern/kit.js';
 import './admin-navigation.js';
 import './theme-colors.js';
 

@@ -26,6 +26,289 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+<div class="space-y-6">
+
+  {{ page_header('Schedule New Message', subtitle='Communication / Scheduled Messages') }}
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Main Form -->
+    <div class="lg:col-span-2">
+      {% call section_card('Schedule New Message', icon='ti-calendar-plus') %}
+      <form id="scheduleMessageForm" method="POST" action="{{ url_for('admin_panel.create_scheduled_message') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="p-4 sm:p-5 space-y-6">
+          <!-- Message Type Selection -->
+          <div>
+            <label class="block mb-3 text-sm font-medium text-gray-900 dark:text-white">Message Type</label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label class="relative cursor-pointer">
+                <input type="radio" name="message_type" value="standard" class="sr-only peer" checked>
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 rounded-xl peer-checked:border-ecs-green peer-checked:bg-ecs-green/5 dark:peer-checked:bg-ecs-green/10 transition-all">
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full bg-ecs-green/10">
+                      <i class="ti ti-soccer-field text-xl text-ecs-green" aria-hidden="true"></i>
+                    </div>
+                    <div>
+                      <p class="font-medium text-gray-900 dark:text-white">Pub League</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">Standard availability</p>
+                    </div>
+                  </div>
+                </div>
+              </label>
+              <label class="relative cursor-pointer">
+                <input type="radio" name="message_type" value="ecs_fc" class="sr-only peer">
+                <div class="p-4 bg-gray-50 dark:bg-gray-700/50 border-2 border-gray-200 dark:border-gray-600 rounded-xl peer-checked:border-ecs-gold peer-checked:bg-ecs-gold/5 dark:peer-checked:bg-ecs-gold/10 transition-all">
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center justify-center w-10 h-10 rounded-full bg-ecs-gold/10">
+                      <i class="ti ti-trophy text-xl text-ecs-gold" aria-hidden="true"></i>
+                    </div>
+                    <div>
+                      <p class="font-medium text-gray-900 dark:text-white">ECS FC</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">Competitive league</p>
+                    </div>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- Match Selection -->
+          <div id="match-selection">
+            <label for="match_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Select Match <span class="text-red-500">*</span>
+            </label>
+            <select id="match_id" name="match_id" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+              <option value="">Select a match...</option>
+              {% if matches %}
+              {% for match in matches %}
+              <option value="{{ match.id }}" data-date="{{ match.date }}" data-time="{{ match.time }}" data-location="{{ match.location }}">
+                {{ match.home_team.name }} vs {{ match.away_team.name }} - {{ match.date.strftime('%b %d, %Y') }}
+              </option>
+              {% endfor %}
+              {% endif %}
+            </select>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Only upcoming matches without scheduled messages are shown</p>
+          </div>
+
+          <!-- Selected Match Info -->
+          <div id="selected-match-info" class="hidden bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+            <div class="flex items-start gap-4">
+              <div class="flex items-center justify-center w-12 h-12 rounded-full bg-ecs-green/10 flex-shrink-0">
+                <i class="ti ti-calendar-event text-2xl text-ecs-green" aria-hidden="true"></i>
+              </div>
+              <div class="flex-1">
+                <h6 id="match-title" class="font-medium text-gray-900 dark:text-white">-</h6>
+                <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  <div class="flex items-center text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-calendar mr-1" aria-hidden="true"></i>
+                    <span id="match-date">-</span>
+                  </div>
+                  <div class="flex items-center text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-clock mr-1" aria-hidden="true"></i>
+                    <span id="match-time">-</span>
+                  </div>
+                  <div class="flex items-center text-gray-500 dark:text-gray-400 sm:col-span-2">
+                    <i class="ti ti-map-pin mr-1" aria-hidden="true"></i>
+                    <span id="match-location">-</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Schedule Date/Time -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="scheduled_date" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Scheduled Send Date <span class="text-red-500">*</span>
+              </label>
+              <input type="date" id="scheduled_date" name="scheduled_date" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+            <div>
+              <label for="scheduled_time" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                Scheduled Send Time (PST) <span class="text-red-500">*</span>
+              </label>
+              <input type="time" id="scheduled_time" name="scheduled_time" value="09:00" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            </div>
+          </div>
+
+          <!-- Delivery Methods -->
+          <div>
+            <label class="block mb-3 text-sm font-medium text-gray-900 dark:text-white">Delivery Methods</label>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                <div class="flex items-center">
+                  <i class="ti ti-brand-discord text-indigo-500 mr-3" aria-hidden="true"></i>
+                  <div>
+                    <label class="text-sm font-medium text-gray-900 dark:text-white">Discord</label>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Send via Discord channel</p>
+                  </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" name="send_discord" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+                </label>
+              </div>
+              <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                <div class="flex items-center">
+                  <i class="ti ti-bell text-blue-500 mr-3" aria-hidden="true"></i>
+                  <div>
+                    <label class="text-sm font-medium text-gray-900 dark:text-white">Push Notification</label>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Send to mobile app</p>
+                  </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" name="send_push" class="sr-only peer" checked>
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+                </label>
+              </div>
+              <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl">
+                <div class="flex items-center">
+                  <i class="ti ti-mail text-green-500 mr-3" aria-hidden="true"></i>
+                  <div>
+                    <label class="text-sm font-medium text-gray-900 dark:text-white">Email</label>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Send email notification</p>
+                  </div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" name="send_email" class="sr-only peer">
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Custom Message (Optional) -->
+          <div>
+            <label for="custom_message" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Custom Message (Optional)
+            </label>
+            <textarea id="custom_message" name="custom_message" rows="4" placeholder="Leave blank to use the default RSVP message template..." class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white"></textarea>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Supports markdown formatting and variables like {match_date}, {match_time}, {team_name}</p>
+          </div>
+
+          <!-- Priority -->
+          <div>
+            <label for="priority" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Priority</label>
+            <select id="priority" name="priority" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+              <option value="normal" selected>Normal</option>
+              <option value="high">High - Important match/event</option>
+              <option value="urgent">Urgent - Requires immediate attention</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 p-4 sm:p-5 border-t border-gray-200 dark:border-gray-700">
+          <a href="{{ url_for('admin_panel.scheduled_messages') }}" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:py-2 px-4 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            Cancel
+          </a>
+          <button type="button" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:py-2 px-4 text-sm font-medium text-blue-700 bg-blue-50 border border-blue-300 rounded-lg hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="preview">
+            <i class="ti ti-eye mr-1" aria-hidden="true"></i>Preview
+          </button>
+          <button type="submit" class="inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:py-2 px-4 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700 focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-calendar-plus mr-1" aria-hidden="true"></i>Schedule Message
+          </button>
+        </div>
+      </form>
+      {% endcall %}
+    </div>
+
+    <!-- Sidebar -->
+    <div class="space-y-6">
+      <!-- Quick Schedule -->
+      {% call section_card('Quick Schedule', icon='ti-bolt') %}
+      <div class="p-4 sm:p-5 space-y-3">
+        <button type="button" class="w-full min-h-[44px] px-4 py-3 text-sm font-medium text-left text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-700/50 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="quick-schedule-sunday">
+          <div class="flex items-center">
+            <i class="ti ti-calendar-event mr-3 text-ecs-green" aria-hidden="true"></i>
+            <div>
+              <span class="font-medium">This Sunday's Matches</span>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Auto-schedule all Sunday games</p>
+            </div>
+          </div>
+        </button>
+        <button type="button" class="w-full min-h-[44px] px-4 py-3 text-sm font-medium text-left text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-700/50 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="quick-schedule-week">
+          <div class="flex items-center">
+            <i class="ti ti-calendar-stats mr-3 text-blue-500" aria-hidden="true"></i>
+            <div>
+              <span class="font-medium">Next 7 Days</span>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Schedule all upcoming matches</p>
+            </div>
+          </div>
+        </button>
+        <button type="button" class="w-full min-h-[44px] px-4 py-3 text-sm font-medium text-left text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-700/50 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="quick-schedule-season">
+          <div class="flex items-center">
+            <i class="ti ti-calendar mr-3 text-ecs-gold" aria-hidden="true"></i>
+            <div>
+              <span class="font-medium">Entire Season</span>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Bulk schedule all matches</p>
+            </div>
+          </div>
+        </button>
+      </div>
+      {% endcall %}
+
+      <!-- Scheduling Tips -->
+      {% call section_card('Scheduling Tips', icon='ti-bulb') %}
+      <div class="p-4 sm:p-5">
+        <ul class="space-y-3 text-sm text-gray-500 dark:text-gray-400">
+          <li class="flex items-start">
+            <i class="ti ti-check text-green-500 mr-2 mt-0.5 flex-shrink-0" aria-hidden="true"></i>
+            <span>Send RSVP requests 3-5 days before the match for best response rates</span>
+          </li>
+          <li class="flex items-start">
+            <i class="ti ti-check text-green-500 mr-2 mt-0.5 flex-shrink-0" aria-hidden="true"></i>
+            <span>Schedule messages for morning hours (9-10 AM) when players are most responsive</span>
+          </li>
+          <li class="flex items-start">
+            <i class="ti ti-check text-green-500 mr-2 mt-0.5 flex-shrink-0" aria-hidden="true"></i>
+            <span>Use high priority for playoff matches or important events</span>
+          </li>
+          <li class="flex items-start">
+            <i class="ti ti-check text-green-500 mr-2 mt-0.5 flex-shrink-0" aria-hidden="true"></i>
+            <span>Enable both Discord and Push for maximum reach</span>
+          </li>
+        </ul>
+      </div>
+      {% endcall %}
+
+      <!-- Recent Scheduled -->
+      {% call section_card('Recently Scheduled', icon='ti-history') %}
+      <div class="max-h-64 overflow-y-auto">
+        {% if recent_messages %}
+        {% for msg in recent_messages[:5] %}
+        <div class="px-4 sm:px-5 py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
+          <div class="flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ msg.match.home_team.name }} vs {{ msg.match.away_team.name }}</p>
+              <p class="text-xs font-mono text-gray-500 dark:text-gray-400">{{ msg.scheduled_send_time_pst.strftime('%b %d, %I:%M %p') }}</p>
+            </div>
+            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {{ 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' if msg.status == 'SENT' else 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' }}">
+              <i class="ti {{ 'ti-circle-check' if msg.status == 'SENT' else 'ti-clock' }} text-[12px]" aria-hidden="true"></i>{{ msg.status }}
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        {{ empty_state('ti-calendar-off', 'No recent messages', 'Scheduled messages will appear here once you create them.') }}
+        {% endif %}
+      </div>
+      {% endcall %}
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  {% call modal_info('previewModal', 'Message Preview', size='md') %}
+      <div id="preview-content" class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+          <!-- Preview content will be populated by JavaScript -->
+      </div>
+  {% endcall %}
+</div>
+{% else %}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Main Form -->
     <div class="lg:col-span-2">
@@ -323,6 +606,7 @@
         <!-- Preview content will be populated by JavaScript -->
     </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

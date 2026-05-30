@@ -1,0 +1,85 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Component Settings{% endblock %}
+{% block panel_description %}Configure component styling such as corners and shadows{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400 mx-1"></i>
+        <a href="{{ url_for('admin_panel.appearance') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">Appearance</a>
+    </div>
+</li>
+<li aria-current="page">
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400 mx-1"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Components</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert %}
+<div class="p-4 sm:p-6 space-y-6">
+    {{ page_header("Component Settings", subtitle="Appearance") }}
+
+    {{ alert('info', 'Adjust border radius and shadow intensity used across the application.', title='Component settings.', dismissible=false) }}
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {{ stat_card('ti-border-radius', 'Border Radius', components.border_radius, sublabel='default ' ~ default_components.border_radius, tone='primary') }}
+        {{ stat_card('ti-shadow', 'Shadow Intensity', components.shadow_intensity, sublabel='default ' ~ default_components.shadow_intensity, tone='neutral') }}
+    </div>
+
+    {% call section_card("Current Components", icon="ti-components") %}
+    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 sm:p-5">
+        <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Border Radius</dt>
+            <dd class="mt-1 font-mono text-base text-gray-900 dark:text-white">{{ components.border_radius }}</dd>
+        </div>
+        <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Shadow Intensity</dt>
+            <dd class="mt-1 font-mono text-base text-gray-900 dark:text-white">{{ components.shadow_intensity }}</dd>
+        </div>
+        <div class="sm:col-span-2 pt-1">
+            <p class="text-sm text-gray-500 dark:text-gray-400">
+                Default: <span class="font-mono">{{ default_components.border_radius }}</span> corners,
+                <span class="font-mono">{{ default_components.shadow_intensity }}</span> shadow.
+            </p>
+        </div>
+    </dl>
+    {% endcall %}
+</div>
+{% else %}
+<div class="p-4 space-y-6">
+    <div class="flex items-center p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:border-blue-800" role="alert">
+        <i class="ti ti-info-circle text-lg mr-3"></i>
+        <div>
+            <span class="font-medium">Component settings.</span>
+            Adjust border radius and shadow intensity used across the application.
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-components text-theme-primary"></i>
+            <span>Current Components</span>
+        </h5>
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Border Radius</dt>
+                <dd class="text-base text-gray-900 dark:text-white">{{ components.border_radius }}</dd>
+            </div>
+            <div>
+                <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Shadow Intensity</dt>
+                <dd class="text-base text-gray-900 dark:text-white">{{ components.shadow_intensity }}</dd>
+            </div>
+        </dl>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+            Default: {{ default_components.border_radius }} corners, {{ default_components.shadow_intensity }} shadow.
+        </p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

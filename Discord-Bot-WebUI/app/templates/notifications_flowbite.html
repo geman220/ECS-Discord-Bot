@@ -3,6 +3,71 @@
 {% block title %}Notifications{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+<div class="mx-auto max-w-3xl px-4 py-6 sm:py-8">
+    {% call page_header("Notifications", subtitle="Your activity") %}
+        {% if notifications %}
+        <button id="mark-all-read-btn"
+                data-url="{{ url_for('main.mark_all_as_read') }}"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                       border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold
+                       hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-check-all" aria-hidden="true"></i>
+            <span>Mark all as read</span>
+        </button>
+        {% endif %}
+    {% endcall %}
+
+    {% if notifications %}
+    {% call section_card("Recent", icon="ti-bell") %}
+    <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list" aria-live="polite">
+        {% for notification in notifications %}
+        <li data-notification-id="{{ notification.id }}"
+            class="flex items-start gap-3 px-4 sm:px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+                   {% if not notification.read %}border-l-4 border-l-ecs-green{% endif %}">
+            <span class="shrink-0 mt-0.5 w-9 h-9 rounded-lg flex items-center justify-center
+                         {% if not notification.read %}bg-ecs-green/10 text-ecs-green{% else %}bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500{% endif %}">
+                <i class="ti {% if not notification.read %}ti-bell-ringing{% else %}ti-bell{% endif %}" aria-hidden="true"></i>
+            </span>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm text-gray-900 dark:text-white {% if not notification.read %}font-semibold{% else %}font-medium{% endif %}">
+                    {{ notification.content }}
+                </p>
+                <p class="mt-1 flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-clock" aria-hidden="true"></i>
+                    <time datetime="{{ notification.created_at.isoformat() }}" class="font-mono">
+                        {{ notification.created_at.strftime('%b %d, %I:%M %p') }}
+                    </time>
+                </p>
+            </div>
+            {% if not notification.read %}
+            <a href="{{ url_for('main.mark_as_read', notification_id=notification.id) }}"
+               class="shrink-0 inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 rounded-lg
+                      border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-xs font-semibold
+                      hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                      focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+               title="Mark as read">
+                <i class="ti ti-check" aria-hidden="true"></i>
+                <span class="hidden sm:inline">Mark as read</span>
+            </a>
+            {% else %}
+            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-1 text-xs font-medium rounded-full
+                         bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                <i class="ti ti-check" aria-hidden="true"></i>
+                Read
+            </span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+    {% endcall %}
+    {% else %}
+    {{ empty_state("ti-bell-off", "All caught up!", "You have no notifications at this time. We'll let you know when something new comes up.") }}
+    {% endif %}
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8 max-w-3xl">
     <!-- Page Header -->
     <div class="flex items-center justify-between mb-6">
@@ -74,6 +139,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

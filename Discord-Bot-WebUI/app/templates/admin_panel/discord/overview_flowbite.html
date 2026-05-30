@@ -14,6 +14,194 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, alert %}
+<div class="space-y-6">
+
+  {% call page_header('Discord Management', subtitle='Server membership, role sync and onboarding') %}
+    <button type="button" id="refresh-stats"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-refresh" aria-hidden="true"></i>Refresh Stats
+    </button>
+  {% endcall %}
+
+  {# KPI band (real data). Figures carry their original ids verbatim so the
+     existing extra_js (getElementById(...).textContent) keeps updating them on
+     refresh. Tile chrome mirrors the kit stat_card (no inline style / hex). #}
+  <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Total Players</span>
+        <i class="ti ti-users text-lg text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2 flex-wrap">
+        <span id="total-players" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-blue-600 dark:text-blue-400">{{ stats.total_players }}</span>
+        <span class="text-xs text-gray-500 dark:text-gray-400 mb-1">with Discord</span>
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">In Server</span>
+        <i class="ti ti-circle-check text-lg text-green-600 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2 flex-wrap">
+        <span id="in-server" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-green-600 dark:text-green-400">{{ stats.in_server }}</span>
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Not In Server</span>
+        <i class="ti ti-circle-x text-lg text-red-600 dark:text-red-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2 flex-wrap">
+        <span id="not-in-server" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-red-600 dark:text-red-400">{{ stats.not_in_server }}</span>
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Unknown</span>
+        <i class="ti ti-help-circle text-lg text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2 flex-wrap">
+        <span id="unknown-status" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-amber-600 dark:text-amber-400">{{ stats.unknown_status }}</span>
+      </div>
+    </div>
+    <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">Needs Role Sync</span>
+        <i class="ti ti-refresh text-lg text-ecs-green shrink-0" aria-hidden="true"></i>
+      </div>
+      <div class="mt-3 flex items-end gap-2 flex-wrap">
+        <span id="needs-sync" class="font-mono text-3xl sm:text-4xl font-bold leading-none text-ecs-green">{{ stats.needs_sync }}</span>
+      </div>
+      <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+        <span id="last-updated" class="text-xs text-gray-500 dark:text-gray-400">Click refresh to update</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  {% call section_card('Quick Actions', icon='ti-bolt') %}
+    <div class="p-4 sm:p-5">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <a href="{{ url_for('admin_panel.discord_players') }}"
+           class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
+                  bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-users" aria-hidden="true"></i>Manage Players
+        </a>
+        <a href="{{ url_for('admin_panel.discord_roles') }}"
+           class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
+                  bg-blue-600 hover:bg-blue-700 text-white transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-shield" aria-hidden="true"></i>Role Sync
+        </a>
+        <a href="{{ url_for('admin_panel.discord_role_mapping') }}"
+           class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
+                  bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600
+                  border border-gray-200 dark:border-gray-600 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-link" aria-hidden="true"></i>Role Mapping
+        </a>
+        <a href="{{ url_for('admin_panel.discord_onboarding') }}"
+           class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
+                  bg-emerald-600 hover:bg-emerald-700 text-white transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-user-plus" aria-hidden="true"></i>Onboarding
+        </a>
+        <button type="button" id="refresh-unknown-btn"
+                class="flex items-center justify-center gap-2 min-h-[44px] px-4 py-3 rounded-lg text-sm font-semibold
+                       bg-amber-500 hover:bg-amber-600 text-white transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-search" aria-hidden="true"></i>Check Unknown
+        </button>
+      </div>
+    </div>
+  {% endcall %}
+
+  <!-- Management Sections -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Player Management -->
+    {% call section_card('Player Management', icon='ti-users') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">View and manage Discord status for all players.</p>
+        <div class="space-y-2">
+          <a href="{{ url_for('admin_panel.discord_players', status='not_in_server') }}"
+             class="flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                    hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-2 text-gray-900 dark:text-white font-medium">
+              <i class="ti ti-user-x text-red-600 dark:text-red-400" aria-hidden="true"></i>Not In Server
+            </span>
+            <span class="font-mono inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">{{ stats.not_in_server }}</span>
+          </a>
+          <a href="{{ url_for('admin_panel.discord_players', status='unknown') }}"
+             class="flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                    hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-2 text-gray-900 dark:text-white font-medium">
+              <i class="ti ti-help-circle text-amber-600 dark:text-amber-400" aria-hidden="true"></i>Unknown Status
+            </span>
+            <span class="font-mono inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">{{ stats.unknown_status }}</span>
+          </a>
+          <a href="{{ url_for('admin_panel.discord_players', status='in_server') }}"
+             class="flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                    hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-2 text-gray-900 dark:text-white font-medium">
+              <i class="ti ti-user-check text-green-600 dark:text-green-400" aria-hidden="true"></i>In Server
+            </span>
+            <span class="font-mono inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">{{ stats.in_server }}</span>
+          </a>
+          <a href="{{ url_for('admin_panel.discord_players', status='all') }}"
+             class="flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                    hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-2 text-gray-900 dark:text-white font-medium">
+              <i class="ti ti-users text-blue-600 dark:text-blue-400" aria-hidden="true"></i>All Players
+            </span>
+            <span class="font-mono inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ stats.total_players }}</span>
+          </a>
+        </div>
+      </div>
+    {% endcall %}
+
+    <!-- Role Synchronization -->
+    {% call section_card('Role Synchronization', icon='ti-shield') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage Discord role assignments for players.</p>
+        <div class="space-y-2 mb-4">
+          <a href="{{ url_for('admin_panel.discord_roles') }}"
+             class="flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                    hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-2 text-gray-900 dark:text-white font-medium">
+              <i class="ti ti-refresh text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Needs Sync
+            </span>
+            <span class="font-mono inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ stats.needs_sync }}</span>
+          </a>
+          <button type="button" id="mass-sync-btn"
+                  class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700
+                         hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-left">
+            <span class="flex items-center gap-2 text-gray-900 dark:text-white font-medium">
+              <i class="ti ti-bolt text-ecs-green" aria-hidden="true"></i>Mass Sync All Roles
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </button>
+        </div>
+        <a href="{{ url_for('admin_panel.discord_onboarding') }}"
+           class="flex items-center justify-center gap-1.5 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                  bg-green-50 text-green-700 hover:bg-green-100 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50
+                  border border-green-200 dark:border-green-800 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-user-plus" aria-hidden="true"></i>View Onboarding Status
+        </a>
+      </div>
+    {% endcall %}
+  </div>
+
+  <!-- Info Alert -->
+  {{ alert('info', 'Manage Discord integration for all players. Sync roles, check server membership, and handle onboarding.', title='Discord Management:', dismissible=False) }}
+</div>
+{% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -188,6 +376,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

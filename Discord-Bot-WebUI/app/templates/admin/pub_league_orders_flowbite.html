@@ -13,6 +13,274 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/flowbite.html' import button, badge %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8 space-y-6">
+    {% call page_header("Pub League Orders", subtitle="WooCommerce orders for Pub League pass linking") %}
+        <button type="button" data-collapse-toggle="productUrlSettings"
+                class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-settings text-base" aria-hidden="true"></i> Product URLs
+        </button>
+    {% endcall %}
+
+    <!-- Product URL Settings (Collapsible) -->
+    <div id="productUrlSettings" class="hidden">
+        {% call section_card("WooCommerce Product URLs", icon="ti-link") %}
+        <div class="p-4 sm:p-5 space-y-4">
+            <div class="flex items-start justify-between gap-2">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Configure the WooCommerce product URLs for each season. These are linked in the order completion wizard.</p>
+                <button type="button" data-collapse-toggle="productUrlSettings"
+                        class="shrink-0 p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="Close product URL settings">
+                    <i class="ti ti-x text-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="flex items-start gap-3 rounded-xl border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 p-3">
+                <i class="ti ti-info-circle text-lg shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+                <p class="text-sm text-blue-800 dark:text-blue-300">
+                    <span class="font-semibold">Tip:</span> Leave blank to auto-generate from season name. "Spring 2026" becomes
+                    <code class="font-mono bg-blue-100 dark:bg-blue-800 px-1 rounded">/product/2026-spring-ecs-pub-league-premier-division/</code>
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="premierProductSlug" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Premier Division Product Slug</label>
+                    <div class="flex">
+                        <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 rounded-l-lg">/product/</span>
+                        <input type="text" id="premierProductSlug" value="{{ premier_product_slug or '' }}" placeholder="2026-spring-ecs-pub-league-premier-division"
+                               class="flex-1 min-w-0 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm focus:ring-1 focus:ring-ecs-green focus:border-ecs-green p-2.5">
+                        <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-lg">/</span>
+                    </div>
+                </div>
+                <div>
+                    <label for="classicProductSlug" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Classic Division Product Slug</label>
+                    <div class="flex">
+                        <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 border border-r-0 border-gray-300 dark:border-gray-600 rounded-l-lg">/product/</span>
+                        <input type="text" id="classicProductSlug" value="{{ classic_product_slug or '' }}" placeholder="2026-spring-ecs-pub-league-classic-division"
+                               class="flex-1 min-w-0 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm focus:ring-1 focus:ring-ecs-green focus:border-ecs-green p-2.5">
+                        <span class="inline-flex items-center px-3 text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-400 border border-l-0 border-gray-300 dark:border-gray-600 rounded-r-lg">/</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button type="button" id="saveProductUrlsBtn"
+                        class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-device-floppy text-base" aria-hidden="true"></i> Save Product URLs
+                </button>
+                <span id="productUrlsStatus" class="text-sm"></span>
+            </div>
+        </div>
+        {% endcall %}
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+        {{ stat_card("ti-receipt", "Total", stats.total or 0, tone="info") }}
+        {{ stat_card("ti-clock", "Not Started", stats.not_started or 0, tone="neutral") }}
+        {{ stat_card("ti-clock-pause", "Pending", stats.pending or 0, tone="warning") }}
+        {{ stat_card("ti-progress", "Partial", stats.partial or 0, tone="warning") }}
+        {{ stat_card("ti-circle-check", "Linked", stats.fully_linked or 0, tone="success") }}
+        {{ stat_card("ti-circle-x", "Cancelled", stats.cancelled or 0, tone="danger") }}
+    </div>
+
+    <!-- Filters + Orders -->
+    {% set table_footer %}
+        {% if orders and orders.items %}Showing {{ orders.items|length }} of {{ orders.total }} order{{ '' if orders.total == 1 else 's' }}{% endif %}
+    {% endset %}
+    {% call data_table("Orders", icon="ti-list-details", count=(orders.total if orders else None), filters=False, footer=table_footer) %}
+        <!-- Filters -->
+        <div class="flex flex-col md:flex-row gap-3 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <form method="get" class="flex-1 flex gap-2">
+                <input type="hidden" name="status" value="{{ status_filter }}">
+                <div class="relative flex-1 min-w-[180px]">
+                    <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+                    <input type="text" name="search" value="{{ search or '' }}" placeholder="Search by name, email, or order ID…"
+                           class="w-full h-10 pl-9 pr-3 text-sm rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-1 focus:ring-ecs-green focus:border-ecs-green">
+                </div>
+                <button type="submit" aria-label="Search"
+                        class="shrink-0 inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-search text-base" aria-hidden="true"></i>
+                </button>
+            </form>
+            <div class="w-full md:w-52">
+                <select id="statusFilter"
+                        class="w-full h-10 px-3 text-sm rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-1 focus:ring-ecs-green focus:border-ecs-green">
+                    <option value="all" {{ 'selected' if status_filter == 'all' else '' }}>All Statuses</option>
+                    <option value="not_started" {{ 'selected' if status_filter == 'not_started' else '' }}>Not Started</option>
+                    <option value="pending" {{ 'selected' if status_filter == 'pending' else '' }}>Pending</option>
+                    <option value="partially_linked" {{ 'selected' if status_filter == 'partially_linked' else '' }}>Partial</option>
+                    <option value="fully_linked" {{ 'selected' if status_filter == 'fully_linked' else '' }}>Fully Linked</option>
+                    <option value="cancelled" {{ 'selected' if status_filter == 'cancelled' else '' }}>Cancelled</option>
+                </select>
+            </div>
+            {% if search or (status_filter and status_filter != 'all') %}
+            <div class="flex items-center">
+                <a href="{{ url_for('pub_league_orders_admin.orders_list') }}"
+                   class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                    <i class="ti ti-x text-base" aria-hidden="true"></i> Clear
+                </a>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if orders and orders.items %}
+        <!-- Desktop table -->
+        <table class="hidden md:table w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-700/50">
+                <tr>
+                    {{ data_table_th("Woo ID", key="woo", sortable=False) }}
+                    {{ data_table_th("Customer", key="customer", sortable=False) }}
+                    {{ data_table_th("Status", key="status", sortable=False) }}
+                    {{ data_table_th("Division", key="division", sortable=False, hide="sm") }}
+                    {{ data_table_th("Passes", key="passes", sortable=False) }}
+                    {{ data_table_th("Season", key="season", sortable=False, hide="md") }}
+                    {{ data_table_th("Created", key="created", sortable=False, hide="md") }}
+                    {{ data_table_th("Expires", key="expires", sortable=False, hide="md") }}
+                    {{ data_table_th("Actions", key="actions", sortable=False, align="right") }}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for order in orders.items %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors" onclick="window.location.href='{{ url_for('pub_league_orders_admin.order_detail', order_id=order.id) }}'">
+                    <td class="px-3 py-3">
+                        <span class="font-mono font-semibold text-gray-900 dark:text-white">#{{ order.woo_order_id }}</span>
+                    </td>
+                    <td class="px-3 py-3">
+                        <span class="font-medium text-gray-900 dark:text-white">{{ order.customer_name or 'Unknown' }}</span>
+                        {% if order.customer_email %}
+                        <br><span class="text-xs text-gray-500 dark:text-gray-400">{{ order.customer_email }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3">
+                        {% if order.status == 'not_started' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i>Not Started</span>
+                        {% elif order.status == 'pending' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-clock-pause text-[12px]" aria-hidden="true"></i>Pending</span>
+                        {% elif order.status == 'partially_linked' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-400"><i class="ti ti-progress text-[12px]" aria-hidden="true"></i>Partial</span>
+                        {% elif order.status == 'fully_linked' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Linked</span>
+                        {% elif order.status == 'cancelled' %}
+                        <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-circle-x text-[12px]" aria-hidden="true"></i>Cancelled</span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ order.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3 hidden md:table-cell">
+                        {% if order.divisions %}
+                            {% if 'Premier' in order.divisions and 'Classic' in order.divisions %}
+                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">Mixed</span>
+                            {% elif 'Premier' in order.divisions %}
+                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-400">Premier</span>
+                            {% elif 'Classic' in order.divisions %}
+                            <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">Classic</span>
+                            {% endif %}
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3">
+                        <span class="font-mono font-medium {{ 'text-green-600 dark:text-green-400' if order.linked_passes == order.total_passes else 'text-gray-900 dark:text-white' }}">{{ order.linked_passes }}/{{ order.total_passes }}</span>
+                    </td>
+                    <td class="px-3 py-3 hidden lg:table-cell">
+                        {% if order.season_name %}
+                        <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">{{ order.season_name }}</span>
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3 hidden lg:table-cell">
+                        <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ order.created_at.strftime('%b %d, %Y') if order.created_at else '-' }}</span>
+                    </td>
+                    <td class="px-3 py-3 hidden lg:table-cell">
+                        {% if order.expires_at %}
+                            {% if order.expires_at < now %}
+                            <span class="text-xs font-medium text-red-600 dark:text-red-400">Expired</span>
+                            {% else %}
+                            <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ order.expires_at.strftime('%b %d, %Y') }}</span>
+                            {% endif %}
+                        {% else %}
+                        <span class="text-gray-400 dark:text-gray-500">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3 text-right" onclick="event.stopPropagation()">
+                        <a href="{{ url_for('pub_league_orders_admin.order_detail', order_id=order.id) }}" title="View Details" aria-label="View order details"
+                           class="inline-flex items-center justify-center w-9 h-9 rounded-lg text-gray-500 dark:text-gray-400 hover:text-ecs-green hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                            <i class="ti ti-eye text-base" aria-hidden="true"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Mobile cards -->
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {% for order in orders.items %}
+            {% set status_badge %}
+                {% if order.status == 'not_started' %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i>Not Started</span>
+                {% elif order.status == 'pending' %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400"><i class="ti ti-clock-pause text-[12px]" aria-hidden="true"></i>Pending</span>
+                {% elif order.status == 'partially_linked' %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-400"><i class="ti ti-progress text-[12px]" aria-hidden="true"></i>Partial</span>
+                {% elif order.status == 'fully_linked' %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400"><i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Linked</span>
+                {% elif order.status == 'cancelled' %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400"><i class="ti ti-circle-x text-[12px]" aria-hidden="true"></i>Cancelled</span>
+                {% else %}<span class="inline-flex items-center px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ order.status }}</span>{% endif %}
+            {% endset %}
+            {% call data_table_row_card(title="#" ~ order.woo_order_id ~ " · " ~ (order.customer_name or 'Unknown'), url=url_for('pub_league_orders_admin.order_detail', order_id=order.id), badge=status_badge) %}
+                {% if order.customer_email %}<p class="truncate">{{ order.customer_email }}</p>{% endif %}
+                <p>
+                    <span class="font-mono font-medium {{ 'text-green-600 dark:text-green-400' if order.linked_passes == order.total_passes else '' }}">{{ order.linked_passes }}/{{ order.total_passes }}</span> passes
+                    {% if order.season_name %}· {{ order.season_name }}{% endif %}
+                </p>
+                {% if order.expires_at %}
+                <p>{% if order.expires_at < now %}<span class="text-red-600 dark:text-red-400">Expired</span>{% else %}Expires {{ order.expires_at.strftime('%b %d, %Y') }}{% endif %}</p>
+                {% endif %}
+            {% endcall %}
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if orders.pages > 1 %}
+        <nav class="flex items-center justify-center gap-1 px-4 py-4 border-t border-gray-200 dark:border-gray-700" aria-label="Pagination">
+            {% if orders.has_prev %}
+            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.prev_num, status=status_filter, search=search) }}" aria-label="Previous page"
+               class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <i class="ti ti-chevron-left text-base" aria-hidden="true"></i>
+            </a>
+            {% endif %}
+            {% for page_num in orders.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                    {% if page_num == orders.page %}
+                    <span aria-current="page" class="inline-flex items-center justify-center min-w-[2.5rem] h-10 px-2 text-sm font-semibold text-white bg-ecs-green rounded-lg font-mono">{{ page_num }}</span>
+                    {% else %}
+                    <a href="{{ url_for('pub_league_orders_admin.orders_list', page=page_num, status=status_filter, search=search) }}"
+                       class="inline-flex items-center justify-center min-w-[2.5rem] h-10 px-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-ecs-green">{{ page_num }}</a>
+                    {% endif %}
+                {% else %}
+                <span class="inline-flex items-center justify-center w-10 h-10 text-sm text-gray-400 dark:text-gray-500">…</span>
+                {% endif %}
+            {% endfor %}
+            {% if orders.has_next %}
+            <a href="{{ url_for('pub_league_orders_admin.orders_list', page=orders.next_num, status=status_filter, search=search) }}" aria-label="Next page"
+               class="inline-flex items-center justify-center w-10 h-10 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <i class="ti ti-chevron-right text-base" aria-hidden="true"></i>
+            </a>
+            {% endif %}
+        </nav>
+        {% endif %}
+
+        {% else %}
+        {% if search or (status_filter and status_filter != 'all') %}
+            {{ empty_state("ti-receipt-off", "No Orders Found", "No orders match your current filters. Try adjusting your search criteria.", action={'label': 'Clear Filters', 'url': url_for('pub_league_orders_admin.orders_list'), 'icon': 'ti-x'}) }}
+        {% else %}
+            {{ empty_state("ti-receipt-off", "No Orders Found", "No Pub League orders have been created yet. Orders are automatically created when customers purchase Pub League passes on WooCommerce.") }}
+        {% endif %}
+        {% endif %}
+    {% endcall %}
+</div>
+{% else %}
 <!-- Product URL Settings Button -->
 <div class="flex justify-end mb-4">
     <button type="button" class="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg transition-colors" data-collapse-toggle="productUrlSettings">
@@ -328,6 +596,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}

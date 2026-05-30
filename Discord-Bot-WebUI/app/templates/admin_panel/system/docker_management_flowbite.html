@@ -20,6 +20,190 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state, modal %}
+{% set _running = containers|selectattr('status', 'startswith', 'running')|list|length %}
+{% set _stopped = containers|rejectattr('status', 'startswith', 'running')|list|length %}
+<div class="space-y-6">
+
+  {% call page_header('Docker Management', subtitle='Container monitoring and management') %}
+    <button id="docker-refresh-btn" type="button"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-refresh" aria-hidden="true"></i>Refresh
+    </button>
+  {% endcall %}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+    {{ stat_card('ti-circle-check', 'Running', _running, tone='success') }}
+    {{ stat_card('ti-circle-pause', 'Stopped', _stopped, tone='warning') }}
+    {{ stat_card('ti-box', 'Total Containers', containers|length, tone='info') }}
+  </div>
+
+  <!-- Container list -->
+  {% if containers %}
+  {% call data_table('Containers', icon='ti-box', count=containers|length, search_placeholder='Filter containers…', search_id='dockerFilter', filters=true) %}
+    <!-- md+ table -->
+    <table class="hidden md:table w-full text-sm">
+      <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+        <tr>
+          {{ data_table_th('Name', key='name', active=true, dir='asc') }}
+          {{ data_table_th('Image', key='image', hide='sm') }}
+          {{ data_table_th('Status', key='status', hide='sm') }}
+          {{ data_table_th('Ports', key='ports', sortable=false, hide='sm') }}
+          {{ data_table_th('Actions', sortable=false, align='right') }}
+        </tr>
+      </thead>
+      <tbody id="container-list" class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for container in containers %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-container-id="{{ container.id }}">
+          <td class="px-3 py-2.5">
+            <div class="flex items-center gap-2">
+              <i class="ti ti-box text-gray-400" aria-hidden="true"></i>
+              <span class="font-medium text-gray-900 dark:text-white">{{ container.name }}</span>
+            </div>
+          </td>
+          <td class="px-3 py-2.5 hidden md:table-cell">
+            <code class="font-mono text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">{{ container.image }}</code>
+          </td>
+          <td class="px-3 py-2.5 hidden md:table-cell">
+            {% if container.status.startswith('running') %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+              <i class="ti ti-circle-check" aria-hidden="true"></i>Running
+            </span>
+            {% elif container.status.startswith('exited') %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+              <i class="ti ti-circle-x" aria-hidden="true"></i>Exited
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+              <i class="ti ti-circle-pause" aria-hidden="true"></i>{{ container.status }}
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2.5 hidden md:table-cell">
+            {% if container.ports %}
+            <span class="font-mono text-xs text-gray-700 dark:text-gray-300">{{ container.ports }}</span>
+            {% else %}
+            <span class="text-gray-400">-</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-2.5">
+            <div class="flex items-center justify-end gap-1">
+              {% if container.status.startswith('running') %}
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop" aria-label="Stop container">
+                <i class="ti ti-player-stop" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="restart" title="Restart" aria-label="Restart container">
+                <i class="ti ti-refresh" aria-hidden="true"></i>
+              </button>
+              {% else %}
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="start" title="Start" aria-label="Start container">
+                <i class="ti ti-player-play" aria-hidden="true"></i>
+              </button>
+              {% endif %}
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs" aria-label="View logs">
+                <i class="ti ti-file-text" aria-hidden="true"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for container in containers %}
+      <div class="px-4 py-3.5" data-container-id="{{ container.id }}">
+        <div class="flex items-center justify-between gap-2">
+          <span class="flex items-center gap-2 min-w-0">
+            <i class="ti ti-box text-gray-400 shrink-0" aria-hidden="true"></i>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ container.name }}</span>
+          </span>
+          {% if container.status.startswith('running') %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+            <i class="ti ti-circle-check" aria-hidden="true"></i>Running
+          </span>
+          {% elif container.status.startswith('exited') %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300">
+            <i class="ti ti-circle-x" aria-hidden="true"></i>Exited
+          </span>
+          {% else %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300">
+            <i class="ti ti-circle-pause" aria-hidden="true"></i>{{ container.status }}
+          </span>
+          {% endif %}
+        </div>
+        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+          <div><code class="font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-1.5 py-0.5 rounded">{{ container.image }}</code></div>
+          {% if container.ports %}<div class="font-mono">{{ container.ports }}</div>{% endif %}
+        </div>
+        <div class="mt-2 flex items-center gap-1">
+          {% if container.status.startswith('running') %}
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="stop" title="Stop" aria-label="Stop container">
+            <i class="ti ti-player-stop" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="restart" title="Restart" aria-label="Restart container">
+            <i class="ti ti-refresh" aria-hidden="true"></i>
+          </button>
+          {% else %}
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-manage-container" data-container-id="{{ container.id }}" data-container-action="start" title="Start" aria-label="Start container">
+            <i class="ti ti-player-play" aria-hidden="true"></i>
+          </button>
+          {% endif %}
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green js-view-logs" data-container-id="{{ container.id }}" data-container-name="{{ container.name }}" title="View Logs" aria-label="View logs">
+            <i class="ti ti-file-text" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  {{ empty_state('ti-box-off', 'No Docker Containers Found', 'No Docker containers found or Docker is not available.', action={'label': 'Check System Health', 'url': url_for('admin_panel.health_dashboard'), 'icon': 'ti-heartbeat'}) }}
+  {% endif %}
+
+  <!-- Related tools -->
+  {% call section_card('Related Tools', icon='ti-link') %}
+    <div class="p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <a href="{{ url_for('admin_panel.health_dashboard') }}" class="flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-sm font-medium text-gray-900 dark:text-white">
+        <i class="ti ti-heartbeat text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Health Dashboard
+      </a>
+      <a href="{{ url_for('admin_panel.redis_management') }}" class="flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-sm font-medium text-gray-900 dark:text-white">
+        <i class="ti ti-database text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Redis Management
+      </a>
+      <a href="{{ url_for('admin_panel.system_monitoring') }}" class="flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-sm font-medium text-gray-900 dark:text-white">
+        <i class="ti ti-activity text-blue-600 dark:text-blue-400" aria-hidden="true"></i>System Monitoring
+      </a>
+      <a href="{{ url_for('admin_panel.task_monitoring_page') }}" class="flex items-center gap-2 min-h-[44px] px-4 py-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green text-sm font-medium text-gray-900 dark:text-white">
+        <i class="ti ti-list-check text-blue-600 dark:text-blue-400" aria-hidden="true"></i>Task Monitor
+      </a>
+    </div>
+  {% endcall %}
+
+</div>
+
+<!-- Log Modal (kit modal; preserves logModal / logModal-title / log-content / data-modal-hide / refreshLogs hooks) -->
+{% call modal('logModal', 'Container Logs', icon='ti-file-text', size='xl') %}
+  <div class="p-4 sm:p-5">
+    <div id="log-content">
+      <div class="text-center py-4">
+        <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-ecs-green border-t-transparent"></div>
+        <p class="mt-2 text-gray-500 dark:text-gray-400">Loading logs...</p>
+      </div>
+    </div>
+    <div class="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+      <button type="button" data-modal-hide="logModal" class="modal-close-btn inline-flex items-center justify-center min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        Close
+      </button>
+      <button type="button" onclick="refreshLogs()" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-refresh" aria-hidden="true"></i>Refresh
+      </button>
+    </div>
+  </div>
+{% endcall %}
+{% else %}
 <!-- Header -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="flex items-center justify-between p-5 border-b border-gray-200 dark:border-gray-700">
@@ -196,6 +380,7 @@
     </button>
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

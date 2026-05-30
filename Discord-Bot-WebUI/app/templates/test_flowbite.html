@@ -5,6 +5,164 @@
 {% block page_title %}Flowbite Component Test{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% import 'macros/_modern_kit.html' as kit %}
+{% from 'macros/flowbite.html' import card as fb_card, button as fb_button, input as fb_input, select as fb_select, badge as fb_badge, avatar as fb_avatar, spinner as fb_spinner %}
+<div class="space-y-5 sm:space-y-6">
+
+    {{ kit.page_header("Component Test", subtitle="Modern kit & primitives showcase") }}
+
+    {{ kit.alert("info", "This is a test page to verify the Modern design-language kit and Flowbite primitives render correctly.", title="Testing mode") }}
+
+    <!-- Stat Cards Row (kit) -->
+    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        {{ kit.stat_card("ti-users", "Total Players", "156", sublabel="+12%", tone="success") }}
+        {{ kit.stat_card("ti-users-group", "Active Teams", "12", tone="primary") }}
+        {{ kit.stat_card("ti-ball-football", "Matches Played", "48", sublabel="-3%", tone="danger") }}
+        {{ kit.stat_card("ti-target", "Goals Scored", "127", tone="gold") }}
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+
+        <!-- Buttons (flowbite primitive) -->
+        {% call kit.section_card("Button Variants", icon="ti-click") %}
+        <div class="p-4 sm:p-5 space-y-4">
+            <div class="flex flex-wrap gap-3">
+                {{ fb_button("Primary", variant="primary") }}
+                {{ fb_button("Secondary", variant="secondary") }}
+                {{ fb_button("Success", variant="success") }}
+                {{ fb_button("Danger", variant="danger") }}
+                {{ fb_button("Warning", variant="warning") }}
+                {{ fb_button("Ghost", variant="ghost") }}
+                {{ fb_button("Outline", variant="outline") }}
+            </div>
+            <div class="flex flex-wrap gap-3">
+                {{ fb_button("Small", variant="primary", size="sm") }}
+                {{ fb_button("Medium", variant="primary", size="md") }}
+                {{ fb_button("Large", variant="primary", size="lg") }}
+            </div>
+            <div class="flex flex-wrap gap-3">
+                {{ fb_button("With Icon", variant="primary", icon="plus") }}
+                {{ fb_button("Edit", variant="secondary", icon="edit") }}
+                {{ fb_button("Delete", variant="danger", icon="trash") }}
+                {{ fb_button("", variant="ghost", icon="settings") }}
+            </div>
+        </div>
+        {% endcall %}
+
+        <!-- Badges (flowbite primitive) -->
+        {% call kit.section_card("Badge Variants", icon="ti-tag") %}
+        <div class="p-4 sm:p-5 space-y-4">
+            <div class="flex flex-wrap gap-3">
+                {{ fb_badge("Default", variant="default") }}
+                {{ fb_badge("Primary", variant="primary") }}
+                {{ fb_badge("Success", variant="success") }}
+                {{ fb_badge("Warning", variant="warning") }}
+                {{ fb_badge("Danger", variant="danger") }}
+                {{ fb_badge("Info", variant="info") }}
+            </div>
+            <div class="flex flex-wrap gap-3">
+                {{ fb_badge("Online", variant="success", dot=true) }}
+                {{ fb_badge("Away", variant="warning", dot=true) }}
+                {{ fb_badge("Offline", variant="danger", dot=true) }}
+            </div>
+        </div>
+        {% endcall %}
+
+    </div>
+
+    <!-- Form Elements (flowbite primitives) -->
+    {% call kit.section_card("Form Elements", icon="ti-forms") %}
+    <form class="p-4 sm:p-5 space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {{ fb_input("first_name", label="First Name", placeholder="Enter first name", required=true) }}
+            {{ fb_input("last_name", label="Last Name", placeholder="Enter last name", required=true) }}
+        </div>
+        {{ fb_input("email", label="Email Address", type="email", placeholder="you@example.com", help_text="We'll never share your email.") }}
+        {{ fb_input("password", label="Password", type="password", placeholder="••••••••", error="Password must be at least 8 characters") }}
+        {{ fb_select("role", label="Role", options=[("player", "Player"), ("captain", "Team Captain"), ("admin", "Administrator")], placeholder="Select a role") }}
+
+        <div class="flex gap-3 pt-4">
+            {{ fb_button("Submit", variant="primary", type="submit", icon="check") }}
+            {{ fb_button("Cancel", variant="ghost") }}
+        </div>
+    </form>
+    {% endcall %}
+
+    <!-- Avatars (flowbite primitive) -->
+    {% call kit.section_card("Avatar Examples", icon="ti-user-circle") %}
+    <div class="p-4 sm:p-5">
+        <div class="flex items-center gap-4">
+            {{ fb_avatar(size="xs", fallback="A") }}
+            {{ fb_avatar(size="sm", fallback="B") }}
+            {{ fb_avatar(size="md", fallback="C", status="online") }}
+            {{ fb_avatar(size="lg", fallback="D", status="away") }}
+            {{ fb_avatar(size="xl", fallback="E", status="offline") }}
+        </div>
+    </div>
+    {% endcall %}
+
+    <!-- Alerts (kit) -->
+    {% call kit.section_card("Alert Variants", icon="ti-bell") %}
+    <div class="p-4 sm:p-5 space-y-3">
+        {{ kit.alert("info", "This is an info message.") }}
+        {{ kit.alert("success", "Operation completed successfully!") }}
+        {{ kit.alert("warning", "Please review your input.") }}
+        {{ kit.alert("danger", "An error occurred. Please try again.") }}
+    </div>
+    {% endcall %}
+
+    <!-- Empty State (kit) -->
+    {% call kit.section_card("Empty State Example", icon="ti-mood-empty") %}
+    {{ kit.empty_state(
+        "ti-calendar-off",
+        "No matches scheduled",
+        "There are no upcoming matches. Check back later or create a new match.",
+        action={'label': 'Schedule Match', 'url': '#', 'icon': 'ti-plus'}
+    ) }}
+    {% endcall %}
+
+    <!-- Loading Spinner (flowbite primitive) -->
+    {% call kit.section_card("Loading States", icon="ti-loader") %}
+    <div class="p-4 sm:p-5">
+        <div class="flex items-center gap-6">
+            <div class="text-center">
+                {{ fb_spinner(size="sm") }}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Small</p>
+            </div>
+            <div class="text-center">
+                {{ fb_spinner(size="md") }}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Medium</p>
+            </div>
+            <div class="text-center">
+                {{ fb_spinner(size="lg") }}
+                <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Large</p>
+            </div>
+        </div>
+    </div>
+    {% endcall %}
+
+    <!-- Skeleton (kit) -->
+    {% call kit.section_card("Skeleton Loader", icon="ti-layout-list") %}
+    {{ kit.skeleton(rows=3) }}
+    {% endcall %}
+
+    <!-- Dark Mode Test -->
+    {% call kit.section_card("Dark Mode Test", icon="ti-moon") %}
+    <div class="p-4 sm:p-5">
+        <p class="text-gray-700 dark:text-gray-300">
+            This text should change color between light and dark mode.
+            The cards, inputs, and all components should adapt automatically.
+        </p>
+        <div class="mt-4 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <p class="text-gray-800 dark:text-gray-200">This box has a different background in dark mode.</p>
+        </div>
+    </div>
+    {% endcall %}
+
+</div>
+{% else %}
 <div class="space-y-6">
 
     <!-- Alert Examples -->
@@ -144,4 +302,5 @@
     {% endcall %}
 
 </div>
+{% endif %}
 {% endblock %}

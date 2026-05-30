@@ -20,6 +20,263 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/flowbite.html' import pagination_nav %}
+
+{# ---------------------------------------------------------------------------
+   DEEP PASS — performance-first IA.
+   The ONE job here is "are my campaigns reaching people?" so the KPI band leads
+   with aggregate REACH + ENGAGEMENT (computed from the real page data, no new
+   backend var needed) instead of re-echoing the status-filter counts. The status
+   counts live where they belong: on the filter control itself. New Campaign is
+   the single primary CTA, lifted into the page header.
+--------------------------------------------------------------------------- #}
+{% set ns = namespace(sent=0, delivered=0, clicked=0) %}
+{% for c in campaigns.items %}
+  {% set ns.sent = ns.sent + (c.sent_count or 0) %}
+  {% set ns.delivered = ns.delivered + (c.delivered_count or 0) %}
+  {% set ns.clicked = ns.clicked + (c.click_count or 0) %}
+{% endfor %}
+{% set delivery_rate = ((ns.delivered / ns.sent) * 100) | round(0, 'floor') | int if ns.sent else 0 %}
+{% set click_rate = ((ns.clicked / ns.delivered) * 100) | round(0, 'floor') | int if ns.delivered else 0 %}
+
+<div class="space-y-6">
+  {{ page_header('Push Campaigns', subtitle='Communication') }}
+
+  {# ---- KPI band: reach & engagement first (the page's real intent) ---- #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {% call stat_card('ti-send', 'Notifications Sent', '{:,}'.format(ns.sent), tone='info') %}
+      across <span class="font-mono">{{ status_counts.sent }}</span> sent campaign{{ '' if status_counts.sent == 1 else 's' }}
+    {% endcall %}
+    {% call stat_card('ti-circle-check', 'Delivered', '{:,}'.format(ns.delivered), tone='success') %}
+      <span class="font-mono">{{ delivery_rate }}%</span> delivery rate
+    {% endcall %}
+    {% call stat_card('ti-click', 'Clicked', '{:,}'.format(ns.clicked), tone='gold') %}
+      <span class="font-mono">{{ click_rate }}%</span> click-through
+    {% endcall %}
+    {% call stat_card('ti-clock', 'Scheduled', status_counts.scheduled, tone='warning') %}
+      <span class="font-mono">{{ status_counts.draft }}</span> draft{{ '' if status_counts.draft == 1 else 's' }} waiting
+    {% endcall %}
+  </div>
+
+  {# ---- Primary action ---- #}
+  <div class="flex justify-end">
+    <button type="button" data-modal-target="createCampaignModal" data-modal-toggle="createCampaignModal"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-plus text-sm" aria-hidden="true"></i>New Campaign
+    </button>
+  </div>
+
+  {# ---- Campaigns table — status filter folded into the card header as one control surface ---- #}
+  {% if campaigns.items %}
+    {% set seg_base = 'inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 text-sm font-semibold border-y border-r first:border-l first:rounded-l-lg last:rounded-r-lg transition-colors focus:outline-none focus:z-10 focus:ring-2 focus:ring-ecs-green' %}
+    {% set seg_on = 'bg-ecs-green text-white border-ecs-green' %}
+    {% set seg_off = 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700' %}
+    {% call data_table('Push Campaigns', icon='ti-broadcast', count=status_counts.all, filters=false) %}
+      {# segmented status filter — single connected control, counts live here (not duplicated in the KPI band) #}
+      <div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+        <span class="sr-only" id="campaignFilterLabel">Filter campaigns by status</span>
+        <nav class="inline-flex" aria-labelledby="campaignFilterLabel">
+          <a href="{{ url_for('admin_panel.campaigns_list') }}"
+             class="{{ seg_base }} {% if not status_filter %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}"
+             {% if not status_filter %}aria-current="true"{% endif %}>
+            <i class="ti ti-list text-sm" aria-hidden="true"></i>All
+            <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if not status_filter %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.all }}</span>
+          </a>
+          <a href="{{ url_for('admin_panel.campaigns_list', status='draft') }}"
+             class="{{ seg_base }} {% if status_filter == 'draft' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}"
+             {% if status_filter == 'draft' %}aria-current="true"{% endif %}>
+            <i class="ti ti-file-text text-sm" aria-hidden="true"></i>Drafts
+            <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if status_filter == 'draft' %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.draft }}</span>
+          </a>
+          <a href="{{ url_for('admin_panel.campaigns_list', status='scheduled') }}"
+             class="{{ seg_base }} {% if status_filter == 'scheduled' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}"
+             {% if status_filter == 'scheduled' %}aria-current="true"{% endif %}>
+            <i class="ti ti-clock text-sm" aria-hidden="true"></i>Scheduled
+            <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if status_filter == 'scheduled' %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.scheduled }}</span>
+          </a>
+          <a href="{{ url_for('admin_panel.campaigns_list', status='sent') }}"
+             class="{{ seg_base }} {% if status_filter == 'sent' %}{{ seg_on }}{% else %}{{ seg_off }}{% endif %}"
+             {% if status_filter == 'sent' %}aria-current="true"{% endif %}>
+            <i class="ti ti-check text-sm" aria-hidden="true"></i>Sent
+            <span class="font-mono font-bold px-1.5 py-0.5 rounded {% if status_filter == 'sent' %}bg-white/20{% else %}bg-gray-100 dark:bg-gray-700{% endif %}">{{ status_counts.sent }}</span>
+          </a>
+        </nav>
+      </div>
+      {# md+ table #}
+      <table class="hidden md:table w-full text-sm text-left">
+        <thead class="bg-gray-50 dark:bg-gray-700/40">
+          <tr>
+            {{ data_table_th('Campaign', sortable=false) }}
+            {{ data_table_th('Target', sortable=false) }}
+            {{ data_table_th('Status', sortable=false) }}
+            {{ data_table_th('Schedule', sortable=false) }}
+            {{ data_table_th('Analytics', sortable=false) }}
+            {{ data_table_th('Actions', sortable=false, align='right') }}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for campaign in campaigns.items %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-3 py-3 align-top">
+              <div class="font-semibold text-gray-900 dark:text-white">{{ campaign.name }}</div>
+              <div class="text-sm text-gray-500 dark:text-gray-400">{{ campaign.title }}</div>
+              {% if campaign.priority == 'urgent' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400 mt-1">
+                <i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>Urgent
+              </span>
+              {% elif campaign.priority == 'high' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-500/15 dark:text-orange-400 mt-1">
+                <i class="ti ti-alert-triangle text-[12px]" aria-hidden="true"></i>High
+              </span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 align-top">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-ecs-green-100 text-ecs-green-800 dark:bg-ecs-green-900 dark:text-ecs-green-300">{{ campaign.target_type|title }}</span>
+              <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5"><span class="font-mono">{{ campaign.target_count or 0 }}</span> recipients</div>
+            </td>
+            <td class="px-3 py-3 align-top">
+              {% set status = campaign.status %}
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold
+                {% if status == 'sent' %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400
+                {% elif status == 'scheduled' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400
+                {% elif status == 'draft' %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300
+                {% else %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400{% endif %}">
+                {% if status == 'sent' %}<i class="ti ti-check text-[12px]" aria-hidden="true"></i>
+                {% elif status == 'scheduled' %}<i class="ti ti-clock text-[12px]" aria-hidden="true"></i>
+                {% elif status == 'draft' %}<i class="ti ti-file-text text-[12px]" aria-hidden="true"></i>
+                {% else %}<i class="ti ti-broadcast text-[12px]" aria-hidden="true"></i>{% endif %}
+                {{ status|title }}
+              </span>
+            </td>
+            <td class="px-3 py-3 align-top">
+              {% if campaign.scheduled_send_time %}
+              <span class="text-sm font-mono text-gray-700 dark:text-gray-300">{{ campaign.scheduled_send_time.strftime('%Y-%m-%d %H:%M') }}</span>
+              {% elif campaign.actual_send_time %}
+              <span class="text-sm font-mono text-gray-700 dark:text-gray-300">Sent: {{ campaign.actual_send_time.strftime('%Y-%m-%d %H:%M') }}</span>
+              {% else %}
+              <span class="text-sm text-gray-400 dark:text-gray-500">Not scheduled</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 align-top">
+              <div class="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                <span class="inline-flex items-center" title="Sent">
+                  <i class="ti ti-send text-blue-500 dark:text-blue-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.sent_count or 0 }}</span>
+                </span>
+                <span class="inline-flex items-center" title="Delivered">
+                  <i class="ti ti-check text-green-500 dark:text-green-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.delivered_count or 0 }}</span>
+                </span>
+                <span class="inline-flex items-center" title="Clicked">
+                  <i class="ti ti-click text-purple-500 dark:text-purple-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.click_count or 0 }}</span>
+                </span>
+              </div>
+            </td>
+            <td class="px-3 py-3 align-top">
+              <div class="flex items-center justify-end gap-1">
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View" aria-label="View campaign" data-action="view-campaign" data-campaign-id="{{ campaign.id }}">
+                  <i class="ti ti-eye" aria-hidden="true"></i>
+                </button>
+                {% if campaign.status == 'draft' %}
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit campaign" data-action="edit-campaign" data-campaign-id="{{ campaign.id }}">
+                  <i class="ti ti-edit" aria-hidden="true"></i>
+                </button>
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send campaign now" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                  <i class="ti ti-send" aria-hidden="true"></i>
+                </button>
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Schedule" aria-label="Schedule campaign" data-action="schedule-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                  <i class="ti ti-clock" aria-hidden="true"></i>
+                </button>
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Delete" aria-label="Delete campaign" data-action="delete-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                  <i class="ti ti-trash" aria-hidden="true"></i>
+                </button>
+                {% elif campaign.status == 'scheduled' %}
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel campaign" data-action="cancel-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+                  <i class="ti ti-x" aria-hidden="true"></i>
+                </button>
+                {% endif %}
+                <button class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Duplicate" aria-label="Duplicate campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}">
+                  <i class="ti ti-copy" aria-hidden="true"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {# mobile stacked cards #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for campaign in campaigns.items %}
+        <div class="px-4 py-3.5">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ campaign.name }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ campaign.title }}</div>
+            </div>
+            {% set status = campaign.status %}
+            <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold
+              {% if status == 'sent' %}bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400
+              {% elif status == 'scheduled' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400
+              {% elif status == 'draft' %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300
+              {% else %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400{% endif %}">
+              {{ status|title }}
+            </span>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+            <span><span class="font-semibold text-gray-700 dark:text-gray-300">{{ campaign.target_type|title }}</span> · <span class="font-mono">{{ campaign.target_count or 0 }}</span> recipients</span>
+            {% if campaign.priority == 'urgent' %}<span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-semibold"><i class="ti ti-alert-octagon text-[12px]" aria-hidden="true"></i>Urgent</span>
+            {% elif campaign.priority == 'high' %}<span class="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400 font-semibold"><i class="ti ti-alert-triangle text-[12px]" aria-hidden="true"></i>High</span>{% endif %}
+          </div>
+          <div class="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+            <span class="inline-flex items-center"><i class="ti ti-send text-blue-500 dark:text-blue-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.sent_count or 0 }}</span></span>
+            <span class="inline-flex items-center"><i class="ti ti-check text-green-500 dark:text-green-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.delivered_count or 0 }}</span></span>
+            <span class="inline-flex items-center"><i class="ti ti-click text-purple-500 dark:text-purple-400 mr-1" aria-hidden="true"></i><span class="font-mono">{{ campaign.click_count or 0 }}</span></span>
+            {% if campaign.scheduled_send_time %}<span class="font-mono">{{ campaign.scheduled_send_time.strftime('%m/%d %H:%M') }}</span>
+            {% elif campaign.actual_send_time %}<span class="font-mono">Sent {{ campaign.actual_send_time.strftime('%m/%d %H:%M') }}</span>{% endif %}
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-1">
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="View" aria-label="View campaign" data-action="view-campaign" data-campaign-id="{{ campaign.id }}">
+              <i class="ti ti-eye" aria-hidden="true"></i>
+            </button>
+            {% if campaign.status == 'draft' %}
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Edit" aria-label="Edit campaign" data-action="edit-campaign" data-campaign-id="{{ campaign.id }}">
+              <i class="ti ti-edit" aria-hidden="true"></i>
+            </button>
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Send Now" aria-label="Send campaign now" data-action="send-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+              <i class="ti ti-send" aria-hidden="true"></i>
+            </button>
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Schedule" aria-label="Schedule campaign" data-action="schedule-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+              <i class="ti ti-clock" aria-hidden="true"></i>
+            </button>
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Delete" aria-label="Delete campaign" data-action="delete-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+              <i class="ti ti-trash" aria-hidden="true"></i>
+            </button>
+            {% elif campaign.status == 'scheduled' %}
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Cancel" aria-label="Cancel campaign" data-action="cancel-campaign" data-campaign-id="{{ campaign.id }}" data-campaign-name="{{ campaign.name }}">
+              <i class="ti ti-x" aria-hidden="true"></i>
+            </button>
+            {% endif %}
+            <button class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Duplicate" aria-label="Duplicate campaign" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}">
+              <i class="ti ti-copy" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if campaigns.pages > 1 %}
+      <div class="border-t border-gray-200 dark:border-gray-700">
+        {{ pagination_nav(campaigns, 'admin_panel.campaigns_list', extra_params={'status': status_filter} if status_filter else None) }}
+      </div>
+      {% endif %}
+    {% endcall %}
+  {% else %}
+    {{ empty_state('ti-broadcast-off', 'No campaigns found', 'Create your first push notification campaign to get started.') }}
+  {% endif %}
+</div>
+{% else %}
 <!-- Statistics Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -232,6 +489,7 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 
 <!-- Create Campaign Modal -->
 {% call modal_form('createCampaignModal', 'Create Push Campaign', form_id='createCampaignForm', size='lg', submit_text='Create Campaign', loading_text='Creating...') %}

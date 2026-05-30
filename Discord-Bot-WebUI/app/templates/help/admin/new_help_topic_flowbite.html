@@ -84,6 +84,116 @@
 {% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card %}
+<div class="max-w-7xl mx-auto space-y-5 sm:space-y-6">
+    <!-- Breadcrumb -->
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+            <li class="inline-flex items-center">
+                <a href="{{ url_for('help.admin_help_topics') }}" class="inline-flex items-center text-sm font-medium text-gray-500 hover:text-ecs-green dark:text-gray-400 dark:hover:text-ecs-green">
+                    <i class="ti ti-settings mr-2" aria-hidden="true"></i>
+                    Admin - Help Topics
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <i class="ti ti-chevron-right text-gray-400 mx-2" aria-hidden="true"></i>
+                    <span class="text-sm font-medium text-gray-900 dark:text-white">Create New Topic</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+
+    {{ page_header("Create New Help Topic", subtitle="Help Topics") }}
+
+    {% call section_card("Topic Details", icon="ti-file-text") %}
+    <form method="POST"
+          enctype="multipart/form-data"
+          class="space-y-6 p-4 sm:p-5"
+          data-component="help-editor-form">
+        {{ form.hidden_tag() }}
+
+        <!-- Title Field -->
+        <div>
+            <label for="title" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.title.label.text }}
+                <span class="text-red-500">*</span>
+            </label>
+            {{ form.title(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", placeholder="Enter help topic title") }}
+        </div>
+
+        <!-- Markdown Content Field with Inline Editor -->
+        <div>
+            <label for="markdown_editor" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.markdown_content.label.text }}
+                <span class="text-red-500">*</span>
+            </label>
+            {{ form.markdown_content(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", id="markdown_editor", placeholder="Start typing your help content here...") }}
+            <button type="button"
+                    class="mt-2 inline-flex items-center min-h-[44px] sm:min-h-0 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    data-action="open-markdown-editor">
+                <i class="ti ti-maximize mr-2" aria-hidden="true"></i>
+                Open Full Editor
+            </button>
+        </div>
+
+        <!-- File Upload Field -->
+        <div>
+            <label for="markdown_file" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Upload Markdown File (Optional)
+            </label>
+            <input type="file"
+                   id="markdown_file"
+                   accept=".md,.markdown"
+                   class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-medium file:bg-ecs-green file:text-white hover:file:bg-ecs-green-700"
+                   data-form-control>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                Upload a .md file to populate the content field
+            </p>
+        </div>
+
+        <!-- Roles Field -->
+        <div>
+            <label for="roles" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                {{ form.roles.label.text }}
+            </label>
+            {{ form.roles(class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2.5 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green", multiple="multiple", size="5") }}
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                Hold Ctrl/Cmd to select multiple roles. Leave empty or select "Public" for all users.
+            </p>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            {{ button(form.submit.label.text, variant="primary", type="submit", icon="plus") }}
+            {{ button("Cancel", variant="outline", href=url_for('help.admin_help_topics'), icon="x") }}
+        </div>
+    </form>
+    {% endcall %}
+</div>
+
+<!-- Modal for pop-out Markdown editor (CSS-driven .active toggle preserved for help-topic-editor JS) -->
+<div id="markdown-editor-modal"
+     class="markdown-editor-modal"
+     data-component="markdown-editor-modal">
+    <div class="markdown-editor-modal__content bg-white dark:bg-gray-800 rounded-lg shadow-xl">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Markdown Editor</h3>
+            <button type="button"
+                    class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                    data-action="close-markdown-editor"
+                    title="Close"
+                    aria-label="Close">
+                <i class="ti ti-x text-lg" aria-hidden="true"></i>
+            </button>
+        </div>
+        <!-- Modal Body -->
+        <div id="modal-editor-container" class="markdown-editor-modal__editor p-4"></div>
+    </div>
+</div>
+{% else %}
 <div class="space-y-6">
     <!-- Breadcrumb -->
     <nav class="flex" aria-label="Breadcrumb">
@@ -197,6 +307,7 @@
         <div id="modal-editor-container" class="markdown-editor-modal__editor p-4"></div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

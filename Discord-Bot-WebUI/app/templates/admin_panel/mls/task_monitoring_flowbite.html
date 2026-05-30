@@ -20,6 +20,354 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/flowbite.html' import select, button %}
+<div class="space-y-6">
+
+  {{ page_header('Task Monitoring', subtitle='Scheduled match tasks') }}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-clock', 'Scheduled', stats.total_scheduled, tone='info') }}
+    {{ stat_card('ti-player-play', 'Running', stats.total_running, tone='primary') }}
+    {{ stat_card('ti-alert-circle', 'Failed (24h)', stats.total_failed, tone='danger') }}
+    {{ stat_card('ti-clock-exclamation', 'Overdue', stats.overdue_tasks, tone='warning') }}
+  </div>
+
+  <!-- Filters -->
+  {% call section_card('Filters', icon='ti-filter') %}
+    <div class="p-4 sm:p-5">
+      <form method="get" action="{{ url_for('admin_panel.mls_task_monitoring') }}"
+            class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+        <div>
+          <label for="task_type" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Task Type</label>
+          <select name="task_type" id="task_type" class="input-ecs">
+            <option value="all" {% if current_filters.task_type == 'all' %}selected{% endif %}>All Types</option>
+            {% for task_type in task_types %}
+            <option value="{{ task_type }}" {% if current_filters.task_type == task_type %}selected{% endif %}>
+              {% if task_type == 'thread_creation' %}Thread Creation
+              {% elif task_type == 'live_reporting_start' %}Live Reporting Start
+              {% else %}{{ task_type }}{% endif %}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="state" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">State</label>
+          <select name="state" id="state" class="input-ecs">
+            <option value="all" {% if current_filters.state == 'all' %}selected{% endif %}>All States</option>
+            {% for state in task_states %}
+            <option value="{{ state }}" {% if current_filters.state == state %}selected{% endif %}>{{ state.title() }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="days" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Time Range</label>
+          <select name="days" id="days" class="input-ecs">
+            <option value="1" {% if current_filters.days == 1 %}selected{% endif %}>Last 24 Hours</option>
+            <option value="3" {% if current_filters.days == 3 %}selected{% endif %}>Last 3 Days</option>
+            <option value="7" {% if current_filters.days == 7 %}selected{% endif %}>Last 7 Days</option>
+            <option value="14" {% if current_filters.days == 14 %}selected{% endif %}>Last 14 Days</option>
+            <option value="30" {% if current_filters.days == 30 %}selected{% endif %}>Last 30 Days</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="submit"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg flex-1
+                         bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-search" aria-hidden="true"></i> Apply
+          </button>
+          <a href="{{ url_for('admin_panel.mls_task_monitoring') }}"
+             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-10 px-4 rounded-lg
+                    bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm font-semibold
+                    hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-reload" aria-hidden="true"></i> Reset
+          </a>
+        </div>
+      </form>
+    </div>
+  {% endcall %}
+
+  <!-- Tasks Table -->
+  {% set _table_footer %}
+    <span class="flex items-center gap-2">
+      <span id="autoRefreshBadge" onclick="toggleAutoRefresh()"
+            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full cursor-pointer
+                   bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+            role="button" tabindex="0">
+        <i class="ti ti-refresh" aria-hidden="true"></i> Auto-refresh: ON
+      </span>
+    </span>
+    <button onclick="location.reload()"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                   bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-xs font-semibold
+                   hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-reload" aria-hidden="true"></i> Refresh
+    </button>
+  {% endset %}
+  {% call data_table('Scheduled Tasks', icon='ti-list-check', count=tasks|length, filters=false, footer=_table_footer) %}
+    {% if tasks %}
+    <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+      <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+        <tr>
+          <th scope="col" class="px-4 py-3">ID</th>
+          <th scope="col" class="px-4 py-3">Type</th>
+          <th scope="col" class="px-4 py-3">Match</th>
+          <th scope="col" class="px-4 py-3">Scheduled Time</th>
+          <th scope="col" class="px-4 py-3">State</th>
+          <th scope="col" class="px-4 py-3">Retry</th>
+          <th scope="col" class="px-4 py-3">Last Error</th>
+          <th scope="col" class="px-4 py-3 text-right">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tasks-table-body">
+        {% for task in tasks %}
+        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 {% if task.is_overdue %}bg-yellow-50 dark:bg-yellow-900/20{% endif %}">
+          <td class="px-4 py-3">
+            <span class="px-2 py-0.5 text-xs font-medium font-mono bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">#{{ task.id }}</span>
+          </td>
+          <td class="px-4 py-3">
+            {% if task.task_type == 'thread_creation' %}
+            <span class="text-cyan-600 dark:text-cyan-400"><i class="ti ti-message-circle mr-1"></i>Thread</span>
+            {% elif task.task_type == 'live_reporting_start' %}
+            <span class="text-yellow-600 dark:text-yellow-400"><i class="ti ti-broadcast mr-1"></i>Live</span>
+            {% else %}
+            {{ task.task_type }}
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if task.match %}
+            <div>
+              <span class="font-medium text-gray-900 dark:text-white">{{ task.match.opponent }}</span>
+              {% if task.match.date_time %}
+              <br><span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ task.match.date_time | replace('T', ' ') | replace('Z', '') | truncate(16, True, '') }}</span>
+              {% endif %}
+            </div>
+            {% else %}
+            <span class="text-gray-400">Unknown</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 whitespace-nowrap font-mono">
+            {{ task.scheduled_time | replace('T', ' ') | replace('Z', '') | truncate(16, True, '') }}
+            {% if task.is_overdue %}
+            <br><span class="px-2 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">
+              <i class="ti ti-clock-exclamation mr-1"></i>Overdue
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if task.state == 'scheduled' %}
+            <span class="px-2.5 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 rounded dark:bg-cyan-900 dark:text-cyan-300">
+              <i class="ti ti-clock mr-1"></i>Scheduled
+            </span>
+            {% elif task.state == 'running' %}
+            <span class="px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300">
+              <i class="ti ti-player-play mr-1"></i>Running
+            </span>
+            {% elif task.state == 'completed' %}
+            <span class="px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300">
+              <i class="ti ti-check mr-1"></i>Completed
+            </span>
+            {% elif task.state == 'failed' %}
+            <span class="px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300">
+              <i class="ti ti-x mr-1"></i>Failed
+            </span>
+            {% elif task.state == 'expired' %}
+            <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-clock-off mr-1"></i>Expired
+            </span>
+            {% elif task.state == 'paused' %}
+            <span class="px-2.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded dark:bg-purple-900 dark:text-purple-300">
+              <i class="ti ti-player-pause mr-1"></i>Paused
+            </span>
+            {% else %}
+            <span class="px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">{{ task.state }}</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if task.retry_count > 0 %}
+            <span class="px-2 py-0.5 text-xs font-medium font-mono bg-yellow-100 text-yellow-800 rounded dark:bg-yellow-900 dark:text-yellow-300">{{ task.retry_count }}</span>
+            {% else %}
+            <span class="text-gray-400 font-mono">0</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            {% if task.last_error %}
+            <button type="button" class="text-xs text-red-600 dark:text-red-400 hover:underline cursor-pointer text-left"
+                    data-modal-target="errorDetailModal"
+                    data-modal-toggle="errorDetailModal"
+                    data-action="show-error-detail"
+                    data-task-id="{{ task.id }}"
+                    data-task-type="{{ task.task_type }}"
+                    data-match-name="{{ task.match.opponent if task.match else 'Unknown' }}"
+                    data-error="{{ task.last_error }}"
+                    data-updated-at="{{ task.updated_at }}"
+                    title="Click to view full error">
+              {{ task.last_error | truncate(40, True, '...') }}
+            </button>
+            {% else %}
+            <span class="text-gray-400">-</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex gap-1 justify-end">
+              {% if task.state in ['failed', 'expired'] %}
+              <button onclick="retryTask({{ task.id }})" class="p-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-gray-700" title="Retry Task" aria-label="Retry Task">
+                <i class="ti ti-reload"></i>
+              </button>
+              {% endif %}
+              {% if task.state == 'scheduled' %}
+              <button onclick="pauseTask({{ task.id }})" class="p-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-purple-600 hover:bg-purple-100 rounded dark:text-purple-400 dark:hover:bg-gray-700" title="Pause Task" aria-label="Pause Task">
+                <i class="ti ti-player-pause"></i>
+              </button>
+              {% endif %}
+              {% if task.state == 'paused' %}
+              <button onclick="resumeTask({{ task.id }})" class="p-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 hover:bg-green-100 rounded dark:text-green-400 dark:hover:bg-gray-700" title="Resume Task" aria-label="Resume Task">
+                <i class="ti ti-player-play"></i>
+              </button>
+              {% endif %}
+              {% if task.state in ['scheduled', 'failed', 'paused'] %}
+              <button onclick="expireTask({{ task.id }})" class="p-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700" title="Expire Task" aria-label="Expire Task">
+                <i class="ti ti-clock-off"></i>
+              </button>
+              {% endif %}
+              <a href="{{ url_for('admin_panel.match_debug', match_id=task.match_id) }}" class="p-1.5 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-cyan-600 hover:bg-cyan-100 rounded dark:text-cyan-400 dark:hover:bg-gray-700" title="Debug Match" target="_blank" aria-label="Debug Match">
+                <i class="ti ti-bug"></i>
+              </a>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <!-- Mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for task in tasks %}
+      <div class="px-4 py-3.5 {% if task.is_overdue %}bg-yellow-50 dark:bg-yellow-900/20{% endif %}">
+        <div class="flex items-center justify-between gap-2">
+          <span class="inline-flex items-center gap-2 min-w-0">
+            <span class="px-2 py-0.5 text-xs font-medium font-mono bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">#{{ task.id }}</span>
+            <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">
+              {% if task.task_type == 'thread_creation' %}Thread
+              {% elif task.task_type == 'live_reporting_start' %}Live
+              {% else %}{{ task.task_type }}{% endif %}
+            </span>
+          </span>
+          {% if task.state == 'scheduled' %}
+          <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium bg-cyan-100 text-cyan-800 rounded dark:bg-cyan-900 dark:text-cyan-300"><i class="ti ti-clock mr-1"></i>Scheduled</span>
+          {% elif task.state == 'running' %}
+          <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded dark:bg-blue-900 dark:text-blue-300"><i class="ti ti-player-play mr-1"></i>Running</span>
+          {% elif task.state == 'completed' %}
+          <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded dark:bg-green-900 dark:text-green-300"><i class="ti ti-check mr-1"></i>Completed</span>
+          {% elif task.state == 'failed' %}
+          <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium bg-red-100 text-red-800 rounded dark:bg-red-900 dark:text-red-300"><i class="ti ti-x mr-1"></i>Failed</span>
+          {% elif task.state == 'expired' %}
+          <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock-off mr-1"></i>Expired</span>
+          {% elif task.state == 'paused' %}
+          <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded dark:bg-purple-900 dark:text-purple-300"><i class="ti ti-player-pause mr-1"></i>Paused</span>
+          {% else %}
+          <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded dark:bg-gray-700 dark:text-gray-300">{{ task.state }}</span>
+          {% endif %}
+        </div>
+        <div class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+          <p><i class="ti ti-ballpen mr-1" aria-hidden="true"></i>{{ task.match.opponent if task.match else 'Unknown' }}</p>
+          <p class="font-mono"><i class="ti ti-calendar mr-1" aria-hidden="true"></i>{{ task.scheduled_time | replace('T', ' ') | replace('Z', '') | truncate(16, True, '') }}{% if task.is_overdue %} <span class="text-yellow-600 dark:text-yellow-400">(Overdue)</span>{% endif %}</p>
+          {% if task.retry_count > 0 %}<p><i class="ti ti-repeat mr-1" aria-hidden="true"></i>Retries: <span class="font-mono">{{ task.retry_count }}</span></p>{% endif %}
+          {% if task.last_error %}
+          <p>
+            <button type="button" class="text-xs text-red-600 dark:text-red-400 hover:underline cursor-pointer text-left"
+                    data-modal-target="errorDetailModal"
+                    data-modal-toggle="errorDetailModal"
+                    data-action="show-error-detail"
+                    data-task-id="{{ task.id }}"
+                    data-task-type="{{ task.task_type }}"
+                    data-match-name="{{ task.match.opponent if task.match else 'Unknown' }}"
+                    data-error="{{ task.last_error }}"
+                    data-updated-at="{{ task.updated_at }}"
+                    title="Click to view full error">
+              <i class="ti ti-alert-circle mr-1" aria-hidden="true"></i>{{ task.last_error | truncate(40, True, '...') }}
+            </button>
+          </p>
+          {% endif %}
+        </div>
+        <div class="mt-2 flex gap-1">
+          {% if task.state in ['failed', 'expired'] %}
+          <button onclick="retryTask({{ task.id }})" class="p-1.5 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded dark:text-blue-400 dark:hover:bg-gray-700" title="Retry Task" aria-label="Retry Task"><i class="ti ti-reload"></i></button>
+          {% endif %}
+          {% if task.state == 'scheduled' %}
+          <button onclick="pauseTask({{ task.id }})" class="p-1.5 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-purple-600 hover:bg-purple-100 rounded dark:text-purple-400 dark:hover:bg-gray-700" title="Pause Task" aria-label="Pause Task"><i class="ti ti-player-pause"></i></button>
+          {% endif %}
+          {% if task.state == 'paused' %}
+          <button onclick="resumeTask({{ task.id }})" class="p-1.5 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 hover:bg-green-100 rounded dark:text-green-400 dark:hover:bg-gray-700" title="Resume Task" aria-label="Resume Task"><i class="ti ti-player-play"></i></button>
+          {% endif %}
+          {% if task.state in ['scheduled', 'failed', 'paused'] %}
+          <button onclick="expireTask({{ task.id }})" class="p-1.5 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded dark:text-gray-400 dark:hover:bg-gray-700" title="Expire Task" aria-label="Expire Task"><i class="ti ti-clock-off"></i></button>
+          {% endif %}
+          <a href="{{ url_for('admin_panel.match_debug', match_id=task.match_id) }}" class="p-1.5 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-cyan-600 hover:bg-cyan-100 rounded dark:text-cyan-400 dark:hover:bg-gray-700" title="Debug Match" target="_blank" aria-label="Debug Match"><i class="ti ti-bug"></i></a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state('ti-list-check', 'No tasks found', 'No tasks match the current filters.', action={'label': 'Reset Filters', 'url': url_for('admin_panel.mls_task_monitoring'), 'icon': 'ti-reload'}) }}
+    {% endif %}
+  {% endcall %}
+
+</div>
+
+<!-- Error Detail Modal -->
+<div id="errorDetailModal" tabindex="-1" aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-2xl max-h-full">
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-alert-circle text-red-500 mr-2"></i>Error Details
+                </h3>
+                <button type="button" class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white" data-modal-hide="errorDetailModal">
+                    <i class="ti ti-x text-xl"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Task ID</span>
+                        <p class="text-gray-900 dark:text-white font-mono" id="errorTaskId">-</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Task Type</span>
+                        <p class="text-gray-900 dark:text-white" id="errorTaskType">-</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Match</span>
+                        <p class="text-gray-900 dark:text-white" id="errorMatchName">-</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Timestamp</span>
+                        <p class="text-gray-900 dark:text-white font-mono" id="errorTimestamp">-</p>
+                    </div>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Full Error Message</span>
+                    <pre class="mt-2 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-800 dark:text-red-200 overflow-x-auto whitespace-pre-wrap break-words max-h-64 overflow-y-auto" id="errorFullMessage">-</pre>
+                </div>
+            </div>
+            <div class="flex items-center justify-end p-4 border-t border-gray-200 dark:border-gray-600 gap-2">
+                <button type="button" class="px-4 py-2 text-sm font-medium text-gray-900 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:bg-gray-700" data-modal-hide="errorDetailModal">
+                    Close
+                </button>
+                <button type="button" class="px-4 py-2 text-sm font-medium text-white bg-ecs-green rounded-lg hover:bg-ecs-green-700" id="errorRetryBtn">
+                    <i class="ti ti-reload mr-1"></i>Retry Task
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
 <!-- Stats Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 text-center">
@@ -313,6 +661,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <script>
 let autoRefresh = true;

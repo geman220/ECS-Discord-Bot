@@ -20,6 +20,175 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state, alert as kit_alert %}
+<div data-page="sms-analytics">
+
+  {{ page_header("SMS Analytics & Costs", subtitle="Communication") }}
+
+  <div class="space-y-5 sm:space-y-6">
+    {% if error %}
+      {{ kit_alert('danger', error) }}
+    {% endif %}
+
+    {# ---- Period overview: messages, cost, delivery rate per window ---- #}
+    {% set windows = [
+      {'key': 'today', 'label': 'Today', 'icon': 'ti-calendar-event', 'tone': 'info'},
+      {'key': 'week',  'label': 'This Week', 'icon': 'ti-calendar-week', 'tone': 'primary'},
+      {'key': 'month', 'label': 'Last 30 Days', 'icon': 'ti-calendar-month', 'tone': 'success'}
+    ] %}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {% for w in windows %}
+        {% set period = stats[w.key] %}
+        {% call stat_card(w.icon, w.label, period.count, sublabel="messages sent", tone=w.tone) %}
+          <div class="flex items-center justify-between">
+            <span>Est. cost</span>
+            <span class="font-mono font-semibold text-green-600 dark:text-green-400">${{ "%.2f"|format(period.estimated_cost) }}</span>
+          </div>
+          <div class="mt-1 flex items-center justify-between">
+            <span>Delivery rate</span>
+            {% if period.delivery_rate >= 95 %}
+              <span class="inline-flex items-center gap-1 font-mono font-semibold text-green-600 dark:text-green-400"><i class="ti ti-circle-check" aria-hidden="true"></i>{{ period.delivery_rate }}%</span>
+            {% elif period.delivery_rate >= 80 %}
+              <span class="inline-flex items-center gap-1 font-mono font-semibold text-amber-600 dark:text-amber-400"><i class="ti ti-alert-triangle" aria-hidden="true"></i>{{ period.delivery_rate }}%</span>
+            {% else %}
+              <span class="inline-flex items-center gap-1 font-mono font-semibold text-red-600 dark:text-red-400"><i class="ti ti-alert-octagon" aria-hidden="true"></i>{{ period.delivery_rate }}%</span>
+            {% endif %}
+          </div>
+        {% endcall %}
+      {% endfor %}
+    </div>
+
+    {# ---- Delivery KPI band (last 30 days) ---- #}
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {{ stat_card("ti-circle-check", "Delivered (30d)", stats.month.delivered, tone='success') }}
+      {{ stat_card("ti-alert-octagon", "Failed (30d)", stats.month.failed, tone='danger') }}
+      {{ stat_card("ti-message", "Total SMS (30d)", stats.month.count, tone='info') }}
+      {{ stat_card("ti-currency-dollar", "Est. Cost (30d)", "$%.2f"|format(stats.month.estimated_cost), tone='gold') }}
+    </div>
+
+    {# ---- Breakdown + trend ---- #}
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+      {% call section_card("Message Types (Last 30 Days)", icon="ti-chart-pie") %}
+        {% if stats.type_breakdown %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+          {% for item in stats.type_breakdown %}
+          <li class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3">
+            <div class="flex items-center gap-3 min-w-0">
+              {% if item.type == 'verification' %}
+              <i class="ti ti-shield-check text-blue-500 dark:text-blue-400 shrink-0" aria-hidden="true"></i>
+              {% elif item.type == 'reminder' %}
+              <i class="ti ti-bell text-amber-500 dark:text-amber-400 shrink-0" aria-hidden="true"></i>
+              {% elif item.type == 'rsvp_confirmation' %}
+              <i class="ti ti-calendar-check text-green-500 dark:text-green-400 shrink-0" aria-hidden="true"></i>
+              {% elif item.type == 'admin_direct' %}
+              <i class="ti ti-user-shield text-purple-500 dark:text-purple-400 shrink-0" aria-hidden="true"></i>
+              {% elif item.type == 'announcement' %}
+              <i class="ti ti-speakerphone text-orange-500 dark:text-orange-400 shrink-0" aria-hidden="true"></i>
+              {% else %}
+              <i class="ti ti-message text-gray-500 dark:text-gray-400 shrink-0" aria-hidden="true"></i>
+              {% endif %}
+              <span class="text-sm font-medium text-gray-900 dark:text-white capitalize truncate">{{ item.type | replace('_', ' ') }}</span>
+            </div>
+            <div class="flex items-center gap-4 shrink-0">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300">{{ item.count }} SMS</span>
+              <span class="text-sm font-mono font-medium text-green-600 dark:text-green-400">${{ "%.2f"|format(item.cost) }}</span>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+          {{ empty_state("ti-chart-pie", "No SMS data yet", "Message-type breakdown appears once SMS messages are sent through the system.") }}
+        {% endif %}
+      {% endcall %}
+
+      {% call section_card("Daily Volume (Last 14 Days)", icon="ti-chart-line") %}
+        {% if stats.daily_stats %}
+        {% set max_count = stats.daily_stats | map(attribute='count') | max %}
+        <div class="px-4 sm:px-5 py-4 space-y-2.5">
+          {% for day in stats.daily_stats %}
+          <div class="flex items-center gap-3">
+            <span class="text-xs font-mono text-gray-500 dark:text-gray-400 w-24 shrink-0">{{ day.date }}</span>
+            <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+              <div class="bg-ecs-green h-2.5 rounded-full w-0" data-bar-fill data-pct="{{ ((day.count / max_count * 100) if max_count > 0 else 0)|round(1) }}"></div>
+            </div>
+            <span class="text-xs font-mono font-medium text-gray-900 dark:text-white w-16 text-right shrink-0">{{ day.count }} SMS</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+          {{ empty_state("ti-chart-line", "No daily data yet", "Daily SMS volume appears once messages start sending.") }}
+        {% endif %}
+      {% endcall %}
+    </div>
+
+    {# ---- Recent SMS activity ---- #}
+    {% if recent_logs %}
+    {% call data_table("Recent SMS Activity", icon="ti-list", count=recent_logs|length, search_placeholder="Filter activity…", search_id="smsLogFilter") %}
+      <table class="hidden md:table w-full text-sm text-left">
+        <thead class="border-b border-gray-200 dark:border-gray-700">
+          <tr>
+            {{ data_table_th("Time", key="time") }}
+            {{ data_table_th("Type", key="type") }}
+            {{ data_table_th("Status", key="status") }}
+            {{ data_table_th("Source", key="source", hide="sm") }}
+            {{ data_table_th("Est. Cost", key="cost", align="right") }}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for log in recent_logs %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+            <td class="px-3 py-3 whitespace-nowrap font-mono text-xs text-gray-500 dark:text-gray-400">{{ log.sent_at.strftime('%Y-%m-%d %H:%M') if log.sent_at else 'N/A' }}</td>
+            <td class="px-3 py-3">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                {% if log.message_type == 'verification' %}bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300
+                {% elif log.message_type == 'reminder' %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300
+                {% elif log.message_type == 'rsvp_confirmation' %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300
+                {% elif log.message_type == 'admin_direct' %}bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300
+                {% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+                {{ log.message_type | replace('_', ' ') | capitalize }}
+              </span>
+            </td>
+            <td class="px-3 py-3">
+              {% if log.twilio_status == 'delivered' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300"><i class="ti ti-circle-check" aria-hidden="true"></i>Delivered</span>
+              {% elif log.twilio_status in ['failed', 'undelivered'] %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"><i class="ti ti-alert-octagon" aria-hidden="true"></i>{{ log.twilio_status | capitalize }}</span>
+              {% elif log.twilio_status == 'sent' %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"><i class="ti ti-send" aria-hidden="true"></i>Sent</span>
+              {% else %}
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock" aria-hidden="true"></i>{{ log.twilio_status | capitalize if log.twilio_status else 'Pending' }}</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 hidden md:table-cell text-xs text-gray-500 dark:text-gray-400">{{ log.source | replace('_', ' ') | capitalize if log.source else 'Unknown' }}</td>
+            <td class="px-3 py-3 text-right font-mono text-xs font-medium text-green-600 dark:text-green-400">${{ "%.4f"|format(log.cost_estimate) if log.cost_estimate else '0.0000' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for log in recent_logs %}
+        {% call data_table_row_card(log.message_type | replace('_', ' ') | capitalize) %}
+          <div class="flex items-center justify-between"><span>Time</span><span class="font-mono">{{ log.sent_at.strftime('%Y-%m-%d %H:%M') if log.sent_at else 'N/A' }}</span></div>
+          <div class="flex items-center justify-between"><span>Status</span><span>{{ log.twilio_status | capitalize if log.twilio_status else 'Pending' }}</span></div>
+          <div class="flex items-center justify-between"><span>Source</span><span>{{ log.source | replace('_', ' ') | capitalize if log.source else 'Unknown' }}</span></div>
+          <div class="flex items-center justify-between"><span>Est. cost</span><span class="font-mono text-green-600 dark:text-green-400">${{ "%.4f"|format(log.cost_estimate) if log.cost_estimate else '0.0000' }}</span></div>
+        {% endcall %}
+        {% endfor %}
+      </div>
+    {% endcall %}
+    {% else %}
+      {{ empty_state("ti-inbox", "No SMS logs found", "SMS tracking starts when messages are sent through the system.") }}
+    {% endif %}
+
+    {# ---- Cost-tracking note ---- #}
+    {{ kit_alert('info', "Costs shown are estimates based on Twilio's standard rate of $0.0079 per SMS segment. Actual costs may vary based on your Twilio pricing plan. Delivery status updates are received via webhook from Twilio.", title="SMS Cost Tracking:", dismissible=False) }}
+  </div>
+</div>
+
+{% else %}
+{# ===================== Classic (unchanged) ===================== #}
 {% if error %}
 <div class="p-4 mb-6 text-sm text-red-800 rounded-lg bg-red-50 dark:bg-red-900/50 dark:text-red-300">
     <div class="flex items-start">
@@ -320,4 +489,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

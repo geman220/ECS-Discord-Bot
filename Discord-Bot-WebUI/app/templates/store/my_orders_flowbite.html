@@ -3,6 +3,108 @@
 {% block title %}My Orders{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% import "macros/_modern_kit.html" as kit %}
+{% from "macros/flowbite.html" import badge %}
+{% set status_map = {
+    'PENDING':    {'variant': 'warning', 'label': 'Pending'},
+    'PROCESSING': {'variant': 'info',    'label': 'Processing'},
+    'ORDERED':    {'variant': 'primary', 'label': 'Ordered'},
+    'DELIVERED':  {'variant': 'success', 'label': 'Delivered'},
+    'CANCELLED':  {'variant': 'danger',  'label': 'Cancelled'}
+} %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+  {% call kit.page_header('My Orders', subtitle='Order history and status') %}
+    <a href="{{ url_for('store.index') }}"
+       class="inline-flex items-center justify-center gap-2 min-h-[44px] sm:h-9 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to Store
+    </a>
+  {% endcall %}
+
+  {% if orders %}
+    {% set pending_count = orders|selectattr('status', 'in', ['PENDING', 'PROCESSING', 'ORDERED'])|list|length %}
+    {% set delivered_count = orders|selectattr('status', 'equalto', 'DELIVERED')|list|length %}
+
+    {# KPI band #}
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+      {{ kit.stat_card('ti-list', 'Total Orders', orders|length, sublabel='placed', tone='primary') }}
+      {{ kit.stat_card('ti-clock', 'In Progress', pending_count, sublabel='not yet delivered', tone=('info' if pending_count > 0 else 'neutral')) }}
+      {{ kit.stat_card('ti-package', 'Delivered', delivered_count, sublabel='completed', tone=('success' if delivered_count > 0 else 'neutral')) }}
+    </div>
+
+    {% call kit.data_table('Order History', icon='ti-receipt', count=orders|length, search_placeholder='Filter orders…', search_id='ordersFilter') %}
+      {# Desktop table #}
+      <table class="hidden md:table w-full text-sm" data-modern-table-el>
+        <thead>
+          <tr class="border-b border-gray-200 dark:border-gray-700">
+            {{ kit.data_table_th('Order', key='id') }}
+            {{ kit.data_table_th('Item', key='item') }}
+            {{ kit.data_table_th('Details', key='details', sortable=False, hide='sm') }}
+            {{ kit.data_table_th('Status', key='status') }}
+            {{ kit.data_table_th('Order Date', key='date', hide='sm') }}
+            {{ kit.data_table_th('Notes', key='notes', sortable=False, hide='md') }}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for order in orders %}
+          {% set st = status_map.get(order.status) %}
+          <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row>
+            <td class="px-3 py-3 font-mono font-semibold text-gray-900 dark:text-white">#{{ order.id }}</td>
+            <td class="px-3 py-3">
+              <span class="font-semibold text-gray-900 dark:text-white">{{ order.item.name if order.item else 'Unknown Item' }}</span>
+              <span class="block text-xs text-gray-500 dark:text-gray-400 font-mono">Qty: {{ order.quantity }}</span>
+            </td>
+            <td class="px-3 py-3 hidden md:table-cell">
+              {% if order.selected_color %}{{ badge(order.selected_color, variant='info', size='sm') }}{% endif %}
+              {% if order.selected_size %}{{ badge(order.selected_size, variant='default', size='sm') }}{% endif %}
+              {% if not order.selected_color and not order.selected_size %}<span class="text-gray-400 dark:text-gray-500">—</span>{% endif %}
+            </td>
+            <td class="px-3 py-3">
+              {% if st %}{{ badge(st.label, variant=st.variant, size='sm') }}{% endif %}
+            </td>
+            <td class="px-3 py-3 hidden md:table-cell text-gray-600 dark:text-gray-300">
+              <span class="font-mono text-xs">{{ format_pacific_time_short(order.order_date) if order.order_date else '' }}</span>
+              {% if order.processed_by %}
+              <span class="block text-xs text-gray-500 dark:text-gray-400">Processed by {{ order.processor.username if order.processor else 'Unknown' }}</span>
+              {% endif %}
+            </td>
+            <td class="px-3 py-3 hidden lg:table-cell">
+              {% if order.notes %}
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ order.notes[:50] }}{% if order.notes|length > 50 %}…{% endif %}</span>
+              {% else %}
+              <span class="text-gray-400 dark:text-gray-500">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {# Mobile stacked cards #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for order in orders %}
+        {% set st = status_map.get(order.status) %}
+        {% call kit.data_table_row_card(order.item.name if order.item else 'Unknown Item', badge=(badge(st.label, variant=st.variant, size='sm') if st else none)) %}
+          <span class="block font-mono">#{{ order.id }} · Qty {{ order.quantity }}</span>
+          {% if order.selected_color or order.selected_size %}
+          <span class="block">
+            {% if order.selected_color %}{{ badge(order.selected_color, variant='info', size='sm') }}{% endif %}
+            {% if order.selected_size %}{{ badge(order.selected_size, variant='default', size='sm') }}{% endif %}
+          </span>
+          {% endif %}
+          {% if order.order_date %}<span class="block font-mono">{{ format_pacific_time_short(order.order_date) }}</span>{% endif %}
+          {% if order.processed_by %}<span class="block">Processed by {{ order.processor.username if order.processor else 'Unknown' }}</span>{% endif %}
+          {% if order.notes %}<span class="block">{{ order.notes[:50] }}{% if order.notes|length > 50 %}…{% endif %}</span>{% endif %}
+        {% endcall %}
+        {% endfor %}
+      </div>
+    {% endcall %}
+  {% else %}
+    {{ kit.empty_state('ti-shopping-cart-off', 'No Orders Yet', "You haven't placed any orders yet. Start shopping to see your order history here.", action={'label': 'Start Shopping', 'url': url_for('store.index'), 'icon': 'ti-shopping-cart'}) }}
+  {% endif %}
+</div>
+{% else %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -98,4 +200,5 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}

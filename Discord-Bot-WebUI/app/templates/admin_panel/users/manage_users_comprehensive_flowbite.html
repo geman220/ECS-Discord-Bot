@@ -14,6 +14,467 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_filter_bar, data_table_row_card, empty_state, modal as kit_modal %}
+{% from 'macros/flowbite.html' import input, select, badge as fb_badge %}
+
+{% macro role_chip(name) %}
+<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium {% if 'admin' in name.lower() %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% elif 'coach' in name.lower() %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% else %}bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300{% endif %}">{{ name }}</span>
+{% endmacro %}
+
+<div class="space-y-6">
+  {{ page_header('Users', subtitle='Browse, search, and manage all users') }}
+
+  {# ---- KPI band ---- #}
+  <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+    {{ stat_card('ti-users', 'Total Users', stats.total_users, tone='primary') }}
+    {{ stat_card('ti-user-check', 'Approved', stats.approved_users, tone='success') }}
+    {{ stat_card('ti-user-question', 'Pending', stats.pending_approval, tone='warning') }}
+    {{ stat_card('ti-user-bolt', 'Active', stats.active_users, tone='info') }}
+    {{ stat_card('ti-user-plus', 'This Month', stats.recent_registrations, tone='neutral') }}
+    <a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="block focus:outline-none focus:ring-2 focus:ring-ecs-green rounded-xl">
+      {{ stat_card('ti-shield-check', 'Total Roles', stats.total_roles or Role.query.count(), sublabel='manage', tone='gold') }}
+    </a>
+  </div>
+
+  {# ---- Filters (progressive disclosure) + active-filter chips ----
+       Native <details> = accessible, JS-free; GET form + every field id/name preserved verbatim.
+       Default-open only when no filter is set so a returning admin sees their active query as chips. #}
+  {% set _active_filters = (search and search|trim) or role_filter or approved_filter or active_filter or league_filter %}
+  {% set league_name = (leagues|selectattr('id','equalto', league_filter)|map(attribute='name')|first) if league_filter else None %}
+  <details id="filterDisclosure" class="group rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden" {% if not _active_filters %}open{% endif %}>
+    <summary class="flex items-center justify-between gap-2 px-4 sm:px-5 h-12 cursor-pointer select-none list-none focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+      <span class="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">
+        <i class="ti ti-filter text-ecs-green" aria-hidden="true"></i>Filters
+        {% if _active_filters %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green dark:text-green-400 normal-case tracking-normal"><i class="ti ti-point-filled text-[10px]" aria-hidden="true"></i>active</span>{% endif %}
+      </span>
+      <i class="ti ti-chevron-down text-gray-400 transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true"></i>
+    </summary>
+    {% if _active_filters %}
+    <div class="flex flex-wrap items-center gap-1.5 px-4 sm:px-5 pb-3 -mt-1">
+      {% if search and search|trim %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-search text-[11px]" aria-hidden="true"></i>{{ search }}</span>{% endif %}
+      {% if role_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-shield text-[11px]" aria-hidden="true"></i>{{ role_filter }}</span>{% endif %}
+      {% if approved_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-user-check text-[11px]" aria-hidden="true"></i>{{ 'Approved' if approved_filter == 'true' else 'Pending' }}</span>{% endif %}
+      {% if active_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-bolt text-[11px]" aria-hidden="true"></i>{{ 'Active' if active_filter == 'true' else 'Inactive' }}</span>{% endif %}
+      {% if league_filter %}<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-trophy text-[11px]" aria-hidden="true"></i>{{ league_name or league_filter }}</span>{% endif %}
+      <a href="{{ url_for('admin_panel.users_comprehensive') }}" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"><i class="ti ti-x text-[11px]" aria-hidden="true"></i>Clear all</a>
+    </div>
+    {% endif %}
+    <form method="get" action="{{ url_for('admin_panel.users_comprehensive') }}" id="filterForm" class="px-4 sm:px-5 pb-4 pt-1 border-t border-gray-200 dark:border-gray-700 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+      {{ input('search', label='Search', value=search, placeholder='Name, username, or email') }}
+      {% set role_opts = [{'value': '', 'label': 'All Roles'}] %}
+      {% for role in roles %}{% set _ = role_opts.append({'value': role.name, 'label': role.name}) %}{% endfor %}
+      {{ select('role', label='Role', options=role_opts, selected=role_filter) }}
+      {{ select('approved', label='Approval Status', options=[{'value':'','label':'All'},{'value':'true','label':'Approved'},{'value':'false','label':'Pending'}], selected=approved_filter) }}
+      {{ select('active', label='Active Status', options=[{'value':'','label':'All'},{'value':'true','label':'Active'},{'value':'false','label':'Inactive'}], selected=active_filter) }}
+      {% set league_opts = [{'value': '', 'label': 'All Leagues'}] %}
+      {% for league in leagues %}{% set _ = league_opts.append({'value': league.id, 'label': league.name}) %}{% endfor %}
+      {{ select('league', label='League', options=league_opts, selected=league_filter) }}
+      <div class="flex items-end">
+        <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-search" aria-hidden="true"></i>Apply
+        </button>
+      </div>
+    </form>
+  </details>
+
+  {# ---- Command toolbar: ONE action surface docked above the table ----
+       Left = collection-level actions (roles, sync, export, bulk approve, bulk-on-selection).
+       Right = primary "Create New User". All data-action / dropdown hooks preserved verbatim. #}
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-wrap items-center gap-2">
+      {# Selection-aware bulk dropdown (reads as connected to the row checkboxes) #}
+      <button type="button" id="bulkActionsBtn" data-dropdown-toggle="bulkActionsDropdown" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-checklist" aria-hidden="true"></i>Bulk Actions
+        <i class="ti ti-chevron-down" aria-hidden="true"></i>
+      </button>
+      <div id="bulkActionsDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-48 dark:bg-gray-700 dark:divide-gray-600">
+        <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+          <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="bulk-action" data-bulk-action="approve"><i class="ti ti-user-check mr-2" aria-hidden="true"></i>Approve Selected</a></li>
+          <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="bulk-action" data-bulk-action="activate"><i class="ti ti-user-bolt mr-2" aria-hidden="true"></i>Activate Selected</a></li>
+          <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-amber-600 dark:text-amber-400" data-action="bulk-action" data-bulk-action="deactivate"><i class="ti ti-user-off mr-2" aria-hidden="true"></i>Deactivate Selected</a></li>
+          <li class="border-t border-gray-200 dark:border-gray-600"><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-red-600 dark:text-red-400" data-action="bulk-action" data-bulk-action="delete"><i class="ti ti-trash mr-2" aria-hidden="true"></i>Delete Selected</a></li>
+        </ul>
+      </div>
+      <button type="button" data-action="bulk-approve-users" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-user-check text-green-600 dark:text-green-400" aria-hidden="true"></i>Approve All Pending
+      </button>
+      {# Secondary utilities grouped under one kebab to cut clutter from the primary row #}
+      <button type="button" id="moreActionsBtn" data-dropdown-toggle="moreActionsDropdown" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-dots" aria-hidden="true"></i>More
+        <i class="ti ti-chevron-down" aria-hidden="true"></i>
+      </button>
+      <div id="moreActionsDropdown" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-52 dark:bg-gray-700 dark:divide-gray-600">
+        <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+          <li><a href="{{ url_for('admin_panel.roles_comprehensive') }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-shield-check mr-2" aria-hidden="true"></i>Manage Roles</a></li>
+          <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="sync-users"><i class="ti ti-refresh mr-2" aria-hidden="true"></i>Sync from WooCommerce</a></li>
+        </ul>
+        <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+          <li class="px-4 pt-1 pb-0.5 text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500">Export</li>
+          <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-users" data-export-type="all"><i class="ti ti-users mr-2" aria-hidden="true"></i>All Users</a></li>
+          <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-users" data-export-type="approved"><i class="ti ti-user-check mr-2" aria-hidden="true"></i>Approved Only</a></li>
+          <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="export-users" data-export-type="pending"><i class="ti ti-user-pause mr-2" aria-hidden="true"></i>Pending Only</a></li>
+        </ul>
+      </div>
+    </div>
+    <button type="button" data-action="create-user" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-user-plus" aria-hidden="true"></i>Create New User
+    </button>
+  </div>
+
+  {# ---- Users table (the hero) ---- #}
+  {% call data_table('Users', icon='ti-users', count=(pagination.total if pagination else users|length), search_placeholder='Filter loaded users…', search_id='userTableFilter', filters=False) %}
+    {% if users %}
+    <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+      <thead class="text-xs uppercase bg-gray-50 dark:bg-gray-700/50">
+        <tr>
+          <th scope="col" class="px-3 py-2.5 w-10">
+            <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all users">
+          </th>
+          {{ data_table_th('Player', key='player', sortable=False) }}
+          {{ data_table_th('Email', key='email', sortable=False, hide='md') }}
+          {{ data_table_th('Roles', key='roles', sortable=False, hide='sm') }}
+          {{ data_table_th('League/Team', key='team', sortable=False, hide='md') }}
+          {{ data_table_th('Status', key='status', sortable=False) }}
+          {{ data_table_th('Joined', key='joined', sortable=False, hide='md') }}
+          {{ data_table_th('Actions', key='actions', sortable=False, align='right') }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for user in users %}
+        <tr class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3">
+            <input type="checkbox" class="user-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ user.id }}" aria-label="Select user">
+          </td>
+          <td class="px-3 py-3">
+            <div class="flex items-center gap-3">
+              <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center">
+                {% set display_name = user.player.name if user.player and user.player.name else user.username %}
+                <span class="text-white font-bold">{{ display_name[0].upper() }}</span>
+              </div>
+              <div class="min-w-0">
+                {% if user.player and user.player.name %}
+                <p class="font-semibold text-gray-900 dark:text-white truncate">{{ user.player.name }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.username }}</p>
+                {% else %}
+                <p class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username }}</p>
+                {% endif %}
+              </div>
+            </div>
+          </td>
+          <td class="px-3 py-3 hidden lg:table-cell text-gray-700 dark:text-gray-300">{{ user.email }}</td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            <div class="flex flex-wrap gap-1">
+              {% for role in user.roles %}{{ role_chip(role.name) }}{% endfor %}
+              {% if not user.roles %}<span class="text-gray-400 text-xs">No roles</span>{% endif %}
+            </div>
+          </td>
+          <td class="px-3 py-3 hidden xl:table-cell">
+            {% if user.player %}
+              {% set all_leagues = [] %}
+              {% if user.player.primary_league %}{% set _ = all_leagues.append(user.player.primary_league) %}{% endif %}
+              {% for league in user.player.other_leagues if league not in all_leagues %}{% set _ = all_leagues.append(league) %}{% endfor %}
+              {% for league in all_leagues %}
+              <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-ecs-green/10 text-ecs-green dark:text-green-400 mr-1 mb-1">{{ league.name }}</span>
+              {% endfor %}
+              {% if user.player.teams %}
+                {% for team in user.player.teams %}
+                <p class="text-xs text-gray-500 dark:text-gray-400"><i class="ti ti-users text-xs mr-1" aria-hidden="true"></i>{{ team.name }}{% if team.league %} <span class="text-gray-400">({{ team.league.name }})</span>{% endif %}</p>
+                {% endfor %}
+              {% elif not all_leagues %}
+                <span class="inline-flex items-center gap-1 text-xs text-gray-400"><i class="ti ti-ban" aria-hidden="true"></i>No Team</span>
+              {% endif %}
+            {% else %}
+            <span class="text-gray-400">-</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            <div class="flex flex-wrap gap-1">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if user.is_approved %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}">
+                <i class="ti {{ 'ti-circle-check' if user.is_approved else 'ti-clock' }}" aria-hidden="true"></i>{{ 'Approved' if user.is_approved else 'Pending' }}
+              </span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if user.is_active %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% endif %}">
+                <i class="ti {{ 'ti-bolt' if user.is_active else 'ti-ban' }}" aria-hidden="true"></i>{{ 'Active' if user.is_active else 'Inactive' }}
+              </span>
+            </div>
+          </td>
+          <td class="px-3 py-3 hidden xl:table-cell">
+            {% if user.created_at %}<span class="text-xs font-mono">{{ user.created_at.strftime('%Y-%m-%d') }}</span>{% else %}<span class="text-gray-400">-</span>{% endif %}
+          </td>
+          <td class="px-3 py-3 text-right">
+            <button type="button" id="userActionsBtn{{ user.id }}" data-dropdown-toggle="userActionsDropdown{{ user.id }}" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="User actions">
+              <i class="ti ti-dots-vertical" aria-hidden="true"></i>
+            </button>
+            <div id="userActionsDropdown{{ user.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600 text-left">
+              <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-user" data-user-id="{{ user.id }}"><i class="ti ti-edit mr-2" aria-hidden="true"></i>Edit User</a></li>
+                {% if user.player %}
+                <li><a href="{{ url_for('players.player_profile', player_id=user.player.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-user mr-2" aria-hidden="true"></i>View Profile</a></li>
+                {% endif %}
+                {% if not user.is_approved %}
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="approve-user" data-user-id="{{ user.id }}"><i class="ti ti-user-check mr-2" aria-hidden="true"></i>Approve</a></li>
+                {% endif %}
+                {% if user.is_active %}
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-amber-600 dark:text-amber-400" data-action="deactivate-user" data-user-id="{{ user.id }}"><i class="ti ti-user-off mr-2" aria-hidden="true"></i>Deactivate</a></li>
+                {% else %}
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="activate-user" data-user-id="{{ user.id }}"><i class="ti ti-user-bolt mr-2" aria-hidden="true"></i>Activate</a></li>
+                {% endif %}
+                <li class="border-t border-gray-200 dark:border-gray-600"><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-red-600 dark:text-red-400" data-action="delete-user" data-user-id="{{ user.id }}"><i class="ti ti-trash mr-2" aria-hidden="true"></i>Delete User</a></li>
+              </ul>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# Mobile stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for user in users %}
+      {% set display_name = user.player.name if user.player and user.player.name else user.username %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-start gap-3">
+          <input type="checkbox" class="user-checkbox mt-1 w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600 shrink-0" value="{{ user.id }}" aria-label="Select user">
+          <div class="flex-shrink-0 w-10 h-10 rounded-full bg-ecs-green flex items-center justify-center">
+            <span class="text-white font-bold">{{ display_name[0].upper() }}</span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-gray-900 dark:text-white truncate">{{ display_name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ user.email }}</p>
+            <div class="flex flex-wrap gap-1 mt-1.5">
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if user.is_approved %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300{% endif %}">
+                <i class="ti {{ 'ti-circle-check' if user.is_approved else 'ti-clock' }}" aria-hidden="true"></i>{{ 'Approved' if user.is_approved else 'Pending' }}
+              </span>
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium {% if user.is_active %}bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300{% else %}bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300{% endif %}">
+                <i class="ti {{ 'ti-bolt' if user.is_active else 'ti-ban' }}" aria-hidden="true"></i>{{ 'Active' if user.is_active else 'Inactive' }}
+              </span>
+            </div>
+            {% if user.roles %}
+            <div class="flex flex-wrap gap-1 mt-1.5">
+              {% for role in user.roles[:3] %}{{ role_chip(role.name) }}{% endfor %}
+              {% if user.roles|length > 3 %}<span class="text-[10px] text-gray-400 self-center">+{{ user.roles|length - 3 }}</span>{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          <div class="shrink-0">
+            <button type="button" id="userActionsBtnM{{ user.id }}" data-dropdown-toggle="userActionsDropdownM{{ user.id }}" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" aria-label="User actions">
+              <i class="ti ti-dots-vertical" aria-hidden="true"></i>
+            </button>
+            <div id="userActionsDropdownM{{ user.id }}" class="z-10 hidden bg-white divide-y divide-gray-100 rounded-lg shadow w-44 dark:bg-gray-700 dark:divide-gray-600">
+              <ul class="py-2 text-sm text-gray-700 dark:text-gray-200">
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600" data-action="edit-user" data-user-id="{{ user.id }}"><i class="ti ti-edit mr-2" aria-hidden="true"></i>Edit User</a></li>
+                {% if user.player %}
+                <li><a href="{{ url_for('players.player_profile', player_id=user.player.id) }}" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600"><i class="ti ti-user mr-2" aria-hidden="true"></i>View Profile</a></li>
+                {% endif %}
+                {% if not user.is_approved %}
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="approve-user" data-user-id="{{ user.id }}"><i class="ti ti-user-check mr-2" aria-hidden="true"></i>Approve</a></li>
+                {% endif %}
+                {% if user.is_active %}
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-amber-600 dark:text-amber-400" data-action="deactivate-user" data-user-id="{{ user.id }}"><i class="ti ti-user-off mr-2" aria-hidden="true"></i>Deactivate</a></li>
+                {% else %}
+                <li><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-green-600 dark:text-green-400" data-action="activate-user" data-user-id="{{ user.id }}"><i class="ti ti-user-bolt mr-2" aria-hidden="true"></i>Activate</a></li>
+                {% endif %}
+                <li class="border-t border-gray-200 dark:border-gray-600"><a href="#" class="block px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 text-red-600 dark:text-red-400" data-action="delete-user" data-user-id="{{ user.id }}"><i class="ti ti-trash mr-2" aria-hidden="true"></i>Delete User</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    {{ empty_state('ti-users-off', 'No users found', 'No users match the current filters. Try adjusting your search criteria.') }}
+    {% endif %}
+
+    {% if pagination and pagination.pages > 1 %}
+    <nav class="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700" aria-label="Table navigation">
+      <span class="text-sm text-gray-500 dark:text-gray-400">
+        Page <span class="font-semibold text-gray-900 dark:text-white font-mono">{{ pagination.page }}</span> of <span class="font-semibold text-gray-900 dark:text-white font-mono">{{ pagination.pages }}</span>
+      </span>
+      <ul class="inline-flex items-center -space-x-px">
+        {% if pagination.has_prev %}
+        <li>
+          <a href="{{ url_for('admin_panel.users_comprehensive', page=pagination.prev_num, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+            <i class="ti ti-chevron-left" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% endif %}
+        {% for p in range(1, pagination.pages + 1) %}
+          {% if p >= pagination.page - 2 and p <= pagination.page + 2 %}
+          <li>
+            <a href="{{ url_for('admin_panel.users_comprehensive', page=p, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight border font-mono {% if p == pagination.page %}text-white bg-ecs-green border-ecs-green{% else %}text-gray-500 bg-white border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700{% endif %}">{{ p }}</a>
+          </li>
+          {% elif p == 1 or p == pagination.pages %}
+          <li>
+            <a href="{{ url_for('admin_panel.users_comprehensive', page=p, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight font-mono text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">{{ p }}</a>
+          </li>
+          {% elif p == pagination.page - 3 or p == pagination.page + 3 %}
+          <li><span class="px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400">...</span></li>
+          {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <li>
+          <a href="{{ url_for('admin_panel.users_comprehensive', page=pagination.next_num, search=search, role=role_filter, approved=approved_filter, active=active_filter, league=league_filter) }}" class="flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700">
+            <i class="ti ti-chevron-right" aria-hidden="true"></i>
+          </a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  {% endcall %}
+</div>
+
+{# ---- Edit User Modal (Modern kit modal; same form ids/names/hooks) ---- #}
+{% call kit_modal('editUserModal', 'Edit User', icon='ti-edit', size='xl') %}
+<form method="POST" action="" id="editUserForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" id="editUserId" name="user_id">
+  <div class="p-4 sm:p-5 space-y-4">
+    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+      <h6 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center"><i class="ti ti-user-circle mr-2 text-ecs-green" aria-hidden="true"></i>Account Information</h6>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label for="editUsername" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Username</label>
+          <input type="text" id="editUsername" name="username" required class="input-ecs w-full">
+        </div>
+        <div>
+          <label for="editEmail" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Email</label>
+          <input type="email" id="editEmail" name="email" required class="input-ecs w-full">
+        </div>
+        <div>
+          <label for="editRealName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Real Name</label>
+          <input type="text" id="editRealName" name="real_name" class="input-ecs w-full">
+        </div>
+        <div>
+          <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Account Status</label>
+          <div class="flex gap-4">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="editIsApproved" name="is_approved" class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+              <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Approved</span>
+            </label>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="editIsActive" name="is_active" class="sr-only peer">
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-ecs-green"></div>
+              <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+      <h6 class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center"><i class="ti ti-shield mr-2 text-ecs-green" aria-hidden="true"></i>Roles &amp; Permissions</h6>
+      <div id="editRolesContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {% for role in roles %}
+        <label class="flex items-center p-2 border border-gray-200 dark:border-gray-600 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600">
+          <input type="checkbox" name="roles" value="{{ role.id }}" data-role-id="{{ role.id }}" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+          <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ role.name }}</span>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div id="playerProfileSection" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h6 class="font-semibold text-gray-900 dark:text-white flex items-center"><i class="ti ti-ball-football mr-2 text-ecs-green" aria-hidden="true"></i>Player Profile</h6>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="editIsCurrentPlayer" name="is_current_player" class="sr-only peer">
+          <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-ecs-green"></div>
+          <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Active Player</span>
+        </label>
+      </div>
+      <div id="noPlayerMessage" class="hidden p-3 text-amber-800 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 rounded-lg text-sm">
+        <i class="ti ti-alert-circle mr-1" aria-hidden="true"></i>This user does not have a player profile.
+      </div>
+      <div id="playerFields" class="space-y-4">
+        <div class="text-xs text-gray-500 dark:text-gray-400 mb-2"><i class="ti ti-info-circle mr-1" aria-hidden="true"></i>Classic/Premier: 1 team each. ECS FC: multiple teams allowed.</div>
+
+        <div class="league-tier-section" data-tier="primary">
+          <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            <span class="inline-flex items-center justify-center w-5 h-5 mr-1 text-xs font-bold text-white bg-ecs-green rounded-full">1</span>Primary League
+          </label>
+          <select id="editPrimaryLeagueType" name="primary_league_type" class="league-type-select input-ecs w-full mb-2">
+            <option value="">None</option><option value="classic">Classic</option><option value="premier">Premier</option><option value="ecsfc">ECS FC</option>
+          </select>
+          <div id="primarySingleTeam" class="hidden">
+            <select id="editPrimaryTeam" name="primary_team_id" class="input-ecs w-full">
+              <option value="">Select Team</option>
+              {% for league in leagues %}{% for team in league.teams %}<option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>{% endfor %}{% endfor %}
+            </select>
+          </div>
+          <div id="primaryEcsFcTeams" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
+            {% for league in leagues %}{% if 'ECS FC' in league.name %}{% for team in league.teams %}
+            <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+              <input type="checkbox" name="primary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+              <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
+            </label>
+            {% endfor %}{% endif %}{% endfor %}
+          </div>
+        </div>
+
+        <div class="league-tier-section border-t border-gray-200 dark:border-gray-600 pt-4" data-tier="secondary">
+          <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            <span class="inline-flex items-center justify-center w-5 h-5 mr-1 text-xs font-bold text-white bg-gray-400 rounded-full">2</span>Secondary League <span class="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <select id="editSecondaryLeagueType" name="secondary_league_type" class="league-type-select input-ecs w-full mb-2">
+            <option value="">None</option><option value="classic">Classic</option><option value="premier">Premier</option><option value="ecsfc">ECS FC</option>
+          </select>
+          <div id="secondarySingleTeam" class="hidden">
+            <select id="editSecondaryTeam" name="secondary_team_id" class="input-ecs w-full">
+              <option value="">Select Team</option>
+              {% for league in leagues %}{% for team in league.teams %}<option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>{% endfor %}{% endfor %}
+            </select>
+          </div>
+          <div id="secondaryEcsFcTeams" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
+            {% for league in leagues %}{% if 'ECS FC' in league.name %}{% for team in league.teams %}
+            <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+              <input type="checkbox" name="secondary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+              <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
+            </label>
+            {% endfor %}{% endif %}{% endfor %}
+          </div>
+        </div>
+
+        <div class="league-tier-section border-t border-gray-200 dark:border-gray-600 pt-4" data-tier="tertiary">
+          <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+            <span class="inline-flex items-center justify-center w-5 h-5 mr-1 text-xs font-bold text-white bg-gray-300 rounded-full">3</span>Tertiary League <span class="text-gray-400 font-normal">(optional)</span>
+          </label>
+          <select id="editTertiaryLeagueType" name="tertiary_league_type" class="league-type-select input-ecs w-full mb-2">
+            <option value="">None</option><option value="classic">Classic</option><option value="premier">Premier</option><option value="ecsfc">ECS FC</option>
+          </select>
+          <div id="tertiarySingleTeam" class="hidden">
+            <select id="editTertiaryTeam" name="tertiary_team_id" class="input-ecs w-full">
+              <option value="">Select Team</option>
+              {% for league in leagues %}{% for team in league.teams %}<option value="{{ team.id }}" data-league="{{ league.id }}" data-league-name="{{ league.name }}">{{ team.name }}</option>{% endfor %}{% endfor %}
+            </select>
+          </div>
+          <div id="tertiaryEcsFcTeams" class="hidden grid grid-cols-2 sm:grid-cols-3 gap-1 max-h-32 overflow-y-auto">
+            {% for league in leagues %}{% if 'ECS FC' in league.name %}{% for team in league.teams %}
+            <label class="flex items-center p-1.5 border border-gray-200 dark:border-gray-600 rounded cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 text-xs">
+              <input type="checkbox" name="tertiary_ecsfc_teams" value="{{ team.id }}" data-team-id="{{ team.id }}" class="w-3 h-3 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-600 dark:border-gray-500">
+              <span class="ml-1.5 text-gray-700 dark:text-gray-300 truncate">{{ team.name }}</span>
+            </label>
+            {% endfor %}{% endif %}{% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-200 dark:border-gray-700">
+    <button type="button" data-modal-hide="editUserModal" class="modal-close-btn inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-x" aria-hidden="true"></i>Cancel
+    </button>
+    <button type="submit" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+      <i class="ti ti-device-floppy" aria-hidden="true"></i>Save Changes
+    </button>
+  </div>
+</form>
+{% endcall %}
+
+{% else %}
 <!-- Stats Cards -->
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
     <div class="rounded-lg p-4 bg-ecs-green text-white">
@@ -595,6 +1056,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

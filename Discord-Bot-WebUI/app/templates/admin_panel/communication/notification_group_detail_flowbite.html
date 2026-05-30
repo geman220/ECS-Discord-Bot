@@ -26,6 +26,225 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+<div class="max-w-7xl mx-auto space-y-6">
+  {% call page_header(group.name, subtitle=(group.description if group.description else 'Notification Group')) %}
+    <a href="{{ url_for('admin_panel.notification_groups_list') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+              bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300
+              text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Back to Groups</span>
+    </a>
+    <button type="button" id="editGroupBtn"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-edit" aria-hidden="true"></i><span>Edit Group</span>
+    </button>
+    {% if group.is_active %}
+    <button type="button" id="deactivateBtn"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                   bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-player-pause" aria-hidden="true"></i><span>Deactivate</span>
+    </button>
+    {% else %}
+    <button type="button" id="activateBtn"
+            class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                   bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition-colors
+                   focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-player-play" aria-hidden="true"></i><span>Activate</span>
+    </button>
+    {% endif %}
+  {% endcall %}
+
+  {# Type + status badges #}
+  <div class="flex flex-wrap items-center gap-2">
+    {% if group.is_static %}
+    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">
+      <i class="ti ti-list-check" aria-hidden="true"></i>Static Group
+    </span>
+    {% else %}
+    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+      <i class="ti ti-adjustments" aria-hidden="true"></i>Dynamic Group
+    </span>
+    {% endif %}
+    {% if group.is_active %}
+    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+      <i class="ti ti-circle-check" aria-hidden="true"></i>Active
+    </span>
+    {% else %}
+    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+      <i class="ti ti-circle-x" aria-hidden="true"></i>Inactive
+    </span>
+    {% endif %}
+  </div>
+
+  {# KPI strip #}
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+    {{ stat_card('ti-users', 'Total Members', member_count, sublabel='in group', tone='info') }}
+    {{ stat_card('ti-category', 'Group Type', group.group_type|title, tone='neutral') }}
+    {{ stat_card('ti-calendar-event', 'Created', (group.created_at.strftime('%Y-%m-%d') if group.created_at else 'Unknown'), tone='neutral') }}
+  </div>
+
+  {# Dynamic criteria (if applicable) #}
+  {% if not group.is_static and group.criteria %}
+  {% call section_card('Dynamic Criteria', icon='ti-filter') %}
+    <div class="px-4 sm:px-5 py-4">
+      <pre class="text-sm font-mono text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ group.criteria | tojson(indent=2) }}</pre>
+    </div>
+  {% endcall %}
+  {% endif %}
+
+  {# Members list (static groups) #}
+  {% if group.is_static %}
+    {% if members %}
+    {% call data_table('Group Members', icon='ti-users', count=member_count, search_placeholder='Filter members…', search_id='memberFilter', filters=False) %}
+      {# md+ table #}
+      <table class="hidden md:table w-full text-sm text-left">
+        <thead class="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+          <tr>
+            {{ data_table_th('User', key='user') }}
+            {{ data_table_th('Email', key='email', hide='sm') }}
+            {{ data_table_th('Added', key='added', hide='sm') }}
+            {{ data_table_th('Actions', sortable=False, align='right') }}
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          {% for membership in members %}
+          <tr data-row class="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+            <td class="px-3 py-3 align-middle">
+              <div class="flex items-center gap-3">
+                <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 shrink-0">
+                  <i class="ti ti-user text-gray-600 dark:text-gray-400" aria-hidden="true"></i>
+                </span>
+                <span class="font-semibold text-gray-900 dark:text-white">{{ membership.user.username }}</span>
+              </div>
+            </td>
+            <td class="px-3 py-3 align-middle hidden md:table-cell text-gray-600 dark:text-gray-400">{{ membership.user.email or 'No email' }}</td>
+            <td class="px-3 py-3 align-middle hidden md:table-cell font-mono text-xs text-gray-500 dark:text-gray-400">{{ membership.added_at.strftime('%Y-%m-%d') if membership.added_at else 'Unknown' }}</td>
+            <td class="px-3 py-3 align-middle">
+              <div class="flex items-center justify-end">
+                <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 hover:bg-red-50 rounded dark:text-red-400 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green" title="Remove member" aria-label="Remove member" onclick="removeMember({{ membership.user.id }})">
+                  <i class="ti ti-trash" aria-hidden="true"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {# mobile stacked cards #}
+      <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for membership in members %}
+        <div data-row class="px-4 py-3.5">
+          <div class="flex items-center justify-between gap-2">
+            <div class="flex items-center gap-3 min-w-0">
+              <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 dark:bg-gray-600 shrink-0">
+                <i class="ti ti-user text-gray-600 dark:text-gray-400" aria-hidden="true"></i>
+              </span>
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ membership.user.username }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ membership.user.email or 'No email' }}</div>
+              </div>
+            </div>
+            <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 hover:bg-red-50 rounded dark:text-red-400 dark:hover:bg-red-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green shrink-0" title="Remove member" aria-label="Remove member" onclick="removeMember({{ membership.user.id }})">
+              <i class="ti ti-trash" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="mt-1.5 text-xs font-mono text-gray-500 dark:text-gray-400">Added {{ membership.added_at.strftime('%Y-%m-%d') if membership.added_at else 'Unknown' }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    {% endcall %}
+    <div class="flex justify-end">
+      <button type="button" id="addMemberBtn"
+              class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                     bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+        <i class="ti ti-user-plus" aria-hidden="true"></i><span>Add Member</span>
+      </button>
+    </div>
+    {% else %}
+    {% call section_card('Group Members', icon='ti-users') %}
+      {{ empty_state('ti-users-minus', 'No members in this group', 'Add the first member to start building this group.') }}
+      <div class="px-4 sm:px-5 pb-5 -mt-4 flex justify-center">
+        <button type="button" id="addFirstMemberBtn"
+                class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+                       bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+          <i class="ti ti-user-plus" aria-hidden="true"></i><span>Add the first member</span>
+        </button>
+      </div>
+    {% endcall %}
+    {% endif %}
+  {% endif %}
+
+  {# Available targeting options #}
+  {% call section_card('Available Targeting Options', icon='ti-database') %}
+    <div class="px-4 sm:px-5 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Teams ({{ teams|length }})</h4>
+        <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-2">
+          {% for team in teams[:5] %}
+          <div class="text-sm text-gray-600 dark:text-gray-300 py-1">{{ team.name }}</div>
+          {% endfor %}
+          {% if teams|length > 5 %}
+          <div class="text-sm text-gray-400 dark:text-gray-500 py-1">… and {{ teams|length - 5 }} more</div>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Leagues ({{ leagues|length }})</h4>
+        <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-2">
+          {% for league in leagues[:5] %}
+          <div class="text-sm text-gray-600 dark:text-gray-300 py-1">{{ league.name }}</div>
+          {% endfor %}
+          {% if leagues|length > 5 %}
+          <div class="text-sm text-gray-400 dark:text-gray-500 py-1">… and {{ leagues|length - 5 }} more</div>
+          {% endif %}
+        </div>
+      </div>
+      <div>
+        <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-2">Roles ({{ roles|length }})</h4>
+        <div class="max-h-40 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-2">
+          {% for role in roles[:5] %}
+          <div class="text-sm text-gray-600 dark:text-gray-300 py-1">{{ role.name }}</div>
+          {% endfor %}
+          {% if roles|length > 5 %}
+          <div class="text-sm text-gray-400 dark:text-gray-500 py-1">… and {{ roles|length - 5 }} more</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endcall %}
+</div>
+
+{# Modals shared by both branches — same IDs/hooks panel_scripts binds to #}
+{% call modal_info('addMemberModal', 'Add Member', footer=false) %}
+<div class="mb-4">
+    <label for="memberSearchInput" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Search Users</label>
+    <input type="text" id="memberSearchInput" class="input-ecs block w-full" placeholder="Type to search users...">
+</div>
+<div id="memberSearchResults" class="max-h-60 overflow-y-auto space-y-2">
+    <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Start typing to search for users</p>
+</div>
+{% endcall %}
+
+{% call modal_form('editGroupModal', 'Edit Group', form_id='editGroupForm', submit_text='Save Changes', loading_text='Saving...') %}
+<div class="mb-4">
+    <label for="editGroupName" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Group Name</label>
+    <input type="text" id="editGroupName" name="name" class="input-ecs block w-full" value="{{ group.name }}" required>
+</div>
+<div class="mb-4">
+    <label for="editGroupDescription" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Description</label>
+    <textarea id="editGroupDescription" name="description" rows="3" class="input-ecs block w-full">{{ group.description or '' }}</textarea>
+</div>
+{% endcall %}
+{% else %}
 <!-- Group Header -->
 <div class="bg-white dark:bg-gray-800 rounded-lg shadow mb-6">
     <div class="p-5 border-b border-gray-200 dark:border-gray-700">
@@ -239,6 +458,7 @@
     <textarea id="editGroupDescription" name="description" rows="3" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white">{{ group.description or '' }}</textarea>
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block panel_scripts %}

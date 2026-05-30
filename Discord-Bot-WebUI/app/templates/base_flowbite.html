@@ -139,24 +139,23 @@
     </a>
 
     {% set shell = shell|default('classic') %}
+    {# console rail only when console AND not the full-sidebar console (admin keeps full sidebar) #}
+    {% set _console_rail = (shell == 'console' and not console_full_sidebar|default(false)) %}
     {% if safe_current_user.is_authenticated %}
-    <!-- Left shell chrome: Classic sidebar (w-64) or Console rail (w-16). Matchday
-         has no left chrome — its header renders inside the content wrapper below. -->
-    {% if shell == 'console' %}
+    <!-- Left shell chrome: Console icon-rail (w-16) for the user-facing Modern shell;
+         full sidebar (w-64) for Classic AND the admin full-sidebar console. -->
+    {% if _console_rail %}
         {% include 'shells/_shell_console.html' %}
-    {% elif shell != 'matchday' %}
+    {% else %}
         {% include 'sidebar_flowbite.html' %}
     {% endif %}
     {% endif %}
 
-    <!-- Main Content Area — left offset / padding depends on the active shell:
-         classic = w-64 sidebar, console = w-16 rail, matchday = top nav (no left
-         offset) + bottom padding on mobile to clear the fixed bottom tab bar. -->
-    {% set _shell_offset = 'lg:ml-16' if shell == 'console' else ('pb-20 lg:pb-0' if shell == 'matchday' else 'lg:ml-64') %}
+    <!-- Main Content Area — left offset: w-16 only for the icon-rail console, else w-64. -->
+    {% set _shell_offset = 'lg:ml-16' if _console_rail else 'lg:ml-64' %}
     <div class="{% if safe_current_user.is_authenticated %}{{ _shell_offset }}{% endif %}">
-        <!-- Top Navbar (shared utility bar). Non-sticky under Matchday, whose own
-             top nav is the sticky primary bar rendered above this content. -->
-        {% if safe_current_user.is_authenticated and shell != 'matchday' %}
+        <!-- Top Navbar (shared utility bar) -->
+        {% if safe_current_user.is_authenticated %}
         <nav class="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
             <div class="px-4 py-3 lg:px-6">
                 <div class="flex items-center justify-between">
@@ -196,11 +195,6 @@
                 </div>
             </div>
         </nav>
-        {% endif %}
-
-        {% if safe_current_user.is_authenticated and shell == 'matchday' %}
-        <!-- Matchday: single integrated green header + mobile bottom tab bar -->
-        {% include 'shells/_shell_matchday.html' %}
         {% endif %}
 
         <!-- Flash Messages -->

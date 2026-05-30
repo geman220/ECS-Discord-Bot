@@ -14,6 +14,210 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state, alert as kit_alert %}
+<div class="space-y-6">
+
+  {{ page_header('Message Templates', subtitle='Manage message templates and categories') }}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+    {{ stat_card('ti-template', 'Total Templates', stats.total_templates or 0, tone='info') }}
+    {{ stat_card('ti-circle-check', 'Active Templates', stats.active_templates or 0, tone='success') }}
+    {{ stat_card('ti-category', 'Categories', stats.total_categories or 0, tone='primary') }}
+  </div>
+
+  <!-- Quick Actions -->
+  {% call section_card('Quick Actions', icon='ti-bolt') %}
+    <div class="p-4 sm:p-5">
+      <div class="flex flex-wrap gap-3">
+        <button type="button" data-action="create-template"
+                class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-plus" aria-hidden="true"></i>New Template
+        </button>
+        <button type="button" data-action="create-category"
+                class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-category" aria-hidden="true"></i>New Category
+        </button>
+        <button type="button" data-action="bulk-activate"
+                class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-sm font-semibold hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-checks" aria-hidden="true"></i>Bulk Activate
+        </button>
+        <button type="button" data-action="export-templates"
+                class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-download" aria-hidden="true"></i>Export All
+        </button>
+      </div>
+    </div>
+  {% endcall %}
+
+  <!-- Templates by Category -->
+  {% if categories %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+    {% for category in categories %}
+    {% call section_card(category.name, icon='ti-folder') %}
+      <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between gap-2">
+        <span class="text-xs text-gray-500 dark:text-gray-400 truncate">
+          {% if category.description %}{{ category.description }}{% endif %}
+        </span>
+        <span class="shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ category.templates|length }} templates</span>
+      </div>
+      <div class="p-4 sm:p-5">
+        {% if category.templates %}
+        <div class="space-y-2">
+          {% for template in category.templates[:5] %}
+          <a href="#" data-action="view-template" data-template-id="{{ template.id }}"
+             class="block p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <div class="flex justify-between items-center gap-2">
+              <div class="min-w-0">
+                <div class="font-medium text-gray-900 dark:text-white truncate">{{ template.name }}</div>
+                {% if template.description %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ template.description[:60] }}{% if template.description|length > 60 %}...{% endif %}</p>
+                {% endif %}
+              </div>
+              <div class="flex items-center gap-2 shrink-0">
+                {% if template.is_active %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
+                {% else %}
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-circle" aria-hidden="true"></i>Inactive</span>
+                {% endif %}
+                <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+              </div>
+            </div>
+          </a>
+          {% endfor %}
+          {% if category.templates|length > 5 %}
+          <a href="#" data-action="view-category" data-category-id="{{ category.id }}"
+             class="block p-3 text-center text-sm font-medium text-ecs-green hover:underline focus:outline-none focus:ring-2 focus:ring-ecs-green rounded-lg">
+            View {{ category.templates|length - 5 }} more templates...
+          </a>
+          {% endif %}
+        </div>
+        {% else %}
+        {{ empty_state('ti-inbox', 'No templates yet', 'No templates in this category yet.') }}
+        <div class="text-center pb-2">
+          <button type="button" data-action="create-template-in-category" data-category-id="{{ category.id }}"
+                  class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-plus" aria-hidden="true"></i>Add Template
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    {% endcall %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <div>
+    {{ kit_alert('info', 'Start by creating categories to organize your message templates.', title='No Categories Found', dismissible=false) }}
+    <div class="mt-3">
+      <button type="button" data-action="create-category"
+              class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-plus" aria-hidden="true"></i>Create First Category
+      </button>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- All Templates Table -->
+  {% if templates %}
+  {% call data_table('All Templates', icon='ti-list', count=templates|length, search_placeholder='Filter templates…', search_id='templateFilter') %}
+    <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th('Template Name', key='name') }}
+          {{ data_table_th('Category', key='category', hide='sm') }}
+          {{ data_table_th('Status', key='status') }}
+          {{ data_table_th('Last Updated', key='updated', hide='sm') }}
+          {{ data_table_th('Actions', sortable=false, align='right') }}
+        </tr>
+      </thead>
+      <tbody>
+        {% for template in templates[:20] %}
+        <tr data-row class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+          <td class="px-3 py-3">
+            <div class="font-medium text-gray-900 dark:text-white" data-cell="name">{{ template.name }}</div>
+            {% if template.description %}
+            <p class="text-xs text-gray-500 dark:text-gray-400">{{ template.description[:80] }}{% if template.description|length > 80 %}...{% endif %}</p>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell" data-cell="category">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ template.category.name if template.category else 'Uncategorized' }}</span>
+          </td>
+          <td class="px-3 py-3" data-cell="status">
+            {% if template.is_active %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-circle" aria-hidden="true"></i>Inactive</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell font-mono text-xs" data-cell="updated">{{ template.updated_at.strftime('%Y-%m-%d') if template.updated_at else 'Never' }}</td>
+          <td class="px-3 py-3">
+            <div class="flex items-center justify-end gap-1">
+              <button type="button" data-action="view-template" data-template-id="{{ template.id }}" title="View" aria-label="View template"
+                      class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+              <button type="button" data-action="edit-template" data-template-id="{{ template.id }}" title="Edit" aria-label="Edit template"
+                      class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                <i class="ti ti-edit" aria-hidden="true"></i>
+              </button>
+              <button type="button" data-action="toggle-template" data-template-id="{{ template.id }}" title="Toggle" aria-label="Toggle template status"
+                      class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green {% if template.is_active %}text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30{% else %}text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30{% endif %}">
+                <i class="ti ti-{% if template.is_active %}power{% else %}check{% endif %}" aria-hidden="true"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <!-- Mobile stacked cards -->
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for template in templates[:20] %}
+      <div data-row class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-cell="name">{{ template.name }}</span>
+          {% if template.is_active %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-cell="status"><i class="ti ti-circle-check" aria-hidden="true"></i>Active</span>
+          {% else %}
+          <span class="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300" data-cell="status"><i class="ti ti-circle" aria-hidden="true"></i>Inactive</span>
+          {% endif %}
+        </div>
+        <div class="mt-1 flex items-center justify-between gap-2">
+          <span class="text-xs text-gray-500 dark:text-gray-400" data-cell="category">{{ template.category.name if template.category else 'Uncategorized' }}</span>
+          <span class="text-xs text-gray-500 dark:text-gray-400 font-mono" data-cell="updated">{{ template.updated_at.strftime('%Y-%m-%d') if template.updated_at else 'Never' }}</span>
+        </div>
+        <div class="mt-2 flex items-center gap-1">
+          <button type="button" data-action="view-template" data-template-id="{{ template.id }}" title="View" aria-label="View template"
+                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-eye" aria-hidden="true"></i>
+          </button>
+          <button type="button" data-action="edit-template" data-template-id="{{ template.id }}" title="Edit" aria-label="Edit template"
+                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-edit" aria-hidden="true"></i>
+          </button>
+          <button type="button" data-action="toggle-template" data-template-id="{{ template.id }}" title="Toggle" aria-label="Toggle template status"
+                  class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green {% if template.is_active %}text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30{% else %}text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30{% endif %}">
+            <i class="ti ti-{% if template.is_active %}power{% else %}check{% endif %}" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% if templates|length > 20 %}
+    <div class="p-4 text-center border-t border-gray-200 dark:border-gray-700">
+      <button type="button" data-action="load-more-templates"
+              class="inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        Load More Templates ({{ templates|length - 20 }} remaining)
+      </button>
+    </div>
+    {% endif %}
+  {% endcall %}
+  {% endif %}
+
+</div>
+{% else %}
 <!-- Template Overview Stats -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -214,6 +418,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endif %}
 {% endblock %}
 

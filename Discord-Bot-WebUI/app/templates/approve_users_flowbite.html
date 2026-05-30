@@ -3,6 +3,85 @@
 {% block title %}Approve Users{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, empty_state %}
+<div class="container mx-auto px-4 py-8 max-w-4xl">
+    {{ page_header("Approve Users", subtitle="Review and approve pending user registrations") }}
+
+    {% if users %}
+    {% call data_table("Pending Approvals", icon="ti-user-check", count=users|length, search_placeholder="Filter by username or email…", search_id="approveUsersFilter") %}
+        {# md+ : real table #}
+        <table class="hidden md:table w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                    {{ data_table_th("Username", key="username") }}
+                    {{ data_table_th("Email", key="email") }}
+                    {{ data_table_th("Actions", sortable=False, align="right") }}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for user in users %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-3 py-3" data-cell="username">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                <i class="ti ti-user text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                            </span>
+                            <span class="font-semibold text-gray-900 dark:text-white truncate">{{ user.username }}</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3 text-gray-600 dark:text-gray-300 font-mono text-xs" data-cell="email">{{ user.email }}</td>
+                    <td class="px-3 py-3 text-right">
+                        <form method="post" action="{{ url_for('approve_users') }}" class="inline">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <input type="hidden" name="user_id" value="{{ user.id }}">
+                            <button type="submit" name="action" value="approve"
+                                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                                           bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
+                                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <i class="ti ti-check text-sm" aria-hidden="true"></i>
+                                <span>Approve</span>
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {# mobile : stacked cards (form per row, so not the link-based row_card macro) #}
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {% for user in users %}
+            <div data-row-card class="px-4 py-3.5">
+                <div class="flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                        <i class="ti ti-user text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-cell="username">{{ user.username }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate" data-cell="email">{{ user.email }}</p>
+                    </div>
+                </div>
+                <form method="post" action="{{ url_for('approve_users') }}" class="mt-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                    <button type="submit" name="action" value="approve"
+                            class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg
+                                   bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                                   focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-check text-sm" aria-hidden="true"></i>
+                        <span>Approve</span>
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    {% endcall %}
+    {% else %}
+        {{ empty_state("ti-circle-check", "All Caught Up!", "No pending user approvals at this time.") }}
+    {% endif %}
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8 max-w-4xl">
     <!-- Page Header -->
     <div class="mb-6">
@@ -77,4 +156,5 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 {% endblock %}

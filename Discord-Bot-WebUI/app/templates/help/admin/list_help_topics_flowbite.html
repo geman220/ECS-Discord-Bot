@@ -5,6 +5,154 @@
 {% block page_title %}Admin - Help Topics{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, data_table, data_table_th, data_table_row_card, empty_state as kit_empty_state %}
+<div class="container mx-auto px-4 py-8 max-w-5xl space-y-6">
+    {% call page_header("Help Topics", subtitle="Manage help documentation for users") %}
+        <a href="{{ url_for('help.bulk_upload_help_topics') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                  bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200
+                  hover:bg-gray-50 dark:hover:bg-gray-700 text-sm font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-upload" aria-hidden="true"></i><span>Bulk Upload</span>
+        </a>
+        <a href="{{ url_for('help.new_help_topic') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                  bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-plus" aria-hidden="true"></i><span>Create New Help Topic</span>
+        </a>
+    {% endcall %}
+
+    {% if topics %}
+    {% call data_table("Help Topics", icon="ti-book", count=topics|length, search_placeholder="Filter by title…", search_id="helpTopicsFilter") %}
+        {# md+ : real table #}
+        <table class="hidden md:table w-full text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-700/40 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                    {{ data_table_th("Title", key="title") }}
+                    {{ data_table_th("Access", key="access", sortable=False) }}
+                    {{ data_table_th("Actions", sortable=False, align="right") }}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for topic in topics %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <td class="px-3 py-3" data-cell="title">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-lg bg-ecs-green/10 flex items-center justify-center shrink-0">
+                                <i class="ti ti-book text-ecs-green" aria-hidden="true"></i>
+                            </span>
+                            <span class="font-semibold text-gray-900 dark:text-white truncate">{{ topic.title }}</span>
+                        </div>
+                    </td>
+                    <td class="px-3 py-3" data-cell="access">
+                        {% if topic.roles %}
+                        <div class="flex flex-wrap gap-1">
+                            {% for role in topic.roles[:3] %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ role.name }}</span>
+                            {% endfor %}
+                            {% if topic.roles|length > 3 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">+{{ topic.roles|length - 3 }} more</span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                            <i class="ti ti-world" aria-hidden="true"></i>Public access
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3">
+                        <div class="flex items-center justify-end gap-2">
+                            <a href="{{ url_for('help.edit_help_topic', topic_id=topic.id) }}"
+                               class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                                      bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors
+                                      focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <i class="ti ti-edit" aria-hidden="true"></i><span>Edit</span>
+                            </a>
+                            <button type="button"
+                                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+                                           bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors
+                                           focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                    data-action="confirm-delete"
+                                    data-topic-id="{{ topic.id }}">
+                                <i class="ti ti-trash" aria-hidden="true"></i><span>Delete</span>
+                            </button>
+                            <form class="js-delete-form hidden"
+                                  action="{{ url_for('help.delete_help_topic', topic_id=topic.id) }}"
+                                  method="post"
+                                  data-form-id="{{ topic.id }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {# mobile : stacked cards #}
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {% for topic in topics %}
+            <div class="px-4 py-3.5">
+                <div class="flex items-start gap-3">
+                    <span class="w-9 h-9 rounded-lg bg-ecs-green/10 flex items-center justify-center shrink-0">
+                        <i class="ti ti-book text-ecs-green" aria-hidden="true"></i>
+                    </span>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ topic.title }}</p>
+                        {% if topic.roles %}
+                        <div class="flex flex-wrap gap-1 mt-1.5">
+                            {% for role in topic.roles[:3] %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ role.name }}</span>
+                            {% endfor %}
+                            {% if topic.roles|length > 3 %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">+{{ topic.roles|length - 3 }} more</span>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            <i class="ti ti-world" aria-hidden="true"></i>Public access
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 mt-3">
+                    <a href="{{ url_for('help.edit_help_topic', topic_id=topic.id) }}"
+                       class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg
+                              bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors
+                              focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-edit" aria-hidden="true"></i><span>Edit</span>
+                    </a>
+                    <button type="button"
+                            class="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-lg
+                                   bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition-colors
+                                   focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                            data-action="confirm-delete"
+                            data-topic-id="{{ topic.id }}">
+                        <i class="ti ti-trash" aria-hidden="true"></i><span>Delete</span>
+                    </button>
+                    <form class="js-delete-form hidden"
+                          action="{{ url_for('help.delete_help_topic', topic_id=topic.id) }}"
+                          method="post"
+                          data-form-id="{{ topic.id }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endcall %}
+    {% else %}
+    {{ kit_empty_state(
+        "ti-book-off",
+        "No help topics found",
+        "Get started by creating your first help topic.",
+        action={'label': 'Create Help Topic', 'url': url_for('help.new_help_topic'), 'icon': 'ti-plus'}
+    ) }}
+    {% endif %}
+</div>
+{% else %}
 <div class="space-y-6">
     <!-- Page Header -->
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -74,6 +222,7 @@
     {% endif %}
     {% endcall %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

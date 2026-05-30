@@ -14,6 +14,132 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+<div class="space-y-6">
+
+  {{ page_header('User Management', subtitle='Users, roles, approvals and waitlist') }}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-users', 'Total Users', stats.total_users, tone='primary') }}
+    {{ stat_card('ti-user-clock', 'Pending Approvals', stats.pending_approvals, tone='warning') }}
+    {{ stat_card('ti-user-check', 'Approved Users', stats.approved_users, tone='success') }}
+    {{ stat_card('ti-user-pause', 'Waitlist Users', stats.waitlist_users, tone='info') }}
+  </div>
+
+  <!-- Management actions -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+
+    {% call section_card('User Approvals', icon='ti-user-check') %}
+    <div class="p-2 space-y-1">
+      <a href="{{ url_for('admin_panel.users_comprehensive') }}"
+         class="flex items-center justify-between gap-3 px-3 min-h-[44px] rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <span class="flex items-center gap-3"><i class="ti ti-users" aria-hidden="true"></i> Advanced User Management</span>
+        <i class="ti ti-external-link" aria-hidden="true"></i>
+      </a>
+      <a href="{{ url_for('admin_panel.user_approvals') }}"
+         class="flex items-center justify-between gap-3 px-3 min-h-[44px] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-user-check text-amber-600 dark:text-amber-400" aria-hidden="true"></i> User Approvals</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">{{ stats.pending_approvals }}</span>
+      </a>
+      <a href="{{ url_for('admin_panel.bulk_operations') }}"
+         class="flex items-center justify-between gap-3 px-3 min-h-[44px] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-list-check text-blue-600 dark:text-blue-400" aria-hidden="true"></i> Bulk Operations</span>
+        <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+      </a>
+    </div>
+    {% endcall %}
+
+    {% call section_card('Role Management', icon='ti-shield-check') %}
+    <div class="p-2 space-y-1">
+      <a href="{{ url_for('admin_panel.roles_comprehensive') }}"
+         class="flex items-center justify-between gap-3 px-3 min-h-[44px] rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <span class="flex items-center gap-3"><i class="ti ti-shield-check" aria-hidden="true"></i> Advanced Role Management</span>
+        <i class="ti ti-external-link" aria-hidden="true"></i>
+      </a>
+      <a href="{{ url_for('admin_panel.roles_management') }}"
+         class="flex items-center justify-between gap-3 px-3 min-h-[44px] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-shield text-ecs-green" aria-hidden="true"></i> Role Assignment Tools</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ stats.total_roles }}</span>
+      </a>
+    </div>
+    {% endcall %}
+
+    {% call section_card('Waitlist Management', icon='ti-user-pause') %}
+    <div class="p-2 space-y-1">
+      <a href="{{ url_for('admin_panel.user_waitlist') }}"
+         class="flex items-center justify-between gap-3 px-3 min-h-[44px] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-user-pause text-amber-600 dark:text-amber-400" aria-hidden="true"></i> Waitlist Users</span>
+        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">{{ stats.waitlist_users }}</span>
+      </a>
+      <a href="{{ url_for('admin_panel.user_waitlist') }}"
+         class="flex items-center justify-between gap-3 px-3 min-h-[44px] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <span class="flex items-center gap-3 text-sm font-medium text-gray-900 dark:text-white"><i class="ti ti-user-plus text-green-600 dark:text-green-400" aria-hidden="true"></i> Promote from Waitlist</span>
+        <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+      </a>
+    </div>
+    {% endcall %}
+
+  </div>
+
+  <!-- Recent user management actions -->
+  {% if recent_actions %}
+  {% call data_table('Recent User Management Actions', icon='ti-history', count=recent_actions|length, filters=False) %}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          {{ data_table_th('Date', key='date') }}
+          {{ data_table_th('Admin', key='admin', hide='sm') }}
+          {{ data_table_th('Action', key='action') }}
+          {{ data_table_th('Resource', key='resource', hide='md') }}
+          {{ data_table_th('Details', key='details', hide='md') }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for action in recent_actions %}
+        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3 align-top">
+            <span class="font-mono text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ action.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ action.admin.username if action.admin else 'System' }}</span>
+          </td>
+          <td class="px-3 py-3 align-top">
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20 whitespace-nowrap">{{ action.action.replace('_', ' ').title() }}</span>
+          </td>
+          <td class="px-3 py-3 hidden lg:table-cell">
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ action.resource_type.replace('_', ' ').title() }}</span>
+          </td>
+          <td class="px-3 py-3 hidden lg:table-cell">
+            <span class="text-xs text-gray-500 dark:text-gray-400">{{ action.new_value[:50] }}{% if action.new_value and action.new_value|length > 50 %}...{% endif %}</span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for action in recent_actions %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-center justify-between gap-2">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">{{ action.action.replace('_', ' ').title() }}</span>
+          <span class="font-mono text-xs text-gray-500 dark:text-gray-400 shrink-0">{{ action.timestamp.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
+        <p class="mt-1 text-sm font-medium text-gray-900 dark:text-white">{{ action.admin.username if action.admin else 'System' }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400">
+          {{ action.resource_type.replace('_', ' ').title() }}{% if action.new_value %} · {{ action.new_value[:50] }}{% if action.new_value|length > 50 %}…{% endif %}{% endif %}
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  {{ empty_state('ti-history', 'No Recent Actions', 'User management actions will appear here when performed.') }}
+  {% endif %}
+
+</div>
+{% else %}
 <!-- User Management Overview Cards -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <!-- Total Users -->
@@ -208,4 +334,5 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 {% endblock %}

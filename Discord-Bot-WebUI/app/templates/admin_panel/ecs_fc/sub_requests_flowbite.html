@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_filter_bar, empty_state %}
 
 {% block admin_title %}ECS FC Sub Requests{% endblock %}
 {% block panel_description %}Manage substitute requests for ECS FC matches{% endblock %}
@@ -20,6 +21,227 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# =========================== MODERN (console) =========================== #}
+{{ page_header("ECS FC Sub Requests", subtitle="ECS FC Hub") }}
+
+{# KPI band: 2-up on mobile -> 5-up on lg (sm: step included) #}
+<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-5 sm:mb-6">
+  {{ stat_card("ti-clipboard-list", "Total",     stats.total,     tone="info") }}
+  {{ stat_card("ti-clock",          "Open",      stats.open,      tone="warning") }}
+  {{ stat_card("ti-check",          "Filled",    stats.filled,    tone="success") }}
+  {{ stat_card("ti-x",              "Cancelled", stats.cancelled, tone="danger") }}
+  {{ stat_card("ti-users",          "Pool Size", stats.pool_size, tone="primary") }}
+</div>
+
+{# Filters + Manage Pool action — GET form, verbatim onchange/this.form.submit hooks #}
+<form method="get" class="flex flex-wrap items-center gap-2 mb-5 sm:mb-6">
+  <select name="status" onchange="this.form.submit()" aria-label="Filter by status"
+          class="input-ecs h-9 text-sm w-auto min-w-[150px]">
+    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+    <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Open</option>
+    <option value="filled" {% if status_filter == 'filled' %}selected{% endif %}>Filled</option>
+    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+  </select>
+  <select name="team_id" onchange="this.form.submit()" aria-label="Filter by team"
+          class="input-ecs h-9 text-sm w-auto min-w-[150px]">
+    <option value="">All Teams</option>
+    {% for team in teams %}
+    <option value="{{ team.id }}" {% if team_filter == team.id %}selected{% endif %}>{{ team.name }}</option>
+    {% endfor %}
+  </select>
+  <a href="{{ url_for('admin_panel.substitute_pools', context='ecs-fc') }}"
+     class="ml-auto inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-4 rounded-lg
+            bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300
+            text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+    <i class="ti ti-users" aria-hidden="true"></i><span>Manage Pool</span>
+  </a>
+</form>
+
+{% if requests_data %}
+{% call data_table("Substitute Requests", icon="ti-clipboard-list", count=requests_data|length, filters=false) %}
+  {# md+ table #}
+  <table class="hidden md:table w-full text-sm text-left">
+    <thead class="bg-gray-50 dark:bg-gray-700/40">
+      <tr>
+        {{ data_table_th("Match",     sortable=false) }}
+        {{ data_table_th("Team",      sortable=false, hide='sm') }}
+        {{ data_table_th("Status",    sortable=false, hide='sm') }}
+        {{ data_table_th("Needed",    sortable=false, hide='sm') }}
+        {{ data_table_th("Responses", sortable=false, hide='sm') }}
+        {{ data_table_th("Assigned",  sortable=false, hide='sm') }}
+        {{ data_table_th("Created",   sortable=false, hide='md') }}
+        {{ data_table_th("Actions",   sortable=false, align='right') }}
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+      {% for item in requests_data %}
+      {% set req = item.request %}
+      <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+        <td class="px-3 py-3 align-top">
+          {% if req.match %}
+          <div class="font-semibold text-gray-900 dark:text-white">vs {{ req.match.opponent_name or 'TBD' }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+            {{ req.match.match_date.strftime('%b %d, %Y') if req.match.match_date else 'TBD' }}
+            {% if req.match.match_time %}at {{ req.match.match_time.strftime('%I:%M %p').lstrip('0') }}{% endif %}
+          </div>
+          <div class="text-xs text-gray-400 dark:text-gray-500">{{ req.match.location or '' }}</div>
+          {% else %}
+          <span class="text-gray-400 dark:text-gray-500">No match</span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 align-top hidden md:table-cell">
+          <span class="font-medium text-gray-900 dark:text-white">{{ req.team.name if req.team else 'Unknown' }}</span>
+        </td>
+        <td class="px-3 py-3 align-top hidden md:table-cell">
+          {% if req.status == 'OPEN' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i>Open</span>
+          {% elif req.status == 'FILLED' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-[12px]" aria-hidden="true"></i>Filled</span>
+          {% elif req.status == 'CANCELLED' %}
+          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-x text-[12px]" aria-hidden="true"></i>Cancelled</span>
+          {% else %}
+          <span class="px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ req.status }}</span>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 align-top hidden md:table-cell">
+          <span class="font-mono font-medium text-gray-900 dark:text-white">{{ req.substitutes_needed or 1 }}</span>
+          {% if req.positions_needed %}
+          <div class="text-xs text-gray-500 dark:text-gray-400">{{ req.positions_needed }}</div>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 align-top hidden md:table-cell">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            {% if item.available > 0 %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-xs" aria-hidden="true"></i>{{ item.available }}</span>
+            {% endif %}
+            {% if item.unavailable > 0 %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-x text-xs" aria-hidden="true"></i>{{ item.unavailable }}</span>
+            {% endif %}
+            {% if item.pending > 0 %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300"><i class="ti ti-clock text-xs" aria-hidden="true"></i>{{ item.pending }}</span>
+            {% endif %}
+            {% if item.total_contacted == 0 %}
+            <span class="text-xs text-gray-400 dark:text-gray-500">No contacts</span>
+            {% endif %}
+          </div>
+          {% if item.available > 0 and req.status == 'OPEN' %}
+          <button type="button" onclick="openAssignModal({{ req.id }})"
+                  class="mt-1.5 inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-user-check" aria-hidden="true"></i>Assign
+          </button>
+          {% endif %}
+        </td>
+        <td class="px-3 py-3 align-top hidden md:table-cell">
+          <span class="font-mono font-medium {% if item.assigned >= (req.substitutes_needed or 1) %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">
+            {{ item.assigned }} / {{ req.substitutes_needed or 1 }}
+          </span>
+        </td>
+        <td class="px-3 py-3 align-top hidden lg:table-cell">
+          <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ req.created_at.strftime('%b %d, %Y') if req.created_at else '' }}</div>
+          <div class="text-xs text-gray-400 dark:text-gray-500 font-mono">{{ req.created_at.strftime('%I:%M %p').lstrip('0') if req.created_at else '' }}</div>
+        </td>
+        <td class="px-3 py-3 align-top text-right">
+          <div class="flex items-center justify-end gap-1.5 flex-wrap">
+            {% if req.match %}
+            <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=req.match.id) }}" title="View RSVP & manage subs"
+               class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25 transition-colors">
+              <i class="ti ti-eye" aria-hidden="true"></i>View
+            </a>
+            {% endif %}
+            {% if req.status in ('OPEN', 'FILLED') %}
+            <button type="button" onclick="openEditModal({{ req.id }}, {{ req.substitutes_needed or 1 }}, '{{ req.positions_needed|default('', true)|e }}', '{{ req.notes|default('', true)|e }}', '{{ req.status }}')"
+                    class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25 transition-colors">
+              <i class="ti ti-pencil" aria-hidden="true"></i>Edit
+            </button>
+            {% endif %}
+            {% if req.status == 'OPEN' %}
+            <form method="POST" action="{{ url_for('admin.ecs_fc_subs.cancel_sub_request', request_id=req.id) }}"
+                  onsubmit="return confirm('Cancel this substitute request?');" class="inline">
+              <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25 transition-colors">
+                <i class="ti ti-x" aria-hidden="true"></i>Cancel
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {# mobile stacked cards #}
+  <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+    {% for item in requests_data %}
+    {% set req = item.request %}
+    <div class="px-4 py-3.5">
+      <div class="flex items-start justify-between gap-2">
+        <div class="min-w-0">
+          {% if req.match %}
+          <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">vs {{ req.match.opponent_name or 'TBD' }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400 font-mono">
+            {{ req.match.match_date.strftime('%b %d, %Y') if req.match.match_date else 'TBD' }}
+            {% if req.match.match_time %}at {{ req.match.match_time.strftime('%I:%M %p').lstrip('0') }}{% endif %}
+          </div>
+          {% else %}
+          <div class="text-sm text-gray-400 dark:text-gray-500">No match</div>
+          {% endif %}
+          <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ req.team.name if req.team else 'Unknown' }}</div>
+        </div>
+        {% if req.status == 'OPEN' %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300"><i class="ti ti-clock text-[12px]" aria-hidden="true"></i>Open</span>
+        {% elif req.status == 'FILLED' %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300"><i class="ti ti-check text-[12px]" aria-hidden="true"></i>Filled</span>
+        {% elif req.status == 'CANCELLED' %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300"><i class="ti ti-x text-[12px]" aria-hidden="true"></i>Cancelled</span>
+        {% else %}
+        <span class="shrink-0 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">{{ req.status }}</span>
+        {% endif %}
+      </div>
+      <div class="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
+        <span>Needed <span class="font-mono font-medium text-gray-900 dark:text-white">{{ req.substitutes_needed or 1 }}</span></span>
+        <span>Assigned <span class="font-mono font-medium {% if item.assigned >= (req.substitutes_needed or 1) %}text-green-600 dark:text-green-400{% else %}text-gray-900 dark:text-white{% endif %}">{{ item.assigned }} / {{ req.substitutes_needed or 1 }}</span></span>
+        {% if item.available > 0 %}<span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400"><i class="ti ti-check" aria-hidden="true"></i>{{ item.available }}</span>{% endif %}
+        {% if item.pending > 0 %}<span class="inline-flex items-center gap-1 text-gray-500 dark:text-gray-400"><i class="ti ti-clock" aria-hidden="true"></i>{{ item.pending }}</span>{% endif %}
+      </div>
+      <div class="mt-3 flex items-center gap-1.5 flex-wrap">
+        {% if item.available > 0 and req.status == 'OPEN' %}
+        <button type="button" onclick="openAssignModal({{ req.id }})"
+                class="inline-flex items-center gap-1 min-h-[44px] px-3 text-xs font-medium text-white bg-ecs-green hover:bg-ecs-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-user-check" aria-hidden="true"></i>Assign
+        </button>
+        {% endif %}
+        {% if req.match %}
+        <a href="{{ url_for('admin_panel.ecs_fc_rsvp_status', match_id=req.match.id) }}"
+           class="inline-flex items-center gap-1 min-h-[44px] px-3 text-xs font-medium rounded-lg text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-500/15 dark:text-blue-400 dark:hover:bg-blue-500/25 transition-colors">
+          <i class="ti ti-eye" aria-hidden="true"></i>View
+        </a>
+        {% endif %}
+        {% if req.status in ('OPEN', 'FILLED') %}
+        <button type="button" onclick="openEditModal({{ req.id }}, {{ req.substitutes_needed or 1 }}, '{{ req.positions_needed|default('', true)|e }}', '{{ req.notes|default('', true)|e }}', '{{ req.status }}')"
+                class="inline-flex items-center gap-1 min-h-[44px] px-3 text-xs font-medium rounded-lg text-amber-600 bg-amber-50 hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25 transition-colors">
+          <i class="ti ti-pencil" aria-hidden="true"></i>Edit
+        </button>
+        {% endif %}
+        {% if req.status == 'OPEN' %}
+        <form method="POST" action="{{ url_for('admin.ecs_fc_subs.cancel_sub_request', request_id=req.id) }}"
+              onsubmit="return confirm('Cancel this substitute request?');" class="inline">
+          <button type="submit" class="inline-flex items-center gap-1 min-h-[44px] px-3 text-xs font-medium rounded-lg text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25 transition-colors">
+            <i class="ti ti-x" aria-hidden="true"></i>Cancel
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% endcall %}
+{% else %}
+{{ empty_state("ti-clipboard-off", "No substitute requests found", "Requests are created from the match RSVP status page when a team needs subs") }}
+{% endif %}
+
+{% else %}
+{# =========================== CLASSIC (unchanged) =========================== #}
 <!-- Stats Cards -->
 <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-4">
@@ -246,6 +468,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 
 <!-- Assign Sub Modal -->
 <div id="assignModal" class="fixed inset-0 z-50 hidden">

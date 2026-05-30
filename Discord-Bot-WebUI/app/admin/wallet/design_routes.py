@@ -58,7 +58,7 @@ def visual_editor(pass_type):
         assets_dict = {a.asset_type: a for a in assets}
 
         return render_template(
-            'admin/wallet_config/visual_editor_flowbite.html',
+            'admin/wallet_config/visual_editor.html',
             pass_type=pass_obj,
             template=template,
             template_content=template_content,
@@ -189,7 +189,7 @@ def pass_design(pass_type):
         other_template = WalletTemplate.get_default(pass_obj.id, other_platform)
 
         return render_template(
-            'admin/wallet_config/pass_design_flowbite.html',
+            'admin/wallet_config/pass_design.html',
             pass_type=pass_obj,
             pass_type_code=pass_type,
             platform=platform,
@@ -336,7 +336,7 @@ def pass_fields(pass_type):
         ).order_by(WalletBackField.display_order).all()
 
         return render_template(
-            'admin/wallet_config/pass_fields_flowbite.html',
+            'admin/wallet_config/pass_fields.html',
             pass_type=pass_obj,
             pass_type_code=pass_type,
             front_fields=front_fields,

@@ -1,0 +1,428 @@
+{#
+  ============================================================================
+  MODERN KIT — shared "Modern" design-language component library
+  ============================================================================
+  The ONE place every Modern page composes from, so the rollout is a single
+  cohesive design instead of 311 one-offs.
+
+  GROUNDED IN: design-mockups/concept-modern-dashboard.html + concept-admin-dashboard.html
+  BUILT FOR THE REAL APP: uses the app's actual Tailwind build + Flowbite, the
+  ECS token classes (ecs-green / ecs-gold) and standard gray scale with dark:
+  variants. NO Tailwind Play CDN, NO :root CSS vars from the mock.
+
+  CONVENTIONS (matching the rest of the app):
+    - Surfaces .......... bg-white dark:bg-gray-800, border-gray-200 dark:border-gray-700
+    - App background .... bg-gray-50 dark:bg-gray-900
+    - Hover/elevate ..... bg-gray-50 dark:bg-gray-700/50
+    - Brand primary ..... ecs-green (text-ecs-green / bg-ecs-green), hover ecs-green-700
+    - Accent ............ ecs-gold
+    - Muted text ........ text-gray-500 dark:text-gray-400
+    - Body text ......... text-gray-900 dark:text-white
+    - Mono figures ...... font-mono (KPI numbers, codes, timestamps)
+    - Icons ............. Tabler webfont (<i class="ti ti-*">), already loaded app-wide
+    - Modals ............ Flowbite-native (data-modal-toggle / data-modal-hide,
+                          tabindex=-1, role=dialog) so existing initFlowbite() wires them
+    - A11y .............. visible focus rings, aria-* on interactive parts, 44px tap targets
+
+  USAGE:
+    {% import "macros/_modern_kit.html" as kit %}
+    {{ kit.page_header("Dashboard", subtitle="Spring 2026") }}
+    {{ kit.stat_card("ti-shield-half", "Teams", "2", sublabel="active rosters") }}
+
+  Every macro is additive (no new CSS required) and compiles against the app's
+  Tailwind content scan because the class strings are static literals here.
+  ============================================================================
+#}
+
+{# ---------------------------------------------------------------------------
+  page_header(title, subtitle=None)
+  In-content page/section header. The global top bar already carries the user
+  name + theme/notifications; this is the heading INSIDE the content column.
+  - title    : main heading text (string)
+  - subtitle : optional eyebrow/context line shown above the title (string)
+--------------------------------------------------------------------------- #}
+{% macro page_header(title, subtitle=None, caller=none) %}
+<div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-5 sm:mb-6">
+  <div class="min-w-0">
+    {% if subtitle %}
+    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 truncate">{{ subtitle }}</p>
+    {% endif %}
+    <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-gray-900 dark:text-white truncate">{{ title }}</h1>
+  </div>
+  {% if caller %}
+  <div class="flex items-center gap-2 shrink-0">{{ caller() }}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ---------------------------------------------------------------------------
+  stat_card(icon, label, value, sublabel=None, tone='primary')
+  KPI tile with a mono figure (grounded in the dashboard stat cards).
+  - icon     : Tabler icon name w/o prefix, e.g. "ti-shield-half"
+  - label    : uppercase label (string)
+  - value    : the figure, rendered in font-mono (string/number)
+  - sublabel : small caption under/after the value (string, optional)
+  - tone     : 'primary' | 'gold' | 'info' | 'success' | 'warning' | 'danger' | 'neutral'
+               drives the figure + icon color (severity stays text+icon, never color-only)
+--------------------------------------------------------------------------- #}
+{% macro stat_card(icon, label, value, sublabel=None, tone='primary', caller=none) %}
+{% set tones = {
+  'primary': 'text-ecs-green',
+  'gold':    'text-ecs-gold-500 dark:text-ecs-gold-400',
+  'info':    'text-blue-600 dark:text-blue-400',
+  'success': 'text-green-600 dark:text-green-400',
+  'warning': 'text-amber-600 dark:text-amber-400',
+  'danger':  'text-red-600 dark:text-red-400',
+  'neutral': 'text-gray-900 dark:text-white'
+} %}
+{% set tone_class = tones.get(tone, tones['primary']) %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5">
+  <div class="flex items-center justify-between">
+    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ label }}</span>
+    <i class="ti {{ icon }} text-lg {{ tone_class }} shrink-0" aria-hidden="true"></i>
+  </div>
+  <div class="mt-3 flex items-end gap-2 flex-wrap">
+    <span class="font-mono text-3xl sm:text-4xl font-bold leading-none {{ tone_class }}">{{ value }}</span>
+    {% if sublabel %}<span class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{ sublabel }}</span>{% endif %}
+  </div>
+  {% if caller %}
+  <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">{{ caller() }}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ---------------------------------------------------------------------------
+  attention_item(icon, label, count, severity, url, age=None)
+  A single action-queue row (grounded in the admin "Needs Your Attention" list).
+  Severity is conveyed by ICON + TEXT, never color alone (a11y).
+  - icon     : Tabler icon for the subject, e.g. "ti-whistle"
+  - label    : the human sentence, e.g. "8 registrations awaiting approval"
+  - count    : badge number/text shown on the action chip (string/number, optional -> falsy hides)
+  - severity : 'critical' | 'warning' | 'notice' | 'low'
+  - url       : href for the row's primary action / drill-in
+  - age      : optional secondary mono caption, e.g. "oldest 3 days ago"
+  Wrap multiple rows in <ul role="list" aria-live="polite"> (see attention_list helper).
+--------------------------------------------------------------------------- #}
+{% macro attention_item(icon, label, count, severity, url, age=None) %}
+{% set sev = {
+  'critical': {'cls': 'text-red-600 dark:text-red-400',    'i': 'ti-alert-octagon',         'word': 'Critical'},
+  'warning':  {'cls': 'text-amber-600 dark:text-amber-400','i': 'ti-alert-triangle-filled', 'word': 'Warning'},
+  'notice':   {'cls': 'text-blue-600 dark:text-blue-400',  'i': 'ti-info-circle-filled',    'word': 'Notice'},
+  'low':      {'cls': 'text-gray-500 dark:text-gray-400',  'i': 'ti-circle',                'word': 'Low'}
+} %}
+{% set s = sev.get(severity, sev['notice']) %}
+<li class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+  <span class="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide w-28 {{ s.cls }}">
+    <i class="ti {{ s.i }} text-[12px]" aria-hidden="true"></i> {{ s.word }}
+  </span>
+  <div class="flex-1 min-w-0">
+    <p class="text-sm font-semibold text-gray-900 dark:text-white">
+      <i class="ti {{ icon }} mr-1 {{ s.cls }}" aria-hidden="true"></i>{{ label }}
+    </p>
+    {% if age %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono">{{ age }}</p>{% endif %}
+  </div>
+  <a href="{{ url }}"
+     class="shrink-0 inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg
+            bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors
+            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <span>Review</span>
+    {% if count %}<span class="font-mono font-bold px-1.5 py-0.5 rounded bg-white/20">{{ count }}</span>{% endif %}
+    <i class="ti ti-arrow-right text-sm" aria-hidden="true"></i>
+  </a>
+</li>
+{% endmacro %}
+
+{# attention_list — convenience wrapper (call with body of attention_item rows) #}
+{% macro attention_list(title, count=None, icon='ti-alert-triangle') %}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="flex items-center justify-between gap-2 px-4 h-12 border-b border-gray-200 dark:border-gray-700">
+    <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+      <i class="ti {{ icon }} text-ecs-gold-500 dark:text-ecs-gold-400" aria-hidden="true"></i> {{ title }}
+      {% if count %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-400">{{ count }}</span>{% endif %}
+    </h2>
+  </div>
+  <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list" aria-live="polite">
+    {{ caller() }}
+  </ul>
+</section>
+{% endmacro %}
+
+
+{# ---------------------------------------------------------------------------
+  section_card(title, icon=None)  —  use with {% call %}
+  Titled content card. The header carries an optional icon; body is the caller.
+  - title : section heading (string)
+  - icon  : optional Tabler icon, e.g. "ti-calendar-event"
+  Example:
+    {% call kit.section_card("Upcoming Matches", icon="ti-calendar-event") %}
+      ... body ...
+    {% endcall %}
+--------------------------------------------------------------------------- #}
+{% macro section_card(title, icon=None) %}
+<section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+    {% if icon %}<i class="ti {{ icon }} text-ecs-green" aria-hidden="true"></i>{% endif %}
+    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">{{ title }}</h3>
+  </div>
+  <div>{{ caller() }}</div>
+</section>
+{% endmacro %}
+
+
+{# ---------------------------------------------------------------------------
+  DATA TABLE  —  responsive sortable/filterable table.
+  Real <table> on md+, stacked cards on mobile (caller renders BOTH; helpers
+  below keep the markup consistent). Grounded in the admin "This Week's Matches".
+
+  Building blocks:
+    data_table_open(title, icon=None, count=None)   -> open shell + header
+    data_table_filter_bar(search_placeholder=...)   -> filter bar ({% call %} for extra selects)
+    data_table_th(label, key=None, active=False, dir='none')  -> sortable header cell
+    data_table_close(footer=None)                    -> close shell
+
+  The caller supplies <thead>/<tbody> for the md+ table, and the mobile card
+  list. See data_table() below for the all-in-one wrapper.
+--------------------------------------------------------------------------- #}
+
+{# data_table_th(label, key=None, sortable=True, active=False, dir='none', align='left', hide=None)
+   Sortable header cell. dir = 'asc' | 'desc' | 'none' (emitted as valid aria-sort
+   ascending/descending/none). hide = 'sm' (hidden <md) | 'md' (hidden <lg) for responsive columns.
+   JS hooks: data-sort-key (column id) + data-sort-dir (current short token). #}
+{% macro data_table_th(label, key=None, sortable=True, active=False, dir='none', align='left', hide=None) %}
+{# Map the short dir token to a valid ARIA sort value (ascending|descending|none). #}
+{% set aria_sort = {'asc': 'ascending', 'desc': 'descending'}.get(dir, 'none') if active else 'none' %}
+<th scope="col"
+    {% if sortable %}data-sort-key="{{ key or label|lower }}" data-sort-dir="{{ dir if active else 'none' }}" tabindex="0" role="button"
+    aria-sort="{{ aria_sort }}"{% endif %}
+    class="px-3 py-2.5 font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 select-none
+           text-{{ align }}
+           {% if sortable %}cursor-pointer hover:text-gray-900 dark:hover:text-white
+           focus:outline-none focus:ring-2 focus:ring-ecs-green rounded{% endif %}
+           {% if hide == 'sm' %}hidden md:table-cell{% elif hide == 'md' %}hidden lg:table-cell{% endif %}">
+  <span class="inline-flex items-center gap-1">
+    {{ label }}
+    {% if sortable %}
+      {% if active and dir == 'asc' %}<i class="ti ti-sort-ascending text-xs text-ecs-green" aria-hidden="true"></i>
+      {% elif active and dir == 'desc' %}<i class="ti ti-sort-descending text-xs text-ecs-green" aria-hidden="true"></i>
+      {% else %}<i class="ti ti-arrows-sort text-xs opacity-60" aria-hidden="true"></i>{% endif %}
+    {% endif %}
+  </span>
+</th>
+{% endmacro %}
+
+{# data_table_filter_bar(search_placeholder='Filter…', search_id='dtFilter')
+   Filter row: search input + ({% call %}) slot for league/status selects/chips. #}
+{% macro data_table_filter_bar(search_placeholder='Filter…', search_id='dtFilter', caller=none) %}
+<div class="flex flex-wrap items-center gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+  <div class="relative flex-1 min-w-[180px]">
+    <i class="ti ti-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none" aria-hidden="true"></i>
+    <input type="search" id="{{ search_id }}" placeholder="{{ search_placeholder }}"
+           class="input-ecs h-9 pl-9 pr-3 text-sm" aria-label="{{ search_placeholder }}">
+  </div>
+  {% if caller %}{{ caller() }}{% endif %}
+</div>
+{% endmacro %}
+
+{# data_table(title, icon=None, count=None, search_placeholder='Filter…',
+              footer=None) — all-in-one wrapper. Use {% call %} to provide the
+   table internals. The caller renders:
+     - a <table class="hidden md:table w-full text-sm"> ... </table> for md+
+     - a <div class="md:hidden divide-y ..."> stacked cards </div> for mobile
+   Use data_table_th() inside the thead. Wire sorting/filtering with your page JS
+   (hooks: input#<search_id>, th[data-sort-key], aria-sort). #}
+{% macro data_table(title, icon=None, count=None, search_placeholder='Filter…', search_id='dtFilter', footer=None, filters=True) %}
+<section data-modern-table class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  <div class="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+    <h2 class="font-semibold flex items-center gap-2 text-gray-900 dark:text-white">
+      {% if icon %}<i class="ti {{ icon }} text-ecs-green" aria-hidden="true"></i>{% endif %} {{ title }}
+      {% if count %}<span class="text-xs font-mono font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300">{{ count }}</span>{% endif %}
+    </h2>
+  </div>
+  {% if filters %}
+    {{ data_table_filter_bar(search_placeholder, search_id) }}
+  {% endif %}
+  <div class="md:overflow-x-auto">
+    {{ caller() }}
+  </div>
+  {% if footer %}
+  <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+    {{ footer }}
+  </div>
+  {% endif %}
+</section>
+{% endmacro %}
+
+{# data_table_row_card(...) — mobile stacked-card row counterpart to a <tr>.
+   Use inside the md:hidden block. {% call %} body holds the meta lines. #}
+{% macro data_table_row_card(title, url=None, badge=None, caller=none) %}
+<a {% if url %}href="{{ url }}"{% endif %} data-row-card
+   class="block px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors
+          focus:outline-none focus:ring-2 focus:ring-inset focus:ring-ecs-green">
+  <div class="flex items-center justify-between gap-2">
+    <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ title }}</span>
+    {% if badge %}<span class="shrink-0">{{ badge }}</span>{% endif %}
+    {% if url %}<i class="ti ti-chevron-right text-gray-400 shrink-0" aria-hidden="true"></i>{% endif %}
+  </div>
+  {% if caller %}
+  <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">{{ caller() }}</div>
+  {% endif %}
+</a>
+{% endmacro %}
+
+
+{# ---------------------------------------------------------------------------
+  empty_state(icon, title, message, action=None)
+  Friendly zero-data state.
+  - icon    : Tabler icon, e.g. "ti-calendar-off"
+  - title   : short heading
+  - message : supporting sentence
+  - action  : optional {'label': ..., 'url': ..., 'icon': ...} dict for a CTA button
+--------------------------------------------------------------------------- #}
+{% macro empty_state(icon, title, message, action=None) %}
+<div class="flex flex-col items-center justify-center text-center px-6 py-12 sm:py-16">
+  <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center mb-4">
+    <i class="ti {{ icon }} text-2xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+  </div>
+  <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ title }}</h3>
+  <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 max-w-sm">{{ message }}</p>
+  {% if action %}
+  <a href="{{ action.url }}"
+     class="mt-5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg
+            bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+            focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    {% if action.icon %}<i class="ti {{ action.icon }}" aria-hidden="true"></i>{% endif %}{{ action.label }}
+  </a>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ---------------------------------------------------------------------------
+  skeleton(rows=3)
+  Loading placeholder. Uses Tailwind's built-in animate-pulse (no custom CSS).
+  - rows : number of shimmer lines (int)
+--------------------------------------------------------------------------- #}
+{% macro skeleton(rows=3) %}
+<div class="animate-pulse space-y-3 p-4" aria-hidden="true" role="presentation">
+  {% for i in range(rows) %}
+  <div class="flex items-center gap-3">
+    <div class="w-9 h-9 rounded-lg bg-gray-200 dark:bg-gray-700 shrink-0"></div>
+    <div class="flex-1 space-y-2">
+      <div class="h-3 rounded bg-gray-200 dark:bg-gray-700 w-3/4"></div>
+      <div class="h-2.5 rounded bg-gray-200 dark:bg-gray-700 w-1/2"></div>
+    </div>
+  </div>
+  {% endfor %}
+  <span class="sr-only">Loading…</span>
+</div>
+{% endmacro %}
+
+
+{# ---------------------------------------------------------------------------
+  toast(id='modernToast')
+  Themed toast container. Hidden by default; show by removing 'hidden' and
+  setting #<id>-msg textContent from your page JS (or reuse Flowbite dismiss
+  via data-dismiss-target). aria-live announces to screen readers.
+  - id : DOM id (string)
+--------------------------------------------------------------------------- #}
+{% macro toast(id='modernToast') %}
+<div id="{{ id }}" class="fixed top-16 right-4 z-[60] hidden">
+  <div role="status" aria-live="polite"
+       class="flex items-center gap-3 bg-white dark:bg-gray-800 border border-green-300 dark:border-green-500/40
+              rounded-xl shadow-2xl px-4 py-3 min-w-[260px] max-w-sm">
+    <span class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-500/10 text-green-600 dark:text-green-400 flex items-center justify-center shrink-0">
+      <i class="ti ti-check text-lg" aria-hidden="true"></i>
+    </span>
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-semibold text-gray-900 dark:text-white">Success</p>
+      <p id="{{ id }}-msg" class="text-xs text-gray-500 dark:text-gray-400 truncate">Action completed</p>
+    </div>
+    <button type="button" data-dismiss-target="#{{ id }}"
+            class="p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center
+                   text-gray-400 hover:text-gray-900 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-ecs-green rounded"
+            aria-label="Dismiss notification">
+      <i class="ti ti-x" aria-hidden="true"></i>
+    </button>
+  </div>
+</div>
+{% endmacro %}
+
+
+{# ---------------------------------------------------------------------------
+  alert(kind, message, title=None, dismissible=True)
+  Inline themed alert banner (severity = icon + text + tone, never color-only).
+  - kind        : 'success' | 'warning' | 'danger' | 'info'
+  - message     : body text (string)
+  - title       : optional bold lead (string)
+  - dismissible : show an X that hides the banner via Flowbite data-dismiss-target
+--------------------------------------------------------------------------- #}
+{% macro alert(kind, message, title=None, dismissible=True) %}
+{% set kinds = {
+  'success': {'i': 'ti-circle-check',    'bg': 'bg-green-50 dark:bg-green-500/10',  'br': 'border-green-300 dark:border-green-500/40',  'tx': 'text-green-800 dark:text-green-300',  'ic': 'text-green-600 dark:text-green-400'},
+  'warning': {'i': 'ti-alert-triangle',  'bg': 'bg-amber-50 dark:bg-amber-500/10',  'br': 'border-amber-300 dark:border-amber-500/40',  'tx': 'text-amber-800 dark:text-amber-300',  'ic': 'text-amber-600 dark:text-amber-400'},
+  'danger':  {'i': 'ti-alert-octagon',   'bg': 'bg-red-50 dark:bg-red-500/10',      'br': 'border-red-300 dark:border-red-500/40',      'tx': 'text-red-800 dark:text-red-300',      'ic': 'text-red-600 dark:text-red-400'},
+  'info':    {'i': 'ti-info-circle',     'bg': 'bg-blue-50 dark:bg-blue-500/10',    'br': 'border-blue-300 dark:border-blue-500/40',    'tx': 'text-blue-800 dark:text-blue-300',    'ic': 'text-blue-600 dark:text-blue-400'}
+} %}
+{% set a = kinds.get(kind, kinds['info']) %}
+{% set _id = 'alert-' ~ range(100000, 999999) | random %}
+<div id="{{ _id }}" role="alert"
+     class="flex items-start gap-3 rounded-xl border p-3 sm:p-4 {{ a.bg }} {{ a.br }}">
+  <i class="ti {{ a.i }} text-lg shrink-0 mt-0.5 {{ a.ic }}" aria-hidden="true"></i>
+  <div class="flex-1 min-w-0 text-sm {{ a.tx }}">
+    {% if title %}<span class="font-semibold">{{ title }}</span> {% endif %}{{ message }}
+  </div>
+  {% if dismissible %}
+  <button type="button" data-dismiss-target="#{{ _id }}"
+          class="shrink-0 -mr-1 -mt-1 p-1 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 flex items-center justify-center
+                 rounded hover:bg-black/5 dark:hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-ecs-green {{ a.ic }}"
+          aria-label="Dismiss">
+    <i class="ti ti-x" aria-hidden="true"></i>
+  </button>
+  {% endif %}
+</div>
+{% endmacro %}
+
+
+{# ---------------------------------------------------------------------------
+  modal(id, title, icon=None, size='md')  —  use with {% call %}
+  Flowbite-native modal so the app's existing initFlowbite() wires open/close.
+  - id    : DOM id; open it with a trigger button bearing data-modal-toggle="<id>"
+            (or data-modal-target="<id>"). Close buttons use data-modal-hide="<id>".
+  - title : header text (string)
+  - icon  : optional Tabler icon for the header
+  - size  : 'sm' | 'md' | 'lg' | 'xl'  -> max width
+  Footer: pass a 'footer' slot via the {% call %} body? No — body is the form/content;
+  put your footer buttons at the end of the body (they should use data-modal-hide="<id>").
+  Example:
+    {% call kit.modal("matchModal", "New Match", icon="ti-plus") %}
+      <form ...> ... <button data-modal-hide="matchModal">Cancel</button> </form>
+    {% endcall %}
+--------------------------------------------------------------------------- #}
+{% macro modal(id, title, icon=None, size='md') %}
+{% set sizes = {'sm': 'max-w-sm', 'md': 'max-w-md', 'lg': 'max-w-lg', 'xl': 'max-w-2xl'} %}
+<div id="{{ id }}" tabindex="-1" aria-hidden="true" aria-modal="true" role="dialog"
+     aria-labelledby="{{ id }}-title" data-modal-backdrop="static"
+     class="hidden overflow-y-auto overflow-x-hidden fixed inset-0 z-50 justify-center items-end sm:items-center w-full max-h-full">
+  <div class="relative p-0 sm:p-4 w-full sm:{{ sizes.get(size, sizes['md']) }} max-h-full">
+    <div class="relative bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl flex flex-col max-h-[90dvh] sm:max-h-[90vh]">
+      <div class="flex items-center justify-between px-5 h-14 border-b border-gray-200 dark:border-gray-700 shrink-0">
+        <h3 id="{{ id }}-title" class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
+          {% if icon %}<i class="ti {{ icon }} text-ecs-green" aria-hidden="true"></i>{% endif %} {{ title }}
+        </h3>
+        <button type="button" data-modal-hide="{{ id }}"
+                class="modal-close-btn p-2 -mr-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center
+                       rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700
+                       focus:outline-none focus:ring-2 focus:ring-ecs-green"
+                aria-label="Close modal">
+          <i class="ti ti-x text-lg" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="modal-body overflow-y-auto">
+        {{ caller() }}
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}

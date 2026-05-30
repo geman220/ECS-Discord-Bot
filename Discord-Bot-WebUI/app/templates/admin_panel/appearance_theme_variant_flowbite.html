@@ -1,0 +1,82 @@
+{% extends "admin_panel/base_flowbite.html" %}
+
+{% block admin_title %}Theme Variant{% endblock %}
+{% block panel_description %}Select the active theme variant for the application{% endblock %}
+
+{% block breadcrumb_items %}
+<li>
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400 mx-1"></i>
+        <a href="{{ url_for('admin_panel.appearance') }}" class="ml-1 text-sm font-medium text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white">Appearance</a>
+    </div>
+</li>
+<li aria-current="page">
+    <div class="flex items-center">
+        <i class="ti ti-chevron-right w-4 h-4 text-gray-400 mx-1"></i>
+        <span class="ml-1 text-sm font-medium text-gray-500 dark:text-gray-400">Theme Variant</span>
+    </div>
+</li>
+{% endblock %}
+
+{% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, alert, empty_state %}
+<div class="space-y-6">
+  {{ page_header('Theme Variant', subtitle='Appearance') }}
+
+  {{ alert('info', 'Choose which theme variant is applied across the application.', title='Theme variant.', dismissible=false) }}
+
+  {% call section_card('Available Variants', icon='ti-palette') %}
+    {% if available_variants %}
+    <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
+      {% for variant in available_variants %}
+      <li class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5">
+        <span class="flex items-center gap-2 min-w-0">
+          <i class="ti {% if variant == current_variant %}ti-circle-check-filled text-ecs-green{% else %}ti-circle text-gray-400 dark:text-gray-500{% endif %} shrink-0" aria-hidden="true"></i>
+          <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ variant }}</span>
+        </span>
+        {% if variant == current_variant %}
+        <span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+          <i class="ti ti-check text-[12px]" aria-hidden="true"></i>Active
+        </span>
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+      {{ empty_state('ti-palette-off', 'No variants available', 'There are no theme variants configured for this application.') }}
+    {% endif %}
+  {% endcall %}
+</div>
+{% else %}
+<div class="p-4 space-y-6">
+    <div class="flex items-center p-4 text-sm text-blue-800 border border-blue-300 rounded-lg bg-blue-50 dark:bg-gray-800 dark:text-blue-400 dark:border-blue-800" role="alert">
+        <i class="ti ti-info-circle text-lg mr-3"></i>
+        <div>
+            <span class="font-medium">Theme variant.</span>
+            Choose which theme variant is applied across the application.
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+        <h5 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            <i class="ti ti-palette text-theme-primary"></i>
+            <span>Available Variants</span>
+        </h5>
+        <ul class="space-y-2">
+            {% for variant in available_variants %}
+            <li class="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+                <span class="text-base text-gray-900 dark:text-white">{{ variant }}</span>
+                {% if variant == current_variant %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    <i class="ti ti-check mr-1"></i>Active
+                </span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -20,6 +20,246 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/flowbite.html' import button as fb_button %}
+<div class="max-w-7xl mx-auto">
+  {{ page_header('Push Subscriptions', subtitle='Mobile Features') }}
+
+  {# KPI band — real stats #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    {{ stat_card('ti-bell', 'Active Subscriptions', stats.active_subscriptions or 0, tone='success') }}
+    {{ stat_card('ti-bell-off', 'Inactive Subscriptions', stats.inactive_subscriptions or 0, tone='neutral') }}
+    {{ stat_card('ti-trending-up', 'New This Week', stats.new_subscriptions_week or 0, tone='info') }}
+    {{ stat_card('ti-device-mobile', 'Total Subscriptions', stats.total_subscriptions or 0, tone='primary') }}
+  </div>
+
+  {# Filters — GET form, same param names/values #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
+    <div class="px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+      <i class="ti ti-filter text-ecs-green" aria-hidden="true"></i>
+      <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Filter Subscriptions</h3>
+    </div>
+    <div class="p-4 sm:p-5">
+      <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+          <select name="status" id="status" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">All Statuses</option>
+            <option value="active" {{ 'selected' if request.args.get('status') == 'active' }}>Active</option>
+            <option value="inactive" {{ 'selected' if request.args.get('status') == 'inactive' }}>Inactive</option>
+          </select>
+        </div>
+        <div>
+          <label for="platform" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Platform</label>
+          <select name="platform" id="platform" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">All Platforms</option>
+            <option value="iOS" {{ 'selected' if request.args.get('platform') == 'iOS' }}>iOS</option>
+            <option value="Android" {{ 'selected' if request.args.get('platform') == 'Android' }}>Android</option>
+          </select>
+        </div>
+        <div>
+          <label for="date_range" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date Range</label>
+          <select name="date_range" id="date_range" class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+            <option value="">All Time</option>
+            <option value="today" {{ 'selected' if request.args.get('date_range') == 'today' }}>Today</option>
+            <option value="week" {{ 'selected' if request.args.get('date_range') == 'week' }}>This Week</option>
+            <option value="month" {{ 'selected' if request.args.get('date_range') == 'month' }}>This Month</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button type="submit" class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-search" aria-hidden="true"></i>Filter
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  {# Bulk management — verbatim data-action hooks #}
+  <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 sm:p-5 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white">Subscription Management</h3>
+        <span class="text-xs text-gray-500 dark:text-gray-400 font-mono">{{ device_tokens|length or 0 }} subscriptions shown</span>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-green-300 dark:border-green-500/40 text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-500/10 hover:bg-green-100 dark:hover:bg-green-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="bulk-activate">
+          <i class="ti ti-check" aria-hidden="true"></i>Bulk Activate
+        </button>
+        <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500" data-action="bulk-deactivate">
+          <i class="ti ti-x" aria-hidden="true"></i>Bulk Deactivate
+        </button>
+        <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-red-300 dark:border-red-500/40 text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500" data-action="cleanup-inactive">
+          <i class="ti ti-trash" aria-hidden="true"></i>Cleanup Inactive
+        </button>
+        <button type="button" class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold border border-blue-300 dark:border-blue-500/40 text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="export-subscriptions">
+          <i class="ti ti-download" aria-hidden="true"></i>Export
+        </button>
+      </div>
+    </div>
+  </section>
+
+  {# Subscriptions table — kit data_table, responsive cards on mobile #}
+  {% if device_tokens %}
+  {% call data_table('Push Subscriptions', icon='ti-list', count=(device_tokens|length), search_placeholder='Filter subscriptions…', search_id='subFilter', filters=False) %}
+    {# md+ table #}
+    <table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+      <thead>
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          <th scope="col" class="px-3 py-2.5">
+            <input type="checkbox" id="selectAll" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" aria-label="Select all subscriptions">
+          </th>
+          {{ data_table_th('User', key='user', sortable=False) }}
+          {{ data_table_th('Device Token', key='token', sortable=False) }}
+          {{ data_table_th('Platform', key='platform', sortable=False) }}
+          {{ data_table_th('Status', key='status', sortable=False) }}
+          {{ data_table_th('Created', key='created', sortable=False, hide='sm') }}
+          {{ data_table_th('Last Updated', key='updated', sortable=False, hide='md') }}
+          {{ data_table_th('Actions', key='actions', sortable=False, align='right') }}
+        </tr>
+      </thead>
+      <tbody>
+        {% for token in device_tokens %}
+        <tr class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3">
+            <input type="checkbox" class="token-checkbox w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ token.id }}" aria-label="Select subscription">
+          </td>
+          <td class="px-3 py-3">
+            {% if token.user %}
+            <div class="flex items-center">
+              <div class="w-8 h-8 rounded-full bg-ecs-green text-white flex items-center justify-center text-sm font-semibold mr-2 shrink-0">
+                {{ token.user.username[0].upper() if token.user.username else 'U' }}
+              </div>
+              <div class="min-w-0">
+                <div class="font-medium text-gray-900 dark:text-white truncate">{{ token.user.username or 'Unknown User' }}</div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ token.user.email or 'No email' }}</p>
+              </div>
+            </div>
+            {% else %}
+            <span class="text-gray-500 dark:text-gray-400">No associated user</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3">
+            <div class="flex items-center gap-1">
+              <code class="text-xs font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ token.fcm_token[:20] }}...{{ token.fcm_token[-10:] if token.fcm_token|length > 30 else '' }}</code>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="copy-token" data-token="{{ token.fcm_token }}" title="Copy" aria-label="Copy token">
+                <i class="ti ti-copy" aria-hidden="true"></i>
+              </button>
+            </div>
+          </td>
+          <td class="px-3 py-3">
+            {% set platform = 'iOS' if token.platform == 'ios' else 'Android' %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {% if platform == 'iOS' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% endif %}">
+              <i class="ti ti-{% if platform == 'iOS' %}brand-apple{% else %}brand-android{% endif %} mr-1" aria-hidden="true"></i>{{ platform }}
+            </span>
+          </td>
+          <td class="px-3 py-3">
+            {% if token.is_active %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+              <i class="ti ti-check mr-1" aria-hidden="true"></i>Active
+            </span>
+            {% else %}
+            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-x mr-1" aria-hidden="true"></i>Inactive
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 text-sm font-mono hidden md:table-cell">{{ token.created_at.strftime('%Y-%m-%d %H:%M') if token.created_at else 'Unknown' }}</td>
+          <td class="px-3 py-3 text-sm font-mono hidden lg:table-cell">{{ token.updated_at.strftime('%Y-%m-%d %H:%M') if token.updated_at else 'Unknown' }}</td>
+          <td class="px-3 py-3">
+            <div class="flex items-center justify-end gap-1">
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="view-token" data-token-id="{{ token.id }}" title="View" aria-label="View token">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-ecs-green hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="test-notification" data-token-id="{{ token.id }}" title="Send Test" aria-label="Send test notification">
+                <i class="ti ti-send" aria-hidden="true"></i>
+              </button>
+              {% if token.is_active %}
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" data-action="deactivate-token" data-token-id="{{ token.id }}" title="Deactivate" aria-label="Deactivate token">
+                <i class="ti ti-ban" aria-hidden="true"></i>
+              </button>
+              {% else %}
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="activate-token" data-token-id="{{ token.id }}" title="Activate" aria-label="Activate token">
+                <i class="ti ti-check" aria-hidden="true"></i>
+              </button>
+              {% endif %}
+              <button type="button" class="p-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" data-action="delete-token" data-token-id="{{ token.id }}" title="Delete" aria-label="Delete token">
+                <i class="ti ti-trash" aria-hidden="true"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# mobile stacked cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for token in device_tokens %}
+      {% set platform = 'iOS' if token.platform == 'ios' else 'Android' %}
+      <div class="px-4 py-3.5">
+        <div class="flex items-start justify-between gap-2">
+          <div class="flex items-center min-w-0">
+            <input type="checkbox" class="token-checkbox w-4 h-4 mr-2 shrink-0 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600" value="{{ token.id }}" aria-label="Select subscription">
+            <div class="w-8 h-8 rounded-full bg-ecs-green text-white flex items-center justify-center text-sm font-semibold mr-2 shrink-0">
+              {{ token.user.username[0].upper() if token.user and token.user.username else 'U' }}
+            </div>
+            <div class="min-w-0">
+              <div class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ token.user.username if token.user else 'No associated user' }}</div>
+              {% if token.user %}<p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ token.user.email or 'No email' }}</p>{% endif %}
+            </div>
+          </div>
+          {% if token.is_active %}
+          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+            <i class="ti ti-check mr-1" aria-hidden="true"></i>Active
+          </span>
+          {% else %}
+          <span class="shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">
+            <i class="ti ti-x mr-1" aria-hidden="true"></i>Inactive
+          </span>
+          {% endif %}
+        </div>
+        <div class="mt-2 flex items-center gap-2 flex-wrap text-xs text-gray-500 dark:text-gray-400">
+          <span class="inline-flex items-center px-2 py-0.5 rounded-full font-medium {% if platform == 'iOS' %}bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300{% else %}bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300{% endif %}">
+            <i class="ti ti-{% if platform == 'iOS' %}brand-apple{% else %}brand-android{% endif %} mr-1" aria-hidden="true"></i>{{ platform }}
+          </span>
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{{ token.fcm_token[:14] }}…</code>
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-gray-500 hover:text-gray-900 dark:hover:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="copy-token" data-token="{{ token.fcm_token }}" title="Copy" aria-label="Copy token">
+            <i class="ti ti-copy" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 font-mono">Created {{ token.created_at.strftime('%Y-%m-%d %H:%M') if token.created_at else 'Unknown' }}</div>
+        <div class="mt-2 flex items-center gap-1 flex-wrap">
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" data-action="view-token" data-token-id="{{ token.id }}" title="View" aria-label="View token">
+            <i class="ti ti-eye" aria-hidden="true"></i>
+          </button>
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-ecs-green hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="test-notification" data-token-id="{{ token.id }}" title="Send Test" aria-label="Send test notification">
+            <i class="ti ti-send" aria-hidden="true"></i>
+          </button>
+          {% if token.is_active %}
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500" data-action="deactivate-token" data-token-id="{{ token.id }}" title="Deactivate" aria-label="Deactivate token">
+            <i class="ti ti-ban" aria-hidden="true"></i>
+          </button>
+          {% else %}
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green" data-action="activate-token" data-token-id="{{ token.id }}" title="Activate" aria-label="Activate token">
+            <i class="ti ti-check" aria-hidden="true"></i>
+          </button>
+          {% endif %}
+          <button type="button" class="p-2 min-h-[44px] min-w-[44px] inline-flex items-center justify-center text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" data-action="delete-token" data-token-id="{{ token.id }}" title="Delete" aria-label="Delete token">
+            <i class="ti ti-trash" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% else %}
+  {{ empty_state('ti-bell-off', 'No Push Subscriptions', 'No device tokens match the current filter criteria.', action={'label': 'Clear Filters', 'url': url_for('admin_panel.push_subscriptions'), 'icon': 'ti-refresh'}) }}
+  {% endif %}
+</div>
+{% else %}
 <!-- Subscription Statistics -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
@@ -241,6 +481,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

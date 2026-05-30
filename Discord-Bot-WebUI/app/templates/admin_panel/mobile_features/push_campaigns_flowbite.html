@@ -20,6 +20,227 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state %}
+{% from 'macros/flowbite.html' import input, select, textarea, badge %}
+
+{{ page_header("Push Campaigns", subtitle="Mobile Features") }}
+
+<!-- Campaign Statistics -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {{ stat_card("ti-send", "Sent Today", campaign_data.total_sent_today or 0, tone='info') }}
+  {{ stat_card("ti-check", "Delivery Rate", campaign_data.delivery_rate or '0%', tone='success') }}
+  {{ stat_card("ti-eye", "Avg Open Rate", campaign_data.avg_open_rate or '0%', tone='info') }}
+  {{ stat_card("ti-users", "Target Users", campaign_data.active_users or 0, tone='gold') }}
+</div>
+
+<!-- Create New Campaign + Templates -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+  <div class="lg:col-span-2">
+    {% call section_card("Create Push Campaign", icon="ti-plus") %}
+    <div class="p-4 sm:p-5">
+      <form id="campaignForm">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          {{ input("campaign_name", label="Campaign Name", placeholder="Match Day Reminder", required=true) }}
+          {{ select("campaign_type", label="Campaign Type", required=true, placeholder="Select Type", options=[
+              ("match_reminder", "Match Reminder"),
+              ("season_update", "Season Update"),
+              ("event_announcement", "Event Announcement"),
+              ("custom", "Custom Campaign")
+          ]) }}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          {{ input("notification_title", label="Notification Title", placeholder="Match Starting Soon!", required=true) }}
+          {{ select("target_audience", label="Target Audience", required=true, placeholder="Select Audience", options=[
+              ("all", "All Users (" ~ campaign_data.total_users ~ ")"),
+              ("active", "Active Players (" ~ campaign_data.active_users ~ ")"),
+              ("team_specific", "Team-Specific"),
+              ("custom", "Custom Segment")
+          ]) }}
+        </div>
+
+        <div class="mb-4">
+          {{ textarea("notification_message", label="Notification Message", rows=3, required=true, placeholder="Your match against Arsenal FC starts in 30 minutes. Good luck!") }}
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <span id="messageCounter" class="font-mono">0</span>/160 characters
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label for="sendSchedule" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Send Schedule <span class="text-red-500">*</span></label>
+            <select name="send_schedule" id="sendSchedule" required
+                    class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+              <option value="immediate">Send Immediately</option>
+              <option value="scheduled">Schedule for Later</option>
+              <option value="recurring">Recurring Campaign</option>
+            </select>
+          </div>
+          <div class="hidden" id="scheduledDateField">
+            <label for="send_datetime" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Send Date/Time</label>
+            <input type="datetime-local" name="send_datetime" id="send_datetime"
+                   class="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-4 mb-5">
+          <label class="inline-flex items-center min-h-[44px]">
+            <input type="checkbox" name="high_priority" class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">High Priority Notification</span>
+          </label>
+          <label class="inline-flex items-center min-h-[44px]">
+            <input type="checkbox" name="track_opens" checked class="w-4 h-4 text-ecs-green bg-gray-100 border-gray-300 rounded focus:ring-ecs-green dark:bg-gray-700 dark:border-gray-600">
+            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Track Open Rates</span>
+          </label>
+        </div>
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <button type="button" data-action="preview-campaign"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                         text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
+                         hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-eye" aria-hidden="true"></i>Preview
+          </button>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <button type="button" data-action="save-draft"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                           text-ecs-green bg-ecs-green/10 border border-ecs-green/30 hover:bg-ecs-green/20
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green">
+              <i class="ti ti-file" aria-hidden="true"></i>Save Draft
+            </button>
+            <button type="submit"
+                    class="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                           text-white bg-ecs-green hover:bg-ecs-green-700
+                           focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-send" aria-hidden="true"></i>Create Campaign
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+    {% endcall %}
+  </div>
+
+  <div>
+    {% call section_card("Campaign Templates", icon="ti-template") %}
+    <div class="p-4 sm:p-5 space-y-4">
+      {% for template in campaign_data.templates %}
+      <div class="border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+        <div class="flex justify-between items-start gap-2 mb-2">
+          <div class="min-w-0">
+            <h6 class="font-semibold text-gray-900 dark:text-white truncate">{{ template.name }}</h6>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ template.description }}</p>
+          </div>
+          <button type="button" data-action="load-template" data-template-id="{{ template.id }}"
+                  title="Load Template" aria-label="Load template {{ template.name }}"
+                  class="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg
+                         text-ecs-green hover:bg-ecs-green/10 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-download" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-gray-500 dark:text-gray-400">Target: {{ template.target_audience }}</span>
+          {{ badge(template.estimated_reach ~ ' users', variant='info', size='sm') }}
+        </div>
+      </div>
+      {% else %}
+      {{ empty_state("ti-template-off", "No Templates", "No campaign templates are available yet.") }}
+      {% endfor %}
+    </div>
+    {% endcall %}
+  </div>
+</div>
+
+<!-- Recent Campaigns -->
+{% if campaign_data.recent_campaigns %}
+{% call data_table("Recent Campaigns", icon="ti-history", count=campaign_data.recent_campaigns|length, search_placeholder="Filter campaigns…", search_id="campaignFilter") %}
+<table class="hidden md:table w-full text-sm text-left text-gray-500 dark:text-gray-400">
+  <thead>
+    <tr class="border-b border-gray-200 dark:border-gray-700">
+      {{ data_table_th("Campaign", key="campaign") }}
+      {{ data_table_th("Type", key="type", hide="sm") }}
+      {{ data_table_th("Sent Date", key="sent_date", hide="sm") }}
+      {{ data_table_th("Recipients", key="recipients", hide="md") }}
+      {{ data_table_th("Delivery", key="delivery") }}
+      {{ data_table_th("Opens", key="opens", hide="md") }}
+      {{ data_table_th("Status", key="status", hide="sm") }}
+      {{ data_table_th("Actions", sortable=False, align="right") }}
+    </tr>
+  </thead>
+  <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+    {% for campaign in campaign_data.recent_campaigns %}
+    <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+      <td class="px-3 py-3">
+        <span class="font-semibold text-gray-900 dark:text-white" data-filter-text>{{ campaign.name }}</span>
+        <p class="text-xs text-gray-500 dark:text-gray-400">{{ campaign.description or 'No description' }}</p>
+      </td>
+      <td class="px-3 py-3 hidden md:table-cell">{{ badge(campaign.type or 'Custom', variant='info', size='sm') }}</td>
+      <td class="px-3 py-3 hidden md:table-cell font-mono text-xs">{{ campaign.sent_date }}</td>
+      <td class="px-3 py-3 hidden lg:table-cell">{{ badge(campaign.recipients, variant='info', size='sm') }}</td>
+      <td class="px-3 py-3">{{ badge(campaign.delivery_rate, variant='success' if campaign.delivery_rate and campaign.delivery_rate.rstrip('%')|int > 90 else 'warning', size='sm') }}</td>
+      <td class="px-3 py-3 hidden lg:table-cell">{{ badge(campaign.open_rate, variant='success' if campaign.open_rate and campaign.open_rate.rstrip('%')|int > 50 else 'default', size='sm') }}</td>
+      <td class="px-3 py-3 hidden md:table-cell">{{ badge('Completed', variant='success', size='sm') }}</td>
+      <td class="px-3 py-3">
+        <div class="flex items-center justify-end gap-1">
+          <button type="button" data-action="view-campaign-details" data-campaign-id="{{ campaign.id }}" title="View" aria-label="View campaign {{ campaign.name }}"
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-eye" aria-hidden="true"></i>
+          </button>
+          <button type="button" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" title="Duplicate" aria-label="Duplicate campaign {{ campaign.name }}"
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg text-ecs-green hover:bg-ecs-green/10 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-copy" aria-hidden="true"></i>
+          </button>
+          <button type="button" data-action="download-report" data-campaign-id="{{ campaign.id }}" title="Download Report" aria-label="Download report for {{ campaign.name }}"
+                  class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 sm:h-9 sm:w-9 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-download" aria-hidden="true"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+  {% for campaign in campaign_data.recent_campaigns %}
+  <div data-row-card class="px-4 py-3.5">
+    <div class="flex items-center justify-between gap-2">
+      <span class="text-sm font-semibold text-gray-900 dark:text-white truncate" data-filter-text>{{ campaign.name }}</span>
+      {{ badge('Completed', variant='success', size='sm') }}
+    </div>
+    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ campaign.description or 'No description' }}</p>
+    <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+      {{ badge(campaign.type or 'Custom', variant='info', size='sm') }}
+      <span class="text-gray-500 dark:text-gray-400 font-mono">{{ campaign.sent_date }}</span>
+      {{ badge(campaign.recipients ~ ' recipients', variant='info', size='sm') }}
+      {{ badge('Delivery ' ~ campaign.delivery_rate, variant='success' if campaign.delivery_rate and campaign.delivery_rate.rstrip('%')|int > 90 else 'warning', size='sm') }}
+      {{ badge('Opens ' ~ campaign.open_rate, variant='success' if campaign.open_rate and campaign.open_rate.rstrip('%')|int > 50 else 'default', size='sm') }}
+    </div>
+    <div class="mt-3 flex items-center gap-1">
+      <button type="button" data-action="view-campaign-details" data-campaign-id="{{ campaign.id }}" title="View" aria-label="View campaign {{ campaign.name }}"
+              class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-eye" aria-hidden="true"></i>
+      </button>
+      <button type="button" data-action="duplicate-campaign" data-campaign-id="{{ campaign.id }}" title="Duplicate" aria-label="Duplicate campaign {{ campaign.name }}"
+              class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-ecs-green hover:bg-ecs-green/10 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-copy" aria-hidden="true"></i>
+      </button>
+      <button type="button" data-action="download-report" data-campaign-id="{{ campaign.id }}" title="Download Report" aria-label="Download report for {{ campaign.name }}"
+              class="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-ecs-green">
+        <i class="ti ti-download" aria-hidden="true"></i>
+      </button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endcall %}
+{% else %}
+<div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+  {{ empty_state("ti-send-off", "No Campaigns Yet", "Create your first push notification campaign to get started.") }}
+</div>
+{% endif %}
+{% else %}
 <!-- Campaign Statistics -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-50 dark:bg-blue-900/30 rounded-lg shadow p-5">
@@ -257,6 +478,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

@@ -14,6 +14,99 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, data_table_row_card, empty_state %}
+{% from 'macros/flowbite.html' import badge as fb_badge %}
+<div class="p-4 sm:p-6 max-w-7xl mx-auto space-y-5 sm:space-y-6">
+    {% call page_header("System Information", subtitle="System health and configuration status") %}
+        <a href="{{ url_for('admin_panel.feature_toggles') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-settings" aria-hidden="true"></i><span>Feature Toggles</span>
+        </a>
+        <a href="{{ url_for('admin_panel.audit_logs') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-file-text" aria-hidden="true"></i><span>Audit Logs</span>
+        </a>
+        <a href="{{ url_for('admin_panel.dashboard') }}"
+           class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-arrow-left" aria-hidden="true"></i><span>Dashboard</span>
+        </a>
+    {% endcall %}
+
+    {# KPI band: 2-up mobile -> 3-up lg #}
+    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        {{ stat_card('ti-database', 'Database Status', info.database_status, sublabel='connection', tone='success') }}
+        {{ stat_card('ti-users', 'Total Users', info.total_users, sublabel='accounts', tone='info') }}
+        {{ stat_card('ti-shield', 'Total Roles', info.total_roles, sublabel='defined', tone='primary') }}
+        {{ stat_card('ti-settings', 'Total Settings', info.total_settings, sublabel='configured', tone='neutral') }}
+        {{ stat_card('ti-toggle-right', 'Enabled Settings', info.enabled_settings, sublabel='active', tone='success') }}
+        {{ stat_card('ti-activity', 'Activity (24h)', info.recent_activity, sublabel='recent events', tone='warning') }}
+    </div>
+
+    {% if critical_settings %}
+    {% call data_table('Critical Settings', icon='ti-alert-triangle', count=critical_settings|length, search_placeholder='Filter settings…', search_id='criticalFilter') %}
+        {# md+ table #}
+        <table class="hidden md:table w-full text-sm">
+            <thead>
+                <tr class="border-b border-gray-200 dark:border-gray-700">
+                    {{ data_table_th('Setting', key='setting') }}
+                    {{ data_table_th('Value', key='value') }}
+                    {{ data_table_th('Status', key='status') }}
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                {% for setting in critical_settings %}
+                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row>
+                    <td class="px-3 py-3 font-medium text-gray-900 dark:text-white" data-cell="setting">{{ setting.key|replace('_', ' ')|title }}</td>
+                    <td class="px-3 py-3 text-gray-600 dark:text-gray-300" data-cell="value">
+                        {% if setting.value_type == 'boolean' %}
+                            {% if setting.value == 'true' %}
+                                <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400 font-medium"><i class="ti ti-check" aria-hidden="true"></i>Enabled</span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-medium"><i class="ti ti-x" aria-hidden="true"></i>Disabled</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="font-mono text-xs">{{ setting.value }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="px-3 py-3" data-cell="status">
+                        {% if setting.is_enabled %}
+                            {{ fb_badge('Active', variant='success') }}
+                        {% else %}
+                            {{ fb_badge('Inactive', variant='secondary') }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {# mobile cards #}
+        <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+            {% for setting in critical_settings %}
+            {% call data_table_row_card(setting.key|replace('_', ' ')|title, badge=(fb_badge('Active', variant='success') if setting.is_enabled else fb_badge('Inactive', variant='secondary'))) %}
+                <p>
+                    {% if setting.value_type == 'boolean' %}
+                        {% if setting.value == 'true' %}
+                            <span class="inline-flex items-center gap-1 text-green-600 dark:text-green-400 font-medium"><i class="ti ti-check" aria-hidden="true"></i>Enabled</span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1 text-red-600 dark:text-red-400 font-medium"><i class="ti ti-x" aria-hidden="true"></i>Disabled</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="font-mono">{{ setting.value }}</span>
+                    {% endif %}
+                </p>
+            {% endcall %}
+            {% endfor %}
+        </div>
+    {% endcall %}
+    {% else %}
+    {% call section_card('Critical Settings', icon='ti-alert-triangle') %}
+        {{ empty_state('ti-circle-check', 'All clear', 'No critical settings configured.') }}
+    {% endcall %}
+    {% endif %}
+</div>
+{% else %}
 <!-- System Status Overview -->
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
     <div class="bg-green-50 dark:bg-green-900/30 rounded-lg shadow p-5">
@@ -155,4 +248,5 @@
         <i class="ti ti-arrow-left mr-1"></i>Back to Dashboard
     </a>
 </div>
+{% endif %}
 {% endblock %}

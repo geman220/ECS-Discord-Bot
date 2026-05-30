@@ -1,5 +1,6 @@
 {% extends "admin_panel/base_flowbite.html" %}
 {% from 'macros/flowbite.html' import card, button, badge, alert, empty_state, modal_form %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state as kit_empty_state %}
 
 {% block admin_title %}Schedule Matches{% endblock %}
 {% block panel_description %}Schedule and manage match times{% endblock %}
@@ -20,6 +21,142 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{{ page_header('Schedule Matches', subtitle='Match Operations' ~ (' · ' ~ current_season.name if current_season else '')) }}
+
+{# Filter by league #}
+{% call section_card('Filter by League', icon='ti-filter') %}
+<form method="GET" class="flex flex-wrap items-end gap-4 p-4 sm:p-5">
+    <div class="flex-1 min-w-[200px]">
+        <label for="league_id" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">League / Division</label>
+        <select id="league_id" name="league_id" class="input-ecs h-10 text-sm w-full">
+            <option value="">All Leagues (Premier, Classic, ECS FC)</option>
+            {% for league in leagues %}
+            <option value="{{ league.id }}" {% if current_league_id == league.id %}selected{% endif %}>{{ league.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="flex gap-2">
+        <button type="submit" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-search" aria-hidden="true"></i>Filter
+        </button>
+        <a href="{{ url_for('admin_panel.schedule_matches') }}" class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-x" aria-hidden="true"></i>Clear
+        </a>
+    </div>
+</form>
+{% endcall %}
+
+{# KPI band #}
+<div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mt-5 sm:mt-6 mb-5 sm:mb-6">
+    {{ stat_card('ti-users', 'Available Teams', teams|length, sublabel='teams', tone='primary') }}
+    {{ stat_card('ti-flag', 'Active Leagues', leagues|length, sublabel='in season', tone='success') }}
+    {{ stat_card('ti-clock', 'Unscheduled Matches', unscheduled_matches|length, sublabel='awaiting times', tone='warning') }}
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    {# Unscheduled Matches table #}
+    <div class="lg:col-span-2">
+        {% if unscheduled_matches %}
+        {% call data_table('Unscheduled Matches', icon='ti-calendar-question', count=unscheduled_matches|length, search_placeholder='Filter matches…', search_id='matchFilter') %}
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-gray-200 dark:border-gray-700">
+                        {{ data_table_th('Home Team', key='home') }}
+                        {{ data_table_th('Away Team', key='away') }}
+                        {{ data_table_th('League', key='league', hide='sm') }}
+                        {{ data_table_th('Actions', sortable=False, align='right') }}
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                    {% for match in unscheduled_matches %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors" data-row>
+                        <td class="px-3 py-3 font-medium text-gray-900 dark:text-white">
+                            {{ match.home_team.name if match.home_team else 'TBD' }}
+                        </td>
+                        <td class="px-3 py-3 text-gray-700 dark:text-gray-300">
+                            {{ match.away_team.name if match.away_team else 'TBD' }}
+                        </td>
+                        <td class="px-3 py-3 hidden md:table-cell">
+                            {% if match.home_team and match.home_team.league %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                {{ match.home_team.league.name }}
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-3 text-right">
+                            <button type="button" class="inline-flex items-center justify-center gap-1 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="schedule-match" data-match-id="{{ match.id }}">
+                                <i class="ti ti-calendar-plus" aria-hidden="true"></i>Schedule
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endcall %}
+        {% else %}
+        {{ kit_empty_state('ti-calendar-check', 'All Matches Scheduled', 'There are no unscheduled matches for the current season.') }}
+        {% endif %}
+    </div>
+
+    {# Sidebar #}
+    <div class="space-y-6">
+        {% call section_card('Quick Actions', icon='ti-bolt') %}
+        <div class="p-4 sm:p-5">
+            <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Use quick schedule to automatically assign dates and times to unscheduled matches.
+            </p>
+            <div class="space-y-2">
+                <button type="button" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed" data-action="quick-schedule" {% if not unscheduled_matches %}disabled{% endif %}>
+                    <i class="ti ti-calendar-plus" aria-hidden="true"></i>Quick Schedule All
+                </button>
+                <button type="button" class="w-full inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800" data-action="create-new-match">
+                    <i class="ti ti-plus" aria-hidden="true"></i>Create New Match
+                </button>
+            </div>
+        </div>
+        {% endcall %}
+
+        {% call section_card('Active Leagues', icon='ti-flag') %}
+        {% if leagues %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for league in leagues %}
+            <li class="px-4 sm:px-5 py-3 flex items-center justify-between">
+                <span class="text-gray-900 dark:text-white font-medium">{{ league.name }}</span>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">
+                    {{ league.teams|length if league.teams else 0 }} teams
+                </span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="px-4 sm:px-5 py-4 text-sm text-gray-500 dark:text-gray-400">No active leagues found for the current season.</p>
+        {% endif %}
+        {% endcall %}
+    </div>
+</div>
+
+{# Schedule Modal — Flowbite modal_form preserved verbatim so the page JS (Modal instance + #scheduleForm/#scheduleMatchId/#scheduleMatchInfo/#scheduleDate/#scheduleTime) keeps working #}
+{% call modal_form('scheduleModal', 'Schedule Match', form_id='scheduleForm', submit_text='Schedule Match', submit_color='primary', loading_text='Scheduling...') %}
+    <input type="hidden" id="scheduleMatchId" name="match_id">
+
+    <div id="scheduleMatchInfo" class="p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+        <!-- Match info will be populated via JS -->
+    </div>
+
+    <div>
+        <label for="scheduleDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Date</label>
+        <input type="date" id="scheduleDate" name="date" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+    </div>
+
+    <div>
+        <label for="scheduleTime" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Time</label>
+        <input type="time" id="scheduleTime" name="time" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
+    </div>
+{% endcall %}
+{% else %}
 <!-- Filter Card -->
 {% call card(title="Filter by League", subtitle="Select a league to filter unscheduled matches") %}
 <form method="GET" class="flex flex-wrap items-end gap-4">
@@ -201,6 +338,7 @@
         <input type="time" id="scheduleTime" name="time" required class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-ecs-green focus:border-ecs-green block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white">
     </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

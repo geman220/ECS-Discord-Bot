@@ -20,6 +20,89 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state, alert as kit_alert %}
+{% set _groups = [
+    {'key': 'core',         'title': 'Core Mobile Features',     'icon': 'ti-device-mobile', 'tone': 'primary'},
+    {'key': 'privacy',      'title': 'Location & Privacy',       'icon': 'ti-shield-lock',   'tone': 'info'},
+    {'key': 'experimental', 'title': 'Experimental Features',    'icon': 'ti-flask',         'tone': 'warning'}
+] %}
+{% set _core_count = grouped.get('core', []) | selectattr('enabled') | list | length %}
+{% set _priv_count = grouped.get('privacy', []) | selectattr('enabled') | list | length %}
+{% set _exp_count = grouped.get('experimental', []) | selectattr('enabled') | list | length %}
+{% set _total = (grouped.get('core', []) | length) + (grouped.get('privacy', []) | length) + (grouped.get('experimental', []) | length) %}
+{% set _on = _core_count + _priv_count + _exp_count %}
+<div class="space-y-6">
+
+  {{ page_header('Feature Toggles', subtitle='Mobile app feature management') }}
+
+  {{ kit_alert('info', 'Changes take effect immediately when the app fetches its configuration.', title='Feature Toggle Management') }}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-toggle-right', 'Enabled', _on, sublabel='of ' ~ _total, tone='success') }}
+    {{ stat_card('ti-device-mobile', 'Core', _core_count, sublabel='of ' ~ (grouped.get('core', []) | length), tone='primary') }}
+    {{ stat_card('ti-shield-lock', 'Privacy', _priv_count, sublabel='of ' ~ (grouped.get('privacy', []) | length), tone='info') }}
+    {{ stat_card('ti-flask', 'Experimental', _exp_count, sublabel='of ' ~ (grouped.get('experimental', []) | length), tone='warning') }}
+  </div>
+
+  {% if _total == 0 %}
+    {% call section_card('Features', icon='ti-toggle-left') %}
+      {{ empty_state('ti-toggle-left', 'No features configured', 'There are no mobile feature toggles to manage right now.') }}
+    {% endcall %}
+  {% else %}
+    {% for g in _groups %}
+      {% set _feats = grouped.get(g.key, []) %}
+      {% if _feats %}
+      {% call section_card(g.title, icon=g.icon) %}
+        {% if g.key == 'experimental' %}
+        <div class="px-4 sm:px-5 pt-4">
+          {{ kit_alert('warning', 'These features are in beta and may not be stable.', dismissible=false) }}
+        </div>
+        {% endif %}
+        <ul class="divide-y divide-gray-200 dark:divide-gray-700" role="list">
+          {% for f in _feats %}
+          <li class="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5">
+            <div class="min-w-0">
+              <h6 class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ f.label }}</h6>
+              {% if f.description %}<p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ f.description }}</p>{% endif %}
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer shrink-0 min-h-[44px]">
+              <span class="sr-only">Toggle {{ f.label }}</span>
+              <input type="checkbox" class="sr-only peer" data-feature="{{ f.key }}" {{ 'checked' if f.enabled }}>
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-ecs-green/25 dark:peer-focus:ring-ecs-green/50 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-500 peer-checked:bg-ecs-green"></div>
+            </label>
+          </li>
+          {% endfor %}
+        </ul>
+      {% endcall %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+
+  <!-- Actions -->
+  {% call section_card('Actions', icon='ti-bolt') %}
+    <div class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <button type="button" data-action="emergency-kill-switch"
+              class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                     text-red-600 dark:text-red-400 bg-white dark:bg-gray-800 border border-red-600 dark:border-red-500
+                     hover:bg-red-600 hover:text-white dark:hover:bg-red-600 dark:hover:text-white transition-colors
+                     focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-alert-triangle" aria-hidden="true"></i>Emergency Kill Switch
+      </button>
+      <a href="{{ url_for('admin_panel.export_feature_config') }}"
+         class="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
+                hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors
+                focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+        <i class="ti ti-download" aria-hidden="true"></i>Export Config
+      </a>
+    </div>
+  {% endcall %}
+</div>
+{% else %}
+{# ===================== Classic (unchanged) ===================== #}
 {{ alert("Control which features are available to mobile app users. Changes take effect immediately when the app fetches its configuration.", variant="info", title="Feature Toggle Management", dismissible=false) }}
 
 <!-- Core Mobile Features & Location/Privacy -->
@@ -110,6 +193,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

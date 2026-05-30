@@ -6,6 +6,172 @@
 {% block page_title %}League Store{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{# ===================== Modern console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state, alert %}
+<div class="space-y-6">
+    {{ page_header('League Store', subtitle='Order league merchandise and equipment' ~ (' · ' ~ current_season.name if current_season else '')) }}
+
+    <div class="flex flex-wrap items-center gap-2 -mt-2">
+        <a href="{{ url_for('store.my_orders') }}"
+           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
+                  bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600
+                  hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-list" aria-hidden="true"></i>My Orders
+        </a>
+        {% if user_roles and ('Pub League Admin' in user_roles or 'Global Admin' in user_roles) %}
+        <a href="{{ url_for('store.admin') }}"
+           class="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg text-sm font-semibold
+                  bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
+                  focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+            <i class="ti ti-settings" aria-hidden="true"></i>Store Administration
+        </a>
+        {% endif %}
+    </div>
+
+    {% if has_ordered_this_season and current_season_order %}
+    {{ alert('info',
+        ('You ordered ' ~ (current_season_order.item.name if current_season_order.item else 'Unknown Item'))
+        ~ (' in ' ~ current_season_order.selected_color if current_season_order.selected_color else '')
+        ~ (' (' ~ current_season_order.selected_size ~ ')' if current_season_order.selected_size else '')
+        ~ (' — Status: ' ~ current_season_order.status),
+        title='You have already placed your order for ' ~ current_season.name ~ '.',
+        dismissible=false) }}
+    {% endif %}
+
+    {% if recent_orders %}
+    {% call section_card('Recent Orders', icon='ti-receipt') %}
+    {# Desktop table #}
+    <table class="hidden md:table w-full text-sm">
+        <thead>
+            <tr class="border-b border-gray-200 dark:border-gray-700">
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Item</th>
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Quantity</th>
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Details</th>
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400">Status</th>
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Season</th>
+                <th class="px-4 py-2.5 text-left font-semibold uppercase tracking-wide text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">Order Date</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            {% for order in recent_orders %}
+            <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">{{ order.item.name if order.item else 'Unknown Item' }}</td>
+                <td class="px-4 py-3 font-mono text-gray-700 dark:text-gray-300">{{ order.quantity }}</td>
+                <td class="px-4 py-3">
+                    {% if order.selected_color %}<span class="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 rounded">{{ order.selected_color }}</span>{% endif %}
+                    {% if order.selected_size %}<span class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ order.selected_size }}</span>{% endif %}
+                </td>
+                <td class="px-4 py-3">
+                    {% if order.status == 'PENDING' %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 rounded"><i class="ti ti-clock" aria-hidden="true"></i>Pending</span>
+                    {% elif order.status == 'PROCESSING' %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 rounded"><i class="ti ti-loader" aria-hidden="true"></i>Processing</span>
+                    {% elif order.status == 'ORDERED' %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-300 rounded"><i class="ti ti-package" aria-hidden="true"></i>Ordered</span>
+                    {% elif order.status == 'DELIVERED' %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300 rounded"><i class="ti ti-circle-check" aria-hidden="true"></i>Delivered</span>
+                    {% elif order.status == 'CANCELLED' %}<span class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300 rounded"><i class="ti ti-x" aria-hidden="true"></i>Cancelled</span>{% endif %}
+                </td>
+                <td class="px-4 py-3 text-gray-700 dark:text-gray-300 hidden lg:table-cell">{{ order.season.name if order.season else 'Unknown' }}</td>
+                <td class="px-4 py-3 font-mono text-gray-500 dark:text-gray-400 hidden lg:table-cell">{{ format_pacific_time_short(order.order_date) if order.order_date else '' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {# Mobile cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+        {% for order in recent_orders %}
+        <div class="px-4 py-3.5">
+            <div class="flex items-center justify-between gap-2">
+                <span class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ order.item.name if order.item else 'Unknown Item' }}</span>
+                {% if order.status == 'PENDING' %}<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300 rounded">Pending</span>
+                {% elif order.status == 'PROCESSING' %}<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 rounded">Processing</span>
+                {% elif order.status == 'ORDERED' %}<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-300 rounded">Ordered</span>
+                {% elif order.status == 'DELIVERED' %}<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300 rounded">Delivered</span>
+                {% elif order.status == 'CANCELLED' %}<span class="shrink-0 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300 rounded">Cancelled</span>{% endif %}
+            </div>
+            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400 space-y-0.5">
+                <div>Qty <span class="font-mono">{{ order.quantity }}</span>{% if order.selected_color %} · {{ order.selected_color }}{% endif %}{% if order.selected_size %} · {{ order.selected_size }}{% endif %}</div>
+                <div>{{ order.season.name if order.season else 'Unknown' }}{% if order.order_date %} · <span class="font-mono">{{ format_pacific_time_short(order.order_date) }}</span>{% endif %}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endcall %}
+    {% endif %}
+
+    {% if items %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+        {% for item in items %}
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col">
+            {% if item.image_url %}
+            <img src="{{ item.image_url }}" class="w-full h-48 object-cover" alt="{{ item.name }}">
+            {% else %}
+            <div class="w-full h-48 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                <i class="ti ti-photo text-4xl text-gray-400 dark:text-gray-500" aria-hidden="true"></i>
+            </div>
+            {% endif %}
+            <div class="p-4 flex flex-col flex-1">
+                <div class="flex-1">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{{ item.name }}</h3>
+                    {% if item.category %}
+                    <span class="inline-block px-2 py-0.5 text-xs font-medium bg-ecs-green/10 text-ecs-green dark:bg-green-500/15 dark:text-green-400 rounded mb-2">{{ item.category }}</span>
+                    {% endif %}
+                    {% if item.description %}
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">{{ item.description }}</p>
+                    {% endif %}
+                    {% if item.available_colors %}
+                    {% set colors = item.available_colors | replace("'", '"') | fromjson %}
+                    {% if colors %}
+                    <div class="mb-2">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Available Colors:</span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            {% for color in colors %}
+                            <span class="px-2 py-0.5 text-xs bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300 rounded">{{ color }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    {% if item.available_sizes %}
+                    {% set sizes = item.available_sizes | replace("'", '"') | fromjson %}
+                    {% if sizes %}
+                    <div class="mb-3">
+                        <span class="text-xs font-medium text-gray-500 dark:text-gray-400">Available Sizes:</span>
+                        <div class="flex flex-wrap gap-1 mt-1">
+                            {% for size in sizes %}
+                            <span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 rounded">{{ size }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                {% if has_ordered_this_season %}
+                <button type="button" disabled
+                        class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                               text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-700 cursor-not-allowed">
+                    <i class="ti ti-check" aria-hidden="true"></i>Already Ordered This Season
+                </button>
+                {% else %}
+                <button type="button" data-modal-target="orderModal{{ item.id }}" data-modal-toggle="orderModal{{ item.id }}"
+                        class="w-full inline-flex items-center justify-center gap-1.5 min-h-[44px] px-4 rounded-lg text-sm font-semibold
+                               bg-ecs-green hover:bg-ecs-green-700 text-white transition-colors
+                               focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    <i class="ti ti-shopping-cart" aria-hidden="true"></i>Order Item
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    {% if user_roles and ('Pub League Admin' in user_roles or 'Global Admin' in user_roles) %}
+    {{ empty_state('ti-shopping-cart-off', 'No Items Available', 'There are currently no items available in the store.', action={'label': 'Add Items', 'url': url_for('store.admin'), 'icon': 'ti-plus'}) }}
+    {% else %}
+    {{ empty_state('ti-shopping-cart-off', 'No Items Available', 'There are currently no items available in the store.') }}
+    {% endif %}
+    {% endif %}
+</div>
+{% else %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -181,6 +347,7 @@
     </div>
     {% endif %}
 </div>
+{% endif %}
 
 <!-- Order Modals -->
 {% for item in items %}

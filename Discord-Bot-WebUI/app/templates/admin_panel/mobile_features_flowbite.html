@@ -14,6 +14,363 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card %}
+<div class="space-y-6">
+
+  {{ page_header('Mobile Features', subtitle='Mobile app management hub') }}
+
+  <!-- KPI band (real data) -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {{ stat_card('ti-download', 'App Installs', stats.total_app_installs or 0, tone='info') }}
+    {{ stat_card('ti-device-mobile', 'Mobile Users', stats.mobile_users or 0, tone='primary') }}
+    {{ stat_card('ti-bell', 'Push Subscriptions', stats.push_subscriptions or 0, tone='gold') }}
+    {{ stat_card('ti-activity', 'Active (30d)', stats.active_mobile_users or 0, sublabel='last 30 days', tone='info') }}
+  </div>
+
+  <!-- Management sections -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Mobile Users -->
+    {% call section_card('Mobile Users', icon='ti-users') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">View and manage users with mobile app access</p>
+        <nav class="space-y-2">
+          <a href="{{ url_for('admin_panel.mobile_users') }}"
+             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-device-mobile text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">Mobile Users</span>
+            </span>
+            <span class="flex items-center gap-2">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">{{ stats.mobile_users or 0 }}</span>
+              <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+            </span>
+          </a>
+          <a href="{{ url_for('admin_panel.users_comprehensive') }}"
+             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-users-group text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">All Users</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </a>
+        </nav>
+      </div>
+    {% endcall %}
+
+    <!-- App Configuration -->
+    {% call section_card('App Configuration', icon='ti-settings') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Feature toggles, version management, and update settings</p>
+        <nav class="space-y-2">
+          <a href="{{ url_for('admin_panel.mobile_app_config') }}"
+             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-settings-cog text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">Feature Toggles &amp; Version Config</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </a>
+        </nav>
+      </div>
+    {% endcall %}
+  </div>
+
+  <!-- Push Notifications & Analytics -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Push Notifications -->
+    {% call section_card('Push Notifications', icon='ti-bell') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Manage mobile push notification campaigns</p>
+        <nav class="space-y-2">
+          <a href="{{ url_for('admin_panel.push_notifications') }}"
+             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-send text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">Send Notification</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </a>
+          <a href="{{ url_for('admin_panel.campaigns_list') }}"
+             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-broadcast text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">Push Campaigns</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </a>
+          <a href="{{ url_for('admin_panel.push_subscriptions') }}"
+             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-users text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">Subscriptions</span>
+            </span>
+            <span class="flex items-center gap-2">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">{{ stats.push_subscriptions or 0 }}</span>
+              <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+            </span>
+          </a>
+          <a href="{{ url_for('admin_panel.push_history') }}"
+             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-history text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">Notification History</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </a>
+        </nav>
+      </div>
+    {% endcall %}
+
+    <!-- Mobile Analytics -->
+    {% call section_card('Mobile Analytics', icon='ti-chart-line') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Track mobile app performance and user engagement</p>
+        <nav class="space-y-2">
+          <a href="{{ url_for('admin_panel.mobile_analytics') }}"
+             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-chart-dots text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">Usage Analytics</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </a>
+          <a href="{{ url_for('admin_panel.mobile_error_analytics') }}"
+             class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-bug text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">Error Analytics</span>
+            </span>
+            <i class="ti ti-chevron-right text-gray-400" aria-hidden="true"></i>
+          </a>
+          <div class="w-full flex items-center justify-between gap-2 min-h-[44px] p-3 rounded-lg border border-gray-200 dark:border-gray-700">
+            <span class="flex items-center gap-3">
+              <i class="ti ti-download text-xl text-gray-500 dark:text-gray-400" aria-hidden="true"></i>
+              <span class="text-sm font-medium text-gray-900 dark:text-white">App Downloads</span>
+            </span>
+            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium font-mono bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-300">{{ stats.app_downloads or 0 }}</span>
+          </div>
+        </nav>
+      </div>
+    {% endcall %}
+  </div>
+
+  <!-- Mobile Platform Status -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    {% call section_card('Mobile Platform Status', icon='ti-device-mobile') %}
+      <div class="p-4 sm:p-5">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+          <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div class="text-lg font-bold {% if stats.mobile_service_status == 'active' %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %} flex items-center justify-center gap-1.5">
+              <i class="ti {% if stats.mobile_service_status == 'active' %}ti-circle-check{% else %}ti-circle-x{% endif %} text-base" aria-hidden="true"></i>
+              {% if stats.mobile_service_status == 'active' %}Online{% else %}Offline{% endif %}
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Mobile Service</div>
+          </div>
+          <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div class="text-lg font-bold {% if stats.push_service_status == 'active' %}text-green-600 dark:text-green-400{% else %}text-red-600 dark:text-red-400{% endif %} flex items-center justify-center gap-1.5">
+              <i class="ti {% if stats.push_service_status == 'active' %}ti-circle-check{% else %}ti-circle-x{% endif %} text-base" aria-hidden="true"></i>
+              {% if stats.push_service_status == 'active' %}Active{% else %}Inactive{% endif %}
+            </div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Push Service</div>
+          </div>
+          <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div class="text-lg font-bold font-mono text-blue-600 dark:text-blue-400">{{ stats.mobile_app_version or 'v1.0.0' }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">App Version</div>
+          </div>
+          <div class="text-center p-4 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+            <div class="text-lg font-bold font-mono text-blue-600 dark:text-blue-400">{{ stats.last_updated or 'Recently' }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">Last Updated</div>
+          </div>
+        </div>
+      </div>
+    {% endcall %}
+
+    <div class="flex items-start gap-3 rounded-xl border border-blue-300 dark:border-blue-500/40 bg-blue-50 dark:bg-blue-500/10 p-3 sm:p-4">
+      <i class="ti ti-info-circle text-lg shrink-0 mt-0.5 text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+      <div class="text-sm text-blue-800 dark:text-blue-300">
+        <p class="font-semibold mb-1">Mobile App Status Information</p>
+        <p>
+          <strong>Mobile Service Status</strong> reflects whether the mobile app is configured and enabled in Admin Settings.
+          <strong>Push Service Status</strong> shows if push notifications are enabled.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flutter API Integration Reference -->
+  {% call section_card('Flutter API Integration Reference', icon='ti-api') %}
+    <div class="px-4 sm:px-5 py-2 border-b border-gray-200 dark:border-gray-700 text-right">
+      <span class="text-xs text-gray-400 dark:text-gray-500">Share this with your Flutter developer</span>
+    </div>
+    <div class="p-4 sm:p-5">
+      <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+        All endpoints use base URL <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">/api/v1</code>.
+        Most require JWT auth via <code class="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-xs font-mono">Authorization: Bearer &lt;token&gt;</code>.
+      </p>
+
+      <!-- Section: App Config (No Auth) -->
+      <div class="mb-6">
+        <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+          <span class="w-2 h-2 bg-green-500 rounded-full mr-2" aria-hidden="true"></span>App Configuration (No Auth Required)
+        </h6>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50">
+              <tr>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Endpoint</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Method</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-white">/app_config</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">GET</span></td>
+                <td class="px-4 py-2">Returns min/latest build numbers, update URLs, force_update flag, and all feature toggles. Call before login to check for forced updates.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section: Telemetry (Powers Analytics Dashboard) -->
+      <div class="mb-6">
+        <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-1 flex items-center">
+          <span class="w-2 h-2 bg-blue-500 rounded-full mr-2" aria-hidden="true"></span>Telemetry (Powers the Analytics Dashboard)
+        </h6>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Auth: JWT required. The analytics dashboard shows "no data" until the Flutter app sends these events.</p>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50">
+              <tr>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Endpoint</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Method</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Description</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Key Fields</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-white">/telemetry/session</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">POST</span></td>
+                <td class="px-4 py-2">Report session start/end. Send "start" on app open, "end" on background/close.</td>
+                <td class="px-4 py-2 font-mono text-xs">session_id, event (start|end), platform, app_version, duration_seconds, screens_viewed</td>
+              </tr>
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-white">/telemetry/screens</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">POST</span></td>
+                <td class="px-4 py-2">Batch screen view events. Send when navigating between screens. Max 100 per request.</td>
+                <td class="px-4 py-2 font-mono text-xs">session_id, screens[]: {screen_name, entered_at, exited_at, duration_seconds}</td>
+              </tr>
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-white">/telemetry/feature-usage</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">POST</span></td>
+                <td class="px-4 py-2">Track which features users interact with. Max 100 per request.</td>
+                <td class="px-4 py-2 font-mono text-xs">events[]: {feature_name, used_at, platform, app_version}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section: Error Reporting -->
+      <div class="mb-6">
+        <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-1 flex items-center">
+          <span class="w-2 h-2 bg-red-500 rounded-full mr-2" aria-hidden="true"></span>Error Reporting &amp; Logging
+        </h6>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Auth: JWT + <code class="px-1 bg-gray-100 dark:bg-gray-700 rounded font-mono">X-API-Key</code> header.</p>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50">
+              <tr>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Endpoint</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Method</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Description</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Key Fields</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-white">/analytics/errors</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">POST</span></td>
+                <td class="px-4 py-2">Submit error/crash reports with context and recovery info.</td>
+                <td class="px-4 py-2 font-mono text-xs">errors[]: {error_id, error_type, severity, error_message, device_info, app_version}</td>
+              </tr>
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-white">/logs/mobile</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">POST</span></td>
+                <td class="px-4 py-2">Submit structured logs (DEBUG/INFO/WARN/ERROR/FATAL).</td>
+                <td class="px-4 py-2 font-mono text-xs">logs[]: {message, level, logger, trace_id, session_id, platform}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Section: Push Notifications -->
+      <div class="mb-6">
+        <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-1 flex items-center">
+          <span class="w-2 h-2 bg-yellow-500 rounded-full mr-2" aria-hidden="true"></span>Push Notifications
+        </h6>
+        <p class="text-xs text-gray-400 dark:text-gray-500 mb-3">Auth: JWT required.</p>
+        <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+          <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
+            <thead class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide bg-gray-50 dark:bg-gray-700/50">
+              <tr>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Endpoint</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Method</th>
+                <th scope="col" class="px-4 py-2.5 font-semibold">Description</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-white">/notifications/register</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">POST</span></td>
+                <td class="px-4 py-2">Register FCM device token. Body: {device_token, platform: "ios"|"android", app_version}</td>
+              </tr>
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-white">/notifications/unregister</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">POST</span></td>
+                <td class="px-4 py-2">Deactivate device token on logout. Body: {device_token} (optional, deactivates all if omitted)</td>
+              </tr>
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-white">/notifications/preferences</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">GET</span> <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300">PUT</span></td>
+                <td class="px-4 py-2">Get or update notification preferences (match_reminders, rsvp_reminders, team_updates, etc.)</td>
+              </tr>
+              <tr class="border-t border-gray-200 dark:border-gray-700">
+                <td class="px-4 py-2 font-mono text-xs text-gray-900 dark:text-white">/notifications/test</td>
+                <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">POST</span></td>
+                <td class="px-4 py-2">Send a test push to verify registration is working.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Integration Checklist -->
+      <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 sm:p-5">
+        <h6 class="text-sm font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+          <i class="ti ti-checklist mr-2 text-ecs-green" aria-hidden="true"></i>Flutter Integration Checklist
+        </h6>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">The admin dashboard will show real data once the Flutter app implements these:</p>
+        <div class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+          <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5" aria-hidden="true"></i><span>Call <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono">GET /api/v1/app_config</code> on app startup (before login) to check for forced updates and fetch feature toggles</span></div>
+          <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5" aria-hidden="true"></i><span>Register FCM token via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono">POST /notifications/register</code> after login (include platform + app_version)</span></div>
+          <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5" aria-hidden="true"></i><span>Send <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono">POST /telemetry/session</code> with event="start" on app open, event="end" on background/close</span></div>
+          <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5" aria-hidden="true"></i><span>Batch screen views via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono">POST /telemetry/screens</code> periodically or on session end</span></div>
+          <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5" aria-hidden="true"></i><span>Track feature usage via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono">POST /telemetry/feature-usage</code> when users interact with gated features</span></div>
+          <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5" aria-hidden="true"></i><span>Report errors via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono">POST /analytics/errors</code> (include <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono">X-API-Key</code> header)</span></div>
+          <div class="flex items-start gap-2"><i class="ti ti-square text-gray-400 mt-0.5" aria-hidden="true"></i><span>Deactivate FCM token via <code class="text-xs bg-gray-100 dark:bg-gray-600 px-1 rounded font-mono">POST /notifications/unregister</code> on logout</span></div>
+        </div>
+      </div>
+    </div>
+  {% endcall %}
+
+</div>
+{% else %}
 <!-- Stats Grid -->
 <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <div class="bg-blue-600 rounded-lg shadow p-5">
@@ -417,4 +774,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}

@@ -19,6 +19,138 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, data_table, data_table_th, data_table_row_card, empty_state %}
+<div data-page="admin-match-checkin-list">
+
+{% call page_header("Match Check-In", subtitle="Match Operations") %}
+  <button type="button" data-action="backfill-wallet-passes"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green"
+          title="Create membership pass rows for active players that don't have one. Required so coach scans can resolve player identities.">
+    <i class="ti ti-id-badge-2" aria-hidden="true"></i>Backfill member passes
+  </button>
+  <button type="button" data-action="generate-tokens-bulk" data-days="{{ days }}"
+          class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+    <i class="ti ti-qrcode" aria-hidden="true"></i>Generate missing QRs
+  </button>
+{% endcall %}
+
+<div class="space-y-5 sm:space-y-6">
+  {# KPI band #}
+  <div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
+    {{ stat_card("ti-calendar", "Matches", rows|length, sublabel="next " ~ days ~ " days", tone='primary') }}
+    {{ stat_card("ti-qrcode", "With Active QR", rows|selectattr('has_token')|list|length, tone='info') }}
+    {{ stat_card("ti-alert-circle", "No QR Yet", rows|rejectattr('has_token')|list|length, tone='warning') }}
+  </div>
+
+  {# Matches table #}
+  {% call data_table("Upcoming Matches", icon="ti-calendar-event", count=rows|length, search_placeholder="Filter matches…", search_id="dtFilter", filters=true) %}
+    {# md+ table #}
+    <table class="hidden md:table w-full text-sm text-left">
+      <thead class="border-b border-gray-200 dark:border-gray-700">
+        <tr>
+          {{ data_table_th("Match", key="match") }}
+          {{ data_table_th("Kickoff", key="kickoff", hide="sm") }}
+          {{ data_table_th("Location", key="location", sortable=false, hide="sm") }}
+          {{ data_table_th("League", key="league", hide="sm") }}
+          {{ data_table_th("QR", key="qr", hide="sm") }}
+          {{ data_table_th("Attendance", key="attendance", sortable=false, hide="sm") }}
+          {{ data_table_th("Actions", sortable=false, align="right") }}
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for r in rows %}
+        <tr data-row class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+          <td class="px-3 py-3">
+            <a href="{{ r.detail_url }}" class="font-semibold text-ecs-green hover:underline">{{ r.label }}</a>
+          </td>
+          <td class="px-3 py-3 text-gray-600 dark:text-gray-400 hidden md:table-cell font-mono text-xs">
+            {% if r.kickoff %}{{ r.kickoff.strftime('%a %b %-d, %-I:%M %p') }}{% else %}—{% endif %}
+          </td>
+          <td class="px-3 py-3 text-gray-600 dark:text-gray-400 max-w-xs truncate hidden md:table-cell">{{ r.location or '—' }}</td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            {% if r.league_type == 'pub_league' %}
+            <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Pub League</span>
+            {% else %}
+            <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">ECS FC</span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell">
+            {% if r.has_token %}
+            <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+              <i class="ti ti-check" aria-hidden="true"></i>Active
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+              <i class="ti ti-minus" aria-hidden="true"></i>None
+            </span>
+            {% endif %}
+          </td>
+          <td class="px-3 py-3 hidden md:table-cell font-mono">
+            <span class="font-semibold text-gray-900 dark:text-white">{{ r.checked_in_count }}</span>
+            <span class="text-gray-500 dark:text-gray-400">/ {{ r.yes_count }}</span>
+          </td>
+          <td class="px-3 py-3 text-right">
+            <a href="{{ r.detail_url }}"
+               class="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+              <i class="ti ti-eye" aria-hidden="true"></i>Manage
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="p-0">
+          {{ empty_state("ti-calendar-off", "No matches found", "There are no matches in the next " ~ days ~ " days.") }}
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {# mobile cards #}
+    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+      {% for r in rows %}
+      {% set lg_badge %}
+        {% if r.league_type == 'pub_league' %}
+        <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Pub League</span>
+        {% else %}
+        <span class="inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full bg-ecs-green/10 text-ecs-green dark:bg-ecs-green/20">ECS FC</span>
+        {% endif %}
+      {% endset %}
+      {% call data_table_row_card(r.label, url=r.detail_url, badge=lg_badge) %}
+        {% if r.kickoff %}<div class="font-mono"><i class="ti ti-clock mr-1" aria-hidden="true"></i>{{ r.kickoff.strftime('%a %b %-d, %-I:%M %p') }}</div>{% endif %}
+        {% if r.location %}<div><i class="ti ti-map-pin mr-1" aria-hidden="true"></i>{{ r.location }}</div>{% endif %}
+        <div class="flex items-center gap-3">
+          {% if r.has_token %}
+          <span class="inline-flex items-center gap-1 text-green-700 dark:text-green-400"><i class="ti ti-qrcode" aria-hidden="true"></i>QR active</span>
+          {% else %}
+          <span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400"><i class="ti ti-alert-circle" aria-hidden="true"></i>No QR</span>
+          {% endif %}
+          <span class="font-mono"><i class="ti ti-users-check mr-1" aria-hidden="true"></i>{{ r.checked_in_count }} / {{ r.yes_count }}</span>
+        </div>
+      {% endcall %}
+      {% else %}
+      {{ empty_state("ti-calendar-off", "No matches found", "There are no matches in the next " ~ days ~ " days.") }}
+      {% endfor %}
+    </div>
+  {% endcall %}
+
+  {# Window filter #}
+  <div class="flex items-center gap-3">
+    <label for="daysFilter" class="text-sm font-medium text-gray-700 dark:text-gray-300">Window</label>
+    <select id="daysFilter" onchange="window.location.href='?days='+this.value"
+            class="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white focus:border-ecs-green focus:ring-1 focus:ring-ecs-green">
+      <option value="7" {% if days == 7 %}selected{% endif %}>Next 7 days</option>
+      <option value="14" {% if days == 14 %}selected{% endif %}>Next 14 days</option>
+      <option value="30" {% if days == 30 %}selected{% endif %}>Next 30 days</option>
+      <option value="60" {% if days == 60 %}selected{% endif %}>Next 60 days</option>
+    </select>
+  </div>
+</div>
+
+</div>{# /data-page #}
+
+{% else %}
+{# ===================== Classic (unchanged) ===================== #}
 <div data-page="admin-match-checkin-list">
 
 <!-- Stat cards + bulk action -->
@@ -144,6 +276,7 @@
 </div>
 
 </div>{# /data-page #}
+{% endif %}
 
 <script>
 window.MATCH_CHECKIN_LIST_CONFIG = {

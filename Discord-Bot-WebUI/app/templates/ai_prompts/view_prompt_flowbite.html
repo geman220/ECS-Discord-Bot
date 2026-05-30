@@ -26,6 +26,264 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
+<div class="max-w-7xl mx-auto">
+  {{ page_header(prompt.name, subtitle='AI Prompt Configuration') }}
+
+  {# --- KPI strip --- #}
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-5 sm:mb-6">
+    {% if prompt.is_active %}
+      {{ stat_card('ti-circle-check', 'Status', 'Active', tone='success') }}
+    {% else %}
+      {{ stat_card('ti-circle-off', 'Status', 'Inactive', tone='neutral') }}
+    {% endif %}
+    {{ stat_card('ti-tag', 'Type', prompt_type_labels.get(prompt.prompt_type, prompt.prompt_type), tone='info') }}
+    {{ stat_card('ti-temperature', 'Temperature', prompt.temperature, tone='primary') }}
+    {{ stat_card('ti-letter-t', 'Max Tokens', prompt.max_tokens, tone='primary') }}
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 sm:gap-6">
+    {# --- Main column (2/3) --- #}
+    <div class="lg:col-span-2 space-y-5 sm:space-y-6">
+      {% call section_card('Prompt Configuration', icon='ti-adjustments') %}
+      <div class="p-4 sm:p-5">
+        {% if prompt.rivalry_intensity and prompt.rivalry_intensity > 7 %}
+        <div class="mb-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 dark:bg-red-500/10 dark:text-red-400">
+          <i class="ti ti-flame" aria-hidden="true"></i> High Rivalry
+        </div>
+        {% endif %}
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Name</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ prompt.name }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Type</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ prompt_type_labels.get(prompt.prompt_type, prompt.prompt_type) }}</dd>
+          </div>
+          {% if prompt.description %}
+          <div class="sm:col-span-2">
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Description</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ prompt.description }}</dd>
+          </div>
+          {% endif %}
+          <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Competition Filter</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ prompt.competition_filter or 'All' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Temperature</dt>
+            <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ prompt.temperature }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Max Tokens</dt>
+            <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ prompt.max_tokens }}</dd>
+          </div>
+        </dl>
+      </div>
+      {% endcall %}
+
+      {% call section_card('System Prompt', icon='ti-robot') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Defines the AI's role and behavior.</p>
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <pre class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono">{{ prompt.system_prompt }}</pre>
+        </div>
+      </div>
+      {% endcall %}
+
+      {% call section_card('User Prompt Template', icon='ti-template') %}
+      <div class="p-4 sm:p-5">
+        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Template used for each match event.</p>
+        <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4 mb-4">
+          <pre class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono">{{ prompt.user_prompt_template }}</pre>
+        </div>
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          <span class="font-medium text-gray-700 dark:text-gray-300">Available Variables:</span>
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green ml-1">{home_team}</code>,
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{away_team}</code>,
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{venue}</code>,
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{competition}</code>,
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{opponent}</code>,
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{match_date}</code>,
+          <code class="font-mono bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded text-ecs-green">{is_home_game}</code>
+        </div>
+      </div>
+      {% endcall %}
+
+      {% if prompt.rivalry_teams or prompt.rivalry_intensity > 1 %}
+      {% call section_card('Rivalry Configuration', icon='ti-swords') %}
+      <div class="p-4 sm:p-5 space-y-4">
+        <div>
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Rivalry Intensity</dt>
+          <dd class="flex items-center gap-3">
+            <div class="flex-1 h-2 bg-gray-200 rounded-full dark:bg-gray-700">
+              <div class="h-2 rounded-full {{ 'bg-red-500' if prompt.rivalry_intensity > 7 else 'bg-amber-500' if prompt.rivalry_intensity > 4 else 'bg-green-500' }} w-[{{ prompt.rivalry_intensity * 10 }}%]"></div>
+            </div>
+            <span class="text-sm font-mono text-gray-900 dark:text-white font-medium">{{ prompt.rivalry_intensity }}/10</span>
+          </dd>
+        </div>
+        {% if prompt.rivalry_teams %}
+        <div>
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Rivalry Teams</dt>
+          <dd>
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+              <pre class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono">{{ prompt.rivalry_teams | tojson(indent=2) }}</pre>
+            </div>
+          </dd>
+        </div>
+        {% endif %}
+        {% if prompt.forbidden_topics %}
+        <div>
+          <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Forbidden Topics</dt>
+          <dd>
+            <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+              <pre class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono">{{ prompt.forbidden_topics | tojson(indent=2) }}</pre>
+            </div>
+          </dd>
+        </div>
+        {% endif %}
+      </div>
+      {% endcall %}
+      {% endif %}
+    </div>
+
+    {# --- Sidebar (1/3) --- #}
+    <div class="space-y-5 sm:space-y-6">
+      {% call section_card('Actions', icon='ti-bolt') %}
+      <div class="p-4 sm:p-5 space-y-2">
+        <a href="{{ url_for('ai_prompts.edit_prompt', prompt_id=prompt.id) }}"
+           class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-white bg-ecs-green hover:bg-ecs-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+          <i class="ti ti-edit" aria-hidden="true"></i> Edit Prompt
+        </a>
+
+        <form method="POST" action="{{ url_for('ai_prompts.duplicate_prompt', prompt_id=prompt.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit"
+                  class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-ecs-green bg-white border border-ecs-green hover:bg-ecs-green hover:text-white dark:bg-gray-700 dark:hover:bg-ecs-green transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+            <i class="ti ti-copy" aria-hidden="true"></i> Duplicate
+          </button>
+        </form>
+
+        {% if prompt.is_active %}
+        <form method="POST" action="{{ url_for('ai_prompts.toggle_prompt', prompt_id=prompt.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit"
+                  class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-amber-600 bg-white border border-amber-500 hover:bg-amber-50 dark:bg-gray-700 dark:text-amber-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500">
+            <i class="ti ti-power" aria-hidden="true"></i> Deactivate
+          </button>
+        </form>
+        {% else %}
+        <form method="POST" action="{{ url_for('ai_prompts.toggle_prompt', prompt_id=prompt.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit"
+                  class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-green-600 bg-white border border-green-500 hover:bg-green-50 dark:bg-gray-700 dark:text-green-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500">
+            <i class="ti ti-power" aria-hidden="true"></i> Activate
+          </button>
+        </form>
+        {% endif %}
+
+        <hr class="my-3 border-gray-200 dark:border-gray-700">
+
+        <form method="POST" action="{{ url_for('ai_prompts.delete_prompt', prompt_id=prompt.id) }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="button"
+                  class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-red-600 bg-white border border-red-500 hover:bg-red-50 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+                  data-action="confirm-delete-prompt">
+            <i class="ti ti-trash" aria-hidden="true"></i> Delete
+          </button>
+        </form>
+
+        <a href="{{ url_for('ai_prompts.list_prompts') }}"
+           class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+          <i class="ti ti-arrow-left" aria-hidden="true"></i> Back to List
+        </a>
+      </div>
+      {% endcall %}
+
+      {% call section_card('Tone Template', icon='ti-brain') %}
+      <div class="p-4 sm:p-5">
+        {% if prompt.active_template %}
+        <div class="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-500/10 rounded-lg border border-blue-200 dark:border-blue-500/40">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-500/20 flex items-center justify-center shrink-0">
+            <i class="ti ti-brain text-blue-600 dark:text-blue-400" aria-hidden="true"></i>
+          </div>
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ prompt.active_template.name }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ prompt.active_template.category or 'General' }}</p>
+          </div>
+        </div>
+        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Template personality traits are merged with this prompt's settings at runtime.</p>
+        {% else %}
+        <p class="text-sm text-gray-500 dark:text-gray-400">No tone template assigned. Using this prompt's personality traits directly.</p>
+        {% endif %}
+      </div>
+      {% endcall %}
+
+      {% call section_card('Metadata', icon='ti-info-circle') %}
+      <div class="p-4 sm:p-5">
+        <dl class="space-y-3">
+          <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Version</dt>
+            <dd class="mt-1">
+              <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300">v{{ prompt.version }}</span>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created</dt>
+            <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ prompt.created_at.strftime('%Y-%m-%d %H:%M:%S') if prompt.created_at else 'Unknown' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Updated</dt>
+            <dd class="mt-1 text-sm font-mono text-gray-900 dark:text-white">{{ prompt.updated_at.strftime('%Y-%m-%d %H:%M:%S') if prompt.updated_at else 'Unknown' }}</dd>
+          </div>
+          <div>
+            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created By</dt>
+            <dd class="mt-1 text-sm text-gray-900 dark:text-white">{{ prompt.created_by or 'Unknown' }}</dd>
+          </div>
+        </dl>
+      </div>
+      {% endcall %}
+
+      {% if prompt.personality_traits %}
+      {% call section_card('Personality Traits', icon='ti-mood-smile') %}
+      <div class="p-4 sm:p-5 space-y-4">
+        {% for trait, value in prompt.personality_traits.items() %}
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ trait.title() }}</span>
+            <span class="text-sm font-mono text-gray-500 dark:text-gray-400">{{ value }}/10</span>
+          </div>
+          <div class="w-full h-2 bg-gray-200 rounded-full dark:bg-gray-700">
+            <div class="h-2 rounded-full {{ 'bg-red-500' if value > 7 else 'bg-amber-500' if value > 4 else 'bg-green-500' }} w-[{{ value * 10 }}%]"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endcall %}
+      {% endif %}
+
+      {% call section_card('Test Preview', icon='ti-flask') %}
+      <div class="p-4 sm:p-5">
+        <button type="button"
+                class="flex items-center justify-center gap-2 w-full min-h-[44px] px-4 rounded-lg text-sm font-semibold text-cyan-600 bg-white border border-cyan-500 hover:bg-cyan-50 dark:bg-gray-700 dark:text-cyan-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                data-action="test-prompt"
+                data-prompt-id="{{ prompt.id }}">
+          <i class="ti ti-flask" aria-hidden="true"></i> Test Prompt
+        </button>
+        <div id="test-output" class="hidden mt-4">
+          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <pre id="test-result" class="text-sm text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-mono"></pre>
+          </div>
+        </div>
+      </div>
+      {% endcall %}
+    </div>
+  </div>
+</div>
+{% else %}
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <!-- Main Content (2/3 width) -->
         <div class="lg:col-span-2 space-y-6">
@@ -283,6 +541,7 @@
             {% endcall %}
         </div>
     </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

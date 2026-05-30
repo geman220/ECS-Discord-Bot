@@ -20,6 +20,120 @@
 {% endblock %}
 
 {% block panel_content %}
+{% if shell == 'console' %}
+{# ===================== Modern admin console (shell == 'console') ===================== #}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state, modal as kit_modal %}
+{% set active_count = templates | selectattr('is_active') | list | length %}
+<div class="max-w-7xl mx-auto">
+  {{ page_header(category.name, subtitle='Message Templates') }}
+
+  {% if category.description %}
+  <p class="text-sm text-gray-500 dark:text-gray-400 -mt-2 mb-5 max-w-3xl">{{ category.description }}</p>
+  {% endif %}
+
+  <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-5 sm:mb-6">
+    {{ stat_card('ti-file-text', 'Templates', templates|length, tone='primary') }}
+    {{ stat_card('ti-circle-check', 'Active', active_count, tone='success') }}
+    {{ stat_card('ti-circle-off', 'Inactive', templates|length - active_count, tone='neutral') }}
+  </div>
+
+  <div class="flex justify-end mb-4">
+    <a href="{{ url_for('admin.message_config.list_categories') }}"
+       class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg
+              border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
+              text-sm font-semibold text-gray-700 dark:text-gray-200
+              hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-900">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i>Back to Categories
+    </a>
+  </div>
+
+  {% if templates %}
+  <div class="space-y-4">
+    {% for template in templates %}
+    {% set is_active = template.is_active %}
+    {% call section_card(template.name, icon='ti-message-2') %}
+    <div class="p-4 sm:p-5">
+      <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        <div class="flex-1 min-w-0 space-y-3">
+          <div class="flex flex-wrap items-center gap-2">
+            {% if is_active %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
+              <i class="ti ti-circle-check text-[12px]" aria-hidden="true"></i>Active
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400">
+              <i class="ti ti-circle-off text-[12px]" aria-hidden="true"></i>Inactive
+            </span>
+            {% endif %}
+            <span class="text-xs text-gray-500 dark:text-gray-400">Key:</span>
+            <code class="font-mono bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 px-1.5 py-0.5 rounded text-xs">{{ template.key }}</code>
+          </div>
+
+          {% if template.description %}
+          <p class="text-sm text-gray-600 dark:text-gray-300">{{ template.description }}</p>
+          {% endif %}
+
+          <div class="rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 p-3">
+            <p class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-1">Message Content</p>
+            <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ template.message_content[:200] }}{% if template.message_content|length > 200 %}…{% endif %}</p>
+          </div>
+
+          {% if template.variables %}
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-xs text-gray-500 dark:text-gray-400">Variables:</span>
+            {% for var in template.variables %}
+            <code class="font-mono text-xs bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded">{{'{'}}{{ var }}{{'}'}}</code>
+            {% endfor %}
+          </div>
+          {% endif %}
+
+          <p class="text-xs text-gray-400 dark:text-gray-500 font-mono">
+            <i class="ti ti-clock-edit mr-1" aria-hidden="true"></i>Updated {{ template.updated_at.strftime('%b %d, %Y at %I:%M %p') }}
+          </p>
+        </div>
+
+        <div class="flex flex-row lg:flex-col gap-2 shrink-0">
+          <a href="{{ url_for('admin.message_config.edit_template', template_id=template.id) }}"
+             class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg
+                    bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors
+                    focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-edit" aria-hidden="true"></i>Edit
+          </a>
+          <button type="button" data-action="preview-template" data-template-id="{{ template.id }}" data-template-content="{{ template.message_content|e }}"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg
+                         border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
+                         text-sm font-semibold text-gray-700 dark:text-gray-200
+                         hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-eye" aria-hidden="true"></i>Preview
+          </button>
+          <button type="button" data-action="copy-template" data-template-content="{{ template.message_content|e }}"
+                  class="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:h-9 px-4 rounded-lg
+                         border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800
+                         text-sm font-semibold text-gray-700 dark:text-gray-200
+                         hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                         focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+            <i class="ti ti-copy" aria-hidden="true"></i>Copy
+          </button>
+        </div>
+      </div>
+    </div>
+    {% endcall %}
+    {% endfor %}
+  </div>
+  {% else %}
+  {{ empty_state('ti-file-text', 'No Templates Found', 'No message templates exist in this category yet.') }}
+  {% endif %}
+
+  {# Preview Modal (kit modal — preserves #previewModal / #previewContent JS hooks) #}
+  {% call kit_modal('previewModal', 'Message Preview', icon='ti-eye', size='lg') %}
+  <div id="previewContent" class="p-5">
+    <!-- Preview content loads here -->
+  </div>
+  {% endcall %}
+</div>
+{% else %}
 <!-- Category Info Card -->
 <div class="bg-ecs-green rounded-lg shadow mb-6">
     <div class="p-5 text-white">
@@ -125,6 +239,7 @@
     <!-- Preview content loads here -->
 </div>
 {% endcall %}
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

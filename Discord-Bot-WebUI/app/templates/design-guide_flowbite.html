@@ -1,9 +1,244 @@
 {% extends "base_flowbite.html" %}
-{% from 'macros/flowbite.html' import card, button, badge %}
+{% from 'macros/flowbite.html' import card, button, badge, input, select, textarea %}
+{% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, data_table, data_table_th, empty_state, alert %}
 
 {% block title %}ECS Soccer Design System{% endblock %}
 
 {% block content %}
+{% if shell == 'console' %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    {{ page_header("Design System", subtitle="ECS Soccer · Modern console") }}
+
+    <div class="flex flex-col lg:flex-row gap-6">
+        <!-- Sidebar Navigation -->
+        <div class="lg:w-60 flex-shrink-0">
+            <nav class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-2 lg:sticky lg:top-20 space-y-1">
+                <a href="#colors" class="flex items-center gap-2 px-3 min-h-[44px] text-sm font-semibold text-ecs-green bg-green-50 dark:bg-green-500/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-palette" aria-hidden="true"></i> Colors</a>
+                <a href="#typography" class="flex items-center gap-2 px-3 min-h-[44px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-typography" aria-hidden="true"></i> Typography</a>
+                <a href="#buttons" class="flex items-center gap-2 px-3 min-h-[44px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-click" aria-hidden="true"></i> Buttons</a>
+                <a href="#cards" class="flex items-center gap-2 px-3 min-h-[44px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-layout-cards" aria-hidden="true"></i> Cards</a>
+                <a href="#forms" class="flex items-center gap-2 px-3 min-h-[44px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-forms" aria-hidden="true"></i> Forms</a>
+                <a href="#tables" class="flex items-center gap-2 px-3 min-h-[44px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-table" aria-hidden="true"></i> Tables</a>
+                <a href="#badges" class="flex items-center gap-2 px-3 min-h-[44px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-tag" aria-hidden="true"></i> Badges</a>
+                <a href="#alerts" class="flex items-center gap-2 px-3 min-h-[44px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-bell" aria-hidden="true"></i> Alerts</a>
+                <a href="#empty" class="flex items-center gap-2 px-3 min-h-[44px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-mood-empty" aria-hidden="true"></i> Empty state</a>
+                <a href="#responsive" class="flex items-center gap-2 px-3 min-h-[44px] text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-ecs-green"><i class="ti ti-device-mobile" aria-hidden="true"></i> Responsive</a>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 min-w-0 space-y-6">
+            <!-- Colors -->
+            <section id="colors">
+                {% call section_card("Colors", icon="ti-palette") %}
+                <div class="p-4 sm:p-5 space-y-6">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Token classes only — never hardcode hex. Always pair a <code class="font-mono text-xs">dark:</code> variant.</p>
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Brand</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div>
+                                <div class="h-16 rounded-lg bg-ecs-green border border-gray-200 dark:border-gray-700 mb-2"></div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">ECS Green</p>
+                                <code class="font-mono text-xs text-gray-500 dark:text-gray-400">bg-ecs-green</code>
+                            </div>
+                            <div>
+                                <div class="h-16 rounded-lg bg-ecs-gold border border-gray-200 dark:border-gray-700 mb-2"></div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">ECS Gold</p>
+                                <code class="font-mono text-xs text-gray-500 dark:text-gray-400">bg-ecs-gold</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Semantic</h4>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                            <div>
+                                <div class="h-16 rounded-lg bg-green-500 border border-gray-200 dark:border-gray-700 mb-2"></div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Success</p>
+                            </div>
+                            <div>
+                                <div class="h-16 rounded-lg bg-blue-500 border border-gray-200 dark:border-gray-700 mb-2"></div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Info</p>
+                            </div>
+                            <div>
+                                <div class="h-16 rounded-lg bg-amber-500 border border-gray-200 dark:border-gray-700 mb-2"></div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Warning</p>
+                            </div>
+                            <div>
+                                <div class="h-16 rounded-lg bg-red-500 border border-gray-200 dark:border-gray-700 mb-2"></div>
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">Danger</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endcall %}
+            </section>
+
+            <!-- KPI / stat cards -->
+            <section>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {{ stat_card("ti-palette", "Tokens", "2", sublabel="brand colors", tone="primary") }}
+                    {{ stat_card("ti-components", "Kit macros", "14", sublabel="composable", tone="info") }}
+                    {{ stat_card("ti-device-mobile", "Breakpoints", "5", sublabel="sm→2xl", tone="gold") }}
+                    {{ stat_card("ti-check", "Dark pairs", "100%", sublabel="coverage", tone="success") }}
+                </div>
+            </section>
+
+            <!-- Typography -->
+            <section id="typography">
+                {% call section_card("Typography", icon="ti-typography") %}
+                <div class="p-4 sm:p-5">
+                    <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white mb-2">Heading 1</h1>
+                    <h2 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Heading 2</h2>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Heading 3</h3>
+                    <h4 class="text-xl font-bold text-gray-900 dark:text-white mb-2">Heading 4</h4>
+                    <h5 class="text-lg font-bold text-gray-900 dark:text-white mb-2">Heading 5</h5>
+                    <h6 class="text-base font-bold text-gray-900 dark:text-white mb-4">Heading 6</h6>
+                    <p class="text-gray-600 dark:text-gray-400 mb-2">Default body text is readable and accessible (Inter).</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Small text for secondary information.</p>
+                    <p class="font-mono text-sm text-gray-900 dark:text-white">JetBrains Mono · 12,345 · 90:00 · #A1B2</p>
+                </div>
+                {% endcall %}
+            </section>
+
+            <!-- Buttons -->
+            <section id="buttons">
+                {% call section_card("Buttons", icon="ti-click") %}
+                <div class="p-4 sm:p-5 space-y-6">
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Variants</h4>
+                        <div class="flex flex-wrap gap-2">
+                            {{ button("Primary", variant="primary", icon="check") }}
+                            {{ button("Secondary", variant="secondary") }}
+                            {{ button("Success", variant="success") }}
+                            {{ button("Warning", variant="warning") }}
+                            {{ button("Danger", variant="danger", icon="trash") }}
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Outline &amp; Ghost</h4>
+                        <div class="flex flex-wrap gap-2">
+                            {{ button("Outline", variant="outline") }}
+                            {{ button("Ghost", variant="ghost") }}
+                        </div>
+                    </div>
+                </div>
+                {% endcall %}
+            </section>
+
+            <!-- Cards -->
+            <section id="cards">
+                {% call section_card("Cards", icon="ti-layout-cards") %}
+                <div class="p-4 sm:p-5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                                <h5 class="font-semibold text-gray-900 dark:text-white">Card Title</h5>
+                            </div>
+                            <div class="p-4">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">A basic card with a header and body.</p>
+                            </div>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-ecs-green text-white">
+                                <h5 class="font-semibold flex items-center gap-2"><i class="ti ti-star" aria-hidden="true"></i> Branded Header</h5>
+                            </div>
+                            <div class="p-4">
+                                <p class="text-sm text-gray-600 dark:text-gray-400">Card with a brand-colored header.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endcall %}
+            </section>
+
+            <!-- Forms -->
+            <section id="forms">
+                {% call section_card("Forms", icon="ti-forms") %}
+                <div class="p-4 sm:p-5">
+                    <div class="max-w-md space-y-4">
+                        {{ input("dg_text", label="Text Input", placeholder="Enter text") }}
+                        {{ select("dg_select", label="Select", options=[('1','Option 1'), ('2','Option 2')]) }}
+                        {{ textarea("dg_textarea", label="Textarea", rows=3, placeholder="Notes…") }}
+                    </div>
+                </div>
+                {% endcall %}
+            </section>
+
+            <!-- Tables -->
+            <section id="tables">
+                {% call data_table("Tailwind Breakpoints", icon="ti-table", count="5", filters=False) %}
+                <table class="hidden md:table w-full text-sm text-left">
+                    <thead class="border-b border-gray-200 dark:border-gray-700">
+                        <tr>
+                            {{ data_table_th("Breakpoint", key="bp", sortable=False) }}
+                            {{ data_table_th("Prefix", key="prefix", sortable=False) }}
+                            {{ data_table_th("Min Width", key="min", sortable=False, align="right") }}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="px-3 py-2.5 text-gray-900 dark:text-white">Small</td><td class="px-3 py-2.5"><code class="font-mono text-xs text-gray-500 dark:text-gray-400">sm:</code></td><td class="px-3 py-2.5 text-right font-mono text-gray-900 dark:text-white">640px</td></tr>
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="px-3 py-2.5 text-gray-900 dark:text-white">Medium</td><td class="px-3 py-2.5"><code class="font-mono text-xs text-gray-500 dark:text-gray-400">md:</code></td><td class="px-3 py-2.5 text-right font-mono text-gray-900 dark:text-white">768px</td></tr>
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="px-3 py-2.5 text-gray-900 dark:text-white">Large</td><td class="px-3 py-2.5"><code class="font-mono text-xs text-gray-500 dark:text-gray-400">lg:</code></td><td class="px-3 py-2.5 text-right font-mono text-gray-900 dark:text-white">1024px</td></tr>
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="px-3 py-2.5 text-gray-900 dark:text-white">Extra Large</td><td class="px-3 py-2.5"><code class="font-mono text-xs text-gray-500 dark:text-gray-400">xl:</code></td><td class="px-3 py-2.5 text-right font-mono text-gray-900 dark:text-white">1280px</td></tr>
+                        <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50"><td class="px-3 py-2.5 text-gray-900 dark:text-white">2XL</td><td class="px-3 py-2.5"><code class="font-mono text-xs text-gray-500 dark:text-gray-400">2xl:</code></td><td class="px-3 py-2.5 text-right font-mono text-gray-900 dark:text-white">1536px</td></tr>
+                    </tbody>
+                </table>
+                <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                    <div class="px-4 py-3 flex items-center justify-between"><span class="text-sm font-semibold text-gray-900 dark:text-white">Small <code class="font-mono text-xs text-gray-500 dark:text-gray-400">sm:</code></span><span class="font-mono text-sm text-gray-900 dark:text-white">640px</span></div>
+                    <div class="px-4 py-3 flex items-center justify-between"><span class="text-sm font-semibold text-gray-900 dark:text-white">Medium <code class="font-mono text-xs text-gray-500 dark:text-gray-400">md:</code></span><span class="font-mono text-sm text-gray-900 dark:text-white">768px</span></div>
+                    <div class="px-4 py-3 flex items-center justify-between"><span class="text-sm font-semibold text-gray-900 dark:text-white">Large <code class="font-mono text-xs text-gray-500 dark:text-gray-400">lg:</code></span><span class="font-mono text-sm text-gray-900 dark:text-white">1024px</span></div>
+                    <div class="px-4 py-3 flex items-center justify-between"><span class="text-sm font-semibold text-gray-900 dark:text-white">Extra Large <code class="font-mono text-xs text-gray-500 dark:text-gray-400">xl:</code></span><span class="font-mono text-sm text-gray-900 dark:text-white">1280px</span></div>
+                    <div class="px-4 py-3 flex items-center justify-between"><span class="text-sm font-semibold text-gray-900 dark:text-white">2XL <code class="font-mono text-xs text-gray-500 dark:text-gray-400">2xl:</code></span><span class="font-mono text-sm text-gray-900 dark:text-white">1536px</span></div>
+                </div>
+                {% endcall %}
+            </section>
+
+            <!-- Badges -->
+            <section id="badges">
+                {% call section_card("Badges", icon="ti-tag") %}
+                <div class="p-4 sm:p-5">
+                    <div class="flex flex-wrap gap-2">
+                        {{ badge("Success", variant="success") }}
+                        {{ badge("Info", variant="info") }}
+                        {{ badge("Warning", variant="warning") }}
+                        {{ badge("Danger", variant="danger") }}
+                        {{ badge("Default", variant="default") }}
+                    </div>
+                </div>
+                {% endcall %}
+            </section>
+
+            <!-- Alerts -->
+            <section id="alerts">
+                {% call section_card("Alerts", icon="ti-bell") %}
+                <div class="p-4 sm:p-5 space-y-4">
+                    {{ alert("success", "Success alert message") }}
+                    {{ alert("info", "Info alert message") }}
+                    {{ alert("warning", "Warning alert message") }}
+                    {{ alert("danger", "Danger alert message") }}
+                </div>
+                {% endcall %}
+            </section>
+
+            <!-- Empty state -->
+            <section id="empty">
+                {% call section_card("Empty State", icon="ti-mood-empty") %}
+                {{ empty_state("ti-calendar-off", "Nothing here yet", "Use the empty_state macro whenever a list or table has no rows to show.") }}
+                {% endcall %}
+            </section>
+
+            <!-- Responsive -->
+            <section id="responsive">
+                {% call section_card("Responsive Design", icon="ti-device-mobile") %}
+                <div class="p-4 sm:p-5">
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Mobile-first. Multi-column grids must include an <code class="font-mono text-xs">sm:</code> step to avoid the 640–767px gap. Data tables collapse to stacked cards on mobile.</p>
+                </div>
+                {% endcall %}
+            </section>
+        </div>
+    </div>
+</div>
+{% else %}
 <div class="p-4 space-y-6">
     <!-- Page Header -->
     <div class="mb-6">
@@ -261,6 +496,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

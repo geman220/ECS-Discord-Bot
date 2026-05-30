@@ -1,8 +1,194 @@
 {% extends "base_flowbite.html" %}
+{% from "macros/_modern_kit.html" import page_header, section_card, empty_state %}
 
 {% block title %}Pub League Management{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+<div class="max-w-7xl mx-auto px-4 py-6 sm:py-8">
+    {{ page_header("Pub League Management", subtitle="Schedules & teams for all leagues") }}
+
+    <!-- League Tabs -->
+    <div class="mb-6">
+        <div class="flex flex-wrap gap-2 border-b border-gray-200 dark:border-gray-700">
+            {% for league in leagues %}
+            <button type="button"
+                    class="league-tab inline-flex items-center min-h-[44px] px-4 font-semibold text-sm rounded-t-lg border-b-2 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green {% if loop.first %}border-ecs-green text-ecs-green bg-ecs-green/10{% else %}border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300{% endif %}"
+                    data-tab="{{ league.name|replace(' ', '-')|lower }}">
+                {{ league.name }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Tab Content -->
+    {% for league in leagues %}
+    <div class="league-content space-y-6 {% if not loop.first %}hidden{% endif %}" id="{{ league.name|replace(' ', '-')|lower }}-content">
+        <!-- Add Match Form -->
+        {% call section_card("Add New Match", icon="ti-calendar-plus") %}
+        <div class="p-4 sm:p-5">
+            <form method="POST" action="{{ url_for('publeague.add_publeague_match') }}"
+                  class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+                <input type="hidden" name="league_name" value="{{ league.name }}">
+                <div class="lg:col-span-1">
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Team A</label>
+                    <input type="text" name="teamA" placeholder="Team A" required class="input-ecs h-10 w-full text-sm">
+                </div>
+                <div class="lg:col-span-1">
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Team B</label>
+                    <input type="text" name="teamB" placeholder="Team B" required class="input-ecs h-10 w-full text-sm">
+                </div>
+                <div class="lg:col-span-1">
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Time</label>
+                    <input type="text" name="time" placeholder="9:40 AM" required class="input-ecs h-10 w-full text-sm">
+                </div>
+                <div class="lg:col-span-1">
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Date</label>
+                    <input type="date" name="date" required class="input-ecs h-10 w-full text-sm">
+                </div>
+                <div class="lg:col-span-1">
+                    <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">Location</label>
+                    <select name="location" required class="input-ecs h-10 w-full text-sm">
+                        <option value="North">North</option>
+                        <option value="South">South</option>
+                    </select>
+                </div>
+                <div class="lg:col-span-1">
+                    <button type="submit"
+                            class="inline-flex items-center justify-center gap-2 min-h-[44px] w-full px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-plus" aria-hidden="true"></i>
+                        Add Match
+                    </button>
+                </div>
+            </form>
+        </div>
+        {% endcall %}
+
+        <!-- Schedule Timeline -->
+        {% call section_card(league.name ~ " Schedule — Sundays", icon="ti-calendar-event") %}
+        {% if league.schedule %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-4 sm:p-5">
+            {% for match in league.schedule %}
+            <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-4">
+                <div class="text-sm font-semibold text-ecs-green mb-2 font-mono">{{ match.date }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400 mb-1 font-mono">{{ match.time }}</div>
+                <div class="text-sm font-semibold text-gray-900 dark:text-white">{{ match.teamA }} vs {{ match.teamB }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        {{ empty_state("ti-calendar-off", "No matches scheduled", "Add a match above to start building this league's schedule.") }}
+        {% endif %}
+        {% endcall %}
+
+        <!-- Teams -->
+        <div class="space-y-4">
+            {% for team in league.teams %}
+            <details class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden group">
+                <summary class="flex items-center justify-between gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <h3 class="text-sm font-bold uppercase tracking-wide text-gray-900 dark:text-white truncate">{{ team.name }}</h3>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <button type="button"
+                                class="edit-team-btn inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-9 px-3 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800"
+                                data-team-id="{{ team.name|replace(' ', '_') }}">
+                            <i class="ti ti-edit" aria-hidden="true"></i>
+                            Edit
+                        </button>
+                        <i class="ti ti-chevron-down transition-transform group-open:rotate-180 text-gray-400" aria-hidden="true"></i>
+                    </div>
+                </summary>
+                <div class="p-4 pt-0 border-t border-gray-200 dark:border-gray-700">
+                    <!-- Team Name Edit Form -->
+                    <form method="POST" action="{{ url_for('publeague.update_publeague_team_name', league_name=league.name, team_name=team.name) }}" class="my-4">
+                        <div class="flex gap-2">
+                            <input type="text" name="team_name" value="{{ team.name }}"
+                                   id="input-{{ team.name|replace(' ', '_') }}-name"
+                                   readonly
+                                   class="input-ecs h-10 flex-1 text-sm read-only:bg-gray-50 dark:read-only:bg-gray-700/50">
+                            <button type="submit"
+                                    id="btn-{{ team.name|replace(' ', '_') }}-save"
+                                    class="hidden inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 sm:h-10 px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                                <i class="ti ti-check" aria-hidden="true"></i>
+                                Save
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- Team Schedule -->
+                    {% if team.schedule %}
+                    <div class="md:overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-gray-200 dark:border-gray-700">
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Week</th>
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Date</th>
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Time</th>
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Opponent</th>
+                                    <th class="px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hidden md:table-cell">Location</th>
+                                    <th class="px-3 py-2.5 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                                {% for match in team.schedule %}
+                                <tr>
+                                    <td class="px-3 py-2 font-mono text-gray-900 dark:text-white">{{ match.week }}</td>
+                                    <td class="px-3 py-2">
+                                        <input type="date" name="date" value="{{ match.date }}"
+                                               id="input-{{ team.name|replace(' ', '_') }}-date-{{ loop.index0 }}"
+                                               readonly
+                                               class="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <input type="text" name="time" value="{{ match.time }}"
+                                               id="input-{{ team.name|replace(' ', '_') }}-time-{{ loop.index0 }}"
+                                               readonly
+                                               class="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-24 read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
+                                    </td>
+                                    <td class="px-3 py-2">
+                                        <input type="text" name="opponent" value="{{ match.opponent }}"
+                                               id="input-{{ team.name|replace(' ', '_') }}-opponent-{{ loop.index0 }}"
+                                               readonly
+                                               class="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
+                                    </td>
+                                    <td class="px-3 py-2 hidden md:table-cell">
+                                        <input type="text" name="location" value="{{ match.location }}"
+                                               id="input-{{ team.name|replace(' ', '_') }}-location-{{ loop.index0 }}"
+                                               readonly
+                                               class="rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white text-sm w-20 read-only:bg-transparent read-only:border-transparent focus:border-ecs-green focus:ring-ecs-green">
+                                    </td>
+                                    <td class="px-3 py-2 text-right whitespace-nowrap">
+                                        <button type="button"
+                                                id="btn-{{ team.name|replace(' ', '_') }}-save-match-{{ loop.index0 }}"
+                                                class="hidden items-center min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white mr-1 transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green">
+                                            Save
+                                        </button>
+                                        <button type="button"
+                                                class="inline-flex items-center min-h-[44px] sm:min-h-0 sm:h-8 px-2.5 text-xs font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-red-500">
+                                            Remove
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    {{ empty_state("ti-calendar-off", "No matches", "This team has no matches scheduled yet.") }}
+                    {% endif %}
+
+                    <button type="button"
+                            class="mt-4 inline-flex items-center gap-1.5 min-h-[44px] px-4 rounded-lg bg-ecs-green hover:bg-ecs-green-700 text-white text-sm font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ecs-green focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                        <i class="ti ti-plus" aria-hidden="true"></i>
+                        Add Match
+                    </button>
+                </div>
+            </details>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -177,6 +363,7 @@
     </div>
     {% endfor %}
 </div>
+{% endif %}
 {% endblock %}
 
 {% block custom_js %}

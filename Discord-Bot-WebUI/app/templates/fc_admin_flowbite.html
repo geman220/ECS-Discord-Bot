@@ -3,6 +3,21 @@
 {% block title %}FC Admin{% endblock %}
 
 {% block main_content %}
+{% if shell == 'console' %}
+{% from 'macros/_modern_kit.html' import page_header, section_card, empty_state %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+    {{ page_header("FC Admin", subtitle="FC administration and announcements") }}
+
+    {% call section_card("Announcement Management", icon="ti-message-2") %}
+        {{ empty_state(
+            "ti-arrow-right",
+            "Announcement Management Moved",
+            "Website announcements are now managed through the centralized Message Management system. This provides better organization and integration with Discord bot messaging.",
+            action={'label': 'Go to Message Management', 'url': url_for('admin.message_config.list_categories'), 'icon': 'ti-message-2'}
+        ) }}
+    {% endcall %}
+</div>
+{% else %}
 <div class="container mx-auto px-4 py-8">
     <!-- Page Header -->
     <div class="mb-6">
@@ -29,6 +44,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
