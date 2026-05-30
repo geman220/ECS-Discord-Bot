@@ -35,7 +35,8 @@
                         {% endif %}
 
                         <!-- Layout (shell) switcher — admin-only, evaluation trial -->
-                        {% if is_admin() %}
+                        {# nav_is_admin: reserved bool from context_processors — routes shadow is_admin() with a bool, so chrome must not call it #}
+                        {% if nav_is_admin %}
                         <div class="relative">
                             <button id="shell-switch-btn" type="button" data-dropdown-toggle="shell-switch-menu"
                                     class="p-2 rounded-lg focus:outline-none focus:ring-2 {{ _ab }}"

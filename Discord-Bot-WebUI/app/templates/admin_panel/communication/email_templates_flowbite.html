@@ -41,7 +41,7 @@
   </div>
 
   <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4">
+  <div class="grid grid-cols-2 gap-3 sm:gap-4">
     {{ stat_card('ti-template', 'Templates', templates|length, tone='info') }}
     {{ stat_card('ti-star', 'Default set', (templates|selectattr('is_default')|list|length), tone='gold') }}
   </div>

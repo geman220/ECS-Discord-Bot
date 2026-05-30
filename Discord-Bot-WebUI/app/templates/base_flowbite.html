@@ -153,7 +153,7 @@
 
     <!-- Main Content Area — left offset: w-16 only for the icon-rail console, else w-64. -->
     {% set _shell_offset = 'lg:ml-16' if _console_rail else 'lg:ml-64' %}
-    <div class="{% if safe_current_user.is_authenticated %}{{ _shell_offset }}{% endif %}">
+    <div class="min-h-screen flex flex-col {% if safe_current_user.is_authenticated %}{{ _shell_offset }}{% endif %}">
         <!-- Top Navbar (shared utility bar) -->
         {% if safe_current_user.is_authenticated %}
         <nav class="sticky top-0 z-30 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
@@ -215,7 +215,7 @@
         {% endwith %}
 
         <!-- Main Content -->
-        <main id="main-content" class="p-4 lg:p-6" tabindex="-1">
+        <main id="main-content" class="flex-1 p-4 lg:p-6" tabindex="-1">
             {% block main_content %}
             <!-- Page content goes here -->
             {% endblock %}

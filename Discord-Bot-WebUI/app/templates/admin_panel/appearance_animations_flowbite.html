@@ -22,27 +22,67 @@
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert %}
+{% set at_default = (animations.enabled == default_animations.enabled) and (animations.speed == default_animations.speed) %}
 <div class="space-y-6">
 
   {{ page_header('Animation Settings', subtitle='Appearance') }}
 
   {{ alert('info', 'Toggle motion and adjust transition speed across the application.', title='Animation settings.', dismissible=False) }}
 
+  {# KPI band — current effective settings #}
   <div class="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4">
     {% if animations.enabled %}
-      {{ stat_card('ti-wand', 'Animations', 'On', sublabel='enabled', tone='success') }}
+      {{ stat_card('ti-wand', 'Animations', 'On', sublabel='motion enabled', tone='success') }}
     {% else %}
-      {{ stat_card('ti-wand-off', 'Animations', 'Off', sublabel='disabled', tone='neutral') }}
+      {{ stat_card('ti-wand-off', 'Animations', 'Off', sublabel='motion disabled', tone='neutral') }}
     {% endif %}
-    {{ stat_card('ti-gauge', 'Speed', animations.speed, tone='primary') }}
+    {{ stat_card('ti-gauge', 'Speed', animations.speed | capitalize, sublabel='transition speed', tone='primary') }}
   </div>
 
+  {# Current vs default comparison — makes "is this customized?" answerable at a glance #}
+  {% call section_card('Configuration', icon='ti-adjustments') %}
+  <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+    <div class="flex items-center justify-between gap-4 px-4 sm:px-5 py-3">
+      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-2">
+        <i class="ti ti-bolt text-gray-400" aria-hidden="true"></i> Motion
+      </dt>
+      <dd class="text-sm font-semibold text-gray-900 dark:text-white">
+        {{ 'Enabled' if animations.enabled else 'Disabled' }}
+        {% if animations.enabled != default_animations.enabled %}
+          <span class="ml-2 text-xs font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">Customized</span>
+        {% endif %}
+      </dd>
+    </div>
+    <div class="flex items-center justify-between gap-4 px-4 sm:px-5 py-3">
+      <dt class="text-sm font-medium text-gray-500 dark:text-gray-400 flex items-center gap-2">
+        <i class="ti ti-gauge text-gray-400" aria-hidden="true"></i> Speed
+      </dt>
+      <dd class="text-sm font-semibold text-gray-900 dark:text-white">
+        <span class="font-mono">{{ animations.speed }}</span>
+        {% if animations.speed != default_animations.speed %}
+          <span class="ml-2 text-xs font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">Customized</span>
+        {% endif %}
+      </dd>
+    </div>
+  </dl>
+  {% endcall %}
+
+  {# Defaults reference #}
   {% call section_card('Defaults', icon='ti-restore') %}
-  <div class="px-4 sm:px-5 py-4">
+  <div class="px-4 sm:px-5 py-4 space-y-2">
     <p class="text-sm text-gray-500 dark:text-gray-400">
-      Default: <span class="font-semibold text-gray-900 dark:text-white">{{ 'enabled' if default_animations.enabled else 'disabled' }}</span>
+      Application default: motion <span class="font-semibold text-gray-900 dark:text-white">{{ 'enabled' if default_animations.enabled else 'disabled' }}</span>
       at <span class="font-mono font-semibold text-gray-900 dark:text-white">{{ default_animations.speed }}</span> speed.
     </p>
+    {% if at_default %}
+      <p class="text-xs text-green-700 dark:text-green-400 flex items-center gap-1.5">
+        <i class="ti ti-circle-check" aria-hidden="true"></i> Currently matching the defaults.
+      </p>
+    {% else %}
+      <p class="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+        <i class="ti ti-alert-triangle" aria-hidden="true"></i> Settings differ from the defaults.
+      </p>
+    {% endif %}
   </div>
   {% endcall %}
 

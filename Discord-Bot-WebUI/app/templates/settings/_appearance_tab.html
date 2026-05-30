@@ -53,7 +53,8 @@
         </div>
 
         <!-- Layout (admins only) -->
-        {% if is_admin and is_admin() %}
+        {# nav_is_admin: reserved bool — `is_admin` may be a route-passed bool, so don't call is_admin() #}
+        {% if nav_is_admin %}
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-5">
             <div class="flex items-start gap-3">
                 <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 shrink-0">

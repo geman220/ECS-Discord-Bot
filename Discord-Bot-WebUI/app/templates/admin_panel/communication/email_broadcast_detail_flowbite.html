@@ -51,6 +51,9 @@
   {% call section_card("Campaign Details", icon="ti-info-circle") %}
   <div class="p-4 sm:p-5 space-y-3">
     <p class="text-sm text-gray-600 dark:text-gray-400"><span class="font-semibold text-gray-900 dark:text-white">Subject:</span> {{ campaign.subject }}</p>
+    {% if campaign.filter_description %}
+    <p class="text-sm text-gray-600 dark:text-gray-400 inline-flex items-start gap-1.5"><i class="ti ti-filter text-ecs-green mt-0.5 shrink-0" aria-hidden="true"></i><span><span class="font-semibold text-gray-900 dark:text-white">Audience:</span> {{ campaign.filter_description }}</span></p>
+    {% endif %}
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-gray-600 dark:text-gray-400">
       <span class="inline-flex items-center gap-1.5"><i class="ti ti-calendar text-ecs-green" aria-hidden="true"></i><span class="font-mono">{{ campaign.created_at.strftime('%b %d, %Y %I:%M %p') if campaign.created_at else '-' }}</span></span>
       <span class="inline-flex items-center gap-1.5"><i class="ti ti-user text-ecs-green" aria-hidden="true"></i>{{ campaign.created_by.username if campaign.created_by else 'Unknown' }}</span>

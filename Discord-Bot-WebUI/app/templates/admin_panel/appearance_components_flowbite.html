@@ -32,23 +32,55 @@
         {{ stat_card('ti-shadow', 'Shadow Intensity', components.shadow_intensity, sublabel='default ' ~ default_components.shadow_intensity, tone='neutral') }}
     </div>
 
-    {% call section_card("Current Components", icon="ti-components") %}
-    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 sm:p-5">
-        <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Border Radius</dt>
-            <dd class="mt-1 font-mono text-base text-gray-900 dark:text-white">{{ components.border_radius }}</dd>
-        </div>
-        <div>
-            <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Shadow Intensity</dt>
-            <dd class="mt-1 font-mono text-base text-gray-900 dark:text-white">{{ components.shadow_intensity }}</dd>
-        </div>
-        <div class="sm:col-span-2 pt-1">
-            <p class="text-sm text-gray-500 dark:text-gray-400">
-                Default: <span class="font-mono">{{ default_components.border_radius }}</span> corners,
-                <span class="font-mono">{{ default_components.shadow_intensity }}</span> shadow.
-            </p>
-        </div>
-    </dl>
+    {% call section_card("Current vs Default", icon="ti-components") %}
+    <table class="w-full text-sm">
+        <thead class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40">
+            <tr>
+                <th scope="col" class="text-left font-medium px-4 sm:px-5 py-2.5">Token</th>
+                <th scope="col" class="text-left font-medium px-4 py-2.5">Current</th>
+                <th scope="col" class="text-left font-medium px-4 py-2.5">Default</th>
+                <th scope="col" class="text-left font-medium px-4 sm:px-5 py-2.5">Status</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+            <tr>
+                <th scope="row" class="text-left px-4 sm:px-5 py-3 font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-border-radius mr-1.5 text-ecs-green" aria-hidden="true"></i>Border Radius
+                </th>
+                <td class="px-4 py-3 font-mono text-gray-900 dark:text-white">{{ components.border_radius }}</td>
+                <td class="px-4 py-3 font-mono text-gray-500 dark:text-gray-400">{{ default_components.border_radius }}</td>
+                <td class="px-4 sm:px-5 py-3">
+                    {% if components.border_radius == default_components.border_radius %}
+                    <span class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <i class="ti ti-check" aria-hidden="true"></i> At default
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                        <i class="ti ti-pencil" aria-hidden="true"></i> Modified
+                    </span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <th scope="row" class="text-left px-4 sm:px-5 py-3 font-semibold text-gray-900 dark:text-white">
+                    <i class="ti ti-shadow mr-1.5 text-ecs-green" aria-hidden="true"></i>Shadow Intensity
+                </th>
+                <td class="px-4 py-3 font-mono text-gray-900 dark:text-white">{{ components.shadow_intensity }}</td>
+                <td class="px-4 py-3 font-mono text-gray-500 dark:text-gray-400">{{ default_components.shadow_intensity }}</td>
+                <td class="px-4 sm:px-5 py-3">
+                    {% if components.shadow_intensity == default_components.shadow_intensity %}
+                    <span class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                        <i class="ti ti-check" aria-hidden="true"></i> At default
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400">
+                        <i class="ti ti-pencil" aria-hidden="true"></i> Modified
+                    </span>
+                    {% endif %}
+                </td>
+            </tr>
+        </tbody>
+    </table>
     {% endcall %}
 </div>
 {% else %}

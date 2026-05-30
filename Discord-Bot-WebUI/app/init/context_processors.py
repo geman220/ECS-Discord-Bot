@@ -281,9 +281,15 @@ def _register_utility_processor(app):
         # the admin's chosen shell so the user-facing app A/B tests Classic vs Modern.
         shell = 'classic'
         console_full_sidebar = False
+        # nav_is_admin is a RESERVED boolean for shared chrome (topbar/shell/nav).
+        # Page routes commonly pass `is_admin` as a bool in their render context,
+        # shadowing the callable `is_admin()` — so chrome must NOT call is_admin().
+        # This name is never set by a route, so it stays a reliable bool.
+        nav_is_admin = False
         try:
             from flask import session, request
-            if is_admin():
+            nav_is_admin = bool(is_admin())
+            if nav_is_admin:
                 if has_request_context() and request.blueprint == 'admin_panel':
                     shell = 'console'
                     console_full_sidebar = True   # full sidebar + Modern header, not the rail
@@ -311,7 +317,8 @@ def _register_utility_processor(app):
             'available_roles': available_roles,
             'nav_sections': build_nav_sections(user_roles, admin_settings),
             'shell': shell,
-            'console_full_sidebar': console_full_sidebar
+            'console_full_sidebar': console_full_sidebar,
+            'nav_is_admin': nav_is_admin
         }
 
 

@@ -36,12 +36,11 @@
     </a>
   {% endcall %}
 
-  <!-- KPI band (real data) -->
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+  <!-- KPI band (route-provided figures) -->
+  <div class="grid grid-cols-3 gap-3 sm:gap-4">
     {{ stat_card('ti-speakerphone', 'Total', announcements|length, tone='info') }}
     {{ stat_card('ti-circle-check', 'Active', active_announcements, tone='success') }}
     {{ stat_card('ti-calendar-week', 'This week', recent_announcements, tone='primary') }}
-    {{ stat_card('ti-tags', 'Categories', announcement_types|length, tone='gold') }}
   </div>
 
   <!-- All announcements table -->
@@ -50,8 +49,6 @@
     <table class="hidden md:table w-full text-sm">
       <thead><tr>
         {{ data_table_th('Announcement', key='title') }}
-        {{ data_table_th('Type', key='type', hide='sm') }}
-        {{ data_table_th('Priority', key='priority', hide='sm') }}
         {{ data_table_th('Created', key='created', hide='sm') }}
         {{ data_table_th('Status', key='status', hide='sm') }}
         {{ data_table_th('Actions', sortable=False, align='right') }}
@@ -63,16 +60,7 @@
             <div class="font-semibold text-gray-900 dark:text-white">{{ announcement.title }}</div>
             <p class="text-xs text-gray-500 dark:text-gray-400">{{ announcement.content[:100] }}{% if announcement.content|length > 100 %}...{% endif %}</p>
           </td>
-          <td class="px-3 py-2.5 hidden md:table-cell">
-            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ announcement.announcement_type or 'General' }}</span>
-          </td>
-          <td class="px-3 py-2.5 hidden md:table-cell">
-            {% set priority = announcement.priority or 'normal' %}
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {% if priority == 'high' %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400{% elif priority == 'medium' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400{% endif %}">
-              <i class="ti {% if priority == 'high' %}ti-alert-octagon{% elif priority == 'medium' %}ti-alert-triangle{% else %}ti-circle{% endif %} text-[11px]" aria-hidden="true"></i>{{ priority|title }}
-            </span>
-          </td>
-          <td class="px-3 py-2.5 hidden md:table-cell font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td class="px-3 py-2.5 hidden md:table-cell font-mono text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') if announcement.created_at else '—' }}</td>
           <td class="px-3 py-2.5 hidden md:table-cell">
             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
               <i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i>Active
@@ -97,22 +85,17 @@
     </table>
     <div class="md:hidden divide-y divide-gray-100 dark:divide-gray-700">
       {% for announcement in announcements %}
-        {% set priority = announcement.priority or 'normal' %}
         <div data-row-card class="px-4 py-3.5">
           <div class="flex items-start justify-between gap-2">
             <div class="min-w-0">
               <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ announcement.title }}</p>
               <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ announcement.content[:100] }}{% if announcement.content|length > 100 %}...{% endif %}</p>
               <div class="mt-2 flex flex-wrap items-center gap-1.5">
-                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">{{ announcement.announcement_type or 'General' }}</span>
-                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium {% if priority == 'high' %}bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-400{% elif priority == 'medium' %}bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-400{% else %}bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-400{% endif %}">
-                  <i class="ti {% if priority == 'high' %}ti-alert-octagon{% elif priority == 'medium' %}ti-alert-triangle{% else %}ti-circle{% endif %} text-[11px]" aria-hidden="true"></i>{{ priority|title }}
-                </span>
                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-400">
                   <i class="ti ti-circle-check text-[11px]" aria-hidden="true"></i>Active
                 </span>
               </div>
-              <p class="mt-1.5 text-xs font-mono text-gray-500 dark:text-gray-400">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+              <p class="mt-1.5 text-xs font-mono text-gray-500 dark:text-gray-400">{{ announcement.created_at.strftime('%Y-%m-%d %H:%M') if announcement.created_at else '—' }}</p>
             </div>
           </div>
           <div class="mt-3 flex items-center gap-1">

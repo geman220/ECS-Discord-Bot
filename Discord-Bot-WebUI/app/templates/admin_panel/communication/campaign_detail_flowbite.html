@@ -29,8 +29,8 @@
 {% if shell == 'console' %}
 {# ===================== Modern console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, empty_state %}
-{% set status_tone = {'sent': 'success', 'scheduled': 'warning', 'draft': 'neutral', 'cancelled': 'danger'} %}
-{% set status_icon = {'sent': 'ti-circle-check', 'scheduled': 'ti-clock', 'draft': 'ti-pencil', 'cancelled': 'ti-ban'} %}
+{% set status_tone = {'sent': 'success', 'scheduled': 'warning', 'draft': 'neutral', 'sending': 'info', 'cancelled': 'danger', 'failed': 'danger'} %}
+{% set status_icon = {'sent': 'ti-circle-check', 'scheduled': 'ti-clock', 'draft': 'ti-pencil', 'sending': 'ti-loader', 'cancelled': 'ti-ban', 'failed': 'ti-alert-triangle'} %}
 <div class="max-w-7xl mx-auto space-y-6">
   {% call page_header(campaign.name, subtitle='Push Campaign') %}
     <a href="{{ url_for('admin_panel.campaigns_list') }}"
@@ -62,55 +62,99 @@
     {% set s_tone = status_tone.get(campaign.status, 'neutral') %}
     {% set s_icon = status_icon.get(campaign.status, 'ti-broadcast') %}
     {{ stat_card(s_icon, 'Status', campaign.status|title, tone=s_tone) }}
-    {{ stat_card('ti-target', 'Audience', campaign.target_audience or 'All users', tone='neutral') }}
-    {{ stat_card('ti-calendar-time', 'Scheduled', campaign.scheduled_at.strftime('%Y-%m-%d %H:%M') if campaign.scheduled_at else 'Not scheduled', tone='neutral') }}
-    {{ stat_card('ti-send', 'Sent', campaign.sent_at.strftime('%Y-%m-%d %H:%M') if campaign.sent_at else 'Not sent', tone='neutral') }}
+    {{ stat_card('ti-target', 'Audience', campaign.get_target_summary(), tone='neutral') }}
+    {{ stat_card('ti-calendar-time', 'Scheduled', campaign.scheduled_send_time.strftime('%b %d, %H:%M') if campaign.scheduled_send_time else 'Immediate', tone='neutral') }}
+    {{ stat_card('ti-send', 'Sent', campaign.actual_send_time.strftime('%b %d, %H:%M') if campaign.actual_send_time else 'Not sent', tone='neutral') }}
   </div>
+
+  {# Failure banner (failed only) #}
+  {% if campaign.status == 'failed' and campaign.error_message %}
+  {% call section_card('Failure Reason', icon='ti-alert-triangle') %}
+    <div class="p-4 sm:p-5">
+      <p class="text-sm font-mono text-red-700 dark:text-red-400 whitespace-pre-wrap">{{ campaign.error_message }}</p>
+    </div>
+  {% endcall %}
+  {% endif %}
 
   {# Overview #}
   {% call section_card('Overview', icon='ti-info-circle') %}
-    <dl class="grid grid-cols-1 sm:grid-cols-2 gap-px bg-gray-200 dark:bg-gray-700">
+    <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-px bg-gray-200 dark:bg-gray-700">
       <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
         <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Title</dt>
         <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ campaign.title or 'No title' }}</dd>
       </div>
       <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
-        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created</dt>
-        <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ campaign.created_at.strftime('%B %d, %Y at %H:%M') if campaign.created_at else 'Unknown' }}</dd>
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Priority</dt>
+        <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ campaign.priority|title }}</dd>
       </div>
+      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Platform</dt>
+        <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white">{{ (campaign.platform_filter or 'all')|title }}</dd>
+      </div>
+      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Created</dt>
+        <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ campaign.created_at.strftime('%b %d, %Y · %H:%M') if campaign.created_at else 'Unknown' }}</dd>
+      </div>
+      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Last Updated</dt>
+        <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ campaign.updated_at.strftime('%b %d, %Y · %H:%M') if campaign.updated_at else 'Unknown' }}</dd>
+      </div>
+      {% if campaign.action_url %}
+      <div class="bg-white dark:bg-gray-800 px-4 sm:px-5 py-3">
+        <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Deep Link</dt>
+        <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white break-all">{{ campaign.action_url }}</dd>
+      </div>
+      {% endif %}
     </dl>
   {% endcall %}
 
-  {# Message content #}
-  {% call section_card('Message Content', icon='ti-message') %}
+  {# Message content — preview the actual push as title + body #}
+  {% call section_card('Notification Preview', icon='ti-message') %}
     <div class="p-4 sm:p-5">
-      {% if campaign.message %}
-      <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ campaign.message }}</p>
-      {% else %}
-      <p class="text-sm text-gray-500 dark:text-gray-400 italic">No message content</p>
-      {% endif %}
+      <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-4">
+        <div class="flex items-start gap-3">
+          <span class="shrink-0 inline-flex items-center justify-center w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green">
+            <i class="ti ti-bell" aria-hidden="true"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-gray-900 dark:text-white">{{ campaign.title or 'No title' }}</p>
+            {% if campaign.body %}
+            <p class="mt-1 text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ campaign.body }}</p>
+            {% else %}
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 italic">No message body</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
     </div>
   {% endcall %}
 
   {# Delivery analytics (sent only) #}
   {% if campaign.status == 'sent' %}
   {% call section_card('Delivery Analytics', icon='ti-chart-bar') %}
-    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-px bg-gray-200 dark:bg-gray-700">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-px bg-gray-200 dark:bg-gray-700">
       <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
-        <div class="font-mono text-3xl font-bold text-blue-600 dark:text-blue-400">{{ campaign.total_recipients or 0 }}</div>
-        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Total Recipients</div>
+        <div class="font-mono text-3xl font-bold text-gray-900 dark:text-white">{{ campaign.target_count or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Targeted</div>
+      </div>
+      <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
+        <div class="font-mono text-3xl font-bold text-blue-600 dark:text-blue-400">{{ campaign.sent_count or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Sent</div>
       </div>
       <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
         <div class="font-mono text-3xl font-bold text-green-600 dark:text-green-400">{{ campaign.delivered_count or 0 }}</div>
         <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Delivered</div>
+        <div class="mt-0.5 text-xs font-mono text-green-600 dark:text-green-400">{{ campaign.delivery_rate }}%</div>
       </div>
       <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
         <div class="font-mono text-3xl font-bold text-red-600 dark:text-red-400">{{ campaign.failed_count or 0 }}</div>
         <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Failed</div>
+        <div class="mt-0.5 text-xs font-mono text-red-600 dark:text-red-400">{{ campaign.failure_rate }}%</div>
       </div>
       <div class="bg-white dark:bg-gray-800 p-4 sm:p-5 text-center">
-        <div class="font-mono text-3xl font-bold text-ecs-gold-500 dark:text-ecs-gold-400">{{ campaign.opened_count or 0 }}</div>
-        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Opened</div>
+        <div class="font-mono text-3xl font-bold text-ecs-gold-500 dark:text-ecs-gold-400">{{ campaign.click_count or 0 }}</div>
+        <div class="mt-1 text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">Clicks</div>
+        <div class="mt-0.5 text-xs font-mono text-ecs-gold-600 dark:text-ecs-gold-400">{{ campaign.click_rate }}%</div>
       </div>
     </div>
   {% endcall %}

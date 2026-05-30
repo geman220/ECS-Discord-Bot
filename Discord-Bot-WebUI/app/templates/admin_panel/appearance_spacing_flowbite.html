@@ -31,6 +31,33 @@
         {{ stat_card('ti-ruler-2', 'Scale Multiplier', spacing.scale_multiplier, sublabel='current') }}
         {{ stat_card('ti-ruler', 'Default Scale', default_spacing.scale_multiplier, sublabel='baseline', tone='neutral') }}
     </div>
+
+    {% call section_card("Scale Detail", icon="ti-ruler-measure") %}
+    <dl class="divide-y divide-gray-200 dark:divide-gray-700">
+        <div class="flex items-center justify-between px-4 sm:px-5 py-3 gap-3">
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Current scale multiplier</dt>
+            <dd class="font-mono text-sm font-bold text-ecs-green">{{ spacing.scale_multiplier }}</dd>
+        </div>
+        <div class="flex items-center justify-between px-4 sm:px-5 py-3 gap-3">
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Default (baseline) scale</dt>
+            <dd class="font-mono text-sm font-bold text-gray-900 dark:text-white">{{ default_spacing.scale_multiplier }}</dd>
+        </div>
+        <div class="flex items-center justify-between px-4 sm:px-5 py-3 gap-3">
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</dt>
+            <dd class="text-sm font-semibold">
+                {% if spacing.scale_multiplier == default_spacing.scale_multiplier %}
+                <span class="inline-flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-circle-check" aria-hidden="true"></i> At baseline
+                </span>
+                {% else %}
+                <span class="inline-flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                    <i class="ti ti-adjustments-alt" aria-hidden="true"></i> Customized
+                </span>
+                {% endif %}
+            </dd>
+        </div>
+    </dl>
+    {% endcall %}
 </div>
 {% else %}
 <div class="p-4 space-y-6">

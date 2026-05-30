@@ -22,19 +22,64 @@
 {% if shell == 'console' %}
 {# ===================== Modern admin console (shell == 'console') ===================== #}
 {% from 'macros/_modern_kit.html' import page_header, stat_card, section_card, alert %}
+{% set font_roles = [
+    {'key': 'display_font', 'icon': 'ti-typography',   'label': 'Display Font', 'hint': 'Headings & page titles', 'sample': 'Headline Aa'},
+    {'key': 'body_font',    'icon': 'ti-letter-case',  'label': 'Body Font',    'hint': 'Paragraphs & UI text',   'sample': 'The quick brown fox'},
+    {'key': 'mono_font',    'icon': 'ti-code',         'label': 'Monospace',    'hint': 'Figures, codes, IDs',    'sample': '0123 · ID-4567'}
+] %}
 <div class="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
     {{ page_header("Typography", subtitle="Appearance") }}
 
-    {{ alert('info', 'Adjust the fonts and type scale used across the application.', title='Typography settings.', dismissible=false) }}
+    {{ alert('info', 'These fonts and the type scale are applied across the application.', title='Typography settings.', dismissible=false) }}
 
+    {# KPI band — the one genuinely numeric figure leads. #}
     <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {{ stat_card('ti-typography', 'Display Font', typography.display_font) }}
-        {{ stat_card('ti-letter-case', 'Body Font', typography.body_font) }}
-        {{ stat_card('ti-code', 'Monospace Font', typography.mono_font) }}
-        {{ stat_card('ti-arrows-diagonal', 'Scale Multiplier', typography.scale_multiplier) }}
+        {{ stat_card('ti-arrows-diagonal', 'Type Scale', typography.scale_multiplier ~ '×', sublabel='default ' ~ default_typography.scale_multiplier ~ '×', tone='neutral') }}
+        {% for role in font_roles %}
+        {% set changed = typography[role.key] != default_typography[role.key] %}
+        {{ stat_card(role.icon, role.label, typography[role.key], sublabel=('changed from ' ~ default_typography[role.key]) if changed else 'default', tone=('gold' if changed else 'primary')) }}
+        {% endfor %}
     </div>
 
-    {% call section_card("Defaults", icon="ti-restore") %}
+    {# Font roles with live previews — show the fonts, don't just name them. #}
+    {% call section_card("Active Fonts", icon="ti-typography") %}
+    <ul role="list" class="divide-y divide-gray-200 dark:divide-gray-700">
+        {% for role in font_roles %}
+        {% set current = typography[role.key] %}
+        {% set default = default_typography[role.key] %}
+        <li class="flex flex-col sm:flex-row sm:items-center gap-3 px-4 sm:px-5 py-4">
+            <div class="flex items-center gap-3 sm:w-56 shrink-0">
+                <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                    <i class="ti {{ role.icon }} text-ecs-green" aria-hidden="true"></i>
+                </span>
+                <div class="min-w-0">
+                    <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ current }}</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ role.hint }}</p>
+                </div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ role.label }}</p>
+                <p class="mt-0.5 text-lg text-gray-900 dark:text-white truncate {% if role.key == 'mono_font' %}font-mono{% endif %}">{{ role.sample }}</p>
+            </div>
+            <div class="shrink-0 sm:text-right">
+                {% if current != default %}
+                <span class="inline-flex items-center gap-1 text-xs font-semibold text-ecs-gold-500 dark:text-ecs-gold-400">
+                    <i class="ti ti-pencil text-[12px]" aria-hidden="true"></i> Customized
+                </span>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">default {{ default }}</p>
+                {% else %}
+                <span class="inline-flex items-center gap-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+                    <i class="ti ti-check text-[12px]" aria-hidden="true"></i> Default
+                </span>
+                {% endif %}
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% endcall %}
+
+    {# Defaults reference. #}
+    {% call section_card("Application Defaults", icon="ti-restore") %}
     <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-4 sm:px-5 py-4">
         <div>
             <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Display Font</dt>
@@ -50,7 +95,7 @@
         </div>
         <div>
             <dt class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Scale Multiplier</dt>
-            <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ default_typography.scale_multiplier }}</dd>
+            <dd class="mt-1 text-sm font-semibold font-mono text-gray-900 dark:text-white">{{ default_typography.scale_multiplier }}×</dd>
         </div>
     </dl>
     {% endcall %}
