@@ -10,17 +10,17 @@
 <div class="max-w-7xl mx-auto">
   {# --- Identity header --- #}
   <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden mb-6">
-    <div class="h-20 sm:h-24 bg-gradient-to-r from-ecs-green to-ecs-green-700"></div>
+    <div class="h-24 sm:h-32 bg-gradient-to-br from-ecs-green via-ecs-green-700 to-ecs-green-900"></div>
     <div class="px-4 sm:px-6 pb-5">
-      <div class="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12 sm:-mt-14">
-        <div class="relative shrink-0 mx-auto sm:mx-0">
+      <div class="flex flex-col sm:flex-row sm:items-end gap-4">
+        <div class="relative shrink-0 mx-auto sm:mx-0 -mt-14 sm:-mt-[4.5rem]">
           <div class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl ring-4 ring-white dark:ring-gray-800 overflow-hidden bg-gray-100 dark:bg-gray-700">
             {% if player.profile_picture_url %}
             <img src="{{ player.profile_picture_url }}?v={{ player.updated_at.timestamp() if player.updated_at else '0' }}"
-                 class="w-full h-full object-cover" alt="Profile Picture">
+                 class="block w-full h-full object-cover object-center" alt="Profile Picture">
             {% else %}
             <img src="{{ url_for('static', filename='img/default_player.png') }}"
-                 class="w-full h-full object-cover" alt="Default Profile Picture">
+                 class="block w-full h-full object-cover object-center" alt="Default Profile Picture">
             {% endif %}
           </div>
           <div class="absolute -bottom-1 -right-1 flex gap-1">
