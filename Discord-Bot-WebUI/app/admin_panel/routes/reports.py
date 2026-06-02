@@ -205,8 +205,159 @@ def _avg(values):
 @login_required
 @role_required(REPORT_ROLES)
 def reports_center():
-    """Landing page listing all available reports."""
-    return render_template('admin_panel/reports/index_flowbite.html')
+    """Landing page: on-page metrics + charts across all report families.
+
+    All numbers are computed from the same ``_build_*`` helpers the per-report
+    pages and Excel exports use, so the dashboard never disagrees with a drill-in
+    or a download. Only summary aggregates / capped top-N lists are rendered here
+    (the heavy row-level detail lives on the per-report pages).
+    """
+    session = g.db_session
+
+    LOW_ATTENDANCE = 50.0   # season attendance % at/below this is "low"
+    HIGH_ATTENDANCE = 85.0  # at/above this is "high"
+    TOP_N = 10              # cap for on-page leaderboards
+
+    # ---- Attendance (current players, all leagues) -------------------------
+    attendance_rows = _build_attendance(session, league_name=None, current_only=1)
+    season_vals = [r['Season Attendance %'] for r in attendance_rows]
+    career_vals = [r['Attendance Rate %'] for r in attendance_rows]
+
+    low_attendance = [r for r in attendance_rows if r['Season Attendance %'] <= LOW_ATTENDANCE]
+    high_attendance = [r for r in attendance_rows if r['Season Attendance %'] >= HIGH_ATTENDANCE]
+
+    # Distribution of season attendance into buckets for a bar chart.
+    att_buckets = ['0–25%', '26–50%', '51–75%', '76–90%', '91–100%']
+    att_bucket_counts = [0, 0, 0, 0, 0]
+    for v in season_vals:
+        if v <= 25:
+            att_bucket_counts[0] += 1
+        elif v <= 50:
+            att_bucket_counts[1] += 1
+        elif v <= 75:
+            att_bucket_counts[2] += 1
+        elif v <= 90:
+            att_bucket_counts[3] += 1
+        else:
+            att_bucket_counts[4] += 1
+
+    # Lowest-attendance players to surface for follow-up (sorted ascending).
+    low_list = sorted(low_attendance, key=lambda r: (r['Season Attendance %'], -r['Matches Invited']))[:TOP_N]
+
+    attendance_chart = {
+        'labels': att_buckets,
+        'counts': att_bucket_counts,
+    }
+
+    # ---- Player Movement ---------------------------------------------------
+    movement_rows = _movement_records(session, movers_only=False)
+    movement_counts = {c: 0 for c in MOVEMENT_CATEGORIES}
+    for r in movement_rows:
+        movement_counts[r['Movement']] = movement_counts.get(r['Movement'], 0) + 1
+    total_movers = (
+        movement_counts['Promoted (Classic→Premier)']
+        + movement_counts['Dropped (Premier→Classic)']
+        + movement_counts['Both ways']
+    )
+    movement_chart = {
+        'labels': MOVEMENT_CATEGORIES,
+        'counts': [movement_counts[c] for c in MOVEMENT_CATEGORIES],
+    }
+
+    # ---- Discipline (all-time across seasons) ------------------------------
+    discipline_rows = _build_discipline(session, season_id=None)
+    reason_labels = ['Foul', 'Dissent', 'Persistent Infringement', 'Serious Foul Play', 'Unspecified']
+    reason_counts = [sum(r[label] for r in discipline_rows) for label in reason_labels]
+    total_yellow = sum(r['Yellow Cards'] for r in discipline_rows)
+    total_red = sum(r['Red Cards'] for r in discipline_rows)
+    total_cards = total_yellow + total_red
+    top_offenders = discipline_rows[:TOP_N]  # already sorted by total cards desc
+    discipline_chart = {
+        'labels': reason_labels,
+        'counts': reason_counts,
+    }
+
+    # ---- Retention / Churn (season over season) ----------------------------
+    retention_rows = _build_retention(session)
+    latest_ret = retention_rows[-1] if retention_rows else None
+    numeric_ret = [r['Retention % (of prior)'] for r in retention_rows
+                   if isinstance(r['Retention % (of prior)'], (int, float))]
+    retention_chart = {
+        'labels': [r['Season'] for r in retention_rows],
+        'retention': [r['Retention % (of prior)'] if isinstance(r['Retention % (of prior)'], (int, float)) else None
+                      for r in retention_rows],
+        'total': [r['Total Players'] for r in retention_rows],
+        'new': [r['New Players'] for r in retention_rows],
+        'lapsed': [r['Lapsed From Prior'] for r in retention_rows],
+    }
+
+    # ---- Top-line stat cards ----------------------------------------------
+    stat_cards = [
+        {
+            'label': 'Avg Season Attendance',
+            'value': f"{_avg(season_vals)}%" if season_vals else '—',
+            'icon': 'ti-calendar-check', 'tone': 'primary',
+            'note': f"{len(attendance_rows)} current players tracked",
+        },
+        {
+            'label': 'Low-Attendance Players',
+            'value': len(low_attendance),
+            'icon': 'ti-alert-triangle', 'tone': 'warn',
+            'note': f"at or below {LOW_ATTENDANCE:.0f}% this season",
+        },
+        {
+            'label': 'Players Who Moved',
+            'value': total_movers,
+            'icon': 'ti-arrows-up-down', 'tone': 'info',
+            'note': f"of {len(movement_rows)} tracked across seasons",
+        },
+        {
+            'label': 'Total Cards',
+            'value': total_cards,
+            'icon': 'ti-cards', 'tone': 'danger',
+            'note': f"{total_yellow} yellow · {total_red} red",
+        },
+        {
+            'label': 'Latest Retention',
+            'value': (f"{latest_ret['Retention % (of prior)']}%"
+                      if latest_ret and isinstance(latest_ret['Retention % (of prior)'], (int, float))
+                      else 'n/a'),
+            'icon': 'ti-users-group', 'tone': 'ok',
+            'note': (f"{latest_ret['Season']}" if latest_ret else 'no seasons'),
+        },
+    ]
+
+    return render_template(
+        'admin_panel/reports/index_flowbite.html',
+        stat_cards=stat_cards,
+        # attendance
+        attendance_chart=attendance_chart,
+        avg_season_attendance=_avg(season_vals),
+        avg_career_attendance=_avg(career_vals),
+        low_count=len(low_attendance),
+        high_count=len(high_attendance),
+        low_attendance_players=low_list,
+        attendance_total=len(attendance_rows),
+        low_threshold=LOW_ATTENDANCE,
+        high_threshold=HIGH_ATTENDANCE,
+        # movement
+        movement_chart=movement_chart,
+        movement_total=len(movement_rows),
+        total_movers=total_movers,
+        # discipline
+        discipline_chart=discipline_chart,
+        total_yellow=total_yellow,
+        total_red=total_red,
+        total_cards=total_cards,
+        players_booked=len(discipline_rows),
+        top_offenders=top_offenders,
+        # retention
+        retention_chart=retention_chart,
+        latest_retention=latest_ret,
+        avg_retention=_avg(numeric_ret),
+        seasons_tracked=len(retention_rows),
+        top_n=TOP_N,
+    )
 
 
 # =====================================================================

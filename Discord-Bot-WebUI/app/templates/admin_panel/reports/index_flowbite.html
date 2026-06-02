@@ -1,7 +1,7 @@
 {% extends "admin_panel/base_flowbite.html" %}
 
-{% block admin_title %}Reports{% endblock %}
-{% block panel_description %}Pull data from the database and export it to Excel{% endblock %}
+{% block admin_title %}Reports Center{% endblock %}
+{% block panel_description %}League metrics, trends, and data exports at a glance{% endblock %}
 
 {% block breadcrumb_items %}
 <li>
@@ -13,44 +13,306 @@
 {% endblock %}
 
 {% block panel_content %}
+{# ---- tone -> color class maps (kept literal so Tailwind keeps the classes) ---- #}
+{% set tone_icon = {
+    'primary': 'bg-ecs-green/10 text-ecs-green',
+    'info': 'bg-blue-500/10 text-blue-500',
+    'warn': 'bg-amber-500/10 text-amber-500',
+    'danger': 'bg-red-500/10 text-red-500',
+    'ok': 'bg-emerald-500/10 text-emerald-500',
+} %}
+{% set tone_value = {
+    'primary': 'text-ecs-green',
+    'info': 'text-blue-500',
+    'warn': 'text-amber-500',
+    'danger': 'text-red-500',
+    'ok': 'text-emerald-500',
+} %}
+
+{# ================= STAT CARDS ================= #}
+<section aria-labelledby="reports-kpis">
+    <h2 id="reports-kpis" class="sr-only">Key report metrics</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        {% for c in stat_cards %}
+        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide truncate">{{ c.label }}</span>
+                <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg shrink-0 {{ tone_icon.get(c.tone, tone_icon['primary']) }}">
+                    <i class="ti {{ c.icon }} text-base" aria-hidden="true"></i>
+                </span>
+            </div>
+            <div class="mt-3 text-3xl font-bold leading-none tabular-nums {{ tone_value.get(c.tone, '') }}" title="{{ c.value }}">{{ c.value }}</div>
+            <p class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 truncate" title="{{ c.note }}">{{ c.note }}</p>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+
+{# ================= ATTENDANCE ================= #}
+<section class="mt-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-calendar-check text-ecs-green" aria-hidden="true"></i>
+        <h2 class="font-semibold text-gray-900 dark:text-white">Attendance &amp; Reliability</h2>
+        <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ attendance_total }} current players</span>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-4">
+        <div>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg season</div>
+                    <div class="mt-1 text-2xl font-bold text-ecs-green tabular-nums">{{ avg_season_attendance }}%</div>
+                </div>
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/40 p-3">
+                    <div class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">Avg career</div>
+                    <div class="mt-1 text-2xl font-bold text-gray-900 dark:text-white tabular-nums">{{ avg_career_attendance }}%</div>
+                </div>
+                <div class="rounded-lg border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 p-3">
+                    <div class="text-xs text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">High ≥ {{ high_threshold|int }}%</div>
+                    <div class="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{{ high_count }}</div>
+                </div>
+                <div class="rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 p-3">
+                    <div class="text-xs text-amber-700 dark:text-amber-400 uppercase tracking-wide">Low ≤ {{ low_threshold|int }}%</div>
+                    <div class="mt-1 text-2xl font-bold text-amber-600 dark:text-amber-400 tabular-nums">{{ low_count }}</div>
+                </div>
+            </div>
+            {% if attendance_total %}
+            <div class="relative h-56"><canvas id="attendanceChart"></canvas></div>
+            <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Distribution of players by season attendance %.</p>
+            {% else %}
+            <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                No attendance data recorded yet.
+            </div>
+            {% endif %}
+        </div>
+        <div>
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
+                <i class="ti ti-alert-triangle text-amber-500"></i> Lowest attendance — needs follow-up
+            </h3>
+            {% if low_attendance_players %}
+            <ul class="divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">
+                {% for p in low_attendance_players %}
+                <li class="flex items-center gap-3 px-3 py-2">
+                    <span class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-500/10 text-amber-500 text-xs font-bold">{{ loop.index }}</span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ p['Player'] }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ p['Current Team'] or p['Primary League'] or '—' }} · {{ p['Matches Invited'] }} invited</p>
+                    </div>
+                    <span class="font-bold text-amber-600 dark:text-amber-400 tabular-nums shrink-0">{{ p['Season Attendance %'] }}%</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Showing up to top {{ top_n }} lowest. Full per-player detail in the Attendance report below.</p>
+            {% else %}
+            <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                No players below the low-attendance threshold.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</section>
+
+{# ================= MOVEMENT + DISCIPLINE (side by side) ================= #}
+<div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-5">
+    {# ---- Movement ---- #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+            <i class="ti ti-arrows-up-down text-blue-500" aria-hidden="true"></i>
+            <h2 class="font-semibold text-gray-900 dark:text-white">Player Movement</h2>
+            <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ total_movers }} moved · {{ movement_total }} tracked</span>
+        </div>
+        <div class="p-4">
+            {% if movement_total %}
+            <div class="relative h-64"><canvas id="movementChart"></canvas></div>
+            <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Players grouped by their Classic↔Premier path across seasons.</p>
+            {% else %}
+            <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                No pub-league season history to chart yet.
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ---- Discipline ---- #}
+    <section class="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+            <i class="ti ti-cards text-red-500" aria-hidden="true"></i>
+            <h2 class="font-semibold text-gray-900 dark:text-white">Discipline</h2>
+            <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">{{ total_cards }} cards · {{ players_booked }} players</span>
+        </div>
+        <div class="p-4">
+            {% if total_cards %}
+            <div class="relative h-44"><canvas id="disciplineChart"></canvas></div>
+            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mt-4 mb-2">Most-booked players</h3>
+            <ul class="divide-y divide-gray-100 dark:divide-gray-700 rounded-lg border border-gray-200 dark:border-gray-700">
+                {% for p in top_offenders %}
+                <li class="flex items-center gap-3 px-3 py-2">
+                    <span class="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-red-500/10 text-red-500 text-xs font-bold">{{ loop.index }}</span>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-sm font-medium text-gray-900 dark:text-white truncate">{{ p['Player'] }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ p['Current Team'] or '—' }}</p>
+                    </div>
+                    <span class="text-xs font-mono shrink-0">
+                        <span class="text-amber-500">{{ p['Yellow Cards'] }}Y</span>
+                        <span class="text-red-500 ml-1">{{ p['Red Cards'] }}R</span>
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+            <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Showing up to top {{ top_n }}. Full breakdown in the Discipline report below.</p>
+            {% else %}
+            <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                No cards recorded yet.
+            </div>
+            {% endif %}
+        </div>
+    </section>
+</div>
+
+{# ================= RETENTION ================= #}
+<section class="mt-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+    <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
+        <i class="ti ti-users-group text-emerald-500" aria-hidden="true"></i>
+        <h2 class="font-semibold text-gray-900 dark:text-white">Retention &amp; Churn</h2>
+        <span class="ml-auto text-xs text-gray-500 dark:text-gray-400">
+            {{ seasons_tracked }} seasons · avg {{ avg_retention }}% retention
+        </span>
+    </div>
+    <div class="p-4">
+        {% if seasons_tracked %}
+        <div class="relative h-72"><canvas id="retentionChart"></canvas></div>
+        <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Roster size, new and lapsed players, and season-over-season retention %.</p>
+        {% else %}
+        <div class="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            Not enough season history to compute retention.
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+{# ================= EXPORT & DETAILED REPORTS ================= #}
 {% set reports = [
     {'title': 'Player Stats', 'icon': 'ti-soccer-field', 'url': url_for('admin_panel.player_stats_report'),
-     'desc': 'Goals, assists, and cards per player. Export career totals or a season-by-season breakdown (per-league rows preserved).'},
+     'desc': 'Goals, assists, and cards per player — career totals or season-by-season.'},
     {'title': 'Attendance & Reliability', 'icon': 'ti-calendar-check', 'url': url_for('admin_panel.attendance_report'),
-     'desc': 'RSVP response rate, attendance rate, and reliability score for every player.'},
+     'desc': 'RSVP response, attendance, and reliability score for every player.'},
     {'title': 'Player Movement', 'icon': 'ti-arrows-up-down', 'url': url_for('admin_panel.movement_report'),
-     'desc': 'Track players promoted from Classic to Premier (or dropped back) across seasons.'},
+     'desc': 'Promotions from Classic to Premier (or drops back) across seasons.'},
     {'title': 'Retention & Churn', 'icon': 'ti-users-group', 'url': url_for('admin_panel.retention_report'),
-     'desc': 'New vs. returning vs. lapsed players, season over season, with retention percentages.'},
+     'desc': 'New vs. returning vs. lapsed players, season over season.'},
     {'title': 'Roster History', 'icon': 'ti-history', 'url': url_for('admin_panel.roster_history_report'),
-     'desc': 'Each player\'s full team-by-season timeline.'},
+     'desc': "Each player's full team-by-season timeline."},
     {'title': 'Leaderboards', 'icon': 'ti-trophy', 'url': url_for('admin_panel.leaderboards_report'),
-     'desc': 'Top scorers, assists, and discipline (cards) for a given season/league or all-time.'},
+     'desc': 'Top scorers, assists, and discipline for a season/league or all-time.'},
     {'title': 'Kit / Jersey Size', 'icon': 'ti-shirt-sport', 'url': url_for('admin_panel.jersey_report'),
-     'desc': 'Jersey-size counts per team/league — what you need before ordering kit.'},
+     'desc': 'Jersey-size counts per team/league for kit ordering.'},
     {'title': 'Team Standings', 'icon': 'ti-table', 'url': url_for('admin_panel.standings_report'),
-     'desc': 'W/D/L, goals for/against, goal difference, and points by season and league.'},
+     'desc': 'W/D/L, goals for/against, goal difference, and points by season.'},
     {'title': 'Discipline', 'icon': 'ti-cards', 'url': url_for('admin_panel.discipline_report'),
-     'desc': 'Yellow and red cards per player, broken down by reason (foul, dissent, etc.).'},
+     'desc': 'Yellow and red cards per player, broken down by reason.'},
     {'title': 'Contactability', 'icon': 'ti-address-book', 'url': url_for('admin_panel.contactability_report'),
-     'desc': 'SMS / phone / Discord reachability and profile freshness — comms readiness.'}
+     'desc': 'SMS / phone / Discord reachability and profile freshness.'}
 ] %}
 
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-    {% for r in reports %}
-    <a href="{{ r.url }}"
-       class="group flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:shadow-lg transition-all">
-        <div class="flex items-center gap-3 mb-3">
-            <span class="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-ecs-green/10 text-ecs-green group-hover:bg-ecs-green group-hover:text-white transition-colors">
-                <i class="ti {{ r.icon }} text-xl"></i>
+<section class="mt-6 pt-6 border-t-2 border-gray-200 dark:border-gray-700">
+    <div class="flex items-center gap-2 mb-1">
+        <i class="ti ti-file-spreadsheet text-ecs-green text-lg"></i>
+        <h2 class="text-lg font-bold text-gray-900 dark:text-white">Export &amp; Detailed Reports</h2>
+    </div>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">Open any report for filters, full row-level detail, and Excel (.xlsx) downloads.</p>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for r in reports %}
+        <a href="{{ r.url }}"
+           class="group flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-sm p-5 border border-gray-200 dark:border-gray-700 hover:border-ecs-green hover:shadow-md transition-all">
+            <div class="flex items-center gap-3 mb-2">
+                <span class="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-ecs-green/10 text-ecs-green group-hover:bg-ecs-green group-hover:text-white transition-colors">
+                    <i class="ti {{ r.icon }} text-lg"></i>
+                </span>
+                <h3 class="text-base font-semibold text-gray-900 dark:text-white">{{ r.title }}</h3>
+            </div>
+            <p class="text-sm text-gray-500 dark:text-gray-400 flex-1">{{ r.desc }}</p>
+            <span class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-ecs-green">
+                Open report <i class="ti ti-arrow-right"></i>
             </span>
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ r.title }}</h3>
-        </div>
-        <p class="text-sm text-gray-500 dark:text-gray-400 flex-1">{{ r.desc }}</p>
-        <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-ecs-green">
-            Open report <i class="ti ti-arrow-right"></i>
-        </span>
-    </a>
-    {% endfor %}
-</div>
+        </a>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script id="attendance-data" type="application/json">{{ attendance_chart | tojson }}</script>
+<script id="movement-data" type="application/json">{{ movement_chart | tojson }}</script>
+<script id="discipline-data" type="application/json">{{ discipline_chart | tojson }}</script>
+<script id="retention-data" type="application/json">{{ retention_chart | tojson }}</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (typeof Chart === 'undefined') return;
+    var parse = function (id) {
+        var node = document.getElementById(id);
+        try { return JSON.parse(node ? node.textContent : '{}'); } catch (e) { return {}; }
+    };
+    var GREEN = '#16a34a', BLUE = '#3b82f6', AMBER = '#f59e0b', RED = '#ef4444', GRAY = '#9ca3af';
+
+    // Attendance distribution
+    var aEl = document.getElementById('attendanceChart');
+    var a = parse('attendance-data');
+    if (aEl && a.labels && a.labels.length) {
+        new Chart(aEl, {
+            type: 'bar',
+            data: { labels: a.labels, datasets: [{ label: 'Players', data: a.counts,
+                backgroundColor: [RED, AMBER, '#eab308', '#84cc16', GREEN], borderRadius: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+    }
+
+    // Movement by category
+    var mEl = document.getElementById('movementChart');
+    var m = parse('movement-data');
+    if (mEl && m.labels && m.labels.length) {
+        new Chart(mEl, {
+            type: 'bar',
+            data: { labels: m.labels, datasets: [{ label: 'Players', data: m.counts, backgroundColor: BLUE, borderRadius: 4 }] },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: { x: { beginAtZero: true, ticks: { precision: 0 } } } }
+        });
+    }
+
+    // Discipline by reason
+    var dEl = document.getElementById('disciplineChart');
+    var d = parse('discipline-data');
+    if (dEl && d.labels && d.labels.length) {
+        new Chart(dEl, {
+            type: 'doughnut',
+            data: { labels: d.labels, datasets: [{ data: d.counts,
+                backgroundColor: [RED, AMBER, '#a855f7', '#dc2626', GRAY] }] },
+            options: { responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } } } }
+        });
+    }
+
+    // Retention over time
+    var rEl = document.getElementById('retentionChart');
+    var r = parse('retention-data');
+    if (rEl && r.labels && r.labels.length) {
+        new Chart(rEl, {
+            type: 'line',
+            data: { labels: r.labels, datasets: [
+                { label: 'Retention %', data: r.retention, borderColor: GREEN, backgroundColor: 'rgba(22,163,74,0.1)', tension: 0.3, spanGaps: true, yAxisID: 'y', fill: true },
+                { label: 'Total Players', data: r.total, borderColor: GRAY, borderDash: [4, 4], tension: 0.3, yAxisID: 'y1' },
+                { type: 'bar', label: 'New', data: r.new, backgroundColor: 'rgba(59,130,246,0.5)', yAxisID: 'y1' },
+                { type: 'bar', label: 'Lapsed', data: r.lapsed, backgroundColor: 'rgba(239,68,68,0.5)', yAxisID: 'y1' }
+            ] },
+            options: { responsive: true, maintainAspectRatio: false,
+                scales: {
+                    y: { position: 'left', beginAtZero: true, max: 100, title: { display: true, text: 'Retention %' } },
+                    y1: { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { precision: 0 }, title: { display: true, text: 'Players' } }
+                } }
+        });
+    }
+});
+</script>
 {% endblock %}
