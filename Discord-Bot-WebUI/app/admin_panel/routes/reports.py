@@ -63,7 +63,7 @@ def _pub_league_seasons(session):
     """Pub League seasons ordered chronologically (oldest first)."""
     return (
         session.query(Season)
-        .filter(Season.league_type == 'pub_league')
+        .filter(Season.league_type == 'Pub League')
         .order_by(Season.start_date.asc(), Season.id.asc())
         .all()
     )

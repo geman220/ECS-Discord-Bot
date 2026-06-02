@@ -3,9 +3,38 @@
 
 {% block page_title %}{% block admin_title %}Admin Panel{% endblock %}{% endblock %}
 
+{# ===== Admin "website within a website" design layer =====================
+   The admin panel matches design-mockups/admin/ (mock _shell.css), distinct
+   from the player app. Scoped to .admin-area so the shared sidebar / top bar
+   stay in the player-app language. Light mode already matches prod tokens
+   (Inter, ecs-green = #1a472a, white cards, gray-200 borders); this layer adds
+   JetBrains Mono for stat numbers + remaps the dark theme from prod's bluish
+   gray to the mock's near-black zinc. .dark lives on <html>, so
+   `html.dark .admin-area .dark\:X` outranks Tailwind's `.dark .dark\:X`. #}
+{% block custom_css %}{{ super() }}
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  .admin-area .font-mono { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace; }
+  /* Dark theme: prod gray utilities -> mock zinc, admin-only. */
+  html.dark .admin-area .dark\:bg-gray-900 { background-color: #0f1115; }
+  html.dark .admin-area .dark\:bg-gray-800 { background-color: #18181b; }
+  html.dark .admin-area .dark\:bg-gray-700 { background-color: #1f1f23; }
+  html.dark .admin-area .dark\:bg-gray-700\/50 { background-color: rgba(31,31,35,0.5); }
+  html.dark .admin-area .dark\:border-gray-700 { border-color: #27272a; }
+  html.dark .admin-area .dark\:border-gray-600 { border-color: #27272a; }
+  html.dark .admin-area .dark\:text-white { color: #fafafa; }
+  html.dark .admin-area .dark\:text-gray-300 { color: #d4d4d8; }
+  html.dark .admin-area .dark\:text-gray-400 { color: #a1a1aa; }
+  html.dark .admin-area .dark\:hover\:bg-gray-700:hover { background-color: #1f1f23; }
+  html.dark .admin-area .dark\:hover\:bg-gray-700\/50:hover { background-color: rgba(31,31,35,0.6); }
+  /* Subtle zinc scrollbars inside the admin area (matches mock). */
+  .admin-area ::-webkit-scrollbar { width: 8px; height: 8px; }
+  html.dark .admin-area ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 6px; }
+</style>
+{% endblock %}
 
 {% block main_content %}
-<div class="max-w-[1500px] w-full mx-auto space-y-4 sm:space-y-5">
+<div class="admin-area max-w-[1500px] w-full mx-auto space-y-4 sm:space-y-5">
     {# Compact admin top bar: brand (left) + utilities (right). Replaces the old
        large hero card so the layout matches the mock — the real page title lives
        in the page content (e.g. "Operations Cockpit"). The panel_description block

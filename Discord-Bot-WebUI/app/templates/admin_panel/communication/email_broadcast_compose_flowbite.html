@@ -26,7 +26,7 @@
 </li>
 {% endblock %}
 
-{% block extra_css %}
+{% block extra_css %}{{ super() }}
 <style>
     .tox-tinymce { border-radius: 0.5rem !important; }
     .dark .tox-tinymce { border-color: #374151 !important; }

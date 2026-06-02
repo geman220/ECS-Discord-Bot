@@ -344,36 +344,46 @@ class PlayerAttendanceStats(db.Model):
             self.adjusted_attendance_rate = 0.0
             self.reliability_score = 0.0
         
-        # Update season-specific stats if season is set
-        if self.current_season_id:
-            self._update_season_stats(session)
-        
+        # Update CURRENT-season stats. Resolve the current season(s) here (is_current=True)
+        # so a bulk recompute doesn't need to pre-set current_season_id — that guard was
+        # why season attendance read 0% for everyone. Multiple leagues can each have a
+        # current season, so we count matches in any of them.
+        from app.models.core import Season
+        current_season_ids = [sid for (sid,) in session.query(Season.id)
+                              .filter(Season.is_current.is_(True)).all()]
+        if current_season_ids:
+            self.current_season_id = current_season_ids[0]
+            self._update_season_stats(session, current_season_ids)
+        else:
+            self.season_matches_invited = 0
+            self.season_yes_responses = 0
+            self.season_attendance_rate = 0.0
+
         self.last_updated = datetime.utcnow()
-        
-    def _update_season_stats(self, session):
-        """Update current season statistics (same 'bounded by first activity'
-        denominator as update_stats, scoped to the current season)."""
+
+    def _update_season_stats(self, session, season_ids):
+        """Update current-season statistics (same 'bounded by first activity'
+        denominator as update_stats, scoped to the current season(s))."""
         from sqlalchemy import or_
         from app.models.matches import Match, Availability, Schedule
 
         team_ids = [tid for (tid,) in session.query(player_teams.c.team_id)
                     .filter(player_teams.c.player_id == self.player_id).all()]
 
-        # First activity WITHIN this season.
-        first_activity = session.query(func.min(Availability.responded_at)).join(Match).join(Schedule).filter(
-            Availability.player_id == self.player_id,
-            Schedule.season_id == self.current_season_id
-        ).scalar()
+        # First recorded activity (career-wide) — a lower date bound so current-season
+        # team matches all qualify even if the player hasn't RSVP'd yet this season.
+        first_activity = session.query(func.min(Availability.responded_at)).filter(
+            Availability.player_id == self.player_id).scalar()
 
-        # The player's season responses, keyed by match.
+        # The player's responses within the current season(s), keyed by match.
         responses = dict(session.query(Availability.match_id, Availability.response).join(Match).join(Schedule).filter(
             Availability.player_id == self.player_id,
-            Schedule.season_id == self.current_season_id
+            Schedule.season_id.in_(season_ids)
         ).all())
 
         if team_ids and first_activity is not None:
             season_match_ids = [mid for (mid,) in session.query(Match.id).join(Schedule).filter(
-                Schedule.season_id == self.current_season_id,
+                Schedule.season_id.in_(season_ids),
                 or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)),
                 Match.date >= first_activity.date()
             ).all()]

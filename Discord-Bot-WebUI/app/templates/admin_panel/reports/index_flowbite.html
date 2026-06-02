@@ -254,12 +254,19 @@ document.addEventListener('DOMContentLoaded', function () {
         try { return JSON.parse(node ? node.textContent : '{}'); } catch (e) { return {}; }
     };
     var GREEN = '#16a34a', BLUE = '#3b82f6', AMBER = '#f59e0b', RED = '#ef4444', GRAY = '#9ca3af';
+    // Destroy any chart already bound to the canvas first — guards against the init
+    // running twice (bfcache / re-init) which throws "Canvas is already in use".
+    var makeChart = function (el, config) {
+        var prev = Chart.getChart(el);
+        if (prev) { prev.destroy(); }
+        return new Chart(el, config);
+    };
 
     // Attendance distribution
     var aEl = document.getElementById('attendanceChart');
     var a = parse('attendance-data');
     if (aEl && a.labels && a.labels.length) {
-        new Chart(aEl, {
+        makeChart(aEl, {
             type: 'bar',
             data: { labels: a.labels, datasets: [{ label: 'Players', data: a.counts,
                 backgroundColor: [RED, AMBER, '#eab308', '#84cc16', GREEN], borderRadius: 4 }] },
@@ -272,7 +279,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var mEl = document.getElementById('movementChart');
     var m = parse('movement-data');
     if (mEl && m.labels && m.labels.length) {
-        new Chart(mEl, {
+        makeChart(mEl, {
             type: 'bar',
             data: { labels: m.labels, datasets: [{ label: 'Players', data: m.counts, backgroundColor: BLUE, borderRadius: 4 }] },
             options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
@@ -285,7 +292,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var dEl = document.getElementById('disciplineChart');
     var d = parse('discipline-data');
     if (dEl && d.labels && d.labels.length) {
-        new Chart(dEl, {
+        makeChart(dEl, {
             type: 'doughnut',
             data: { labels: d.labels, datasets: [{ data: d.counts,
                 backgroundColor: [RED, AMBER, '#a855f7', '#dc2626', GRAY] }] },
@@ -298,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var rEl = document.getElementById('retentionChart');
     var r = parse('retention-data');
     if (rEl && r.labels && r.labels.length) {
-        new Chart(rEl, {
+        makeChart(rEl, {
             type: 'line',
             data: { labels: r.labels, datasets: [
                 { label: 'Retention %', data: r.retention, borderColor: GREEN, backgroundColor: 'rgba(22,163,74,0.1)', tension: 0.3, spanGaps: true, yAxisID: 'y', fill: true },
