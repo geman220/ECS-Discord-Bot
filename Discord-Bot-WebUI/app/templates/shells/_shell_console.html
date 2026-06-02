@@ -1,5 +1,5 @@
 {# Shell B — Modern Console. Expand-on-hover icon rail rendered from the shared
    role-gated nav_sections source. Uses id="sidebar" so the existing top-bar
    hamburger / mobile drawer continue to work unchanged. #}
-{% from 'macros/_nav_render.html' import console_rail %}
+{% from 'macros/_nav_render.html' import console_rail with context %}
 {{ console_rail(nav_sections) }}

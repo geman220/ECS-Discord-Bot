@@ -112,6 +112,7 @@ def main():
     ap.add_argument('--shell', choices=['console', 'classic'], default='console')
     ap.add_argument('--max-pages', type=int, default=250)
     ap.add_argument('--out', default='ui_cert.json')
+    ap.add_argument('--delay', type=float, default=0.0, help='seconds to wait between page loads (avoid rate limits)')
     ap.add_argument('--seeds', nargs='*', default=['/', '/admin-panel', '/admin-panel/dashboard'])
     args = ap.parse_args()
     base = args.base.rstrip('/')
@@ -168,6 +169,7 @@ def main():
             if urlparse(page.url).netloc != host:
                 continue
             pages.append(page.url)
+            if args.delay: page.wait_for_timeout(int(args.delay*1000))
             try:
                 res = page.evaluate(INSPECT_JS)
             except Exception:

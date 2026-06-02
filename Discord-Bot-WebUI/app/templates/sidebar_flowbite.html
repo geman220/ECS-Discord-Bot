@@ -1,6 +1,6 @@
 <!-- Flowbite Sidebar Menu (Shell A — Classic). Nav items come from the shared
      role-gated `nav_sections` source via the sidebar_nav macro. -->
-{% from 'macros/_nav_render.html' import sidebar_nav %}
+{% from 'macros/_nav_render.html' import sidebar_nav with context %}
 <aside id="sidebar" class="fixed top-0 left-0 z-40 w-64 h-screen transition-transform -translate-x-full lg:translate-x-0" aria-label="Sidebar">
     <div class="h-full flex flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
         <!-- Logo -->
