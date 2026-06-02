@@ -400,7 +400,9 @@
       <form ...> ... <button data-modal-hide="matchModal">Cancel</button> </form>
     {% endcall %}
 --------------------------------------------------------------------------- #}
-{% macro modal(id, title, icon=None, size='md') %}
+{% macro modal(id, title, icon=None, size='md', closable=true, static_backdrop=true, mobile_fullscreen=false) %}
+{# closable/static_backdrop/mobile_fullscreen accepted for API parity with macros/flowbite.html's modal
+   (this macro already uses a static backdrop); closable toggles the X button. #}
 {% set sizes = {'sm': 'max-w-sm', 'md': 'max-w-md', 'lg': 'max-w-lg', 'xl': 'max-w-2xl'} %}
 <div id="{{ id }}" tabindex="-1" aria-hidden="true" aria-modal="true" role="dialog"
      aria-labelledby="{{ id }}-title" data-modal-backdrop="static"
@@ -411,6 +413,7 @@
         <h3 id="{{ id }}-title" class="font-bold flex items-center gap-2 text-gray-900 dark:text-white">
           {% if icon %}<i class="ti {{ icon }} text-ecs-green" aria-hidden="true"></i>{% endif %} {{ title }}
         </h3>
+        {% if closable %}
         <button type="button" data-modal-hide="{{ id }}"
                 class="modal-close-btn p-2 -mr-2 min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0 inline-flex items-center justify-center
                        rounded-lg text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700
@@ -418,6 +421,7 @@
                 aria-label="Close modal">
           <i class="ti ti-x text-lg" aria-hidden="true"></i>
         </button>
+        {% endif %}
       </div>
       <div class="modal-body overflow-y-auto">
         {{ caller() }}

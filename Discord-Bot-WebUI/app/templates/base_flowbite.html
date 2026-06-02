@@ -144,21 +144,26 @@
     {% set shell = shell|default('classic') %}
     {# console rail only when console AND not the full-sidebar console (admin keeps full sidebar) #}
     {% set _console_rail = (shell == 'console' and not console_full_sidebar|default(false)) %}
+    {# admin console = the full-sidebar console; now rendered as a horizontal TOP nav (full-width content). #}
+    {% set _admin_console = (shell == 'console' and console_full_sidebar|default(false)) %}
     {% if safe_current_user.is_authenticated %}
-    <!-- Left shell chrome: Console icon-rail (w-16) for the user-facing Modern shell;
-         full sidebar (w-64) for Classic AND the admin full-sidebar console. -->
+    <!-- Shell chrome: Console icon-rail (w-16) for the user-facing Modern shell;
+         admin TOP nav (full-width, no left offset) for the admin console;
+         full sidebar (w-64) for Classic. -->
     {% if _console_rail %}
         {% include 'shells/_shell_console.html' %}
-    {% elif shell == 'console' and console_full_sidebar|default(false) %}
-        {# Admin panel in Modern: console-styled FULL sidebar (not the Classic one) #}
-        {% include 'shells/_shell_admin.html' %}
+    {% elif _admin_console %}
+        {# Admin panel uses the SAME Modern icon-rail as the main app, so the side
+           navbar is identical app-wide (consistency over a bespoke admin sidebar). #}
+        {% include 'shells/_shell_console.html' %}
     {% else %}
         {% include 'sidebar_flowbite.html' %}
     {% endif %}
     {% endif %}
 
-    <!-- Main Content Area — left offset: w-16 only for the icon-rail console, else w-64. -->
-    {% set _shell_offset = 'lg:ml-16' if _console_rail else 'lg:ml-64' %}
+    <!-- Main Content Area — left offset: w-16 for the icon-rail console (main app
+         AND admin, which now share the rail), w-64 for Classic. -->
+    {% set _shell_offset = 'lg:ml-16' if (_console_rail or _admin_console) else 'lg:ml-64' %}
     <div class="min-h-screen flex flex-col {% if safe_current_user.is_authenticated %}{{ _shell_offset }}{% endif %}">
         <!-- Top Navbar (shared utility bar) -->
         {% if safe_current_user.is_authenticated %}

@@ -266,35 +266,67 @@ class PlayerAttendanceStats(db.Model):
         return stats
     
     def update_stats(self, session=None):
-        """Recalculate all statistics from availability data."""
+        """Recalculate all statistics from availability data.
+
+        'Matches invited' is the set of matches the player's current team(s)
+        actually played, bounded to those on/after the player's FIRST recorded
+        RSVP (earliest Availability.responded_at) — a proxy for tenure, since no
+        roster join-date is stored. Matches in that window with no yes/no/maybe
+        response count as no-response, so a player who only answered a couple of
+        RSVPs no longer shows an artificial 100% (the denominator was previously
+        just the count of Availability rows, i.e. only games they responded to).
+        """
         if session is None:
             session = g.db_session
-            
-        # Get all availability records for this player
-        availability_records = session.query(Availability).filter_by(player_id=self.player_id).all()
-        
+
+        from sqlalchemy import or_
+        from app.models.matches import Match, Availability
+
+        # Player's current team(s).
+        team_ids = [tid for (tid,) in session.query(player_teams.c.team_id)
+                    .filter(player_teams.c.player_id == self.player_id).all()]
+
+        # First recorded activity = proxy for when the player started being invited.
+        first_activity = session.query(func.min(Availability.responded_at)).filter(
+            Availability.player_id == self.player_id).scalar()
+
+        # The player's actual responses, keyed by match.
+        responses = {a.match_id: (a.response or '').lower()
+                     for a in session.query(Availability).filter_by(player_id=self.player_id).all()}
+
+        # The invited universe: every match the player's team(s) played from their
+        # first activity onward. Fall back to response rows only when we have no
+        # team/activity signal (brand-new player → treated as no data, as before).
+        if team_ids and first_activity is not None:
+            invited_match_ids = [mid for (mid,) in session.query(Match.id).filter(
+                or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)),
+                Match.date >= first_activity.date()
+            ).all()]
+        else:
+            invited_match_ids = list(responses.keys())
+
         # Reset counters
-        self.total_matches_invited = len(availability_records)
+        self.total_matches_invited = len(invited_match_ids)
         self.total_responses = 0
         self.yes_responses = 0
         self.no_responses = 0
         self.maybe_responses = 0
         self.no_response_count = 0
-        
-        # Count responses
-        for record in availability_records:
-            response = (record.response or '').lower()
-            if response in ['yes', 'no', 'maybe']:
+
+        # Count responses across the invited universe (missing row => no-response)
+        for mid in invited_match_ids:
+            response = responses.get(mid, '')
+            if response in ('yes', 'no', 'maybe'):
                 self.total_responses += 1
                 if response == 'yes':
                     self.yes_responses += 1
                 elif response == 'no':
                     self.no_responses += 1
-                elif response == 'maybe':
+                else:
                     self.maybe_responses += 1
             else:
                 self.no_response_count += 1
-        
+
         # Calculate percentages
         if self.total_matches_invited > 0:
             self.response_rate = (self.total_responses / self.total_matches_invited) * 100
@@ -319,16 +351,39 @@ class PlayerAttendanceStats(db.Model):
         self.last_updated = datetime.utcnow()
         
     def _update_season_stats(self, session):
-        """Update current season statistics."""
-        # Get availability records for current season
-        season_records = session.query(Availability).join(Match).join(Schedule).filter(
+        """Update current season statistics (same 'bounded by first activity'
+        denominator as update_stats, scoped to the current season)."""
+        from sqlalchemy import or_
+        from app.models.matches import Match, Availability, Schedule
+
+        team_ids = [tid for (tid,) in session.query(player_teams.c.team_id)
+                    .filter(player_teams.c.player_id == self.player_id).all()]
+
+        # First activity WITHIN this season.
+        first_activity = session.query(func.min(Availability.responded_at)).join(Match).join(Schedule).filter(
             Availability.player_id == self.player_id,
             Schedule.season_id == self.current_season_id
-        ).all()
-        
-        self.season_matches_invited = len(season_records)
-        self.season_yes_responses = sum(1 for r in season_records if (r.response or '').lower() == 'yes')
-        
+        ).scalar()
+
+        # The player's season responses, keyed by match.
+        responses = dict(session.query(Availability.match_id, Availability.response).join(Match).join(Schedule).filter(
+            Availability.player_id == self.player_id,
+            Schedule.season_id == self.current_season_id
+        ).all())
+
+        if team_ids and first_activity is not None:
+            season_match_ids = [mid for (mid,) in session.query(Match.id).join(Schedule).filter(
+                Schedule.season_id == self.current_season_id,
+                or_(Match.home_team_id.in_(team_ids), Match.away_team_id.in_(team_ids)),
+                Match.date >= first_activity.date()
+            ).all()]
+        else:
+            season_match_ids = list(responses.keys())
+
+        self.season_matches_invited = len(season_match_ids)
+        self.season_yes_responses = sum(1 for mid in season_match_ids
+                                        if (responses.get(mid) or '').lower() == 'yes')
+
         if self.season_matches_invited > 0:
             self.season_attendance_rate = (self.season_yes_responses / self.season_matches_invited) * 100
         else:
